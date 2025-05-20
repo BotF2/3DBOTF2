@@ -36,7 +36,7 @@ public class EncounterManager : MonoBehaviour
     }
     public void ResolveEncounter(FleetController fleetConA, FleetController fleetConB)
     { // already not one of our fleets
-        if (fleetConA != null)                                                                                                                                                    
+        if (fleetConA != null)
         {
             var civPartyOne = fleetConA.FleetData.CivController;
             var civPartyTwo = fleetConB.FleetData.CivController;
@@ -44,7 +44,7 @@ public class EncounterManager : MonoBehaviour
             if (!DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
             {   // First Contact
                 DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
-                FirstContactFleetOnFleetEncounterController(fleetConA, fleetConB); 
+                FirstContactFleetOnFleetEncounterController(fleetConA, fleetConB);
                 // will we need this? Will AI need to remember this encounter outside of diplomacy?
             }
             else // Not First Contact and we do fleets of same civ management back in FleetController
@@ -52,6 +52,17 @@ public class EncounterManager : MonoBehaviour
                 DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
                 NextFleetToFleetEncounter(fleetConA, fleetConB); // Will we need this? Is it all done in Diplomacy and FleetControllers?
             }
+        }
+    }
+    public void ResolveEncounter(CivController localCiv, StarSysController sysCon)
+    { // already not one of our fleets
+
+        var civPartyOne = localCiv;
+        var civPartyTwo = sysCon.StarSysData.CurrentCivController;
+        //have we met before?
+        if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
+        {   // no First Contact just by clicking on the system
+            DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
         }
     }
     public void ResolveEncounter(FleetController fleetConA, StarSysController sysCon)
@@ -71,7 +82,7 @@ public class EncounterManager : MonoBehaviour
                     DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
                     FirstContactFleetOnStarSysNewEncounnterController(fleetConA, sysCon); // do we do something specila with system entry here?
                 }
-                else 
+                else
                 { // not first contact
                     DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
                     FeetToSysNotSameCivNotFirstEncounter(fleetConA, sysCon);
@@ -83,7 +94,7 @@ public class EncounterManager : MonoBehaviour
         {
             //React to Uninhabited system contact and Colonize option
             FeetsUninhabitedSysEncounter(fleetConA, sysCon);
-            
+
 
 
             foreach (ShipController shipController in fleetConA.FleetData.GetShipList())
@@ -112,6 +123,15 @@ public class EncounterManager : MonoBehaviour
         encounterController.EncounterData.isCompleted = false;
         //encounterController.ResolveFleetEncounter();
         EncounterControllers.Add(encounterController);
+    }
+    private void FirstContactFleetOnFleetEncounterController(CivController localCiv, StarSysController sysCon)
+    { //ToDo: if we know the system's owner and we click on it what happens? 
+        //var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
+        ////encounterData.EncounterType = EncounterType.FirstContact;
+        //EncounterController encounterController = new EncounterController(encounterData);
+        //encounterController.EncounterData.isCompleted = false;
+        ////encounterController.ResolveFleetEncounter();
+        //EncounterControllers.Add(encounterController);
     }
     private void FirstContactFleetOnStarSysNewEncounnterController(FleetController fleetCon, StarSysController starSysCon)
     {
@@ -184,7 +204,6 @@ public class EncounterManager : MonoBehaviour
                 break;
             default:
                 break;
-            
         }
         return encounterType;
     }

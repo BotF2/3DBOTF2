@@ -7,7 +7,6 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEditor;
 
-
 namespace Assets.Core
 {
     /// <summary>
@@ -38,7 +37,7 @@ namespace Assets.Core
         private bool starTimer = true;
         public Slider SliderBuildProgress;
         private float starDateOfCompletion = 1f;
-        private int currentProgress =1;
+        private int currentProgress = 1;
         private int startDate = 1;
         public int TimeToBuild = 1;
         [SerializeField]
@@ -277,7 +276,7 @@ namespace Assets.Core
 
             //Does sysBuildQueueList have extra items not in buildListGridLayoutGroup children?
             foreach (Transform child in buildListGridLayoutGroup.transform)
-            {   
+            {
                 if (!sysBuildQueueList.Contains(child))
                     sysBuildQueueList.Remove(child);
             }
@@ -290,7 +289,7 @@ namespace Assets.Core
             {
                 buildingItem = sysBuildQueueList[0];
                 building = true;
-                
+
                 if (buildingItem != lastBuildingItem)
                 {
                     TimeToBuild = GetBuildTimeDuration(buildingItem.gameObject.GetComponentInChildren<FactoryBuildableItem>().FacilityType);
@@ -339,7 +338,7 @@ namespace Assets.Core
         }
 
 
-        private void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType )
+        private void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
         {
             if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
             {
@@ -414,7 +413,7 @@ namespace Assets.Core
                 GalaxyMenuUIController.Instance.UpdateSystemPowerLoad(this);
             }
         }
- 
+
         public int GetBuildTimeDuration(StarSysFacilities starSysFacilities)
         {
             int timeDuration = 1;
@@ -450,7 +449,7 @@ namespace Assets.Core
             if (discoveringCiv != null)
             {
                 HabitableSysUIController.Instance.LoadHabitableSysUI(this, discoveringCiv);
-            } 
+            }
         }
 
         public void UpdateOwner(CivEnum newOwner) // system captured or colonized
@@ -465,9 +464,15 @@ namespace Assets.Core
             {
                 GameObject sysGO = hit.collider.gameObject;
                 // what a Star System Controller does with a hit
-                if (sysGO.tag != "GalaxyImage")
+                if (sysGO.tag != "GalaxyImage") // && GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
                 {
-                    if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)) // this 'StarSystem' is a local player galaxy object hit
+                    if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true)
+                    {
+                        FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
+                        theFleetConLookingForDestination.FleetData.Destination = sysGO;
+                        theFleetConLookingForDestination.SetAsDestinationInUI(sysGO);
+                    }
+                    else if (this.StarSysData.CurrentCivController.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
                     {
                         GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                         GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
@@ -477,37 +482,22 @@ namespace Assets.Core
                         GalaxyMenuUIController.Instance.UpdateSystemPowerLoad(this);
                         GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, sysGO); // set the system UI to this system
                     }
-                    else if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true)
-                    {
-                        FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
-                        theFleetConLookingForDestination.FleetData.Destination = sysGO;
-                        theFleetConLookingForDestination.SetAsDestinationInUI(sysGO);
-
-                        //GalaxyMenuUIController.Instance.SetAsDestinationInUI(sysGO.name, sysGO.transform.position);
-                    }
-                    else if (DiplomacyManager.Instance.FoundADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller))
+                    else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                     { // this is a system local player does not own but we know them
-                        DiplomacyUIController.Instance.LoadDiplomacyUI(DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller));
-                        var diplomacyController = DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller);
-                        GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyController.DiplomacyUIGameObject);
+                        EncounterManager.Instance.ResolveEncounter(CivManager.Instance.LocalPlayerCivContoller, this);
+
+                        //DiplomacyUIController.Instance.LoadDiplomacyUI(DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller));
+                        //var diplomacyController = DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller);
+                        //GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyController.DiplomacyUIGameObject);
                     }
                 }
             }
         }
-        //private void NewDestination(GameObject sysGO)
-        //{
-        //    for (int i = 0; i < FleetManager.Instance.FleetConrollersInGame.Count; i++)
-        //    {
-        //        if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true)
-        //        {
-        //            FleetManager.Instance.FleetConrollersInGame[i].SetAsDestinationInUI(sysGO);
-        //        }
-        //    }
-        //}
+
 
         public void OnEnable()
         {
-            if(TimeManager.Instance != null)
+            if (TimeManager.Instance != null)
                 TimeManager.Instance.OnRandomSpecialEvent += DoDisaster;
         }
         public void OnDisable()
@@ -614,7 +604,7 @@ namespace Assets.Core
                                     this.StarSysData.TotalSysPowerLoad -= StarSysData.FactoryData.PowerLoad;
                                     GalaxyMenuUIController.Instance.UpdateFacilityUI(this, -1, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                                     break;
-                                }                      
+                                }
                             }
                         }
                         break;
@@ -674,7 +664,7 @@ namespace Assets.Core
                                     {
                                         StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "1";
                                         this.StarSysData.TotalSysPowerLoad += StarSysData.ShieldGeneratorData.PowerLoad;
-                                        GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);  
+                                        GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
                                         break;
                                     }
                                 }
@@ -767,7 +757,7 @@ namespace Assets.Core
                                     this.StarSysData.TotalSysPowerLoad -= StarSysData.ResearchCenterData.PowerLoad;
                                     GalaxyMenuUIController.Instance.UpdateFacilityUI(this, -1, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
                                     break;
-                                }          
+                                }
                             }
                         }
                         break;
@@ -796,7 +786,7 @@ namespace Assets.Core
             //ShipSliderBuildProgress.enabled = true;
             //ShipSliderBuildProgress.gameObject.transform.SetAsLastSibling();
             ShipSliderBuildProgress.value = shipProgress;
-  
+
         }
     }
 

@@ -7,7 +7,6 @@ public class EncounterController
     private EncounterData encounterData;
     public EncounterData EncounterData { get { return encounterData; } set { encounterData = value; } }
 
-
     public EncounterController(EncounterData encounterData)
     {
         EncounterData = encounterData;

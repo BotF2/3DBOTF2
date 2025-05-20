@@ -241,7 +241,6 @@ public class GalaxyMenuUIController : MonoBehaviour
             CloseMenu(Menu.ADiplomacyMenu);
         else
             OpenMenu(Menu.DiplomacyMenu, null);
-
     }
     public void IntelButtonPressed()
     {
@@ -260,13 +259,12 @@ public class GalaxyMenuUIController : MonoBehaviour
     // Home System view is in GalaxyCameraDragMoveZoom.cs
     public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
     {
-
         if (openMenuWas != null)
         {
             openMenuWas.SetActive(false);
             CloseMenu(openMenuEnumWas);
         }
-        
+
         switch (menuEnum)
         {
             case Menu.None:
@@ -373,7 +371,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     private void SetUpAFleetUIData(FleetController theFleetCon)
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
-        theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false );
+        theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
     }
     private void SetUpASystemUIData(StarSysController theSysCon) // now system ui open single system view when our system is clicked on galaxy map
     {
@@ -399,6 +397,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = systemsMenuView;
                 break;
             case Menu.ASystemMenu:
+                MoveBackAnySysUIGO();
                 sysBackground.SetActive(false);
                 aSystemMenuView.SetActive(false);
                 openMenuWas = aSystemMenuView;
@@ -414,6 +413,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = fleetsMenuView;
                 break;
             case Menu.AFleetMenu:
+                MoveBackAnyFleetUIGO();
                 CloseDestinationSelectionCursor();
                 fleetBackground.SetActive(false);
                 aFleetMenuView.SetActive(false);
@@ -426,6 +426,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = diplomacyMenuView;
                 break;
             case Menu.ADiplomacyMenu:
+                MoveBackAnyDiplomacyUIGO();
                 diplomacyBackground.SetActive(false);
                 aDiplomacyMenuView.SetActive(false);
                 TimeManager.Instance.ResumeTime();
@@ -442,6 +443,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = encyclopediaMenuView;
                 break;
             case Menu.HabitableSysMenu:
+                TimeManager.Instance.ResumeTime();
                 habitableSysMenu.SetActive(false);
                 openMenuWas = habitableSysMenu;
                 break;
@@ -481,8 +483,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         for (int j = 0; j < FleetManager.Instance.FleetControllerList.Count; j++)
         {
             var fleetCon = FleetManager.Instance.FleetControllerList[j];
-            if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum)) 
-            {       
+            if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+            {
                 {
                     fleetCon.FleetUIGameObject.SetActive(true);
                     fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
@@ -490,7 +492,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     listOfFleetUiGos.Add(fleetCon.FleetUIGameObject); // add to list of FleetUI Game Objects GalaxyMenuUI knows
                     RectTransform[] rectTransforms = fleetCon.FleetUIGameObject.GetComponentsInChildren<RectTransform>();
                     for (int i = 0; i < rectTransforms.Length; i++)
-                    {               
+                    {
                         switch (rectTransforms[i].name)
                         {
                             case "RedDot":
@@ -629,7 +631,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                         nameShip = fleetCon.FleetData.ShipsList[i].name;
                         nameShip = nameShip.Replace("(CLONE)", string.Empty);
                         newDataItem.text = nameShip;
-                        newShipItems.Add(newDataItem);                          
+                        newShipItems.Add(newDataItem);
                     }
                 }
                 shipDropdown.AddOptions(newShipItems);
@@ -642,7 +644,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
             }
         }
-        
+
     }
     public void OnClickShipManager()
     {
@@ -696,14 +698,14 @@ public class GalaxyMenuUIController : MonoBehaviour
             {
                 OneTMP[i].text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
             }
-            if (areWeDoneYet && areWeDone) 
+            if (areWeDoneYet && areWeDone)
             {
 
                 return;
             }
         }
     }
-    public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp) 
+    public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {
         float warpSliderValue = theirWarp;
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
@@ -747,7 +749,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         {
             if (MousePointerChanger.Instance.HaveGalaxyMapCursor == false)
             {
-               // FleetConsLookingForDestination.Add(fleetConWaitingForDestination); // list for mulitplayer games
+                // FleetConsLookingForDestination.Add(fleetConWaitingForDestination); // list for mulitplayer games
                 dragDestinationTargetButtonGO.SetActive(false); // to see cancel destination button below
                 cancelDestinationButtonGO.SetActive(true);
                 selectDestinationCursorButtonGO.SetActive(false);
@@ -839,7 +841,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void SetupSystemUIData()
     { // populate the system UI with the data from the sysController
-        
+
         foreach (var sysController in StarSysManager.Instance.StarSysControllerList)
         {
             if (!listOfStarSysUiGos.Contains(sysController.StarSystUIGameObject) && GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
@@ -1206,7 +1208,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         {
             int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
             OneTMP[i].enabled = true;
-           // if ()
+            // if ()
             if ("NumP Load" == OneTMP[i].name)
             {
                 OneTMP[i].text = load.ToString();
@@ -1266,8 +1268,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void SetUpDiplomacyUIData(DiplomacyController diplomacyCon)
     {
-        CivController partyOne = diplomacyCon.DiplomacyData.CivOne;
-        CivController partyTwo = diplomacyCon.DiplomacyData.CivTwo;
+        CivController partyOne = diplomacyCon.DiplomacyData.CivMajor;
+        CivController partyTwo = diplomacyCon.DiplomacyData.CivOther;
         CivController notLocalPlayerCiv;
         CivController localPlayerCiv;
         StarSysController homeSysController;
@@ -1280,43 +1282,51 @@ public class GalaxyMenuUIController : MonoBehaviour
             notLocalPlayerCiv = partyTwo;
             localPlayerCiv = partyOne;
             FindTheirHomeSystem(partyTwo, out homeSysController);
-            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivTwo, ourDiplomacyController);
+            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivOther, ourDiplomacyController);
         }
         else
         {
             notLocalPlayerCiv = partyOne;
             localPlayerCiv = partyTwo;
             FindTheirHomeSystem(partyOne, out homeSysController);
-            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivOne, ourDiplomacyController);
+            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController);
         }
         Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
         for (int q = 0; q < listOfImages.Length; q++)
         {
             // int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.StartingTechLevel / 100; // Early Tech level = 100, Supreme = 900;
+            bool foundRaceImage = false;
+            bool foundInsigniaImage = false;
             listOfImages[q].enabled = true;
             var name = listOfImages[q].name.ToString();
             switch (name)
             {
                 case "RaceImage":
                     listOfImages[q].sprite = notLocalPlayerCiv.CivData.CivRaceSprite;
+                    foundRaceImage = true;
                     break;
                 case "InsigniaTheirCiv (TMP)":
                     listOfImages[q].sprite = notLocalPlayerCiv.CivData.InsigniaSprite;
+                    foundInsigniaImage = true;
                     break;
                 default:
                     break;
             }
+            if (foundRaceImage && foundInsigniaImage)
+            {
+                break;
+            }
         }
         RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>();
         for (int i = 0; i < rectTransforms.Length; i++)
-        {    
+        {
             switch (rectTransforms[i].name)
             {
                 case "RedDot":
                     rectTransforms[i].gameObject.SetActive(true);
-                    float x = homeSysController.StarSysData.GetPosition().x * 0.12f; // 0.12f is our cosmologic constant, fudge factor
+                    float x = homeSysController.StarSysData.GetPosition().x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
                     float y = 0f;
-                    float z = homeSysController.StarSysData.GetPosition().z * 0.12f; // 0.12f is our cosmologic constant, fudge factor
+                    float z = homeSysController.StarSysData.GetPosition().z * 0.12f;
                     rectTransforms[i].Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
                     break;
                 case "InteractionButton":
