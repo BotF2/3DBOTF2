@@ -8,7 +8,6 @@ public class DiplomacyController //: MonoBehaviour
 {
     private DiplomacyData diplomacyData; // holds civOne and two and diplomacy enum
     public DiplomacyData DiplomacyData { get { return diplomacyData; } set { diplomacyData = value; } }
-
     private static string declareWar = "The A declares war on the B.";
     private static string requestSomething = "The A request X from the B.";
     private static string demandSomething = "The A demand X from the B.";
