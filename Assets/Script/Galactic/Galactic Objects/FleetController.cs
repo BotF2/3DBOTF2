@@ -451,7 +451,6 @@ namespace Assets.Core
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
-
             //FleetData.Destination = hitObject;           
             int typeOfDestination = -1;// galaxy object type Enum SystemType if =>1
             string destinationNameText = "";
