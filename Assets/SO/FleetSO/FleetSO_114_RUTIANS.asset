@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: FleetSO_114_RUTIANS
   m_EditorClassIdentifier: 
   CivIndex: 114
-  Insignia: {fileID: 0}
+  Insignia: {fileID: 21300000, guid: be4adb378033b014f831722e53356de5, type: 3}
   CivOwnerEnum: 114
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 
