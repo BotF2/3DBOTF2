@@ -116,7 +116,7 @@ public class DiplomacyController //: MonoBehaviour
     }
     public void Combat(DiplomacyController diplomacyController)
     {
-        //ToDo:
+        SceneController.Instance.LoadCombatScene();
     }
 
 }
