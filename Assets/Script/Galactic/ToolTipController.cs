@@ -25,7 +25,6 @@ public class ToolTipController : MonoBehaviour, IPointerEnterHandler, IPointerEx
     //    }
     //}
     
-
     void IPointerEnterHandler.OnPointerEnter(PointerEventData eventData)
     {
         if (TextComponent != null && HoverManager.Instance != null)

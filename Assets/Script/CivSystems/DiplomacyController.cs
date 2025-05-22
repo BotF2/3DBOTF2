@@ -117,6 +117,7 @@ public class DiplomacyController //: MonoBehaviour
     public void Combat(DiplomacyController diplomacyController)
     {
         SceneController.Instance.LoadCombatScene();
+        DiplomacyManager.Instance.SpaceCombatScene(diplomacyController);
     }
 
 }

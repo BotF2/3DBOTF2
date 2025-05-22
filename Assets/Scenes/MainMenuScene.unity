@@ -7452,6 +7452,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DiplomacyUIprefab
       objectReference: {fileID: 0}
+    - target: {fileID: 4764215955950854528, guid: 8fc1ae8773788b443ba863fe74207f8b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5475156004906312335, guid: 8fc1ae8773788b443ba863fe74207f8b, type: 3}
       propertyPath: m_Pivot.x
       value: 0
