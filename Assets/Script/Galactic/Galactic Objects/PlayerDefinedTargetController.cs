@@ -13,6 +13,7 @@ public class PlayerDefinedTargetController : MonoBehaviour
     public GameObject galaxyBackgroundImage;
     public Canvas CanvasToolTip;
     private Rigidbody rb;
+    private PlayerDefinedTargetManager _manager;
 
     void Start()
     {
@@ -25,6 +26,10 @@ public class PlayerDefinedTargetController : MonoBehaviour
     {
         if (transform.hasChanged)
             MoveTheDropline();
+    }
+    public void Init(PlayerDefinedTargetManager manager)
+    {
+        _manager = manager;
     }
     private void OnMouseDown()
     {

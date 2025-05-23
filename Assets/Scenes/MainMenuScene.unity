@@ -41132,6 +41132,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ff6a5f49b26e72448ae0bc07e3f2a1ab, type: 2}
   - {fileID: 11400000, guid: cc87f47bdb5ebd048a0fc0b69afdcd76, type: 2}
   sysGOPrefab: {fileID: 6000483729355016117, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
+  sysPrefab: {fileID: 1344623282000112472, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
   shipSliderPrefab: {fileID: 3868390008097759204, guid: 897bffe8bfb3c714682af28e16f3d3dc, type: 3}
   sysUIPrefab: {fileID: 4945801355922885453, guid: 2019fad506023ad42a54b9e786bd3ff1, type: 3}
   StarSysControllerList: []

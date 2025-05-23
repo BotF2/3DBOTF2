@@ -19,7 +19,7 @@ public enum EncounterType
 /// </summary>
 public class EncounterManager : MonoBehaviour
 {
-    public List<EncounterController> EncounterControllers = new List<EncounterController>(); // EncounterController is not MonoBehavior
+    public List<EncounterController> EncounterControllers { get; private set; } = new List<EncounterController>(); // EncounterController is not MonoBehavior
 
     public static EncounterManager Instance { get; private set; }
     private void Awake()

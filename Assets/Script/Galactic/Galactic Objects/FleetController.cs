@@ -62,7 +62,7 @@ namespace Assets.Core
         [SerializeField]
         private TextMeshProUGUI destinationName; // = new TextMeshProUGUI();
         [SerializeField]
-        private TextMeshProUGUI destinationCoordinates; // = new TextMeshProUGUI();
+        private TextMeshProUGUI destinationCoordinates;
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         
@@ -86,7 +86,7 @@ namespace Assets.Core
             DestinationLine.GetLineRenderer();
             DestinationLine.transform.SetParent(transform, false);
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
-            destinationCoordinates = new TextMeshProUGUI();
+           //destinationCoordinates = new TextMeshProUGUI();
             destinationName = new TextMeshProUGUI();
         }
         void Update()
@@ -107,13 +107,6 @@ namespace Assets.Core
         public void Init(FleetManager fleetManager)
         {
             _manager = fleetManager;
-            //rb = GetComponent<Rigidbody>();
-            //rb.isKinematic = true;
-            //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
-            //var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
-            //FleetUICanvas = CanvasGO.GetComponent<Canvas>();
-            //FleetUICanvas.worldCamera = galaxyEventCamera;
-            //CanvasToolTip.worldCamera = galaxyEventCamera;
         }
         private void OnMouseDown()
         {
@@ -165,10 +158,8 @@ namespace Assets.Core
                 }
             }
 
-            if (collider.gameObject.GetComponent<FleetController>() != null)
+            if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon)) //collider.gameObject.GetComponent<FleetController>() != null)
             {
-                FleetController hitFleetCon = collider.gameObject.GetComponent<FleetController>();
-
                 if (isOurDestination)
                 {
                     ClickCancelDestinationButton(this);// we stop, cancel destination
@@ -197,9 +188,8 @@ namespace Assets.Core
                     }
                 }
             }
-            else if (collider.gameObject.GetComponent<StarSysController>() != null) // only the fleetController reporst a collition for now, not the sys
+            else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
             {
-                var sysCon = collider.gameObject.GetComponent<StarSysController>();
                 if (isOurDestination)
                 {
                     ClickCancelDestinationButton(this); // we stop, cancel destination
@@ -220,12 +210,12 @@ namespace Assets.Core
                     }
                 }
             }
-            else if (collider.gameObject.GetComponent<PlayerDefinedTargetController>() != null)
+            else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
             {
                 if (isOurDestination)
                 {
                     ClickCancelDestinationButton(this); // we stop, cancel destination
-                    Destroy(collider.gameObject); // remove the player defined target
+                    Destroy(collider.gameObject); // remove the player defined target                   
                 }
             }
 

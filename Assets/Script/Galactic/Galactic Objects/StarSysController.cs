@@ -67,7 +67,7 @@ namespace Assets.Core
             OnOffSysFacilityEvents.current.FacilityOnClick += FacilityOnClick;// subscribe methode to the event += () => Debug.Log("Action Invoked!");
             starDateOfCompletion = 0f;
         }
-        private void Update()
+        private void Update() // should we reduce the number of updates per frame?
         {
             if (buildListGridLayoutGroup != null)
             {
@@ -111,10 +111,10 @@ namespace Assets.Core
                     }
                 }
             }
-            //}
+            
             // Are we building anything
-            // 
-            if (building && TimeToBuild > 0) //&& GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)
+            
+            if (building && TimeToBuild > 0) 
             {
 
                 if (starTimer)

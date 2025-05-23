@@ -12,7 +12,7 @@ namespace Assets.Core
     /// Instantiates the star system (a StarSysController and a StarSysData) using StarSysSO.
     /// This is a type of galactic object that is a 'StarSystem' class (Manager/Controller/Data and can have a habitable 'planet') 
     /// with a real star or a nebula or a complex as in the Borg Unicomplex)
-    /// Other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
+    /// Thinking other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
     /// and blackholes/wormholes (one class.) 
     /// </summary>
     public class StarSysManager : MonoBehaviour
@@ -36,15 +36,14 @@ namespace Assets.Core
         [SerializeField]
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
-        private GameObject sysGOPrefab;
+        private StarSysController sysPrefab;
         [SerializeField]
-        //private StarSysController sysPrefab;
-        //[SerializeField]
         private GameObject shipSliderPrefab;
 
         [SerializeField]
         private GameObject sysUIPrefab;
-        public List<StarSysController> StarSysControllerList;
+        
+        public List<StarSysController> StarSysControllerList { get; private set; } = new List<StarSysController>();
         public GameObject PowerPlantPrefab;
         public GameObject FactoryPrefab;
         public GameObject ShipyardPrefab;
@@ -102,7 +101,7 @@ namespace Assets.Core
         private Camera galaxyEventCamera;
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
-        //private int systemCount = -1; // Used only in testing multiple systems in Federation
+
         private void Awake()
         {
             if (Instance != null) { Destroy(gameObject); }
@@ -217,14 +216,8 @@ namespace Assets.Core
             }
             else
             {
-                // Help please, I think this is bad code but I don't know how to fix it. 
-                // I think I should be getting the StarSysController directly from the prefab that has the controller code attached to the parent in the prefab.
-                // Hoever, when I do that the prefab is null at runtime.
-                GameObject starSysGO = (GameObject)Instantiate(sysGOPrefab, new Vector3(0, 0, 0),
-                    Quaternion.identity);
-                var starSysCon = starSysGO.GetComponent<StarSysController>();
-                //StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
-                //     Quaternion.identity);
+                StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                     Quaternion.identity);
                 starSysCon.Init(this);
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,

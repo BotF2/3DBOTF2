@@ -30,7 +30,7 @@ namespace Assets.Core
         private List<CivSO> randomMinorsInGame;
 
         public List<CivEnum> CivEnumsInGame;
-        public List<CivData> CivDataInGameList = new List<CivData> { new CivData() };
+        public List<CivData> CivDataInGameList = new List<CivData> { new CivData() }; // CivData is not MonoBehavior so new is OK
         public List<CivController> CivControllersInGame { get; private set; } = new List<CivController>();
 
         //public CivData LocalPlayerCivEnum;// This will be set by NetCode checking if NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId. 
