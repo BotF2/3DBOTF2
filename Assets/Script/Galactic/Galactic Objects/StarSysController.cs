@@ -16,6 +16,7 @@ namespace Assets.Core
     public class StarSysController : MonoBehaviour
     {
         //Fields
+        private StarSysManager _manager;
         private StarSysData starSysData;
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
         [SerializeField]
@@ -262,6 +263,10 @@ namespace Assets.Core
             {
                 ShipTimeToBuild = 0;
             }
+        }
+        public void Init(StarSysManager manager)
+        {
+            _manager = manager;
         }
         public void GridFactoryQueueUpdate()
         {

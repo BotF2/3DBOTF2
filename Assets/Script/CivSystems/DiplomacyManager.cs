@@ -116,7 +116,6 @@ public class DiplomacyManager : MonoBehaviour
                 thisDiplomacyUIGameObject.SetActive(true);
                 thisDiplomacyUIGameObject.layer = 5;
                 diplomacyCon.DiplomacyUIGameObject = thisDiplomacyUIGameObject;
-                //  thisDiplomacyUIGameObject.transform.SetParent(contentFolderParent.transform, false); // load into List of fleets
                 diplomacyUIGO = thisDiplomacyUIGameObject;
             }
         }
@@ -133,7 +132,6 @@ public class DiplomacyManager : MonoBehaviour
     {
         SceneController.Instance.LoadCombatScene();
         GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
         ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
         //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
     }
