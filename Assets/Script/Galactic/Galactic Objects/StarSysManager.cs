@@ -36,8 +36,10 @@ namespace Assets.Core
         [SerializeField]
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
-        private StarSysController sysPrefab;
+        private GameObject sysGOPrefab;
         [SerializeField]
+        //private StarSysController sysPrefab;
+        //[SerializeField]
         private GameObject shipSliderPrefab;
 
         [SerializeField]
@@ -49,7 +51,6 @@ namespace Assets.Core
         public GameObject ShieldGeneratorPrefab;
         public GameObject OrbitalBatteryPrefab;
         public GameObject ResearchCenterPrefab;
-        //public StarSysController currentActiveSysCon;
 
         private GameObject powerPlantInventorySlot;
         private GameObject factoryInventorySlot;
@@ -200,10 +201,7 @@ namespace Assets.Core
                 SysData.Description = starSysSO.Description;
 
                 InstantiateSystem(SysData, civSOList[i]);
-                //if (civSOList[i].HasWarp)
-                //    FleetManager.Instance.FleetDataFromSO(, false);
-                //if (SysData.CurrentCivController != null)
-                //    starSysDatas.Add(SysData);
+
             }
             starSysDatas.Remove(starSysDatas[0]); // pull out the null
         }
@@ -219,8 +217,14 @@ namespace Assets.Core
             }
             else
             {
-                StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
-                     Quaternion.identity);
+                // Help please, I think this is bad code but I don't know how to fix it. 
+                // I think I should be getting the StarSysController directly from the prefab that has the controller code attached to the parent in the prefab.
+                // Hoever, when I do that the prefab is null at runtime.
+                GameObject starSysGO = (GameObject)Instantiate(sysGOPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
+                var starSysCon = starSysGO.GetComponent<StarSysController>();
+                //StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                //     Quaternion.identity);
                 starSysCon.Init(this);
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
