@@ -36,7 +36,7 @@ namespace Assets.Core
         [SerializeField]
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
-        private StarSysController sysPrefab;
+        private GameObject sysPrefab;
         [SerializeField]
         private GameObject shipSliderPrefab;
 
@@ -219,8 +219,14 @@ namespace Assets.Core
             }
             else
             {
-                StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
-                     Quaternion.identity);
+                // Help please, this looks like bad coding practice to me.
+                // I think I should be getting the StarSysController directly from the prefab instead of instantiating it as a new object first.
+                // When I do that the prefab is null at runtime.
+                GameObject starSysGO = (GameObject)Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
+                StarSysController starSysCon = starSysGO.GetComponent<StarSysController>();
+                //StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                //     Quaternion.identity);
                 starSysCon.Init(this);
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
