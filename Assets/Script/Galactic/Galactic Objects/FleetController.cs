@@ -15,6 +15,7 @@ namespace Assets.Core
     public class FleetController : MonoBehaviour
     {
         //Fields
+        private FleetManager _manager;
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
         [SerializeField]
@@ -43,7 +44,6 @@ namespace Assets.Core
         private GameObject warpDownButtonGO;
         [SerializeField]
         private float warpChange = 0.1f;
-
         [SerializeField]
         private Slider warpSlider;
         [SerializeField]
@@ -65,6 +65,7 @@ namespace Assets.Core
         private TextMeshProUGUI destinationCoordinates; // = new TextMeshProUGUI();
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
+        
 
         private void Start()
         {
@@ -103,6 +104,17 @@ namespace Assets.Core
         }
         public Rigidbody GetRigidbody() { return rb; }
 
+        public void Init(FleetManager fleetManager)
+        {
+            _manager = fleetManager;
+            //rb = GetComponent<Rigidbody>();
+            //rb.isKinematic = true;
+            //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
+            //var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
+            //FleetUICanvas = CanvasGO.GetComponent<Canvas>();
+            //FleetUICanvas.worldCamera = galaxyEventCamera;
+            //CanvasToolTip.worldCamera = galaxyEventCamera;
+        }
         private void OnMouseDown()
         {
             Ray ray = galaxyEventCamera.ScreenPointToRay(Input.mousePosition);
@@ -369,7 +381,6 @@ namespace Assets.Core
             FleetManager.Instance.RemoveFleetInt(fleetData.CivEnum, fleetData.FleetInt);
             if (FleetManager.Instance.FleetControllerList.Contains(this))
             {
-                FleetManager.Instance.FleetGOList.Remove(fleetGO);
                 FleetManager.Instance.FleetControllerList.Remove(this);
                 Destroy(fleetGO.gameObject);
             }

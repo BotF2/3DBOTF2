@@ -17,6 +17,7 @@ namespace Assets.Core
     /// </summary>
     public class StarSysManager : MonoBehaviour
     {
+        
         public static StarSysManager Instance;
         [SerializeField]
         private List<StarSysSO> starSysSOList; // get StarSysSO for civ by int
@@ -35,7 +36,7 @@ namespace Assets.Core
         [SerializeField]
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
-        private GameObject sysPrefab;
+        private StarSysController sysPrefab;
         [SerializeField]
         private GameObject shipSliderPrefab;
 
@@ -87,8 +88,6 @@ namespace Assets.Core
         private GameObject researchCenterInventorySlotPrefab;
         [SerializeField]
         private GameObject contentFolderParent;
-        [SerializeField]
-        private GameObject sysPanel;
         [SerializeField]
         private ThemeSO localPlayerTheme;
         [SerializeField]
@@ -210,7 +209,7 @@ namespace Assets.Core
         }
         public void InstantiateSystem(StarSysData sysData, CivSO civSO)
         {
-            GameObject starSystemNewGameOb = new GameObject();
+
             if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
             { // do something random with sys and fleetData.position
             }
@@ -220,25 +219,23 @@ namespace Assets.Core
             }
             else
             {
-                starSystemNewGameOb = (GameObject)Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                      Quaternion.identity);
-
-                starSystemNewGameOb.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
-                starSystemNewGameOb.transform.Translate(new Vector3(sysData.GetPosition().x,
+                starSysCon.Init(this);
+                starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
+                starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
                     sysData.GetPosition().y, sysData.GetPosition().z));
-                starSystemNewGameOb.transform.SetParent(galaxyCenter.transform, true);
-                starSystemNewGameOb.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
-                StarSysController starSysController = starSystemNewGameOb.GetComponentInChildren<StarSysController>();
-                //if (civSO.HasWarp)
-                //    FleetManager.Instance.FleetDataFromSO(starSysController, false);
-                Transform fogObsticleTransform = starSystemNewGameOb.transform.Find("FogObstacle");
+                starSysCon.transform.SetParent(galaxyCenter.transform, true);
+                starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
+                
+                Transform fogObsticleTransform = starSysCon.transform.Find("FogObstacle");
                 fogObsticleTransform.SetParent(galaxyCenter.transform, false);
                 fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));
-                starSystemNewGameOb.name = sysData.GetSysName();
+                starSysCon.name = sysData.GetSysName();
 
-                sysData.SysGameObject = starSystemNewGameOb;
+                sysData.SysGameObject = starSysCon.gameObject;
 
-                TextMeshProUGUI[] TheText = starSystemNewGameOb.GetComponentsInChildren<TextMeshProUGUI>();
+                TextMeshProUGUI[] TheText = starSysCon.GetComponentsInChildren<TextMeshProUGUI>();
                 for (int i = 0; i < TheText.Length; i++)
                 {
                     TheText[i].enabled = true;
@@ -259,16 +256,16 @@ namespace Assets.Core
 
                 }
 
-                MapLineFixed ourDropLine = starSystemNewGameOb.GetComponentInChildren<MapLineFixed>();
+                MapLineFixed ourDropLine = starSysCon.GetComponentInChildren<MapLineFixed>();
 
                 ourDropLine.GetLineRenderer();
 
-                Vector3 galaxyPlanePoint = new Vector3(starSystemNewGameOb.transform.position.x,
-                    galaxyImage.transform.position.y, starSystemNewGameOb.transform.position.z);
-                Vector3[] points = { starSystemNewGameOb.transform.position, galaxyPlanePoint };
+                Vector3 galaxyPlanePoint = new Vector3(starSysCon.transform.position.x,
+                    galaxyImage.transform.position.y, starSysCon.transform.position.z);
+                Vector3[] points = { starSysCon.transform.position, galaxyPlanePoint };
                 ourDropLine.SetUpLine(points);
 
-                var Renderers = starSystemNewGameOb.GetComponentsInChildren<SpriteRenderer>();
+                var Renderers = starSysCon.GetComponentsInChildren<SpriteRenderer>();
                 for (int i = 0;i < Renderers.Length; i++)
                 {
                     if (Renderers[i] != null)
@@ -277,7 +274,7 @@ namespace Assets.Core
                         {
                             Renderers[i].sprite = civSO.Insignia;
                             Renderers[i].gameObject.transform.position =
-                                new Vector3(starSystemNewGameOb.transform.position.x, galaxyPlanePoint.y + 1f, starSystemNewGameOb.transform.position.z);
+                                new Vector3(starSysCon.transform.position.x, galaxyPlanePoint.y + 1f, starSysCon.transform.position.z);
                             Renderers[i].gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                             if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
                             {
@@ -295,23 +292,23 @@ namespace Assets.Core
                 }
 
 
-                starSysController.name = sysData.GetSysName();
-                starSysController.StarSysData = sysData;
+                starSysCon.name = sysData.GetSysName();
+                starSysCon.StarSysData = sysData;
                 CivController[] controllers = CivManager.Instance.CivControllersInGame.ToArray();
                 for (int i = 0; controllers.Length > 0; i++)
                 {
-                    if (controllers[i].CivData.CivEnum == starSysController.StarSysData.GetFirstOwner())
+                    if (controllers[i].CivData.CivEnum == starSysCon.StarSysData.GetFirstOwner())
                     { 
-                        starSysController.StarSysData.CurrentCivController = controllers[i];
+                        starSysCon.StarSysData.CurrentCivController = controllers[i];
                         break;
                     }
                 }
-                starSystemNewGameOb.SetActive(true);
-                StarSysControllerList.Add(starSysController);
+                starSysCon.gameObject.SetActive(true);
+                StarSysControllerList.Add(starSysCon);
 
-                List<StarSysController> listStarSysCon = new List<StarSysController> { starSysController };
+                List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
                 CivManager.Instance.AddSystemToOwnSystemListAndHomeSys(listStarSysCon);
-                var canvases = starSystemNewGameOb.GetComponentsInChildren<Canvas>();
+                var canvases = starSysCon.GetComponentsInChildren<Canvas>();
                 starSystemCounter++;
                 if (starSystemCounter == CivManager.Instance.CivControllersInGame.Count)
                 {
@@ -319,7 +316,7 @@ namespace Assets.Core
 
                 }
                 if (civSO.HasWarp)
-                     FleetManager.Instance.BuildFirstFleets(starSysController, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
+                     FleetManager.Instance.BuildFirstFleets(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
                 {
                     StarSysSO starSysSO = GetStarSObyInt(civSO.CivInt);
@@ -329,14 +326,14 @@ namespace Assets.Core
                     sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, civSO.CivInt, sysData,1);
                     sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, civSO.CivInt, sysData,1);
                     sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, civSO.CivInt, sysData,1);
-                    SetParentForFacilities(starSystemNewGameOb, sysData);
+                    SetParentForFacilities(starSysCon.gameObject, sysData);
 
                 }
                 if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
                 {
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
-                InstantiateSysUIGameObject(starSysController);
+                InstantiateSysUIGameObject(starSysCon);
                 //***** This is temporary so we can test a multi-starsystem civ
                 //******* before diplomacy will alow civs/systems to join another civ
                 //if (systemCount == 8)
