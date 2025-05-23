@@ -256,6 +256,12 @@ public class GalaxyMenuUIController : MonoBehaviour
         else
             OpenMenu(Menu.EncyclopedianMenu, null);
     }
+    public void CombateButtonPressed()
+    {
+        if (diplomacyMenuView.activeSelf)
+            CloseMenu(Menu.DiplomacyMenu);
+
+    }
     // Home System view is in GalaxyCameraDragMoveZoom.cs
     public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
     {
