@@ -32,7 +32,7 @@ public class TimeManager : MonoBehaviour
     }
     private void Start()
     {
-        GameManager.Instance.TimeManager = this;
+        //GameManager.Instance.TimeManager = this;
         timer = timeSpeedup;
         //timeCoroutine = StartCoroutine(TimeProgression());
         currentStardate = StaringStardate;

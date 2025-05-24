@@ -18,6 +18,7 @@ namespace Assets.Core
     public class CivController : MonoBehaviour
     {
         //Fields
+        private CivManager _manager;
         public CivData CivData;
         public string CivShortName;
         public static event Action<TrekStardateEventSO> TrekEventStardate;
@@ -28,7 +29,12 @@ namespace Assets.Core
             TimeManager.Instance.OnStardateSpecialEvent = DoStardateEvent;
             diplomacyManager = DiplomacyManager.Instance;
         }
-
+        public void Init(CivManager manager)
+        {
+            _manager = manager;
+            //CivData = new CivData();
+            //CivData.Init(this);
+        }
         public void DoStardateEvent(TrekStardateEventSO specialEvent)
         {
             if (specialEvent != null)

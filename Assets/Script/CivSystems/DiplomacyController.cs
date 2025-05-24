@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 
-public class DiplomacyController //: MonoBehaviour
+public class DiplomacyController //not : MonoBehaviour
 {
     private DiplomacyData diplomacyData; // holds civOne and two and diplomacy enum
     public DiplomacyData DiplomacyData { get { return diplomacyData; } set { diplomacyData = value; } }
@@ -114,9 +114,15 @@ public class DiplomacyController //: MonoBehaviour
     {
         //ToDo:
     }
+
     public void Combat(DiplomacyController diplomacyController)
     {
-        //ToDo:
-    }
+        if (this == diplomacyController)
+        {
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+            SceneController.Instance.LoadCombatScene();
+            ShipManager.Instance.ShipsFromFleetsForCombat();
+        }
 
+    }
 }

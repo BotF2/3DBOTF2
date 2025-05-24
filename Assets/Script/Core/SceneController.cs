@@ -21,9 +21,9 @@ public class SceneController : MonoBehaviour
     }
     public void LoadCombatScene()
     {
-        previousSceneName = SceneManager.GetActiveScene().name; // Store
+        previousSceneName = SceneManager.GetActiveScene().name; 
        // TimeManager.Instance.PauseTime(); does not work
-        SceneManager.LoadSceneAsync("SpaceCombatScene", LoadSceneMode.Additive);
+        SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive);
         HideScene(previousSceneName);
     }
     private void HideScene(string sceneName)
@@ -50,9 +50,8 @@ public class SceneController : MonoBehaviour
     }
     public void LoadMainMenuScene()
     {
-        SceneManager.UnloadSceneAsync("SpaceCombatScene");
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
+        //SceneManager.UnloadSceneAsync("CombatScene");
+        //GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
 
         if (!string.IsNullOrEmpty(previousSceneName))
         {

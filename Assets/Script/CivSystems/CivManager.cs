@@ -30,8 +30,8 @@ namespace Assets.Core
         private List<CivSO> randomMinorsInGame;
 
         public List<CivEnum> CivEnumsInGame;
-        public List<CivData> CivDataInGameList = new List<CivData> { new CivData() };
-        public List<CivController> CivControllersInGame;
+        public List<CivData> CivDataInGameList = new List<CivData> { new CivData() }; // CivData is not MonoBehavior so new is OK
+        public List<CivController> CivControllersInGame { get; private set; } = new List<CivController>();
 
         //public CivData LocalPlayerCivEnum;// This will be set by NetCode checking if NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId. 
         public bool isSinglePlayer;
@@ -41,9 +41,9 @@ namespace Assets.Core
         //public bool nowCivsCanJoinTheFederation = true; // for use with testing a muliple star system Federation
         private int HoldCivSize = 0;// used in testing of a multiStarSystem civilization/faction
         [SerializeField]
-        private GameObject civFolder; // hold civs, using the CivManager as a parent in Hierarchy
+        private GameObject civFolder; // hold civs in Hierachy, using the CivManager as a parent in Hierarchy
         [SerializeField]
-        private GameObject civPrefab;
+        private CivController civPrefab;
         private void Awake()
         {
             if (Instance != null) { Destroy(gameObject); }
@@ -210,15 +210,13 @@ namespace Assets.Core
         }
         private void InstantiateCivilizations(CivData civData, int localPlayerCivInt)
         {
-            GameObject civNewGameOb = (GameObject)Instantiate(civPrefab, new Vector3(0, 0, 0), Quaternion.identity);
-            var civController = civNewGameOb.GetComponentInChildren<CivController>();
+            CivController civController = Instantiate(civPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+            civController.Init(this);
             civController.CivData = civData;
             civController.CivShortName = civData.CivShortName;
             CivControllersInGame.Add(civController);
-            //civController.CivData.CivControllersWeKnow = new List<CivController>() { civController };
-            //civController.CivData.CivEnumsWeKnow = new List<CivEnum>() { civController.CivData.CivEnum };
-            civNewGameOb.transform.SetParent(civFolder.transform, true);
-            civNewGameOb.name = civData.CivShortName.ToString();
+            civController.transform.SetParent(civFolder.transform, true);
+            civController.name = civData.CivShortName.ToString();
 
             // NetCode, NetworkObject belongs to the local player
             if (localPlayerCivInt == civController.CivData.CivInt)

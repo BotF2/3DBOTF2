@@ -1,7 +1,7 @@
 using Assets.Core;
 using NUnit.Framework;
 using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.UI;
 
 public class DiplomacyData
 {
@@ -9,4 +9,8 @@ public class DiplomacyData
     public CivController CivOther; // a mionr civ if not a major civ that is not the local player
     public DiplomacyStatusEnum DiplomacyEnumOfCivs = DiplomacyStatusEnum.Neutral; // friendly, allied, at war
     public int DiplomacyPointsOfCivs = 60; // neutral
+    public FleetController currentFleetControllerA;
+    public FleetController currentFleetControllerB;
+    public StarSysController currentStarSysController;
+    //public Button CombatButton;
 }

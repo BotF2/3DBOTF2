@@ -346,14 +346,16 @@ namespace Assets.Core
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; } // a static singleton, no other script can instatniate a GameManager, must us the singleton
-        public TimeManager TimeManager;
         [SerializeField]
-        private MainMenuUIController mainMenuUIController;
+        private TimeManager TimeManager; // see TimeManager.cs start() for details
+        //[SerializeField]
+        //private MainMenuUIController mainMenuUIController;
         public GameController GameController;
         public bool _weAreFriend = false;
         public bool _warpingInIsOver = false; // WarpingInCompleted() called from E_Animator3 sets true and set false again in CombatCompleted state in BeginState
-
-        private SolarSystemView solarSystemView;
+        public GameObject UICamera;
+        public GameObject GalaxyCamera;
+        //private SolarSystemView solarSystemView;
         /// <summary>
         /// Old combat tool for view of all ships in combat
         /// </summary>
@@ -439,20 +441,21 @@ namespace Assets.Core
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
-            InitializeGameManagerWithMainMenuUIController();
+            //InitializeGameManagerWithMainMenuUIController();
         }
         public void InitializeGameManagerWithMainMenuUIController()
         {
-            if (this.GameController != null)
-            {
-                mainMenuUIController = GameObject.Find("MainMenuUIController").GetComponent<MainMenuUIController>();
-                mainMenuUIController.LoadDefault();
-                this.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
-            }
+            //if (this.GameController != null)
+            //{
+            //    //mainMenuUIController =
+            //    var mainMenuGO = GameObject.FindGameObjectsWithTag("MainMenu");
+            //    mainMenuUIController = mainMenuGO[0].GetComponent<MainMenuUIController>();
+            //    mainMenuUIController.LoadDefault();
+            //this.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
+            //}
         }
         //  MARC CODE
-        public GameObject UICamera;
-        public GameObject GalaxyCamera;
+
 
         public void SetCameraTargets() // ToDo: re-implement in combat
         {

@@ -16,6 +16,7 @@ namespace Assets.Core
     public class StarSysController : MonoBehaviour
     {
         //Fields
+        private StarSysManager _manager;
         private StarSysData starSysData;
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
         [SerializeField]
@@ -66,7 +67,7 @@ namespace Assets.Core
             OnOffSysFacilityEvents.current.FacilityOnClick += FacilityOnClick;// subscribe methode to the event += () => Debug.Log("Action Invoked!");
             starDateOfCompletion = 0f;
         }
-        private void Update()
+        private void Update() // should we reduce the number of updates per frame?
         {
             if (buildListGridLayoutGroup != null)
             {
@@ -110,10 +111,10 @@ namespace Assets.Core
                     }
                 }
             }
-            //}
+            
             // Are we building anything
-            // 
-            if (building && TimeToBuild > 0) //&& GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)
+            
+            if (building && TimeToBuild > 0) 
             {
 
                 if (starTimer)
@@ -262,6 +263,10 @@ namespace Assets.Core
             {
                 ShipTimeToBuild = 0;
             }
+        }
+        public void Init(StarSysManager manager)
+        {
+            _manager = manager;
         }
         public void GridFactoryQueueUpdate()
         {
@@ -484,7 +489,7 @@ namespace Assets.Core
                     }
                     else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                     { // this is a system local player does not own but we know them
-                        EncounterManager.Instance.ResolveEncounter(CivManager.Instance.LocalPlayerCivContoller, this);
+                        EncounterManager.Instance.ClickOnTheirSystem(CivManager.Instance.LocalPlayerCivContoller, this);
 
                         //DiplomacyUIController.Instance.LoadDiplomacyUI(DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller));
                         //var diplomacyController = DiplomacyManager.Instance.ReturnADiplomacyController(this.StarSysData.CurrentCivController, CivManager.Instance.LocalPlayerCivContoller);

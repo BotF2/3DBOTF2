@@ -19,7 +19,7 @@ public enum EncounterType
 /// </summary>
 public class EncounterManager : MonoBehaviour
 {
-    public List<EncounterController> EncounterControllers = new List<EncounterController>(); // EncounterController is not MonoBehavior
+    public List<EncounterController> EncounterControllers { get; private set; } = new List<EncounterController>(); // EncounterController is not MonoBehavior
 
     public static EncounterManager Instance { get; private set; }
     private void Awake()
@@ -41,28 +41,18 @@ public class EncounterManager : MonoBehaviour
             var civPartyOne = fleetConA.FleetData.CivController;
             var civPartyTwo = fleetConB.FleetData.CivController;
             //have we met before?
-            if (!DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
+            if (!DiplomacyManager.Instance.FoundADiplomacyController(fleetConA, fleetConB))
             {   // First Contact
-                DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
+                DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(fleetConA, fleetConB);
                 FirstContactFleetOnFleetEncounterController(fleetConA, fleetConB);
                 // will we need this? Will AI need to remember this encounter outside of diplomacy?
             }
             else // Not First Contact and we do fleets of same civ management back in FleetController
             {
-                DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
+
+                DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, fleetConB);
                 NextFleetToFleetEncounter(fleetConA, fleetConB); // Will we need this? Is it all done in Diplomacy and FleetControllers?
             }
-        }
-    }
-    public void ResolveEncounter(CivController localCiv, StarSysController sysCon)
-    { // already not one of our fleets
-
-        var civPartyOne = localCiv;
-        var civPartyTwo = sysCon.StarSysData.CurrentCivController;
-        //have we met before?
-        if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
-        {   // no First Contact just by clicking on the system
-            DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
         }
     }
     public void ResolveEncounter(FleetController fleetConA, StarSysController sysCon)
@@ -77,14 +67,14 @@ public class EncounterManager : MonoBehaviour
                 var civPartyOne = fleetConA.FleetData.CivController;
                 var civPartyTwo = sysCon.StarSysData.CurrentCivController;
                 //have we met before?
-                if (!DiplomacyManager.Instance.FoundADiplomacyController(sysCon.StarSysData.CurrentCivController, fleetConA.FleetData.CivController))
+                if (!DiplomacyManager.Instance.FoundADiplomacyController(fleetConA, sysCon))
                 { // First Contact
-                    DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
+                    DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(fleetConA, sysCon);
                     FirstContactFleetOnStarSysNewEncounnterController(fleetConA, sysCon); // do we do something specila with system entry here?
                 }
                 else
                 { // not first contact
-                    DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
+                    DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, sysCon);
                     FeetToSysNotSameCivNotFirstEncounter(fleetConA, sysCon);
                 }
             }
@@ -105,6 +95,24 @@ public class EncounterManager : MonoBehaviour
                 }
             }
         }
+    }
+    public void ClickOnTheirSystem(CivController localCiv, StarSysController sysCon)
+    { 
+
+            var civPartyOne = localCiv;
+            var civPartyTwo = sysCon.StarSysData.CurrentCivController;
+            //have we met before?
+            if (!DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
+            {  
+                // do nothing
+            }
+            else // Not First Contact and we do fleets of same civ management back in FleetController
+            {
+
+                DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, sysCon);
+                
+            }
+        
     }
     private void NextFleetToFleetEncounter(FleetController fleetA, FleetController fleetB)
     { // Will we need this?

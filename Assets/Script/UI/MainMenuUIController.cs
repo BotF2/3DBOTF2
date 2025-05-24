@@ -147,7 +147,7 @@ namespace Assets.Core
             TechLevelToggleGroup.RegisterToggle(DevelopedToggle);
             TechLevelToggleGroup.RegisterToggle(AdvancedToggle);
             TechLevelToggleGroup.RegisterToggle(SupremeToggle);
-
+            this.LoadDefault();
             // Pending Multiplayer lobby if needed
             //MultiplayerCivilizationGroup.enabled = true;
             //MultiplayerCivilizationGroup = mulitplayerToggleGroup.GetComponent<ToggleGroup>();

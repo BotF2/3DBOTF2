@@ -22,6 +22,7 @@ TagManager:
   - FactoryBuildSlot
   - ShipBuildSlot
   - InventorySlot
+  - MainMenu
   layers:
   - Default
   - TransparentFX
