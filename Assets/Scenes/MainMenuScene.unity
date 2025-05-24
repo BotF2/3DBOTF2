@@ -941,50 +941,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 20637271}
   m_CullTransparentMesh: 1
---- !u!1 &39723915
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 39723916}
-  - component: {fileID: 39723917}
-  m_Layer: 0
-  m_Name: GameController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &39723916
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 39723915}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1051502573}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &39723917
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 39723915}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0002e87401eb4c14bb0b5cf84b7064b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &44498444
 GameObject:
   m_ObjectHideFlags: 0
@@ -8746,50 +8702,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 415661709}
   m_CullTransparentMesh: 1
---- !u!1 &426643147
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 426643149}
-  - component: {fileID: 426643148}
-  m_Layer: 0
-  m_Name: SceneController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &426643148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 426643147}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: faeb9dae32d65d147ba110acbaea2484, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &426643149
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 426643147}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &430108343
 GameObject:
   m_ObjectHideFlags: 0
@@ -18453,7 +18365,7 @@ GameObject:
   - component: {fileID: 843799569}
   - component: {fileID: 843799572}
   m_Layer: 6
-  m_Name: GalaxyMangersAndPlane
+  m_Name: MangersAndPlane
   m_TagString: GalaxyImage
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -22594,61 +22506,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1047395728}
   m_CullTransparentMesh: 1
---- !u!1 &1051502571
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1051502573}
-  - component: {fileID: 1051502572}
-  m_Layer: 0
-  m_Name: GameManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1051502572
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1051502571}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d3ea4cc63b5115448b2ef4d337cb7b50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  TimeManager: {fileID: 0}
-  mainMenuUIController: {fileID: 206574036}
-  GameController: {fileID: 39723917}
-  _weAreFriend: 0
-  _warpingInIsOver: 0
-  _statePassedCombatMenu_Init: 0
-  _statePassedCombatInit: 0
-  _statePassedCombatPlay: 0
-  UICamera: {fileID: 1302084395}
-  GalaxyCamera: {fileID: 963194225}
---- !u!4 &1051502573
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1051502571}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 39723916}
-  m_Father: {fileID: 1091640995}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1059122503
 GameObject:
   m_ObjectHideFlags: 0
@@ -23586,7 +23443,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 377896301}
-  - {fileID: 1051502573}
   - {fileID: 12714530}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -29674,7 +29530,6 @@ MonoBehaviour:
   nameDestination: 
   playerDefinedTargetSO: {fileID: 11400000, guid: c146b5fd7be784a4889415dea37a3b23, type: 2}
   galaxyEventCamera: {fileID: 963194234}
-  PlayerTargetGOList: []
 --- !u!4 &1377999098
 Transform:
   m_ObjectHideFlags: 0
@@ -41202,7 +41057,6 @@ MonoBehaviour:
   sysPrefab: {fileID: 6000483729355016117, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
   shipSliderPrefab: {fileID: 3868390008097759204, guid: 897bffe8bfb3c714682af28e16f3d3dc, type: 3}
   sysUIPrefab: {fileID: 4945801355922885453, guid: 2019fad506023ad42a54b9e786bd3ff1, type: 3}
-  StarSysControllerList: []
   PowerPlantPrefab: {fileID: 3951996713806300590, guid: 53bf0f8c8773c994f8331ada5c7ee1a7, type: 3}
   FactoryPrefab: {fileID: 6352246214134023823, guid: 60da8ed504050aa45839a948c0cbdebe, type: 3}
   ShipyardPrefab: {fileID: 5169689008362311750, guid: 65d737d397bc9294588f248ba029949b, type: 3}
@@ -41224,7 +41078,6 @@ MonoBehaviour:
   orbitalBatteryInventorySlotPrefab: {fileID: 5373250282860476608, guid: 9cb646e9c872b8542958609d19fbe52c, type: 3}
   researchCenterInventorySlotPrefab: {fileID: 981188120279098555, guid: 27d52b6bb5c04fe448f83b694838951b, type: 3}
   contentFolderParent: {fileID: 44498444}
-  sysPanel: {fileID: 981188120279098555, guid: a51f5f1e6a965ae4d958f10dd74774d5, type: 3}
   localPlayerTheme: {fileID: 0}
   galaxyImage: {fileID: 843799567}
   canvasBuildList: {fileID: 315311927}
@@ -45320,4 +45173,3 @@ SceneRoots:
   - {fileID: 1423239688}
   - {fileID: 369317153}
   - {fileID: 1784209283}
-  - {fileID: 426643149}
