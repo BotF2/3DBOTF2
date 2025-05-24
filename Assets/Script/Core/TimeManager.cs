@@ -6,7 +6,7 @@ using UnityEngine;
 public class TimeManager : MonoBehaviour
 {
     public static TimeManager Instance;
-
+    
     public event Action<TrekRandomEventSO> onRandomSpecialEvent; // 
     public Action<TrekRandomEventSO> OnRandomSpecialEvent; // current of the delegate Action 
     public event Action<TrekStardateEventSO> onStardateSpecialEvent; // 
@@ -32,9 +32,8 @@ public class TimeManager : MonoBehaviour
     }
     private void Start()
     {
-        GameManager.Instance.TimeManager = this;
         timer = timeSpeedup;
-        //timeCoroutine = StartCoroutine(TimeProgression());
+        timeCoroutine = StartCoroutine(TimeProgression());
         currentStardate = StaringStardate;
     }
 

@@ -346,7 +346,7 @@ namespace Assets.Core
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; } // a static singleton, no other script can instatniate a GameManager, must us the singleton
-        public TimeManager TimeManager;
+        //public TimeManager TimeManager;
         [SerializeField]
         private MainMenuUIController mainMenuUIController;
         public GameController GameController;
