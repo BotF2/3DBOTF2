@@ -11,6 +11,7 @@ public class ButtonConnector : MonoBehaviour
     {
         if (SceneController.Instance != null)
         {
+            myButton.onClick.RemoveAllListeners();
             myButton.onClick.AddListener(SceneController.Instance.LoadMainMenuScene);
         }
         else

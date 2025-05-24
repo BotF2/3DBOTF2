@@ -114,10 +114,15 @@ public class DiplomacyController //not : MonoBehaviour
     {
         //ToDo:
     }
+
     public void Combat(DiplomacyController diplomacyController)
     {
-        SceneController.Instance.LoadCombatScene();
-        DiplomacyManager.Instance.SpaceCombatScene(diplomacyController);
-    }
+        if (this == diplomacyController)
+        {
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+            SceneController.Instance.LoadCombatScene();
+            ShipManager.Instance.ShipsFromFleetsForCombat();
+        }
 
+    }
 }

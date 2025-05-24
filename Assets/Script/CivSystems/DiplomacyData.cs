@@ -1,7 +1,7 @@
 using Assets.Core;
 using NUnit.Framework;
 using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.UI;
 
 public class DiplomacyData
 {
@@ -12,4 +12,5 @@ public class DiplomacyData
     public FleetController currentFleetControllerA;
     public FleetController currentFleetControllerB;
     public StarSysController currentStarSysController;
+    //public Button CombatButton;
 }

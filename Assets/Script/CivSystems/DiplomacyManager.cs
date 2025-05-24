@@ -120,16 +120,16 @@ public class DiplomacyManager : MonoBehaviour
             }
         }
     }
-    public void SpaceCombatScene(DiplomacyController diplomacyCon) 
-    {
-        SceneController.Instance.LoadCombatScene();
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
-        ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this)
-        // ToDo:
-        // Set up Combat UI with combat data, ships, system data, etc.
-        // CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
-    }
+    //public void SpaceCombatScene(DiplomacyController diplomacyCon) 
+    //{
+    //    SceneController.Instance.LoadCombatScene();
+    //    GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+    //    //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
+    //    ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this)
+    //    // ToDo:
+    //    // Set up Combat UI with combat data, ships, system data, etc.
+    //    // CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
+    //}
 
     //public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB, StarSysController aNull)
     //{
