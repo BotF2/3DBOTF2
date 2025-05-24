@@ -42,7 +42,7 @@ namespace Assets.Core
 
         [SerializeField]
         private GameObject sysUIPrefab;
-        public List<StarSysController> StarSysControllerList;
+        public List<StarSysController> StarSysControllerList { get; private set; } = new List<StarSysController>();
         public GameObject PowerPlantPrefab;
         public GameObject FactoryPrefab;
         public GameObject ShipyardPrefab;
@@ -219,14 +219,11 @@ namespace Assets.Core
             }
             else
             {
-                // Help please, this looks like bad coding practice to me.
-                // I think I should be getting the StarSysController directly from the prefab instead of instantiating it as a new object first.
-                // When I do that the prefab is null at runtime.
+                // In the CombatScene branch this use of the game object is prelaced with getting the StarSysController from the prefab
+                // pending a merge of the two branches to replace this.
                 GameObject starSysGO = (GameObject)Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
                 StarSysController starSysCon = starSysGO.GetComponent<StarSysController>();
-                //StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
-                //     Quaternion.identity);
                 starSysCon.Init(this);
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,

@@ -84,7 +84,7 @@ public enum GreedyEnum
 public class DiplomacyManager : MonoBehaviour
 {
     public static DiplomacyManager Instance;
-    public List<DiplomacyController> DiplomacyControllerList = new List<DiplomacyController>();
+    public List<DiplomacyController> DiplomacyControllerList { get; private set; } = new List<DiplomacyController>();
     [SerializeField]
     private GameObject diplomacyUIPrefab;
     [SerializeField]
