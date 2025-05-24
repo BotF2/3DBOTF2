@@ -13,7 +13,6 @@ public class DiplomacyController //not : MonoBehaviour
     private static string demandSomething = "The A demand X from the B.";
     private static string offerSomething = "The A offers the B X.";
     private static string demandStopInterferance = "The A demand that the B stop X.";
-
     private List<string> diplomaticTransmissions = new List<string> { declareWar, requestSomething, demandSomething, offerSomething, demandStopInterferance };
     public List<string> DiplomaticTransmissions { get { return diplomaticTransmissions; } set { diplomaticTransmissions = value; } }
     public List<DiplomaticEventEnum> DiplomaticEvents = new List<DiplomaticEventEnum>
