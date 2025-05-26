@@ -1443,6 +1443,14 @@ public class GalaxyMenuUIController : MonoBehaviour
         {
             switch (listButton.name)
             {
+                case "InteractionButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                    break;
+                case "OpenDiscriptionButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                    break;
                 case "TradeButton":
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
@@ -1464,27 +1472,27 @@ public class GalaxyMenuUIController : MonoBehaviour
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.OfferAlliance(diplomacyCon));
                     break;
-                case "GatherIntel":
+                case "GatherIntelButton":
                     // fleetCon.FleetData.FleetButtonDown = listButton;
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.GatherIntel(diplomacyCon));
                     break;
-                case "Theft":
+                case "TheftButton":
                     //fleetCon.FleetData.FleetButtonUIClose = listButton;
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.Theft(diplomacyCon));
                     break;
-                case "Disinformation":
+                case "DisinformationButton":
                     //fleetCon.FleetData.FleetButtonUIClose = listButton;
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.Disinformation(diplomacyCon));
                     break;
-                case "Sabatoge":
+                case "SabatogeButton":
                     //fleetCon.FleetData.FleetButtonUIClose = listButton;
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.Sabatoge(diplomacyCon));
                     break;
-                case "Combat":
+                case "CombatButton":
                     //fleetCon.FleetData.FleetButtonUIClose = listButton;
                     listButton.onClick.RemoveAllListeners();
                     listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));

@@ -120,21 +120,21 @@ public class DiplomacyManager : MonoBehaviour
             }
         }
     }
-    public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB, StarSysController aNull)
-    {
-        SceneController.Instance.LoadCombatScene();
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
-        ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
-        //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
-    }
-    public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB)
-    {
-        SceneController.Instance.LoadCombatScene();
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
-        //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
-    }
+    //public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB, StarSysController aNull)
+    //{
+    //    SceneController.Instance.LoadCombatScene();
+    //    GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+    //    //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
+    //    ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
+    //    //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
+    //}
+    //public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB)
+    //{
+    //    SceneController.Instance.LoadCombatScene();
+    //    GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+    //    ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
+    //    //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
+    //}
     public void FirstContactGetNewDiplomacyContoller(CivController civPartyOne, CivController civPartyTwo)
     {// is frist contact diplomacy
         bool okForNewDiplomacyController = true;

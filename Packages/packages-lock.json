@@ -170,6 +170,15 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.multiplayer.widgets": {
+      "version": "1.0.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.services.multiplayer": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.netcode.gameobjects": {
       "version": "2.3.2",
       "depth": 0,

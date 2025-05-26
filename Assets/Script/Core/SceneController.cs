@@ -4,6 +4,11 @@ using UnityEngine.SceneManagement;
 
 public class SceneController : MonoBehaviour
 {
+    /// <summary>
+    /// We do not yet have a loading scene, the Persistent and main menu are already there at play
+    /// Galaxy scene is added as we load up the user game choices
+    /// Combat hides Main Menu including what really are Galaxy elements 
+    /// </summary>
     public static SceneController Instance { get; private set; }
     private static string previousSceneName;
 
@@ -19,11 +24,22 @@ public class SceneController : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    public void LoadCombatScene()
+    private void Start()
     {
-        previousSceneName = SceneManager.GetActiveScene().name; // Store
+        //if (SceneController.Instance != null)
+        //{
+        //   SceneController.Instance.LoadMainMenuScene();
+        //}
+        //else
+        //{
+        //    Debug.LogError("GameManager instance not found!");
+        //}
+    }
+    public void LoadCombatScene(DiplomacyController diplomacyController)
+    {
+        previousSceneName = SceneManager.GetActiveScene().name; 
        // TimeManager.Instance.PauseTime(); does not work
-        SceneManager.LoadSceneAsync("SpaceCombatScene", LoadSceneMode.Additive);
+        SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive); 
         HideScene(previousSceneName);
     }
     private void HideScene(string sceneName)
@@ -34,6 +50,17 @@ public class SceneController : MonoBehaviour
             foreach (GameObject obj in scene.GetRootGameObjects())
             {
                 obj.SetActive(false); // Disable all root objects
+            }
+        }
+    }
+    private void ExposeScene(string sceneName)
+    {
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        if (scene.IsValid())
+        {
+            foreach (GameObject obj in scene.GetRootGameObjects())
+            {
+                obj.SetActive(true); // Disable all root objects
             }
         }
     }
@@ -48,25 +75,23 @@ public class SceneController : MonoBehaviour
             }
         }
     }
-    public void LoadMainMenuScene()
+    public void UnloadCombatScene()
     {
-        SceneManager.UnloadSceneAsync("SpaceCombatScene");
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
+        SceneManager.UnloadSceneAsync("CombatScene");
+        ExposeScene("MainMenuScene"); // Re-enable the previous scene
 
-        if (!string.IsNullOrEmpty(previousSceneName))
-        {
-            Scene scene = SceneManager.GetSceneByName(previousSceneName);
-            if (scene.IsValid())
-            {
-                foreach (GameObject obj in scene.GetRootGameObjects())
-                {
-                    obj.SetActive(true); // Re-enable all objects
-                }
-            }
-        }
-        else if (string.IsNullOrEmpty(previousSceneName))
-            SceneManager.LoadSceneAsync("MainMenuScene");
+        //if (!string.IsNullOrEmpty(previousSceneName))
+        //{
+        //    Scene scene = SceneManager.GetSceneByName(previousSceneName);
+        //    if (scene.IsValid())
+        //    {
+        //        foreach (GameObject obj in scene.GetRootGameObjects())
+        //        {
+        //            obj.SetActive(true); // Re-enable all objects
+        //        }
+        //    }
+        //}
+        //else if (string.IsNullOrEmpty(previousSceneName)) ;
     }
     public void LoadNextScene(string sceneName)
     {

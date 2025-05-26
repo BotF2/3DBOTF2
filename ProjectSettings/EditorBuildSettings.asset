@@ -15,7 +15,7 @@ EditorBuildSettings:
     path: Assets/Scenes/CombatScene.unity
     guid: 8c00e2640ff887045b192cef11701f19
   - enabled: 1
-    path: Assets/Scenes/EventSystem.unity
+    path: Assets/Scenes/PersistentScene.unity
     guid: 08ae30cf8a98d8940b47142a84053355
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: acb276fc2875d8848870078480604927, type: 2}
