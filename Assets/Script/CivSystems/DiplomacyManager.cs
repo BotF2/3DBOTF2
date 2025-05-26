@@ -103,7 +103,6 @@ public class DiplomacyManager : MonoBehaviour
         }
 
     }
-
     private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
     {
         if (diplomacyCon.DiplomacyData.CivMajor.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum
