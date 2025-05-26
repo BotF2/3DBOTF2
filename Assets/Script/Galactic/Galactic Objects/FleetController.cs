@@ -60,9 +60,9 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text FleetName;
         [SerializeField]
-        private TextMeshProUGUI destinationName; // = new TextMeshProUGUI();
+        private TextMeshProUGUI destinationName; 
         [SerializeField]
-        private TextMeshProUGUI destinationCoordinates; // = new TextMeshProUGUI();
+        private TextMeshProUGUI destinationCoordinates; 
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         
@@ -86,14 +86,7 @@ namespace Assets.Core
             DestinationLine.GetLineRenderer();
             DestinationLine.transform.SetParent(transform, false);
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
-            destinationCoordinates = new TextMeshProUGUI();
-            destinationName = new TextMeshProUGUI();
         }
-        void Update()
-        {
-
-        }
-
         private void FixedUpdate()
         {
             if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
