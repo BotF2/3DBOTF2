@@ -25,7 +25,11 @@ public class DiplomacyController //not : MonoBehaviour
     {
         DiplomacyData = diplomacyData;
     }
-
+    public void UpdateDiplomacyControllerData(DiplomacyData diplomacyData)
+    {
+        this.DiplomacyData = diplomacyData;
+        ChangedDiplomacyStatus(this.DiplomacyData.DiplomacyPointsOfCivs);
+    }
     public void AddDiplomaticPoints(int points)
     {
         this.DiplomacyData.DiplomacyPointsOfCivs += points;
@@ -115,9 +119,10 @@ public class DiplomacyController //not : MonoBehaviour
     }
     public void Combat(DiplomacyController diplomacyController)
     {
-        SceneController.Instance.LoadCombatScene(diplomacyController);
         GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        ShipManager.Instance.ShipsFromFleetsForCombat();
+        SceneController.Instance.LoadCombatScene(diplomacyController);
+        //CombatManager.Instance.InstatniateCombat(diplomacyController.DiplomacyData.FleetMajor, diplomacyController.DiplomacyData.FleetOther);
+        ShipManager.Instance.ShipsFromFleetsForCombat();//??
     }
 
 }

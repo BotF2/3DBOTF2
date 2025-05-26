@@ -1266,7 +1266,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
         }
     }
-    public void SetUpDiplomacyUIData(DiplomacyController diplomacyCon)
+    public void OpenADiplomacyUI(DiplomacyController diplomacyCon)
     {
         CivController partyOne = diplomacyCon.DiplomacyData.CivMajor;
         CivController partyTwo = diplomacyCon.DiplomacyData.CivOther;

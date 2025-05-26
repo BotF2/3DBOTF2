@@ -182,7 +182,7 @@ public class DiplomacyManager : MonoBehaviour
 
                 InstantiateDiplomacyUIGameObject(diplomacyController);
 
-                GalaxyMenuUIController.Instance.SetUpDiplomacyUIData(diplomacyController);
+                GalaxyMenuUIController.Instance.OpenADiplomacyUI(diplomacyController);
 
                 #region testing auto combat
                 // For Testing..... 
@@ -231,9 +231,119 @@ public class DiplomacyManager : MonoBehaviour
         }
         return found;
     }
-    public void UpdateOurDiplomacyController(CivController civPartyOne, CivController civPartyTwo)
+    public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo)
     {
-        // get diplomacy controller and do something with it
+        DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
+        if (ourDiplomacyController != null)
+        {
+            if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
+            {
+                ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
+                ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
+            }
+            else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
+            {
+                ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
+                ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
+            }
+            GalaxyMenuUIController.Instance.OpenADiplomacyUI(ourDiplomacyController); // it opens the ADiplomacy UI
+        }
+    }
+    public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo) //, StarSysController sysCon)
+    {
+        CivController civPartyOne = fleetPartyOne.FleetData.CivController; 
+        CivController civPartyTwo = fleetPartyTwo.FleetData.CivController; 
+
+        DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
+        if (ourDiplomacyController != null)
+        {
+            if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN || civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
+            {
+                if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
+                {
+                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
+                    ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
+                    ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyOne;
+                    ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyTwo;
+                }
+                else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
+                {
+                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
+                    ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
+                    ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyTwo;
+                    ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyOne;
+                }
+                else // no local player, but at least one major civ, no combat UI.
+                { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
+                    // ToDo: combat without a UI, AI combat in the background
+                    if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN)
+                    {
+                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // major civ
+                        ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo; // minor or major civ
+                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyOne;
+                        ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyTwo;
+                    }
+                    else if (civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
+                    {
+                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // major civ
+                        ourDiplomacyController.DiplomacyData.CivOther = civPartyOne; // minor or major civ
+                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyTwo;
+                        ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyOne;
+                    }                                
+                }
+            }
+            else 
+            {
+                // Two minor civs, do nothing
+            }
+        }
+    }
+    public void UpdateOurDiplomacyController(FleetController fleetCon, StarSysController sysCon) //, StarSysController sysCon)
+    {
+        CivController civPartyOne = fleetCon.FleetData.CivController;
+        CivController civPartyTwo = sysCon.StarSysData.CurrentCivController;
+
+        DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
+        ourDiplomacyController.DiplomacyData.StarSysController = sysCon;
+        if (ourDiplomacyController != null)
+        {
+            if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN || civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
+            {
+                if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
+                {
+                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
+                    ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
+                    ourDiplomacyController.DiplomacyData.FleetMajor = fleetCon;
+
+                }
+                else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
+                {
+                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
+                    ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
+                    ourDiplomacyController.DiplomacyData.FleetOther = fleetCon;
+                }
+                else // no local player, but at least one major civ, no combat UI.
+                { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
+                    // ToDo: combat without a UI, AI combat in the background
+                    if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN)
+                    {
+                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // major civ
+                        ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo; // minor or major civ
+                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetCon;
+                    }
+                    else if (civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
+                    {
+                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // major civ
+                        ourDiplomacyController.DiplomacyData.CivOther = civPartyOne; // minor or major civ
+                        ourDiplomacyController.DiplomacyData.FleetOther = fleetCon;
+                    }
+                }
+            }
+            else
+            {
+                // Two minor civs, do nothing
+            }
+        }
     }
     public DiplomacyController ReturnADiplomacyController(CivController civPartyOne, CivController civPartyTwo)
     {

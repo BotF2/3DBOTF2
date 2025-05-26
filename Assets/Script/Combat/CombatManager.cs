@@ -8,6 +8,7 @@ public class CombatManager : MonoBehaviour
     public static Dictionary<string, int[]> ShipDataDictionary = new Dictionary<string, int[]>();
     public static string[] FriendNameArray; // For current SpaceCombatScene ****
     public static string[] EnemyNameArray;
+    private Orders orders; // for now we will use the Orders class to hold the combat orders
 
     public int friends;
     public int enemies;
@@ -33,7 +34,7 @@ public class CombatManager : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
-    public void InstatniateCombat(List<FleetController> listFleets)
+    public void InstatniateCombat(FleetController firendFleets, FleetController enemyFleets)
     { // call from diplomacy total war or from Diplomacy UI on fleet meets fleet 
 
     }
