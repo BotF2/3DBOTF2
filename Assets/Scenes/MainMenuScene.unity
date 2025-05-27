@@ -9242,8 +9242,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3689b3e544fa624d92c0de97ee7fe74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shipControllerPrefab: {fileID: 2997765887977151139, guid: e6ed809b39a20d54388b036703098391, type: 3}
-  shipDataPrefab: {fileID: 28308503933621443, guid: a4454b2caf877cf43905d006317b6b50, type: 3}
+  shipConPrefab: {fileID: 5225383146866348849, guid: 74ecdfcbc551f7e43bcbddbec91a8686, type: 3}
   ShipControllerGameList: []
   ShipSOListTech0:
   - {fileID: 11400000, guid: 52c5391ba01feef499f69c948f97b515, type: 2}
@@ -19089,7 +19088,6 @@ MonoBehaviour:
   warpDownButtonGO: {fileID: 0}
   warpChange: 0.1
   warpButtonPress: 0
-  shipList: []
   shipDropdownGO: {fileID: 0}
   dropdownShipText: {fileID: 0}
   FleetName: {fileID: 0}

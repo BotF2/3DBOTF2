@@ -237,7 +237,7 @@ namespace Assets.Core
             fleetController.UpdateMaxWarp();
             fleetController.gameObject.SetActive(true);
             if (!inSystem) // all first fleets are not in system
-                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController.gameObject);
+                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
             InstantiateFleetUIGameObject(fleetController);
             return fleetController;          
         }

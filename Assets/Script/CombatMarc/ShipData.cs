@@ -1,7 +1,7 @@
 using Assets.Core;
 using UnityEngine;
 
-public class ShipData : MonoBehaviour
+public class ShipData
 {
     public string ShipName;
     public CivEnum CivEnum;
@@ -9,7 +9,7 @@ public class ShipData : MonoBehaviour
     public ShipType ShipType;
     public Sprite ShipSprite;
     public float maxWarpFactor;
-    //public float currentWarpFactor;
+    public float currentWarpFactor;
     public int ShieldMaxHealth;
     public int HullMaxHealth;
     public int TorpedoDamage;

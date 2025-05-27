@@ -5,9 +5,13 @@ public class ShipController : MonoBehaviour
     private ShipData shipData;
     public ShipData ShipData { get { return shipData; } set { shipData = value; } }
     public string Name;
+    private ShipManager _manager;
     //private bool deltaShipList = false; //??? do I need this or the shipdropdown listener
 
-
+    public void Init(ShipManager shipManager)
+    {
+        _manager = shipManager;
+    }
     private void Start()
     {
         //rb = GetComponent<Rigidbody>();
