@@ -66,7 +66,6 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         
-
         private void Start()
         {
             rb = GetComponent<Rigidbody>();
@@ -100,13 +99,6 @@ namespace Assets.Core
         public void Init(FleetManager fleetManager)
         {
             _manager = fleetManager;
-            //rb = GetComponent<Rigidbody>();
-            //rb.isKinematic = true;
-            //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
-            //var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
-            //FleetUICanvas = CanvasGO.GetComponent<Canvas>();
-            //FleetUICanvas.worldCamera = galaxyEventCamera;
-            //CanvasToolTip.worldCamera = galaxyEventCamera;
         }
         private void OnMouseDown()
         {
@@ -135,7 +127,6 @@ namespace Assets.Core
                     }
                 }
             }
-
         }
         private void OnMouseDrag()
         {
@@ -391,13 +382,10 @@ namespace Assets.Core
                 warpChange = 0f;
                 return;
             }
-
             SliderOnValueChange(fleetCon.FleetData.CurrentWarpFactor + warpChange); // this called method updates the UI too
-
         }
         public void FleetOnWarpDownClick(FleetController fleetCon)
         {
-
             if (this == fleetCon)
             {
                 warpChange = -0.1f;
@@ -545,12 +533,14 @@ namespace Assets.Core
                 GalaxyMenuUIController.Instance.GetPlayerDefinedTargetDestination(this);
             }
         }
-        public void OnClickShipManager()
+        public void OnClickShipManager(FleetController fleetCon)
         {
-            GameObject notAMenu = new GameObject();
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, notAMenu);
-            //SubMenuManager.Instance.OpenMenu(Menu.FleetsMenu, notAMenu);
-            Destroy(notAMenu);
+            if (fleetCon == this && fleetCon == GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
+            {
+                GameObject notAMenu = new GameObject();
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.ManageShipsMenu, notAMenu);
+                Destroy(notAMenu);
+            }
         }
 
         private void ReorderDropdownOptions(TMP_Dropdown dropdown)

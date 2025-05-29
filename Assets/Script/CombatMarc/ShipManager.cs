@@ -104,23 +104,22 @@ public class ShipManager : MonoBehaviour
 
         //ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
         //List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        //var ourShipGOList = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
-        //for (int i = 0; i < ourShipGOList.Count; i++)
+        //var shipConListOfOne = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
+        //for (int i = 0; i < shipConListOfOne.Count; i++)
         //{
-        //    ourShipGOList[i].transform.SetParent(shipCon.transform);
-        //    shipCon.GetComponent<FleetController>().FleetData.AddToShipList(ourShipGOList[i].GetComponent<ShipController>());
+        //    shipConListOfOne[i].transform.SetParent(shipCon.transform);
+        //    shipCon.GetComponent<FleetController>().FleetData.AddToShipList(shipConListOfOne[i].GetComponent<ShipController>());
         //}
     }
-    public void BuildShipInSystem(ShipType shipType, ShipController shipCon, StarSysController sysCon)
+    public void BuildShipInSystem(ShipType shipType, StarSysController sysCon)
     {
         ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
         List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        var ourShipGOList = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
-        for (int i = 0; i < ourShipGOList.Count; i++)
-        {
-            ourShipGOList[i].transform.SetParent(shipCon.transform);
-            shipCon.GetComponent<FleetController>().FleetData.AddToShipList(ourShipGOList[i].GetComponent<ShipController>());
-        }
+        var shipConListOfOne = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
+        ShipControllerGameList.Add(shipConListOfOne[0]);
+        sysCon.StarSysData.ShipsList.Add(shipConListOfOne[0]);
+        if (GalaxyMenuUIController.Instance != null)
+            GalaxyMenuUIController.Instance.UpdateSystemShipList(sysCon);
     }
     public void BuildShipsOfFirstFleet(FleetController fleetCon)
     {

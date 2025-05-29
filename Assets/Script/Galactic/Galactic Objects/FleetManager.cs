@@ -8,8 +8,6 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 
-
-
 namespace Assets.Core
 {
     /// <summary>
@@ -226,6 +224,7 @@ namespace Assets.Core
 
             }
             fleetController.FleetData.Destination = GalaxyCenter;
+
             fleetController.FleetData.ShipsList.Clear();
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
@@ -248,7 +247,7 @@ namespace Assets.Core
                 if (fleetCon.FleetUIGameObject == null)
                 {
                     GameObject thisFleetUIGameObject = (GameObject)Instantiate(fleetUIPrefab, new Vector3(0, 0, 0),
-                    Quaternion.identity); 
+                        Quaternion.identity); 
                     thisFleetUIGameObject.SetActive(true);
                     thisFleetUIGameObject.layer = 5;
                     fleetCon.FleetUIGameObject = thisFleetUIGameObject;
@@ -267,7 +266,7 @@ namespace Assets.Core
 
             // getting the ships data so they can send images for drag drop
             shipManagerUIInstance.transform.SetParent(canvasShipManager.transform, false);
-            ShipInFleetItem[] ships = shipManagerUIInstance.GetComponentsInChildren<ShipInFleetItem>();
+            ShipInFleetDrag[] ships = shipManagerUIInstance.GetComponentsInChildren<ShipInFleetDrag>();
 
 
             for (int m = 0; m < ships.Length; m++)

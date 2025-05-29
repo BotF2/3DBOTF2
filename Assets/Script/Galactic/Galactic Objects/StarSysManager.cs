@@ -1,4 +1,5 @@
 using FischlWorks_FogWar;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,7 +18,7 @@ namespace Assets.Core
     /// </summary>
     public class StarSysManager : MonoBehaviour
     {
-        
+
         public static StarSysManager Instance;
         [SerializeField]
         private List<StarSysSO> starSysSOList; // get StarSysSO for civ by int
@@ -36,7 +37,7 @@ namespace Assets.Core
         [SerializeField]
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
-        private GameObject sysPrefab;
+        private StarSysController sysPrefab;
         [SerializeField]
         private GameObject shipSliderPrefab;
 
@@ -57,8 +58,8 @@ namespace Assets.Core
         private GameObject shieldGenInventorySlot;
         private GameObject orbitalBatteryInventorySlot;
         private GameObject researchCenterInventorySlot;
-        [SerializeField]
-        private GameObject fleetPrefab;
+        //[SerializeField]
+        //private GameObject fleetPrefab;
         public GameObject scoutBluePrintPrefab;
         public GameObject destroyerBluePrintPrefab;
         public GameObject cruiserBluePrintPrefab;
@@ -142,42 +143,42 @@ namespace Assets.Core
             {
                 if (shipSOList[i].ShipType == ShipType.Scout)
                 {
-                    var shipBuildScript = scoutBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = scoutBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     scoutBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Destroyer)
                 {
-                    var shipBuildScript = destroyerBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = destroyerBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     destroyerBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Cruiser)
                 {
-                    var shipBuildScript = cruiserBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = cruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     cruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.LtCruiser)
                 {
-                    var shipBuildScript = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     ltCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.HvyCruiser)
                 {
-                    var shipBuildScript = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     hvyCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Transport)
                 {
-                    var shipBuildScript = transportBluePrintPrefab.GetComponent<ShipInFleetItem>();
+                    var shipBuildScript = transportBluePrintPrefab.GetComponent<ShipInFleetDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     transportBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
@@ -221,10 +222,9 @@ namespace Assets.Core
             {
                 // In the CombatScene branch this use of the game object is prelaced with getting the StarSysController from the prefab
                 // pending a merge of the two branches to replace this.
-                GameObject starSysGO = (GameObject)Instantiate(sysPrefab, new Vector3(0, 0, 0),
+                StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-                StarSysController starSysCon = starSysGO.GetComponent<StarSysController>();
-                starSysCon.Init(this);
+                starSysCon.Init(this);starSysCon.StarSysData = sysData;
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
                     sysData.GetPosition().y, sysData.GetPosition().z));
@@ -235,7 +235,8 @@ namespace Assets.Core
                 fogObsticleTransform.SetParent(galaxyCenter.transform, false);
                 fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));
                 starSysCon.name = sysData.GetSysName();
-
+     
+                starSysCon.StarSysData.ShipsList.Clear();
                 sysData.SysGameObject = starSysCon.gameObject;
 
                 TextMeshProUGUI[] TheText = starSysCon.GetComponentsInChildren<TextMeshProUGUI>();
@@ -830,7 +831,7 @@ namespace Assets.Core
                     sysController.StarSystUIGameObject.SetActive(true);
                     thisStarSysUIGameObject.transform.SetParent(contentFolderParent.transform, false); // load into List of systems
                 }
-            }    
+            }
         }
 
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
@@ -1013,7 +1014,7 @@ namespace Assets.Core
                             {
                                 if (itemScoutImage[i].name == "ItemScout" || itemScoutImage[i].name == "ImageScoutBackground")
                                 {
-                                    itemScoutImage[i].sprite = scoutBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemScoutImage[i].sprite = scoutBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1027,7 +1028,7 @@ namespace Assets.Core
                             {
                                 if (itemDestroyerImage[i].name == "ItemDestroyer" || itemDestroyerImage[i].name == "ImageDestroyerBackground")
                                 {
-                                    itemDestroyerImage[i].sprite = destroyerBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemDestroyerImage[i].sprite = destroyerBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1047,7 +1048,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemCruiser" || itemCruiserImage[i].name == "ImageCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = cruiserBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemCruiserImage[i].sprite = cruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1067,7 +1068,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemLtCruiser" || itemCruiserImage[i].name == "ImageLtCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemCruiserImage[i].sprite = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1086,7 +1087,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemHvyCruiser" || itemCruiserImage[i].name == "ImageHvyCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemCruiserImage[i].sprite = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1100,7 +1101,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemTransport" || itemCruiserImage[i].name == "ImageTransportBackground")
                                 {
-                                    itemCruiserImage[i].sprite = transportBluePrintPrefab.GetComponent<ShipInFleetItem>().ShipSprite;
+                                    itemCruiserImage[i].sprite = transportBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
                                 }
                             }
                             break;

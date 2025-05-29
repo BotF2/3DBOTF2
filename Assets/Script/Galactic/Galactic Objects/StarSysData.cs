@@ -7,6 +7,7 @@ using UnityEngine.UI;
 /// with a real star or a nebula or a complex as in the Borg Unicomplex)
 /// Other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
 /// and blackholes/wormholes (one class.)
+/// Star systems also hold ships just like fleets hold ships
 /// </summary>
 public class StarSysData
 {
@@ -22,7 +23,7 @@ public class StarSysData
     //public StartingTechLevel is a civ level value, not a system data value.
     public int TechUnits; // ResearchCenters centers provide tech output units that determins progress to a civ level StartingTechLevel enum.
     public Sprite StarSprit;
-    public List<ShipController> ShipsList;
+    public List<ShipController> ShipsList = new List<ShipController>();
     public List<GameObject> PowerPlants;
     public List<GameObject> Factories;
     public List<GameObject> FactoryBuildQueue;
@@ -33,7 +34,6 @@ public class StarSysData
     public List<GameObject> OrbitalBatteries;
     public GameObject buildSlotItemImage;
     public List<GameObject> buildQueueImageList;
-    //public List<GameObject> FleetsInSystem = new List<GameObject>();
     public int TotalSysPowerOutput =0;
     public int TotalSysPowerLoad = 0;
     public PowerPlantData PowerPlantData;

@@ -116,6 +116,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private GameObject shipDropdownGO;
     [SerializeField]
+    private Sprite ship;
+    [SerializeField]
     private TMP_Text dropdownShipText;
     [SerializeField]
     private TMP_Text FleetName;
@@ -419,6 +421,10 @@ public class GalaxyMenuUIController : MonoBehaviour
                 aFleetMenuView.SetActive(false);
                 openMenuWas = aFleetMenuView;
                 break;
+            case Menu.ManageShipsMenu:
+                manageFleetShipsMenu.SetActive(false);
+   
+                break;
             case Menu.DiplomacyMenu:
                 diplomacyBackground.SetActive(false);
                 diplomacyMenuView.SetActive(false);
@@ -534,8 +540,13 @@ public class GalaxyMenuUIController : MonoBehaviour
                             case "WarpSlider":
                                 rectTransforms[i].gameObject.SetActive(true);
                                 warpSlider = rectTransforms[i].GetComponent<Slider>();
-                                //fleetConWaitingForDestination.destinationName = destinationName;
                                 break;
+                            case "ButtonShipManager":
+                                rectTransforms[i].gameObject.SetActive(true);
+                                manageFleetShipsMenu = rectTransforms[i].gameObject;
+                                shipDropdown = rectTransforms[i].GetComponentInChildren<TMP_Dropdown>();
+                                break;
+                                
                             default:
                                 break;
                         }
@@ -594,10 +605,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                             listButton.onClick.RemoveAllListeners();
                             listButton.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
                             break;
-                        case "ButtonShipManager":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => fleetCon.ShipManageClick(fleetCon));
-                            break;
                         case "ButtonWarpUp":
                             fleetCon.FleetData.FleetButtonUp = listButton;
                             listButton.onClick.RemoveAllListeners();
@@ -613,45 +620,47 @@ public class GalaxyMenuUIController : MonoBehaviour
                             listButton.onClick.RemoveAllListeners();
                             listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI());  //fleetCon));
                             break;
+                        case "ButtonShipManager":
+                            // ToDo: open ship manager UI, instantiate prefab  similar to systems build menu with drag and drop
+                            listButton.onClick.RemoveAllListeners();
+                            listButton.onClick.AddListener(() => fleetCon.OnClickShipManager(fleetCon));  //fleetCon));
+                            break;
                         default:
                             break;
                     }
                 }
-                //ship dropdown
-                var shipDropdown = fleetCon.FleetUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-                shipDropdown.options.Clear();
-                shipDropdown.captionText.text = "Ship List";
-                List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
-                string nameShip;
-                for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-                {
-                    if (fleetCon.FleetData.ShipsList[i] != null)
-                    {
-                        TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
-                        nameShip = fleetCon.FleetData.ShipsList[i].name;
-                        nameShip = nameShip.Replace("(CLONE)", string.Empty);
-                        newDataItem.text = nameShip;
-                        newShipItems.Add(newDataItem);
-                    }
-                }
-                shipDropdown.AddOptions(newShipItems);
-                shipDropdown.RefreshShownValue();
+                LoadFleetShipList(fleetCon); // Update the ship list in the fleet UI
             }
             if (fleetCon.FleetUIGameObject != null)
             {
                 fleetCon.FleetUIGameObject.SetActive(true);
-
                 fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
             }
         }
-
     }
-    public void OnClickShipManager()
+    public void LoadFleetShipList(FleetController fleetCon)
     {
-        GameObject notAMenu = new GameObject();
-        OpenMenu(Menu.AFleetMenu, notAMenu);
-        //Destroy(notAMenu);
+        //ship dropdown
+        var shipDropdown = fleetCon.FleetUIGameObject.GetComponentInChildren<TMP_Dropdown>();
+        shipDropdown.options.Clear();
+        shipDropdown.captionText.text = "Ship List";
+        List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
+        string nameShip;
+        for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
+        {
+            if (fleetCon.FleetData.ShipsList[i] != null)
+            {
+                TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
+                nameShip = fleetCon.FleetData.ShipsList[i].name;
+                nameShip = nameShip.Replace("(CLONE)", string.Empty);
+                newDataItem.text = nameShip;
+                newShipItems.Add(newDataItem);
+            }
+        }
+        shipDropdown.AddOptions(newShipItems);
+        shipDropdown.RefreshShownValue();
     }
+
     public void CloseDestinationSelectionCursor()
     {
         MouseClickSetsDestination = false;
@@ -1089,6 +1098,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                             break;
                     }
                 }
+                UpdateSystemShipList(sysController);
             }
             if (sysController.StarSystUIGameObject != null)
             {
@@ -1098,6 +1108,29 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
 
         }
+    }
+    internal void UpdateSystemShipList(StarSysController sysController)
+    {
+        var shipDropdown = sysController.StarSystUIGameObject.GetComponentInChildren<TMP_Dropdown>();
+        shipDropdown.options.Clear();
+        shipDropdown.captionText.text = "Ship List";
+        List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
+        string nameShip;
+        for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
+        {
+            if (sysController.StarSysData.ShipsList[i] != null)
+            {
+                TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
+                nameShip = sysController.StarSysData.ShipsList[i].name;
+                nameShip = nameShip.Replace("(CLONE)", string.Empty);
+                newDataItem.text = nameShip;
+                newDataItem.image = ThemeManager.Instance.CurrentTheme.FleetShipImage; 
+                newShipItems.Add(newDataItem);
+                shipDropdown.options.Add(newDataItem); // Add the new data item to the dropdown options
+            }
+        }
+        shipDropdown.AddOptions(newShipItems);
+        shipDropdown.RefreshShownValue();
     }
     public void UpdateFacilityUI(StarSysController sysController, int plusMinus, string loadName, string ratioName, StarSysFacilities facilityType)
     {

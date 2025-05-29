@@ -222,7 +222,7 @@ namespace Assets.Core
                     shipBuildingItem = null;
                     CivEnum localPlayerCivEnum = CivManager.Instance.LocalPlayerCivContoller.CivData.CivEnum;
 
-                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<ShipInFleetItem>().ShipType)
+                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<ShipInFleetDrag>().ShipType)
                     {
                         case ShipType.Scout:
                             shipType = ShipType.Scout;
@@ -245,18 +245,28 @@ namespace Assets.Core
                         default:
                             break;
                     }
+                    ShipManager.Instance.BuildShipInSystem(shipType, this);
 
-                    if (this.StarSysData.ShipsList.Count > 0)
-                    {
-                        ShipManager.Instance.BuildShipInSystem(shipType, StarSysData.ShipsList[0], this); // put a ship in the fleet
-                    }
                     var imageTransform = shipBuildQueueList[0];
-                    imageTransform.SetParent(imageTransform.GetComponent<ShipInFleetItem>().originalParent, false);
+                    imageTransform.SetParent(imageTransform.GetComponent<ShipInFleetDrag>().originalParent, false);
                     if (imageTransform.parent.childCount > 1)
                     {
                         Destroy(imageTransform.gameObject);
                     }
                     shipBuildQueueList.Remove(shipBuildQueueList[0]);
+                    if (this.StarSysData.ShipsList.Count > 0)
+                    {
+                        var shipDropdown = this.StarSystUIGameObject.GetComponentInChildren<TMP_Dropdown>();
+                        if (shipDropdown != null && shipDropdown.options.Count > 0)
+                        {
+                            shipDropdown.options.Clear();
+                            foreach (var ship in this.StarSysData.ShipsList)
+                            {
+                                shipDropdown.options.Add(new TMP_Dropdown.OptionData(ship.Name));
+                            }
+                        }
+                        shipDropdown.RefreshShownValue();
+                    }
                 }
             }
             else if (ShipTimeToBuild < 0)
@@ -333,7 +343,7 @@ namespace Assets.Core
 
                 if (shipBuildingItem != lastShipBuildingItem)
                 {
-                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<ShipInFleetItem>();
+                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<ShipInFleetDrag>();
                     ShipTimeToBuild = ShipManager.Instance.GetShipBuildDuration(shipBuildableItem.ShipType, this.StarSysData.CurrentCivController.CivData.TechLevel, this.StarSysData.CurrentOwnerCivEnum);
                     lastShipBuildingItem = shipBuildingItem;
                     shipStartTimer = true;
@@ -775,19 +785,11 @@ namespace Assets.Core
         }
         public void SetBuildProgress(float progress)
         {
-            //SliderBuildProgress.gameObject.SetActive(true);
-            //SliderBuildProgress.enabled = true;
-            //SliderBuildProgress.gameObject.transform.SetAsLastSibling();
             SliderBuildProgress.value = progress;
-
         }
         public void SetShipBuildProgress(float shipProgress)
-        {
-            //ShipSliderBuildProgress.gameObject.SetActive(true);
-            //ShipSliderBuildProgress.enabled = true;
-            //ShipSliderBuildProgress.gameObject.transform.SetAsLastSibling();
+        {    
             ShipSliderBuildProgress.value = shipProgress;
-
         }
     }
 

@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using Assets.Core;
 
 
-public class ShipInFleetItem : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class ShipInFleetDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -23,7 +23,7 @@ public class ShipInFleetItem : MonoBehaviour, IBeginDragHandler, IEndDragHandler
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetItem>();
+        var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetDrag>();
         switch (eventData.pointerDrag.name)
         {
             case "ItemScout":
@@ -67,7 +67,7 @@ public class ShipInFleetItem : MonoBehaviour, IBeginDragHandler, IEndDragHandler
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
             transform.SetParent(eventData.pointerEnter.transform);
-            var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetItem>();
+            var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetDrag>();
             switch (eventData.pointerDrag.name)
             {
                 case "ItemPowerPlant":

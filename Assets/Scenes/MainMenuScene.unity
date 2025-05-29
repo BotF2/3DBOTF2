@@ -19089,6 +19089,7 @@ MonoBehaviour:
   warpChange: 0.1
   warpButtonPress: 0
   shipDropdownGO: {fileID: 0}
+  ship: {fileID: 21300000, guid: 0e92d274ecd34b94bb6fddd52b5daf9f, type: 3}
   dropdownShipText: {fileID: 0}
   FleetName: {fileID: 0}
   selectDestinationCursorButtonGO: {fileID: 0}
@@ -41151,7 +41152,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 641d73b0dfabc864f952a8214351fa81, type: 2}
   - {fileID: 11400000, guid: ff6a5f49b26e72448ae0bc07e3f2a1ab, type: 2}
   - {fileID: 11400000, guid: cc87f47bdb5ebd048a0fc0b69afdcd76, type: 2}
-  sysPrefab: {fileID: 6000483729355016117, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
+  sysPrefab: {fileID: 1344623282000112472, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
   shipSliderPrefab: {fileID: 3868390008097759204, guid: 897bffe8bfb3c714682af28e16f3d3dc, type: 3}
   sysUIPrefab: {fileID: 4945801355922885453, guid: 2019fad506023ad42a54b9e786bd3ff1, type: 3}
   PowerPlantPrefab: {fileID: 3951996713806300590, guid: 53bf0f8c8773c994f8331ada5c7ee1a7, type: 3}
@@ -41160,7 +41161,6 @@ MonoBehaviour:
   ShieldGeneratorPrefab: {fileID: 8721351806507026755, guid: b0545075bb36c2c499e0801a9a598f68, type: 3}
   OrbitalBatteryPrefab: {fileID: 5454051914275515245, guid: d3ffd69f497d6db498b7847ffec0b573, type: 3}
   ResearchCenterPrefab: {fileID: 3385001668930454785, guid: e08024a6cdf269e4096d554d8fa1dd0b, type: 3}
-  fleetPrefab: {fileID: 8531124223347370568, guid: ef3b3036010abf54e8925e887e9010ad, type: 3}
   scoutBluePrintPrefab: {fileID: 6321614478493960930, guid: f0379e6abf6e2424c9c6ef2a2faec298, type: 3}
   destroyerBluePrintPrefab: {fileID: 6321614478493960930, guid: 5581d5fd566eab24eb436aa8ae660008, type: 3}
   cruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: dc1009bead97f4044afd09aebe1c62d4, type: 3}
