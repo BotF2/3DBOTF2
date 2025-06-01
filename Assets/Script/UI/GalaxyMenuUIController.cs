@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using UnityEngine.Experimental.XR.Interaction;
 using System.Runtime.CompilerServices;
+using UnityEngine.ResourceManagement;
 public enum Menu
 {
     None,
@@ -108,17 +109,15 @@ public class GalaxyMenuUIController : MonoBehaviour
     private float warpChange = 0.1f;
     [SerializeField]
     private bool warpButtonPress = false;
-
+    [SerializeField]
+    private GameObject shipContainer;
+    [SerializeField]
+    private GameObject shipListingUIPrefab;
     [SerializeField]
     private List<ShipData> shipList;
     private bool deltaShipList = false;
-    private TMP_Dropdown shipDropdown;
     [SerializeField]
-    private GameObject shipDropdownGO;
-    [SerializeField]
-    private Sprite ship;
-    [SerializeField]
-    private TMP_Text dropdownShipText;
+    private GameObject shipManagementButtonGO;
     [SerializeField]
     private TMP_Text FleetName;
     [SerializeField]
@@ -377,8 +376,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     private void SetUpASystemUIData(StarSysController theSysCon) // now system ui open single system view when our system is clicked on galaxy map
     {
-        theSysCon.StarSystUIGameObject.SetActive(true);
-        theSysCon.StarSystUIGameObject.transform.SetParent(aSystemMenuView.transform, false);
+        theSysCon.StarSysUIGameObject.SetActive(true);
+        theSysCon.StarSysUIGameObject.transform.SetParent(aSystemMenuView.transform, false);
     }
     private void SetUpADiplomacyUIData(DiplomacyController theDiploCon) // now system ui open single system view when our system is clicked on galaxy map
     {
@@ -543,8 +542,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                                 break;
                             case "ButtonShipManager":
                                 rectTransforms[i].gameObject.SetActive(true);
-                                manageFleetShipsMenu = rectTransforms[i].gameObject;
-                                shipDropdown = rectTransforms[i].GetComponentInChildren<TMP_Dropdown>();
+                                shipManagementButtonGO = rectTransforms[i].gameObject;
                                 break;
                                 
                             default:
@@ -629,7 +627,31 @@ public class GalaxyMenuUIController : MonoBehaviour
                             break;
                     }
                 }
-                LoadFleetShipList(fleetCon); // Update the ship list in the fleet UI
+                for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
+                {
+                    ShipType shipType = fleetCon.FleetData.ShipsList[i].ShipData.ShipType;
+                    TechLevel techLevel = fleetCon.FleetData.CivController.CivData.TechLevel;
+                    CivEnum civEnum = fleetCon.FleetData.CivEnum;
+
+                    var shipSO = ShipManager.Instance.GetShipSO(shipType, techLevel, civEnum);
+                    List<ShipSO> shipSOList = new List<ShipSO> { shipSO };
+                    ShipManager.Instance.InstantiateShipControllersWithDataFromSO(shipSOList, fleetCon.gameObject);
+                    if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
+                    {
+                        var transforms = fleetCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
+                        bool weFoundIt = false;
+                        for (int k = 0; k < transforms.Length; k++)
+                        {
+                            if (!weFoundIt && transforms[k].gameObject.name == "ShipContent")
+                            {
+                                shipContainer = transforms[k].gameObject;
+                                weFoundIt = true;
+                            }
+                        }
+                        fleetCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
+
+                    }
+                }
             }
             if (fleetCon.FleetUIGameObject != null)
             {
@@ -640,25 +662,25 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void LoadFleetShipList(FleetController fleetCon)
     {
-        //ship dropdown
-        var shipDropdown = fleetCon.FleetUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-        shipDropdown.options.Clear();
-        shipDropdown.captionText.text = "Ship List";
-        List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
-        string nameShip;
-        for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-        {
-            if (fleetCon.FleetData.ShipsList[i] != null)
-            {
-                TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
-                nameShip = fleetCon.FleetData.ShipsList[i].name;
-                nameShip = nameShip.Replace("(CLONE)", string.Empty);
-                newDataItem.text = nameShip;
-                newShipItems.Add(newDataItem);
-            }
-        }
-        shipDropdown.AddOptions(newShipItems);
-        shipDropdown.RefreshShownValue();
+        ////ship dropdown
+        //var shipDropdown = fleetCon.FleetUIGameObject.GetComponentInChildren<TMP_Dropdown>();
+        //shipDropdown.options.Clear();
+        //shipDropdown.captionText.text = "Ship List";
+        //List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
+        //string nameShip;
+        //for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
+        //{
+        //    if (fleetCon.FleetData.ShipsList[i] != null)
+        //    {
+        //        TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
+        //        nameShip = fleetCon.FleetData.ShipsList[i].name;
+        //        nameShip = nameShip.Replace("(CLONE)", string.Empty);
+        //        newDataItem.text = nameShip;
+        //        newShipItems.Add(newDataItem);
+        //    }
+        //}
+        //shipDropdown.AddOptions(newShipItems);
+        //shipDropdown.RefreshShownValue();
     }
 
     public void CloseDestinationSelectionCursor()
@@ -816,7 +838,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void RemoveSystem(StarSysController sysController)
     {
         sysControllers.Remove(sysController);
-        listOfStarSysUiGos.Remove(sysController.StarSystUIGameObject);
+        listOfStarSysUiGos.Remove(sysController.StarSysUIGameObject);
     }
     private void MoveTheSysUIGO(GameObject sysConGO)
     {
@@ -853,13 +875,13 @@ public class GalaxyMenuUIController : MonoBehaviour
 
         foreach (var sysController in StarSysManager.Instance.StarSysControllerList)
         {
-            if (!listOfStarSysUiGos.Contains(sysController.StarSystUIGameObject) && GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
+            if (!listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject) && GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
             {
-                sysController.StarSystUIGameObject.SetActive(true);
-                sysController.StarSystUIGameObject.transform.SetParent(sysListContainer.transform, false);
+                sysController.StarSysUIGameObject.SetActive(true);
+                sysController.StarSysUIGameObject.transform.SetParent(sysListContainer.transform, false);
                 sysControllers.Add(sysController);// add to list for the ContentSystems (queue) folder
-                listOfStarSysUiGos.Add(sysController.StarSystUIGameObject);
-                RectTransform[] minMapDotTransfor = sysController.StarSystUIGameObject.GetComponentsInChildren<RectTransform>();
+                listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
+                RectTransform[] minMapDotTransfor = sysController.StarSysUIGameObject.GetComponentsInChildren<RectTransform>();
                 for (int i = 0; i < minMapDotTransfor.Length; i++)
                 {
                     if (minMapDotTransfor[i].name == "RedDot")
@@ -872,7 +894,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     }
                 }
 
-                TextMeshProUGUI[] OneTMP = sysController.StarSystUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+                TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
                 for (int i = 0; i < OneTMP.Length; i++)
                 {
                     int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
@@ -991,7 +1013,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                         case "PowerOverload":
                             OneTMP[i].gameObject.SetActive(false);
                             powerOverload = OneTMP[i].gameObject; //.SetActive(true);
-                            break;
+                            break;                       
                         default:
                             break;
 
@@ -1001,7 +1023,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                         //UpdateSystemPowerLoad(sysController);
                     }
                 }
-                Image[] listOfImages = sysController.StarSystUIGameObject.GetComponentsInChildren<Image>();
+                Image[] listOfImages = sysController.StarSysUIGameObject.GetComponentsInChildren<Image>();
                 for (int i = 0; i < listOfImages.Length; i++)
                 {
                     // int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.StartingTechLevel / 100; // Early Tech level = 100, Supreme = 900;
@@ -1041,7 +1063,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     }
                 }
 
-                Button[] listButtons = sysController.StarSystUIGameObject.GetComponentsInChildren<Button>();
+                Button[] listButtons = sysController.StarSysUIGameObject.GetComponentsInChildren<Button>();
                 foreach (var listButton in listButtons)
                 {
                     switch (listButton.name)
@@ -1098,39 +1120,43 @@ public class GalaxyMenuUIController : MonoBehaviour
                             break;
                     }
                 }
-                UpdateSystemShipList(sysController);
-            }
-            if (sysController.StarSystUIGameObject != null)
-            {
-                sysController.StarSystUIGameObject.SetActive(true);
+                for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
+                {
+                    ShipType shipType = sysController.StarSysData.ShipsList[i].ShipData.ShipType;
+                    TechLevel techLevel = sysController.StarSysData.CurrentCivController.CivData.TechLevel;
+                    CivEnum civEnum = sysController.StarSysData.CurrentOwnerCivEnum;
 
-                sysController.StarSystUIGameObject.transform.SetParent(sysListContainer.transform, false);
+                    var shipSO = ShipManager.Instance.GetShipSO(shipType, techLevel, civEnum);
+                    List<ShipSO> shipSOList = new List<ShipSO> { shipSO };
+                    ShipManager.Instance.InstantiateShipControllersWithDataFromSO(shipSOList, sysController.gameObject);
+                    if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
+                    {
+                        var transforms = sysController.StarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
+                        for (int j = 0; j < transforms.Length; j++)
+                        {
+                            if (transforms[j].gameObject.name == "ShipContent")
+                            {
+                                shipContainer = transforms[j].gameObject;
+                                return;
+                            }
+                        }
+                        sysController.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
+
+                    }
+                }
+            }
+            if (sysController.StarSysUIGameObject != null)
+            {
+                sysController.StarSysUIGameObject.SetActive(true);
+
+                sysController.StarSysUIGameObject.transform.SetParent(sysListContainer.transform, false);
             }
 
         }
     }
-    internal void UpdateSystemShipList(StarSysController sysController)
+    internal void UpdateSystemShipList(StarSysController sysCon)
     {
-        var shipDropdown = sysController.StarSystUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-        shipDropdown.options.Clear();
-        shipDropdown.captionText.text = "Ship List";
-        List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
-        string nameShip;
-        for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
-        {
-            if (sysController.StarSysData.ShipsList[i] != null)
-            {
-                TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
-                nameShip = sysController.StarSysData.ShipsList[i].name;
-                nameShip = nameShip.Replace("(CLONE)", string.Empty);
-                newDataItem.text = nameShip;
-                newDataItem.image = ThemeManager.Instance.CurrentTheme.FleetShipImage; 
-                newShipItems.Add(newDataItem);
-                shipDropdown.options.Add(newDataItem); // Add the new data item to the dropdown options
-            }
-        }
-        shipDropdown.AddOptions(newShipItems);
-        shipDropdown.RefreshShownValue();
+        throw new NotImplementedException();
     }
     public void UpdateFacilityUI(StarSysController sysController, int plusMinus, string loadName, string ratioName, StarSysFacilities facilityType)
     {
@@ -1164,7 +1190,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     break;
             }
             int numOn = 0;
-            TextMeshProUGUI[] OneTMP = sysController.StarSystUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
             for (int i = 0; i < OneTMP.Length; i++)
             {
                 OneTMP[i].enabled = true;
@@ -1236,7 +1262,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
         }
         sysCon.StarSysData.TotalSysPowerLoad = load;
-        TextMeshProUGUI[] OneTMP = sysCon.StarSystUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+        TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
         for (int i = 0; i < OneTMP.Length; i++)
         {
             int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
@@ -1549,6 +1575,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
         }
     }
+
     #endregion Diplomacy
 }
 

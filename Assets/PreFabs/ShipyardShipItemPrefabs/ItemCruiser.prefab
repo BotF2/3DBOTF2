@@ -91,7 +91,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   originalParent: {fileID: 0}
   FleetController: {fileID: 0}
-  ShipType: 0
+  ShipType: 2
   ShipSprite: {fileID: 0}
   BuildDuration: 0
 --- !u!225 &6321614478493960943

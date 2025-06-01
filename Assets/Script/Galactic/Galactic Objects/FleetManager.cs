@@ -44,7 +44,8 @@ namespace Assets.Core
         private List<int> destinationIntsInUse = new List<int>() { 0 };
         private Dictionary<CivEnum, List<int>> fleetNumsInUse  = new Dictionary<CivEnum, List<int>>();
         public List<FleetController> FleetControllersInGame = new List<FleetController>();
-
+        [SerializeField]
+        private GameObject contentFolderParent;
         private List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
 
 
@@ -80,17 +81,17 @@ namespace Assets.Core
                 }
             }
         }
-        public FleetController BuildShipInSystemWithFleet( StarSysController sysCon, bool inSystem, CivEnum civEnum)
-        {
-            // system builds a ship and we need a fleet in the system
-            FleetSO fleetSO = GetFleetSObyInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-            fleetSO = GetFleetSObyInt((int)civEnum);
+        //public FleetController BuildShipInSystemWithFleet( StarSysController sysCon, bool inSystem, CivEnum civEnum)
+        //{
+        //    // system builds a ship and we need a fleet in the system
+        //    FleetSO fleetSO = GetFleetSObyInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
+        //    fleetSO = GetFleetSObyInt((int)civEnum);
 
-            FleetData fleetData = new FleetData(fleetSO);
-            FleetController fleetCon = InstantiateFleet(sysCon, fleetData, sysCon.StarSysData.GetPosition(), inSystem);
+        //    FleetData fleetData = new FleetData(fleetSO);
+        //    FleetController fleetCon = InstantiateFleet(sysCon, fleetData, sysCon.StarSysData.GetPosition(), inSystem);
 
-            return fleetCon;
-        }
+        //    return fleetCon;
+        //}
         public void BuildFirstFleets(StarSysController sysCon, bool inSystem)
         {
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
@@ -251,8 +252,17 @@ namespace Assets.Core
                     thisFleetUIGameObject.SetActive(true);
                     thisFleetUIGameObject.layer = 5;
                     fleetCon.FleetUIGameObject = thisFleetUIGameObject;
-                   // thisFleetUIGameObject.transform.SetParent(contentFolderParent.transform, false); // load into List of fleets
-
+                    fleetCon.FleetUIGameObject.SetActive(true);
+                    thisFleetUIGameObject.transform.SetParent(contentFolderParent.transform, false);
+                    var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
+                    for (int i = 0; i < transforms.Length; i++)
+                    {
+                        if (transforms[i].name == "ShipContent")
+                        {
+                            fleetCon.FleetData.ShipListUIParent = transforms[i].gameObject;
+                            return;
+                        }
+                    }
                 }
             }
         }

@@ -21,8 +21,8 @@ namespace Assets.Core
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
         [SerializeField]
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
-        // instantiated by StarSysManager from a prefab and added to StarSysController
-        public GameObject StarSystUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
+        // instantiated by StarSysManager from the prefab and added to StarSysController
+        public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
         private Camera galaxyEventCamera;
         [SerializeField]
         private Canvas canvasToolTip;
@@ -254,19 +254,19 @@ namespace Assets.Core
                         Destroy(imageTransform.gameObject);
                     }
                     shipBuildQueueList.Remove(shipBuildQueueList[0]);
-                    if (this.StarSysData.ShipsList.Count > 0)
-                    {
-                        var shipDropdown = this.StarSystUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-                        if (shipDropdown != null && shipDropdown.options.Count > 0)
-                        {
-                            shipDropdown.options.Clear();
-                            foreach (var ship in this.StarSysData.ShipsList)
-                            {
-                                shipDropdown.options.Add(new TMP_Dropdown.OptionData(ship.Name));
-                            }
-                        }
-                        shipDropdown.RefreshShownValue();
-                    }
+                    //if (this.StarSysData.ShipsList.Count > 0)
+                    //{
+                    //    var shipDropdown = this.StarSysUIGameObject.GetComponentInChildren<TMP_Dropdown>();
+                    //    if (shipDropdown != null && shipDropdown.options.Count > 0)
+                    //    {
+                    //        shipDropdown.options.Clear();
+                    //        foreach (var ship in this.StarSysData.ShipsList)
+                    //        {
+                    //            shipDropdown.options.Add(new TMP_Dropdown.OptionData(ship.Name));
+                    //        }
+                    //    }
+                    //    shipDropdown.RefreshShownValue();
+                    //}
                 }
             }
             else if (ShipTimeToBuild < 0)

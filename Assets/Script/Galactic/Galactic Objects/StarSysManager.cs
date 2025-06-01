@@ -39,7 +39,7 @@ namespace Assets.Core
         [SerializeField]
         private StarSysController sysPrefab;
         [SerializeField]
-        private GameObject shipSliderPrefab;
+        private GameObject shipBuildSliderPrefab;
 
         [SerializeField]
         private GameObject sysUIPrefab;
@@ -50,7 +50,6 @@ namespace Assets.Core
         public GameObject ShieldGeneratorPrefab;
         public GameObject OrbitalBatteryPrefab;
         public GameObject ResearchCenterPrefab;
-        //public StarSysController currentActiveSysCon;
 
         private GameObject powerPlantInventorySlot;
         private GameObject factoryInventorySlot;
@@ -58,8 +57,7 @@ namespace Assets.Core
         private GameObject shieldGenInventorySlot;
         private GameObject orbitalBatteryInventorySlot;
         private GameObject researchCenterInventorySlot;
-        //[SerializeField]
-        //private GameObject fleetPrefab;
+
         public GameObject scoutBluePrintPrefab;
         public GameObject destroyerBluePrintPrefab;
         public GameObject cruiserBluePrintPrefab;
@@ -320,7 +318,13 @@ namespace Assets.Core
 
                 }
                 if (civSO.HasWarp)
-                     FleetManager.Instance.BuildFirstFleets(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
+                {
+                    FleetManager.Instance.BuildFirstFleets(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
+                    if (starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN)
+                    {
+                        ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
+                    }
+                }
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
                 {
                     StarSysSO starSysSO = GetStarSObyInt(civSO.CivInt);
@@ -821,15 +825,24 @@ namespace Assets.Core
         {
             if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
             {
-                //currentActiveSysCon = sysController;
-                if (sysController.StarSystUIGameObject == null)
+                if (sysController.StarSysUIGameObject == null)
                 {
                     GameObject thisStarSysUIGameObject = (GameObject)Instantiate(sysUIPrefab, new Vector3(0, 0, 0),
                         Quaternion.identity);
                     thisStarSysUIGameObject.layer = 5;
-                    sysController.StarSystUIGameObject = thisStarSysUIGameObject;
-                    sysController.StarSystUIGameObject.SetActive(true);
-                    thisStarSysUIGameObject.transform.SetParent(contentFolderParent.transform, false); // load into List of systems
+                    sysController.StarSysUIGameObject = thisStarSysUIGameObject;
+                    sysController.StarSysUIGameObject.SetActive(true);
+                    thisStarSysUIGameObject.transform.SetParent(contentFolderParent.transform, false);
+
+                    var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
+                    for (int j = 0; j < transforms.Length; j++)
+                    {
+                        if (transforms[j].gameObject.name == "ShipContent")
+                        {
+                            sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
+                            return;
+                        }
+                    }                   
                 }
             }
         }
@@ -1111,8 +1124,8 @@ namespace Assets.Core
                         break;
                 }
             }
-            GameObject shipSliderGO = (GameObject)Instantiate(shipSliderPrefab, new Vector3(0, 0, 0),
-                Quaternion.identity);
+            GameObject shipSliderGO = (GameObject)Instantiate(shipBuildSliderPrefab, new Vector3(0, 0, 0),
+                Quaternion.identity);// ship building progress bar as prefab
             shipSliderGO.transform.SetParent(sysBuildListInstance.transform);
             sysCon.ShipSliderBuildProgress = shipSliderGO.GetComponentInChildren<Slider>();
             shipSliderGO.layer = 5; //UI layer

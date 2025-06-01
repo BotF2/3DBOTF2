@@ -1,8 +1,10 @@
 using Assets.Core;
-using NUnit.Framework.Internal.Execution;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
+using UnityEngine.UI;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class ShipManager : MonoBehaviour
 {
@@ -10,6 +12,8 @@ public class ShipManager : MonoBehaviour
 
     [SerializeField]
     private ShipController shipConPrefab;
+    [SerializeField]
+    private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
     public List<ShipController> ShipControllerGameList;
     public List<ShipSO> ShipSOListTech0;
     public List<ShipSO> ShipSOListTech1;
@@ -28,7 +32,7 @@ public class ShipManager : MonoBehaviour
         }
     }
 
-    public List<ShipController> ShipControllerWithDataFromSO(List<ShipSO> shipSOList)
+    public List<ShipController> InstantiateShipControllersWithDataFromSO(List<ShipSO> shipSOList, GameObject parentGO)
     {
         List<ShipController> shipConList = new List<ShipController>();
         for (int i = 0; i < shipSOList.Count; i++)
@@ -56,6 +60,9 @@ public class ShipManager : MonoBehaviour
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);
+                InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship
+                 
+                shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu
             }
         }
         return shipConList;
@@ -69,7 +76,7 @@ public class ShipManager : MonoBehaviour
         duration = aShipSO.BuildDuration;
         return duration;
     }
-    private ShipSO GetShipSO(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
+    public ShipSO GetShipSO(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
     {
         ShipSO ourShipSO = new ShipSO();
         switch (techLevel)
@@ -102,9 +109,9 @@ public class ShipManager : MonoBehaviour
     public void ShipsFromFleetsForCombat() // GameObject fleetGOA, GameObject fleetGOB)
     {
 
-        //ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
+        //ShipSO ourShipSO = GetShipSO(shipType, fleetCon.StarSysData.CurrentCivController.CivData.TechLevel, fleetCon.StarSysData.CurrentOwnerCivEnum);
         //List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        //var shipConListOfOne = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
+        //var shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList); // takes a list of ShipSO
         //for (int i = 0; i < shipConListOfOne.Count; i++)
         //{
         //    shipConListOfOne[i].transform.SetParent(shipCon.transform);
@@ -115,35 +122,84 @@ public class ShipManager : MonoBehaviour
     {
         ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
         List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        var shipConListOfOne = ShipControllerWithDataFromSO(shipSOAsList); // takes a list of ShipSO
-        ShipControllerGameList.Add(shipConListOfOne[0]);
-        sysCon.StarSysData.ShipsList.Add(shipConListOfOne[0]);
-        if (GalaxyMenuUIController.Instance != null)
-            GalaxyMenuUIController.Instance.UpdateSystemShipList(sysCon);
+        List<ShipController> shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList, sysCon.gameObject);
+        foreach (ShipController shipCon in shipConListOfOne)
+        {
+            if (shipCon != null)
+            {
+                shipCon.transform.SetParent(sysCon.transform);
+                sysCon.StarSysData.ShipsList.Add(shipCon.GetComponent<ShipController>());
+                ShipControllerGameList.Add(shipCon);
+            }
+        }
+
+        //if (GalaxyMenuUIController.Instance != null)
+            //GalaxyMenuUIController.Instance.UpdateSystemShipList(fleetCon);
+    }
+    private void InstantiateShipListUIGameObject(ShipController shipCon, GameObject parentGO)
+    {
+        if (shipCon.ShipData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
+        {
+            if (shipCon.ShipListUIGameObject == null)
+            {
+                GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
+                thisShipListUIGameObject.SetActive(true);
+                UnityEngine.UI.Image[] imageComponents = thisShipListUIGameObject.GetComponentsInChildren<UnityEngine.UI.Image>();
+                if (imageComponents[1] != null)
+                {
+                    imageComponents[1].sprite = shipCon.ShipData.ShipSprite;
+                }
+
+                TextMeshProUGUI textComponent = thisShipListUIGameObject.GetComponentInChildren<TextMeshProUGUI>();
+                if (textComponent != null)
+                {
+                    textComponent.text = shipCon.ShipData.ShipType.ToString();
+                }
+
+                thisShipListUIGameObject.layer = 5;
+                shipCon.ShipListUIGameObject = thisShipListUIGameObject;         
+
+                if (parentGO.TryGetComponent(out StarSysController sysCon))
+                {
+                    if (sysCon.StarSysData.ShipListUIParent != null)
+                    {
+                        shipCon.ShipListUIGameObject.transform.SetParent(sysCon.StarSysData.ShipListUIParent.transform, false);
+                    }
+                }
+                if (parentGO.TryGetComponent(out FleetController fleetCon))
+                {
+                    if (fleetCon.FleetData.ShipListUIParent != null)
+                    {
+                        shipCon.ShipListUIGameObject.transform.SetParent(fleetCon.FleetData.ShipListUIParent.transform, false);
+                    }
+                }
+            }
+        }
     }
     public void BuildShipsOfFirstFleet(FleetController fleetCon)
     {
-       // var fleetCon = fleetCon.GetComponent<FleetController>();
+       // var shipCon = shipCon.GetComponent<FleetController>();
         CivEnum civEnum = fleetCon.FleetData.CivEnum;
         List<ShipSO> ships = new List<ShipSO>();
         ships = FirstShipDateByTechlevel((int)CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
-        //if (ships != null)
         List<ShipController> shipCons = new List<ShipController>();
         if (ships != null)
         {
-            shipCons = ShipControllerWithDataFromSO(ships);
-            foreach (ShipController shipGO in shipCons)
+            shipCons = InstantiateShipControllersWithDataFromSO(ships, fleetCon.gameObject);
+            foreach (ShipController shipCon in shipCons)
             {
-                if (shipGO != null)
+                if (shipCon != null)
                 {
-                    shipGO.transform.SetParent(fleetCon.transform);
-                    fleetCon.FleetData.ShipsList.Add(shipGO.GetComponent<ShipController>());
+                    shipCon.transform.SetParent(fleetCon.transform);
+                    fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
+                    ShipControllerGameList.Add(shipCon);
                 }
             }
         }
 
         fleetCon.UpdateMaxWarp();
-        //fleetCon.FleetData.CurrentWarpFactor = 0f;
+        //shipCon.FleetData.CurrentWarpFactor = 0f;
     }
     public List<ShipSO> FirstShipDateByTechlevel(int techLevel, CivEnum civ)
     {

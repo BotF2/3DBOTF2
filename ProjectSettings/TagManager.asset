@@ -23,6 +23,8 @@ TagManager:
   - ShipBuildSlot
   - InventorySlot
   - GameManager
+  - ShipContent
+  - ShipUIContainer
   layers:
   - Default
   - TransparentFX

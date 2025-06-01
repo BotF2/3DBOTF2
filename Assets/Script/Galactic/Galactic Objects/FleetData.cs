@@ -19,6 +19,7 @@ public class FleetData
     public float CurrentWarpFactor = 0f;
     public GameObject Destination;
     public GameObject LastDestination;
+    public GameObject ShipListUIParent { get; internal set; }
     public string CivLongName;
     public string CivShortName;
     public string Name;

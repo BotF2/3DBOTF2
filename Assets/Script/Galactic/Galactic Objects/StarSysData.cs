@@ -16,6 +16,8 @@ public class StarSysData
     public GameObject SysGameObject;
     private string sysName;
     public string SysName { get { return sysName; } }
+
+    public GameObject ShipListUIParent { get; internal set; }
     private CivEnum firstOwnerCivEnum;
     public CivEnum CurrentOwnerCivEnum;
     public CivController CurrentCivController;

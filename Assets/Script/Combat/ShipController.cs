@@ -6,27 +6,14 @@ public class ShipController : MonoBehaviour
     public ShipData ShipData { get { return shipData; } set { shipData = value; } }
     public string Name;
     private ShipManager _manager;
-    //private bool deltaShipList = false; //??? do I need this or the shipdropdown listener
+    public GameObject ShipListUIGameObject; //The instantiated ship UI for this fleet and system ship lists.
+                                            //a prefab clone, not a class but a game object
 
     public void Init(ShipManager shipManager)
     {
         _manager = shipManager;
     }
-    private void Start()
-    {
-        //rb = GetComponent<Rigidbody>();
-        //combatEventCamera = GameObject.FindGameObjectWithTag("SpaceCombatScene Camera").GetComponent<Camera>();
-        //var CanvasGO = GameObject.Find("CombatShipUI");
-        //CombatUICanvas = CanvasGO.GetComponent<canvas>();
-        //CombatUICanvas.worldCamera = combatEventCamera;
-        //CanvasToolTip.worldCamera = combatEventCamera;
-        //TextComponent = shipData.CivEnum.ToString() + " Fleet " + shipData.ShipName;
 
-    }
-    private void FixedUpdate()
-    {
-        // might use this
-    }
     private void OnMouseDown()
     {
         //string goName;
@@ -41,7 +28,7 @@ public class ShipController : MonoBehaviour
     }
     void OnTriggerEnter(Collider collider)
     {
-        // this if for SpaceCombatScene, not galaxy map 
+        // this is for SpaceCombatScene, not galaxy map 
         ShipController shipController = collider.gameObject.GetComponent<ShipController>();
         if (shipController != null) // it is a shipController 
         {
