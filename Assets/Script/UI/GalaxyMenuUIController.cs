@@ -628,28 +628,19 @@ public class GalaxyMenuUIController : MonoBehaviour
                     }
                 }
                 for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-                {
-                    ShipType shipType = fleetCon.FleetData.ShipsList[i].ShipData.ShipType;
-                    TechLevel techLevel = fleetCon.FleetData.CivController.CivData.TechLevel;
-                    CivEnum civEnum = fleetCon.FleetData.CivEnum;
-
-                    var shipSO = ShipManager.Instance.GetShipSO(shipType, techLevel, civEnum);
-                    List<ShipSO> shipSOList = new List<ShipSO> { shipSO };
-                    ShipManager.Instance.InstantiateShipControllersWithDataFromSO(shipSOList, fleetCon.gameObject);
+                {                 
                     if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
                     {
                         var transforms = fleetCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
-                        bool weFoundIt = false;
                         for (int k = 0; k < transforms.Length; k++)
                         {
-                            if (!weFoundIt && transforms[k].gameObject.name == "ShipContent")
+                            if (transforms[k].gameObject.name == "ShipContent")
                             {
                                 shipContainer = transforms[k].gameObject;
-                                weFoundIt = true;
+                                break;
                             }
                         }
                         fleetCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
-
                     }
                 }
             }
@@ -659,28 +650,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                 fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
             }
         }
-    }
-    public void LoadFleetShipList(FleetController fleetCon)
-    {
-        ////ship dropdown
-        //var shipDropdown = fleetCon.FleetUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-        //shipDropdown.options.Clear();
-        //shipDropdown.captionText.text = "Ship List";
-        //List<TMP_Dropdown.OptionData> newShipItems = new List<TMP_Dropdown.OptionData>();
-        //string nameShip;
-        //for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-        //{
-        //    if (fleetCon.FleetData.ShipsList[i] != null)
-        //    {
-        //        TMP_Dropdown.OptionData newDataItem = new TMP_Dropdown.OptionData();
-        //        nameShip = fleetCon.FleetData.ShipsList[i].name;
-        //        nameShip = nameShip.Replace("(CLONE)", string.Empty);
-        //        newDataItem.text = nameShip;
-        //        newShipItems.Add(newDataItem);
-        //    }
-        //}
-        //shipDropdown.AddOptions(newShipItems);
-        //shipDropdown.RefreshShownValue();
     }
 
     public void CloseDestinationSelectionCursor()
@@ -863,7 +832,6 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     private void MoveBackAnySysUIGO()
     {
-
         for (int i = 0; i < aSystemMenuView.transform.childCount; i++)
         {
             if (aSystemMenuView.transform.GetChild(i).gameObject != null)
@@ -1121,14 +1089,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     }
                 }
                 for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
-                {
-                    ShipType shipType = sysController.StarSysData.ShipsList[i].ShipData.ShipType;
-                    TechLevel techLevel = sysController.StarSysData.CurrentCivController.CivData.TechLevel;
-                    CivEnum civEnum = sysController.StarSysData.CurrentOwnerCivEnum;
-
-                    var shipSO = ShipManager.Instance.GetShipSO(shipType, techLevel, civEnum);
-                    List<ShipSO> shipSOList = new List<ShipSO> { shipSO };
-                    ShipManager.Instance.InstantiateShipControllersWithDataFromSO(shipSOList, sysController.gameObject);
+                {       
                     if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
                     {
                         var transforms = sysController.StarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
@@ -1137,11 +1098,10 @@ public class GalaxyMenuUIController : MonoBehaviour
                             if (transforms[j].gameObject.name == "ShipContent")
                             {
                                 shipContainer = transforms[j].gameObject;
-                                return;
+                                break;
                             }
                         }
                         sysController.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
-
                     }
                 }
             }
@@ -1151,7 +1111,6 @@ public class GalaxyMenuUIController : MonoBehaviour
 
                 sysController.StarSysUIGameObject.transform.SetParent(sysListContainer.transform, false);
             }
-
         }
     }
     internal void UpdateSystemShipList(StarSysController sysCon)

@@ -80,7 +80,6 @@ public enum GreedyEnum
     Idealistic = 2
 }
 
-
 public class DiplomacyManager : MonoBehaviour
 {
     public static DiplomacyManager Instance;
@@ -124,14 +123,14 @@ public class DiplomacyManager : MonoBehaviour
     //    SceneController.Instance.LoadCombatScene();
     //    GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
     //    //SubMenuManager.Instance.CloseMenu(Menu.DiplomacyMenu);
-    //    ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
+    //    ShipManager.Instance.ShipsForCombat(); //shipType, fleetGOinSys, this);
     //    //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
     //}
     //public void SpaceCombatScene(FleetController fleetConA, FleetController fleetConB)
     //{
     //    SceneController.Instance.LoadCombatScene();
     //    GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-    //    ShipManager.Instance.ShipsFromFleetsForCombat(); //shipType, fleetGOinSys, this);
+    //    ShipManager.Instance.ShipsForCombat(); //shipType, fleetGOinSys, this);
     //    //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
     //}
     public void FirstContactGetNewDiplomacyContoller(CivController civPartyOne, CivController civPartyTwo)

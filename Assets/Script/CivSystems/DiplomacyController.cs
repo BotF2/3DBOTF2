@@ -121,8 +121,7 @@ public class DiplomacyController //not : MonoBehaviour
     {
         GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
         SceneController.Instance.LoadCombatScene(diplomacyController);
-        //CombatManager.Instance.InstatniateCombat(diplomacyController.DiplomacyData.FleetMajor, diplomacyController.DiplomacyData.FleetOther);
-        ShipManager.Instance.ShipsFromFleetsForCombat();//??
+        CombatManager.Instance.InstatniateCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
     }
 
 }

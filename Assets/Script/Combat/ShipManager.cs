@@ -106,18 +106,7 @@ public class ShipManager : MonoBehaviour
         }
         return ourShipSO;
     }
-    public void ShipsFromFleetsForCombat() // GameObject fleetGOA, GameObject fleetGOB)
-    {
 
-        //ShipSO ourShipSO = GetShipSO(shipType, fleetCon.StarSysData.CurrentCivController.CivData.TechLevel, fleetCon.StarSysData.CurrentOwnerCivEnum);
-        //List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        //var shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList); // takes a list of ShipSO
-        //for (int i = 0; i < shipConListOfOne.Count; i++)
-        //{
-        //    shipConListOfOne[i].transform.SetParent(shipCon.transform);
-        //    shipCon.GetComponent<FleetController>().FleetData.AddToShipList(shipConListOfOne[i].GetComponent<ShipController>());
-        //}
-    }
     public void BuildShipInSystem(ShipType shipType, StarSysController sysCon)
     {
         ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
