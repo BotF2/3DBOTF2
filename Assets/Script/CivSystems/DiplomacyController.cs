@@ -121,7 +121,8 @@ public class DiplomacyController //not : MonoBehaviour
     {
         GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
         SceneController.Instance.LoadCombatScene(diplomacyController);
-        CombatManager.Instance.InstatniateCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
+        //*******load combat menu for local player and AI civs
+        //*** null ref CombatManager.Instance.InitCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
     }
 
 }

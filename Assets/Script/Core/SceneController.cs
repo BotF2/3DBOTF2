@@ -37,7 +37,7 @@ public class SceneController : MonoBehaviour
     }
     public void LoadCombatScene(DiplomacyController diplomacyController)
     {
-        previousSceneName = SceneManager.GetActiveScene().name; 
+        previousSceneName = "MainMenuScene";//SceneManager.GetActiveScene().name; 
        // TimeManager.Instance.PauseTime(); does not work
         SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive); 
         HideScene(previousSceneName);
