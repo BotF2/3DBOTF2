@@ -1387,7 +1387,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     rectTransforms[i].gameObject.SetActive(true);
                     sabatogeButtonGO = rectTransforms[i].gameObject;
                     break;
-                case "Combat":
+                case "CombatButton":
                     rectTransforms[i].gameObject.SetActive(true);
                     combatButtonGO = rectTransforms[i].gameObject;
                     break;

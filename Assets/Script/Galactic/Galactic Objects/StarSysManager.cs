@@ -206,6 +206,12 @@ namespace Assets.Core
             }
             starSysDatas.Remove(starSysDatas[0]); // pull out the null
         }
+        public StarSysController InstantiatEmptyStarSysController()
+        {
+            StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
+              Quaternion.identity);
+            return starSysCon;
+        }
         public void InstantiateSystem(StarSysData sysData, CivSO civSO)
         {
 

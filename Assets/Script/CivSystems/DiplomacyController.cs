@@ -2,6 +2,7 @@ using Assets.Core;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 
 public class DiplomacyController //not : MonoBehaviour
@@ -122,7 +123,9 @@ public class DiplomacyController //not : MonoBehaviour
         GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
         SceneController.Instance.LoadCombatScene(diplomacyController);
         //*******load combat menu for local player and AI civs
-        //*** null ref CombatManager.Instance.InitCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
+        // here
+            // what do we realy have to send to combat if not ship controllers?
+        // the FleetMajor is the first null CombatManager.Instance.InitCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
     }
 
 }

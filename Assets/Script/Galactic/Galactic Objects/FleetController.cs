@@ -157,10 +157,8 @@ namespace Assets.Core
 
                     if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
                     {
-                        OnADestinationThatIsOtherCivFleet(hitFleetCon); //ToDo for fleets
-                                                                        // encounter leads to diplomacy and then change in menu
-                                                                        //Not sure whey we do not need this: if (gameObject.GetInstanceID() < collider.gameObject.GetInstanceID()) // only one side reports the collision
-
+                        OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                                                        
                         EncounterManager.Instance.ResolveEncounter(this, hitFleetCon);
                         EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
 
@@ -187,13 +185,13 @@ namespace Assets.Core
 
                     if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
                     {
-                        OnEnterForeignStarSystem(); // ToDo
-
-                        EncounterManager.Instance.ResolveEncounter(this, sysCon);
                         if (weAreLocalPlayer)
                         {
                             EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
                         }
+                        OnEnterForeignStarSystem(); // ToDo
+                        EncounterManager.Instance.ResolveEncounter(this, sysCon);
+
                     }
                     else // ToDo: enter our system
                     {

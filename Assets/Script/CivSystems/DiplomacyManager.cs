@@ -133,7 +133,7 @@ public class DiplomacyManager : MonoBehaviour
     //    ShipManager.Instance.ShipsForCombat(); //shipType, fleetGOinSys, this);
     //    //CombatManager.Instance.InstatniateCombat(controller.DiplomacyData.CivMajor.CivData.FleetControllers, controller.DiplomacyData.CivOther.CivData.FleetControllers);
     //}
-    public void FirstContactGetNewDiplomacyContoller(CivController civPartyOne, CivController civPartyTwo)
+    public void FirstContactGetNewDiplomacyContoller(CivController civPartyOne, FleetController fleetPartyOne, CivController civPartyTwo, FleetController fleetPartyTwo, StarSysController sysCon)
     {// is frist contact diplomacy
         bool okForNewDiplomacyController = true;
         for (int i = 0; i < DiplomacyControllerList.Count; i++)
@@ -155,24 +155,76 @@ public class DiplomacyManager : MonoBehaviour
                 if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
                 {
                     diplomacyData.CivMajor = civPartyOne; // local player civ
+                    diplomacyData.FleetMajor = fleetPartyOne; // local player fleet
                     diplomacyData.CivOther = civPartyTwo;
+                    if (fleetPartyTwo.FleetData != null)
+                    {
+                        diplomacyData.FleetOther = fleetPartyTwo; // other civ fleet
+                        diplomacyData.StarSysController = null; // other civ fleet in a star system
+                        Destroy(sysCon.gameObject); // destroy the star system controller, we do not need it
+                    }
+                    else
+                    {
+                        diplomacyData.StarSysController = sysCon; // other civ fleet in a star system
+                        diplomacyData.FleetOther = null; // no other civ fleet
+                        Destroy(fleetPartyTwo.gameObject);
+                    }
                 }
                 else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
                 {
                     diplomacyData.CivMajor = civPartyTwo; // local player civ
+                    diplomacyData.FleetMajor = fleetPartyTwo; // local player fleet
                     diplomacyData.CivOther = civPartyOne;
+                    if (fleetPartyOne.FleetData != null)
+                    {
+                        diplomacyData.FleetOther = fleetPartyOne; // other civ fleet
+                        diplomacyData.StarSysController = null; // other civ fleet in a star system
+                        Destroy(sysCon.gameObject); // destroy the star system controller, we do not need it
+                    }
+                    else
+                    {
+                        diplomacyData.StarSysController = sysCon; // other civ fleet in a star system
+                        diplomacyData.FleetOther = null; // no other civ fleet
+                        Destroy(fleetPartyOne.gameObject);
+                    }
                 }
                 else // no local player
                 { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
                     if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN && civPartyOne.CivData.CivEnum > civPartyTwo.CivData.CivEnum)
                     {
                         diplomacyData.CivMajor = civPartyOne; // major civ
+                        diplomacyData.FleetMajor = fleetPartyOne; // major civ fleet
                         diplomacyData.CivOther = civPartyTwo;
+                        if (fleetPartyTwo.FleetData != null)
+                        {
+                            diplomacyData.FleetOther = fleetPartyTwo; // other civ fleet
+                            diplomacyData.StarSysController = null; // other civ fleet in a star system
+                            Destroy(sysCon.gameObject); // destroy the star system controller, we do not need it
+                        }
+                        else
+                        {
+                            diplomacyData.StarSysController = sysCon; // other civ fleet in a star system
+                            diplomacyData.FleetOther = null; // no other civ fleet
+                            Destroy(fleetPartyTwo.gameObject);
+                        }
                     }
                     else if (civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN && civPartyTwo.CivData.CivEnum > civPartyOne.CivData.CivEnum)
                     {
                         diplomacyData.CivMajor = civPartyTwo; // major civ
+                        diplomacyData.FleetMajor = fleetPartyTwo; // major civ fleet
                         diplomacyData.CivOther = civPartyOne;
+                        if (fleetPartyOne.FleetData != null)
+                        {
+                            diplomacyData.FleetOther = fleetPartyOne; // other civ fleet
+                            diplomacyData.StarSysController = null; // other civ fleet in a star system
+                            Destroy(sysCon.gameObject); // destroy the star system controller, we do not need it
+                        }
+                        else
+                        {
+                            diplomacyData.StarSysController = sysCon; // other civ fleet in a star system
+                            diplomacyData.FleetOther = null; // no other civ fleet
+                            Destroy(fleetPartyOne.gameObject);
+                        }
                     }
                 }
                 DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
@@ -201,10 +253,11 @@ public class DiplomacyManager : MonoBehaviour
                 //}
                 #endregion
                 DiplomacyControllerList.Add(diplomacyController);
+                //UpdateOurDiplomacyController(diplomacyController.DiplomacyData.FleetMajor, diplomacyController.DiplomacyData.FleetOther); //, null);
             }
             else
             {// two minor civs so no diplomacy controller
-                Debug.Log("DiplomacyManager: FirstContactGetNewDiplomacyContoller: Not OK for new diplomacy controller");
+                //UpdateOurDiplomacyController(diplomacyController.DiplomacyData.FleetMajor, diplomacyController.DiplomacyData.FleetOther)
             }
         }
     }
@@ -248,10 +301,18 @@ public class DiplomacyManager : MonoBehaviour
             GalaxyMenuUIController.Instance.OpenADiplomacyUI(ourDiplomacyController); // it opens the ADiplomacy UI
         }
     }
-    public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo) //, StarSysController sysCon)
+    public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo, StarSysController sysCon)
     {
-        CivController civPartyOne = fleetPartyOne.FleetData.CivController; 
-        CivController civPartyTwo = fleetPartyTwo.FleetData.CivController; 
+        CivController civPartyOne = fleetPartyOne.FleetData.CivController;
+        CivController civPartyTwo = null;
+        if (fleetPartyTwo != null)
+        {
+            civPartyTwo = fleetPartyTwo.FleetData.CivController;
+        }
+        else if (fleetPartyTwo == null)
+        {
+            civPartyTwo =  sysCon.StarSysData.CurrentCivController; // the civ controller of the star system
+        }
 
         DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
         if (ourDiplomacyController != null)

@@ -36,6 +36,7 @@ public class EncounterManager : MonoBehaviour
     }
     public void ResolveEncounter(FleetController fleetConA, FleetController fleetConB)
     { // already not one of our fleets
+        StarSysController sysCon = StarSysManager.Instance.InstantiatEmptyStarSysController();
         if (fleetConA != null)
         {
             //StarSysController placeHolderStarSysCon; // = Instantiate(starSysPrefab, Vector3.zero, Quaternion.identity);
@@ -44,13 +45,13 @@ public class EncounterManager : MonoBehaviour
             //have we met before?
             if (!DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
             {   // First Contact
-                DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
+                DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne,fleetConA, civPartyTwo, fleetConB, sysCon);
                 FirstContactFleetOnFleetEncounterController(fleetConA, fleetConB);
                 // will we need this? Will AI need to remember this encounter outside of diplomacy?
             }
             else // Not First Contact and we do fleets of same civ management back in FleetController
             {
-                DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, fleetConB);// placeHolderStarSysCon);
+                DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, fleetConB, sysCon);// placeHolderStarSysCon);
                 NextFleetToFleetEncounter(fleetConA, fleetConB); // Will we need this? Is it all done in Diplomacy and FleetControllers?
             }
         }
@@ -70,6 +71,7 @@ public class EncounterManager : MonoBehaviour
     }
     public void ResolveEncounter(FleetController fleetConA, StarSysController sysCon)
     { // already not one of our systems
+        FleetController fleetConB = FleetManager.Instance.InstatiateEmptyFleetController();
         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebulas)
         //FleetController placeHolderFleetCon = Instantiate(fleetPrefab, Vector3.zero, Quaternion.identity);
         //placeHolderFleetCon.FleetData = null; // this is a placeholder fleet controller
@@ -83,12 +85,12 @@ public class EncounterManager : MonoBehaviour
                 //have we met before?
                 if (!DiplomacyManager.Instance.FoundADiplomacyController(sysCon.StarSysData.CurrentCivController, fleetConA.FleetData.CivController))
                 { // First Contact
-                    DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, civPartyTwo);
+                    DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civPartyOne, fleetConA, civPartyTwo,fleetConB, sysCon);
                     FirstContactFleetOnStarSysNewEncounnterController(fleetConA, sysCon); // do we do something specila with system entry here?
                 }
                 else
                 { // not first contact
-                    DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, sysCon);
+                    DiplomacyManager.Instance.UpdateOurDiplomacyController(fleetConA, fleetConB, sysCon);
                     FeetToSysNotSameCivNotFirstEncounter(fleetConA, sysCon);
                 }
             }

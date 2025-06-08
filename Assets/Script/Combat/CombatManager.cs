@@ -79,6 +79,41 @@ public class CombatManager : MonoBehaviour
         PreCombatSetup(friendShipCons.Select(s => s.ShipData.ShipType).ToList(), true); // true for friends
         PreCombatSetup(enemyShipCons.Select(s => s.ShipData.ShipType).ToList(), false);
     }
+    //public void SysDataFromSO(List<ShipController> civSOList)
+    //{
+    //    StarSysData SysData = new StarSysData("null");
+    //    List<StarSysData> starSysDatas = new List<StarSysData>();
+    //    starSysDatas.Add(SysData);
+    //    for (int i = 0; i < civSOList.Count; i++)
+    //    {
+    //        StarSysSO starSysSO = GetStarSObyInt(civSOList[i].CivInt);
+    //        SysData = new StarSysData(starSysSO);
+
+    //        SysData.CurrentOwnerCivEnum = starSysSO.FirstOwner;
+    //        SysData.SystemType = starSysSO.StarType;
+    //        SysData.StarSprit = starSysSO.StarSprit;
+    //        SysData.Description = starSysSO.Description;
+
+    //        InstantiateSystem(SysData, civSOList[i]);
+    //        //if (civSOList[i].HasWarp)
+    //        //    FleetManager.Instance.FleetDataFromSO(, false);
+    //        //if (SysData.CurrentCivController != null)
+    //        //    starSysDatas.Add(SysData);
+    //    }
+    //    starSysDatas.Remove(starSysDatas[0]); // pull out the null
+    //}
+    private void PopulateShipData(GameObject _ship)
+    {
+        //if (GameManager.ShipDataDictionary.TryGetValue(_ship.name.ToUpper(), out int[] _result))
+        //{
+
+        //    _ship.GetComponent<Ship>()._shieldsMaxHealth = _result[0];
+        //    _ship.GetComponent<Ship>()._hullMaxHealth = _result[1];
+        //    _ship.GetComponent<Ship>()._torpedoDamage = _result[2];
+        //    _ship.GetComponent<Ship>()._beamDamage = _result[3];
+        //    _ship.GetComponent<Ship>()._cost = _result[4];
+        //}
+    }
     public void ResetFriendAndEnemyDictionaries()
     {
         FriendShips.Clear();
