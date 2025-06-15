@@ -25,6 +25,7 @@ TagManager:
   - GameManager
   - ShipContent
   - ShipUIContainer
+  - CombatUIParent
   layers:
   - Default
   - TransparentFX

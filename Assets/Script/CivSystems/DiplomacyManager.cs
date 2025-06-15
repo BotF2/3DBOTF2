@@ -84,6 +84,7 @@ public class DiplomacyManager : MonoBehaviour
 {
     public static DiplomacyManager Instance;
     public List<DiplomacyController> DiplomacyControllerList { get; private set; } = new List<DiplomacyController>();
+   // public List<DiplomacyUIController> DiplomacyUIControllerList { get; private set; } = new List<DiplomacyUIController>();
     [SerializeField]
     private GameObject diplomacyUIPrefab;
     [SerializeField]
@@ -115,6 +116,10 @@ public class DiplomacyManager : MonoBehaviour
                 thisDiplomacyUIGameObject.layer = 5;
                 diplomacyCon.DiplomacyUIGameObject = thisDiplomacyUIGameObject;
                 diplomacyUIGO = thisDiplomacyUIGameObject;
+               // var thisDiplomacyUIController = thisDiplomacyUIGameObject.GetComponent<DiplomacyUIController>();
+               // thisDiplomacyUIController.DiplomacyController = diplomacyCon; // set the diplomacy controller
+                //thisDiplomacyUIController.LoadDiplomacyUI(diplomacyCon); // load the diplomacy UI with the diplomacy controller
+                //DiplomacyUIControllerList.Add(thisDiplomacyUIController);
             }
         }
     }

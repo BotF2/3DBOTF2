@@ -5,12 +5,16 @@ using UnityEngine.SceneManagement;
 public class SceneController : MonoBehaviour
 {
     /// <summary>
-    /// We do not yet have a loading scene, the Persistent and main menu are already there at play
+    /// We do not yet have a loading scene, the Persistent Scene and Main Menu Scene are present at runtime.
     /// Galaxy scene is added as we load up the user game choices
-    /// Combat hides Main Menu including what really are Galaxy elements 
+    /// Combat hides Main Menu including what really are Galaxy elements it contains. 
     /// </summary>
     public static SceneController Instance { get; private set; }
+    //public GameObject CombatUIPrefab { get; internal set; }
     private static string previousSceneName;
+
+
+
 
     private void Awake()
     {
@@ -24,23 +28,36 @@ public class SceneController : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    private void Start()
+
+
+    //private void OnEnable()
+    //{
+    //    SceneManager.sceneLoaded += OnSceneLoaded;
+    //}
+
+    //private void OnDisable()
+    //{
+    //    SceneManager.sceneLoaded -= OnSceneLoaded;
+    //}
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        //if (SceneController.Instance != null)
-        //{
-        //   SceneController.Instance.LoadMainMenuScene();
-        //}
-        //else
-        //{
-        //    Debug.LogError("GameManager instance not found!");
-        //}
+        GameObject parent = GameObject.FindGameObjectWithTag("CombatUIParent");
+        CombatManager.Instance.InstantiateCombatUIGameObject(parent);
     }
+
     public void LoadCombatScene(DiplomacyController diplomacyController)
     {
-        previousSceneName = "MainMenuScene";//SceneManager.GetActiveScene().name; 
-       // TimeManager.Instance.PauseTime(); does not work
-        SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive); 
-        HideScene(previousSceneName);
+        if (GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivMajor.CivData.CivEnum) ||
+            GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivOther.CivData.CivEnum))
+        {
+            previousSceneName = "MainMenuScene";//SceneManager.GetActiveScene().name; 
+                                                // TimeManager.Instance.PauseTime(); does not work
+            SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive);
+
+            HideScene(previousSceneName);
+            OnSceneLoaded(SceneManager.GetSceneByName("CombatScene"), LoadSceneMode.Additive); // Call OnSceneLoaded to initialize Combat UI
+            CombatManager.Instance.SetDiplomacyController(diplomacyController); // Set the diplomacy controller for the combat scene
+        }
     }
     private void HideScene(string sceneName)
     {
@@ -79,6 +96,7 @@ public class SceneController : MonoBehaviour
     {
         SceneManager.UnloadSceneAsync("CombatScene");
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
+        //SceneManager.sceneLoaded -= OnSceneLoaded;
 
         //if (!string.IsNullOrEmpty(previousSceneName))
         //{

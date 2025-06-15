@@ -28,7 +28,7 @@ public enum Menu
 }
 public class GalaxyMenuUIController : MonoBehaviour
 {
-    public static GalaxyMenuUIController Instance; // { get; private set; }
+    public static GalaxyMenuUIController Instance;
     private Camera galaxyEventCamera;
     [SerializeField]
     private Canvas parentCanvas;
@@ -98,7 +98,6 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject fleetUI_Prefab;// GameObject controlles this active UI on/off
     [SerializeField]
     private Slider warpSlider;
-
     [SerializeField]
     private float maxSliderValue = 10f;
     [SerializeField]
@@ -358,6 +357,8 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
             case Menu.Combat:
                 //combat.SetActive(true);
+                //CombatManager.Instance.InitCombat(FleetManager.Instance.FleetControllerList[0].FleetData.ShipsList,
+                //    FleetManager.Instance.FleetControllerList[1].FleetData.ShipsList);
                 break;
             default:
                 break;
@@ -374,7 +375,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
     }
-    private void SetUpASystemUIData(StarSysController theSysCon) // now system ui open single system view when our system is clicked on galaxy map
+    private void SetUpASystemUIData(StarSysController theSysCon) // now system ui opens a single system view when our system is clicked on galaxy map
     {
         theSysCon.StarSysUIGameObject.SetActive(true);
         theSysCon.StarSysUIGameObject.transform.SetParent(aSystemMenuView.transform, false);
@@ -422,7 +423,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
             case Menu.ManageShipsMenu:
                 manageFleetShipsMenu.SetActive(false);
-   
                 break;
             case Menu.DiplomacyMenu:
                 diplomacyBackground.SetActive(false);
@@ -452,14 +452,13 @@ public class GalaxyMenuUIController : MonoBehaviour
                 habitableSysMenu.SetActive(false);
                 openMenuWas = habitableSysMenu;
                 break;
-            case Menu.Combat:// change scenes
-                //combat.SetActive(true);
+            case Menu.Combat:// close combat scenes
+
                 break;
             default:
                 break;
         }
     }
-
 
     #region FleetUI
     private void MoveTheFleetUIGO(GameObject fleetConGO)
@@ -1284,8 +1283,21 @@ public class GalaxyMenuUIController : MonoBehaviour
                 aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
         }
     }
+    private void LoadCombat()
+    {
+
+    }
     public void OpenADiplomacyUI(DiplomacyController diplomacyCon)
     {
+        //var DiplomacyUIControllers = DiplomacyManager.Instance.DiplomacyUIControllerList;
+        //for (int i = 0; i < DiplomacyUIControllers.Count; i++)
+        //{
+        //    if (DiplomacyUIControllers[i].DiplomacyController == diplomacyCon)
+        //    {
+        //        diplomacyCon.DiplomacyUIGameObject
+        //    }
+        //}
+        
         CivController partyOne = diplomacyCon.DiplomacyData.CivMajor;
         CivController partyTwo = diplomacyCon.DiplomacyData.CivOther;
         CivController notLocalPlayerCiv;

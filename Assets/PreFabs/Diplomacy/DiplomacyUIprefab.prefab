@@ -3119,6 +3119,7 @@ GameObject:
   - component: {fileID: 5475156004906312335}
   - component: {fileID: 1679908977585844699}
   - component: {fileID: 1249881857625091475}
+  - component: {fileID: 8376622146730817668}
   m_Layer: 5
   m_Name: DiplomacyUIprefab
   m_TagString: fleetUIRoot
@@ -3201,6 +3202,39 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &8376622146730817668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4764215955950854528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6fa067ba07f13040a4c42ddef573451, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  parentCanvas: {fileID: 0}
+  DiplomacyUIToggle: {fileID: 0}
+  firstContatct: {fileID: 0}
+  theirNameTMP: {fileID: 0}
+  theirInsignia: {fileID: 0}
+  theirRaceImage: {fileID: 0}
+  relationTMP: {fileID: 0}
+  relationPointsTMP: {fileID: 0}
+  traitOneTMP: {fileID: 0}
+  traitTwoTMP: {fileID: 0}
+  traitThreeTMP: {fileID: 0}
+  traitFourTMP: {fileID: 0}
+  ourTraitOneTMP: {fileID: 0}
+  ourTraitTwoTMP: {fileID: 0}
+  ourTraitThreeTMP: {fileID: 0}
+  ourTraitFourTMP: {fileID: 0}
+  transmissionTMP: {fileID: 0}
+  descriptionTMP: {fileID: 0}
+  descriptionPanel: {fileID: 0}
+  UI_PanelGOs: []
+  TabButtonMasks: []
 --- !u!1 &4826700303890476825
 GameObject:
   m_ObjectHideFlags: 0

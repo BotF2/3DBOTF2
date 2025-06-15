@@ -553,15 +553,15 @@ namespace Assets.Core
 
         private void PopulateShipData(GameObject _ship)
         {
-            if (CombatManager.ShipDataDictionary.TryGetValue(_ship.name.ToUpper(), out int[] _result))
-            {
+            //if (CombatManager.ShipDataDictionary.TryGetValue(_ship.name.ToUpper(), out int[] _result))
+            //{
 
-                //_ship.GetComponent<Ship>()._shieldsMaxHealth = _result[0];
-                //_ship.GetComponent<Ship>()._hullMaxHealth = _result[1];
-                //_ship.GetComponent<Ship>()._torpedoDamage = _result[2];
-                //_ship.GetComponent<Ship>()._beamDamage = _result[3];
-                //_ship.GetComponent<Ship>()._cost = _result[4];
-            }
+            //    //_ship.GetComponent<Ship>()._shieldsMaxHealth = _result[0];
+            //    //_ship.GetComponent<Ship>()._hullMaxHealth = _result[1];
+            //    //_ship.GetComponent<Ship>()._torpedoDamage = _result[2];
+            //    //_ship.GetComponent<Ship>()._beamDamage = _result[3];
+            //    //_ship.GetComponent<Ship>()._cost = _result[4];
+            //}
         }
         private void ShipScaleAndRotation(GameObject the_ship, int rotation)
         {
