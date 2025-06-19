@@ -4049,22 +4049,6 @@ MonoBehaviour:
   combatUI: {fileID: 321848122}
   combatConPrefab: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
   CombatControllers: []
-  friends: 0
-  enemies: 0
-  _friendCombatans: []
-  _enemyCombatans: []
-  _friendCivCon: {fileID: 0}
-  _enemyCivCon: {fileID: 0}
-  cameraEmpty: {fileID: 0}
-  animFriend1: {fileID: 0}
-  animFriend2: {fileID: 0}
-  animFriend3: {fileID: 0}
-  animEnemy1: {fileID: 0}
-  animEnemy2: {fileID: 0}
-  animEnemy3: {fileID: 0}
-  CameraTargetList: []
-  combatShips: []
-  order: 0
 --- !u!4 &2102662241
 Transform:
   m_ObjectHideFlags: 0
