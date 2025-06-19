@@ -220,7 +220,8 @@ namespace Assets.Core
         ZZUNINHABITED50,
         ZZUNINHABITED51,
         ZZUNINHABITED52,
-        ZZUNINHABITED53
+        ZZUNINHABITED53,
+        None, 
         #endregion
     }
     public enum GalaxyMapType
@@ -330,7 +331,8 @@ namespace Assets.Core
         Retreat,
         Formation,
         ProtectTransports,
-        TargetTransports
+        TargetTransports,
+        None,
     }
     public enum StarSysFacilities
     {

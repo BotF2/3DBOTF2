@@ -42,7 +42,7 @@ public class SceneController : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         GameObject parent = GameObject.FindGameObjectWithTag("CombatUIParent");
-        CombatManager.Instance.InstantiateCombatUIGameObject(parent);
+        CombatManager.Instance.SetUpCombatUIGameObject(parent);
     }
 
     public void LoadCombatScene(DiplomacyController diplomacyController)

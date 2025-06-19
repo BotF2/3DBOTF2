@@ -13,14 +13,15 @@ namespace Assets.Core
         public static CombatUIController Instance;
         public CombatController CombatController; // this is the combat controller that will handle the combat UI and orders
         private Camera galaxyEventCamera; //will we need this?
+        //public CombatData CombatData;
         [SerializeField]
         private Canvas parentCanvas;
         [SerializeField]
         private GameObject combatOrdersUI;
         [SerializeField]
         private GameObject combatUI;
-        [SerializeField]
-        private GameObject combatUI_Prefab;// GameObject controlles this active UI on/off
+        //[SerializeField]
+        //private GameObject combatUI_Prefab;// GameObject controlles this active UI on/off
         [SerializeField]
         private List<ShipController> friendShipControllers;
         [SerializeField]
@@ -31,17 +32,11 @@ namespace Assets.Core
         public List<Toggle> toggleOrderList = new List<Toggle>() { Engage, Rush, Retreat, Formation, ProtectTransports, TargetTransports };
         private Toggle activeLocalPlayerToggle;
         private Toggle previousToggle;
-        public static Orders order;
-
+        public static Orders order; // think this should be in the CombatController, but we will see how it goes
 
         private void Start()
         {
             previousToggle = toggleOrderList[0];
-           // CombatManager.Instance.SetCombatOrder(Orders.Engage);
-            //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-            //parentCanvas.worldCamera = galaxyEventCamera;
-            //combatOrdersUI.SetActive(false);
-            //combatUI.SetActive(false);
         }
         private void Awake()
         {
@@ -87,46 +82,110 @@ namespace Assets.Core
                 //}
             }
         }
-        public void ActivePlayerToggle(Toggle activeToggleOrder)
+        public void ActivePlayerToggle(Toggle activeToggle)
         {
-
-            switch (activeToggleOrder.name.ToUpper())
+            switch (activeToggle.name.ToUpper())
             {
-                //case "TOGGLE_ENGAGE":
-                //    CombatManager.Instance.SetCombatOrder(Orders.Engage);
-                //    order = Orders.Engage;
-                //    Debug.Log("Active Engage.");
-                //    break;
-                //case "TOGGLE_RUSH":
-                //    Debug.Log("Active Rush.");
-                //    CombatManager.Instance.SetCombatOrder(Orders.Rush);
-                //    order = Orders.Rush;
-                //    break;
-                //case "TOGGLE_RETREAT":
-                //    Debug.Log("Active Retreat.");
-                //    CombatManager.Instance.SetCombatOrder(Orders.Retreat);
-                //    order = Orders.Retreat;
-                //    break;
-                //case "TOGGLE_FORMATION":
-                //    Debug.Log("Active Formation.");
-                //    CombatManager.Instance.SetCombatOrder(Orders.Formation);
-                //    order = Orders.Formation;
-                //    break;
-                //case "TOGGLE_PROTECT_TRANSPORTS":
-                //    Debug.Log("Active Protect Transports.");
-                //    CombatManager.Instance.SetCombatOrder(Orders.ProtectTransports);
-                //    order = Orders.ProtectTransports;
-                //    break;
-                //case "TOGGLE_TARGET_TRANSPORTS":
-                //    Debug.Log("Active Target Transports.");
-                //    CombatManager.Instance.SetCombatOrder(Orders.TargetTransports);
-                //    order = Orders.TargetTransports;
-                //    break;
+                case "TOGGLE_ENGAGE":
+                    CombatController.SetCombatOrder(Orders.Engage);
+                    Debug.Log("Active Engage.");
+                    break;
+                case "TOGGLE_RUSH":
+                    Debug.Log("Active Rush.");
+                    CombatController.SetCombatOrder(Orders.Rush);
+                    break;
+                case "TOGGLE_RETREAT":
+                    Debug.Log("Active Retreat.");
+                    CombatController.SetCombatOrder(Orders.Retreat);
+                    break;
+                case "TOGGLE_FORMATION":
+                    Debug.Log("Active Formation.");
+                    CombatController.SetCombatOrder(Orders.Formation);
+                    break;
+                case "TOGGLE_PROTECT_TRANSPORTS":
+                    Debug.Log("Active Protect Transports.");
+                    CombatController.SetCombatOrder(Orders.ProtectTransports);
+                    break;
+                case "TOGGLE_TARGET_TRANSPORTS":
+                    Debug.Log("Active Target Transports.");
+                    CombatController.SetCombatOrder(Orders.TargetTransports);
+                    break;
                 default:
                     break;
             }
         }
-
+        private void OnToggleENGAGE(bool isOn)
+        {  
+            if (Engage.isOn)  
+            {  
+                if (previousToggle != Engage)  
+                {  
+                    previousToggle.isOn = false;  
+                }  
+                previousToggle = Engage;  
+                ActivePlayerToggle(Engage);  
+            }
+        }
+        private void OnToggleRUSH(bool isOn)
+        {
+            if (Rush.isOn)
+            {
+                if (previousToggle != Rush)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = Rush;
+                ActivePlayerToggle(Rush);
+            }
+        }
+        private void OnToggleRETREAT(bool isOn)
+        {
+            if (Retreat.isOn)
+            {
+                if (previousToggle != Retreat)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = Retreat;
+                ActivePlayerToggle(Retreat);
+            }
+        }
+        private void OnToggleFORMATION(bool isOn)
+        {
+            if (Formation.isOn)
+            {
+                if (previousToggle != Formation)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = Formation;
+                ActivePlayerToggle(Formation);
+            }
+        }
+        private void OnTogglePROTECT_TRANSPORTS(bool isOn)
+        {
+            if (ProtectTransports.isOn)
+            {
+                if (previousToggle != ProtectTransports)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = ProtectTransports;
+                ActivePlayerToggle(ProtectTransports);
+            }
+        }
+        private void OnToggleTARGET_TRANSPORTS(bool isOn)
+        {
+            if (TargetTransports.isOn)
+            {
+                if (previousToggle != TargetTransports)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = TargetTransports;
+                ActivePlayerToggle(TargetTransports  );
+            }
+        }
         private void OnToggleChanged(bool isOn)  
         {  
             if (isOn)  
@@ -157,7 +216,7 @@ namespace Assets.Core
                     case "Toggle_TARGET_TRANSPORTS":
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
-                    case "Tobble_PROTECT_TRANSPORTS":
+                    case "Toggle_PROTECT_TRANSPORTS":
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
                     case "Load MainMenu":
@@ -190,35 +249,42 @@ namespace Assets.Core
                 //        break;
                 //}
             }
-            Toggle[] lisToggles = thisCombatUIGameObject.GetComponentsInChildren<Toggle>();
-            foreach (var aToggle in lisToggles)
+            Toggle[] ArrayToggles = thisCombatUIGameObject.GetComponentsInChildren<Toggle>();
+            foreach (var aToggle in ArrayToggles)
             {
                 var combatCon = thisCombatUIGameObject.GetComponent<CombatController>();
                 switch (aToggle.name)
                 {
-                    case "TOGGLE_ENGAGE":
-                        aToggle.onValueChanged.RemoveAllListeners();
-                        aToggle.onValueChanged.AddListener(OnToggleChanged);
-                        //aToggle.onClick.AddListener(() => combatCon.SelectedDestinationCursor(fleetCon));
+                    case "Toggle_ENGAGE":
+                        Engage = aToggle;
+                        Engage.onValueChanged.RemoveAllListeners();
+                        Engage.onValueChanged.AddListener(OnToggleENGAGE);
                         break;
-                    //case "Cancel Destination Button":
-                    //    aToggle.onClick.RemoveAllListeners();
-                    //    aToggle.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton(fleetCon));
-                    //    break;
-                    //case "DestinationDragTarget Button":
-                    //    aToggle.onClick.RemoveAllListeners();
-                    //    aToggle.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
-                    //    break;
-                    //case "ButtonCloseFleetUI":
-                    //    fleetCon.FleetData.FleetButtonUIClose = aToggle;
-                    //    aToggle.onClick.RemoveAllListeners();
-                    //    aToggle.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI());  //fleetCon));
-                    //    break;
-                    //case "ButtonShipManager":
-                    //    // ToDo: open ship manager UI, instantiate prefab  similar to systems build menu with drag and drop
-                    //    aToggle.onClick.RemoveAllListeners();
-                    //    aToggle.onClick.AddListener(() => fleetCon.OnClickShipManager(fleetCon));  //fleetCon));
-                    //    break;
+                    case "Toggle_RUSH":
+                        Rush = aToggle;
+                        Rush.onValueChanged.RemoveAllListeners();
+                        Rush.onValueChanged.AddListener(OnToggleRUSH);
+                        break;
+                    case "Toggle_RETREAT":
+                        Retreat = aToggle;
+                        Retreat.onValueChanged.RemoveAllListeners();
+                        Retreat.onValueChanged.AddListener(OnToggleRETREAT);
+                        break;
+                    case "Toggle_FORMATION":
+                        Formation = aToggle;
+                        Formation.onValueChanged.RemoveAllListeners();
+                        Formation.onValueChanged.AddListener(OnToggleFORMATION);
+                        break;
+                    case "Toggle_TARGET_TRANSPORTS":
+                        TargetTransports = aToggle;
+                        TargetTransports.onValueChanged.RemoveAllListeners();
+                        TargetTransports.onValueChanged.AddListener(OnToggleTARGET_TRANSPORTS);
+                        break;
+                    case "Toggle_PROTECT_TRANSPORTS":
+                        ProtectTransports = aToggle;
+                        ProtectTransports.onValueChanged.RemoveAllListeners();
+                        ProtectTransports.onValueChanged.AddListener(OnTogglePROTECT_TRANSPORTS);
+                        break;
                     default:
                         break;
                 }

@@ -3,9 +3,6 @@ using UnityEngine;
 using Assets.Core;
 using System.Linq;
 using UnityEngine.UI;
-
-
-
 public class FleetData
 {
     public int CivIndex;

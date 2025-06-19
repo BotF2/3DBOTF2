@@ -524,7 +524,7 @@ namespace FischlWorks_FogWar
 
         private void ScanLevel()
         {
-            Debug.LogFormat("There is no level data file assigned, scanning level...");
+           // Debug.LogFormat("There is no level data file assigned, scanning level...");
 
             // These operations have no real computational meaning, but it will bring consistency to the data
             levelData.levelDimensionX = levelDimensionX;

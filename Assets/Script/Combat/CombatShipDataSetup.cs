@@ -65,7 +65,7 @@ namespace Assets.Core
         public void PreCombatSetup(string[] preCombatShips, bool _areFriends)
         // The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
         {
-            CombatManager.Instance.ResetFriendAndEnemyDictionaries();
+            CombatManager.Instance.ResetFriendAndEnemyLists();
             _isFriend = _areFriends;
             // we do all friend shipGameOb first, when we do the first enemy reset shipGameOb counts to zero at start           
             _scoutShips = 0; // running count as we process the list of ships

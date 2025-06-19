@@ -54,11 +54,6 @@ namespace Assets.Core
         private int shipStartDate = 1;
         public int ShipTimeToBuild = 1;
 
-        public StarSysController(string name)
-        {
-            StarSysData = new StarSysData(name);
-            starDateOfCompletion = 0f;
-        }
         private void Start()
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;

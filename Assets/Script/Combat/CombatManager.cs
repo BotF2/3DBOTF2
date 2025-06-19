@@ -13,31 +13,28 @@ public class CombatManager : MonoBehaviour
     [SerializeField]
     private CombatController combatConPrefab;
     public List<CombatController> CombatControllers = new List<CombatController>();
-    [SerializeField]
-  //  private GameObject combatUIPrefab;
-    public static string[] FriendNameArray; // For current SpaceCombatScene ****
-    public static string[] EnemyNameArray;
-    //
-
-    public int friends;
-    public int enemies;
+    //public static string[] FriendNameArray; // For current SpaceCombatScene ****
+    //public static string[] EnemyNameArray;
+    //public int friends;
+    //public int enemies;
     public static List<ShipController> FriendShips = new List<ShipController>();  // updated to current combat
     public static List<ShipController> EnemyShips = new List<ShipController>();
 
-    private int friendShipLayer;
-    private int enemyShipLayer;
+    //private int friendShipLayer;
+    //private int enemyShipLayer;
     public List<GameObject> _friendCombatans; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
     public List<GameObject> _enemyCombatans;
-
-    public List<CivController> _friendCivs = new List<CivController>(); //{ Civilization.FED };
-    public List<CivController> _enemyCivs = new List<CivController>();
+    //[SerializeField]
+    //private CivController _friendCivCon; //{ Civilization.FED };
+    //[SerializeField]
+    //private CivController _enemyCivCon;
     public GameObject cameraEmpty;
-    public GameObject animFriend1;
-    public GameObject animFriend2;
-    public GameObject animFriend3;
-    public GameObject animEnemy1;
-    public GameObject animEnemy2;
-    public GameObject animEnemy3;
+    //public GameObject animFriend1;
+    //public GameObject animFriend2;
+    //public GameObject animFriend3;
+    //public GameObject animEnemy1;
+    //public GameObject animEnemy2;
+    //public GameObject animEnemy3;
     bool _isFriend; // true if friend, false if enemy
     int _scoutsFriend;
     int _destroyersFriend;
@@ -69,12 +66,12 @@ public class CombatManager : MonoBehaviour
     private string[] arrayNames; //??? do we need this?
 
     public List<GameObject> combatShips; // for CameraMultiTarget to use for camera targets
-    //public Orders order;
+    public Orders order;
     //public GameObject Friend_0; // prefab empty gameobject to clone instantiat into the grids
     //public GameObject Enemy_0;
 
 
-    // ****** Use a running count of ships by type for shipGameOb starting locaitons, reset to zero on enterying first enemy
+    //// ****** Use a running count of ships by type for shipGameOb starting locaitons, reset to zero on enterying first enemy
     int _scoutShips = 0;
     int _destroyerShips = 0;
     int _capitalShips = 0;
@@ -94,7 +91,6 @@ public class CombatManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -112,7 +108,7 @@ public class CombatManager : MonoBehaviour
             SideTwoShipControllers = enemyShipCons,
             CivEnumSideOne = friendShipCons[0].ShipData.CivEnum,
             CivEnumSideTwo = enemyShipCons[0].ShipData.CivEnum,
-            CivEnums = new List<CivEnum> { friendShipCons[0].ShipData.CivEnum, enemyShipCons[0].ShipData.CivEnum }
+            Name = "CombatData_" + CombatControllers.Count.ToString(),
         };
         if (GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideTwo))
         {
@@ -124,21 +120,15 @@ public class CombatManager : MonoBehaviour
     {
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
-        aCombatController.CombatData.SideTwoShipControllers = combatData.SideTwoShipControllers;
-        aCombatController.CombatData.SideOneShipControllers = combatData.SideOneShipControllers;
-        aCombatController.CombatData.CivEnumSideOne = combatData.CivEnumSideOne;
-        aCombatController.CombatData.CivEnumSideTwo = combatData.CivEnumSideTwo;
-        aCombatController.CombatData.CivEnums = combatData.CivEnums;
-        aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
-        CombatControllers.Add(aCombatController);   
+        aCombatController.CombatData = combatData; // set the combat data
         aCombatController.transform.SetParent(transform, false); // false keeps local transform values
         CombatUIController.Instance.CombatController = aCombatController;
+        aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
+        CombatControllers.Add(aCombatController);   
     }
-    public void InstantiateCombatUIGameObject(GameObject parent)
+    public void SetUpCombatUIGameObject(GameObject parent)
     {
-        //GameObject thisCombatUIGameObject = (GameObject)Instantiate(combatUIPrefab, new Vector3(0, 0, 0),
-        //Quaternion.identity);
-        combatUI.SetActive(true); // make sure it is active
+        combatUI.SetActive(true); 
         GameObject thisCombatUIGameObject = combatUI;
 
         if (parent != null && thisCombatUIGameObject != null)
@@ -181,7 +171,7 @@ public class CombatManager : MonoBehaviour
             _enemyCombatans = shipConList.Select(s => s.gameObject).ToList();
         FriendShips = shipConList;
     }
-    public void ResetFriendAndEnemyDictionaries()
+    public void ResetFriendAndEnemyLists()
     {
         FriendShips.Clear();
         EnemyShips.Clear();
@@ -194,14 +184,14 @@ public class CombatManager : MonoBehaviour
     {
         return _enemyCombatans;
     }
-    public List<CivController> FriendCivCombatants()
-    {
-        return _friendCivs;
-    }
-    public List<CivController> EnemyCivCombatants()
-    {
-        return _enemyCivs;
-    }
+    //public CivController FriendCivCombatants()
+    //{
+    //    return _friendCivCon;
+    //}
+    //public CivController EnemyCivCombatants()
+    //{
+    //    return _enemyCivCon;
+    //}
     public void PreCombatSetup(List<ShipType> preCombatShips, bool isFriend)
     // The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
     {
@@ -391,7 +381,7 @@ public class CombatManager : MonoBehaviour
                 rotationOnY = -90;
             }
 
-            switch (CombatUIController.order)
+            switch (CombatUIController.order)// move order to controller combat data
             {
                 case Orders.Engage:
                     #region Engage Region
