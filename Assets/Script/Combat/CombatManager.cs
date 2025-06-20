@@ -13,7 +13,8 @@ public class CombatManager : MonoBehaviour
     [SerializeField]
     private CombatController combatConPrefab;
     public List<CombatController> CombatControllers = new List<CombatController>();
-    #region old code stuff moved to CombatController
+
+    #region old fields to moved to CombatController
     //public static string[] FriendNameArray; // For current SpaceCombatScene ****
     //public static string[] EnemyNameArray;
     //public int friends;
@@ -84,6 +85,7 @@ public class CombatManager : MonoBehaviour
     //int _zCapitalDepth = 0;
     //int _zUtilityDepth = 0;
     #endregion old code stuff moved to CombatController
+
     private void Awake()
     {
         // Prevent duplicates
@@ -95,8 +97,31 @@ public class CombatManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
-
-    public void InitCombat(List<ShipController> friendShipCons, List<ShipController> enemyShipCons)
+    internal void SetDiplomacyController(DiplomacyController diplomacyController)
+    {
+        var enemyShips = new List<ShipController>();
+        if (diplomacyController.DiplomacyData.FleetMajor != null)
+        {
+            var friendlyShips = diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList;
+            if (diplomacyController.DiplomacyData.FleetOther != null)
+            {
+                enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
+                InitCombatData(friendlyShips, enemyShips);
+            }
+            else
+            {
+                enemyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
+                InitCombatData(friendlyShips, enemyShips);
+            }
+        }
+        else // major fleet is null so only minor fleet is present and local player system
+        {
+            enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
+            var friendlyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
+            InitCombatData(friendlyShips, enemyShips);
+        }
+    }
+    public void InitCombatData(List<ShipController> friendShipCons, List<ShipController> enemyShipCons)
     {
         // Call PreCombatSetup and PopulateShipData for friends and enemies
        // PreCombatSetup(friendShipCons.Select(s => s.ShipData.ShipType).ToList(), true); // Do this in CombatController
@@ -125,7 +150,8 @@ public class CombatManager : MonoBehaviour
         aCombatController.transform.SetParent(transform, false); // false keeps local transform values
         CombatUIController.Instance.CombatController = aCombatController;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
-        CombatControllers.Add(aCombatController);   
+        CombatControllers.Add(aCombatController);
+       // aCombatController.PreCombatSetup(combatData.)
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {
@@ -148,7 +174,7 @@ public class CombatManager : MonoBehaviour
         {
             Debug.LogError("CombatUIController component is missing on the combat UI GameObject.");
         }
-    }
+    }  
     #region // More old code moved to CombatController
     //private void PopulateShipData(List<ShipController> shipConList, bool friends)
     //{
@@ -197,58 +223,58 @@ public class CombatManager : MonoBehaviour
     //{
     //    return _enemyCivCon;
     //}
-    public void PreCombatSetup(List<ShipType> preCombatShips, bool isFriend)
-    // The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
-    {
-        //int scouts = 0;
-        //int destroyers = 0;
-        //int capitals = 0;
-        //int transports = 0;
-        //for (int i = 0; i < preCombatShips.Count; i++)
-        //{
-        //    switch (preCombatShips[i])
-        //    {
-        //        case ShipType.Scout:
-        //            scouts++;
-        //            break;
-        //        case ShipType.Destroyer:
-        //            destroyers++;
-        //            break;
-        //        case ShipType.Cruiser:
-        //        case ShipType.LtCruiser:
-        //        case ShipType.HvyCruiser:
-        //            capitals++;
-        //            break;
-        //        case ShipType.Transport:
-        //            transports++;
-        //            break;
-        //        default:
-        //            break;
-        //    }
-        //}
-        //if (isFriend)
-        //{
-        //    _scoutsFriend = scouts;
-        //    _destroyersFriend = destroyers;
-        //    _capitalsFriend = capitals;
-        //    _transportsFriend = transports;
-        //    _totalScoutShips += scouts;
-        //    _totalDestroyerShips += destroyers;
-        //    _totalCapitalShips += capitals;
-        //    _totalTransportsShips += transports;
-        //}
-        //else
-        //{
-        //    _scoutsEnemy = scouts;
-        //    _destroyersEnemy = destroyers;
-        //    _capitalsEnemy = capitals;
-        //    _transportsEnemy = transports;
-        //    _totalScoutShips += scouts;
-        //    _totalDestroyerShips += destroyers;
-        //    _totalCapitalShips += capitals;
-        //    _totalTransportsShips += transports;
-        //}
-    }
+    //public void PreCombatSetup(List<ShipType> preCombatShips, bool isFriend)
+    //// The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
+    //{
+    //    //int scouts = 0;
+    //    //int destroyers = 0;
+    //    //int capitals = 0;
+    //    //int transports = 0;
+    //    //for (int i = 0; i < preCombatShips.Count; i++)
+    //    //{
+    //    //    switch (preCombatShips[i])
+    //    //    {
+    //    //        case ShipType.Scout:
+    //    //            scouts++;
+    //    //            break;
+    //    //        case ShipType.Destroyer:
+    //    //            destroyers++;
+    //    //            break;
+    //    //        case ShipType.Cruiser:
+    //    //        case ShipType.LtCruiser:
+    //    //        case ShipType.HvyCruiser:
+    //    //            capitals++;
+    //    //            break;
+    //    //        case ShipType.Transport:
+    //    //            transports++;
+    //    //            break;
+    //    //        default:
+    //    //            break;
+    //    //    }
+    //    //}
+    //    //if (isFriend)
+    //    //{
+    //    //    _scoutsFriend = scouts;
+    //    //    _destroyersFriend = destroyers;
+    //    //    _capitalsFriend = capitals;
+    //    //    _transportsFriend = transports;
+    //    //    _totalScoutShips += scouts;
+    //    //    _totalDestroyerShips += destroyers;
+    //    //    _totalCapitalShips += capitals;
+    //    //    _totalTransportsShips += transports;
+    //    //}
+    //    //else
+    //    //{
+    //    //    _scoutsEnemy = scouts;
+    //    //    _destroyersEnemy = destroyers;
+    //    //    _capitalsEnemy = capitals;
+    //    //    _transportsEnemy = transports;
+    //    //    _totalScoutShips += scouts;
+    //    //    _totalDestroyerShips += destroyers;
+    //    //    _totalCapitalShips += capitals;
+    //    //    _totalTransportsShips += transports;
+    //    //}
+    //}
 
     //internal void SetCombatOrder(Orders order)
     //{
@@ -1157,29 +1183,5 @@ public class CombatManager : MonoBehaviour
     //    }
     //}
     #endregion // more old code moved to CombatManager
-    internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    {
-        var enemyShips = new List<ShipController>();
-        if (diplomacyController.DiplomacyData.FleetMajor != null)
-        {
-            var friendlyShips = diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList;
-            if (diplomacyController.DiplomacyData.FleetOther != null)
-            {
-                enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
-                InitCombat(friendlyShips, enemyShips);
-            }
-            else
-            {
-                enemyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
-                InitCombat(friendlyShips, enemyShips);
-            }
-        }
-        else // major fleet is null so only minor fleet is present and local player system
-        {
-            enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
-            var friendlyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
-            InitCombat(friendlyShips, enemyShips); 
-        }
-    }
 }
 

@@ -101,7 +101,6 @@ public class DiplomacyManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-
     }
     private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
     {

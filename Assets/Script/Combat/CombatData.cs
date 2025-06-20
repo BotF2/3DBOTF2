@@ -17,24 +17,27 @@ public class CombatData
     public static string[] EnemyNameArray;
     public int friends;
     public int enemies;
-    public static List<ShipController> FriendShips = new List<ShipController>();  // updated to current combat
-    public static List<ShipController> EnemyShips = new List<ShipController>();
-
+    public List<ShipController> FriendShips = new List<ShipController>();  // updated to current combat
+    public List<ShipController> EnemyShips = new List<ShipController>();
     private int friendShipLayer;
     private int enemyShipLayer;
     public List<GameObject> _friendCombatans; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
     public List<GameObject> _enemyCombatans;
-    [SerializeField]
-    private CivController _friendCivCon; //{ Civilization.FED };
-    [SerializeField]
-    private CivController _enemyCivCon;
+    public CivController _friendCivCon; //{ Civilization.FED };
+    public CivController _enemyCivCon;
     public GameObject cameraEmpty;
-    public GameObject animFriend1;
-    public GameObject animFriend2;
-    public GameObject animFriend3;
-    public GameObject animEnemy1;
-    public GameObject animEnemy2;
-    public GameObject animEnemy3;
+    [SerializeField]
+    private GameObject animFriend1;
+    [SerializeField]
+    private GameObject animFriend2;
+    [SerializeField]
+    private GameObject animFriend3;
+    [SerializeField]
+    private GameObject animEnemy1;
+    [SerializeField]
+    private GameObject animEnemy2;
+    [SerializeField]
+    private GameObject animEnemy3;
     bool _isFriend; // true if friend, false if enemy
     int _scoutsFriend;
     int _destroyersFriend;
