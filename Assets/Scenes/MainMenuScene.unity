@@ -9243,6 +9243,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shipConPrefab: {fileID: 5225383146866348849, guid: 74ecdfcbc551f7e43bcbddbec91a8686, type: 3}
+  shipPrefab: {fileID: 4674614209567743108, guid: f866647dde5655a4da390e0da5d128bf, type: 3}
   shipListUIPrefab: {fileID: 1097691733155681692, guid: 80e448e987f83f14a9351c9b3de176b4, type: 3}
   ShipControllerGameList: []
   ShipSOListTech0:
@@ -9664,6 +9665,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1cb0ce0fb42649f4cbdfebbfafba8df7, type: 2}
   - {fileID: 11400000, guid: d079bf9a55c773a4baea059364a81579, type: 2}
   - {fileID: 11400000, guid: 6d0a06c34836634458196ee1c57b472a, type: 2}
+  ShipSORegistry: {fileID: 0}
 --- !u!4 &465746041
 Transform:
   m_ObjectHideFlags: 0

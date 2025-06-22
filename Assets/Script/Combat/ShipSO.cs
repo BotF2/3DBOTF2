@@ -16,6 +16,11 @@ public class ShipSO : ScriptableObject
     public int TorpedoDamage;
     public int BeamDamage;
     public int BuildDuration;
-    public GameObject Mesh;
-
+    public GameObject Prefab;
+    public string ShipDescription;
+    //public int Cost;
+    //public int CrewCapacity;            
+    //public float FuelCapacity;                      
+    //public float CurrentFuel;
+    //public bool IsPowered;      
 }

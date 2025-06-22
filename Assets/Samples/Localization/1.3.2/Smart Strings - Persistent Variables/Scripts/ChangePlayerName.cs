@@ -1,4 +1,4 @@
-#if PACKAGE_UGUI
+//#if PACKAGE_UGUI
 
 using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.SmartFormat.Extensions;
@@ -37,4 +37,4 @@ namespace UnityEngine.Localization.Samples
     }
 }
 
-#endif
+//#endif

@@ -19,8 +19,7 @@ public class CombatManager : MonoBehaviour
     //public static string[] EnemyNameArray;
     //public int friends;
     //public int enemies;
-    //public static List<ShipController> FriendShips = new List<ShipController>();  // updated for current combat from Diplomacy / Scene controller
-    //public static List<ShipController> EnemyShips = new List<ShipController>();
+
 
     //private int friendShipLayer;
     //private int enemyShipLayer;
@@ -135,6 +134,7 @@ public class CombatManager : MonoBehaviour
             CivEnumSideOne = friendShipCons[0].ShipData.CivEnum, // all friend and enemy ships are from just one civ each for now
             CivEnumSideTwo = enemyShipCons[0].ShipData.CivEnum,
             Name = "CombatData_" + CombatControllers.Count.ToString(),
+
         };
         if (GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideTwo))
         {
@@ -151,7 +151,9 @@ public class CombatManager : MonoBehaviour
         CombatUIController.Instance.CombatController = aCombatController;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
         CombatControllers.Add(aCombatController);
-       // aCombatController.PreCombatSetup(combatData.)
+        aCombatController.PopulateShipData(aCombatController.CombatData.SideOneShipControllers, true);
+        aCombatController.PopulateShipData(aCombatController.CombatData.SideTwoShipControllers, false);
+
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {

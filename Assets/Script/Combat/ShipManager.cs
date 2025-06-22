@@ -12,13 +12,18 @@ public class ShipManager : MonoBehaviour
 
     [SerializeField]
     private ShipController shipConPrefab;
+    [SerializeField] private GameObject shipPrefab;
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
-    public List<ShipController> ShipControllerGameList;
-    public List<ShipSO> ShipSOListTech0;
-    public List<ShipSO> ShipSOListTech1;
-    public List<ShipSO> ShipSOListTech2;
-    public List<ShipSO> ShipSOListTech3;
+    private GameObject _shipFriendliesGOs;
+    private GameObject _shipEnemiesGOs;
+    public List<ShipController> ShipControllerGameList = new List<ShipController>();
+    public List<ShipSO> ShipSOListTech0 = new List<ShipSO>();
+    public List<ShipSO> ShipSOListTech1 = new List<ShipSO>();
+    public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
+    public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
+    public ShipSORegistry ShipSORegistry;
+
     private void Awake()
     {
         if (Instance != null)
@@ -29,6 +34,19 @@ public class ShipManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+    }
+    public void OnSelectModel(string selectedShipName)
+    {
+        Vector3 spawnPos = new Vector3(0, 0, 0);
+        SpawnByShipName(selectedShipName, spawnPos);
+    }
+    public void SpawnByShipName(string shipName, Vector3 position)
+    {
+        ShipSO shipSO = ShipSORegistry.GetByID(shipName);
+        if (shipSO != null && shipSO.Prefab != null)
+        {
+            Instantiate(shipSO.Prefab, position, Quaternion.identity);
         }
     }
 
@@ -63,11 +81,33 @@ public class ShipManager : MonoBehaviour
                 InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship
                  
                 shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu
+                InstantiateTheCombatShips(shipCon);
             }
         }
         return shipConList;
     }
+    public GameObject InstantiateTheCombatShips(ShipController shipCon)
+    {
+        GameObject shipGO = Instantiate(shipPrefab, new Vector3(0, 0, 0),
+           Quaternion.identity);
+        shipCon.transform.SetParent(shipGO.transform);
+        // ******* move to combat controller to Set position of shipGO to the combat 
+        //int xLocation = -5500;
+        //int xLocationEnd = 0; // end of warpin on x left right axis
+        //int yLocation = 0;
+        //int rotationOnY = 90;
 
+        //if (!_isFriend)
+        //{
+        //    xLocation = 5500;
+        //    xLocationEnd = 300;
+        //    rotationOnY = -90;
+        //}
+        //shipGO.transform.Translate(new Vector3(sysData.GetPosition().x,
+        //    sysData.GetPosition().y, sysData.GetPosition().z));
+
+        return shipGO;
+    }
     public int GetShipBuildDuration(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
     {
         ShipSO aShipSO = new ShipSO();

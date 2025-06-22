@@ -24,4 +24,5 @@ MonoBehaviour:
   TorpedoDamage: 15
   BeamDamage: 15
   BuildDuration: 8
-  Mesh: {fileID: 0}
+  Prefab: {fileID: 919132149155446097, guid: 44538324aa3a69e40b89b321bc24f1ce, type: 3}
+  ShipDescription: 
