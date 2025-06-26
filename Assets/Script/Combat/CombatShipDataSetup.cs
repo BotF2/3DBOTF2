@@ -196,342 +196,342 @@ namespace Assets.Core
     //                rotationOnY = -90;
     //            }
 
-    //            //switch (CombatOrderSelection.order)
-    //            //{
-    //            //    case Orders.Engage:
-    //            //        #region Engage Region
-    //            //        {
-    //            //            switch (arrayNames[1].ToUpper())
-    //            //            {
-    //            //                case "SCOUT":
-    //            //                    yLocation = yScout; // set scouts in top section, y up, z deep, x left right from camera view
-    //            //                    if (_scoutShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zScoutDepth;
-    //            //                        _zScoutDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "DESTROYER":
-    //            //                    yLocation = yDestroyer;
-    //            //                    if (_destroyerShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zDestroyerDepth;
-    //            //                        _zDestroyerDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "CRUISER":
-    //            //                case "LTCRUISER":
-    //            //                case "HVYCRUISER":
-    //            //                    yLocation = yCapital;
-    //            //                    if (_capitalShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zCapitalDepth;
-    //            //                        _zCapitalDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "TRANSPORT":
-    //            //                case "COLONYSHIP":
-    //            //                case "CONSTRUCTION":
-    //            //                    if (_isFriend)
-    //            //                        xLocation -= zSeparator;
-    //            //                    else
-    //            //                        xLocation += zSeparator;
-    //            //                    yLocation = yCapital;
-    //            //                    if (_utilityShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zUtilityDepth;
-    //            //                        _zUtilityDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "ONEMORE":
-    //            //                    break;
-    //            //                default:
-    //            //                    break;
-    //            //            }
+    //            switch (CombatOrderSelection.order)
+    //            {
+    //                case Orders.Engage:
+    //                    #region Engage Region
+    //                    {
+    //                        switch (arrayNames[1].ToUpper())
+    //                        {
+    //                            case "SCOUT":
+    //                                yLocation = yScout; // set scouts in top section, y up, z deep, x left right from camera view
+    //                                if (_scoutShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zScoutDepth;
+    //                                    _zScoutDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "DESTROYER":
+    //                                yLocation = yDestroyer;
+    //                                if (_destroyerShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zDestroyerDepth;
+    //                                    _zDestroyerDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "CRUISER":
+    //                            case "LTCRUISER":
+    //                            case "HVYCRUISER":
+    //                                yLocation = yCapital;
+    //                                if (_capitalShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zCapitalDepth;
+    //                                    _zCapitalDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "TRANSPORT":
+    //                            case "COLONYSHIP":
+    //                            case "CONSTRUCTION":
+    //                                if (_isFriend)
+    //                                    xLocation -= zSeparator;
+    //                                else
+    //                                    xLocation += zSeparator;
+    //                                yLocation = yCapital;
+    //                                if (_utilityShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zUtilityDepth;
+    //                                    _zUtilityDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "ONEMORE":
+    //                                break;
+    //                            default:
+    //                                break;
+    //                        }
 
-    //            //            GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
-    //            //            shipGameOb.name = preCombatShipNames[i];
-    //            //            PopulateShipData(shipGameOb); // Ship class script is attached in prefab so fill in the data
-    //            //            ShipScaleAndRotation(shipGameOb, rotationOnY);
-    //            //            var aCameraTarget = shipGameOb;
-    //            //            //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocationEnd, yLocation, zLocation), Quaternion.identity); // camera target where ships are
-    //            //            //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
-    //            //            ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); //aCameraTarget, _isFriend, CombatOrderSelection.order);
-    //            //            combatShips.Add(shipGameOb); // list of comabat ships informing GameManager of combat ships
-    //            //            cameraTargets.Add(aCameraTarget);
-    //            //            combat.AddCombatant(shipGameOb);
-    //            //            break;
-    //            //        }
-    //            //    #endregion Engage Region
+    //                        GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
+    //                        shipGameOb.name = preCombatShipNames[i];
+    //                        PopulateShipData(shipGameOb); // Ship class script is attached in prefab so fill in the data
+    //                        ShipScaleAndRotation(shipGameOb, rotationOnY);
+    //                        var aCameraTarget = shipGameOb;
+    //                        //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocationEnd, yLocation, zLocation), Quaternion.identity); // camera target where ships are
+    //                        //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
+    //                        ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); //aCameraTarget, _isFriend, CombatOrderSelection.order);
+    //                        combatShips.Add(shipGameOb); // list of comabat ships informing GameManager of combat ships
+    //                        cameraTargets.Add(aCameraTarget);
+    //                        combat.AddCombatant(shipGameOb);
+    //                        break;
+    //                    }
+    //                #endregion Engage Region
 
-    //            //    case Orders.Rush:
-    //            //        #region Rush Region
-    //            //        {
-    //            //            switch (arrayNames[1].ToUpper())
-    //            //            {
-    //            //                case "SCOUT":
-    //            //                    if (_isFriend)
-    //            //                        xLocation = xLocation + 100;
-    //            //                    else xLocation = xLocation - 100;
-    //            //                    yLocation = yScout;
-    //            //                    if (_scoutShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zScoutDepth;
-    //            //                        _zScoutDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "DESTROYER":
-    //            //                    if (_isFriend)
-    //            //                        xLocation = xLocation + 50;
-    //            //                    else xLocation = xLocation - 50;
-    //            //                    yLocation = yDestroyer;
-    //            //                    if (_destroyerShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zDestroyerDepth;
-    //            //                        _zDestroyerDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "CRUISER":
-    //            //                case "LTCRUISER":
-    //            //                case "HVYCRUISER":
-    //            //                    yLocation = yCapital;
-    //            //                    if (_capitalShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zCapitalDepth;
-    //            //                        _zCapitalDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "TRANSPORT":
-    //            //                case "COLONYSHIP":
-    //            //                case "CONSTRUCTION":
-    //            //                    if (_isFriend)
-    //            //                        xLocation -= zSeparator;
-    //            //                    else
-    //            //                        xLocation += zSeparator;
-    //            //                    yLocation = yCapital;
-    //            //                    if (_utilityShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zUtilityDepth;
-    //            //                        _zUtilityDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "ONEMORE":
-    //            //                    break;
-    //            //                default:
-    //            //                    break;
-    //            //            }
-    //            //            GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
-    //            //            shipGameOb.name = preCombatShipNames[i];
-    //            //            var aCameraTarget = shipGameOb;
-    //            //            //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
-    //            //            //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
-    //            //            ShipScaleAndRotation(shipGameOb, rotationOnY);
-    //            //            ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order);//aCameraTarget, _isFriend, CombatOrderSelection.order);
-    //            //            PopulateShipData(shipGameOb);
+    //                case Orders.Rush:
+    //                    #region Rush Region
+    //                    {
+    //                        switch (arrayNames[1].ToUpper())
+    //                        {
+    //                            case "SCOUT":
+    //                                if (_isFriend)
+    //                                    xLocation = xLocation + 100;
+    //                                else xLocation = xLocation - 100;
+    //                                yLocation = yScout;
+    //                                if (_scoutShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zScoutDepth;
+    //                                    _zScoutDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "DESTROYER":
+    //                                if (_isFriend)
+    //                                    xLocation = xLocation + 50;
+    //                                else xLocation = xLocation - 50;
+    //                                yLocation = yDestroyer;
+    //                                if (_destroyerShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zDestroyerDepth;
+    //                                    _zDestroyerDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "CRUISER":
+    //                            case "LTCRUISER":
+    //                            case "HVYCRUISER":
+    //                                yLocation = yCapital;
+    //                                if (_capitalShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zCapitalDepth;
+    //                                    _zCapitalDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "TRANSPORT":
+    //                            case "COLONYSHIP":
+    //                            case "CONSTRUCTION":
+    //                                if (_isFriend)
+    //                                    xLocation -= zSeparator;
+    //                                else
+    //                                    xLocation += zSeparator;
+    //                                yLocation = yCapital;
+    //                                if (_utilityShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zUtilityDepth;
+    //                                    _zUtilityDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "ONEMORE":
+    //                                break;
+    //                            default:
+    //                                break;
+    //                        }
+    //                        GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
+    //                        shipGameOb.name = preCombatShipNames[i];
+    //                        var aCameraTarget = shipGameOb;
+    //                        //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
+    //                        //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
+    //                        ShipScaleAndRotation(shipGameOb, rotationOnY);
+    //                        ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order);//aCameraTarget, _isFriend, CombatOrderSelection.order);
+    //                        PopulateShipData(shipGameOb);
 
-    //            //            combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
-    //            //            cameraTargets.Add(aCameraTarget);
-    //            //            break;
-    //            //        }
-    //            //    #endregion Rush Region
+    //                        combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
+    //                        cameraTargets.Add(aCameraTarget);
+    //                        break;
+    //                    }
+    //                #endregion Rush Region
 
-    //            //    case Orders.Retreat:
-    //            //        #region Retreat Region
-    //            //        {
-    //            //            if (_isFriend)
-    //            //            {
-    //            //                xLocation = 0;
-    //            //                rotationOnY = -90;
-    //            //            }
-    //            //            else
-    //            //            {
-    //            //                xLocation = 300;
-    //            //                rotationOnY = 90;
-    //            //            }
+    //                case Orders.Retreat:
+    //                    #region Retreat Region
+    //                    {
+    //                        if (_isFriend)
+    //                        {
+    //                            xLocation = 0;
+    //                            rotationOnY = -90;
+    //                        }
+    //                        else
+    //                        {
+    //                            xLocation = 300;
+    //                            rotationOnY = 90;
+    //                        }
 
-    //            //            switch (arrayNames[1].ToUpper())
-    //            //            {
-    //            //                case "SCOUT":
-    //            //                    if (_isFriend)
-    //            //                        xLocation = xLocation - 100;
-    //            //                    else xLocation = xLocation + 100;
-    //            //                    yLocation = yScout;
-    //            //                    if (_scoutShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zScoutDepth;
-    //            //                        _zScoutDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "DESTROYER":
-    //            //                    if (_isFriend)
-    //            //                        xLocation = xLocation - 50;
-    //            //                    else xLocation = xLocation + 50;
-    //            //                    yLocation = yDestroyer;
-    //            //                    if (_destroyerShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zDestroyerDepth;
-    //            //                        _zDestroyerDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "CRUISER":
-    //            //                case "LTCRUISER":
-    //            //                case "HVYCRUISER":
-    //            //                    yLocation = yCapital;
-    //            //                    if (_capitalShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zCapitalDepth;
-    //            //                        _zCapitalDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "TRANSPORT":
-    //            //                case "COLONYSHIP":
-    //            //                case "CONSTRUCTION":
+    //                        switch (arrayNames[1].ToUpper())
+    //                        {
+    //                            case "SCOUT":
+    //                                if (_isFriend)
+    //                                    xLocation = xLocation - 100;
+    //                                else xLocation = xLocation + 100;
+    //                                yLocation = yScout;
+    //                                if (_scoutShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zScoutDepth;
+    //                                    _zScoutDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "DESTROYER":
+    //                                if (_isFriend)
+    //                                    xLocation = xLocation - 50;
+    //                                else xLocation = xLocation + 50;
+    //                                yLocation = yDestroyer;
+    //                                if (_destroyerShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zDestroyerDepth;
+    //                                    _zDestroyerDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "CRUISER":
+    //                            case "LTCRUISER":
+    //                            case "HVYCRUISER":
+    //                                yLocation = yCapital;
+    //                                if (_capitalShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zCapitalDepth;
+    //                                    _zCapitalDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "TRANSPORT":
+    //                            case "COLONYSHIP":
+    //                            case "CONSTRUCTION":
 
-    //            //                    if (_isFriend)
-    //            //                        xLocation += zSeparator;
-    //            //                    else
-    //            //                        xLocation -= zSeparator;
-    //            //                    yLocation = yCapital;
-    //            //                    if (_utilityShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zUtilityDepth;
-    //            //                        _zUtilityDepth++;
-    //            //                    }
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    break;
-    //            //                case "ONEMORE":
-    //            //                    break;
-    //            //                default:
-    //            //                    break;
-    //            //            }
-    //            //            GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
-    //            //            shipGameOb.name = preCombatShipNames[i];
-    //            //            var aCameraTarget = shipGameOb;
-    //            //            //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
-    //            //            //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
-    //            //            ShipScaleAndRotation(shipGameOb, rotationOnY);
-    //            //            // ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); // aCameraTarget, _isFriend, CombatOrderSelection.order);
-    //            //            PopulateShipData(shipGameOb);
-    //            //            combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
-    //            //            cameraTargets.Add(aCameraTarget);
-    //            //            break;
-    //            //        }
-    //            //    #endregion Retreat Region
+    //                                if (_isFriend)
+    //                                    xLocation += zSeparator;
+    //                                else
+    //                                    xLocation -= zSeparator;
+    //                                yLocation = yCapital;
+    //                                if (_utilityShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zUtilityDepth;
+    //                                    _zUtilityDepth++;
+    //                                }
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                break;
+    //                            case "ONEMORE":
+    //                                break;
+    //                            default:
+    //                                break;
+    //                        }
+    //                        GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
+    //                        shipGameOb.name = preCombatShipNames[i];
+    //                        var aCameraTarget = shipGameOb;
+    //                        //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
+    //                        //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
+    //                        ShipScaleAndRotation(shipGameOb, rotationOnY);
+    //                        // ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); // aCameraTarget, _isFriend, CombatOrderSelection.order);
+    //                        PopulateShipData(shipGameOb);
+    //                        combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
+    //                        cameraTargets.Add(aCameraTarget);
+    //                        break;
+    //                    }
+    //                #endregion Retreat Region
 
-    //            //    case Orders.Formation:
-    //            //        #region Formation Region
-    //            //        {
-    //            //            switch (arrayNames[1].ToUpper())
-    //            //            {
-    //            //                case "SCOUT":
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    yLocation = yScout;
-    //            //                    if (_scoutShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zScoutDepth;
-    //            //                        _zScoutDepth++;
-    //            //                    }
-    //            //                    break;
-    //            //                case "DESTROYER":
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    yLocation = yDestroyer;
-    //            //                    if (_destroyerShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zDestroyerDepth;
-    //            //                        _zDestroyerDepth++;
-    //            //                    }
-    //            //                    break;
-    //            //                case "CRUISER":
-    //            //                case "LTCRUISER":
-    //            //                case "HVYCRUISER":
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    yLocation = yCapital;
-    //            //                    if (_capitalShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zCapitalDepth;
-    //            //                        _zCapitalDepth++;
-    //            //                    }
-    //            //                    break;
-    //            //                case "TRANSPORT":
-    //            //                case "COLONYSHIP":
-    //            //                case "CONSTRUCTION":
-    //            //                    SetShipCounts(arrayNames[1].ToUpper());
-    //            //                    if (_isFriend)
-    //            //                        xLocation -= zSeparator;
-    //            //                    else
-    //            //                        xLocation += zSeparator;
-    //            //                    yLocation = yCapital;
-    //            //                    if (_utilityShips % 2 == 0)
-    //            //                    {
-    //            //                        yLocation += ySeparator;
-    //            //                        zLocation = zSeparator * _zUtilityDepth;
-    //            //                        _zUtilityDepth++;
-    //            //                    }
-    //            //                    break;
-    //            //                case "ONEMORE":
-    //            //                    break;
-    //            //                default:
-    //            //                    break;
-    //            //            }
-    //            //            GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
-    //            //            shipGameOb.name = preCombatShipNames[i];
-    //            //            var aCameraTarget = shipGameOb;
-    //            //            //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
-    //            //            //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
-    //            //            ShipScaleAndRotation(shipGameOb, rotationOnY);
-    //            //            ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); //aCameraTarget, _isFriend, CombatOrderSelection.order);
-    //            //            PopulateShipData(shipGameOb);
-    //            //            combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
-    //            //            cameraTargets.Add(aCameraTarget);
-    //            //            break;
-    //            //        }
-    //            //    #endregion Formation Region
+    //                case Orders.Formation:
+    //                    #region Formation Region
+    //                    {
+    //                        switch (arrayNames[1].ToUpper())
+    //                        {
+    //                            case "SCOUT":
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                yLocation = yScout;
+    //                                if (_scoutShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zScoutDepth;
+    //                                    _zScoutDepth++;
+    //                                }
+    //                                break;
+    //                            case "DESTROYER":
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                yLocation = yDestroyer;
+    //                                if (_destroyerShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zDestroyerDepth;
+    //                                    _zDestroyerDepth++;
+    //                                }
+    //                                break;
+    //                            case "CRUISER":
+    //                            case "LTCRUISER":
+    //                            case "HVYCRUISER":
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                yLocation = yCapital;
+    //                                if (_capitalShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zCapitalDepth;
+    //                                    _zCapitalDepth++;
+    //                                }
+    //                                break;
+    //                            case "TRANSPORT":
+    //                            case "COLONYSHIP":
+    //                            case "CONSTRUCTION":
+    //                                SetShipCounts(arrayNames[1].ToUpper());
+    //                                if (_isFriend)
+    //                                    xLocation -= zSeparator;
+    //                                else
+    //                                    xLocation += zSeparator;
+    //                                yLocation = yCapital;
+    //                                if (_utilityShips % 2 == 0)
+    //                                {
+    //                                    yLocation += ySeparator;
+    //                                    zLocation = zSeparator * _zUtilityDepth;
+    //                                    _zUtilityDepth++;
+    //                                }
+    //                                break;
+    //                            case "ONEMORE":
+    //                                break;
+    //                            default:
+    //                                break;
+    //                        }
+    //                        GameObject shipGameOb = Instantiate(GameManager.PrefabShipDitionary[preCombatShipNames[i]], new Vector3(xLocation, yLocation, zLocation), Quaternion.identity);
+    //                        shipGameOb.name = preCombatShipNames[i];
+    //                        var aCameraTarget = shipGameOb;
+    //                        //GameObject aCameraTarget = Instantiate(cameraEmpty, new Vector3(xLocation, yLocation, zLocation), Quaternion.identity); // camera target where ships are
+    //                        //aCameraTarget.transform.Rotate(0, rotationOnY, 0); // match ship rotation
+    //                        ShipScaleAndRotation(shipGameOb, rotationOnY);
+    //                        ParentToAnimation(shipGameOb, _isFriend, CombatOrderSelection.order); //aCameraTarget, _isFriend, CombatOrderSelection.order);
+    //                        PopulateShipData(shipGameOb);
+    //                        combatShips.Add(shipGameOb); // ends up informing GameManager of combat ships
+    //                        cameraTargets.Add(aCameraTarget);
+    //                        break;
+    //                    }
+    //                #endregion Formation Region
 
-    //            //    case Orders.ProtectTransports:
-    //            //        #region Protect Transports Region
-    //            //        {
-    //            //            // Do Something
-    //            //        }
-    //            //        break;
-    //            //    #endregion Protect Transports Region
+    //                case Orders.ProtectTransports:
+    //                    #region Protect Transports Region
+    //                    {
+    //                        // Do Something
+    //                    }
+    //                    break;
+    //                #endregion Protect Transports Region
 
-    //            //    case Orders.TargetTransports:
-    //            //        #region Traget Transports Region
-    //            //        {
-    //            //            // do Something
-    //            //        }
-    //            //        break;
-    //            //    #endregion Traget Transports Region
+    //                case Orders.TargetTransports:
+    //                    #region Traget Transports Region
+    //                    {
+    //                        // do Something
+    //                    }
+    //                    break;
+    //                #endregion Traget Transports Region
 
-    //            //    default:
-    //            //        break;
-    //            //}
+    //                default:
+    //                    break;
+    //            }
 
     //        }
     //        CameraTargetList.AddRange(cameraTargets);

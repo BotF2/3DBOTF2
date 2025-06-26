@@ -10,6 +10,10 @@ public class CombatManager : MonoBehaviour
     public static CombatManager Instance { get; private set; }
     [SerializeField]
     private GameObject combatUI;
+    //[SerializeField]
+    //private CivEnum sideOneEnum;
+    //[SerializeField]
+    //private CivEnum sideTwoEnum;
     [SerializeField]
     private CombatController combatConPrefab;
     public List<CombatController> CombatControllers = new List<CombatController>();
@@ -144,6 +148,8 @@ public class CombatManager : MonoBehaviour
 
     public void InstantiateCombatController(CombatData combatData)
     {
+        //sideOneEnum = combatData.CivEnumSideOne;
+        //sideTwoEnum = combatData.CivEnumSideTwo;
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
         aCombatController.CombatData = combatData; // set the combat data
@@ -153,7 +159,6 @@ public class CombatManager : MonoBehaviour
         CombatControllers.Add(aCombatController);
         aCombatController.PopulateShipData(aCombatController.CombatData.SideOneShipControllers, true);
         aCombatController.PopulateShipData(aCombatController.CombatData.SideTwoShipControllers, false);
-
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {

@@ -329,8 +329,7 @@ namespace Assets.Core
         Engage,
         Rush,
         Retreat,
-        Formation,
-        ProtectTransports,
+        Formation, // aka protrect transports
         TargetTransports,
         None,
     }

@@ -36,8 +36,8 @@ namespace Assets.Core
         private GameObject TipCanvas;
         [SerializeField]
         private GameObject mainMenuButton;
-        [SerializeField]
-        private GameObject uiCameraGO;
+        //[SerializeField]
+        //private GameObject uiCameraGO;
         [SerializeField]
         private GameObject galaxyCenter;
 
@@ -698,7 +698,7 @@ namespace Assets.Core
             PlayableCivOffInGameList();
             CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, this.MainMenuData.SelectedGalaxyType);
             mainMenuCanvas.SetActive(false);
-            uiCameraGO.SetActive(false);
+            //uiCameraGO.SetActive(false);
             galaxyCenter.SetActive(true);
             SceneManager.LoadScene("GalaxyScene", LoadSceneMode.Additive);
             CivManager.Instance.OnNewGameButtonClicked((int)MainMenuData.SelectedGalaxySize, (int)MainMenuData.SelectedTechLevel, (int)MainMenuData.SelectedGalaxyType,

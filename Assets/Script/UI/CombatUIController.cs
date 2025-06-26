@@ -12,6 +12,8 @@ namespace Assets.Core
     {
         public static CombatUIController Instance;
         public CombatController CombatController; // this is the combat controller that will handle the combat UI and orders
+        public Enum sideOneEnum;
+        public Enum sideTwoEnum;
         private Camera galaxyEventCamera; //will we need this?
         //public CombatData CombatData;
         [SerializeField]
@@ -28,8 +30,8 @@ namespace Assets.Core
         private List<ShipController> enemyShipControllers;
         [SerializeField]
         private List<GameObject> listOfShipsUiGos;
-        public static Toggle Engage, Rush, Retreat, Formation, ProtectTransports, TargetTransports;
-        public List<Toggle> toggleOrderList = new List<Toggle>() { Engage, Rush, Retreat, Formation, ProtectTransports, TargetTransports };
+        public static Toggle Engage, Rush, Retreat, Formation, TargetTransports;
+        public List<Toggle> toggleOrderList = new List<Toggle>() { Engage, Rush, Retreat, Formation, TargetTransports };
         private Toggle activeLocalPlayerToggle;
         private Toggle previousToggle;
         public static Orders order; // think this should be in the CombatController, but we will see how it goes
@@ -102,10 +104,6 @@ namespace Assets.Core
                     Debug.Log("Active Formation.");
                     CombatController.SetCombatOrder(Orders.Formation);
                     break;
-                case "TOGGLE_PROTECT_TRANSPORTS":
-                    Debug.Log("Active Protect Transports.");
-                    CombatController.SetCombatOrder(Orders.ProtectTransports);
-                    break;
                 case "TOGGLE_TARGET_TRANSPORTS":
                     Debug.Log("Active Target Transports.");
                     CombatController.SetCombatOrder(Orders.TargetTransports);
@@ -162,18 +160,6 @@ namespace Assets.Core
                 ActivePlayerToggle(Formation);
             }
         }
-        private void OnTogglePROTECT_TRANSPORTS(bool isOn)
-        {
-            if (ProtectTransports.isOn)
-            {
-                if (previousToggle != ProtectTransports)
-                {
-                    previousToggle.isOn = false;
-                }
-                previousToggle = ProtectTransports;
-                ActivePlayerToggle(ProtectTransports);
-            }
-        }
         private void OnToggleTARGET_TRANSPORTS(bool isOn)
         {
             if (TargetTransports.isOn)
@@ -203,9 +189,11 @@ namespace Assets.Core
                 {
                     case "Toggle_ENGAGE":
                         rectTransforms[i].gameObject.SetActive(true);
+                        CombatController.IssueCombatOrder(Orders.Engage, true);
                         break;
                     case "Toggle_RUSH":
                         rectTransforms[i].gameObject.SetActive(true);
+
                         break;
                     case "Toggle_RETREAT":
                         rectTransforms[i].gameObject.SetActive(true);
@@ -214,9 +202,6 @@ namespace Assets.Core
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
                     case "Toggle_TARGET_TRANSPORTS":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        break;
-                    case "Toggle_PROTECT_TRANSPORTS":
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
                     case "Load MainMenu":
@@ -252,7 +237,7 @@ namespace Assets.Core
             Toggle[] ArrayToggles = thisCombatUIGameObject.GetComponentsInChildren<Toggle>();
             foreach (var aToggle in ArrayToggles)
             {
-                var combatCon = thisCombatUIGameObject.GetComponent<CombatController>();
+                CombatController = thisCombatUIGameObject.GetComponent<CombatController>();
                 switch (aToggle.name)
                 {
                     case "Toggle_ENGAGE":
@@ -279,11 +264,6 @@ namespace Assets.Core
                         TargetTransports = aToggle;
                         TargetTransports.onValueChanged.RemoveAllListeners();
                         TargetTransports.onValueChanged.AddListener(OnToggleTARGET_TRANSPORTS);
-                        break;
-                    case "Toggle_PROTECT_TRANSPORTS":
-                        ProtectTransports = aToggle;
-                        ProtectTransports.onValueChanged.RemoveAllListeners();
-                        ProtectTransports.onValueChanged.AddListener(OnTogglePROTECT_TRANSPORTS);
                         break;
                     default:
                         break;

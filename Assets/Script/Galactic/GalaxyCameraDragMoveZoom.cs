@@ -162,8 +162,6 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
     }
     public void SetCameraToLocalPlayerHome()
     {
-
-
         if (foundHomePosition == false)
         {
             var localCivEneum = GameController.Instance.GameData.LocalPlayerCivEnum;

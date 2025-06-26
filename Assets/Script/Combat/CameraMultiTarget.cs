@@ -23,10 +23,10 @@ namespace Assets.Core
         public float PaddingDown = 310f;
         public float MoveSmoothTime = 0.19f;
         private Camera _camera;
-        public Camera _shipCamera;
+        public Camera ShipCamera;
         private float _shipCameraFieldOfView;
         private float _shipCameraFOV_counter = 0;
-        public GameObject _cameraHolder;
+        public GameObject CameraHolder;
         private GameObject[] _targets = new GameObject[0];
         private DebugProjection _debugProjection;
 
@@ -59,7 +59,7 @@ namespace Assets.Core
         {
             _camera = Camera.main; // give gameObject(GalaxyEventCamera) and unity Camera.main the same position and rotation at end of LateUpdate		
             _debugProjection = DebugProjection.ROTATED;
-            _shipCameraFieldOfView = _shipCamera.fieldOfView;
+            _shipCameraFieldOfView = ShipCamera.fieldOfView;
         }
 
         private void LateUpdate()
@@ -92,7 +92,7 @@ namespace Assets.Core
             {
                 var _delatFOV = _shipCameraFOV_counter + 0.05f;
                 _shipCameraFOV_counter = _shipCameraFOV_counter + 0.05f;
-                _shipCamera.fieldOfView = 60f - _delatFOV;
+                ShipCamera.fieldOfView = 60f - _delatFOV;
             }
 
             var targetPositionAndRotation = TargetPositionAndRotation(_targets);
@@ -212,18 +212,18 @@ namespace Assets.Core
         private void NormalizFieldOfView()
         {
             // ..normalize shipcamera field of view
-            if (_shipCamera.fieldOfView >= _shipCameraFieldOfView + 0.5f || _shipCamera.fieldOfView <= _shipCameraFieldOfView - 0.5f)   //_autoRotationTimer < 1.5f)
+            if (ShipCamera.fieldOfView >= _shipCameraFieldOfView + 0.5f || ShipCamera.fieldOfView <= _shipCameraFieldOfView - 0.5f)   //_autoRotationTimer < 1.5f)
             {
-                if (_shipCamera.fieldOfView <= _shipCameraFieldOfView)
+                if (ShipCamera.fieldOfView <= _shipCameraFieldOfView)
                 {
-                    _shipCamera.fieldOfView += 0.005f;
+                    ShipCamera.fieldOfView += 0.005f;
                 }
-                else if (_shipCamera.fieldOfView >= _shipCameraFieldOfView)
+                else if (ShipCamera.fieldOfView >= _shipCameraFieldOfView)
                 {
-                    _shipCamera.fieldOfView -= 0.005f;
+                    ShipCamera.fieldOfView -= 0.005f;
                 }
             }
-            _shipCameraFieldOfView = _shipCamera.fieldOfView;
+            _shipCameraFieldOfView = ShipCamera.fieldOfView;
 
         }
 
