@@ -31,6 +31,7 @@ namespace FischlWorks_FogWar
         bool fogReady = false;
         [SerializeField]
         GameObject galacticCamHolder;
+        GameObject fogPlaneParent;
 
         //public LayerMask interactableLayers;
         /// A class for storing the base level data.
@@ -51,8 +52,7 @@ namespace FischlWorks_FogWar
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
-
-
+            fogPlaneParent = GameObject.FindWithTag("FogPlaneParent");
         }
 
         [System.Serializable]
@@ -389,6 +389,7 @@ namespace FischlWorks_FogWar
             fogPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
             fogPlane.layer = 8; // Fog of War Plane for ray hits
             fogPlane.name = "[RUNTIME] Fog_Plane";
+            fogPlane.transform.SetParent(fogPlaneParent.transform, false);
 
             fogPlane.transform.position = new Vector3(
                 levelMidPoint.position.x,

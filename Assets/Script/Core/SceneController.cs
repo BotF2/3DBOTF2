@@ -1,6 +1,9 @@
 using UnityEngine;
 using Assets.Core;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+using System;
+
 
 public class SceneController : MonoBehaviour
 {
@@ -10,11 +13,8 @@ public class SceneController : MonoBehaviour
     /// Combat hides Main Menu including what really are Galaxy elements it contains. 
     /// </summary>
     public static SceneController Instance { get; private set; }
-    //public GameObject CombatUIPrefab { get; internal set; }
     private static string previousSceneName;
-
-
-
+    public GameObject[] persistentObjects; // Changed to a field declaration to fix CS0592
 
     private void Awake()
     {
@@ -22,13 +22,38 @@ public class SceneController : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); // Keeps it across scenes
+            MarkPeristentObject(); // Mark this object as persistent
         }
         else
         {
-            Destroy(gameObject);
+            CleanUPAndDistroy();
+           //Destroy(gameObject);
         }
     }
 
+    private void CleanUPAndDistroy()
+    {
+        if (persistentObjects != null)
+        {
+            for (int i = 0; i < persistentObjects.Length; i++)
+            {
+                Destroy(persistentObjects[i]);
+            }
+        }
+        Destroy(gameObject); // Destroy the duplicate instance
+    }
+
+    private void MarkPeristentObject()
+    {
+        for (int i = 0; i < persistentObjects.Length; i++)
+        {
+
+            if (persistentObjects[i] != null)
+            {
+                DontDestroyOnLoad(persistentObjects[i]); 
+            }
+        }
+    }
 
     //private void OnEnable()
     //{
@@ -50,6 +75,13 @@ public class SceneController : MonoBehaviour
         if (GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivMajor.CivData.CivEnum) ||
             GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivOther.CivData.CivEnum))
         {
+            for (int i = 0; i < persistentObjects.Length; i++)
+            {
+                if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
+                {
+                    persistentObjects[i].SetActive(false); // Hide the FogPlaneParent object
+                }
+            }
             previousSceneName = "MainMenuScene";//SceneManager.GetActiveScene().name; 
                                                 // TimeManager.Instance.PauseTime(); does not work
             SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive);
@@ -96,7 +128,13 @@ public class SceneController : MonoBehaviour
     {
         SceneManager.UnloadSceneAsync("CombatScene");
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
-        //SceneManager.sceneLoaded -= OnSceneLoaded;
+        for (int i = 0; i < persistentObjects.Length; i++)
+        {
+            if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
+            {
+                persistentObjects[i].SetActive(true); 
+            }
+        }
 
         //if (!string.IsNullOrEmpty(previousSceneName))
         //{

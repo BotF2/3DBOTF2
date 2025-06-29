@@ -20296,7 +20296,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 10000000
+  far clip plane: 2000
   field of view: 62
   orthographic: 0
   orthographic size: 5
@@ -20603,7 +20603,7 @@ RectTransform:
   m_GameObject: {fileID: 966764655}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 895974090}
@@ -29387,7 +29387,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ace7d63e02c73d74298e4a3efe6982d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerTargetPrefab: {fileID: 4406879696321289548, guid: fb17601b5e41ab542bdb43c91e95ab32, type: 3}
+  playerTargetPrefab: {fileID: 4399757868930601189, guid: fb17601b5e41ab542bdb43c91e95ab32, type: 3}
   galaxyImageGO: {fileID: 843799567}
   GalaxyCenter: {fileID: 564492290}
   nameDestination: 
@@ -37809,7 +37809,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 6, z: 0}
-  m_LocalScale: {x: 0.007722008, y: 0.1, z: 0.0054259356}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1144744800}
@@ -39859,7 +39859,7 @@ RectTransform:
   m_GameObject: {fileID: 1936528631}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.07722008, y: 1, z: 0.054259356}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 843799568}

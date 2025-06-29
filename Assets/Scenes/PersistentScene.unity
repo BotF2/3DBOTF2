@@ -635,7 +635,7 @@ RectTransform:
   m_GameObject: {fileID: 321848122}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 807422833}
@@ -794,6 +794,37 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 1
+--- !u!1 &343267747
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 343267748}
+  m_Layer: 0
+  m_Name: FogPlaneParent
+  m_TagString: FogPlaneParent
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &343267748
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 343267747}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &389904561
 GameObject:
   m_ObjectHideFlags: 0
@@ -2088,6 +2119,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: faeb9dae32d65d147ba110acbaea2484, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  persistentObjects:
+  - {fileID: 343267747}
 --- !u!4 &1085144969
 Transform:
   m_ObjectHideFlags: 0
@@ -4185,6 +4218,7 @@ VisualEffect:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 343267748}
   - {fileID: 64954172}
   - {fileID: 514841830}
   - {fileID: 86532933}
