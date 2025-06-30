@@ -10,19 +10,15 @@ public class CombatData
     public CivEnum CivEnumSideTwo;
     public CivController FriendCiv;
     public CivController EnemyCiv;
-    public List<ShipController> SideOneShipControllers;
-    public List<ShipController> SideTwoShipControllers;
     public string Name;
-    public static string[] FriendNameArray; // For current SpaceCombatScene ****
-    public static string[] EnemyNameArray;
     public int friends;
     public int enemies;
-    public List<ShipController> FriendShips = new List<ShipController>();  // updated to current combat
-    public List<ShipController> EnemyShips = new List<ShipController>();
+    public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
+    public List<ShipController> SideTwoShipCons = new List<ShipController>();
     private int friendShipLayer;
     private int enemyShipLayer;
-    public List<GameObject> _friendCombatans; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
-    public List<GameObject> _enemyCombatans;
+    public List<GameObject> SideOneShipGO; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
+    public List<GameObject> SideTwoShipGO; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
     public CivController _friendCivCon; //{ Civilization.FED };
     public CivController _enemyCivCon;
     public GameObject cameraEmpty;
@@ -69,7 +65,7 @@ public class CombatData
     private string[] arrayNames; //??? do we need this?
 
     public List<GameObject> combatShips; // for CameraMultiTarget to use for camera targets
-    public Orders order;
+
     //public GameObject Friend_0; // prefab empty gameobject to clone instantiat into the grids
     //public GameObject Enemy_0;
 
@@ -93,8 +89,8 @@ public class CombatData
         CivEnumSideTwo = CivEnum.None;
         FriendCiv = null;
         EnemyCiv = null;
-        SideOneShipControllers = new List<ShipController>();
-        SideTwoShipControllers = new List<ShipController>();
+        SideOneShipCons = new List<ShipController>();
+        SideTwoShipCons = new List<ShipController>();
         Name = "CombatData";
     }
 }

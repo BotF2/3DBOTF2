@@ -14,7 +14,7 @@ namespace Assets.Core
         public CombatController CombatController; // this is the combat controller that will handle the combat UI and orders
         public Enum sideOneEnum;
         public Enum sideTwoEnum;
-        private Camera galaxyEventCamera; //will we need this?
+        //private Camera galaxyEventCamera; //will we need this?
         //public CombatData CombatData;
         [SerializeField]
         private Canvas parentCanvas;

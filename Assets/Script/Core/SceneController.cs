@@ -33,13 +33,13 @@ public class SceneController : MonoBehaviour
 
     private void CleanUPAndDistroy()
     {
-        if (persistentObjects != null)
-        {
-            for (int i = 0; i < persistentObjects.Length; i++)
-            {
-                Destroy(persistentObjects[i]);
-            }
-        }
+        //if (persistentObjects != null)
+        //{
+        //    for (int i = 0; i < persistentObjects.Length; i++)
+        //    {
+        //        Destroy(persistentObjects[i]);
+        //    }
+        //}
         Destroy(gameObject); // Destroy the duplicate instance
     }
 

@@ -12,11 +12,9 @@ public class ShipManager : MonoBehaviour
 
     [SerializeField]
     private ShipController shipConPrefab;
-    [SerializeField] private GameObject shipPrefab;
+    public GameObject ShipPrefab;
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
-    private GameObject _shipFriendliesGOs;
-    private GameObject _shipEnemiesGOs;
     public List<ShipController> ShipControllerGameList = new List<ShipController>();
     public List<ShipSO> ShipSOListTech0 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech1 = new List<ShipSO>();
@@ -66,6 +64,7 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
                 shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
                 shipCon.ShipData.ShipType = shipSOList[i].ShipType;
+                shipCon.ShipData.ShipPrefab = shipSOList[i].Prefab;
                 if (shipSOList[i].shipSprite != null)
                     shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
                 shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;
@@ -80,15 +79,14 @@ public class ShipManager : MonoBehaviour
                 shipConList.Add(shipCon);
                 InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship
                  
-                shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu
-                InstantiateTheCombatShips(shipCon);
+                shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu 
             }
         }
         return shipConList;
     }
     public GameObject InstantiateTheCombatShips(ShipController shipCon)
     {
-        GameObject shipGO = Instantiate(shipPrefab, new Vector3(0, 0, 0),
+        GameObject shipGO = Instantiate(ShipPrefab, new Vector3(0, 0, 0),
            Quaternion.identity);
         shipCon.transform.SetParent(shipGO.transform);
         // ******* move to combat controller to Set position of shipGO to the combat 

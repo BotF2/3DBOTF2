@@ -10,12 +10,21 @@ public class CombatManager : MonoBehaviour
     public static CombatManager Instance { get; private set; }
     [SerializeField]
     private GameObject combatUI;
-    //[SerializeField]
-    //private CivEnum sideOneEnum;
-    //[SerializeField]
-    //private CivEnum sideTwoEnum;
+    
+    public GameObject CombatParent;
     [SerializeField]
     private CombatController combatConPrefab;
+    public CombatController CurrentCombatController
+    {
+        get
+        {
+            if (CombatControllers.Count > 0)
+            {
+                return CombatControllers[0]; // return the first combat controller, or implement logic to select the current one
+            }
+            return null;
+        }
+    }
     public List<CombatController> CombatControllers = new List<CombatController>();
 
     #region old fields to moved to CombatController
@@ -126,15 +135,10 @@ public class CombatManager : MonoBehaviour
     }
     public void InitCombatData(List<ShipController> friendShipCons, List<ShipController> enemyShipCons)
     {
-        // Call PreCombatSetup and PopulateShipData for friends and enemies
-       // PreCombatSetup(friendShipCons.Select(s => s.ShipData.ShipType).ToList(), true); // Do this in CombatController
-        //PopulateShipData(friendShipCons, true); // Do this in CombatController
-       ///PreCombatSetup(enemyShipCons.Select(s => s.ShipData.ShipType).ToList(), false);
-        //PopulateShipData(enemyShipCons, false);
         CombatData combatData = new CombatData
         {
-            SideOneShipControllers = friendShipCons,
-            SideTwoShipControllers = enemyShipCons,
+            SideOneShipCons = friendShipCons,
+            SideTwoShipCons = enemyShipCons,
             CivEnumSideOne = friendShipCons[0].ShipData.CivEnum, // all friend and enemy ships are from just one civ each for now
             CivEnumSideTwo = enemyShipCons[0].ShipData.CivEnum,
             Name = "CombatData_" + CombatControllers.Count.ToString(),
@@ -148,17 +152,16 @@ public class CombatManager : MonoBehaviour
 
     public void InstantiateCombatController(CombatData combatData)
     {
-        //sideOneEnum = combatData.CivEnumSideOne;
-        //sideTwoEnum = combatData.CivEnumSideTwo;
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
         aCombatController.CombatData = combatData; // set the combat data
-        aCombatController.transform.SetParent(transform, false); // false keeps local transform values
+        aCombatController.transform.SetParent(transform, false); 
         CombatUIController.Instance.CombatController = aCombatController;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
         CombatControllers.Add(aCombatController);
-        aCombatController.PopulateShipData(aCombatController.CombatData.SideOneShipControllers, true);
-        aCombatController.PopulateShipData(aCombatController.CombatData.SideTwoShipControllers, false);
+        aCombatController.PopulateShipData(aCombatController);
+        //aCombatController.PopulateShipData(aCombatController.CombatData.SideTwoShipCons, false);
+        //aCombatController.SetupCombat();
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {

@@ -1,20 +1,16 @@
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.Core;
-using UnityEngine.UI;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class CombatController : MonoBehaviour
 {
     private CombatData combatData;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
-    
-    public static List<ShipController> FriendShips = new List<ShipController>();  // updated for current combat from Diplomacy / Scene controller
-    public static List<ShipController> EnemyShips = new List<ShipController>();
-    public List<GameObject> _friendCombatans; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
-    public List<GameObject> _enemyCombatans;
     public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
     int _scoutsFriend;
@@ -44,20 +40,20 @@ public class CombatController : MonoBehaviour
             {
                 combatController.CombatData.Order = theOrder;
             }
-        }  
+        }
     }
     public void ResetFriendAndEnemyLists()
     {
-        combatController.CombatData.FriendShips.Clear();
-        combatController.CombatData.EnemyShips.Clear();
+        combatController.CombatData.SideOneShipCons.Clear();
+        combatController.CombatData.SideTwoShipCons.Clear();
     }
     public List<GameObject> UpdateFriendCombatants()
     {
-        return combatController.CombatData._friendCombatans;
+        return combatController.CombatData.SideOneShipGO;
     }
     public List<GameObject> UpdateEnemyCombatants()
     {
-        return combatController.CombatData._enemyCombatans;
+        return combatController.CombatData.SideTwoShipGO;
     }
     public CivController FriendCivCombatants()
     {
@@ -67,44 +63,69 @@ public class CombatController : MonoBehaviour
     {
         return combatController.CombatData._enemyCivCon;
     }
-    public void PopulateShipData(List<ShipController> shipConList, bool friends)
+    public void PopulateShipData(CombatController theCombatController)
     {
-        if (friends)
+        if (theCombatController == null)
         {
-            FriendShips.AddRange(shipConList);
-            _friendCombatans = shipConList.Select(s => s.gameObject).ToList();
+            Debug.Log("CombatController instance is null.");
+            return;
         }
-        else
+        // Example logic: Reset friend and enemy lists and populate ship data  
+        //theCombatController.ResetFriendAndEnemyLists();
+        List<ShipController> bothLists = new List<ShipController>();
+        bothLists.AddRange(theCombatController.CombatData.SideOneShipCons);
+        bothLists.AddRange(theCombatController.CombatData.SideTwoShipCons);
+        foreach (var shipCon in bothLists)
         {
-            EnemyShips.AddRange(shipConList);
-            _enemyCombatans = shipConList.Select(s => s.gameObject).ToList();
-        }
-        //PreCombatSetup();
+            GameObject shipGO = ShipManager.Instance.InstantiateTheCombatShips(shipCon);
+            
+            theCombatController.CombatData.SideOneShipGO.Add(shipGO);
+            GameObject shipModel = Instantiate(shipCon.ShipData.ShipPrefab, shipGO.transform, false);
+            shipModel.transform.SetParent(shipGO.transform);
+            Renderer renderer = shipModel.GetComponentInChildren<Renderer>();
+            BoxCollider boxCollider = shipGO.AddComponent<BoxCollider>();
+            if (renderer == null)
+            {
+                boxCollider.size = renderer.bounds.size;
+                boxCollider.center = shipGO.transform.InverseTransformPoint(renderer.bounds.center) - shipGO.transform.localPosition;
+            }
+            ShipController shipController = shipGO.AddComponent<ShipController>();
+            shipController.ShipData = shipCon.ShipData; // Initialize the ShipController with the ShipData  
+            shipGO.transform.SetParent(CombatManager.Instance.CombatParent.transform);
+           
+            Rigidbody rb = shipGO.AddComponent<Rigidbody>();
+            rb.isKinematic = true; // Set to true if you want to control movement manuall
+            rb.useGravity = false; // Set to true if you want gravity to affect the ship
+            rb.mass = 1; // Set the mass of the ship, adjust as needed
+   
+        } 
         CountShips();
     }
+
     private void CountShips()
     {
-        _scoutsFriend = FriendShips.Count(s => s.ShipData.ShipType == ShipType.Scout);
-        _scoutsEnemy =  EnemyShips.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _scoutsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _scoutsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
 
-        _destroyersFriend = FriendShips.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-        _destroyersEnemy = EnemyShips.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-        _capitalsFriend = FriendShips.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
+        _destroyersFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _destroyersEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _capitalsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
                                                      s.ShipData.ShipType == ShipType.LtCruiser ||
                                                      s.ShipData.ShipType == ShipType.HvyCruiser);
-        _capitalsEnemy = EnemyShips.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
-                                                   s.ShipData.ShipType == ShipType.LtCruiser || 
+        _capitalsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
+                                                   s.ShipData.ShipType == ShipType.LtCruiser ||
                                                    s.ShipData.ShipType == ShipType.HvyCruiser);
-        _transportsFriend = FriendShips.Count(s => s.ShipData.ShipType == ShipType.Transport);
-        _transportsEnemy = EnemyShips.Count(s => s.ShipData.ShipType == ShipType.Transport);
+        _transportsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
+        _transportsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
     public void IssueCombatOrder(Orders order, bool areFriend)
-    { 
+    {
+        CombatData.Order = order;
         //var whatever = GameController.Instance.Loc
         switch (order)// move order to controller combat data
         {
             case Orders.Engage: // counters retreat & formation but weak vs Rush, Attack Transports
-            #region Engage Region
+                #region Engage Region
                 {
                     if (areFriend)
                     {
@@ -122,7 +143,7 @@ public class CombatController : MonoBehaviour
             #endregion Engage Region
 
             case Orders.Rush: // counters Retreat & Engage but weak vs Formation and Attach Transports
-            #region Rush Region
+                #region Rush Region
                 {
                     if (areFriend) { }
                     else { }
@@ -131,7 +152,7 @@ public class CombatController : MonoBehaviour
             #endregion Rush Region
 
             case Orders.Retreat: // counters Formation & Attach Transports but weak vs Engage and Rush
-            #region Retreat Region
+                #region Retreat Region
                 {
                     if (areFriend) { }
                     else { }
@@ -159,9 +180,9 @@ public class CombatController : MonoBehaviour
             #endregion Formation Region
 
             case Orders.TargetTransports:
-            #region Traget Transports Region
+                #region Traget Transports Region
                 {
-                                        if (areFriend) { }
+                    if (areFriend) { }
                     else { }
                     break;
                 }
@@ -210,5 +231,27 @@ public class CombatController : MonoBehaviour
         //    Debug.Log($"[{i + 1}] = {spiralPositions[i]}");
         //}
     }
+    //private GameObject GetShipModel(string shipName, TechLevel techLevel)
+    //{
+    //    switch (techLevel)
+    //    {
+    //        case TechLevel.EARLY:
+    //            return Resources.Load<GameObject>($"FBX/{shipName}");
+    //            break;  
+    //        case TechLevel.DEVELOPED:    
+    //            return Resources.Load<GameObject>($"FBX/{shipName}");
+    //            break;
+    //        case TechLevel.ADVANCED:    
+    //            return Resources.Load<GameObject>($"FBX/{shipName}");
+    //            break;
+    //        case TechLevel.SUPREME:
+    //            return Resources.Load<GameObject>($"FBX/{shipName}");
+    //            break;  
+    //        default:
+    //            return new GameObject(shipName);
+    //    }
+    //}
 }
+
+
 
