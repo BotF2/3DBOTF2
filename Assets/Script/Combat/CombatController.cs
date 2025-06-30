@@ -1,7 +1,6 @@
 using Assets.Core;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
@@ -11,6 +10,7 @@ public class CombatController : MonoBehaviour
     private CombatData combatData;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
+    public GameObject prefabSphere;
     public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
     int _scoutsFriend;
@@ -78,28 +78,47 @@ public class CombatController : MonoBehaviour
         foreach (var shipCon in bothLists)
         {
             GameObject shipGO = ShipManager.Instance.InstantiateTheCombatShips(shipCon);
-            
             theCombatController.CombatData.SideOneShipGO.Add(shipGO);
-            GameObject shipModel = Instantiate(shipCon.ShipData.ShipPrefab, shipGO.transform, false);
-            shipModel.transform.SetParent(shipGO.transform);
-            Renderer renderer = shipModel.GetComponentInChildren<Renderer>();
-            BoxCollider boxCollider = shipGO.AddComponent<BoxCollider>();
-            if (renderer == null)
+            float length = 1f;
+            float height = 1f;
+            float width = 1f;
+            Vector3 center = Vector3.zero;
+            GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipCon.ShipData.ShipName.ToUpper().Replace("(CLONE)",""));
+            if (mesheGO != null)
             {
-                boxCollider.size = renderer.bounds.size;
-                boxCollider.center = shipGO.transform.InverseTransformPoint(renderer.bounds.center) - shipGO.transform.localPosition;
+                GameObject fbx = Instantiate(mesheGO, shipGO.transform);// meshGO is as a prefab so instantiate it
+                fbx.name = shipCon.ShipData.ShipName.Replace("(CLONE)", "_Model");
+                fbx.transform.SetParent(shipGO.transform);
+                length = fbx.transform.localScale.z;
+                height = fbx.transform.localScale.y;
+                width = fbx.transform.localScale.x;
+                center = fbx.transform.localPosition;
             }
-            ShipController shipController = shipGO.AddComponent<ShipController>();
-            shipController.ShipData = shipCon.ShipData; // Initialize the ShipController with the ShipData  
+            else
+            {
+                GameObject modelSphereGO = Instantiate(ShipManager.Instance.PrefabSphere, new Vector3(0, 0, 0), Quaternion.identity);
+                modelSphereGO.transform.SetParent(shipGO.transform, false);
+                length = modelSphereGO.transform.localScale.z;
+                height = modelSphereGO.transform.localScale.y;
+                width = modelSphereGO.transform.localScale.x;
+                center = modelSphereGO.transform.localPosition;
+            }
+            
+
+            BoxCollider boxCollider = shipGO.AddComponent<BoxCollider>();
+                //if (renderer == null)
+                //{
+                //    boxCollider.size = renderer.bounds.size;
+                //    boxCollider.center = shipGO.transform.InverseTransformPoint(renderer.bounds.center) - shipGO.transform.localPosition;
+                //}
+            //}
+            ShipController shipController = shipGO.GetComponentInChildren<ShipController>();
+            shipController = shipCon;  
             shipGO.transform.SetParent(CombatManager.Instance.CombatParent.transform);
+            shipGO.name = shipCon.ShipData.ShipName;
            
-            Rigidbody rb = shipGO.AddComponent<Rigidbody>();
-            rb.isKinematic = true; // Set to true if you want to control movement manuall
-            rb.useGravity = false; // Set to true if you want gravity to affect the ship
-            rb.mass = 1; // Set the mass of the ship, adjust as needed
-   
         } 
-        CountShips();
+       // CountShips();
     }
 
     private void CountShips()
@@ -121,7 +140,6 @@ public class CombatController : MonoBehaviour
     public void IssueCombatOrder(Orders order, bool areFriend)
     {
         CombatData.Order = order;
-        //var whatever = GameController.Instance.Loc
         switch (order)// move order to controller combat data
         {
             case Orders.Engage: // counters retreat & formation but weak vs Rush, Attack Transports

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class CombatData
 {
-    public Orders Order;
+    public Orders Order = Orders.Engage;
     public CivEnum CivEnumSideOne;
     public CivEnum CivEnumSideTwo;
     public CivController FriendCiv;
@@ -17,8 +17,8 @@ public class CombatData
     public List<ShipController> SideTwoShipCons = new List<ShipController>();
     private int friendShipLayer;
     private int enemyShipLayer;
-    public List<GameObject> SideOneShipGO; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
-    public List<GameObject> SideTwoShipGO; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
+    public List<GameObject> SideOneShipGO = new List<GameObject>(); // 
+    public List<GameObject> SideTwoShipGO = new List<GameObject>(); // 
     public CivController _friendCivCon; //{ Civilization.FED };
     public CivController _enemyCivCon;
     public GameObject cameraEmpty;

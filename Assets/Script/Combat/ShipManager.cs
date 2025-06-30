@@ -13,6 +13,8 @@ public class ShipManager : MonoBehaviour
     [SerializeField]
     private ShipController shipConPrefab;
     public GameObject ShipPrefab;
+    
+    public GameObject PrefabSphere;
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
     public List<ShipController> ShipControllerGameList = new List<ShipController>();
@@ -63,8 +65,7 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
                 shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
-                shipCon.ShipData.ShipType = shipSOList[i].ShipType;
-                shipCon.ShipData.ShipPrefab = shipSOList[i].Prefab;
+                shipCon.ShipData.ShipType = shipSOList[i].ShipType;    
                 if (shipSOList[i].shipSprite != null)
                     shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
                 shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;

@@ -189,11 +189,9 @@ namespace Assets.Core
                 {
                     case "Toggle_ENGAGE":
                         rectTransforms[i].gameObject.SetActive(true);
-                        CombatController.IssueCombatOrder(Orders.Engage, true);
                         break;
                     case "Toggle_RUSH":
                         rectTransforms[i].gameObject.SetActive(true);
-
                         break;
                     case "Toggle_RETREAT":
                         rectTransforms[i].gameObject.SetActive(true);

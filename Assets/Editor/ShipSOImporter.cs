@@ -63,10 +63,6 @@ public class ShipSOImporter : EditorWindow
                 // build duration does not use the csv value, currently calcuated below, consider adding in tech level factor
                 //int baseValue = 1000;
                 //shipSO.BuildDuration = int.Parse(fields[10]);
-                string fBXName= shipSO.ShipName.Replace("(CLONE)","");// remove (CLONE)
-                var checkForFBX = Resources.Load<GameObject>("FBX/" + fBXName);
-                if (checkForFBX != null)
-                    shipSO.Prefab = Resources.Load<GameObject>("FBX/" + fBXName); // load the prefab from Resources/Ships
                 //shipSO.ShipDescription = fields[9]; // later we can add a description field to the csv
                 int civFactor = 0;
                 switch (shipSO.CivEnum)

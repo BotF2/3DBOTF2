@@ -11,7 +11,7 @@ public class ShipData
     public TechLevel TechLevel;
     public ShipType ShipType;
     public Sprite ShipSprite;
-    public GameObject ShipPrefab;
+    //public GameObject ShipModel;
     public float maxWarpFactor;
     public float currentWarpFactor;
     public int ShieldMaxHealth;
