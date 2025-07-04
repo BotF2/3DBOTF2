@@ -42,6 +42,10 @@ public class CombatController : MonoBehaviour
             }
         }
     }
+    public void EndCombat()
+    {
+        ResetFriendAndEnemyLists(); // Resetting friend and enemy lists
+    }
     public void ResetFriendAndEnemyLists()
     {
         combatController.CombatData.SideOneShipCons.Clear();
@@ -65,13 +69,13 @@ public class CombatController : MonoBehaviour
     }
     public void PopulateShipData(CombatController theCombatController)
     {
+
         if (theCombatController == null)
         {
             Debug.Log("CombatController instance is null.");
             return;
         }
-        // Example logic: Reset friend and enemy lists and populate ship data  
-        //theCombatController.ResetFriendAndEnemyLists();
+        CombatUIController.Instance.CombatOrdersUI.SetActive(true);
         List<ShipController> bothLists = new List<ShipController>();
         bothLists.AddRange(theCombatController.CombatData.SideOneShipCons);
         bothLists.AddRange(theCombatController.CombatData.SideTwoShipCons);
@@ -114,7 +118,7 @@ public class CombatController : MonoBehaviour
             //}
             ShipController shipController = shipGO.GetComponentInChildren<ShipController>();
             shipController = shipCon;  
-            shipGO.transform.SetParent(CombatManager.Instance.CombatParent.transform);
+            shipGO.transform.SetParent(CombatManager.Instance.CombatUICanvas.transform);
             shipGO.name = shipCon.ShipData.ShipName;
            
         } 

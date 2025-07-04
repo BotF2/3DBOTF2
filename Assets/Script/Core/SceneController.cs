@@ -3,6 +3,7 @@ using Assets.Core;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System;
+using Unity.VisualScripting;
 
 
 public class SceneController : MonoBehaviour
@@ -10,14 +11,18 @@ public class SceneController : MonoBehaviour
     /// <summary>
     /// We do not yet have a loading scene, the Persistent Scene and Main Menu Scene are present at runtime.
     /// Galaxy scene is added as we load up the user game choices
-    /// Combat hides Main Menu including what really are Galaxy elements it contains. 
+    /// Combat hides Main Menu including what really are Galaxy elements contained in Main Menu scene. 
     /// </summary>
     public static SceneController Instance { get; private set; }
     private static string previousSceneName;
     public GameObject[] persistentObjects; // Changed to a field declaration to fix CS0592
+    private GameObject galaxyCameraDragNDrop; // Reference to the Galaxy Camera Drag and Drop GameObject
 
     private void Awake()
     {
+
+        //persistentObjects.AddRange(galaxyCameraDragNDrop.GetComponents<Transform>()); // Add the Galaxy Camera Drag and Drop GameObject itself to persistentObjects
+        //ersistentObjects.AddRange(galaxyCameraDragNDrop.GetComponentsInChildren<Transform>(true)); // Add all children of the Galaxy Camera Drag and Drop GameObject to persistentObjects
         if (Instance == null)
         {
             Instance = this;
@@ -29,6 +34,7 @@ public class SceneController : MonoBehaviour
             CleanUPAndDistroy();
            //Destroy(gameObject);
         }
+        galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
     }
 
     private void CleanUPAndDistroy()
@@ -72,6 +78,11 @@ public class SceneController : MonoBehaviour
 
     public void LoadCombatScene(DiplomacyController diplomacyController)
     {
+        if(galaxyCameraDragNDrop == null)
+        {
+            galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
+        }
+        galaxyCameraDragNDrop.SetActive(false); // Hide the Galaxy Camera Drag and Drop GameObject
         if (GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivMajor.CivData.CivEnum) ||
             GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivOther.CivData.CivEnum))
         {
@@ -128,6 +139,7 @@ public class SceneController : MonoBehaviour
     {
         SceneManager.UnloadSceneAsync("CombatScene");
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
+        galaxyCameraDragNDrop.SetActive(true); // Show the Galaxy Camera Drag and Drop GameObject again
         for (int i = 0; i < persistentObjects.Length; i++)
         {
             if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")

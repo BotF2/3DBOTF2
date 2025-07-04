@@ -8,10 +8,10 @@ using UnityEngine.UI;
 public class CombatManager : MonoBehaviour
 {
     public static CombatManager Instance { get; private set; }
-    [SerializeField]
-    private GameObject combatUI;
+
+    public GameObject CombatUICanvas;
     
-    public GameObject CombatParent;
+    public GameObject PanelCombat_Menu;
     [SerializeField]
     private CombatController combatConPrefab;
     public CombatController CurrentCombatController
@@ -165,15 +165,17 @@ public class CombatManager : MonoBehaviour
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {
-        combatUI.SetActive(true); 
-        GameObject thisCombatUIGameObject = combatUI;
+        CombatUICanvas.SetActive(true);
+        PanelCombat_Menu.SetActive(true);
+        GameObject thisCombatUIGameObject = CombatUICanvas;
 
         if (parent != null && thisCombatUIGameObject != null)
         {
-            thisCombatUIGameObject.transform.SetParent(parent.transform, false); // false keeps local transform values
+           // thisCombatUIGameObject.transform.SetParent(parent.transform, false); // false keeps local transform values
             thisCombatUIGameObject.SetActive(true);
             thisCombatUIGameObject.layer = 5;
         }
+
         thisCombatUIGameObject.SetActive(true);
         var combatUiController = thisCombatUIGameObject.GetComponent<CombatUIController>();
         if (combatUiController != null)

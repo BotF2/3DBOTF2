@@ -16,14 +16,11 @@ namespace Assets.Core
         public Enum sideTwoEnum;
         //private Camera galaxyEventCamera; //will we need this?
         //public CombatData CombatData;
-        [SerializeField]
-        private Canvas parentCanvas;
-        [SerializeField]
-        private GameObject combatOrdersUI;
-        [SerializeField]
-        private GameObject combatUI;
         //[SerializeField]
-        //private GameObject combatUI_Prefab;// GameObject controlles this active UI on/off
+        //private Canvas panelCombat_Menu;
+        public GameObject CombatOrdersUI;
+        //[SerializeField]
+        //private GameObject combatUI;
         [SerializeField]
         private List<ShipController> friendShipControllers;
         [SerializeField]
@@ -171,13 +168,6 @@ namespace Assets.Core
                 previousToggle = TargetTransports;
                 ActivePlayerToggle(TargetTransports  );
             }
-        }
-        private void OnToggleChanged(bool isOn)  
-        {  
-            if (isOn)  
-            {  
-                ActivePlayerToggle(activeLocalPlayerToggle);  
-            }  
         }  
 
         public void OpenCombatUI(GameObject thisCombatUIGameObject)
@@ -187,6 +177,10 @@ namespace Assets.Core
             {
                 switch (rectTransforms[i].name)
                 {
+                    case "PanelCombat_Menu":
+                        CombatOrdersUI = rectTransforms[i].gameObject;
+                        CombatOrdersUI.SetActive(true);
+                        break;
                     case "Toggle_ENGAGE":
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
@@ -267,29 +261,57 @@ namespace Assets.Core
                         break;
                 }
             }
-            //for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-            //{
-            //    if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
-            //    {
-            //        var transforms = fleetCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
-            //        for (int k = 0; k < transforms.Length; k++)
-            //        {
-            //            if (transforms[k].gameObject.name == "ShipContent")
-            //            {
-            //                shipContainer = transforms[k].gameObject;
-            //                break;
-            //            }
-            //        }
-            //        fleetCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
-            //    }
-            //}
-
-            //if (fleetCon.FleetUIGameObject != null)
-            //{
-            //    fleetCon.FleetUIGameObject.SetActive(true);
-            //    fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
-
-            //}
+            Button[] ArrayButtons = thisCombatUIGameObject.GetComponentsInChildren<Button>();
+            foreach (var button in ArrayButtons)
+            {
+                switch (button.name)
+                {
+                    case "ButtonEnterCombat":
+                        button.onClick.RemoveAllListeners();
+                        button.onClick.AddListener(EnterShipCombatUI);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        // Add the missing method definition for OpenCombatUI to resolve the CS0103 error.
+        private void EnterShipCombatUI()
+        {
+            CombatOrdersUI.SetActive(false);
+            ActOnCombatOrders(order);
+            Debug.Log("Combat UI opened.");
+        }
+        private void ActOnCombatOrders(Orders order)
+        {
+            // This method will handle the combat orders based on the selected order
+            switch (order)
+            {
+                case Orders.Engage:
+                    CombatController.IssueCombatOrder(Orders.Engage, true);
+                    Debug.Log("Engaging in combat.");
+                    break;
+                case Orders.Rush:
+                    CombatController.IssueCombatOrder(Orders.Rush, true);   
+                    Debug.Log("Rushing towards the enemy.");
+                    break;
+                case Orders.Retreat:
+                    CombatController.IssueCombatOrder(Orders.Retreat, true);
+                    Debug.Log("Retreating from combat.");
+                    break;
+                case Orders.Formation:
+                    CombatController.IssueCombatOrder(Orders.Formation, true);
+                    Debug.Log("Forming a combat formation.");
+                    break;
+                case Orders.TargetTransports:
+                    CombatController.IssueCombatOrder(Orders.TargetTransports, true);
+                    Debug.Log("Targeting enemy transports.");
+                    break;
+                default:
+                    CombatController.IssueCombatOrder(Orders.Engage, false);
+                    Debug.Log("Unknown order.");
+                    break;
+            }
         }
     }
 }

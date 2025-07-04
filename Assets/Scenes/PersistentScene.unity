@@ -488,7 +488,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &321848128
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -502,9 +502,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CombatController: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
-  parentCanvas: {fileID: 0}
-  combatOrdersUI: {fileID: 0}
-  combatUI: {fileID: 0}
+  CombatOrdersUI: {fileID: 1342304809}
   friendShipControllers: []
   enemyShipControllers: []
   listOfShipsUiGos: []
@@ -514,7 +512,6 @@ MonoBehaviour:
   - {fileID: 1707488959}
   - {fileID: 1895409804}
   - {fileID: 1520271897}
-  - {fileID: 0}
 --- !u!114 &321848129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2736,7 +2733,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1342304810
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3067,7 +3064,7 @@ GameObject:
   - component: {fileID: 1615307204}
   m_Layer: 0
   m_Name: CombatParent
-  m_TagString: Untagged
+  m_TagString: CombatUIParent
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4116,8 +4113,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e324ae568db7343a2692a2aa72c246, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  combatUI: {fileID: 321848122}
-  CombatParent: {fileID: 1615307203}
+  CombatUICanvas: {fileID: 321848122}
+  PanelCombat_Menu: {fileID: 1342304809}
   combatConPrefab: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
   CombatControllers: []
 --- !u!4 &2102662241
