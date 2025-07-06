@@ -14,13 +14,9 @@ namespace Assets.Core
         public CombatController CombatController; // this is the combat controller that will handle the combat UI and orders
         public Enum sideOneEnum;
         public Enum sideTwoEnum;
-        //private Camera galaxyEventCamera; //will we need this?
-        //public CombatData CombatData;
-        //[SerializeField]
-        //private Canvas panelCombat_Menu;
+        public CivEnum CivEnumLocalPlayer; // the local player enum, used to determine which side the local player is on
         public GameObject CombatOrdersUI;
-        //[SerializeField]
-        //private GameObject combatUI;
+
         [SerializeField]
         private List<ShipController> friendShipControllers;
         [SerializeField]
@@ -86,7 +82,8 @@ namespace Assets.Core
             switch (activeToggle.name.ToUpper())
             {
                 case "TOGGLE_ENGAGE":
-                    CombatController.SetCombatOrder(Orders.Engage);
+                    CombatController.SetCombatOrder(Orders.Engage); // wait for enter combat to act on the chosen order
+                    //CombatController.ActOnCombatOrders(order);
                     Debug.Log("Active Engage.");
                     break;
                 case "TOGGLE_RUSH":
@@ -180,6 +177,7 @@ namespace Assets.Core
                     case "PanelCombat_Menu":
                         CombatOrdersUI = rectTransforms[i].gameObject;
                         CombatOrdersUI.SetActive(true);
+                        
                         break;
                     case "Toggle_ENGAGE":
                         rectTransforms[i].gameObject.SetActive(true);
@@ -268,7 +266,7 @@ namespace Assets.Core
                 {
                     case "ButtonEnterCombat":
                         button.onClick.RemoveAllListeners();
-                        button.onClick.AddListener(EnterShipCombatUI);
+                        button.onClick.AddListener(EnterShipCombatPhase);
                         break;
                     default:
                         break;
@@ -276,9 +274,10 @@ namespace Assets.Core
             }
         }
         // Add the missing method definition for OpenCombatUI to resolve the CS0103 error.
-        private void EnterShipCombatUI()
+        private void EnterShipCombatPhase()
         {
             CombatOrdersUI.SetActive(false);
+            CombatManager.Instance.CombatShipCanvas.SetActive(true);
             ActOnCombatOrders(order);
             Debug.Log("Combat UI opened.");
         }
@@ -288,27 +287,27 @@ namespace Assets.Core
             switch (order)
             {
                 case Orders.Engage:
-                    CombatController.IssueCombatOrder(Orders.Engage, true);
+                    CombatController.ActOnThisCombatOrder(Orders.Engage, CivEnumLocalPlayer); 
                     Debug.Log("Engaging in combat.");
                     break;
                 case Orders.Rush:
-                    CombatController.IssueCombatOrder(Orders.Rush, true);   
+                    CombatController.ActOnThisCombatOrder(Orders.Rush, CivEnumLocalPlayer);   
                     Debug.Log("Rushing towards the enemy.");
                     break;
                 case Orders.Retreat:
-                    CombatController.IssueCombatOrder(Orders.Retreat, true);
+                    CombatController.ActOnThisCombatOrder(Orders.Retreat, CivEnumLocalPlayer);
                     Debug.Log("Retreating from combat.");
                     break;
                 case Orders.Formation:
-                    CombatController.IssueCombatOrder(Orders.Formation, true);
+                    CombatController.ActOnThisCombatOrder(Orders.Formation, CivEnumLocalPlayer);
                     Debug.Log("Forming a combat formation.");
                     break;
                 case Orders.TargetTransports:
-                    CombatController.IssueCombatOrder(Orders.TargetTransports, true);
+                    CombatController.ActOnThisCombatOrder(Orders.TargetTransports, CivEnumLocalPlayer);
                     Debug.Log("Targeting enemy transports.");
                     break;
                 default:
-                    CombatController.IssueCombatOrder(Orders.Engage, false);
+                    CombatController.ActOnThisCombatOrder(Orders.Engage, CivEnumLocalPlayer);
                     Debug.Log("Unknown order.");
                     break;
             }

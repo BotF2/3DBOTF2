@@ -130,6 +130,14 @@ namespace Assets.Core
             fleetController.Init(this);
             return fleetController;
         }
+        public FleetController InstantiatEmptyFleetController()
+        {
+            FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
+              Quaternion.identity);
+            fleetController.Init(this);
+            return fleetController; 
+        }
+
         public FleetController InstantiateFleet(StarSysController sysCon, FleetData fleetData, Vector3 position, bool inSystem)
         {
             IEnumerable<StarSysController> ourCivSysCons =

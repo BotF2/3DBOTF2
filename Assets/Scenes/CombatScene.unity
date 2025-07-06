@@ -676,7 +676,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_Name
-      value: EnemyAnima(1)
+      value: Side2Anima(1)
       objectReference: {fileID: 0}
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -700,11 +700,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5500
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.z
@@ -758,7 +758,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_Name
-      value: FriendAnima(3)
+      value: Side1Anima(3)
       objectReference: {fileID: 0}
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -782,11 +782,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5500
+      value: -400
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.z
@@ -943,9 +943,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CombatController: {fileID: 0}
-  parentCanvas: {fileID: 0}
-  combatOrdersUI: {fileID: 0}
-  combatUI: {fileID: 0}
+  CivEnumLocalPlayer: 0
+  CombatOrdersUI: {fileID: 0}
   friendShipControllers: []
   enemyShipControllers: []
   listOfShipsUiGos: []
@@ -1155,7 +1154,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_Name
-      value: EnemyAnima(3)
+      value: Side2Anima(3)
       objectReference: {fileID: 0}
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -1183,11 +1182,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5500
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1672,7 +1671,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_Name
-      value: EnemyAnima(2)
+      value: Side2Anima(2)
       objectReference: {fileID: 0}
     - target: {fileID: 677462506436477676, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -1700,11 +1699,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5500
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3222200768185632736, guid: 4d19f847dd6736b4690df9e8998cac07, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1926,7 +1925,7 @@ PrefabInstance:
       objectReference: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
     - target: {fileID: 6588912704471013719, guid: 10af618c74c866d479ae2d8c61d25215, type: 3}
       propertyPath: m_Name
-      value: FriendAnima(1)
+      value: Side1Anima(1)
       objectReference: {fileID: 0}
     - target: {fileID: 9124819752923257947, guid: 10af618c74c866d479ae2d8c61d25215, type: 3}
       propertyPath: m_RootOrder
@@ -1934,11 +1933,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9124819752923257947, guid: 10af618c74c866d479ae2d8c61d25215, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5500
+      value: -400
       objectReference: {fileID: 0}
     - target: {fileID: 9124819752923257947, guid: 10af618c74c866d479ae2d8c61d25215, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9124819752923257947, guid: 10af618c74c866d479ae2d8c61d25215, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1998,7 +1997,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5906543263285133649, guid: b9c47c808056f6f4483d2a4def22daac, type: 3}
       propertyPath: m_Name
-      value: FriendAnima(2)
+      value: Side1Anima(2)
       objectReference: {fileID: 0}
     - target: {fileID: 6385705435283620793, guid: b9c47c808056f6f4483d2a4def22daac, type: 3}
       propertyPath: m_Enabled
@@ -2014,11 +2013,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8370251913101214813, guid: b9c47c808056f6f4483d2a4def22daac, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5500
+      value: -400
       objectReference: {fileID: 0}
     - target: {fileID: 8370251913101214813, guid: b9c47c808056f6f4483d2a4def22daac, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 110
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8370251913101214813, guid: b9c47c808056f6f4483d2a4def22daac, type: 3}
       propertyPath: m_LocalPosition.z

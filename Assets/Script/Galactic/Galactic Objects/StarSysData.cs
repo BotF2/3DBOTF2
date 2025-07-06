@@ -20,6 +20,7 @@ public class StarSysData
     public GameObject ShipListUIParent { get; internal set; }
     private CivEnum firstOwnerCivEnum;
     public CivEnum CurrentOwnerCivEnum;
+    public int PlayerId; // network player ID, not used in single player
     public CivController CurrentCivController;
     public GalaxyObjectType SystemType;
     //public StartingTechLevel is a civ level value, not a system data value.

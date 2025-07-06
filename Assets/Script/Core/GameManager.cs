@@ -442,6 +442,7 @@ namespace Assets.Core
             }
             InitializeGameManagerWithMainMenuUIController();
         }
+ 
         public void InitializeGameManagerWithMainMenuUIController()
         {
             if (this.GameController != null)

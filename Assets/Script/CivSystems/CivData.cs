@@ -7,6 +7,7 @@ namespace Assets.Core
     {
         public int CivInt;
         public CivEnum CivEnum;
+        public int PlayerId; // network player ID, not used in single player
         public string CivShortName;
         public string CivLongName;
         public string CivHomeSystemName;

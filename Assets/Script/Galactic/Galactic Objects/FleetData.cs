@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class FleetData
 {
     public int CivIndex;
+    public int PlayerId; // network player ID, not used in single player
     public Sprite Insignia;
     public CivController CivController;
     public CivEnum CivEnum;

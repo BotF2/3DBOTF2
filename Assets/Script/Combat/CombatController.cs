@@ -1,4 +1,5 @@
 using Assets.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -13,18 +14,18 @@ public class CombatController : MonoBehaviour
     public GameObject prefabSphere;
     public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
-    int _scoutsFriend;
-    int _scoutsEnemy;
-    int _destroyersFriend;
-    int _destroyersEnemy;
-    int _capitalsFriend;
-    int _capitalsEnemy;
-    private List<Vector2Int> _capitalShipSpiralPositionsEnemy = new List<Vector2Int>();
-    private List<Vector2Int> _capitalShipSpiralPositionsFriend = new List<Vector2Int>();
+    int _scoutsSide1;
+    int _scoustSide2;
+    int _destroyersSide1;
+    int _destroyersSide2;
+    int _capitalsSide1;
+    int _capitalsSide2;
+    private List<Vector2Int> _capitalShipSpiralPositionsSide1 = new List<Vector2Int>();
+    private List<Vector2Int> _capitalShipSpiralPositionsSide2 = new List<Vector2Int>();
     int _transportsFriend;
     int _transportsEnemy;
-    private List<Vector2Int> _transportSpiralPositionsFriend = new List<Vector2Int>();
-    private List<Vector2Int> _transportSpiralPositionsEnemy = new List<Vector2Int>();
+    private List<Vector2Int> _transportSpiralPositionsSide1 = new List<Vector2Int>();
+    private List<Vector2Int> _transportSpiralPositionsSide2 = new List<Vector2Int>();
 
     int _totalScoutShips; // the total # of scouts in the list, ToDo: why do we need this when it is just the infall count of scouts?
     int _totalDestroyerShips;
@@ -33,14 +34,16 @@ public class CombatController : MonoBehaviour
 
     public void SetCombatOrder(Orders theOrder)
     {
-        for (int i = 0; i < CombatManager.Instance.CombatControllers.Count; i++)
-        {
-            combatController = CombatManager.Instance.CombatControllers[i];
-            if (CombatUIController.Instance.CombatController == combatController)
-            {
-                combatController.CombatData.Order = theOrder;
-            }
-        }
+        //for (int i = 0; i < CombatManager.Instance.CombatControllers.Count; i++)
+        //{
+        //    combatController = CombatManager.Instance.CombatControllers[i];
+        //    if (CombatUIController.Instance.CombatController == combatController)
+        //    {
+        this.CombatData.Order = theOrder;
+
+                //combatController.ActOnCombatOrders(theOrder);
+        //    }
+        //}
     }
     public void EndCombat()
     {
@@ -77,11 +80,13 @@ public class CombatController : MonoBehaviour
         }
         CombatUIController.Instance.CombatOrdersUI.SetActive(true);
         List<ShipController> bothLists = new List<ShipController>();
-        bothLists.AddRange(theCombatController.CombatData.SideOneShipCons);
-        bothLists.AddRange(theCombatController.CombatData.SideTwoShipCons);
+        var sideOneShips = theCombatController.CombatData.SideOneShipCons;
+        bothLists.AddRange(sideOneShips);
+        var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
+        bothLists.AddRange(sideTwoShips);
         foreach (var shipCon in bothLists)
         {
-            GameObject shipGO = ShipManager.Instance.InstantiateTheCombatShips(shipCon);
+            GameObject shipGO = ShipManager.Instance.InstantiateTheCombatShips(shipCon); // ship instantiation done in ShipManager
             theCombatController.CombatData.SideOneShipGO.Add(shipGO);
             float length = 1f;
             float height = 1f;
@@ -92,7 +97,7 @@ public class CombatController : MonoBehaviour
             {
                 GameObject fbx = Instantiate(mesheGO, shipGO.transform);// meshGO is as a prefab so instantiate it
                 fbx.name = shipCon.ShipData.ShipName.Replace("(CLONE)", "_Model");
-                fbx.transform.SetParent(shipGO.transform);
+                fbx.transform.SetParent(shipGO.transform, false);
                 length = fbx.transform.localScale.z;
                 height = fbx.transform.localScale.y;
                 width = fbx.transform.localScale.x;
@@ -118,57 +123,78 @@ public class CombatController : MonoBehaviour
             //}
             ShipController shipController = shipGO.GetComponentInChildren<ShipController>();
             shipController = shipCon;  
-            shipGO.transform.SetParent(CombatManager.Instance.CombatUICanvas.transform);
+            shipGO.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
             shipGO.name = shipCon.ShipData.ShipName;
-           
+            shipController.ShipData = shipCon.ShipData;
+          
         } 
-       // CountShips();
+       CountShips();
+       PositionLeftAndRightOfCombatView(sideOneShips, sideTwoShips);
+    }
+
+    private void PositionLeftAndRightOfCombatView(List<ShipController> sideOneShipCons,List<ShipController> sideTwoShipCons)
+    {// same x as animator for parenting                              shipGameOb.transform.SetParent(animFriend1.transform, true);
+        for (int i = 0; i < sideOneShipCons.Count; i++)
+        { 
+            ShipController shipCon = sideOneShipCons[i];
+            GameObject shipGameOb = shipCon.gameObject;
+            shipGameOb.transform.localPosition = new Vector3(combatData.xStartSide1, 0, 0);
+        }
+        for (int i = 0; i < sideTwoShipCons.Count; i++)
+        {
+            ShipController shipCon = sideTwoShipCons[i];
+            GameObject shipGameOb = shipCon.gameObject;
+            shipGameOb.transform.localPosition = new Vector3(combatData.xStartSide2, 0, 0);
+        }
     }
 
     private void CountShips()
     {
-        _scoutsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
-        _scoutsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _scoutsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _scoustSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
 
-        _destroyersFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-        _destroyersEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-        _capitalsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
+        _destroyersSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _destroyersSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _capitalsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
                                                      s.ShipData.ShipType == ShipType.LtCruiser ||
                                                      s.ShipData.ShipType == ShipType.HvyCruiser);
-        _capitalsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
+        _capitalsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
                                                    s.ShipData.ShipType == ShipType.LtCruiser ||
                                                    s.ShipData.ShipType == ShipType.HvyCruiser);
         _transportsFriend = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
         _transportsEnemy = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
-    public void IssueCombatOrder(Orders order, bool areFriend)
+    public void ActOnThisCombatOrder(Orders order, CivEnum civOfOrder)
     {
+        if (civOfOrder == CombatData.CivEnumSideOne)
+        {
+            // place ship game objects on left side right here
+            //PositionLeftAndRightOfCombatView(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
+        }
+
         CombatData.Order = order;
         switch (order)// move order to controller combat data
         {
+
+
             case Orders.Engage: // counters retreat & formation but weak vs Rush, Attack Transports
-                #region Engage Region
                 {
-                    if (areFriend)
-                    {
-                        _capitalShipSpiralPositionsFriend = GenerateSpiralPositions(_capitalsFriend + _destroyersFriend + _scoutsFriend);
-                        _transportSpiralPositionsFriend = GenerateSpiralPositions(_transportsFriend);
-                    }
-                    else
-                    {
-                        _capitalShipSpiralPositionsEnemy = GenerateSpiralPositions(_capitalsEnemy + _destroyersEnemy + _scoutsEnemy);
-                        _transportSpiralPositionsEnemy = GenerateSpiralPositions(_transportsEnemy);
-                    }
+
+                    _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1 + _destroyersSide1 + _scoutsSide1);
+                    _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend);
+
+                    _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2 + _destroyersSide2 + _scoustSide2);
+                    _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy);
+
                     // ToDo: ships warp into positions and advance at best speed for all non transports ships
                     break;
                 }
-            #endregion Engage Region
+
 
             case Orders.Rush: // counters Retreat & Engage but weak vs Formation and Attach Transports
                 #region Rush Region
                 {
-                    if (areFriend) { }
-                    else { }
+
                     break;
                 }
             #endregion Rush Region
@@ -176,8 +202,7 @@ public class CombatController : MonoBehaviour
             case Orders.Retreat: // counters Formation & Attach Transports but weak vs Engage and Rush
                 #region Retreat Region
                 {
-                    if (areFriend) { }
-                    else { }
+
                     break;
                 }
             #endregion Retreat Region
@@ -186,17 +211,13 @@ public class CombatController : MonoBehaviour
                 #region Formation Region
                 {
                     // capital ships up front in a spiral shield with transports behind and surrounded by destroyers and scouts
-                    if (areFriend)
-                    {
-                        _capitalShipSpiralPositionsFriend = GenerateSpiralPositions(_capitalsFriend);
-                        _capitalShipSpiralPositionsEnemy = GenerateSpiralPositions(_capitalsEnemy);
-                    }
-                    else
-                    {
-                        _transportSpiralPositionsFriend = GenerateSpiralPositions(_transportsFriend + _destroyersFriend + _scoutsFriend);
-                        _transportSpiralPositionsEnemy = GenerateSpiralPositions(_transportsEnemy + _destroyersEnemy + _scoutsEnemy);
-                    }
-                    // ToDo: Set ships at their positions, (get to the positions from warp in animation) and do not move
+
+                    _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1);
+                    _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2);
+
+                    _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend + _destroyersSide1 + _scoutsSide1);
+                    _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy + _destroyersSide2 + _scoustSide2);
+
                     break;
                 }
             #endregion Formation Region
@@ -204,8 +225,7 @@ public class CombatController : MonoBehaviour
             case Orders.TargetTransports:
                 #region Traget Transports Region
                 {
-                    if (areFriend) { }
-                    else { }
+
                     break;
                 }
             #endregion Traget Transports Region

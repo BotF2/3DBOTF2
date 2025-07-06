@@ -47,18 +47,18 @@ public class CombatData
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
-    int xStartFriend = -5500; // in the wings out of the field of view
-    int xEndFriend = 0; // end of warpin on x left-right axis
-    int rotationFriendOnY = 90; // face right
-    int xStartEnemy = 5500;
-    int xEndEnemy = 300; // end of warpin on x left-right axis
-    int rotationEnemyOnY = -90; // face left
-    int ySeparator = 40; // gap in grid between ships on y axis
-    int zSeparator = 70;
-    float shipScale = 100f;
-    int yScout = 180; // shipGameOb types gap roes up
-    int yCapital = 90;
-    int yDestroyer = 0;
+    public int xStartSide1 = -400; // in the wings out of the field of view
+    public int xEndSide1 = -90; // end of warpin on x left-right axis
+    public int rotationSide1_OnY = 90; // face right
+    public int xStartSide2 = 400; // added public access
+    public int xEndSide2 = 90; // end of warpin on x left-right axis
+    public int rotationSide2_OnY = -90; // face left
+    public int ySeparator = 40;  // changed to public access
+    public int zSeparator = 70;   // changed to public access
+    public float shipScale = 100f;
+    public int yScout = 180; // shipGameOb types gap roes up
+    public int yCapital = 90;
+    public int yDestroyer = 0;
 
     public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
     private string[] arrayCountShipTypes; // change to array ship type

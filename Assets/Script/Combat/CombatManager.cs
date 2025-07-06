@@ -9,9 +9,9 @@ public class CombatManager : MonoBehaviour
 {
     public static CombatManager Instance { get; private set; }
 
-    public GameObject CombatUICanvas;
-    
+    public GameObject CombatUICanvas;  
     public GameObject PanelCombat_Menu;
+    public GameObject CombatShipCanvas;
     [SerializeField]
     private CombatController combatConPrefab;
     public CombatController CurrentCombatController
@@ -167,6 +167,7 @@ public class CombatManager : MonoBehaviour
     {
         CombatUICanvas.SetActive(true);
         PanelCombat_Menu.SetActive(true);
+        CombatShipCanvas.SetActive(false);
         GameObject thisCombatUIGameObject = CombatUICanvas;
 
         if (parent != null && thisCombatUIGameObject != null)
@@ -180,6 +181,7 @@ public class CombatManager : MonoBehaviour
         var combatUiController = thisCombatUIGameObject.GetComponent<CombatUIController>();
         if (combatUiController != null)
         {
+            combatUiController.CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
             combatUiController.OpenCombatUI(thisCombatUIGameObject);
         }
         else
