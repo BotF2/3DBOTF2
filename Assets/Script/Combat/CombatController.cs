@@ -72,7 +72,7 @@ public class CombatController : MonoBehaviour
     }
     public void PopulateShipData(CombatController theCombatController)
     {
-
+        combatController = theCombatController;
         if (theCombatController == null)
         {
             Debug.Log("CombatController instance is null.");
@@ -86,8 +86,7 @@ public class CombatController : MonoBehaviour
         bothLists.AddRange(sideTwoShips);
         foreach (var shipCon in bothLists)
         {
-            GameObject shipGO = ShipManager.Instance.InstantiateTheCombatShips(shipCon); // ship instantiation done in ShipManager
-            theCombatController.CombatData.SideOneShipGO.Add(shipGO);
+            theCombatController.CombatData.SideOneShipGO.Add(shipCon.gameObject);
             float length = 1f;
             float height = 1f;
             float width = 1f;
@@ -95,57 +94,50 @@ public class CombatController : MonoBehaviour
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipCon.ShipData.ShipName.ToUpper().Replace("(CLONE)",""));
             if (mesheGO != null)
             {
-                GameObject fbx = Instantiate(mesheGO, shipGO.transform);// meshGO is as a prefab so instantiate it
+                GameObject fbx = Instantiate(mesheGO, shipCon.transform);// meshGO is as a prefab so instantiate it
                 fbx.name = shipCon.ShipData.ShipName.Replace("(CLONE)", "_Model");
-                fbx.transform.SetParent(shipGO.transform, false);
-                length = fbx.transform.localScale.z;
-                height = fbx.transform.localScale.y;
-                width = fbx.transform.localScale.x;
-                center = fbx.transform.localPosition;
+                fbx.transform.SetParent(shipCon.transform, false);
+                Renderer renderer = fbx.GetComponentInChildren<Renderer>();
+                BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
+                if (renderer != null)
+                {
+                    Vector3 localCenter = shipCon.transform.InverseTransformPoint(renderer.bounds.center);
+                    Vector3 localSize = shipCon.transform.InverseTransformVector(renderer.bounds.size);
+                    boxCollider.center = localCenter;
+                    boxCollider.size = localSize;
+                    //// Convert world bounds to local space of the collider's GameObject
+                    //Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
+                    ////Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
+
+                    //boxCollider.center = localCenter;
+                    //boxCollider.size = fbx.transform.localScale;
+                }
+                //width = fbx.transform.localScale.x;
+                //height = fbx.transform.localScale.y;
+                //length = fbx.transform.localScale.z;
+                //center = fbx.transform.localPosition;
+                //BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
+                //boxCollider.size = new Vector3(width, height, length); 
+                //boxCollider.center = new Vector3(width/2,height/2 ,length/2);
             }
             else
             {
                 GameObject modelSphereGO = Instantiate(ShipManager.Instance.PrefabSphere, new Vector3(0, 0, 0), Quaternion.identity);
-                modelSphereGO.transform.SetParent(shipGO.transform, false);
-                length = modelSphereGO.transform.localScale.z;
-                height = modelSphereGO.transform.localScale.y;
-                width = modelSphereGO.transform.localScale.x;
+                modelSphereGO.transform.SetParent(shipCon.transform, false);
+                length = modelSphereGO.transform.localScale.z *10;
+                height = modelSphereGO.transform.localScale.y *10;
+                width = modelSphereGO.transform.localScale.x *10;
                 center = modelSphereGO.transform.localPosition;
+                BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
+                boxCollider.size = new Vector3(width, height, length);
+                boxCollider.center = new Vector3(width / 2, height / 2, length / 2);
             }
-            
-
-            BoxCollider boxCollider = shipGO.AddComponent<BoxCollider>();
-                //if (renderer == null)
-                //{
-                //    boxCollider.size = renderer.bounds.size;
-                //    boxCollider.center = shipGO.transform.InverseTransformPoint(renderer.bounds.center) - shipGO.transform.localPosition;
-                //}
-            //}
-            ShipController shipController = shipGO.GetComponentInChildren<ShipController>();
-            shipController = shipCon;  
-            shipGO.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
-            shipGO.name = shipCon.ShipData.ShipName;
-            shipController.ShipData = shipCon.ShipData;
-          
+    
+            shipCon.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, false);
+            shipCon.name = shipCon.ShipData.ShipName;
         } 
        CountShips();
-       PositionLeftAndRightOfCombatView(sideOneShips, sideTwoShips);
-    }
-
-    private void PositionLeftAndRightOfCombatView(List<ShipController> sideOneShipCons,List<ShipController> sideTwoShipCons)
-    {// same x as animator for parenting                              shipGameOb.transform.SetParent(animFriend1.transform, true);
-        for (int i = 0; i < sideOneShipCons.Count; i++)
-        { 
-            ShipController shipCon = sideOneShipCons[i];
-            GameObject shipGameOb = shipCon.gameObject;
-            shipGameOb.transform.localPosition = new Vector3(combatData.xStartSide1, 0, 0);
-        }
-        for (int i = 0; i < sideTwoShipCons.Count; i++)
-        {
-            ShipController shipCon = sideTwoShipCons[i];
-            GameObject shipGameOb = shipCon.gameObject;
-            shipGameOb.transform.localPosition = new Vector3(combatData.xStartSide2, 0, 0);
-        }
+       //PositionLeftAndRightOfCombatView(sideOneShips, sideTwoShips);
     }
 
     private void CountShips()
@@ -166,10 +158,29 @@ public class CombatController : MonoBehaviour
     }
     public void ActOnThisCombatOrder(Orders order, CivEnum civOfOrder)
     {
+        // move ships on x out of the field of view
         if (civOfOrder == CombatData.CivEnumSideOne)
         {
-            // place ship game objects on left side right here
-            //PositionLeftAndRightOfCombatView(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
+            for (int i = 0; i < combatController.CombatData.SideOneShipCons.Count; i++)
+            {
+                ShipController shipCon = combatController.CombatData.SideOneShipCons[i];
+                GameObject shipGameOb = shipCon.gameObject;
+                shipGameOb.AddComponent<Rigidbody>();
+                Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>(); // updated to use shipGameOb
+                rigid.useGravity = false; // changed to separate assignment
+                rigid.isKinematic = true; // changed to separate assignment
+                shipGameOb.GetComponent<Rigidbody>().MovePosition(new Vector3(combatController.CombatData.xStartSide1, i, i));
+            }
+            for (int i = 0; i < combatController.CombatData.SideTwoShipCons.Count; i++)
+            {
+                ShipController shipCon = combatController.CombatData.SideTwoShipCons[i];
+                GameObject shipGameOb = shipCon.gameObject;
+                shipGameOb.AddComponent<Rigidbody>(); // added component for SideTwo ships
+                Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>(); // updated to use shipGameOb
+                rigid.useGravity = false; // changed to separate assignment
+                rigid.isKinematic = true; // changed to separate assignment
+                shipGameOb.GetComponent<Rigidbody>().MovePosition(new Vector3(combatController.CombatData.xStartSide2, i, i));
+            }
         }
 
         CombatData.Order = order;

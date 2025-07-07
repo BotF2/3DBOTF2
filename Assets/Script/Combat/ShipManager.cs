@@ -23,6 +23,7 @@ public class ShipManager : MonoBehaviour
     public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
     public ShipSORegistry ShipSORegistry;
+    int shipIndex = 0;
 
     private void Awake()
     {
@@ -85,28 +86,16 @@ public class ShipManager : MonoBehaviour
         }
         return shipConList;
     }
-    public GameObject InstantiateTheCombatShips(ShipController shipCon)
-    {
-        GameObject shipGO = Instantiate(ShipPrefab, new Vector3(0, 0, 0),
-           Quaternion.identity);
-        shipCon.transform.SetParent(shipGO.transform);
-        // ******* move to combat controller to Set position of shipGO to the combat 
-        //int xLocation = -5500;
-        //int xLocationEnd = 0; // end of warpin on x left right axis
-        //int yLocation = 0;
-        //int rotationOnY = 90;
+    //public ShipController InstantiateTheCombatShips(ShipController shipCon)
+    //{
+    //    GameObject shipGO = Instantiate(ShipPrefab, new Vector3(shipIndex, shipIndex, 0), Quaternion.identity);
 
-        //if (!_isFriend)
-        //{
-        //    xLocation = 5500;
-        //    xLocationEnd = 300;
-        //    rotationOnY = -90;
-        //}
-        //shipGO.transform.Translate(new Vector3(sysData.GetPosition().x,
-        //    sysData.GetPosition().y, sysData.GetPosition().z));
+    //    ShipController aShipCon = shipGO.GetComponent<ShipController>();
+    //    aShipCon = shipCon;
+    //    aShipCon.transform.SetParent(shipGO.transform);
 
-        return shipGO;
-    }
+    //    return aShipCon;
+    //}
     public int GetShipBuildDuration(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
     {
         ShipSO aShipSO = new ShipSO();
