@@ -3,8 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.UIElements;
 
 public class CombatController : MonoBehaviour
 {
@@ -79,65 +77,74 @@ public class CombatController : MonoBehaviour
             return;
         }
         CombatUIController.Instance.CombatOrdersUI.SetActive(true);
-        List<ShipController> bothLists = new List<ShipController>();
+        List<ShipController> aLists = new List<ShipController>();
         var sideOneShips = theCombatController.CombatData.SideOneShipCons;
-        bothLists.AddRange(sideOneShips);
+        aLists.AddRange(sideOneShips);
         var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
-        bothLists.AddRange(sideTwoShips);
-        foreach (var shipCon in bothLists)
-        {
-            theCombatController.CombatData.SideOneShipGO.Add(shipCon.gameObject);
+        aLists.AddRange(sideTwoShips);
+        BuildShipGOAndPosition(sideOneShips, 1);
+        BuildShipGOAndPosition(sideTwoShips, -1);
+
+       CountShips();
+    }
+    private void BuildShipGOAndPosition(List<ShipController> shipList, int posNeg)
+    {
+        for (int i = 0; i < shipList.Count; i++)
+        {  
+            if (posNeg > 0)
+                combatController.CombatData.SideOneShipGO.Add(shipList[i].gameObject);
+            else
+                combatController.CombatData.SideTwoShipGO.Add(shipList[i].gameObject);
+            shipList[i].name = shipList[i].ShipData.ShipName;
+            GameObject shipGameOb = shipList[i].gameObject;
+            shipGameOb.AddComponent<Rigidbody>();
+            shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i, i);
+            shipGameOb.transform.rotation = Quaternion.Euler(0, 90 * posNeg, 0);
+            shipGameOb.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
+            Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
+            rigid.useGravity = false; 
+            rigid.isKinematic = true; 
+            BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
             float length = 1f;
             float height = 1f;
             float width = 1f;
             Vector3 center = Vector3.zero;
-            GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipCon.ShipData.ShipName.ToUpper().Replace("(CLONE)",""));
+            GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
             if (mesheGO != null)
             {
-                GameObject fbx = Instantiate(mesheGO, shipCon.transform);// meshGO is as a prefab so instantiate it
-                fbx.name = shipCon.ShipData.ShipName.Replace("(CLONE)", "_Model");
-                fbx.transform.SetParent(shipCon.transform, false);
+                GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
+                fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
+                fbx.transform.SetParent(shipGameOb.transform, false);
                 Renderer renderer = fbx.GetComponentInChildren<Renderer>();
-                BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
                 if (renderer != null)
                 {
-                    Vector3 localCenter = shipCon.transform.InverseTransformPoint(renderer.bounds.center);
-                    Vector3 localSize = shipCon.transform.InverseTransformVector(renderer.bounds.size);
+                    Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
+                    Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
                     boxCollider.center = localCenter;
-                    boxCollider.size = localSize;
-                    //// Convert world bounds to local space of the collider's GameObject
-                    //Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
-                    ////Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
-
-                    //boxCollider.center = localCenter;
-                    //boxCollider.size = fbx.transform.localScale;
+                    width= localSize.x;
+                    height = localSize.y;
+                    length = localSize.z;
+                    boxCollider.size = new Vector3(width, height, length);
                 }
-                //width = fbx.transform.localScale.x;
-                //height = fbx.transform.localScale.y;
-                //length = fbx.transform.localScale.z;
-                //center = fbx.transform.localPosition;
-                //BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
-                //boxCollider.size = new Vector3(width, height, length); 
-                //boxCollider.center = new Vector3(width/2,height/2 ,length/2);
             }
+
             else
             {
                 GameObject modelSphereGO = Instantiate(ShipManager.Instance.PrefabSphere, new Vector3(0, 0, 0), Quaternion.identity);
-                modelSphereGO.transform.SetParent(shipCon.transform, false);
-                length = modelSphereGO.transform.localScale.z *10;
-                height = modelSphereGO.transform.localScale.y *10;
-                width = modelSphereGO.transform.localScale.x *10;
-                center = modelSphereGO.transform.localPosition;
-                BoxCollider boxCollider = shipCon.gameObject.AddComponent<BoxCollider>();
-                boxCollider.size = new Vector3(width, height, length);
-                boxCollider.center = new Vector3(width / 2, height / 2, length / 2);
+                Renderer renderer = modelSphereGO.GetComponentInChildren<Renderer>();
+                modelSphereGO.transform.SetParent(shipList[i].transform, false);
+                if (renderer != null)
+                {
+                    Vector3 localCenter = modelSphereGO.transform.InverseTransformPoint(renderer.bounds.center);
+                    Vector3 localSize = modelSphereGO.transform.InverseTransformVector(renderer.bounds.size);
+                    width = localSize.x;
+                    height = localSize.y;
+                    length = localSize.z;
+                    boxCollider.size = new Vector3(width*10, height*10, length*10);
+                    boxCollider.center = new Vector3(width*5, height * 5, length * 5);
+                }
             }
-    
-            shipCon.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, false);
-            shipCon.name = shipCon.ShipData.ShipName;
-        } 
-       CountShips();
-       //PositionLeftAndRightOfCombatView(sideOneShips, sideTwoShips);
+        }
     }
 
     private void CountShips()
@@ -161,88 +168,69 @@ public class CombatController : MonoBehaviour
         // move ships on x out of the field of view
         if (civOfOrder == CombatData.CivEnumSideOne)
         {
-            for (int i = 0; i < combatController.CombatData.SideOneShipCons.Count; i++)
+
+
+            CombatData.Order = order;
+            switch (order)// move order to controller combat data
             {
-                ShipController shipCon = combatController.CombatData.SideOneShipCons[i];
-                GameObject shipGameOb = shipCon.gameObject;
-                shipGameOb.AddComponent<Rigidbody>();
-                Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>(); // updated to use shipGameOb
-                rigid.useGravity = false; // changed to separate assignment
-                rigid.isKinematic = true; // changed to separate assignment
-                shipGameOb.GetComponent<Rigidbody>().MovePosition(new Vector3(combatController.CombatData.xStartSide1, i, i));
+
+
+                case Orders.Engage: // counters retreat & formation but weak vs Rush, Attack Transports
+                    {
+
+                        _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1 + _destroyersSide1 + _scoutsSide1);
+                        _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend);
+
+                        _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2 + _destroyersSide2 + _scoustSide2);
+                        _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy);
+
+                        // ToDo: ships warp into positions and advance at best speed for all non transports ships
+                        break;
+                    }
+
+
+                case Orders.Rush: // counters Retreat & Engage but weak vs Formation and Attach Transports
+                    #region Rush Region
+                    {
+
+                        break;
+                    }
+                #endregion Rush Region
+
+                case Orders.Retreat: // counters Formation & Attach Transports but weak vs Engage and Rush
+                    #region Retreat Region
+                    {
+
+                        break;
+                    }
+                #endregion Retreat Region
+
+                case Orders.Formation: // coutners Rush and Attach Transports but weak vs Engage and Retreat
+                    #region Formation Region
+                    {
+                        // capital ships up front in a spiral shield with transports behind and surrounded by destroyers and scouts
+
+                        _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1);
+                        _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2);
+
+                        _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend + _destroyersSide1 + _scoutsSide1);
+                        _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy + _destroyersSide2 + _scoustSide2);
+
+                        break;
+                    }
+                #endregion Formation Region
+
+                case Orders.TargetTransports:
+                    #region Traget Transports Region
+                    {
+
+                        break;
+                    }
+                #endregion Traget Transports Region
+
+                default:
+                    break;
             }
-            for (int i = 0; i < combatController.CombatData.SideTwoShipCons.Count; i++)
-            {
-                ShipController shipCon = combatController.CombatData.SideTwoShipCons[i];
-                GameObject shipGameOb = shipCon.gameObject;
-                shipGameOb.AddComponent<Rigidbody>(); // added component for SideTwo ships
-                Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>(); // updated to use shipGameOb
-                rigid.useGravity = false; // changed to separate assignment
-                rigid.isKinematic = true; // changed to separate assignment
-                shipGameOb.GetComponent<Rigidbody>().MovePosition(new Vector3(combatController.CombatData.xStartSide2, i, i));
-            }
-        }
-
-        CombatData.Order = order;
-        switch (order)// move order to controller combat data
-        {
-
-
-            case Orders.Engage: // counters retreat & formation but weak vs Rush, Attack Transports
-                {
-
-                    _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1 + _destroyersSide1 + _scoutsSide1);
-                    _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend);
-
-                    _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2 + _destroyersSide2 + _scoustSide2);
-                    _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy);
-
-                    // ToDo: ships warp into positions and advance at best speed for all non transports ships
-                    break;
-                }
-
-
-            case Orders.Rush: // counters Retreat & Engage but weak vs Formation and Attach Transports
-                #region Rush Region
-                {
-
-                    break;
-                }
-            #endregion Rush Region
-
-            case Orders.Retreat: // counters Formation & Attach Transports but weak vs Engage and Rush
-                #region Retreat Region
-                {
-
-                    break;
-                }
-            #endregion Retreat Region
-
-            case Orders.Formation: // coutners Rush and Attach Transports but weak vs Engage and Retreat
-                #region Formation Region
-                {
-                    // capital ships up front in a spiral shield with transports behind and surrounded by destroyers and scouts
-
-                    _capitalShipSpiralPositionsSide2 = GenerateSpiralPositions(_capitalsSide1);
-                    _capitalShipSpiralPositionsSide1 = GenerateSpiralPositions(_capitalsSide2);
-
-                    _transportSpiralPositionsSide1 = GenerateSpiralPositions(_transportsFriend + _destroyersSide1 + _scoutsSide1);
-                    _transportSpiralPositionsSide2 = GenerateSpiralPositions(_transportsEnemy + _destroyersSide2 + _scoustSide2);
-
-                    break;
-                }
-            #endregion Formation Region
-
-            case Orders.TargetTransports:
-                #region Traget Transports Region
-                {
-
-                    break;
-                }
-            #endregion Traget Transports Region
-
-            default:
-                break;
         }
     }
     private List<Vector2Int> GenerateSpiralPositions(int count)
