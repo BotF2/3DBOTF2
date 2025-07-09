@@ -97,6 +97,7 @@ public class CombatController : MonoBehaviour
                 combatController.CombatData.SideTwoShipGO.Add(shipList[i].gameObject);
             shipList[i].name = shipList[i].ShipData.ShipName;
             GameObject shipGameOb = shipList[i].gameObject;
+            
             shipGameOb.AddComponent<Rigidbody>();
             shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i, i);
             shipGameOb.transform.rotation = Quaternion.Euler(0, 90 * posNeg, 0);
@@ -110,39 +111,22 @@ public class CombatController : MonoBehaviour
             float width = 1f;
             Vector3 center = Vector3.zero;
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
-            if (mesheGO != null)
-            {
-                GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
-                fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
-                fbx.transform.SetParent(shipGameOb.transform, false);
-                Renderer renderer = fbx.GetComponentInChildren<Renderer>();
-                if (renderer != null)
-                {
-                    Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
-                    Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
-                    boxCollider.center = localCenter;
-                    width= localSize.x;
-                    height = localSize.y;
-                    length = localSize.z;
-                    boxCollider.size = new Vector3(width, height, length);
-                }
-            }
+            if (mesheGO == null)
+                mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
 
-            else
+            GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
+            fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
+            fbx.transform.SetParent(shipGameOb.transform, false);
+            Renderer renderer = fbx.GetComponentInChildren<Renderer>();
+            if (renderer != null)
             {
-                GameObject modelSphereGO = Instantiate(ShipManager.Instance.PrefabSphere, new Vector3(0, 0, 0), Quaternion.identity);
-                Renderer renderer = modelSphereGO.GetComponentInChildren<Renderer>();
-                modelSphereGO.transform.SetParent(shipList[i].transform, false);
-                if (renderer != null)
-                {
-                    Vector3 localCenter = modelSphereGO.transform.InverseTransformPoint(renderer.bounds.center);
-                    Vector3 localSize = modelSphereGO.transform.InverseTransformVector(renderer.bounds.size);
-                    width = localSize.x;
-                    height = localSize.y;
-                    length = localSize.z;
-                    boxCollider.size = new Vector3(width*10, height*10, length*10);
-                    boxCollider.center = new Vector3(width*5, height * 5, length * 5);
-                }
+                Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
+                Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
+                boxCollider.center = localCenter*100;
+                width= Math.Abs(localSize.x*100);
+                height = Math.Abs(localSize.y*100);
+                length = Math.Abs(localSize.z * 100);
+                boxCollider.size = new Vector3(width, height, length);
             }
         }
     }
