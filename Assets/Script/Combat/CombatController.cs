@@ -90,42 +90,45 @@ public class CombatController : MonoBehaviour
     private void BuildShipGOAndPosition(List<ShipController> shipList, int posNeg)
     {
         for (int i = 0; i < shipList.Count; i++)
-        {  
+        {
+            shipList[i].transform.localScale = Vector3.one;
             if (posNeg > 0)
                 combatController.CombatData.SideOneShipGO.Add(shipList[i].gameObject);
             else
                 combatController.CombatData.SideTwoShipGO.Add(shipList[i].gameObject);
             shipList[i].name = shipList[i].ShipData.ShipName;
             GameObject shipGameOb = shipList[i].gameObject;
-            
             shipGameOb.AddComponent<Rigidbody>();
             shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i, i);
             shipGameOb.transform.rotation = Quaternion.Euler(0, 90 * posNeg, 0);
             shipGameOb.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
+            rigid.transform.localScale = Vector3.one;
             rigid.useGravity = false; 
             rigid.isKinematic = true; 
             BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
+            boxCollider.transform.localScale = Vector3.one;
             float length = 1f;
             float height = 1f;
             float width = 1f;
-            Vector3 center = Vector3.zero;
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
             if (mesheGO == null)
+            {
                 mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
-
+            }
             GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
             fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
             fbx.transform.SetParent(shipGameOb.transform, false);
+            fbx.transform.localScale = Vector3.one;
             Renderer renderer = fbx.GetComponentInChildren<Renderer>();
             if (renderer != null)
             {
                 Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
                 Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
-                boxCollider.center = localCenter*100;
-                width= Math.Abs(localSize.x*100);
-                height = Math.Abs(localSize.y*100);
-                length = Math.Abs(localSize.z * 100);
+                boxCollider.center = localCenter;
+                width= Math.Abs(localSize.x);
+                height = Math.Abs(localSize.y);
+                length = Math.Abs(localSize.z);
                 boxCollider.size = new Vector3(width, height, length);
             }
         }
