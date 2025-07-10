@@ -114,7 +114,7 @@ public class CombatController : MonoBehaviour
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
             if (mesheGO == null)
             {
-                mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
+                mesheGO = Resources.Load<GameObject>("FBX/DOM_CRUISER_III");
             }
             GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
             fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
