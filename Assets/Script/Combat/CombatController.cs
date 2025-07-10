@@ -100,7 +100,7 @@ public class CombatController : MonoBehaviour
             GameObject shipGameOb = shipList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
             shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i, i);
-            shipGameOb.transform.rotation = Quaternion.Euler(0, 90 * posNeg, 0);
+            shipGameOb.transform.rotation = Quaternion.Euler(0, -90 * posNeg, 0);
             shipGameOb.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
             rigid.transform.localScale = Vector3.one;
@@ -125,10 +125,10 @@ public class CombatController : MonoBehaviour
             {
                 Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
                 Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
-                boxCollider.center = localCenter;
+                boxCollider.center = new Vector3(localCenter.x, localCenter.z, localCenter.y);
                 width= Math.Abs(localSize.x);
-                height = Math.Abs(localSize.y);
-                length = Math.Abs(localSize.z);
+                height = Math.Abs(localSize.z);
+                length = Math.Abs(localSize.y);
                 boxCollider.size = new Vector3(width, height, length);
             }
         }
