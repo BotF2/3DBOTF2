@@ -99,7 +99,7 @@ public class CombatController : MonoBehaviour
             shipList[i].name = shipList[i].ShipData.ShipName;
             GameObject shipGameOb = shipList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
-            shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i, i);
+            shipGameOb.transform.position = new Vector3(combatController.CombatData.xStartSide1 * posNeg, i*10, i*10);
             shipGameOb.transform.rotation = Quaternion.Euler(0, -90 * posNeg, 0);
             shipGameOb.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
@@ -113,8 +113,8 @@ public class CombatController : MonoBehaviour
             float width = 1f;
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
             if (mesheGO == null)
-            {
-                mesheGO = Resources.Load<GameObject>("FBX/DOM_CRUISER_III");
+            { // This is the fallback for missing ship models for now
+                mesheGO = Resources.Load<GameObject>("FBX/ROM_SCOUT_IV");
             }
             GameObject fbx = Instantiate(mesheGO, shipList[i].transform);// meshGO is as a prefab so instantiate it
             fbx.name = shipList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
