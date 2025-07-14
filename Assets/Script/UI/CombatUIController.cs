@@ -287,27 +287,27 @@ namespace Assets.Core
             switch (order)
             {
                 case Orders.Engage:
-                    CombatController.ActOnThisCombatOrder(Orders.Engage, CivEnumLocalPlayer); 
+                    CombatController.SetThisCombatOrder(Orders.Engage, CivEnumLocalPlayer); 
                     Debug.Log("Engaging in combat.");
                     break;
                 case Orders.Rush:
-                    CombatController.ActOnThisCombatOrder(Orders.Rush, CivEnumLocalPlayer);   
+                    CombatController.SetThisCombatOrder(Orders.Rush, CivEnumLocalPlayer);   
                     Debug.Log("Rushing towards the enemy.");
                     break;
                 case Orders.Retreat:
-                    CombatController.ActOnThisCombatOrder(Orders.Retreat, CivEnumLocalPlayer);
+                    CombatController.SetThisCombatOrder(Orders.Retreat, CivEnumLocalPlayer);
                     Debug.Log("Retreating from combat.");
                     break;
                 case Orders.Formation:
-                    CombatController.ActOnThisCombatOrder(Orders.Formation, CivEnumLocalPlayer);
+                    CombatController.SetThisCombatOrder(Orders.Formation, CivEnumLocalPlayer);
                     Debug.Log("Forming a combat formation.");
                     break;
                 case Orders.TargetTransports:
-                    CombatController.ActOnThisCombatOrder(Orders.TargetTransports, CivEnumLocalPlayer);
+                    CombatController.SetThisCombatOrder(Orders.TargetTransports, CivEnumLocalPlayer);
                     Debug.Log("Targeting enemy transports.");
                     break;
                 default:
-                    CombatController.ActOnThisCombatOrder(Orders.Engage, CivEnumLocalPlayer);
+                    CombatController.SetThisCombatOrder(Orders.Engage, CivEnumLocalPlayer);
                     Debug.Log("Unknown order.");
                     break;
             }

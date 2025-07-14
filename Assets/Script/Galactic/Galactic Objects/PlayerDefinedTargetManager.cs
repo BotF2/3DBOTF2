@@ -5,7 +5,7 @@ namespace Assets.Core
 {
     public class PlayerDefinedTargetManager : MonoBehaviour
     {
-        public static PlayerDefinedTargetManager instance;
+        public static PlayerDefinedTargetManager Instance;
         [SerializeField]
         private PlayerDefinedTargetController playerTargetPrefab;
         [SerializeField]
@@ -23,13 +23,13 @@ namespace Assets.Core
 
         private void Awake()
         {
-            if (instance != null)
+            if (Instance != null)
             {
                 Destroy(gameObject);
             }
             else
             {
-                instance = this;
+                Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
             var data = new PlayerDefinedTargetData("999");

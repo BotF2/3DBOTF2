@@ -9,7 +9,7 @@ public class Combat
     // call diplomayc WhoFigthsWithMe(CivController civ) with civs from galaxy map
     // call WhoIsAtWar(CivController civ) with civs and build a list of FriendShips on left and EnemyShips on right.
     // Hard coded for now
-    public List<GameObject> _friendCombatans; // for now be get the combatant gameObjects as they are instantiated in InstantiatCombatShips
+    public List<GameObject> _friendCombatans; // for now get the combatant gameObjects as they are instantiated in InstantiatCombatShips
     public List<GameObject> _enemyCombatans;
 
     public List<CivController> _friendCivs = new List<CivController>(); //{ CivController.FED };

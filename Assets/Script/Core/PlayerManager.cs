@@ -88,11 +88,12 @@ public class PlayerManager : MonoBehaviour
         {
             shipCon.ShipData.PlayerId = playerId; // changed PlayerID to PlayerId
         }
-        DiplomacyController diplomacyCon = unitGO.GetComponent<DiplomacyController>();
-        if (diplomacyCon != null)
-        {
-            diplomacyCon.DiplomacyData.PlayerId = playerId; // changed PlayerID to PlayerId
-        }
+        //DiplomacyController diplomacyCon = unitGO.GetComponent<DiplomacyController>();
+        //if (diplomacyCon != null)
+        //{
+        //    diplomacyCon.DiplomacyData.PlayerSideOneId = playerId;????
+        //    //    diplomacyCon.DiplomacyData.PlayerSideTwoId = playerId;
+        //}
     }
 }
 

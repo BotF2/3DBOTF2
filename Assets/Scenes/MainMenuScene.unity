@@ -93,7 +93,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 112000002, guid: a3d1a7ff64ef7ac4e9ca7acf20dbef9e, type: 2}
+  m_LightingDataAsset: {fileID: 112000006, guid: 53526dfe20bcc214db4864b88025261e, type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -20134,7 +20134,7 @@ RectTransform:
   m_GameObject: {fileID: 966764655}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 895974090}
@@ -24203,13 +24203,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1982436958}
     m_Modifications:
+    - target: {fileID: 801505901709723821, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: -5
+      objectReference: {fileID: 0}
     - target: {fileID: 1058961442618899432, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3032268092837810025, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
       propertyPath: m_Name
@@ -24298,6 +24302,14 @@ PrefabInstance:
     - target: {fileID: 5822297372921351177, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7977469839549130173, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7977469839549130173, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -26627,7 +26639,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1288876917
 MonoBehaviour:
   m_ObjectHideFlags: 0

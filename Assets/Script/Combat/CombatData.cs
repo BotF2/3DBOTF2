@@ -8,19 +8,15 @@ public class CombatData
     public Orders Order = Orders.Engage;
     public CivEnum CivEnumSideOne;
     public CivEnum CivEnumSideTwo;
-    public CivController FriendCiv;
-    public CivController EnemyCiv;
+    public CivController sideOneCiv;
+    public CivController sideTwoCiv;
     public string Name;
-    public int friends;
-    public int enemies;
     public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
     public List<ShipController> SideTwoShipCons = new List<ShipController>();
     private int friendShipLayer;
     private int enemyShipLayer;
-    public List<GameObject> SideOneShipGO = new List<GameObject>(); // 
-    public List<GameObject> SideTwoShipGO = new List<GameObject>(); // 
-    public CivController _friendCivCon; //{ Civilization.FED };
-    public CivController _enemyCivCon;
+    //public CivController sideOneCivCon; //{ Civilization.FED };
+    //public CivController sideTwoCivCon;
     public GameObject cameraEmpty;
     [SerializeField]
     private GameObject animFriend1;
@@ -47,18 +43,15 @@ public class CombatData
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
-    public int xStartSide1 = -400; // in the wings out of the field of view
-    public int xEndSide1 = -90; // end of warpin on x left-right axis
-    public int rotationSide1_OnY = 90; // face right
-    public int xStartSide2 = 400; // added public access
-    public int xEndSide2 = 90; // end of warpin on x left-right axis
-    public int rotationSide2_OnY = -90; // face left
-    public int ySeparator = 40;  // changed to public access
-    public int zSeparator = 70;   // changed to public access
-    public float shipScale = 100f;
-    public int yScout = 180; // shipGameOb types gap roes up
-    public int yCapital = 90;
-    public int yDestroyer = 0;
+    public int xStart = 450; // in the wings out of the field of view
+    public int xEnd = 90; // end of warpin on x left-right axis
+    public int rotationOnY = 90; // face right
+    public int ySeparator = 40; 
+    public int zSeparator = 70; 
+    //public float shipScale = 100f;
+    //public int yScout = 180; // shipGameOb types gap roes up
+    //public int yCapital = 90;
+    //public int yDestroyer = 0;
 
     public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
     private string[] arrayCountShipTypes; // change to array ship type
@@ -87,8 +80,8 @@ public class CombatData
         Order = Orders.None;
         CivEnumSideOne = CivEnum.None;
         CivEnumSideTwo = CivEnum.None;
-        FriendCiv = null;
-        EnemyCiv = null;
+        sideOneCiv = null;
+        sideTwoCiv = null;
         SideOneShipCons = new List<ShipController>();
         SideTwoShipCons = new List<ShipController>();
         Name = "CombatData";

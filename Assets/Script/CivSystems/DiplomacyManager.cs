@@ -104,8 +104,8 @@ public class DiplomacyManager : MonoBehaviour
     }
     private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
     {
-        if (diplomacyCon.DiplomacyData.CivMajor.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum
-             || diplomacyCon.DiplomacyData.CivOther.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
+        if (diplomacyCon.DiplomacyData.CivSideOne.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum
+             || diplomacyCon.DiplomacyData.CivSideTwo.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
         {
             if (diplomacyCon.DiplomacyUIGameObject == null)
             {
@@ -115,10 +115,6 @@ public class DiplomacyManager : MonoBehaviour
                 thisDiplomacyUIGameObject.layer = 5;
                 diplomacyCon.DiplomacyUIGameObject = thisDiplomacyUIGameObject;
                 diplomacyUIGO = thisDiplomacyUIGameObject;
-               // var thisDiplomacyUIController = thisDiplomacyUIGameObject.GetComponent<DiplomacyUIController>();
-               // thisDiplomacyUIController.DiplomacyController = diplomacyCon; // set the diplomacy controller
-                //thisDiplomacyUIController.LoadDiplomacyUI(diplomacyCon); // load the diplomacy UI with the diplomacy controller
-                //DiplomacyUIControllerList.Add(thisDiplomacyUIController);
             }
         }
     }
@@ -146,8 +142,8 @@ public class DiplomacyManager : MonoBehaviour
         {
             if (DiplomacyControllerList[i] != null)
             {
-                if (DiplomacyControllerList[i].DiplomacyData.CivMajor == civLocalPlayer && DiplomacyControllerList[i].DiplomacyData.CivOther == civOther
-                    || DiplomacyControllerList[i].DiplomacyData.CivOther == civLocalPlayer && DiplomacyControllerList[i].DiplomacyData.CivMajor == civOther)
+                if (DiplomacyControllerList[i].DiplomacyData.CivSideOne == civLocalPlayer && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civOther
+                    || DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civLocalPlayer && DiplomacyControllerList[i].DiplomacyData.CivSideOne == civOther)
                 {
                     okForNewDiplomacyController = false; // found one so not ok to create a new one
                 }
@@ -155,14 +151,14 @@ public class DiplomacyManager : MonoBehaviour
         }
         if (okForNewDiplomacyController) // we may need a new diplomacy controller
         {
-            DiplomacyData diplomacyData = new DiplomacyData();
-            if (civLocalPlayer.CivData.CivEnum <= CivEnum.TERRAN || civOther.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is a major civ
+            DiplomacyData diplomacyData = new DiplomacyData(civLocalPlayer, civOther, sysCon);
+            if (civLocalPlayer.CivData.CivEnum <= CivEnum.TERRAN || civOther.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one major civ
             { // one or two major civs
                 if (GameController.Instance.AreWeLocalPlayer(civLocalPlayer.CivData.CivEnum))
                 {
-                    diplomacyData.CivMajor = civLocalPlayer; // local player civ
+                    diplomacyData.CivSideOne = civLocalPlayer; // local player civ
                     diplomacyData.FleetMajor = fleetLocalPlayer; // local player fleet
-                    diplomacyData.CivOther = civOther;
+                    diplomacyData.CivSideTwo = civOther;
                     if (fleetOther.FleetData != null)
                     {
                         diplomacyData.FleetOther = fleetOther; // other civ fleet
@@ -178,9 +174,9 @@ public class DiplomacyManager : MonoBehaviour
                 }
                 else if (GameController.Instance.AreWeLocalPlayer(civOther.CivData.CivEnum))
                 {
-                    diplomacyData.CivMajor = civOther; // local player civ
+                    diplomacyData.CivSideOne = civOther; // local player civ
                     diplomacyData.FleetMajor = fleetOther; // local player fleet
-                    diplomacyData.CivOther = civLocalPlayer;
+                    diplomacyData.CivSideTwo = civLocalPlayer;
                     if (fleetLocalPlayer.FleetData != null)
                     {
                         diplomacyData.FleetOther = fleetLocalPlayer; // other civ fleet
@@ -198,9 +194,9 @@ public class DiplomacyManager : MonoBehaviour
                 { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
                     if (civLocalPlayer.CivData.CivEnum <= CivEnum.TERRAN && civLocalPlayer.CivData.CivEnum > civOther.CivData.CivEnum)
                     {
-                        diplomacyData.CivMajor = civLocalPlayer; // major civ
+                        diplomacyData.CivSideOne = civLocalPlayer; // major civ
                         diplomacyData.FleetMajor = fleetLocalPlayer; // major civ fleet
-                        diplomacyData.CivOther = civOther;
+                        diplomacyData.CivSideTwo = civOther;
                         if (fleetOther.FleetData != null)
                         {
                             diplomacyData.FleetOther = fleetOther; // other civ fleet
@@ -216,9 +212,9 @@ public class DiplomacyManager : MonoBehaviour
                     }
                     else if (civOther.CivData.CivEnum <= CivEnum.TERRAN && civOther.CivData.CivEnum > civLocalPlayer.CivData.CivEnum)
                     {
-                        diplomacyData.CivMajor = civOther; // major civ
+                        diplomacyData.CivSideOne = civOther; // major civ
                         diplomacyData.FleetMajor = fleetOther; // major civ fleet
-                        diplomacyData.CivOther = civLocalPlayer;
+                        diplomacyData.CivSideTwo = civLocalPlayer;
                         if (fleetLocalPlayer.FleetData != null)
                         {
                             diplomacyData.FleetOther = fleetLocalPlayer; // other civ fleet
@@ -279,8 +275,8 @@ public class DiplomacyManager : MonoBehaviour
         {
             if (DiplomacyControllerList[i] != null)
             {
-                if (DiplomacyControllerList[i].DiplomacyData.CivMajor == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivOther == civPartyTwo
-                    || DiplomacyControllerList[i].DiplomacyData.CivOther == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivMajor == civPartyTwo)
+                if (DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyTwo
+                    || DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyTwo)
                 {
                     found = true;
                     break;
@@ -296,118 +292,62 @@ public class DiplomacyManager : MonoBehaviour
         {
             if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
             {
-                ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
-                ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
+                ourDiplomacyController.DiplomacyData.CivSideOne = civPartyOne; // local player civ
+                ourDiplomacyController.DiplomacyData.CivSideTwo = civPartyTwo;
             }
             else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
             {
-                ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
-                ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
+                ourDiplomacyController.DiplomacyData.CivSideOne = civPartyTwo; // local player civ
+                ourDiplomacyController.DiplomacyData.CivSideTwo = civPartyOne;
             }
             GalaxyMenuUIController.Instance.OpenADiplomacyUI(ourDiplomacyController); // it opens the ADiplomacy UI
         }
     }
-    public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo, StarSysController sysCon)
+    public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo)
     {
         CivController civPartyOne = fleetPartyOne.FleetData.CivController;
-        CivController civPartyTwo = null;
-        if (fleetPartyTwo != null)
-        {
-            civPartyTwo = fleetPartyTwo.FleetData.CivController;
-        }
-        else if (fleetPartyTwo == null)
-        {
-            civPartyTwo =  sysCon.StarSysData.CurrentCivController; // the civ controller of the star system
-        }
+        CivController civPartyTwo = fleetPartyTwo.FleetData.CivController;
 
         DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
         if (ourDiplomacyController != null)
         {
-            if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN || civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
-            {
-                if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
-                {
-                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
-                    ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
-                    ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyOne;
-                    ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyTwo;
-                }
-                else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
-                {
-                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
-                    ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
-                    ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyTwo;
-                    ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyOne;
-                }
-                else // no local player, but at least one major civ, no combat UI.
-                { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
-                    // ToDo: combat without a UI, AI combat in the background
-                    if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN)
-                    {
-                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // major civ
-                        ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo; // minor or major civ
-                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyOne;
-                        ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyTwo;
-                    }
-                    else if (civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
-                    {
-                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // major civ
-                        ourDiplomacyController.DiplomacyData.CivOther = civPartyOne; // minor or major civ
-                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyTwo;
-                        ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyOne;
-                    }                                
-                }
-            }
-            else 
-            {
-                // Two minor civs, do nothing
-            }
+                ourDiplomacyController.DiplomacyData.FleetMajor = fleetPartyOne;
+                ourDiplomacyController.DiplomacyData.FleetOther = fleetPartyTwo;
         }
     }
     public void UpdateOurDiplomacyController(FleetController fleetCon, StarSysController sysCon) //, StarSysController sysCon)
     {
-        CivController civPartyOne = fleetCon.FleetData.CivController;
-        CivController civPartyTwo = sysCon.StarSysData.CurrentCivController;
-
-        DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
-        ourDiplomacyController.DiplomacyData.StarSysController = sysCon;
-        if (ourDiplomacyController != null)
+        CivController civPartyOne;
+        CivController civPartyTwo;
+        if (fleetCon.FleetData.CivEnum < sysCon.StarSysData.CurrentOwnerCivEnum)
         {
-            if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN || civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
+            civPartyOne = fleetCon.FleetData.CivController;
+            civPartyTwo = sysCon.StarSysData.CurrentCivController;
+        }
+        else if (fleetCon.FleetData.CivEnum > sysCon.StarSysData.CurrentOwnerCivEnum)
+        {
+            civPartyOne = sysCon.StarSysData.CurrentCivController;
+            civPartyTwo = fleetCon.FleetData.CivController;
+        }
+        else
+        {
+            civPartyOne = sysCon.StarSysData.CurrentCivController;
+            civPartyTwo = fleetCon.FleetData.CivController;
+        }
+        if (civPartyOne != civPartyTwo) // if they are not the same civ, then we have a real diplomacy controller
+        {
+            if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN) // a major civ
             {
-                if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
+                DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
+                if (ourDiplomacyController != null)
                 {
-                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // local player civ
-                    ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo;
+                    ourDiplomacyController.DiplomacyData.StarSysController = sysCon;
                     ourDiplomacyController.DiplomacyData.FleetMajor = fleetCon;
-
-                }
-                else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
-                {
-                    ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // local player civ
-                    ourDiplomacyController.DiplomacyData.CivOther = civPartyOne;
-                    ourDiplomacyController.DiplomacyData.FleetOther = fleetCon;
-                }
-                else // no local player, but at least one major civ, no combat UI.
-                { // one or two major civ present, no local player (only have a diplomacy with the non local player major civ with higher civInt first)
-                    // ToDo: combat without a UI, AI combat in the background
-                    if (civPartyOne.CivData.CivEnum <= CivEnum.TERRAN)
-                    {
-                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyOne; // major civ
-                        ourDiplomacyController.DiplomacyData.CivOther = civPartyTwo; // minor or major civ
-                        ourDiplomacyController.DiplomacyData.FleetMajor = fleetCon;
-                    }
-                    else if (civPartyTwo.CivData.CivEnum <= CivEnum.TERRAN)
-                    {
-                        ourDiplomacyController.DiplomacyData.CivMajor = civPartyTwo; // major civ
-                        ourDiplomacyController.DiplomacyData.CivOther = civPartyOne; // minor or major civ
-                        ourDiplomacyController.DiplomacyData.FleetOther = fleetCon;
-                    }
                 }
             }
-            else
+            else // A minor civs, do no diplomacy update
             {
-                // Two minor civs, do nothing
+
             }
         }
     }
@@ -416,8 +356,8 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController diplomacyController = null;
         for (int i = 0; i < DiplomacyControllerList.Count; i++)
         {
-            if (DiplomacyControllerList[i] != null && ((DiplomacyControllerList[i].DiplomacyData.CivMajor == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivOther == civPartyTwo)
-                || (DiplomacyControllerList[i].DiplomacyData.CivMajor == civPartyTwo && DiplomacyControllerList[i].DiplomacyData.CivOther == civPartyOne)))
+            if (DiplomacyControllerList[i] != null && ((DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyOne && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyTwo)
+                || (DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyTwo && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyOne)))
             {
                 diplomacyController = DiplomacyControllerList[i];
                 break;
@@ -427,8 +367,8 @@ public class DiplomacyManager : MonoBehaviour
     }
     public DiplomacyStatusEnum CalculateDiplomaticStatusOnFirstContact(DiplomacyController ourDiploCon)
     {
-        CivController civOne = ourDiploCon.DiplomacyData.CivMajor;
-        CivController civTwo = ourDiploCon.DiplomacyData.CivOther;
+        CivController civOne = ourDiploCon.DiplomacyData.CivSideOne;
+        CivController civTwo = ourDiploCon.DiplomacyData.CivSideTwo;
         DiplomacyStatusEnum diplomacyStatus = DiplomacyStatusEnum.Neutral;
         int warLike = Math.Abs((int)civOne.CivData.Warlike - (int)civTwo.CivData.Warlike);
         int xenophobia = Math.Abs((int)civOne.CivData.Xenophbia - (int)civTwo.CivData.Xenophbia);

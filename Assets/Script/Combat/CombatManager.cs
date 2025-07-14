@@ -110,7 +110,7 @@ public class CombatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
     internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    {
+    { // fix naming here "FleetMajor" "enemyShips"
         var enemyShips = new List<ShipController>();
         if (diplomacyController.DiplomacyData.FleetMajor != null)
         {
@@ -134,7 +134,7 @@ public class CombatManager : MonoBehaviour
         }
     }
     public void InitCombatData(List<ShipController> friendShipCons, List<ShipController> enemyShipCons)
-    {
+    {// fix naming here
         CombatData combatData = new CombatData
         {
             SideOneShipCons = friendShipCons,
