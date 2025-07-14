@@ -553,6 +553,15 @@ namespace Assets.Core
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
         }
+        public void SetSinglePlayer()
+        {
+            IsSinglePlayer = true;
+            panelLobby.SetActive(false);
+            panelMuliplayer.SetActive(false);
+            panelCivSelection.SetActive(true);
+            singlePlayToggleGroup.SetActive(true);
+        }
+
         private void FedOnOffToggleReset()
         {
             if (FedLocalPalyerToggle.isOn == true)

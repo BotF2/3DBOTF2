@@ -17703,8 +17703,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 206574036}
         m_TargetAssemblyTypeName: Assets.Core.MainMenuUIController, Assembly-CSharp
-        m_MethodName: SetSingleVsMultiplayer
-        m_Mode: 6
+        m_MethodName: SetSinglePlayer
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
