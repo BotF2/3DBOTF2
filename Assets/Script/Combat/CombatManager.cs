@@ -110,37 +110,37 @@ public class CombatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
     internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    { // fix naming here "FleetMajor" "enemyShips"
-        var enemyShips = new List<ShipController>();
+    { 
+        var sideTwoShips = new List<ShipController>();
         if (diplomacyController.DiplomacyData.FleetMajor != null)
         {
-            var friendlyShips = diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList;
+            var sideOneShips = diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList;
             if (diplomacyController.DiplomacyData.FleetOther != null)
             {
-                enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
-                InitCombatData(friendlyShips, enemyShips);
+                sideTwoShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
+                InitCombatData(sideOneShips, sideTwoShips);
             }
             else
             {
-                enemyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
-                InitCombatData(friendlyShips, enemyShips);
+                sideTwoShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
+                InitCombatData(sideOneShips, sideTwoShips);
             }
         }
         else // major fleet is null so only minor fleet is present and local player system
         {
-            enemyShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
+            sideTwoShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
             var friendlyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
-            InitCombatData(friendlyShips, enemyShips);
+            InitCombatData(friendlyShips, sideTwoShips);
         }
     }
-    public void InitCombatData(List<ShipController> friendShipCons, List<ShipController> enemyShipCons)
-    {// fix naming here
+    public void InitCombatData(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
+    {
         CombatData combatData = new CombatData
         {
-            SideOneShipCons = friendShipCons,
-            SideTwoShipCons = enemyShipCons,
-            CivEnumSideOne = friendShipCons[0].ShipData.CivEnum, // all friend and enemy ships are from just one civ each for now
-            CivEnumSideTwo = enemyShipCons[0].ShipData.CivEnum,
+            SideOneShipCons = sideOneShipCons,
+            SideTwoShipCons = sideTwoShipCons,
+            CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum, 
+            CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
             Name = "CombatData_" + CombatControllers.Count.ToString(),
 
         };
@@ -160,8 +160,6 @@ public class CombatManager : MonoBehaviour
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
         CombatControllers.Add(aCombatController);
         aCombatController.PopulateShipData(aCombatController);
-        //aCombatController.PopulateShipData(aCombatController.CombatData.SideTwoShipCons, false);
-        //aCombatController.SetupCombat();
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {

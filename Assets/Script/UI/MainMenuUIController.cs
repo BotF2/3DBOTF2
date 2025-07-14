@@ -147,6 +147,7 @@ namespace Assets.Core
             TechLevelToggleGroup.RegisterToggle(DevelopedToggle);
             TechLevelToggleGroup.RegisterToggle(AdvancedToggle);
             TechLevelToggleGroup.RegisterToggle(SupremeToggle);
+        
 
             // Pending Multiplayer lobby if needed
             //MultiplayerCivilizationGroup.enabled = true;
@@ -544,13 +545,13 @@ namespace Assets.Core
             if (playerTerran.text == player)
                 playerTerran.text = computer;
         }
-        private void SetSingleVsMultiplayer(bool singleMultiSelection)
+        public void SetMultiPlayer()
         {
-            IsSinglePlayer = singleMultiSelection;
+            IsSinglePlayer = true;
             panelLobby.SetActive(false);
-            panelMuliplayer.SetActive(!singleMultiSelection);
-            panelCivSelection.SetActive(singleMultiSelection);
-            singlePlayToggleGroup.SetActive(true);
+            panelMuliplayer.SetActive(true);
+            panelCivSelection.SetActive(false);
+            singlePlayToggleGroup.SetActive(false);
         }
         private void FedOnOffToggleReset()
         {

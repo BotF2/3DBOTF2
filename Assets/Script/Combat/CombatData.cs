@@ -13,8 +13,8 @@ public class CombatData
     public string Name;
     public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
     public List<ShipController> SideTwoShipCons = new List<ShipController>();
-    private int friendShipLayer;
-    private int enemyShipLayer;
+    private int sideOneShipLayer;
+    private int sideTwoShipLayer;
     //public CivController sideOneCivCon; //{ Civilization.FED };
     //public CivController sideTwoCivCon;
     public GameObject cameraEmpty;

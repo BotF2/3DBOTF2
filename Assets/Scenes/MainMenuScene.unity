@@ -446,6 +446,7 @@ RectTransform:
   - {fileID: 1227923381}
   - {fileID: 361250946}
   - {fileID: 2031684596}
+  - {fileID: 831971745}
   m_Father: {fileID: 538500098}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -2645,7 +2646,7 @@ GameObject:
   - component: {fileID: 172576330}
   - component: {fileID: 172576331}
   m_Layer: 5
-  m_Name: Toggle_Rom
+  m_Name: Toggle_Player1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10346,7 +10347,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: KLINGON
+  m_Text: PLAYER 2
 --- !u!222 &527036651
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -10366,7 +10367,7 @@ GameObject:
   - component: {fileID: 530767755}
   - component: {fileID: 530767756}
   m_Layer: 5
-  m_Name: Toggle_Dom
+  m_Name: Toggle_Player4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10747,8 +10748,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 270225718}
-  - {fileID: 4711737}
   - {fileID: 593379917}
+  - {fileID: 4711737}
   - {fileID: 626776156}
   m_Father: {fileID: 206574037}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -12223,7 +12224,6 @@ RectTransform:
   - {fileID: 803406170}
   - {fileID: 1369377088}
   - {fileID: 221117363}
-  - {fileID: 831971745}
   - {fileID: 1926946904}
   - {fileID: 1912279282}
   m_Father: {fileID: 538500098}
@@ -17843,7 +17843,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &831971745
 RectTransform:
   m_ObjectHideFlags: 0
@@ -17851,11 +17851,12 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 831971744}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.1333334, y: 1.1333334, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1639708891}
   - {fileID: 1623589206}
   - {fileID: 172576330}
   - {fileID: 1774186830}
@@ -17863,11 +17864,11 @@ RectTransform:
   - {fileID: 530767755}
   - {fileID: 1425405470}
   - {fileID: 1883421659}
-  m_Father: {fileID: 593379917}
+  m_Father: {fileID: 4711737}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -149, y: -282}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &831971746
@@ -18267,7 +18268,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: CARDASSIAN
+  m_Text: PLAYER 3
 --- !u!222 &870917794
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -19502,7 +19503,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: ROMULAN
+  m_Text: PLAYER 1
 --- !u!222 &956408357
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -22029,7 +22030,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: FEDERATION
+  m_Text: PLAYER 0
 --- !u!222 &1047395731
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -24583,7 +24584,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: BORG
+  m_Text: PLAYER 5
 --- !u!222 &1199544123
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -29669,7 +29670,7 @@ GameObject:
   - component: {fileID: 1425405470}
   - component: {fileID: 1425405471}
   m_Layer: 5
-  m_Name: Toggle_Borg
+  m_Name: Toggle_Player5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -33471,7 +33472,7 @@ GameObject:
   - component: {fileID: 1623589206}
   - component: {fileID: 1623589207}
   m_Layer: 5
-  m_Name: Toggle_Fed
+  m_Name: Toggle_Player0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -33884,6 +33885,81 @@ RectTransform:
   m_AnchoredPosition: {x: 175, y: 24}
   m_SizeDelta: {x: 350, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1639708890
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1639708891}
+  - component: {fileID: 1639708893}
+  - component: {fileID: 1639708892}
+  m_Layer: 5
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1639708891
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639708890}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 831971745}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 38.8}
+  m_SizeDelta: {x: 170, y: 180}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1639708892
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639708890}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.6627451, g: 0.6627451, b: 0.6627451, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1639708893
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639708890}
+  m_CullTransparentMesh: 1
 --- !u!1 &1672010028
 GameObject:
   m_ObjectHideFlags: 0
@@ -34549,7 +34625,7 @@ GameObject:
   - component: {fileID: 1708064529}
   - component: {fileID: 1708064530}
   m_Layer: 5
-  m_Name: Toggle_Card
+  m_Name: Toggle_Player3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35771,7 +35847,7 @@ GameObject:
   - component: {fileID: 1774186830}
   - component: {fileID: 1774186831}
   m_Layer: 5
-  m_Name: Toggle_Kling
+  m_Name: Toggle_Player2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -38141,7 +38217,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: DOMINION
+  m_Text: PLAYER 4
 --- !u!222 &1871212015
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -38240,7 +38316,7 @@ GameObject:
   - component: {fileID: 1883421659}
   - component: {fileID: 1883421660}
   m_Layer: 5
-  m_Name: Toggle_Terran
+  m_Name: Toggle_Player6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -41033,7 +41109,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: TERRAN
+  m_Text: PLAYER 6
 --- !u!222 &1992829013
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -44228,8 +44304,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 206574036}
         m_TargetAssemblyTypeName: Assets.Core.MainMenuUIController, Assembly-CSharp
-        m_MethodName: SetSingleVsMultiplayer
-        m_Mode: 6
+        m_MethodName: SetMultiPlayer
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine

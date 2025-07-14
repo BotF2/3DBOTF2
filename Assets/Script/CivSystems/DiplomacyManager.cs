@@ -84,7 +84,6 @@ public class DiplomacyManager : MonoBehaviour
 {
     public static DiplomacyManager Instance;
     public List<DiplomacyController> DiplomacyControllerList { get; private set; } = new List<DiplomacyController>();
-   // public List<DiplomacyUIController> DiplomacyUIControllerList { get; private set; } = new List<DiplomacyUIController>();
     [SerializeField]
     private GameObject diplomacyUIPrefab;
     [SerializeField]

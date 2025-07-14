@@ -87,7 +87,7 @@ public class CombatController : MonoBehaviour
 
         var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
 
-        //BuildShipGOAndPosition(sideOneShips, -1); // left side ships are -x axis
+        BuildShipGOAndPosition(sideOneShips, -1); // left side ships are -x axis
         //BuildShipGOAndPosition(sideTwoShips, 1);
 
         CountShips();
@@ -190,7 +190,7 @@ public class CombatController : MonoBehaviour
         CombatData.Order = order; // Move order to controller combat data
 
     }
-    private void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)
+    public void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)
     {
         
         switch (CombatData.Order)

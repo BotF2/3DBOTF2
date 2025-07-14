@@ -12,15 +12,15 @@ namespace Assets.Core
     {
         public static CombatUIController Instance;
         public CombatController CombatController; // this is the combat controller that will handle the combat UI and orders
-        public Enum sideOneEnum;
-        public Enum sideTwoEnum;
+        public CivEnum sideOneEnum;
+        public CivEnum sideTwoEnum;
         public CivEnum CivEnumLocalPlayer; // the local player enum, used to determine which side the local player is on
         public GameObject CombatOrdersUI;
-
+        public int negIsSideOnePosIsSideTwo = 1; // used to determine which side the local player is on, -1 for side one, 1 for side two
         [SerializeField]
-        private List<ShipController> friendShipControllers;
+        private List<ShipController> sideOneShipControllers; // mainly local player vs not local player
         [SerializeField]
-        private List<ShipController> enemyShipControllers;
+        private List<ShipController> sideTwoShipControllers;
         [SerializeField]
         private List<GameObject> listOfShipsUiGos;
         public static Toggle Engage, Rush, Retreat, Formation, TargetTransports;
@@ -32,6 +32,7 @@ namespace Assets.Core
         private void Start()
         {
             previousToggle = toggleOrderList[0];
+            CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum; // get the local player civ enum from the game controller
         }
         private void Awake()
         {
@@ -45,36 +46,14 @@ namespace Assets.Core
                 DontDestroyOnLoad(gameObject);
             }
         }
-        public void SetupShipUIData()
-        { // populate the fleet UIs with the data from the fleetControllers...
-
-            for (int j = 0; j < ShipManager.Instance.ShipControllerGameList.Count; j++)
+        private void SetSideOneOrderOrSideTwo()
+        {
+            if (sideOneShipControllers.Count > 0)
             {
-                var shipCon = ShipManager.Instance.ShipControllerGameList[j];
-                //if (GameController.Instance.AreWeLocalPlayer(shipCon.ShipData.CivEnum))
-                //{
-                //    for (int i = 0; i < shipCon.FleetData.ShipsList.Count; i++)
-                //    {
-                //        if (shipCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
-                //        {
-                //            var transforms = shipCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
-                //            for (int k = 0; k < transforms.Length; k++)
-                //            {
-                //                if (transforms[k].gameObject.name == "ShipContent")
-                //                {
-                //                    shipContainer = transforms[k].gameObject;
-                //                    break;
-                //                }
-                //            }
-                //            shipCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
-                //        }
-                //    }
-                //}
-                //if (shipCon.FleetUIGameObject != null)
-                //{
-                //    shipCon.FleetUIGameObject.SetActive(true);
-                //    shipCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
-                //}
+                if (CivEnumLocalPlayer == sideOneShipControllers[0].ShipData.CivEnum)
+                {
+                    negIsSideOnePosIsSideTwo = -1; // local player is on side one
+                }
             }
         }
         public void ActivePlayerToggle(Toggle activeToggle)
@@ -283,31 +262,47 @@ namespace Assets.Core
         }
         private void ActOnCombatOrders(Orders order)
         {
+            SetSideOneOrderOrSideTwo();
+            List<ShipController> shipControllers;
+            if (negIsSideOnePosIsSideTwo < 0)
+            {
+                shipControllers = sideOneShipControllers;
+            }
+            else
+            {
+                shipControllers = sideTwoShipControllers;
+            }
             // This method will handle the combat orders based on the selected order
             switch (order)
             {
                 case Orders.Engage:
-                    CombatController.SetThisCombatOrder(Orders.Engage, CivEnumLocalPlayer); 
+                    CombatController.SetThisCombatOrder(Orders.Engage, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Engaging in combat.");
                     break;
                 case Orders.Rush:
-                    CombatController.SetThisCombatOrder(Orders.Rush, CivEnumLocalPlayer);   
+                    CombatController.SetThisCombatOrder(Orders.Rush, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Rushing towards the enemy.");
                     break;
                 case Orders.Retreat:
                     CombatController.SetThisCombatOrder(Orders.Retreat, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Retreating from combat.");
                     break;
                 case Orders.Formation:
                     CombatController.SetThisCombatOrder(Orders.Formation, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Forming a combat formation.");
                     break;
                 case Orders.TargetTransports:
                     CombatController.SetThisCombatOrder(Orders.TargetTransports, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Targeting enemy transports.");
                     break;
                 default:
                     CombatController.SetThisCombatOrder(Orders.Engage, CivEnumLocalPlayer);
+                    CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Unknown order.");
                     break;
             }

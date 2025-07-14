@@ -15,6 +15,7 @@ public enum EncounterType
     StrangeGalacticObject,
 }
 /// <summary>
+/// Encoutner decides how is side one and side two for diplomacy and combat.
 /// Consider using for AI trade, sabotage, espionage, disinformation, as well as sending on to diplomacy or dealing with colonization, worm holes.....
 /// </summary>
 public class EncounterManager : MonoBehaviour

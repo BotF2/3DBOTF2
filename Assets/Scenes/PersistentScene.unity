@@ -502,10 +502,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CombatController: {fileID: 0}
+  sideOneEnum: 0
+  sideTwoEnum: 0
   CivEnumLocalPlayer: 0
   CombatOrdersUI: {fileID: 1342304809}
-  friendShipControllers: []
-  enemyShipControllers: []
+  negIsSideOnePosIsSideTwo: 1
+  sideOneShipControllers: []
+  sideTwoShipControllers: []
   listOfShipsUiGos: []
   toggleOrderList:
   - {fileID: 326862254}
