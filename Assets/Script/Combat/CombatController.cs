@@ -87,10 +87,10 @@ public class CombatController : MonoBehaviour
 
         var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
 
-        BuildShipGOAndPosition(sideOneShips, -1); // left side ships are -x axis
-        //BuildShipGOAndPosition(sideTwoShips, 1);
+        BuildShipGOAndPosition(sideOneShips, -1); // left side ships are -x axis...
+        BuildShipGOAndPosition(sideTwoShips, 1);
 
-        CountShips();
+        //CountShips();
         //ActOnCombatOrders(sideOneShips, -1);
         //ActOnCombatOrders(sideTwoShips, 1);
     }
@@ -99,10 +99,6 @@ public class CombatController : MonoBehaviour
         for (int i = 0; i < shipConList.Count; i++)
         {
             shipConList[i].transform.localScale = Vector3.one;
-            if (side1negSide2pog < 0)
-                combatController.CombatData.SideOneShipCons.Add(shipConList[i]);
-            else
-                combatController.CombatData.SideTwoShipCons.Add(shipConList[i]);
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
@@ -122,7 +118,7 @@ public class CombatController : MonoBehaviour
             { // This is the fallback for missing ship models for now  
                 mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
             }
-            GameObject fbx = Instantiate(mesheGO, shipConList[i].transform);// meshGO is as a prefab so instantiate it  
+            GameObject fbx = Instantiate(mesheGO, shipConList[i].transform);// fbx is as a prefab so instantiate it  
             fbx.name = shipConList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
             fbx.transform.SetParent(shipGameOb.transform, false);
             fbx.transform.localScale = Vector3.one;
@@ -136,14 +132,6 @@ public class CombatController : MonoBehaviour
                 height = Math.Abs(localSize.z);
                 length = Math.Abs(localSize.y);
                 boxCollider.size = new Vector3(width, height, length);
-            }
-            if (side1negSide2pog < 0)
-            {
-                CombatData.SideOneShipCons.Add(shipConList[i]);
-            }
-            else
-            {
-                CombatData.SideTwoShipCons.Add(shipConList[i]);   
             }
         }
     }
@@ -187,7 +175,7 @@ public class CombatController : MonoBehaviour
             return;
         }
 
-        CombatData.Order = order; // Move order to controller combat data
+        CombatData.Order = order; // order to controller combat data
 
     }
     public void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)

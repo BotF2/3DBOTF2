@@ -46,16 +46,16 @@ namespace Assets.Core
                 DontDestroyOnLoad(gameObject);
             }
         }
-        private void SetSideOneOrderOrSideTwo()
-        {
-            if (sideOneShipControllers.Count > 0)
-            {
-                if (CivEnumLocalPlayer == sideOneShipControllers[0].ShipData.CivEnum)
-                {
-                    negIsSideOnePosIsSideTwo = -1; // local player is on side one
-                }
-            }
-        }
+        //private void SetSideOneOrderOrSideTwo()
+        //{
+        //    if (sideOneShipControllers.Count > 0)
+        //    {
+        //        if (CivEnumLocalPlayer == sideOneShipControllers[0].ShipData.CivEnum)
+        //        {
+        //            negIsSideOnePosIsSideTwo = -1; // local player is on side one
+        //        }
+        //    }
+        //}
         public void ActivePlayerToggle(Toggle activeToggle)
         {
             switch (activeToggle.name.ToUpper())
@@ -257,22 +257,24 @@ namespace Assets.Core
         {
             CombatOrdersUI.SetActive(false);
             CombatManager.Instance.CombatShipCanvas.SetActive(true);
-            ActOnCombatOrders(order);
+            ActOnCombatOrders(order, sideOneEnum, sideTwoEnum );
             Debug.Log("Combat UI opened.");
         }
-        private void ActOnCombatOrders(Orders order)
+        private void ActOnCombatOrders(Orders order, CivEnum sideOneCiv, CivEnum sideTwoCiv)
         {
-            SetSideOneOrderOrSideTwo();
+            //SetSideOneOrderOrSideTwo();
             List<ShipController> shipControllers;
-            if (negIsSideOnePosIsSideTwo < 0)
+            if (GameController.Instance.AreWeLocalPlayer(sideOneCiv))
             {
                 shipControllers = sideOneShipControllers;
+                negIsSideOnePosIsSideTwo = -1;
             }
-            else
+            else  
             {
                 shipControllers = sideTwoShipControllers;
+                negIsSideOnePosIsSideTwo = 1;
             }
-            // This method will handle the combat orders based on the selected order
+            //This method will handle the combat orders based on the selected order
             switch (order)
             {
                 case Orders.Engage:

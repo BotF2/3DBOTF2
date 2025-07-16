@@ -83,8 +83,8 @@ public class SceneController : MonoBehaviour
             galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
         }
         galaxyCameraDragNDrop.SetActive(false); // Hide the Galaxy Camera Drag and Drop GameObject
-        if (GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivSideOne.CivData.CivEnum) ||
-            GameController.Instance.AreWeLocalPlayer(diplomacyController.DiplomacyData.CivSideTwo.CivData.CivEnum))
+        if (diplomacyController.DiplomacyData.CivSideOne.CivData.CivEnum <= CivEnum.TERRAN ||
+            diplomacyController.DiplomacyData.CivSideTwo.CivData.CivEnum <= CivEnum.TERRAN)
         {
             for (int i = 0; i < persistentObjects.Length; i++)
             {

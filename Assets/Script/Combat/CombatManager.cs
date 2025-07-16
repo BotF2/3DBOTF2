@@ -110,28 +110,29 @@ public class CombatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
     internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    { 
+    {
+        var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
-        if (diplomacyController.DiplomacyData.FleetMajor != null)
+        if (diplomacyController.DiplomacyData.CurrentFleetOfSideOne.FleetData != null)
         {
-            var sideOneShips = diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList;
-            if (diplomacyController.DiplomacyData.FleetOther != null)
+            sideOneShips = diplomacyController.DiplomacyData.CurrentFleetOfSideOne.FleetData.ShipsList;
+            if (diplomacyController.DiplomacyData.CurrentFleetOfSideTwo.FleetData != null)
             {
-                sideTwoShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
-                InitCombatData(sideOneShips, sideTwoShips);
+                sideTwoShips = diplomacyController.DiplomacyData.CurrentFleetOfSideTwo.FleetData.ShipsList;
+                InitCombatData(sideOneShips, sideTwoShips); // instantiate ship game objects
             }
             else
             {
-                sideTwoShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
+                sideTwoShips = diplomacyController.DiplomacyData.CurrentStarSysController.StarSysData.ShipsList;
                 InitCombatData(sideOneShips, sideTwoShips);
             }
         }
-        else // major fleet is null so only minor fleet is present and local player system
+        else if (diplomacyController.DiplomacyData.CurrentFleetOfSideTwo.FleetData != null)
         {
-            sideTwoShips = diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList;
-            var friendlyShips = diplomacyController.DiplomacyData.StarSysController.StarSysData.ShipsList;
-            InitCombatData(friendlyShips, sideTwoShips);
+            sideTwoShips = diplomacyController.DiplomacyData.CurrentFleetOfSideTwo.FleetData.ShipsList;
+            sideOneShips = diplomacyController.DiplomacyData.CurrentStarSysController.StarSysData.ShipsList;
         }
+        
     }
     public void InitCombatData(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
     {
@@ -148,6 +149,7 @@ public class CombatManager : MonoBehaviour
         {
             InstantiateCombatController(combatData);
         }
+
     }
 
     public void InstantiateCombatController(CombatData combatData)

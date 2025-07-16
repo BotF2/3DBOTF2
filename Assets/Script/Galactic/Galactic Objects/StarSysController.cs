@@ -110,7 +110,7 @@ namespace Assets.Core
             //}
             // Are we building anything
             // 
-            if (building && TimeToBuild > 0) //&& GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)
+            if (building && TimeToBuild > 0) 
             {
 
                 if (starTimer)
@@ -502,63 +502,65 @@ namespace Assets.Core
         }
         void OnTriggerEnter(Collider collider) // Not using OnCollisionEnter....
         {
-            bool weAreLocalPlayer = GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum);
+            //bool weAreLocalPlayer = false;
+            //if (this.StarSysData.CurrentCivController != null)
+            //    weAreLocalPlayer = GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum);
 
 
-            if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
-            {
-
-            //    if (StarSysData.CurrentOwnerCivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
-            //    {
-            //        EncounterManager.Instance.ResolveEncounterWithOtherCiv(this, hitFleetCon);
-
-            //        EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
-
-            //        if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
-            //        {
-            //            ClickCancelDestinationButton(hitFleetCon); // they stop
-
-            //            CloseUnLoadFleetUI(); // need more code to handle this encounter 
-            //        }
-
-            //    }
-            //    else //our fleet
-            //    {
-            //        // do ships?
-            //        OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
-            //    }
-
-            //}
-            //else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
+            //if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
             //{
-            //    if (isOurDestination)
-            //    {
-            //        ClickCancelDestinationButton(this); // we stop, cancel destination
 
-            //        if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
-            //        {
-            //            if (weAreLocalPlayer)
-            //            {
-            //                EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
-            //            }
-            //            OnEnterForeignStarSystem(); // ToDo
-            //            EncounterManager.Instance.ResolveEncounter(this, sysCon);
+            ////    if (StarSysData.CurrentOwnerCivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
+            ////    {
+            ////        EncounterManager.Instance.ResolveEncounterWithOtherCiv(this, hitFleetCon);
 
-            //        }
-            //        else // ToDo: enter our system
-            //        {
+            ////        EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
 
-            //        }
-            //    }
+            ////        if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+            ////        {
+            ////            ClickCancelDestinationButton(hitFleetCon); // they stop
+
+            ////            CloseUnLoadFleetUI(); // need more code to handle this encounter 
+            ////        }
+
+            ////    }
+            ////    else //our fleet
+            ////    {
+            ////        // do ships?
+            ////        OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
+            ////    }
+
+            ////}
+            ////else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
+            ////{
+            ////    if (isOurDestination)
+            ////    {
+            ////        ClickCancelDestinationButton(this); // we stop, cancel destination
+
+            ////        if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
+            ////        {
+            ////            if (weAreLocalPlayer)
+            ////            {
+            ////                EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
+            ////            }
+            ////            OnEnterForeignStarSystem(); // ToDo
+            ////            EncounterManager.Instance.ResolveEncounter(this, sysCon);
+
+            ////        }
+            ////        else // ToDo: enter our system
+            ////        {
+
+            ////        }
+            ////    }
+            ////}
+            ////else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
+            ////{
+            ////    if (isOurDestination)
+            ////    {
+            ////        ClickCancelDestinationButton(this); // we stop, cancel destination
+            ////        Destroy(collider.gameObject); // remove the player defined target
+            ////    }
             //}
-            //else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
-            //{
-            //    if (isOurDestination)
-            //    {
-            //        ClickCancelDestinationButton(this); // we stop, cancel destination
-            //        Destroy(collider.gameObject); // remove the player defined target
-            //    }
-            }
         }
 
         public void OnEnable()

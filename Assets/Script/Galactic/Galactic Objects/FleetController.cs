@@ -159,7 +159,7 @@ namespace Assets.Core
                     {
                         OnADestinationThatIsOtherCivFleet(hitFleetCon);
                                                                         
-                        EncounterManager.Instance.ResolveEncounterWithOtherCiv(this, hitFleetCon);
+                        EncounterManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
                         //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
                         EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
 
@@ -177,6 +177,10 @@ namespace Assets.Core
                         OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
                     }
                 }
+                else
+                {
+                    // not our destination ignore for now
+                }
             }
             else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
             {
@@ -184,20 +188,24 @@ namespace Assets.Core
                 {
                     ClickCancelDestinationButton(this); // we stop, cancel destination
 
-                    if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
+                    if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // not our system
                     {
                         if (weAreLocalPlayer)
                         {
                             EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
                         }
                         OnEnterForeignStarSystem(); // ToDo
-                        EncounterManager.Instance.ResolveEncounter(this, sysCon);
+                        EncounterManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
 
                     }
                     else // ToDo: enter our system
                     {
 
                     }
+                }
+                else
+                {
+                    // not our destination ignore for now
                 }
             }
             else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
