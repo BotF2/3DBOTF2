@@ -14,6 +14,18 @@ public class CombatManager : MonoBehaviour
     public GameObject CombatShipCanvas;
     [SerializeField]
     private CombatController combatConPrefab;
+    public List<CombatController> CombatControllers = new List<CombatController>();
+    public List<IPlayerController> participants;
+
+    public void BeginRound()
+    {
+        foreach (var commander in participants)
+        {
+           // commander.GiveOrder(currentCombatContext);
+        }
+        // Resolve actions after all orders are collected
+    }
+    
     public CombatController CurrentCombatController
     {
         get
@@ -25,7 +37,7 @@ public class CombatManager : MonoBehaviour
             return null;
         }
     }
-    public List<CombatController> CombatControllers = new List<CombatController>();
+
 
     #region old fields to moved to CombatController
     //public static string[] FriendNameArray; // For current SpaceCombatScene ****
@@ -110,7 +122,13 @@ public class CombatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
     internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    {
+    {//**********
+        //if (isLocalPlayer)
+        //    commander = new HumanCommanderLocal();
+        //else if (isServer && isAI)
+        //    commander = new AICommander();
+        //else
+        //    commander = new HumanCommanderRemote();
         var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
         if (diplomacyController.DiplomacyData.CurrentFleetOfSideOne.FleetData != null)

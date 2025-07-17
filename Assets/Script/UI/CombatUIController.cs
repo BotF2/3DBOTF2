@@ -7,6 +7,11 @@ using UnityEngine.UI;
 
 namespace Assets.Core
 {
+    /// <summary>
+    /// UI: When a local player selects an order, call GiveOrder on their controller.
+	/// Networking: When a remote order is received, call GiveOrder on the remote controller.
+	/// AI: On AI’s turn, call GiveOrder with its chosen order.
+    /// </summary>
     [RequireComponent(typeof(Toggle))]
     public class CombatUIController : MonoBehaviour
     {

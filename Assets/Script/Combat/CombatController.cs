@@ -4,8 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class CombatController : MonoBehaviour
+public class CombatController : MonoBehaviour, IPlayerController
 {
+    /// <summary>
+    /// [CombatController]
+    /// |
+    /// v
+    /// [IPlayerController] <--- [LocalHumanPlayerController] (UI)
+    ///                     <--- [RemoteHumanPlayerController] (Network)
+    ///                     <--- [AIPlayerController] (AI)
+    /// </summary>
+
     private CombatData combatData;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
@@ -19,34 +28,32 @@ public class CombatController : MonoBehaviour
     int _destroyersSide2;
     int _capitalsSide1;
     int _capitalsSide2;
-    //private List<Vector2Int> _capitalShipSpiralPositionsSide1 = new List<Vector2Int>();
-    //private List<Vector2Int> _capitalShipSpiralPositionsSide2 = new List<Vector2Int>();
     int _transportsSide1;
     int _transportsSide2;
-    //private List<Vector2Int> _transportSpiralPositionsSide1 = new List<Vector2Int>();
-    //private List<Vector2Int> _transportSpiralPositionsSide2 = new List<Vector2Int>();
-
     int _totalScoutShips; // the total # of scouts in the list, ToDo: why do we need this when it is just the infall count of scouts?
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
+    public List<IPlayerController> PlayerControllers;
 
-    private void Start()
+
+    public CivEnum PlayerCiv { get; }
+    public bool IsLocal { get; }
+
+    public PlayerData PlayerData { get; private set; }
+
+    public void GiveOrder(Orders orders)
     {
-        spiralPositions = GenerateSpiralPositions(maxPositions);
+        // implementation
+    }
+    public void SetCombatOrder(Orders order, CivEnum civ)
+    {
+        var player = PlayerControllers.FirstOrDefault(p => p.PlayerCiv == civ);
+        player?.GiveOrder(order);
     }
     public void SetCombatOrder(Orders theOrder)
     {
-        //for (int i = 0; i < CombatManager.Instance.CombatControllers.Count; i++)
-        //{
-        //    combatController = CombatManager.Instance.CombatControllers[i];
-        //    if (CombatUIController.Instance.CombatController == combatController)
-        //    {
         this.CombatData.Order = theOrder;
-
-                //combatController.ActOnCombatOrders(theOrder);
-        //    }
-        //}
     }
     public void EndCombat()
     {
@@ -57,14 +64,6 @@ public class CombatController : MonoBehaviour
         combatController.CombatData.SideOneShipCons.Clear();
         combatController.CombatData.SideTwoShipCons.Clear();
     }
-    //public List<GameObject> UpdateFriendCombatants()
-    //{
-    //    return combatController.CombatData.SideOneShipGO;
-    //}
-    //public List<GameObject> UpdateEnemyCombatants()
-    //{
-    //    return combatController.CombatData.SideTwoShipGO;
-    //}
     public CivController SideOneCivCombatants()
     {
         return combatController.CombatData.sideOneCiv;
@@ -89,10 +88,6 @@ public class CombatController : MonoBehaviour
 
         BuildShipGOAndPosition(sideOneShips, -1); // left side ships are -x axis...
         BuildShipGOAndPosition(sideTwoShips, 1);
-
-        //CountShips();
-        //ActOnCombatOrders(sideOneShips, -1);
-        //ActOnCombatOrders(sideTwoShips, 1);
     }
     private void BuildShipGOAndPosition(List<ShipController> shipConList, int side1negSide2pog)
     {
@@ -180,7 +175,7 @@ public class CombatController : MonoBehaviour
     }
     public void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)
     {
-        
+
         switch (CombatData.Order)
         {
             case Orders.Engage:
@@ -210,7 +205,7 @@ public class CombatController : MonoBehaviour
                 break;
         }
     }
-       
+
     private List<Vector2Int> GenerateSpiralPositions(int count)
     {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
         spiralPositions.Clear();
@@ -244,32 +239,7 @@ public class CombatController : MonoBehaviour
             stepSize++;
         }
         return spiralPositions.ToList();
-        // Optional: Debug log first 10
-        //for (int i = 0; i < Mathf.Min(10, spiralPositions.Count); i++)
-        //{
-        //    Debug.Log($"[{i + 1}] = {spiralPositions[i]}");
-        //}
     }
-    //private GameObject GetShipModel(string shipName, TechLevel techLevel)
-    //{
-    //    switch (techLevel)
-    //    {
-    //        case TechLevel.EARLY:
-    //            return Resources.Load<GameObject>($"FBX/{shipName}");
-    //            break;  
-    //        case TechLevel.DEVELOPED:    
-    //            return Resources.Load<GameObject>($"FBX/{shipName}");
-    //            break;
-    //        case TechLevel.ADVANCED:    
-    //            return Resources.Load<GameObject>($"FBX/{shipName}");
-    //            break;
-    //        case TechLevel.SUPREME:
-    //            return Resources.Load<GameObject>($"FBX/{shipName}");
-    //            break;  
-    //        default:
-    //            return new GameObject(shipName);
-    //    }
-    //}
 }
 
 // The CS1022 error typically occurs when there is an extra closing brace ('}') in the code.  
