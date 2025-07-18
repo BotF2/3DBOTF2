@@ -1,10 +1,7 @@
 ﻿using Assets.Core;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using Unity.Netcode;
 using UnityEngine;
+using Unity.Netcode;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -40,8 +37,8 @@ public class PlayerData : NetworkBehaviour
     void SpawnInitialFleet() // example of network Multiplayer spawning a fleet at a random position 
     {
         // Use a central spawn point or random location
-        Vector3 spawnPosition = new Vector3(UnityEngine.Random.Range(-10, 10), 0, UnityEngine.Random.Range(-10, 10));
-       // GameObject fleetInstance = Instantiate(GameManager.Instance.fleetPrefab, spawnPosition, Quaternion.identity);
+        //Vector3 spawnPosition = new Vector3(UnityEngine.Random.Range(-10, 10), 0, UnityEngine.Random.Range(-10, 10));
+        //GameObject fleetInstance = Instantiate(GameManager.Instance.fleetPrefab, spawnPosition, Quaternion.identity);
 
         //FleetController fleet = fleetInstance.GetComponent<FleetController>();
         //fleet.ownerId = OwnerClientId;

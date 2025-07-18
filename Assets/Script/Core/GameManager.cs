@@ -324,7 +324,7 @@ namespace Assets.Core
         Moon
 
     }
-    public enum Orders
+    public enum CombatOrders
     {
         Engage,
         Rush,

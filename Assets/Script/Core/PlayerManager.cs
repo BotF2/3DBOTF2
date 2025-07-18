@@ -5,10 +5,34 @@ using UnityEngine;
 public class PlayerManager : MonoBehaviour
 {
     /// <summary>
+    /// Using IPlayerController interface to define player actions and properties.
+    /// Using PlayerManager to manage/instantiate new players in the game.
+    /// Using PlayerData class to hold player-specific data.
+    /// Using LocalHumanPlayerController to implement the interface for local player actions/orders.
+    /// Using AIPlayerController to implement the interface for AI player actions/orders.
+    /// Using RemotePlayerController to implement the interface for remote player actions/orders.
     /// Start creates 7 PlayerData objects, one for each playable slot in the game.
-    /// </summary> 
+    /// <summary Multiplayer issues>
+    /// ??? Unity ToggleGroup by default only allows one toggle to be active so:
+    /// Will each remote player make a unique selection in their own Toggle group or
+    /// is it better to just have buttons, or toggles, not in a group for remotes to select?
+    /// Need to sort out and define local player for the host and from each remote player PC in multiplayer lobby
+    /// We can try using (Mirror Networking; with GameObject LocalPlayerCivEnum = NetworkClient.LocalPlayerCivEnum.gameObject;)
+    /// https://www.youtube.com/watch?v=FSVn57wOWfk
+    /// ToDo this...
+    /// ?Move the AreWeLocalPlayer check in GameController into a check if NetworkObject.OwnerClientId == NetworkManager.Singleton.LocalClientId 
+    /// 
+    /// Use [ServerRpc] for client-to-server input (remote human).
+    /// Server handles resolution, sends results via[ClientRpc].
+    /// </summary>
 
     public static PlayerManager Instance; // Singleton instance
+    bool isLocalPlayer = false; // Flag to check if this is the local player
+    bool isServer = false; // Flag to check if this is the server
+    bool isAI = false; // Flag to check if this is an AI player
+    LocalHumanPlayerController localPlayer; // Local player controller instance
+    AIPlayerController aIPlayerController; // AI commander instance
+    RemoteHumanPlayerController remoteHumanPlayer; // Remote player controller instance
     public List<PlayerData> Players = new List<PlayerData>(); // List of all players in the game
     private void Awake()
     {
@@ -59,6 +83,13 @@ public class PlayerManager : MonoBehaviour
     }
     public List<PlayerData> GetAllPlayers()
     {
+        if (isLocalPlayer)
+            localPlayer = new LocalHumanPlayerController();
+        else if (isServer && isAI)
+            aIPlayerController = new AIPlayerController();
+        else
+            remoteHumanPlayer = new RemoteHumanPlayerController();
+
         return new List<PlayerData>(Players); // Return a copy of the list
     }
     public void ClearPlayers()

@@ -20,9 +20,9 @@ namespace Assets.Core
         /// Move the AreWeLocalPlayer check in GameController into a check if NetworkObject.OwnerClientId == NetworkManager.Singleton.LocalClientId 
         /// <summary>
         /// TO DO Steps after install:
-        // 1. Add the NetworkObject component to your civ (player) prefab.
-        // 2. use this.AreWeLocalPlayer() to do 3.
-        // 2. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
+        /// 1. Add the NetworkObject component to your civ (player) prefab.
+        /// 2. use this.AreWeLocalPlayer() to do 3.
+        /// 3. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
         /// </summary>
         /// </summary>
         public static MainMenuUIController Instance;

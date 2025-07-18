@@ -42,16 +42,26 @@ public class CombatController : MonoBehaviour, IPlayerController
 
     public PlayerData PlayerData { get; private set; }
 
-    public void GiveOrder(Orders orders)
+    public void GiveCombatOrder(CombatOrders orders)
     {
         // implementation
     }
-    public void SetCombatOrder(Orders order, CivEnum civ)
+
+    public void GiveDiplomacyOrder(NegotiationPloysEnum order)
+    {
+        // Implement logic for handling UI diplomacy orders.
+    }
+
+    public void GiveIntelOrder(SecretActionsEnum order)
+    {
+        // Implement logic for handling UI intel orders.
+    }
+    public void SetCombatOrder(CombatOrders order, CivEnum civ)
     {
         var player = PlayerControllers.FirstOrDefault(p => p.PlayerCiv == civ);
-        player?.GiveOrder(order);
+        player?.GiveCombatOrder(order);
     }
-    public void SetCombatOrder(Orders theOrder)
+    public void SetCombatOrder(CombatOrders theOrder)
     {
         this.CombatData.Order = theOrder;
     }
@@ -147,7 +157,7 @@ public class CombatController : MonoBehaviour, IPlayerController
         _transportsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
         _transportsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
-    public void SetThisCombatOrder(Orders order, CivEnum civOfOrder)
+    public void SetThisCombatOrder(CombatOrders order, CivEnum civOfOrder)
     {
         List<ShipController> shipCons = null; // Initialize the variable to avoid CS0165  
         int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
@@ -178,7 +188,7 @@ public class CombatController : MonoBehaviour, IPlayerController
 
         switch (CombatData.Order)
         {
-            case Orders.Engage:
+            case CombatOrders.Engage:
                 for (int i = 0; i < shipCons.Count; i++)
                 {
                     if (shipCons[i].ShipData.ShipType == ShipType.Transport)
@@ -193,13 +203,13 @@ public class CombatController : MonoBehaviour, IPlayerController
                 }
                 break;
 
-            case Orders.Rush:
+            case CombatOrders.Rush:
                 break;
-            case Orders.Retreat:
+            case CombatOrders.Retreat:
                 break;
-            case Orders.Formation:
+            case CombatOrders.Formation:
                 break;
-            case Orders.TargetTransports:
+            case CombatOrders.TargetTransports:
                 break;
             default:
                 break;

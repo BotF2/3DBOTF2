@@ -18,7 +18,7 @@ public class DiplomacyController //not : MonoBehaviour
     private List<string> diplomaticTransmissions = new List<string> { declareWar, requestSomething, demandSomething, offerSomething, demandStopInterferance };
     public List<string> DiplomaticTransmissions { get { return diplomaticTransmissions; } set { diplomaticTransmissions = value; } }
     public List<DiplomaticEventEnum> DiplomaticEvents = new List<DiplomaticEventEnum>
-    { DiplomaticEventEnum.War, DiplomaticEventEnum.DiscoveredSabatoge, DiplomaticEventEnum.DiscoveredDisinformation, DiplomaticEventEnum.DiscoveredIntellectualTheft,
+    { DiplomaticEventEnum.War, DiplomaticEventEnum.DiscoveredSabotage, DiplomaticEventEnum.DiscoveredDisinformation, DiplomaticEventEnum.DiscoveredIntellectualTheft,
         DiplomaticEventEnum.Trade, DiplomaticEventEnum.ShareTech, DiplomaticEventEnum.GiveAid};
     public GameObject DiplomacyUIGameObject; //The instantiated UI for this civ pair. a prefab clone, not a class but a game object
                                              // instantiated by DiplomacyManager from a prefab and added to DiplomacyController
