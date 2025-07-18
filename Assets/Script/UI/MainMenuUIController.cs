@@ -70,7 +70,12 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text playerFed, playerRom, playerKling, playerCard, playerDom, playerBorg, playerTerran;
         private readonly string player = "You", computer = "Computer", notInGame = "Absent";
-        private Toggle activeLocalPlayerToggle;
+        private Toggle activeLocalPlayerToggle; 
+        private CivEnum localPlayerCiv = CivEnum.FED;
+        private List<CivEnum> majorCivsInGameList = new List<CivEnum>
+        {
+            CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
+        };
         //ToDo for multiplayer lobby
         //private Toggle _activeRemote0;
         //private Toggle _activeRemote1;
@@ -297,24 +302,109 @@ namespace Assets.Core
                     {
                         case 0:
                             playerFed.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.FED);
                             break;
                         case 1:
                             playerRom.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.ROM);
                             break;
                         case 2:
                             playerKling.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.KLING);
                             break;
                         case 3:
                             playerCard.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.CARD);
                             break;
                         case 4:
                             playerDom.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.DOM);
                             break;
                         case 5:
                             playerBorg.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.BORG);
                             break;
                         case 6:
                             playerTerran.text = notInGame;
+                            majorCivsInGameList.Remove(CivEnum.TERRAN);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                if (OnOffToggles[i].isOn == true)
+                {
+                    switch (i)
+                    {
+                        case 0:
+                            if (!majorCivsInGameList.Contains(CivEnum.FED))
+                            {
+                                majorCivsInGameList.Add(CivEnum.FED);
+                                if (localPlayerCiv == CivEnum.FED)
+                                    playerFed.text = player;
+                                else
+                                    playerFed.text = computer;
+                            }
+                            break;
+                        case 1:
+                            if (!majorCivsInGameList.Contains(CivEnum.ROM))
+                            {
+                                majorCivsInGameList.Add(CivEnum.ROM);
+                                if (localPlayerCiv == CivEnum.ROM)
+                                    playerRom.text = player;
+                                else
+                                    playerRom.text = computer;
+                            }
+                            break;
+                        case 2:
+                            if (!majorCivsInGameList.Contains(CivEnum.KLING))
+                            {
+                                majorCivsInGameList.Add(CivEnum.KLING);
+                                if (localPlayerCiv == CivEnum.KLING)
+                                    playerKling.text = player;
+                                else
+                                    playerKling.text = computer;
+                            }
+                            break;
+                        case 3:
+                            if (!majorCivsInGameList.Contains(CivEnum.CARD))
+                            {
+                                majorCivsInGameList.Add(CivEnum.CARD);
+                                if (localPlayerCiv == CivEnum.CARD)
+                                    playerCard.text = player;
+                                else
+                                    playerCard.text = computer;
+                            }
+                            break;
+                        case 4:
+                            if (!majorCivsInGameList.Contains(CivEnum.DOM))
+                            {
+                                majorCivsInGameList.Add(CivEnum.DOM);
+                                if (localPlayerCiv == CivEnum.DOM)
+                                    playerDom.text = player;
+                                else
+                                    playerDom.text = computer;
+                            }
+                            break;
+                        case 5:
+                            if (!majorCivsInGameList.Contains(CivEnum.BORG))
+                            {
+                                majorCivsInGameList.Add(CivEnum.BORG);
+                                if (localPlayerCiv == CivEnum.BORG)
+                                    playerBorg.text = player;
+                                else
+                                    playerBorg.text = computer;
+                            }
+                            break;
+                        case 6:
+                            if (!majorCivsInGameList.Contains(CivEnum.TERRAN))
+                            {
+                                majorCivsInGameList.Add(CivEnum.TERRAN);
+                                if (localPlayerCiv == CivEnum.TERRAN)
+                                    playerTerran.text = player;
+                                else
+                                    playerTerran.text = computer;
+                            }
                             break;
                         default:
                             break;
@@ -560,6 +650,8 @@ namespace Assets.Core
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
+            PlayerManager.Instance.ResetPlayerList();
+            PlayerManager.Instance.SetSinglePlayerWithALocalPlayer(localPlayerCiv, majorCivsInGameList);
         }
 
         private void FedOnOffToggleReset()
@@ -693,10 +785,8 @@ namespace Assets.Core
 
         private void SetLocalCivilization(int index)
         {
-            ///<summary>
-            //TO DO, run NetCode and set NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
-            ///</summary>
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
+            localPlayerCiv = (CivEnum)((int)index);
         }
         private void LoadGalaxyScene()
         {

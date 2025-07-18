@@ -1,7 +1,7 @@
 ﻿using Assets.Core;
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Netcode;
+using Mirror;
 
 public class PlayerData : NetworkBehaviour
 {
@@ -13,25 +13,26 @@ public class PlayerData : NetworkBehaviour
     public List<GameObject> OwnedUnits = new List<GameObject>(); // star systems, fleets, ships, starbases, etc.
     public CivEnum Civ; // If each player is a civilization CivEnum, CivController, CivData, etc.
                         // Add more player-specific data as needed
-    public NetworkVariable<string> NetworkPlayerName = new NetworkVariable<string>(string.Empty);
+
+    // Replacing NetworkVariable with a Mirror-compatible alternative
+    [SyncVar]
+    public string NetworkPlayerName = string.Empty;
+
     public void Initialize(int id, string name)
     {
         PlayerId = id;
-        NetworkPlayerName.Value = name;
+        NetworkPlayerName = name;
     }
 
-    public override void OnNetworkSpawn()
+    public override void OnStartServer()
     {
-        if (IsServer)
-        {
-            NetworkPlayerName.Value = $"Player_{OwnerClientId}";
-            SpawnInitialFleet();
-        }
+        NetworkPlayerName = $"Player_{connectionToClient.connectionId}";
+        SpawnInitialFleet();
+    }
 
-        if (IsOwner)
-        {
-            Debug.Log($"Local player initialized: {NetworkPlayerName.Value}");
-        }
+    public override void OnStartLocalPlayer()
+    {
+        Debug.Log($"Local player initialized: {NetworkPlayerName}");
     }
 
     void SpawnInitialFleet() // example of network Multiplayer spawning a fleet at a random position 
@@ -41,23 +42,28 @@ public class PlayerData : NetworkBehaviour
         //GameObject fleetInstance = Instantiate(GameManager.Instance.fleetPrefab, spawnPosition, Quaternion.identity);
 
         //FleetController fleet = fleetInstance.GetComponent<FleetController>();
-        //fleet.ownerId = OwnerClientId;
+        //fleet.ownerId = connectionToClient.connectionId;
 
         // Register fleet and spawn to network
         //ownedFleets.Add(fleet);
-        //fleetInstance.GetComponent<NetworkObject>().SpawnWithOwnership(OwnerClientId);
+        //NetworkServer.Spawn(fleetInstance, connectionToClient);
     }
 
     // Called by UI or input to move a fleet
-    [ServerRpc]
-    public void RequestMoveFleetServerRpc(ulong fleetNetId, Vector3 destination)
+    [Command]
+    public void CmdRequestMoveFleet(uint fleetNetId, Vector3 destination) // Changed parameter type from ulong to uint
     {
-        NetworkObject netObj = NetworkManager.SpawnManager.SpawnedObjects[fleetNetId];
-
-        //if (netObj.TryGetComponent(out FleetController fleet) && fleet.ownerId == OwnerClientId)
-        //{
-        //    //fleet.SetDestination(destination);
-        //}
+        if (NetworkServer.spawned.TryGetValue(fleetNetId, out NetworkIdentity netObj)) // Added TryGetValue for safer access
+        {
+            if (netObj.TryGetComponent(out FleetController fleet) && fleet.ownerId == connectionToClient.connectionId)
+            {
+                // do fleet orders;
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Fleet with NetId {fleetNetId} not found.");
+        }
     }
 
     public void RegisterFleet(FleetController fleet)

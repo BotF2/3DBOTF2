@@ -65,7 +65,8 @@ namespace Assets.Core
         private TextMeshProUGUI destinationCoordinates; 
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
-        
+        internal int ownerId;
+
         private void Start()
         {
             rb = GetComponent<Rigidbody>();

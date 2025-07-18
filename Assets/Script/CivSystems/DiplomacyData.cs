@@ -17,7 +17,7 @@ public class DiplomacyData
     public DiplomacyData(CivController civOne, CivController civTwo, StarSysController starSysController)
     {
         this.CivSideOne = civOne;
-        this.CivSideTwo = civTwo;
+        this.CivSideTwo = civTwo; 
         this.CurrentStarSysController = starSysController;
     }
 }

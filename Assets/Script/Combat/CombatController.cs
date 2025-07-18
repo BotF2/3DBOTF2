@@ -38,7 +38,7 @@ public class CombatController : MonoBehaviour, IPlayerController
 
 
     public CivEnum PlayerCiv { get; }
-    public bool IsLocal { get; }
+    public bool controllerIsLocalPlayer { get; }
 
     public PlayerData PlayerData { get; private set; }
 

@@ -1,4 +1,5 @@
 using Assets.Core;
+using Mirror;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -61,6 +62,16 @@ public class PlayerManager : MonoBehaviour
             Players.Add(playerData);
         }
     }
+    void Update()
+    {
+        // Example input handling for local player actions
+        //if (Input.GetKeyDown(KeyCode.Space))
+        //{
+        //    var localPlayer = NetworkClient.connection.identity;
+        //    var controller = localPlayer.GetComponent<LocalHumanPlayerController>();
+        //    controller?.ExecuteOrder("FireWeapons");
+        //}
+    }
     public void AddPlayer(PlayerData player)
     {
         if (!Players.Contains(player))
@@ -92,11 +103,39 @@ public class PlayerManager : MonoBehaviour
 
         return new List<PlayerData>(Players); // Return a copy of the list
     }
-    public void ClearPlayers()
+    public void ResetPlayerList()
     {
-        Players.Clear(); // Clear the list of players
-        // Optionally, you can also reset player data here
+        if (Players != null)
+            Players.Clear();
     }
+    public void SetSinglePlayerWithALocalPlayer(CivEnum civ, List<CivEnum> majorsInGame)
+    {
+        LocalHumanPlayerController localHumanPlayerCon = new LocalHumanPlayerController();
+        localPlayer = localHumanPlayerCon;
+        PlayerData playerData = new PlayerData
+        {
+            PlayerId = 0, // Assuming local player is always Player 0
+            PlayerName = "Local Player",
+            Civ = civ
+        };
+        localPlayer.PlayerData = playerData; // Assign PlayerData to the local player controller
+        isLocalPlayer = true; // Set the flag to indicate this is the local player
+        Players.Add(playerData); // Add the local player to the player list
+        for (int i = 0; i < majorsInGame.Count; i++)
+        {
+            if (majorsInGame[i] != civ) // Avoid adding the local player's civ again
+            {
+                PlayerData aiPlayerData = new PlayerData
+                {
+                    PlayerId = i + 1, // Start from 1 since 0 is the local player
+                    PlayerName = $"AI Player {i + 1}",
+                    Civ = majorsInGame[i]
+                };
+                Players.Add(aiPlayerData);
+            }
+        }
+    }
+
     public void AssignUnitToPlayer(GameObject unitGO, int playerId)
     {
         PlayerData player = GetPlayerById(playerId);

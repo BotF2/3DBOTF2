@@ -18,5 +18,5 @@ public interface IPlayerController
     //    Apply to game state, broadcast results
     //}
     CivEnum PlayerCiv { get; }
-    bool IsLocal { get; }
+    bool controllerIsLocalPlayer { get; }
 }
