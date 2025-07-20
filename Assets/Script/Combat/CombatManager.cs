@@ -16,6 +16,13 @@ public class CombatManager : MonoBehaviour
     private CombatController combatConPrefab;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
+    public GameObject cameraEmpty;
+    public GameObject animFriend1;
+    public GameObject animFriend2;
+    public GameObject animFriend3;
+    public GameObject animEnemy1;
+    public GameObject animEnemy2;
+    public GameObject animEnemy3;
 
     public void BeginRound()
     {
@@ -122,13 +129,7 @@ public class CombatManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
     internal void SetDiplomacyController(DiplomacyController diplomacyController)
-    {//**********
-        //if (isLocalPlayer)
-        //    commander = new HumanCommanderLocal();
-        //else if (isServer && isAI)
-        //    commander = new AICommander();
-        //else
-        //    commander = new HumanCommanderRemote();
+    {
         var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
         if (diplomacyController.DiplomacyData.CurrentFleetOfSideOne.FleetData != null)
@@ -180,6 +181,7 @@ public class CombatManager : MonoBehaviour
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
         CombatControllers.Add(aCombatController);
         aCombatController.PopulateShipData(aCombatController);
+        aCombatController.TrySetPlayerOrders(combatData);
     }
     public void SetUpCombatUIGameObject(GameObject parent)
     {
@@ -190,7 +192,6 @@ public class CombatManager : MonoBehaviour
 
         if (parent != null && thisCombatUIGameObject != null)
         {
-           // thisCombatUIGameObject.transform.SetParent(parent.transform, false); // false keeps local transform values
             thisCombatUIGameObject.SetActive(true);
             thisCombatUIGameObject.layer = 5;
         }
@@ -210,7 +211,6 @@ public class CombatManager : MonoBehaviour
     #region // More old code moved to CombatController
     //private void PopulateShipData(List<ShipController> shipConList, bool friends)
     //{
-
     //    //for (int i = 0; i < shipConList.Count; i++)//GameManager.ShipDataDictionary.TryGetValue(_ship.name.ToUpper(), out int[] _result))
     //    //{
     //    //    //shipConList[i].ShipData.CivEnum = CivEnum.MOKRA;

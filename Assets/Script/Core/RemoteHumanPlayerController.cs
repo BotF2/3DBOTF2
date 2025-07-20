@@ -4,13 +4,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using Assets.Core;
 using Mirror;
+using System;
 
 public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
 {
-    public PlayerData PlayerData { get; private set; }
+    public PlayerData PlayerData { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
-    //Listens for synced remote input via networking
+    bool hasAuthority;
 
     public override void OnStartAuthority()
     {
@@ -35,7 +36,13 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         // Handle remote user UI input logic, reads Unity input.
     }
-
+    public void ExecuteOrder(string order)
+    {
+        if (hasAuthority)
+        {
+            CmdSendOrder(order);
+        }
+    }
     public void GiveDiplomacyOrder(NegotiationPloysEnum order)
     {
         // Implement logic for handling remote UI diplomacy orders.
@@ -44,5 +51,12 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     public void GiveIntelOrder(SecretActionsEnum order)
     {
         // Implement logic for handling remote UI intel orders.
+    }
+
+    internal void SuggestCombatOrder(CombatData combatData)
+    {
+        // Implement AI combat logic to evaluate the situation and suggest an appropriate order.
+        // This to involve analyzing combatData and making decisions based on various factors.
+        GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
     }
 }

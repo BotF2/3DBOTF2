@@ -3495,7 +3495,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6941cde349421d24894b5770e4ff07cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Players: []
+  LocalPlayerCon: {fileID: 0}
+  AIPlayerControllers: []
+  RemoteHumanPlayerControllers: []
+  allPlayerDatas: []
 --- !u!4 &1714972372
 Transform:
   m_ObjectHideFlags: 0
@@ -4519,6 +4522,13 @@ MonoBehaviour:
   CombatShipCanvas: {fileID: 910061872}
   combatConPrefab: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
   CombatControllers: []
+  cameraEmpty: {fileID: 0}
+  animFriend1: {fileID: 0}
+  animFriend2: {fileID: 0}
+  animFriend3: {fileID: 0}
+  animEnemy1: {fileID: 0}
+  animEnemy2: {fileID: 0}
+  animEnemy3: {fileID: 0}
 --- !u!4 &2102662241
 Transform:
   m_ObjectHideFlags: 0

@@ -5,7 +5,8 @@ using UnityEngine;
 
 public class CombatData
 {
-    public CombatOrders Order = CombatOrders.Engage;
+    public CombatOrders OrderSideOne = CombatOrders.Engage;
+    public CombatOrders OrderSideTwo = CombatOrders.Engage;
     public CivEnum CivEnumSideOne;
     public CivEnum CivEnumSideTwo;
     public CivController sideOneCiv;
@@ -77,7 +78,8 @@ public class CombatData
 
     public CombatData()
     {
-        Order = CombatOrders.None;
+        OrderSideOne = CombatOrders.None;
+        OrderSideTwo = CombatOrders.None;
         CivEnumSideOne = CivEnum.None;
         CivEnumSideTwo = CivEnum.None;
         sideOneCiv = null;

@@ -4,27 +4,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using Assets.Core;
 using Mirror;
+using System;
 
-public class AIPlayerController : NetworkBehaviour, IPlayerController
+public class AiPlayerController : NetworkBehaviour, IPlayerController
 {
-    public PlayerData PlayerData { get; private set; }
+    public PlayerData PlayerData { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
 
-    void Update()
-    {
-        // Handle local player input here
-        if (!isLocalPlayer) // network local player, not bool controllerIsLocalPlayer
-        {
-            return; // Skip if not the local player
-        }
-        else
-        {
-            ExecuteOrder("Engage"); // Example order, replace with actual input handling
-            GiveCombatOrder(CombatOrders.Engage);
-        }
-    }
+
     public override void OnStartAuthority()
     {
         base.OnStartAuthority();
@@ -55,7 +44,8 @@ public class AIPlayerController : NetworkBehaviour, IPlayerController
     }
     public void GiveCombatOrder(CombatOrders order)
     {
-        // Handle AI logic, computes behavior logic.
+      
+        //CombatController..SetCombatOrder(order, PlayerData.CivEnum);
     }
 
     public void GiveDiplomacyOrder(NegotiationPloysEnum order)
@@ -66,6 +56,12 @@ public class AIPlayerController : NetworkBehaviour, IPlayerController
     public void GiveIntelOrder(SecretActionsEnum order)
     {
         // Handle AI logic for intel orders.
+    }
+
+    internal void GetAICombatOrder(CombatData order)
+    {
+        // do AI combat logic here, Handle AI logic, computes behavior logic.
+        GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
     }
     //.....???? more orders as needed
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class CombatController : MonoBehaviour, IPlayerController
+public class CombatController : MonoBehaviour
 {
     /// <summary>
     /// [CombatController]
@@ -18,9 +18,8 @@ public class CombatController : MonoBehaviour, IPlayerController
     private CombatData combatData;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
-    public GameObject prefabSphere;
     public GameObject cameraEmptyGo;
-    public int maxPositions = 200; // the max number of positions to generate in the spiral
+    //public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
     int _scoutsSide1;
     int _scoutsSide2;
@@ -34,13 +33,6 @@ public class CombatController : MonoBehaviour, IPlayerController
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
-    public List<IPlayerController> PlayerControllers;
-
-
-    public CivEnum PlayerCiv { get; }
-    public bool controllerIsLocalPlayer { get; }
-
-    public PlayerData PlayerData { get; private set; }
 
     public void GiveCombatOrder(CombatOrders orders)
     {
@@ -56,14 +48,36 @@ public class CombatController : MonoBehaviour, IPlayerController
     {
         // Implement logic for handling UI intel orders.
     }
-    public void SetCombatOrder(CombatOrders order, CivEnum civ)
+    public void SetThisUILocalPlayerCombatOrder(CombatOrders order, CivEnum civOfOrder)
     {
-        var player = PlayerControllers.FirstOrDefault(p => p.PlayerCiv == civ);
-        player?.GiveCombatOrder(order);
+        List<ShipController> shipCons = null; // Initialize the variable  
+        int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
+        // Determine which list of ships to use based on the civOfOrder  
+        if (civOfOrder == CombatData.CivEnumSideOne)
+        {
+            shipCons = CombatData.SideOneShipCons;
+            sideSignFactor = -1; // Side One is always on the left side, ie negative x-axis
+            CombatData.OrderSideOne = order;
+        }
+        else if (civOfOrder == CombatData.CivEnumSideTwo)
+        {
+            shipCons = CombatData.SideTwoShipCons;
+            sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
+            CombatData.OrderSideTwo = order;
+        }
+
+        // Ensure shipCons is not null before proceeding  
+        if (shipCons == null)
+        {
+            Debug.LogError("Ship list is null. Unable to act on combat order.");
+            return;
+        }
     }
-    public void SetCombatOrder(CombatOrders theOrder)
+    internal void TrySetPlayerOrders(CombatData combatData)
     {
-        this.CombatData.Order = theOrder;
+        //ToDo: Implement logic to set player orders based on the combat data.
+        //and is player AiPlayerController (do it now) vs RemoteHumanPlayerController (wait for network messages)
+
     }
     public void EndCombat()
     {
@@ -157,63 +171,39 @@ public class CombatController : MonoBehaviour, IPlayerController
         _transportsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
         _transportsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
-    public void SetThisCombatOrder(CombatOrders order, CivEnum civOfOrder)
-    {
-        List<ShipController> shipCons = null; // Initialize the variable to avoid CS0165  
-        int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
-        // Determine which list of ships to use based on the civOfOrder  
-        if (civOfOrder == CombatData.CivEnumSideOne)
-        {
-            shipCons = CombatData.SideOneShipCons;
-            sideSignFactor = -1; // Side One is always on the left side
-        }
-        else if (civOfOrder == CombatData.CivEnumSideTwo)
-        {
-            shipCons = CombatData.SideTwoShipCons;
-            sideSignFactor = 1; // Side Two is always on the right side
-        }
 
-        // Ensure shipCons is not null before proceeding  
-        if (shipCons == null)
-        {
-            Debug.LogError("Ship list is null. Unable to act on combat order.");
-            return;
-        }
 
-        CombatData.Order = order; // order to controller combat data
-
-    }
     public void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)
     {
 
-        switch (CombatData.Order)
-        {
-            case CombatOrders.Engage:
-                for (int i = 0; i < shipCons.Count; i++)
-                {
-                    if (shipCons[i].ShipData.ShipType == ShipType.Transport)
-                    {
-                        shipCons[i].transform.position = new Vector3((CombatData.xStart * sideSignFactor) + (CombatData.zSeparator * sideSignFactor),
-                            spiralPositions[i].x, spiralPositions[i].y);
-                    }
-                    else
-                    {
-                        shipCons[i].transform.position = new Vector3(CombatData.xStart * sideSignFactor, spiralPositions[i].x, spiralPositions[i].y);
-                    }
-                }
-                break;
+        //switch (CombatData.Order)
+        //{
+        //    case CombatOrders.Engage:
+        //        for (int i = 0; i < shipCons.Count; i++)
+        //        {
+        //            if (shipCons[i].ShipData.ShipType == ShipType.Transport)
+        //            {
+        //                shipCons[i].transform.position = new Vector3((CombatData.xStart * sideSignFactor) + (CombatData.zSeparator * sideSignFactor),
+        //                    spiralPositions[i].x, spiralPositions[i].y);
+        //            }
+        //            else
+        //            {
+        //                shipCons[i].transform.position = new Vector3(CombatData.xStart * sideSignFactor, spiralPositions[i].x, spiralPositions[i].y);
+        //            }
+        //        }
+        //        break;
 
-            case CombatOrders.Rush:
-                break;
-            case CombatOrders.Retreat:
-                break;
-            case CombatOrders.Formation:
-                break;
-            case CombatOrders.TargetTransports:
-                break;
-            default:
-                break;
-        }
+        //    case CombatOrders.Rush:
+        //        break;
+        //    case CombatOrders.Retreat:
+        //        break;
+        //    case CombatOrders.Formation:
+        //        break;
+        //    case CombatOrders.TargetTransports:
+        //        break;
+        //    default:
+        //        break;
+        //}
     }
 
     private List<Vector2Int> GenerateSpiralPositions(int count)
@@ -250,16 +240,7 @@ public class CombatController : MonoBehaviour, IPlayerController
         }
         return spiralPositions.ToList();
     }
+
+
 }
-
-// The CS1022 error typically occurs when there is an extra closing brace ('}') in the code.  
-// After reviewing the provided code, the issue seems to be caused by an extra closing brace at the end of the file.  
-// To fix this, remove the unnecessary closing brace at the end of the file.  
-
-// Original code snippet at the end of the file:  
-// }  
-
-// Corrected code:  
-// Simply remove the extra closing brace at the end of the file.
-
 

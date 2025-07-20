@@ -642,6 +642,8 @@ namespace Assets.Core
             panelMuliplayer.SetActive(true);
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
+            PlayerManager.Instance.ResetPlayerList();
+            PlayerManager.Instance.SetLocalPlayerForMultiplayer(localPlayerCiv);
         }
         public void SetSinglePlayer()
         {

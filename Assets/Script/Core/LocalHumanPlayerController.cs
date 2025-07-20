@@ -7,22 +7,10 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
 {
     public PlayerData PlayerData { get; set; }
     public CivEnum PlayerCiv { get; private set; }
-    public bool controllerIsLocalPlayer => false; // do we need this with Mirror in place?
+    public bool controllerIsLocalPlayer => true; // do we need this with Mirror in place?
     bool hasAuthority;
 
-    void Update()
-    {
-        // Handle local player input here
-        if (!isLocalPlayer) // network local player, not bool controllerIsLocalPlayer
-        {
-            return; // Skip if not the local player
-        }
-        else
-        {
-            ExecuteOrder("Engage"); // Example order, replace with actual input handling
-            GiveCombatOrder(CombatOrders.Engage);
-        }
-    }
+
     public override void OnStartAuthority()
     {
         base.OnStartAuthority();
@@ -64,5 +52,11 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     public void GiveIntelOrder(SecretActionsEnum order)
     {
         // Implement logic for handling UI intel orders.    
+    }
+    internal void SuggestCombatOrder(CombatData combatData)
+    {
+        // Implement AI combat logic to evaluate the situation and suggest an appropriate order.
+        // This  involve analyzing combatData and making decisions based on various factors.
+        GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
     }
 }

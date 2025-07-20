@@ -51,40 +51,32 @@ namespace Assets.Core
                 DontDestroyOnLoad(gameObject);
             }
         }
-        //private void SetSideOneOrderOrSideTwo()
-        //{
-        //    if (sideOneShipControllers.Count > 0)
-        //    {
-        //        if (CivEnumLocalPlayer == sideOneShipControllers[0].ShipData.CivEnum)
-        //        {
-        //            negIsSideOnePosIsSideTwo = -1; // local player is on side one
-        //        }
-        //    }
-        //}
+        // Replace all calls to CombatController.SetThisCombatOrder(...) with CombatController.SetThisUILocalPlayerCombatOrder(...)
+        // This matches the available method signature in CombatController.
+
         public void ActivePlayerToggle(Toggle activeToggle)
         {
             switch (activeToggle.name.ToUpper())
             {
                 case "TOGGLE_ENGAGE":
-                    CombatController.SetCombatOrder(CombatOrders.Engage); // wait for enter combat to act on the chosen order
-                    //CombatController.ActOnCombatOrders(order);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer); // wait for enter combat to act on the chosen order
                     Debug.Log("Active Engage.");
                     break;
                 case "TOGGLE_RUSH":
                     Debug.Log("Active Rush.");
-                    CombatController.SetCombatOrder(CombatOrders.Rush);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Rush, CivEnumLocalPlayer);
                     break;
                 case "TOGGLE_RETREAT":
                     Debug.Log("Active Retreat.");
-                    CombatController.SetCombatOrder(CombatOrders.Retreat);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
                     break;
                 case "TOGGLE_FORMATION":
                     Debug.Log("Active Formation.");
-                    CombatController.SetCombatOrder(CombatOrders.Formation);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Formation, CivEnumLocalPlayer);
                     break;
                 case "TOGGLE_TARGET_TRANSPORTS":
                     Debug.Log("Active Target Transports.");
-                    CombatController.SetCombatOrder(CombatOrders.TargetTransports);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.TargetTransports, CivEnumLocalPlayer);
                     break;
                 default:
                     break;
@@ -274,41 +266,40 @@ namespace Assets.Core
                 shipControllers = sideOneShipControllers;
                 negIsSideOnePosIsSideTwo = -1;
             }
-            else  
+            else
             {
                 shipControllers = sideTwoShipControllers;
                 negIsSideOnePosIsSideTwo = 1;
             }
-            //This method will handle the combat orders based on the selected order
             switch (order)
             {
                 case CombatOrders.Engage:
-                    CombatController.SetThisCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Engaging in combat.");
                     break;
                 case CombatOrders.Rush:
-                    CombatController.SetThisCombatOrder(CombatOrders.Rush, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Rush, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Rushing towards the enemy.");
                     break;
                 case CombatOrders.Retreat:
-                    CombatController.SetThisCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Retreating from combat.");
                     break;
                 case CombatOrders.Formation:
-                    CombatController.SetThisCombatOrder(CombatOrders.Formation, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Formation, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Forming a combat formation.");
                     break;
                 case CombatOrders.TargetTransports:
-                    CombatController.SetThisCombatOrder(CombatOrders.TargetTransports, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.TargetTransports, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Targeting enemy transports.");
                     break;
                 default:
-                    CombatController.SetThisCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer);
+                    CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer);
                     CombatController.ActOnCombatOrders(shipControllers, negIsSideOnePosIsSideTwo);
                     Debug.Log("Unknown order.");
                     break;

@@ -148,12 +148,6 @@ public class DiplomacyManager : MonoBehaviour
             diplomacyData.CivSideTwo = civSideTwo;
             diplomacyData.CurrentFleetOfSideTwo = fleetSideTwo;
             diplomacyData.CurrentStarSysController = sysCon;
-            //if (sysCon.StarSysData == null) // other civ fleet in a star system  
-            //    Destroy(sysCon.gameObject); // destroy the star system controller, we do not need it  
-            //if (diplomacyData.CurrentFleetOfSideOne.FleetData == null) // no other civ fleet  
-            //    Destroy(fleetSideTwo.gameObject);
-            //if (diplomacyData.CurrentFleetOfSideTwo.FleetData == null)
-            //    Destroy(fleetSideOne.gameObject);
         }
         
         DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);

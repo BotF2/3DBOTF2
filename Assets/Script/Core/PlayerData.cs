@@ -3,16 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 
+public enum PlayerType { Local, AI, Remote }
 public class PlayerData : NetworkBehaviour
 {
     /// <summary>
+    /// holds player-specific data for multiplayer games. (Player logic is in the PlayerController classes)
     /// When a player issues a command(move, attack, etc.), validate that the player owns the unit before executing the command.
     /// </summary>
-    public int PlayerId; // Unique for each player
-    public string PlayerName;
-    public List<GameObject> OwnedUnits = new List<GameObject>(); // star systems, fleets, ships, starbases, etc.
-    public CivEnum Civ; // If each player is a civilization CivEnum, CivController, CivData, etc.
-                        // Add more player-specific data as needed
+    [SyncVar] public int PlayerId; // Unique for each player
+    [SyncVar] public string PlayerName;
+    [SyncVar] public PlayerType PlayerType; // Local, AI, or Remote
+    [SyncVar] public CivEnum PlayerCiv; // Civilization enum for the player
+    public List<GameObject> OwnedGameObjects = new List<GameObject>(); // star systems, fleets, ships, starbases, etc.
+    // Add more player-specific data as needed
 
     // Replacing NetworkVariable with a Mirror-compatible alternative
     [SyncVar]

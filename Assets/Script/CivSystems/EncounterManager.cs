@@ -62,6 +62,7 @@ public class EncounterManager : MonoBehaviour
             { 
                 DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                 FirstContactFleetOnFleetEncounterController(reportingPlayerFleet, otherFleet);
+                Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
             }
             else
             {

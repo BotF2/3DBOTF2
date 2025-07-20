@@ -4,19 +4,19 @@ using System.Collections.Generic;
 
 public interface IPlayerController
 {
-    PlayerData PlayerData { get; }
-
+    PlayerData PlayerData { get; set; }
+    CivEnum PlayerCiv { get; }
+    bool controllerIsLocalPlayer { get; }
     // How many of these do we need?
     void GiveCombatOrder(CombatOrders order);
     void GiveDiplomacyOrder(NegotiationPloysEnum order);
     void GiveIntelOrder(SecretActionsEnum order);
     //......more orders as needed
 
-    // or [ServerRpc] ??????????
+    // or [ServerRpc] ??
     //public void SubmitOrdersServerRpc(Orders orders)
     //{
-    //    Apply to game state, broadcast results
+    //    // Apply to game state, broadcast results
     //}
-    CivEnum PlayerCiv { get; }
-    bool controllerIsLocalPlayer { get; }
+
 }
