@@ -21,6 +21,12 @@ public class CombatController : MonoBehaviour
     public GameObject cameraEmptyGo;
     //public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
+    public Animator sideOneA1Animator;
+    public Animator sideOneA2Animator;
+    public Animator sideOneA3Animator;
+    public Animator sideTwoA1Animator;
+    public Animator sideTwoA2Animator;
+    public Animator sideTwoA3Animator;
     int _scoutsSide1;
     int _scoutsSide2;
     int _destroyersSide1;
@@ -29,11 +35,20 @@ public class CombatController : MonoBehaviour
     int _capitalsSide2;
     int _transportsSide1;
     int _transportsSide2;
-    int _totalScoutShips; // the total # of scouts in the list, ToDo: why do we need this when it is just the infall count of scouts?
+    int _totalScoutShips;
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
 
+    private void Start()
+    {
+        sideOneA1Animator.gameObject.SetActive(false);
+        sideTwoA1Animator.gameObject.SetActive(false);  
+        sideOneA2Animator.gameObject.SetActive(false);
+        sideTwoA2Animator.gameObject.SetActive(false);
+        sideOneA3Animator.gameObject.SetActive(false);
+        sideTwoA3Animator.gameObject.SetActive(false);
+    }
     public void GiveCombatOrder(CombatOrders orders)
     {
         // implementation
@@ -48,30 +63,30 @@ public class CombatController : MonoBehaviour
     {
         // Implement logic for handling UI intel orders.
     }
-    public void SetThisUILocalPlayerCombatOrder(CombatOrders order, CivEnum civOfOrder)
+    public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
     {
         List<ShipController> shipCons = null; // Initialize the variable  
-        int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
+        //int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
         // Determine which list of ships to use based on the civOfOrder  
         if (civOfOrder == CombatData.CivEnumSideOne)
         {
-            shipCons = CombatData.SideOneShipCons;
-            sideSignFactor = -1; // Side One is always on the left side, ie negative x-axis
+            //shipCons = CombatData.SideOneShipCons;
+            //sideSignFactor = -1; // Side One is always on the left side, ie negative x-axis
             CombatData.OrderSideOne = order;
         }
         else if (civOfOrder == CombatData.CivEnumSideTwo)
         {
-            shipCons = CombatData.SideTwoShipCons;
-            sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
+            //shipCons = CombatData.SideTwoShipCons;
+           // sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
             CombatData.OrderSideTwo = order;
         }
 
         // Ensure shipCons is not null before proceeding  
-        if (shipCons == null)
-        {
-            Debug.LogError("Ship list is null. Unable to act on combat order.");
-            return;
-        }
+        //if (shipCons == null)
+        //{
+        //    Debug.LogError("Ship list is null. Unable to act on combat order.");
+        //    return;
+        //}
     }
     internal void TrySetPlayerOrders(CombatData combatData)
     {
@@ -104,7 +119,7 @@ public class CombatController : MonoBehaviour
             Debug.Log("CombatController Instance is null.");
             return;
         }
-        CombatUIController.Instance.CombatOrdersUI.SetActive(true);
+        CombatUIController.Instance.PanelCombat_Menu.SetActive(true);
 
         var sideOneShips = theCombatController.CombatData.SideOneShipCons;
 
@@ -122,7 +137,60 @@ public class CombatController : MonoBehaviour
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
             shipGameOb.transform.SetPositionAndRotation(new Vector3(combatController.CombatData.xStart * side1negSide2pog, i * 10, i * 10), Quaternion.Euler(0, 90 * side1negSide2pog, 0));
-            shipGameOb.transform.SetParent(CombatManager.Instance.CombatShipCanvas.transform, true);
+            shipGameOb.transform.SetParent(CombatUIController.Instance.PanelShipCombat.transform, true);
+            if (shipGameOb.GetComponent<ShipController>() != null)
+            {
+                var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
+                int flip = -1;
+                if (shipType == ShipType.Transport)
+                {
+                    if (side1negSide2pog < 0)
+                    {
+                        sideOneA3Animator.gameObject.SetActive(true);
+                        shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform);                 
+                    }
+                    else
+                    {
+                        sideTwoA3Animator.gameObject.SetActive(true);
+                        shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform);
+                    }
+                    //shipGameOb.transform.SetParent(sideOneA3.gameObject.transform);       
+                }
+                else
+                {
+                    if (side1negSide2pog < 0)
+                    {
+                        if (flip < 0)
+                        {
+                            sideOneA1Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform);
+                            flip = 1;
+                        }
+                        else
+                        {
+                            sideTwoA1Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform);
+                            flip = -1;
+                        }
+                    }
+                    else
+                    {
+                        if (flip < 0)
+                        {
+                            sideOneA1Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform);
+                            flip = 1;
+                        }
+                        else
+                        {
+                            sideTwoA1Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform);
+                            flip = -1;
+                        }
+                    }
+                }
+     
+            }
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
             rigid.transform.localScale = Vector3.one;
             rigid.useGravity = false;
@@ -173,9 +241,15 @@ public class CombatController : MonoBehaviour
     }
 
 
-    public void ActOnCombatOrders(List<ShipController> shipCons, int sideSignFactor)
+    public void ActOnCurrentCombatOrders() //(List<ShipController> shipCons, int sideSignFactor)
     {
-
+        sideOneA1Animator.SetBool("", true);
+        sideTwoA1Animator.SetBool("", true);
+        sideOneA2Animator.SetBool("", true);
+        sideTwoA2Animator.SetBool("", true);
+        sideOneA3Animator.SetBool("", true);
+        sideTwoA3Animator.SetBool("", true);
+        //CombatManager.Instance.EnterShipCombate();
         //switch (CombatData.Order)
         //{
         //    case CombatOrders.Engage:
@@ -240,7 +314,5 @@ public class CombatController : MonoBehaviour
         }
         return spiralPositions.ToList();
     }
-
-
 }
 

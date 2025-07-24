@@ -31,7 +31,7 @@ public class CombatData
     private GameObject animEnemy2;
     [SerializeField]
     private GameObject animEnemy3;
-    bool _isFriend; // true if friend, false if enemy
+   // bool _isFriend; // true if friend, false if enemy
     int _scoutsFriend;
     int _destroyersFriend;
     int _capitalsFriend;

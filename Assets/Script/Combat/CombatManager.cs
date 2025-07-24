@@ -1,4 +1,5 @@
 using Assets.Core;
+using Mirror.BouncyCastle.Asn1.Crmf;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -10,19 +11,17 @@ public class CombatManager : MonoBehaviour
     public static CombatManager Instance { get; private set; }
 
     public GameObject CombatUICanvas;  
-    public GameObject PanelCombat_Menu;
-    public GameObject CombatShipCanvas;
     [SerializeField]
     private CombatController combatConPrefab;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
     public GameObject cameraEmpty;
-    public GameObject animFriend1;
-    public GameObject animFriend2;
-    public GameObject animFriend3;
-    public GameObject animEnemy1;
-    public GameObject animEnemy2;
-    public GameObject animEnemy3;
+    [SerializeField] GameObject sideOneA1;
+    [SerializeField] GameObject sideOneA2;
+    [SerializeField] GameObject sideOneA3;
+    [SerializeField] GameObject sideTwoA1;
+    [SerializeField] GameObject sideTwoA2;
+    [SerializeField] GameObject sideTwoA3;
 
     public void BeginRound()
     {
@@ -168,7 +167,6 @@ public class CombatManager : MonoBehaviour
         {
             InstantiateCombatController(combatData);
         }
-
     }
 
     public void InstantiateCombatController(CombatData combatData)
@@ -176,27 +174,54 @@ public class CombatManager : MonoBehaviour
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
         aCombatController.CombatData = combatData; // set the combat data
+        aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
+        aCombatController.CombatData.OrderSideTwo = CombatOrders.Engage; // default order
+        aCombatController.CombatData.sideOneCiv = combatData.sideOneCiv;
+        aCombatController.CombatData.sideTwoCiv = combatData.sideTwoCiv;
+        aCombatController.CombatData.CivEnumSideOne = combatData.CivEnumSideOne;
+        aCombatController.CombatData.CivEnumSideTwo = combatData.CivEnumSideTwo;
+        aCombatController.CombatData.SideOneShipCons = combatData.SideOneShipCons;
+        aCombatController.CombatData.SideTwoShipCons = combatData.SideTwoShipCons;
         aCombatController.transform.SetParent(transform, false); 
         CombatUIController.Instance.CombatController = aCombatController;
+        CombatUIController.Instance.sideOneEnum = combatData.CivEnumSideOne;
+        CombatUIController.Instance.sideTwoEnum = combatData.CivEnumSideTwo;
+        CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
+        CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
+        aCombatController.sideOneA1Animator = sideOneA1.GetComponent<Animator>();
+        aCombatController.sideTwoA1Animator = sideTwoA1.GetComponent<Animator>();
+        aCombatController.sideOneA2Animator = sideOneA2.GetComponent<Animator>();
+        aCombatController.sideTwoA2Animator = sideTwoA2.GetComponent<Animator>();
+        aCombatController.sideOneA3Animator = sideOneA3.GetComponent<Animator>();
+        aCombatController.sideTwoA3Animator = sideTwoA3.GetComponent<Animator>();
+        
         CombatControllers.Add(aCombatController);
         aCombatController.PopulateShipData(aCombatController);
         aCombatController.TrySetPlayerOrders(combatData);
+        SetUpLocalPlayer();
     }
-    public void SetUpCombatUIGameObject(GameObject parent)
+    public void EnterShipCombate()
     {
-        CombatUICanvas.SetActive(true);
-        PanelCombat_Menu.SetActive(true);
-        CombatShipCanvas.SetActive(false);
+        //CombatUICanvas.SetActive(true);
+        //PanelCombat_Menu.SetActive(false);
+        //CombatShipCanvas.SetActive(true);
+        
+    }
+    public void SetUpLocalPlayer()
+    {
+        //CombatUICanvas.SetActive(true);
+        //PanelCombat_Menu.SetActive(true);
+        //CombatShipCanvas.SetActive(false);
         GameObject thisCombatUIGameObject = CombatUICanvas;
 
-        if (parent != null && thisCombatUIGameObject != null)
+        if (thisCombatUIGameObject != null)
         {
             thisCombatUIGameObject.SetActive(true);
             thisCombatUIGameObject.layer = 5;
         }
 
-        thisCombatUIGameObject.SetActive(true);
+        //thisCombatUIGameObject.SetActive(true);
         var combatUiController = thisCombatUIGameObject.GetComponent<CombatUIController>();
         if (combatUiController != null)
         {
