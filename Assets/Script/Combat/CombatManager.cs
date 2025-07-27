@@ -12,10 +12,12 @@ public class CombatManager : MonoBehaviour
 
     public GameObject CombatUICanvas;  
     [SerializeField]
-    private CombatController combatConPrefab;
+    private CombatController combatConPrefab;   
+    //public GameObject ShipCameraHolder;
+    //public Camera CameraShips;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
-    public GameObject cameraEmpty;
+   // public GameObject cameraEmpty;
     [SerializeField] GameObject sideOneA1;
     [SerializeField] GameObject sideOneA2;
     [SerializeField] GameObject sideOneA3;
@@ -200,13 +202,11 @@ public class CombatManager : MonoBehaviour
         aCombatController.PopulateShipData(aCombatController);
         aCombatController.TrySetPlayerOrders(combatData);
         SetUpLocalPlayer();
+        TimeManager.Instance.PauseTime(); // Pause the game when combat UI is opened
     }
-    public void EnterShipCombate()
+    public void EndCombat()
     {
-        //CombatUICanvas.SetActive(true);
-        //PanelCombat_Menu.SetActive(false);
-        //CombatShipCanvas.SetActive(true);
-        
+        TimeManager.Instance.ResumeTime(); // Resume the game when combat UI is closed
     }
     public void SetUpLocalPlayer()
     {
@@ -227,6 +227,7 @@ public class CombatManager : MonoBehaviour
         {
             combatUiController.CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
             combatUiController.OpenCombatUI(thisCombatUIGameObject);
+            
         }
         else
         {

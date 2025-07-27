@@ -1,0 +1,45 @@
+using UnityEngine;
+
+namespace Assets.Core
+{
+
+    public class S2A3Animator : MonoBehaviour
+    {
+        public Animator anim;
+        public AudioSource warpAudioSource_0;
+
+        void Start()
+        {
+            anim = GetComponent<Animator>();
+            anim.enabled = true; // Ensure the animator is enabled
+            anim.SetBool("WarpInS2A3", false); // Ensure the animation is not running at start
+            // cameraMultiTarget = GetComponent<CameraMultiTarget>();
+        }
+
+        // Update is called once per frame  
+        public void RunAnimation()
+        {
+            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.warpingIn)
+            {
+                anim.SetBool("WarpInS2A3", true);
+                PlayWarp();
+                //CombatUIController.Instance.CombatController.warpingInOver = false; // reset the warping in state
+            }
+            // lets warp animation run
+        }
+
+        public void PlayWarp() // called in animation - warp
+        {
+            //if (GameManager.Instance._statePassedCombatInit)
+            //{
+            //    warpAudioSource_0.volume = 1f;
+            //    warpAudioSource_0.Play();
+            //}
+        }
+        public void SetShipLayers()
+        {
+            //GameManager.Instance.SetShipLayer();
+            
+        }
+    }
+}

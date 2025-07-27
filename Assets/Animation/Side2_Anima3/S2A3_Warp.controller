@@ -72,7 +72,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_Ideal
+  m_Name: Side2A3_Ideal
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -86,7 +86,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: a613ad2af4383a5468abf5aa84604b22, type: 2}
+  m_Motion: {fileID: 7400000, guid: 4e29b7ad5446f234f8a2832d5dcc976b, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -99,7 +99,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_end
+  m_Name: Side2A3_end
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -112,7 +112,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: ec55c899ee6a02f42a9d4737a8565ba7, type: 2}
+  m_Motion: {fileID: 7400000, guid: b56e2d63d7c59c54091cc7d4d31e99b3, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -125,7 +125,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_Warp
+  m_Name: Side2A3_Warp
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -139,7 +139,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: 7e1de61c767094b4fabd902d154f4fec, type: 2}
+  m_Motion: {fileID: 7400000, guid: b70f22c31ca5b184f8a7e6c4d0244eb4, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -152,7 +152,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_Stop
+  m_Name: Side2A3_Stop
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -166,7 +166,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: f5c0c00c8ca85244596e7399f907f5f0, type: 2}
+  m_Motion: {fileID: 7400000, guid: 2e2b480bd14ba6a4aad5a5cef832cfd3, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -178,10 +178,10 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_Warp
+  m_Name: S2A3_Warp
   serializedVersion: 5
   m_AnimatorParameters:
-  - m_Name: WarpInS2A2
+  - m_Name: WarpInS2A3
     m_Type: 4
     m_DefaultFloat: 0
     m_DefaultInt: 0
@@ -209,7 +209,7 @@ AnimatorStateTransition:
   m_Name: 
   m_Conditions:
   - m_ConditionMode: 1
-    m_ConditionEvent: WarpInS2A2
+    m_ConditionEvent: WarpInS2A3
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: -1868364547183933265}

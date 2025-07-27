@@ -34,7 +34,7 @@ namespace Assets.Core
         private Camera galaxyEventCamera;
         private GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
         public Canvas FleetUICanvas { get; private set; }
-        public Canvas CanvasToolTip; // not used for now, see start method and in instantiation of fleetController in FleetManager.cs
+        //public Canvas CanvasToolTip; // not used for now, see start method and in instantiation of fleetController in FleetManager.cs
         public PlayerDefinedTargetController TargetController;
         private Vector3 vectorOffset;
         private float ourZCoordinate;
@@ -75,7 +75,7 @@ namespace Assets.Core
             var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
             FleetUICanvas = CanvasGO.GetComponent<Canvas>();
             FleetUICanvas.worldCamera = galaxyEventCamera;
-            CanvasToolTip.worldCamera = galaxyEventCamera;
+            //CanvasToolTip.worldCamera = galaxyEventCamera;
             FleetData.CurrentWarpFactor = 0f;
             for (int i = 0; i < FleetData.ShipsList.Count; i++)
             {

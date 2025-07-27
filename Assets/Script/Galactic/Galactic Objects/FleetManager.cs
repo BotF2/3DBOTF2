@@ -154,13 +154,13 @@ namespace Assets.Core
             fleetController.BackgroundGalaxyImage = galaxyImage;
             fleetController.FleetData = fleetData;
             Canvas[] canvasArray = fleetController.gameObject.GetComponentsInChildren<Canvas>();
-            for (int j = 0; j < canvasArray.Length; j++)
-            {
-                if (canvasArray[j].name == "CanvasToolTip")
-                {
-                    fleetController.CanvasToolTip = canvasArray[j];
-                }
-            }
+            //for (int j = 0; j < canvasArray.Length; j++)
+            //{
+            //    if (canvasArray[j].name == "CanvasToolTip")
+            //    {
+            //        fleetController.CanvasToolTip = canvasArray[j];
+            //    }
+            //}
             if (!inSystem)
             {
                 var transGalaxyCenter = GalaxyCenter.gameObject.transform;

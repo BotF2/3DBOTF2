@@ -70,7 +70,7 @@ namespace Assets.Core
                     isTimerRunning = false;
                     remainingTime = 0f;
                     timerText.text = "00";
-                    CombatController.ActOnCurrentCombatOrders(); // Call the method to act on current combat orders when the timer ends
+                    EnterShipCombatPhase(); 
                 }
             }
         }
@@ -183,7 +183,6 @@ namespace Assets.Core
                     case "PanelCombat_Menu":
                         PanelCombat_Menu = rectTransforms[i].gameObject;
                         PanelCombat_Menu.SetActive(true);
-                        isTimerRunning = true;
                         break;
                     case "PanelShipCombat":
                         PanelShipCombat = rectTransforms[i].gameObject;
@@ -217,22 +216,15 @@ namespace Assets.Core
             TextMeshProUGUI[] ourTMPs = thisCombatUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
             for (int i = 0; i < ourTMPs.Length; i++)
             {
-                int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
-                ourTMPs[i].enabled = true;
-                var name = ourTMPs[i].name;
+                if (ourTMPs[i].name == "Timer Text")
+                {
+                    timerText = ourTMPs[i];
+                }
+                // ToDO: we can put some more data in the UI here,
+                //int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
+                //ourTMPs[i].enabled = true;
+                //var name = ourTMPs[i].name;
 
-                //switch (name)
-                //{
-                //    case "Text FleetName (TMP)":
-                //        ourTMPs[i].text = fleetCon.FleetData.Name;
-                //        break;
-                //    case "Destination Name Text":
-                //        ourTMPs[i].text = "No Destination";
-                //        break;
-                //    case "FleetMaxWarpFactor":
-                //        ourTMPs[i].text = fleetCon.FleetData.MaxWarpFactor.ToString("0.0");
-                //        break;
-                //}
             }
             Toggle[] ArrayToggles = thisCombatUIGameObject.GetComponentsInChildren<Toggle>();
             foreach (var aToggle in ArrayToggles)
@@ -283,15 +275,15 @@ namespace Assets.Core
                         break;
                 }
             }
+            isTimerRunning = true;
         }
-        // Add the missing method definition for OpenCombatUI to resolve the CS0103 error.
+
         private void EnterShipCombatPhase()
         {
             PanelCombat_Menu.SetActive(false);
             PanelShipCombat.SetActive(true);
             isTimerRunning = false;
-           // CombatManager.Instance.EnterShipCombate(); // This method should handle the transition to the ship combat phase
-            SetUpCombat(order, sideOneEnum, sideTwoEnum );
+            CombatController.RunAnimation();
             Debug.Log("Combat UI opened.");
         }
         private void SetUpCombat(CombatOrders order, CivEnum sideOneCiv, CivEnum sideTwoCiv)

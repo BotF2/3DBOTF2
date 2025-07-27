@@ -37489,8 +37489,6 @@ MonoBehaviour:
   _statePassedCombatMenu_Init: 0
   _statePassedCombatInit: 0
   _statePassedCombatPlay: 0
-  UICamera: {fileID: 0}
-  GalaxyCamera: {fileID: 0}
 --- !u!1 &1835359260
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,9 +1,11 @@
-using UnityEngine;
 using Assets.Core;
-using UnityEngine.SceneManagement;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor.SearchService;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Scene = UnityEngine.SceneManagement.Scene;
 
 
 public class SceneController : MonoBehaviour
@@ -14,6 +16,7 @@ public class SceneController : MonoBehaviour
     /// Combat hides Main Menu including what really are Galaxy elements contained in Main Menu scene. 
     /// </summary>
     public static SceneController Instance { get; private set; }
+
     private static string previousSceneName;
     public GameObject[] persistentObjects; // Changed to a field declaration to fix CS0592
     private GameObject galaxyCameraDragNDrop; // Reference to the Galaxy Camera Drag and Drop GameObject
@@ -72,13 +75,14 @@ public class SceneController : MonoBehaviour
     //}
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        GameObject parent = GameObject.FindGameObjectWithTag("CombatUIParent");
+        //GameObject parent = GameObject.FindGameObjectWithTag("CombatUIParent");
         //CombatManager.Instance.SetUpCombatUIGameObject(parent);
+
     }
 
     public void LoadCombatScene(DiplomacyController diplomacyController)
     {
-        if(galaxyCameraDragNDrop == null)
+        if (galaxyCameraDragNDrop == null)
         {
             galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
         }
@@ -99,7 +103,9 @@ public class SceneController : MonoBehaviour
 
             HideScene(previousSceneName);
             OnSceneLoaded(SceneManager.GetSceneByName("CombatScene"), LoadSceneMode.Additive); // Call OnSceneLoaded to initialize Combat UI
+
             CombatManager.Instance.SetDiplomacyController(diplomacyController); // Set the diplomacy controller for the combat scene
+
         }
     }
     private void HideScene(string sceneName)

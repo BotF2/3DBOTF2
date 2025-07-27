@@ -45,10 +45,10 @@ public class CombatData
     int _totalCapitalShips;
     int _totalTransportsShips;
     public int xStart = 450; // in the wings out of the field of view
-    public int xEnd = 90; // end of warpin on x left-right axis
+    public int xEnd = 100; // end of warpin on x left-right axis
     public int rotationOnY = 90; // face right
-    public int ySeparator = 40; 
-    public int zSeparator = 70; 
+    //public int ySeparator = 40; 
+    //public int zSeparator = 70; 
     //public float shipScale = 100f;
     //public int yScout = 180; // shipGameOb types gap roes up
     //public int yCapital = 90;

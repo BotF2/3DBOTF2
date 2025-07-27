@@ -27,6 +27,8 @@ TagManager:
   - ShipUIContainer
   - CombatUIParent
   - FogPlaneParent
+  - ShipCamera
+  - ShipCameraHolder
   layers:
   - Default
   - TransparentFX

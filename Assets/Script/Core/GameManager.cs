@@ -427,7 +427,8 @@ namespace Assets.Core
         public bool _statePassedCombatMenu_Init = false;
         public bool _statePassedCombatInit = false; // COMBAT INIT
         public bool _statePassedCombatPlay = false;
-
+       // public GameObject UICamera;
+       // public GameObject GalaxyCamera;
 
         private void Awake()
         {
@@ -453,8 +454,7 @@ namespace Assets.Core
             }
         }
         //  MARC CODE
-        public GameObject UICamera;
-        public GameObject GalaxyCamera;
+
 
         public void SetCameraTargets() // ToDo: re-implement in combat
         {
