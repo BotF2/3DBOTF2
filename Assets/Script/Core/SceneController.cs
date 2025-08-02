@@ -2,7 +2,6 @@ using Assets.Core;
 using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
-using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Scene = UnityEngine.SceneManagement.Scene;

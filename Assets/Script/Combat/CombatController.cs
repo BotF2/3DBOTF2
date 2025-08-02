@@ -24,6 +24,7 @@ public class CombatController : MonoBehaviour
 
     //public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
+    public List<Animator> animators; // Assign in Inspector or dynamically
     public Animator sideOneA1Animator;
     public Animator sideOneA2Animator;
     public Animator sideOneA3Animator;
@@ -77,7 +78,7 @@ public class CombatController : MonoBehaviour
         else if (civOfOrder == CombatData.CivEnumSideTwo)
         {
             //shipCons = CombatData.SideTwoShipCons;
-           // sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
+            // sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
             CombatData.OrderSideTwo = order;
         }
 
@@ -136,12 +137,12 @@ public class CombatController : MonoBehaviour
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
-            shipGameOb.transform.SetPositionAndRotation(new Vector3(combatController.CombatData.xStart * side1negSide2pog, i * 10, i * 10),
+            shipGameOb.transform.SetPositionAndRotation(new Vector3(combatController.CombatData.xStart * side1negSide2pog, i * 100, i * 100),
                 Quaternion.Euler(0, 90 * side1negSide2pog, 0));
             if (shipGameOb.GetComponent<ShipController>() != null)
             {
                 var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
-         
+
                 if (shipType == ShipType.Transport)
                 {
                     if (side1negSide2pog < 0)
@@ -155,7 +156,7 @@ public class CombatController : MonoBehaviour
                         sideTwoA3Animator.gameObject.SetActive(true);
                         shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform, true);
                         shipGameOb.transform.localPosition = new Vector3(0, shipGameOb.transform.position.y, shipGameOb.transform.position.z);
-                    }   
+                    }
                 }
                 else
                 {
@@ -200,7 +201,7 @@ public class CombatController : MonoBehaviour
             rigid.useGravity = false;
             rigid.isKinematic = true;
             BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
-            boxCollider.transform.localScale = Vector3.one;
+            boxCollider.transform.localScale = new Vector3(6, 6, 6); //size model to fit CameraMultitarget calculations/view;
             float length = 1f;
             float height = 1f;
             float width = 1f;
@@ -249,7 +250,7 @@ public class CombatController : MonoBehaviour
     public void ActOnCurrentCombatOrders(List<ShipController> shipCons, int sideSignFactor)
     {
         CombatOrders order;
-        if (sideSignFactor <0)
+        if (sideSignFactor < 0)
         {
             order = CombatData.OrderSideOne;
         }
@@ -260,7 +261,7 @@ public class CombatController : MonoBehaviour
         switch (order)
         {
             case CombatOrders.Engage:
-                if (_transportsSide1>0)
+                if (_transportsSide1 > 0)
                 {
                     List<Vector2Int> spiralPositions = GenerateSpiralPositions(_transportsSide1);
                     // If there are transports, they should be positioned behind the center of the formation
@@ -276,7 +277,7 @@ public class CombatController : MonoBehaviour
                 }
                 else
                 {
-                    List<Vector2Int> spiralPositions = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 +_capitalsSide1);
+                    List<Vector2Int> spiralPositions = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 + _capitalsSide1);
                     int foundOne = -1;
                     for (int i = 0; i < shipCons.Count; i++)
                     {
@@ -304,7 +305,7 @@ public class CombatController : MonoBehaviour
     }
     public void RunAnimation()
     {
-
+        //CameraMultiTarget.Instance.SetWarpingInOver(false);
         List<GameObject> shipGameObjects = new List<GameObject>();
         for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
         {
@@ -322,44 +323,44 @@ public class CombatController : MonoBehaviour
             System.Threading.Thread.Sleep(100); // Wait for the scene to load
             //scene = SceneManager.GetSceneByName("CombatScene");
         }
-        if (scene.isLoaded)
-        {
-            foreach (GameObject rootObj in scene.GetRootGameObjects())
-            {
-                //GameObject found = rootObj.transform.Find("ShipCameraHolder")?.gameObject;
-                //if (found != null)
-                if (rootObj.name == "ShipCameraHolder")
-                {
-                    CameraMultiTarget.Instance.CameraHolder = rootObj;
-                    Transform shipCamera = rootObj.transform.Find("CameraShips");
-                    if (shipCamera != null)
-                    {
-                        shipCamera.gameObject.SetActive(true);
-                        CameraMultiTarget.Instance.ShipCamera = shipCamera.GetComponent<Camera>();
-                        break;
-                    }
-                }
-            }
-        }
-        CameraMultiTarget.Instance.SetShipCameraFieldOfView();
-        CameraMultiTarget.Instance.SetWarpingInOver(false);
+        //if (scene.isLoaded)
+        //{
+        //    foreach (GameObject rootObj in scene.GetRootGameObjects())
+        //    {
+        //        //GameObject found = rootObj.transform.Find("ShipCameraHolder")?.gameObject;
+        //        //if (found != null)
+        //        if (rootObj.name == "ShipCameraHolder")
+        //        {
+        //            CameraMultiTarget.Instance.CameraHolder = rootObj;
+        //            Transform shipCamera = rootObj.transform.Find("CameraShips");
+        //            if (shipCamera != null)
+        //            {
+        //                shipCamera.gameObject.SetActive(true);
+        //                CameraMultiTarget.Instance.ShipCamera = shipCamera.GetComponent<Camera>();
+        //                break;
+        //            }
+        //        }
+        //    }
+        //}
+
         GameObject[] cameraTargets = shipGameObjects.ToArray();
-        CameraMultiTarget.Instance.SetTargets(cameraTargets);
+        ShipCombatCameraController.Instance.SetTargets(cameraTargets);
+        StartCoroutine(WaitForAllAnimations());
         // This method is called to run the animation for warping in ships
-        if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.warpingIn)
-        {  
-            WaitForAllAnimations(new Animator[] {
-                sideOneA1Animator, sideOneA2Animator, sideOneA3Animator,
-                sideTwoA1Animator, sideTwoA2Animator, sideTwoA3Animator
-            });
-            sideOneA1Animator.SetBool("WarpInS1A1", true);
-            sideOneA2Animator.SetBool("WarpInS1A2", true);
-            sideOneA3Animator.SetBool("WarpInS1A3", true);
-            sideTwoA1Animator.SetBool("WarpInS2A1", true);
-            sideTwoA2Animator.SetBool("WarpInS2A2", true);
-            sideTwoA3Animator.SetBool("WarpInS2A3", true);
-            warpingIn = true;
-        }
+        //if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.warpingIn)
+        //{
+        //    AllAnimations(new Animator[] {
+        //        sideOneA1Animator, sideOneA2Animator, sideOneA3Animator,
+        //        sideTwoA1Animator, sideTwoA2Animator, sideTwoA3Animator
+        //    });
+        sideOneA1Animator.SetBool("WarpInS1A1", true);
+        sideOneA2Animator.SetBool("WarpInS1A2", true);
+        sideOneA3Animator.SetBool("WarpInS1A3", true);
+        sideTwoA1Animator.SetBool("WarpInS2A1", true);
+        sideTwoA2Animator.SetBool("WarpInS2A2", true);
+        sideTwoA3Animator.SetBool("WarpInS2A3", true);
+        //    warpingIn = true;
+        //}
     }
     private List<Vector2Int> GenerateSpiralPositions(int count)
     {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
@@ -375,7 +376,7 @@ public class CombatController : MonoBehaviour
         Vector2Int pos = Vector2Int.zero;
         spiralPositions.Add(pos);
 
-        int stepSize = 10;
+        int stepSize = 100;
         int dirIndex = 0;
 
         while (spiralPositions.Count < count)
@@ -395,38 +396,73 @@ public class CombatController : MonoBehaviour
         }
         return spiralPositions.ToList();
     }
-    public IEnumerator WaitForAllAnimations(Animator[] animators)
+    public IEnumerator WaitForAllAnimations()
     {
-        bool allDone = false;
-        warpingAnimationOver = false;
+        ShipCombatCameraController.Instance.SetWarpingIn(true);
+        ShipCombatCameraController.Instance.SetWarpingInOver(false);
 
-        while (!allDone)
+        // Wait until all animators have stopped playing
+        while (AnyAnimatorIsPlaying())
         {
-            allDone = true;
-
-            foreach (var animator in animators)
-            {
-                AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
-
-                if (info.normalizedTime < 1f || animator.IsInTransition(0))
-                {
-                    allDone = false;
-                    warpingAnimationOver = false; // Animation is still playing
-                    CameraMultiTarget.Instance.SetWarpingInOver(true); // Set the warping in state to over                              
-                    break;
-                }
-                else
-                {
-                    warpingAnimationOver = true; // Animation is done
-                    CameraMultiTarget.Instance.SetWarpingInOver(false); // Set the warping in state to over
-                }
-            }
-
-            yield return null;
+            yield return null; // wait a frame
         }
 
-        Debug.Log("All animations done.");
-    }
+        ShipCombatCameraController.Instance.SetWarpingIn(false);
+        ShipCombatCameraController.Instance.SetWarpingInOver(true);
 
-}
+    }
+    private bool AnyAnimatorIsPlaying()
+    {
+        foreach (Animator animator in animators)
+        {
+            if (animator != null && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f &&
+                !animator.IsInTransition(0))
+            {
+                return true;
+                //sideOneA1Animator.SetBool("WarpInS1A1", false);
+                //sideOneA2Animator.SetBool("WarpInS1A2", false);
+                //sideOneA3Animator.SetBool("WarpInS1A3", false);
+                //sideTwoA1Animator.SetBool("WarpInS2A1", false);
+                //sideTwoA2Animator.SetBool("WarpInS2A2", false);
+                //sideTwoA3Animator.SetBool("WarpInS2A3", false);
+            }
+        }
+        return false;
+    }
+    //public IEnumerator AllAnimations(Animator[] animators)
+    //{
+    //    bool allDone = false;
+    //    warpingAnimationOver = false;
+
+    //    while (!allDone)
+    //    {
+    //        allDone = true;
+
+    //        foreach (var animator in animators)
+    //        {
+    //            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+
+    //            if (info.normalizedTime < 1f || animator.IsInTransition(0))
+    //            {
+    //                allDone = false;
+    //                warpingAnimationOver = false; // Animation is still playing
+    //                CameraMultiTarget.Instance.SetWarpingIn(true); // Set the warping in state to over
+    //                                                               // 
+    //                break;
+    //            }
+    //            else
+    //            {
+    //                warpingAnimationOver = true; // Animation is done
+    //                CameraMultiTarget.Instance.SetWarpingIn(false); // Set the warping in state to over
+    //                CameraMultiTarget.Instance.SetWarpingInOver(true); // Set the warping in state to over
+    //            }
+    //        }
+
+    //        yield return null;
+    //    }
+
+        //Debug.Log("All animations done.");
+        //}
+
+    }
 

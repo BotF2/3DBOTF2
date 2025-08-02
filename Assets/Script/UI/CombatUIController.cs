@@ -284,6 +284,7 @@ namespace Assets.Core
             PanelShipCombat.SetActive(true);
             isTimerRunning = false;
             CombatController.RunAnimation();
+            ShipCombatCameraController.Instance.SetWarpingIn(true);
             Debug.Log("Combat UI opened.");
         }
         private void SetUpCombat(CombatOrders order, CivEnum sideOneCiv, CivEnum sideTwoCiv)

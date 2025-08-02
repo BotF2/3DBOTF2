@@ -17,7 +17,7 @@ public class CombatManager : MonoBehaviour
     //public Camera CameraShips;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
-   // public GameObject cameraEmpty;
+    public List<Animator> animators; // Assign in Inspector or dynamically
     [SerializeField] GameObject sideOneA1;
     [SerializeField] GameObject sideOneA2;
     [SerializeField] GameObject sideOneA3;
@@ -191,6 +191,7 @@ public class CombatManager : MonoBehaviour
         CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
         CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
+        aCombatController.animators = animators;
         aCombatController.sideOneA1Animator = sideOneA1.GetComponent<Animator>();
         aCombatController.sideTwoA1Animator = sideTwoA1.GetComponent<Animator>();
         aCombatController.sideOneA2Animator = sideOneA2.GetComponent<Animator>();
