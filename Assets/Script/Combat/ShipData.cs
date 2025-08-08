@@ -12,7 +12,6 @@ public class ShipData
     public TechLevel TechLevel;
     public ShipType ShipType;
     public Sprite ShipSprite;
-    //public GameObject ShipModel;
     public float maxWarpFactor;
     public float currentWarpFactor;
     public int ShieldMaxHealth;
@@ -21,11 +20,7 @@ public class ShipData
     public int BeamDamage;
     public int BuildDuration;
     public string ShipDescription;
-    //public int Cost;
-    //public int CrewCapacity;            
-    //public float FuelCapacity;                      
-    //public float CurrentFuel;
-    //public bool IsPowered; 
+    public GameObject TargetGo;
 
     public ShipData(string name)
     {

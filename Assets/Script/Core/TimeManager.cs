@@ -54,7 +54,6 @@ public class TimeManager : MonoBehaviour
             currentStardate++;
             OnStardateChanged?.Invoke();
 
-            // Check for special events
             CheckSpecialEvents();
         }
     }

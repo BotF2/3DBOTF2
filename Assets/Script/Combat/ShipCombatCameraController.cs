@@ -18,7 +18,7 @@ namespace Assets.Core
     public class ShipCombatCameraController : MonoBehaviour
     {
         /// <summary>
-        /// multi-target camera controller for combat scene.
+        /// multi-target camera controller for combat scene. 
         /// https://lopespm.com/libraries/games/2018/12/27/camera-multi-target.html
         /// </summary>
 
@@ -227,7 +227,6 @@ namespace Assets.Core
             {
                 return new[] { target.y + projectionHalfSpan, target.y - projectionHalfSpan };
             }
-
         }
          private void DebugDrawProjectionRays(Vector3 cameraPositionIdentity, ProjectionHits viewProjectionLeftAndRightEdgeHits,
              ProjectionHits viewProjectionTopAndBottomEdgeHits, float requiredCameraPerpedicularDistanceFromProjectionPlane,

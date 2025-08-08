@@ -1,4 +1,5 @@
 using Assets.Core;
+using System.Collections.Generic;
 using UnityEngine;
 //using UnityEditorInternal;
 
@@ -10,12 +11,13 @@ public class GameController : MonoBehaviour
     /// TO DO Steps after install:
     // 1. Add the NetworkObject component to your civ (player) prefab.
     // 2. use this.AreWeLocalPlayer() to do 3.
-    // 2. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
+    // 3. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
     /// </summary>
 
     public static GameController Instance;
     private GameData gameData;
     public GameData GameData { get { return gameData; } set { gameData = value; } }
+    //private List<IPlayerController> players = new List<IPlayerController>();
 
     public void Awake()
     {
@@ -36,7 +38,19 @@ public class GameController : MonoBehaviour
     {
         if (GameManager.Instance != null)
         GameManager.Instance.GameController = this;
+        //// Assign player instances (either via inspector or dynamically)
+        //players.Add(FindFirstObjectByType<LocalHumanPlayerController>());
+        //players.Add(FindFirstObjectByType<AiPlayerController>());
+        //players.Add(FindFirstObjectByType<RemoteHumanPlayerController>());
+
+        //foreach (var player in players)
+        //{
+        //    player.GiveCombatOrder(CombatOrders.Engage);// default combat order
+        //    player.GiveDiplomacyOrder(NegotiationPloysEnum.OfferTrade);
+        //    player.GiveIntelOrder(SecretActionsEnum.GatherIntelligence);
+        //}
     }
+    
     public bool DoWeBelongToLocalPlayer(GameObject go)
     {
         // get NetworkObject from go and see if it belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.

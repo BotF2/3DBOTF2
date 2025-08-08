@@ -7,10 +7,10 @@ public interface IPlayerController
     PlayerData PlayerData { get; set; }
     CivEnum PlayerCiv { get; }
     bool controllerIsLocalPlayer { get; }
-    // How many of these do we need?
-    void GiveCombatOrder(CombatOrders order);
-    void GiveDiplomacyOrder(NegotiationPloysEnum order);
-    void GiveIntelOrder(SecretActionsEnum order);
+
+    void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ);
+    void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ);
+    void GiveIntelOrder(SecretActionsEnum order, CivEnum civ);
     //......more orders as needed
 
     // or [ServerRpc] ??

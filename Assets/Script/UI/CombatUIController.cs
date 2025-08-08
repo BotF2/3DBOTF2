@@ -36,12 +36,13 @@ namespace Assets.Core
         public List<Toggle> toggleOrderList = new List<Toggle>() { Engage, Rush, Retreat, Formation, TargetTransports };
         private Toggle activeLocalPlayerToggle;
         private Toggle previousToggle;
-        public static CombatOrders order; // think this should be in the CombatController, but we will see how it goes
-
+        public static CombatOrders order = CombatOrders.Engage;
+        private LocalHumanPlayerController localPlayer; // reference to the local player controller, used to execute combat orders
         private void Start()
         {
             previousToggle = toggleOrderList[0];
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum; // get the local player civ enum from the game controller
+            localPlayer = FindFirstObjectByType<LocalHumanPlayerController>(); // Or assign via inspector
         }
         private void Awake()
         {
@@ -81,18 +82,19 @@ namespace Assets.Core
                 case "TOGGLE_ENGAGE":
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = Engage;
-                    // CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Engage, CivEnumLocalPlayer); // wait for enter combat to act on the chosen order
+                    order = CombatOrders.Engage; 
                     Debug.Log("Active Engage.");
                     break;
                 case "TOGGLE_RUSH":
                     Debug.Log("Active Rush.");
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = Rush;
-                   // CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Rush, CivEnumLocalPlayer);
+                    order = CombatOrders.Rush;
                     break;
                 case "TOGGLE_RETREAT":
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = Retreat;
+                    order = CombatOrders.Retreat;
                     Debug.Log("Active Retreat.");
                    // CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
                     break;
@@ -100,11 +102,13 @@ namespace Assets.Core
                     Debug.Log("Active Formation.");
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = Formation;
+                    order = CombatOrders.Formation;
                     //CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Formation, CivEnumLocalPlayer);
                     break;
                 case "TOGGLE_TARGET_TRANSPORTS":
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = TargetTransports;
+                    order = CombatOrders.TargetTransports;
                     Debug.Log("Active Target Transports.");
                     //CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.TargetTransports, CivEnumLocalPlayer);
                     break;
@@ -114,6 +118,7 @@ namespace Assets.Core
         }
         private void OnToggleENGAGE(bool isOn)
         {  
+            order = CombatOrders.Engage;
             if (Engage.isOn)  
             {  
                 if (previousToggle != Engage)  
@@ -126,6 +131,7 @@ namespace Assets.Core
         }
         private void OnToggleRUSH(bool isOn)
         {
+            order = CombatOrders.Rush;
             if (Rush.isOn)
             {
                 if (previousToggle != Rush)
@@ -138,6 +144,7 @@ namespace Assets.Core
         }
         private void OnToggleRETREAT(bool isOn)
         {
+            order = CombatOrders.Retreat;
             if (Retreat.isOn)
             {
                 if (previousToggle != Retreat)
@@ -150,6 +157,7 @@ namespace Assets.Core
         }
         private void OnToggleFORMATION(bool isOn)
         {
+            order = CombatOrders.Formation;
             if (Formation.isOn)
             {
                 if (previousToggle != Formation)
@@ -162,6 +170,7 @@ namespace Assets.Core
         }
         private void OnToggleTARGET_TRANSPORTS(bool isOn)
         {
+            order = CombatOrders.TargetTransports;
             if (TargetTransports.isOn)
             {
                 if (previousToggle != TargetTransports)
@@ -239,7 +248,7 @@ namespace Assets.Core
                         Engage.onValueChanged.AddListener(OnToggleENGAGE);
                         break;
                     case "Toggle_RUSH":
-                        Rush = aToggle;
+                        Rush = aToggle; 
                         Rush.onValueChanged.RemoveAllListeners();
                         Rush.onValueChanged.AddListener(OnToggleRUSH);
                         break;
@@ -280,6 +289,7 @@ namespace Assets.Core
 
         private void EnterShipCombatPhase()
         {
+            localPlayer?.GiveCombatOrder(order, CombatController);
             PanelCombat_Menu.SetActive(false);
             PanelShipCombat.SetActive(true);
             isTimerRunning = false;

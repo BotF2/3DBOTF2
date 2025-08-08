@@ -1,5 +1,5 @@
-using Assets.Core;
-using Mirror.BouncyCastle.Crypto.Macs;
+﻿using Assets.Core;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,7 +22,6 @@ public class CombatController : MonoBehaviour
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
 
-    //public int maxPositions = 200; // the max number of positions to generate in the spiral
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
     public List<Animator> animators; // Assign in Inspector or dynamically
     public Animator sideOneA1Animator;
@@ -31,8 +30,15 @@ public class CombatController : MonoBehaviour
     public Animator sideTwoA1Animator;
     public Animator sideTwoA2Animator;
     public Animator sideTwoA3Animator;
+    private List<ShipController> shipConsSideOne = new List<ShipController>();
+    private List<ShipController> shipConsSideTwo = new List<ShipController>();
     public bool warpingIn = false;
     public bool warpingAnimationOver = false;
+    public GameObject SideOneTorpedoPrefab;
+    public GameObject SideTwoTorpedoPrefab;
+    public GameObject SideOneBeamPrefab;
+    public GameObject SideTwoBeamPrefab;
+
     int _scoutsSide1;
     int _scoutsSide2;
     int _destroyersSide1;
@@ -50,17 +56,30 @@ public class CombatController : MonoBehaviour
     {
 
     }
-    public void GiveCombatOrder(CombatOrders orders)
+    public void SetCombatOrder(CombatOrders orders, CivEnum civEnum)
     {
-        // implementation
+        if (CombatData.CivEnumSideOne == civEnum)
+        {
+            CombatData.OrderSideOne = orders; // Set the combat order for Side One
+            Debug.Log($"Combat order {orders} given to Side One by {civEnum}");
+        }
+        else if (CombatData.CivEnumSideTwo == civEnum)
+        {
+            CombatData.OrderSideTwo = orders; // Set the combat order for Side Two
+            Debug.Log($"Combat order {orders} given to Side Two by {civEnum}");
+        }
+        else
+        {
+            Debug.LogWarning("Player does not belong to either combat side.");
+        }
     }
 
-    public void GiveDiplomacyOrder(NegotiationPloysEnum order)
+    public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diplomacyCon, IPlayerController player)
     {
         // Implement logic for handling UI diplomacy orders.
     }
 
-    public void GiveIntelOrder(SecretActionsEnum order)
+    public void GiveIntelOrder(SecretActionsEnum order, IPlayerController player) //ToDo; set up a IntelController
     {
         // Implement logic for handling UI intel orders.
     }
@@ -81,13 +100,6 @@ public class CombatController : MonoBehaviour
             // sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
             CombatData.OrderSideTwo = order;
         }
-
-        // Ensure shipCons is not null before proceeding  
-        //if (shipCons == null)
-        //{
-        //    Debug.LogError("Ship list is null. Unable to act on combat order.");
-        //    return;
-        //}
     }
     internal void TrySetPlayerOrders(CombatData combatData)
     {
@@ -108,7 +120,7 @@ public class CombatController : MonoBehaviour
     {
         return combatController.CombatData.sideOneCiv;
     }
-    public CivController EnemyCivCombatants()
+    public CivController SideTwoCivCombatants()
     {
         return combatController.CombatData.sideTwoCiv;
     }
@@ -133,6 +145,14 @@ public class CombatController : MonoBehaviour
         int flip = -1;
         for (int i = 0; i < shipConList.Count; i++)
         {
+            if (side1negSide2pog < 0)
+            {
+                shipConsSideOne.Add(shipConList[i]);
+            }
+            else
+            {
+                shipConsSideTwo.Add(shipConList[i]);
+            }
             shipConList[i].transform.localScale = Vector3.one;
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             GameObject shipGameOb = shipConList[i].gameObject;
@@ -147,6 +167,7 @@ public class CombatController : MonoBehaviour
                 {
                     if (side1negSide2pog < 0)
                     {
+
                         sideOneA3Animator.gameObject.SetActive(true);
                         shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform, true);
                         shipGameOb.transform.localPosition = new Vector3(0, shipGameOb.transform.position.y, shipGameOb.transform.position.z);
@@ -288,9 +309,7 @@ public class CombatController : MonoBehaviour
                         }
                     }
                 }
-
                 break;
-
             case CombatOrders.Rush:
                 break;
             case CombatOrders.Retreat:
@@ -302,10 +321,83 @@ public class CombatController : MonoBehaviour
             default:
                 break;
         }
+        FindClosestPairs();
+        StartCoroutine(AutoFireWeapons());
     }
+
+    IEnumerator AutoFireWeapons()
+    {
+        yield return new WaitUntil(() => warpingAnimationOver && shipConsSideOne.Count >= 1 && shipConsSideTwo.Count >= 1);
+
+        float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
+        StartCoroutine(RealtimeTimerCoroutineWeaponDischarge(randomFloat));
+        FireWeaponsOnList(shipConsSideOne); 
+        FireWeaponsOnList(shipConsSideTwo);
+    }
+    void FindClosestPairs()
+    {
+        foreach (ShipController shipConA in shipConsSideOne)
+        {
+            ShipController closestB = null;
+            float shortestDist = Mathf.Infinity;
+
+            foreach (ShipController shipConB in shipConsSideTwo)
+            {
+                float distSqr = (shipConA.transform.position - shipConB.transform.position).sqrMagnitude;
+                if (distSqr < shortestDist)
+                {
+                    shortestDist = distSqr;
+                    closestB = shipConB;
+                }
+            }
+
+            if (closestB != null)
+            {
+                shipConA.ShipData.TargetGo = closestB.gameObject; // Set the target for ship A
+            }
+        }
+
+        foreach (ShipController shipConB in shipConsSideTwo)
+        {
+            ShipController closestA = null;
+            float shortestDist = Mathf.Infinity;
+
+            foreach (ShipController shipConA in shipConsSideOne)
+            {
+                float distSqr = (shipConB.transform.position - shipConA.transform.position).sqrMagnitude;
+                if (distSqr < shortestDist)
+                {
+                    shortestDist = distSqr;
+                    closestA = shipConA;
+                }
+            }
+
+            if (closestA != null)
+            {
+                shipConB.ShipData.TargetGo = closestA.gameObject; // Set the target for ship B
+            }
+        }
+    }
+    private void FireWeaponsOnList(List<ShipController> shipCons)
+    {
+        // Implement logic to fire weapons on their enemy ships
+        for (int i = 0; i < shipCons.Count; i++)
+        {
+            if (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0)
+            {
+                float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
+                RealtimeTimerCoroutineWeaponDischarge(randomFloat);
+                shipCons[i].FireWeapons(); //???? fire here or in Shipcontroller?
+            }
+        }
+    }
+    IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)
+    {
+        yield return new WaitForSecondsRealtime(delayInSeconds);
+    }
+
     public void RunAnimation()
     {
-        //CameraMultiTarget.Instance.SetWarpingInOver(false);
         List<GameObject> shipGameObjects = new List<GameObject>();
         for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
         {
@@ -323,44 +415,17 @@ public class CombatController : MonoBehaviour
             System.Threading.Thread.Sleep(100); // Wait for the scene to load
             //scene = SceneManager.GetSceneByName("CombatScene");
         }
-        //if (scene.isLoaded)
-        //{
-        //    foreach (GameObject rootObj in scene.GetRootGameObjects())
-        //    {
-        //        //GameObject found = rootObj.transform.Find("ShipCameraHolder")?.gameObject;
-        //        //if (found != null)
-        //        if (rootObj.name == "ShipCameraHolder")
-        //        {
-        //            CameraMultiTarget.Instance.CameraHolder = rootObj;
-        //            Transform shipCamera = rootObj.transform.Find("CameraShips");
-        //            if (shipCamera != null)
-        //            {
-        //                shipCamera.gameObject.SetActive(true);
-        //                CameraMultiTarget.Instance.ShipCamera = shipCamera.GetComponent<Camera>();
-        //                break;
-        //            }
-        //        }
-        //    }
-        //}
 
         GameObject[] cameraTargets = shipGameObjects.ToArray();
         ShipCombatCameraController.Instance.SetTargets(cameraTargets);
         StartCoroutine(WaitForAllAnimations());
-        // This method is called to run the animation for warping in ships
-        //if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.warpingIn)
-        //{
-        //    AllAnimations(new Animator[] {
-        //        sideOneA1Animator, sideOneA2Animator, sideOneA3Animator,
-        //        sideTwoA1Animator, sideTwoA2Animator, sideTwoA3Animator
-        //    });
+
         sideOneA1Animator.SetBool("WarpInS1A1", true);
         sideOneA2Animator.SetBool("WarpInS1A2", true);
         sideOneA3Animator.SetBool("WarpInS1A3", true);
         sideTwoA1Animator.SetBool("WarpInS2A1", true);
         sideTwoA2Animator.SetBool("WarpInS2A2", true);
         sideTwoA3Animator.SetBool("WarpInS2A3", true);
-        //    warpingIn = true;
-        //}
     }
     private List<Vector2Int> GenerateSpiralPositions(int count)
     {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
@@ -409,6 +474,7 @@ public class CombatController : MonoBehaviour
 
         ShipCombatCameraController.Instance.SetWarpingIn(false);
         ShipCombatCameraController.Instance.SetWarpingInOver(true);
+        warpingAnimationOver = true;
 
     }
     private bool AnyAnimatorIsPlaying()
@@ -419,50 +485,10 @@ public class CombatController : MonoBehaviour
                 !animator.IsInTransition(0))
             {
                 return true;
-                //sideOneA1Animator.SetBool("WarpInS1A1", false);
-                //sideOneA2Animator.SetBool("WarpInS1A2", false);
-                //sideOneA3Animator.SetBool("WarpInS1A3", false);
-                //sideTwoA1Animator.SetBool("WarpInS2A1", false);
-                //sideTwoA2Animator.SetBool("WarpInS2A2", false);
-                //sideTwoA3Animator.SetBool("WarpInS2A3", false);
             }
         }
         return false;
     }
-    //public IEnumerator AllAnimations(Animator[] animators)
-    //{
-    //    bool allDone = false;
-    //    warpingAnimationOver = false;
 
-    //    while (!allDone)
-    //    {
-    //        allDone = true;
-
-    //        foreach (var animator in animators)
-    //        {
-    //            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
-
-    //            if (info.normalizedTime < 1f || animator.IsInTransition(0))
-    //            {
-    //                allDone = false;
-    //                warpingAnimationOver = false; // Animation is still playing
-    //                CameraMultiTarget.Instance.SetWarpingIn(true); // Set the warping in state to over
-    //                                                               // 
-    //                break;
-    //            }
-    //            else
-    //            {
-    //                warpingAnimationOver = true; // Animation is done
-    //                CameraMultiTarget.Instance.SetWarpingIn(false); // Set the warping in state to over
-    //                CameraMultiTarget.Instance.SetWarpingInOver(true); // Set the warping in state to over
-    //            }
-    //        }
-
-    //        yield return null;
-    //    }
-
-        //Debug.Log("All animations done.");
-        //}
-
-    }
+}
 

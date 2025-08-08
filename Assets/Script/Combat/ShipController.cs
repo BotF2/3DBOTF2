@@ -1,3 +1,5 @@
+using Assets.Core;
+using System;
 using UnityEngine;
 
 public class ShipController : MonoBehaviour
@@ -8,7 +10,6 @@ public class ShipController : MonoBehaviour
     private ShipManager _manager;
     public GameObject ShipListUIGameObject; //The instantiated ship UI for this fleet and system ship lists.
                                             //a prefab clone, not a class but a game object
-
     public void Init(ShipManager shipManager)
     {
         _manager = shipManager;
@@ -35,20 +36,20 @@ public class ShipController : MonoBehaviour
             OnShipEncounteredShip(shipController);
             Debug.Log("Controller collided with " + shipController.gameObject.name);
         }
-        //OtherController otherController = collider.gameObject.GetComponent<OtherController>();
-        //if (otherSysController != null)
-        //{
-        //    OnShipEncounteredOther(otherController);
-        //}
     }
     public void OnShipEncounteredShip(ShipController shipController)
     {
         //1) player get the ShipController of the ship GO we hit
         //2) player ask your factionOwner (CivManager) 
     }
-    //public void OnShipEncounteredOther(OtherController StarSysController)
-    //{
-    //    //1) player get the OtheerController of the GO
+    public void OnShipEncounteredOther(StarSysController StarSysController)
+    {
+        //1) player get the OtheerController of the GO
 
-    //}
+    }
+
+    internal void FireWeapons()
+    {
+        // ToDo fire weapons;
+    }
 }

@@ -37,8 +37,11 @@ public class PlayerManager : MonoBehaviour
     public List<RemoteHumanPlayerController> RemoteHumanPlayerControllers; // Remote player controller instances
     public List<PlayerData> allPlayerDatas = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
     private List<CivEnum> civEnumsForPlayerCons = new List<CivEnum>(); // List of major civilizations in the game
+    private List<IPlayerController> players = new List<IPlayerController>();    //private List<IPlayerController> players = new List<IPlayerController>();
+    private void Start()
+    {
 
-
+    }
     private void Awake()
     {
         if (Instance == null)
@@ -51,7 +54,10 @@ public class PlayerManager : MonoBehaviour
             Destroy(gameObject); // Ensure only one instance exists
         }
     }
+    public void SetPlayerCivs()
+    {
 
+    }
     public void AddPlayer(PlayerData player)
     {
         if (!allPlayerDatas.Contains(player))
@@ -70,7 +76,7 @@ public class PlayerManager : MonoBehaviour
     }
     public PlayerData GetPlayerById(int playerId)
     {
-         
+
         return allPlayerDatas.Find(player => player.PlayerId == playerId);
     }
     internal void GetCivsInGameAsGalaxyIsBuilt(List<CivSO> civSOsInGame)
@@ -85,25 +91,26 @@ public class PlayerManager : MonoBehaviour
         if (allPlayerDatas != null)
             allPlayerDatas.Clear();
     }
-    public void SetSinglePlayerWithALocalPlayer(CivEnum civLocal, List<CivEnum> majorsInGame)
-    {        
+    public void SetLocalPlayer(CivEnum civLocal)// List<CivEnum> majorsInGame)
+    {
         PlayerData playerData = new PlayerData
         {
-            PlayerId = 0, // Assuming local player is always Player 0
+            PlayerId = 0, // local player is always Player 0
             PlayerName = "Local Player",
             PlayerCiv = civLocal,
             PlayerType = PlayerType.Local // Set the player type to Local 
         };
         LocalHumanPlayerController localController = gameObject.AddComponent<LocalHumanPlayerController>();
         localController.PlayerData = playerData;
-        LocalPlayerCon = localController; 
+        LocalPlayerCon = localController;
         isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
         allPlayerDatas.Add(playerData);
         civEnumsForPlayerCons.Remove(civLocal);
-
+    } 
+    public void SetMajorCivsInGameForSinglePlayer(List<CivEnum> majorsInGame) { 
         for (int i = 0; i < majorsInGame.Count; i++)
         {
-            if (majorsInGame[i] != civLocal) // Avoid adding the local player's civ again
+            if (majorsInGame[i] != LocalPlayerCon.PlayerCiv) // Avoid adding the local player's civ again
             {
                 PlayerData aiPlayerData = new PlayerData
                 {
@@ -120,22 +127,7 @@ public class PlayerManager : MonoBehaviour
             }
         }
     }
-    public void SetLocalPlayerForMultiplayer(CivEnum civLocal)
-    {
-        PlayerData playerData = new PlayerData
-        {
-            PlayerId = 0, // Assuming local player is always Player 0
-            PlayerName = "Local Player",
-            PlayerCiv = civLocal,
-            PlayerType = PlayerType.Local // Set the player type to Local 
-        };
-        LocalHumanPlayerController localController = gameObject.AddComponent<LocalHumanPlayerController>();
-        localController.PlayerData = playerData;
-        LocalPlayerCon = localController;
-        isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
-        allPlayerDatas.Add(playerData);
-        civEnumsForPlayerCons.Remove(civLocal);
-    }
+
     internal void SetPlayerIds()
     {
         for (int i = 0; i < civEnumsForPlayerCons.Count; i++) // local player has taken PlayerId 0 above
@@ -213,6 +205,29 @@ public class PlayerManager : MonoBehaviour
         // For now, just return 0 for the local player and increment for others.
         // Need to map CivEnum to connectionId based on your game's lobby state.
         return 0;
+    }
+
+    internal void SetMajorCivsInGameForMultiPlayer(List<CivEnum> majorCivsInGameList)
+    {
+        for (int i = 0; i < majorCivsInGameList.Count; i++)
+        {
+            if (majorCivsInGameList[i] != LocalPlayerCon.PlayerCiv) // Avoid adding the local player's civ again
+            {
+                // ********** Code for muliplayer setup
+                //PlayerData aiPlayerData = new PlayerData
+                //{
+                //    PlayerId = i + 1, // Start from 1 since 0 is the local player
+                //    PlayerName = $"AI Player {i + 1}",
+                //    PlayerCiv = majorsInGame[i],
+                //    PlayerType = PlayerType.AI // Set the player type to AI
+                //};
+                //allPlayerDatas.Add(aiPlayerData);
+                //AiPlayerController aiController = gameObject.AddComponent<AiPlayerController>();
+                //aiController.PlayerData = aiPlayerData;
+                //AIPlayerControllers.Add(aiController);
+                //civEnumsForPlayerCons.Remove(majorsInGame[i]);
+            }
+        }
     }
 }
 

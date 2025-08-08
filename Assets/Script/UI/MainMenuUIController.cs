@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -411,7 +412,10 @@ namespace Assets.Core
                     }
                 }
             }
+        SetCivMajorCivsInGame(majorCivsInGameList);    
         }
+
+
 
         private void ActivePlayerToggle()
         {
@@ -635,15 +639,21 @@ namespace Assets.Core
             if (playerTerran.text == player)
                 playerTerran.text = computer;
         }
+        private void SetCivMajorCivsInGame(List<CivEnum> majorCivsInGameList)
+        {
+            if (IsSinglePlayer)
+                PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList);
+            else PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList);
+        }
         public void SetMultiPlayer()
         {
-            IsSinglePlayer = true;
+            IsSinglePlayer = false;
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(true);
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
             PlayerManager.Instance.ResetPlayerList();
-            PlayerManager.Instance.SetLocalPlayerForMultiplayer(localPlayerCiv);
+            PlayerManager.Instance.SetLocalPlayer(localPlayerCiv);
         }
         public void SetSinglePlayer()
         {
@@ -653,7 +663,7 @@ namespace Assets.Core
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
             PlayerManager.Instance.ResetPlayerList();
-            PlayerManager.Instance.SetSinglePlayerWithALocalPlayer(localPlayerCiv, majorCivsInGameList);
+            PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); //, majorCivsInGameList);
         }
 
         private void FedOnOffToggleReset()
@@ -789,6 +799,7 @@ namespace Assets.Core
         {
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
+            PlayerManager.Instance.SetLocalPlayer((CivEnum)((int)index));
         }
         private void LoadGalaxyScene()
         {

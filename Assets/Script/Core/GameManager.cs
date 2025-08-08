@@ -326,7 +326,7 @@ namespace Assets.Core
     }
     public enum CombatOrders
     {
-        Engage,
+        Engage, // default order
         Rush,
         Retreat,
         Formation, // aka protrect transports

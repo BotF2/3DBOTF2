@@ -1,5 +1,6 @@
 using Assets.Core;
 using Mirror.BouncyCastle.Asn1.Crmf;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -13,8 +14,6 @@ public class CombatManager : MonoBehaviour
     public GameObject CombatUICanvas;  
     [SerializeField]
     private CombatController combatConPrefab;   
-    //public GameObject ShipCameraHolder;
-    //public Camera CameraShips;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
     public List<Animator> animators; // Assign in Inspector or dynamically
@@ -24,15 +23,9 @@ public class CombatManager : MonoBehaviour
     [SerializeField] GameObject sideTwoA1;
     [SerializeField] GameObject sideTwoA2;
     [SerializeField] GameObject sideTwoA3;
+    public List<GameObject> TorpedoPrefabs;
+    public List<GameObject> BeamPrefabs;
 
-    public void BeginRound()
-    {
-        foreach (var commander in participants)
-        {
-           // commander.GiveOrder(currentCombatContext);
-        }
-        // Resolve actions after all orders are collected
-    }
     
     public CombatController CurrentCombatController
     {
@@ -45,78 +38,6 @@ public class CombatManager : MonoBehaviour
             return null;
         }
     }
-
-
-    #region old fields to moved to CombatController
-    //public static string[] FriendNameArray; // For current SpaceCombatScene ****
-    //public static string[] EnemyNameArray;
-    //public int friends;
-    //public int enemies;
-
-
-    //private int friendShipLayer;
-    //private int enemyShipLayer;
-    //public List<GameObject> _friendCombatans; // for now, get the combatant gameObjects as they are instantiated in InstantiatCombatShips
-    //public List<GameObject> _enemyCombatans;
-    //[SerializeField]
-    //private CivController _friendCivCon; //{ Civilization.FED };
-    //[SerializeField]
-    //private CivController _enemyCivCon;
-    //public GameObject cameraEmpty;
-    //public GameObject animFriend1;
-    //public GameObject animFriend2;
-    //public GameObject animFriend3;
-    //public GameObject animEnemy1;
-    //public GameObject animEnemy2;
-    //public GameObject animEnemy3;
-    //bool _isFriend; // true if friend, false if enemy
-    //int _scoutsFriend;
-    //int _destroyersFriend;
-    //int _capitalsFriend;
-    //int _transportsFriend;
-    //int _scoutsEnemy;
-    //int _destroyersEnemy;
-    //int _capitalsEnemy;
-    //int _transportsEnemy;
-    //int _totalScoutShips; // the total # of scouts in the list, ToDo: why do we need this when it is just the infall count of scouts?
-    //int _totalDestroyerShips;
-    //int _totalCapitalShips;
-    //int _totalTransportsShips;
-    //int xStartFriend = -5500; // in the wings out of the field of view
-    //int xEndFriend = 0; // end of warpin on x left-right axis
-    //int rotationFriendOnY = 90; // face right
-    //int xStartEnemy = 5500;
-    //int xEndEnemy = 300; // end of warpin on x left-right axis
-    //int rotationEnemyOnY = -90; // face left
-    //int ySeparator = 40; // gap in grid between ships on y axis
-    //int zSeparator = 70;
-    //float shipScale = 100f;
-    //int yScout = 180; // shipGameOb types gap roes up
-    //int yCapital = 90;
-    //int yDestroyer = 0;
-
-    //public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
-    //private string[] arrayCountShipTypes; // change to array ship type
-    //private string[] arrayNames; //??? do we need this?
-
-    //public List<GameObject> combatShips; // for CameraMultiTarget to use for camera targets
-    //public Orders order;
-    //public GameObject Friend_0; // prefab empty gameobject to clone instantiat into the grids
-    //public GameObject Enemy_0;
-
-
-    //// ****** Use a running count of ships by type for shipGameOb starting locaitons, reset to zero on enterying first enemy
-    //int _scoutShips = 0;
-    //int _destroyerShips = 0;
-    //int _capitalShips = 0;
-    //int _utilityShips = 0;
-
-    //int zLocation = 0;
-    //int _zScoutDepth = 0;
-    //int _zDestroyerDepth = 0;
-    //int _zCapitalDepth = 0;
-    //int _zUtilityDepth = 0;
-    #endregion old code stuff moved to CombatController
 
     private void Awake()
     {
@@ -198,12 +119,45 @@ public class CombatManager : MonoBehaviour
         aCombatController.sideTwoA2Animator = sideTwoA2.GetComponent<Animator>();
         aCombatController.sideOneA3Animator = sideOneA3.GetComponent<Animator>();
         aCombatController.sideTwoA3Animator = sideTwoA3.GetComponent<Animator>();
-        
+        aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
+        aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
+        aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);
+        aCombatController.SideTwoBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideTwo);
         CombatControllers.Add(aCombatController);
         aCombatController.PopulateShipData(aCombatController);
         aCombatController.TrySetPlayerOrders(combatData);
         SetUpLocalPlayer();
         TimeManager.Instance.PauseTime(); // Pause the game when combat UI is opened
+    }
+
+    private GameObject GetTorpedoPrefabs(CombatController aCombatController, CivEnum civEnum)
+    {
+        GameObject torbedoPrefab = TorpedoPrefabs[TorpedoPrefabs.Count -1]; // default to minor civ prefab
+
+        for (int i = 0; i < TorpedoPrefabs.Count; i++)
+        {
+            if (i == (int)civEnum)
+            {
+                torbedoPrefab = TorpedoPrefabs[i];
+                return torbedoPrefab; // Return the prefab for the specific civ
+            }
+        }
+        return torbedoPrefab; // Return the default prefab if no match found
+    }
+
+    
+    private GameObject GetBeamPrefabs(CombatController aCombatController, CivEnum civEnum)
+    {
+        GameObject beamPrefab = BeamPrefabs[BeamPrefabs.Count -1];
+        for (int i = 0; i < BeamPrefabs.Count; i++)
+        {
+            if (i == (int)civEnum)
+            {
+                beamPrefab = BeamPrefabs[i];
+                return beamPrefab;
+            }
+        }
+        return beamPrefab;
     }
     public void EndCombat()
     {
@@ -211,9 +165,6 @@ public class CombatManager : MonoBehaviour
     }
     public void SetUpLocalPlayer()
     {
-        //CombatUICanvas.SetActive(true);
-        //PanelCombat_Menu.SetActive(true);
-        //CombatShipCanvas.SetActive(false);
         GameObject thisCombatUIGameObject = CombatUICanvas;
 
         if (thisCombatUIGameObject != null)
@@ -236,240 +187,7 @@ public class CombatManager : MonoBehaviour
         }
     }  
     #region // More old code moved to CombatController
-    //private void PopulateShipData(List<ShipController> shipConList, bool friends)
-    //{
-    //    //for (int i = 0; i < shipConList.Count; i++)//GameManager.ShipDataDictionary.TryGetValue(_ship.name.ToUpper(), out int[] _result))
-    //    //{
-    //    //    //shipConList[i].ShipData.CivEnum = CivEnum.MOKRA;
-    //    //    //shipConList[i].ShipData.TechLevel = TechLevel.SUPREME;
-    //    //    //shipConList[i].ShipData.ShipType = ShipType.Scout;
-    //    //    //shipConList[i].ShipData.maxWarpFactor = 12f;
-    //    //    //shipConList[i].ShipData.currentWarpFactor = 12f;
-    //    //    //shipConList[i].ShipData.ShieldMaxHealth = 12;
-    //    //    //shipConList[i].ShipData.HullMaxHealth = 12;
-    //    //    //shipConList[i].ShipData.TorpedoDamage = 12;
-    //    //    //shipConList[i].ShipData.ShieldMaxHealth = 12;
-    //    //    //shipConList[i].ShipData.BeamDamage = 12;
-    //    //    //shipConList[i].ShipData.BuildDuration = 12;
-    //    //    //shipConList[i].ShipData.ShipName = "freddy";
-    //    //}
-    //    //if (friends)
-    //    //    FriendShips.AddRange(shipConList);
-    //    //    _friendCombatans = shipConList.Select(s => s.gameObject).ToList();
-    //    //else
-    //    //    EnemyShips.AddRange(shipConList);
-    //    //    _enemyCombatans = shipConList.Select(s => s.gameObject).ToList();
-    //    //FriendShips = shipConList;
-    //}
-    //public void ResetFriendAndEnemyLists()
-    //{
-    //    //FriendShips.Clear();
-    //    //EnemyShips.Clear();
-    //}
-    //public List<GameObject> UpdateFriendCombatants()
-    //{
-    //    return _friendCombatans;
-    //}
-    //public List<GameObject> UpdateEnemyCombatants()
-    //{
-    //    return _enemyCombatans;
-    //}
-    //public CivController FriendCivCombatants()
-    //{
-    //    return _friendCivCon;
-    //}
-    //public CivController EnemyCivCombatants()
-    //{
-    //    return _enemyCivCon;
-    //}
-    //public void PreCombatSetup(List<ShipType> preCombatShips, bool isFriend)
-    //// The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
-    //{
-    //    //int scouts = 0;
-    //    //int destroyers = 0;
-    //    //int capitals = 0;
-    //    //int transports = 0;
-    //    //for (int i = 0; i < preCombatShips.Count; i++)
-    //    //{
-    //    //    switch (preCombatShips[i])
-    //    //    {
-    //    //        case ShipType.Scout:
-    //    //            scouts++;
-    //    //            break;
-    //    //        case ShipType.Destroyer:
-    //    //            destroyers++;
-    //    //            break;
-    //    //        case ShipType.Cruiser:
-    //    //        case ShipType.LtCruiser:
-    //    //        case ShipType.HvyCruiser:
-    //    //            capitals++;
-    //    //            break;
-    //    //        case ShipType.Transport:
-    //    //            transports++;
-    //    //            break;
-    //    //        default:
-    //    //            break;
-    //    //    }
-    //    //}
-    //    //if (isFriend)
-    //    //{
-    //    //    _scoutsFriend = scouts;
-    //    //    _destroyersFriend = destroyers;
-    //    //    _capitalsFriend = capitals;
-    //    //    _transportsFriend = transports;
-    //    //    _totalScoutShips += scouts;
-    //    //    _totalDestroyerShips += destroyers;
-    //    //    _totalCapitalShips += capitals;
-    //    //    _totalTransportsShips += transports;
-    //    //}
-    //    //else
-    //    //{
-    //    //    _scoutsEnemy = scouts;
-    //    //    _destroyersEnemy = destroyers;
-    //    //    _capitalsEnemy = capitals;
-    //    //    _transportsEnemy = transports;
-    //    //    _totalScoutShips += scouts;
-    //    //    _totalDestroyerShips += destroyers;
-    //    //    _totalCapitalShips += capitals;
-    //    //    _totalTransportsShips += transports;
-    //    //}
-    //}
 
-    //internal void SetCombatOrder(Orders order)
-    //{
-    //    order = daOrder;
-    //}
-
-    //public void PreCombatSetup(string[] preCombatShips, bool _areFriends)
-    // The preCombatShips is one side of the list of combatents that will come from galaxy screen incoming combat data
-    //{
-    // GameManager.Instance.ResetFriendAndEnemyDictionaries();
-    //_isFriend = _areFriends;
-    //// we do all friend shipGameOb first, when we do the first enemy reset shipGameOb counts to zero at start           
-    //_scoutShips = 0; // running count as we process the list of ships
-    //_destroyerShips = 0;
-    //_capitalShips = 0;
-    //_utilityShips = 0;
-    //_zScoutDepth = 0;
-    //_zDestroyerDepth = 0;
-    //_zCapitalDepth = 0;
-    //_zUtilityDepth = 0;
-    //_totalScoutShips = 0; // the total # of scouts in the list
-    //_totalDestroyerShips = 0;
-    //_totalCapitalShips = 0;
-    //_totalTransportsShips = 0;
-    // timesNotFriend++;
-    //List<string> preCombatShipNames = preCombatShips.ToList();
-    //var cameraTargets = new List<GameObject>();
-
-    // count total ships by type that came in preCombatShips, first is Friends method call and then Enemies
-    // will we use this someplace and is it duplicate of private void SetShipCounts(string shipType) running count????
-    //for (int i = 0; i < preCombatShipNames.Count; i++)
-    //{
-    //    arrayCountShipTypes = preCombatShipNames[i].Split('_');
-    //    switch (arrayCountShipTypes[1].ToUpper())
-    //    {
-    //        case "SCOUT":
-    //            _totalScoutShips++;
-    //            break;
-    //        case "DESTROYER":
-    //            _totalDestroyerShips++;
-    //            break;
-    //        case "CRUISER":
-    //        case "LTCRUISER":
-    //        case "HVYCRUISER":
-    //            _totalCapitalShips++;
-    //            break;
-    //        case "TRANSPORT":
-    //        case "COLONYSHIP":
-    //        case "CONSTRUCTION":
-    //            _totalTransportsShips++;
-    //            break;
-    //        case "ONEMORE":
-    //            break;
-    //        default:
-    //            break;
-    //    }
-    //}
-
-    //#region sort by order to get data for instantiating a ship steping ship by ship constructing the Ship class
-
-    //    for (int i = 0; i < preCombatShipNames.Count; i++) // Step ship by ship through preCombatShipNames and us SetShipCounts to update what ship you are on by type
-    //    {
-    //        arrayNames = preCombatShipNames[i].Split('_');
-    //        #region Do not need to set ship type and civ here?
-    //        //ShipType _shipType = new ShipType();
-    //        //Civilization _civ = new Civilization();
-    //        //switch (arrayNames[0].ToUpper())
-    //        //{
-    //        //    case "FED":
-    //        //        _civ = Civilization.FED;
-    //        //        break;
-    //        //    case "TERRAN":
-    //        //        _civ = Civilization.TERRAN;
-    //        //        break;
-    //        //    case "ROM":
-    //        //        _civ = Civilization.ROM;
-    //        //        break;
-    //        //    case "KLING":
-    //        //        _civ = Civilization.KLING;
-    //        //        break;
-    //        //    case "CARD":
-    //        //        _civ = Civilization.CARD;
-    //        //        break;
-    //        //    case "DOM":
-    //        //        _civ = Civilization.DOM;
-    //        //        break;
-    //        //    case "BORG":
-    //        //        _civ = Civilization.BORG;
-    //        //        break;
-    //        //    default:
-    //        //        break;
-    //        //}
-    //        //switch (arrayNames[1].ToUpper())
-    //        //{
-    //        //    case "SCOUT":
-    //        //        _shipType = ShipType.Scout;
-    //        //        break;
-    //        //    case "DESTROYER":
-    //        //        _shipType = ShipType.Destroyer;
-    //        //        break;
-    //        //    case "CRUISER":
-    //        //        _shipType = ShipType.Cruiser;
-    //        //        break;
-    //        //    case "LTCRUISER":
-    //        //        _shipType = ShipType.LtCruiser;
-    //        //        break;
-    //        //    case "HVYCRUISER":
-    //        //        _shipType = ShipType.HvyCruiser;
-    //        //        break;
-    //        //    case "TRANSPORT":
-    //        //        _shipType = ShipType.Transport;
-    //        //        break;
-    //        //    case "COLONYSHIP":
-    //        //        _shipType = ShipType.Colonyship;;
-    //        //        break;
-    //        //    case "CONSTRUCTION":
-    //        //        _shipType = ShipType.Construction;
-    //        //        break;
-    //        //    case "ONEMORE":
-    //        //        break;
-    //        //    default:
-    //        //        break;
-    //        //}
-    //        #endregion
-
-    //        //int xLocation = -5500;
-    //        //int xLocationEnd = 0; // end of warpin on x left right axis
-    //        //int yLocation = 0;
-    //        //int rotationOnY = 90;
-
-    //        //if (!_isFriend)
-    //        //{
-    //        //    xLocation = 5500;
-    //        //    xLocationEnd = 300;
-    //        //    rotationOnY = -90;
-    //        //}
 
     //        //switch (CombatUIController.order)// move order to controller combat data
     //        //{
