@@ -1,6 +1,7 @@
 using UnityEngine;
 using Assets.Core;
 using System.Collections.Generic;
+using Mirror;
 
 public interface IPlayerController
 {

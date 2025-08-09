@@ -19,9 +19,16 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
         // Only the local player can issue commands
         Debug.Log("I have authority");
     }
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+        // Register with the PlayerManager
+        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+    }
     [Command]
     void CmdSendOrder(string order)
     {
+        // Runs on the server
         Debug.Log($"[Server] Received order: {order}");
         RpcHandleOrder(order);
     }
@@ -32,7 +39,7 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
         Debug.Log($"[All Clients] Order executed: {order}");
         // Actual combat logic here
     }
-    public void GiveCombatOrder(CombatOrders order)
+    public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
         // Handle remote user UI input logic, reads Unity input.
     }
@@ -43,12 +50,12 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
             CmdSendOrder(order);
         }
     }
-    public void GiveDiplomacyOrder(NegotiationPloysEnum order)
+    public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ)
     {
         // Implement logic for handling remote UI diplomacy orders.
     }
 
-    public void GiveIntelOrder(SecretActionsEnum order)
+    public void GiveIntelOrder(SecretActionsEnum order, CivEnum civ)
     {
         // Implement logic for handling remote UI intel orders.
     }
@@ -57,6 +64,6 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         // Implement AI combat logic to evaluate the situation and suggest an appropriate order.
         // This to involve analyzing combatData and making decisions based on various factors.
-        GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
+        //GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
     }
 }

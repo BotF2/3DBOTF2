@@ -20,7 +20,12 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
         // Only the local player can issue commands
         Debug.Log("I have authority");
     }
-
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+        // Register with the PlayerManager
+        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+    }
     public void ExecuteOrder(string order)
     {
         if (hasAuthority)
@@ -32,6 +37,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     [Command]
     void CmdSendOrder(string order)
     {
+        //runs on the server
         Debug.Log($"[Server] Received order: {order}");
         RpcHandleOrder(order);
     }
@@ -42,26 +48,26 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
         Debug.Log($"[All Clients] Order executed: {order}");
         // Actual combat logic here
     }
-    public void GiveCombatOrder(CombatOrders order)
+    public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
       
         //CombatController..SetCombatOrder(order, PlayerData.CivEnum);
     }
 
-    public void GiveDiplomacyOrder(NegotiationPloysEnum order)
+    public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ)
     {
         // Handle AI logic for diplomacy orders.
     }
 
-    public void GiveIntelOrder(SecretActionsEnum order)
+    public void GiveIntelOrder(SecretActionsEnum order, CivEnum civ)
     {
         // Handle AI logic for intel orders.
     }
 
-    internal void GetAICombatOrder(CombatData order)
+    internal void GetAICombatOrder(SecretActionsEnum order, CivEnum civ)
     {
         // do AI combat logic here, Handle AI logic, computes behavior logic.
-        GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
+        //GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
     }
     //.....???? more orders as needed
 }

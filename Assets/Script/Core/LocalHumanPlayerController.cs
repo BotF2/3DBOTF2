@@ -17,7 +17,12 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         // Only the local player can issue commands
         Debug.Log("I have authority");
     }
-
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+        // Register with the PlayerManager
+        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+    }
     public void ExecuteOrder(string order)
     {
         if (hasAuthority)
@@ -29,6 +34,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     [Command]
     void CmdSendOrder(string order)
     {
+        // runs on the server
         Debug.Log($"[Server] Received order: {order}");
         RpcHandleOrder(order);
     }
@@ -39,33 +45,33 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         Debug.Log($"[All Clients] Order executed: {order}");
         // Actual combat logic here
     }
-    public void GiveCombatOrder(CombatOrders order, CivEnum civ)
+    public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     { // **** need to set local player civ for this code
 
         var combatCons = CombatManager.Instance.CombatControllers;
-        CombatController combatCon = CombatManager.Instance.CombatControllers[0];
+        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
         for (int i = 0; i < combatCons.Count; i++) 
         {
             if (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ)
-                combatCon = combatCons[i];
+                aCombatCon = combatCons[i];
+            break;
         }
         switch (order)
         {
         case CombatOrders.Engage:
-            combatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+            aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
             break;
         case CombatOrders.Rush:
-            combatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+            aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
             break;
         case CombatOrders.Retreat:
-            combatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+            aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
             break;
         case CombatOrders.Formation:
-            combatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
-
+            aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
             break;
         case CombatOrders.TargetTransports:
-            combatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+            aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
 
             break;
         }

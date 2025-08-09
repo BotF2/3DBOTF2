@@ -6089,7 +6089,7 @@ GameObject:
   - component: {fileID: 328394469}
   - component: {fileID: 328394470}
   m_Layer: 5
-  m_Name: Toggle_Fed
+  m_Name: ToggleLocal_Fed
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10149,7 +10149,7 @@ GameObject:
   - component: {fileID: 515176093}
   - component: {fileID: 515176094}
   m_Layer: 5
-  m_Name: Toggle_Rom
+  m_Name: ToggleLocal_Rom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -25273,7 +25273,7 @@ GameObject:
   - component: {fileID: 1216783782}
   - component: {fileID: 1216783783}
   m_Layer: 5
-  m_Name: Toggle_Kling
+  m_Name: ToggleLocal_Kling
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35498,7 +35498,7 @@ GameObject:
   - component: {fileID: 1763767020}
   - component: {fileID: 1763767021}
   m_Layer: 5
-  m_Name: Toggle_Borg
+  m_Name: ToggleLocal_Borg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -36673,7 +36673,7 @@ GameObject:
   - component: {fileID: 1787285890}
   - component: {fileID: 1787285891}
   m_Layer: 5
-  m_Name: Toggle_Terran
+  m_Name: ToggleLocal_Terran
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39555,7 +39555,7 @@ GameObject:
   - component: {fileID: 1937191117}
   - component: {fileID: 1937191118}
   m_Layer: 5
-  m_Name: Toggle_Card
+  m_Name: ToggleLocal_Card
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -43958,7 +43958,7 @@ GameObject:
   - component: {fileID: 2133290541}
   - component: {fileID: 2133290542}
   m_Layer: 5
-  m_Name: Toggle_Dom
+  m_Name: ToggleLocal_Dom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

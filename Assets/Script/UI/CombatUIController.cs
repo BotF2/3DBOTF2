@@ -289,7 +289,7 @@ namespace Assets.Core
 
         private void EnterShipCombatPhase()
         {
-            localPlayer?.GiveCombatOrder(order, CombatController);
+            localPlayer?.GiveCombatOrder(order, CombatController, CivEnumLocalPlayer);
             PanelCombat_Menu.SetActive(false);
             PanelShipCombat.SetActive(true);
             isTimerRunning = false;

@@ -1,3 +1,4 @@
+using Mirror;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,13 +18,6 @@ namespace Assets.Core
         /// is it better to just have buttons, or toggles, not in a group for remotes to select?
         /// Need to sort out and define local player for the host and from each remote player PC in multiplayer lobby
         /// We can try using (Mirror; with GameObject LocalPlayerCivEnum = NetworkClient.LocalPlayerCivEnum.gameObject;)
-        /// ToDo this...
-        /// Move the AreWeLocalPlayer check in GameController into a check if NetworkObject.OwnerClientId == NetworkManager.Singleton.LocalClientId 
-        /// <summary>
-        /// TO DO Steps after install:
-        /// 1. Add the NetworkObject component to your civ (player) prefab.
-        /// 2. use this.AreWeLocalPlayer() to do 3.
-        /// 3. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
         /// </summary>
         /// </summary>
         public static MainMenuUIController Instance;
@@ -166,10 +160,6 @@ namespace Assets.Core
             //MultiplayerCivilizationGroup.RegisterToggle(BorgLocalPlayerToggle);
             //MultiplayerCivilizationGroup.RegisterToggle(TerranLocalPlayerToggle);
 
-            /// ****** Need to use either NetCode to set NetworkManager.Singleton.LocalClientId.
-            /// So we can check network objects by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
-            /// currently GameController.GameData hold Local Player selected by useres on each PC 
-
         }
         private void Start()
         {
@@ -224,6 +214,8 @@ namespace Assets.Core
             MainMenuData.SelectedGalaxyType = GalaxyMapType.CANON;
             MainMenuData.SelectedTechLevel = TechLevel.EARLY;
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
+            if (NetworkServer.active)
+                PlayerManager.Instance.SetLocalPlayer(CivEnum.FED);
         }
         private void UpdatePlayers()
         {
@@ -231,7 +223,7 @@ namespace Assets.Core
             if (activeLocalPlayerToggle != null)
                 ActivePlayerToggle();
             #region Multiplayer toggle group - 
-            // ToDo do we need a multiplayer toggle group
+            // ToDo do we need a multiplayer toggle group?
             //foreach (var toggle in MultiplayerCivilizationGroup.ActiveToggles().ToArray())
             //{
             //    // ToDo: !!! need to get local player for SetLocalCivilization(int of civ) and
@@ -415,81 +407,80 @@ namespace Assets.Core
         SetCivMajorCivsInGame(majorCivsInGameList);    
         }
 
-
-
         private void ActivePlayerToggle()
         {
             switch (activeLocalPlayerToggle.name.ToUpper())
             {
-                case "TOGGLE_FED":
+                case "TOGGLELOCAL_FED":
                     FedOnOff.isOn = true;
                     FedOnOff.OnSelect(null);
                     FedLocalPalyerToggle = activeLocalPlayerToggle;
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Fed);
+
                     Debug.Log("Active FedLocalPalyerToggle.");
                     SetLocalCivilization(0);
                     PlaceTheYouInPlayerList(0);
                     break;
-                case "TOGGLE_ROM":
+                case "TOGGLELOCAL_ROM":
                     RomOnOff.isOn = true;
                     RomOnOff.OnSelect(null);
                     RomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active RomLocalPlayerToggle.");
+
                     SetLocalCivilization(1);
                     PlaceTheYouInPlayerList(1);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.ROM;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Rom);
                     break;
-                case "TOGGLE_KLING":
+                case "TOGGLELOCAL_KLING":
                     KlingOnOff.isOn = true;
                     KlingOnOff.OnSelect(null);
                     KlingLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active KlingLocalPlayerToggle.");
+
                     SetLocalCivilization(2);
                     PlaceTheYouInPlayerList(2);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.KLING;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Kling);
                     break;
-                case "TOGGLE_CARD":
+                case "TOGGLELOCAL_CARD":
                     CardOnOff.isOn = true;
                     CardOnOff.OnSelect(null);
                     CardLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active CardLocalPlayerToggle.");
+                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.CARD;
+                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.CARD);
+                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Card);
                     SetLocalCivilization(3);
                     PlaceTheYouInPlayerList(3);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.CARD;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Card);
                     break;
-                case "TOGGLE_DOM":
+                case "TOGGLELOCAL_DOM":
                     DomOnOff.isOn = true;
                     DomOnOff.OnSelect(null);
                     DomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active DomLocalPlayerToggle.");
+                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.DOM;
+                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Dom);
+                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.DOM);
                     SetLocalCivilization(4);
                     PlaceTheYouInPlayerList(4);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.DOM;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Dom);
                     break;
-                case "TOGGLE_BORG":
+                case "TOGGLELOCAL_BORG":
                     BorgOnOff.isOn = true;
                     BorgOnOff.OnSelect(null);
                     BorgLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active BorgLocalPlayerToggle.");
+                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.BORG;
+                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.BORG);
+                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Borg);
                     SetLocalCivilization(5);
                     PlaceTheYouInPlayerList(5);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.BORG;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Borg);
                     break;
-                case "TOGGLE_TERRAN":
+                case "TOGGLELOCAL_TERRAN":
                     TerranOnOff.isOn = true;
                     TerranOnOff.OnDeselect(null);
                     TerranLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active TerranLocalPlayerToggle.");
+                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.TERRAN;
+                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.TERRAN);
+                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Terran);
                     SetLocalCivilization(6);
                     PlaceTheYouInPlayerList(6);
-                    GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.TERRAN;
-                    ThemeManager.Instance.ApplyTheme(ThemeEnum.Terran);
                     break;
                 default:
                     break;
@@ -641,9 +632,9 @@ namespace Assets.Core
         }
         private void SetCivMajorCivsInGame(List<CivEnum> majorCivsInGameList)
         {
-            if (IsSinglePlayer)
-                PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList);
-            else PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList);
+            if (IsSinglePlayer && NetworkServer.active)
+                PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
+            //else PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
         }
         public void SetMultiPlayer()
         {
@@ -652,8 +643,11 @@ namespace Assets.Core
             panelMuliplayer.SetActive(true);
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
-            PlayerManager.Instance.ResetPlayerList();
-            PlayerManager.Instance.SetLocalPlayer(localPlayerCiv);
+            if (NetworkServer.active)
+            {
+                PlayerManager.Instance.ResetPlayerList();
+                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv);
+            }
         }
         public void SetSinglePlayer()
         {
@@ -662,8 +656,11 @@ namespace Assets.Core
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
-            PlayerManager.Instance.ResetPlayerList();
-            PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); //, majorCivsInGameList);
+            if (NetworkServer.active)
+            {
+                PlayerManager.Instance.ResetPlayerList();
+                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); //, majorCivsInGameList);
+            }   
         }
 
         private void FedOnOffToggleReset()
@@ -799,7 +796,10 @@ namespace Assets.Core
         {
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
-            PlayerManager.Instance.SetLocalPlayer((CivEnum)((int)index));
+            if (NetworkServer.active)
+                PlayerManager.Instance.SetLocalPlayer((CivEnum)((int)index));
+            GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
+            ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
         }
         private void LoadGalaxyScene()
         {

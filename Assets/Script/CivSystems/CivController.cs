@@ -1,13 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
-//using Unity.Netcode; //********** install for Multiplayer
-
-/// <summary>
-/// ToDo; Steps after install:
-// 1. Add the NetworkObject component to your CivConroller prefab.
-// 2. Check if a NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
-/// </summary>
+using Mirror;
 
 namespace Assets.Core
 {

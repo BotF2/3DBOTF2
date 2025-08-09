@@ -33,10 +33,9 @@ namespace Assets.Core
         public List<CivData> CivDataInGameList = new List<CivData> { new CivData() };
         public List<CivController> CivControllersInGame { get; private set; } = new List<CivController>();
 
-        //public CivData LocalPlayerCivEnum;// This will be set by NetCode checking if NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId. 
         public bool isSinglePlayer;
         public List<CivEnum> InGamePlayableCivs;
-        public CivController LocalPlayerCivContoller; // ToDo: set by NetCode checking if NetworkObject belongs to the local player by comparing the NetworkObject.OwnerClientId with NetworkManager.Singleton.LocalClientId.
+        public CivController LocalPlayerCivContoller; 
 
         //public bool nowCivsCanJoinTheFederation = true; // for use with testing a muliple star system Federation
         private int HoldCivSize = 0;// used in testing of a multiStarSystem civilization/faction
@@ -217,8 +216,6 @@ namespace Assets.Core
             CivControllersInGame.Add(civController);
             civController.transform.SetParent(civFolder.transform, true);
             civController.name = civData.CivShortName.ToString();
-
-            // NetCode, NetworkObject belongs to the local player
             if (localPlayerCivInt == civController.CivData.CivInt)
             {
                 LocalPlayerCivContoller = civController;
