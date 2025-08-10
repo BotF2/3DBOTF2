@@ -415,7 +415,6 @@ namespace Assets.Core
                     FedOnOff.isOn = true;
                     FedOnOff.OnSelect(null);
                     FedLocalPalyerToggle = activeLocalPlayerToggle;
-
                     Debug.Log("Active FedLocalPalyerToggle.");
                     SetLocalCivilization(0);
                     PlaceTheYouInPlayerList(0);
@@ -425,7 +424,6 @@ namespace Assets.Core
                     RomOnOff.OnSelect(null);
                     RomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active RomLocalPlayerToggle.");
-
                     SetLocalCivilization(1);
                     PlaceTheYouInPlayerList(1);
                     break;
@@ -434,7 +432,6 @@ namespace Assets.Core
                     KlingOnOff.OnSelect(null);
                     KlingLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active KlingLocalPlayerToggle.");
-
                     SetLocalCivilization(2);
                     PlaceTheYouInPlayerList(2);
                     break;
@@ -443,9 +440,6 @@ namespace Assets.Core
                     CardOnOff.OnSelect(null);
                     CardLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active CardLocalPlayerToggle.");
-                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.CARD;
-                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.CARD);
-                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Card);
                     SetLocalCivilization(3);
                     PlaceTheYouInPlayerList(3);
                     break;
@@ -454,9 +448,6 @@ namespace Assets.Core
                     DomOnOff.OnSelect(null);
                     DomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active DomLocalPlayerToggle.");
-                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.DOM;
-                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Dom);
-                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.DOM);
                     SetLocalCivilization(4);
                     PlaceTheYouInPlayerList(4);
                     break;
@@ -465,9 +456,6 @@ namespace Assets.Core
                     BorgOnOff.OnSelect(null);
                     BorgLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active BorgLocalPlayerToggle.");
-                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.BORG;
-                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.BORG);
-                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Borg);
                     SetLocalCivilization(5);
                     PlaceTheYouInPlayerList(5);
                     break;
@@ -476,9 +464,6 @@ namespace Assets.Core
                     TerranOnOff.OnDeselect(null);
                     TerranLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active TerranLocalPlayerToggle.");
-                    //GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.TERRAN;
-                    //PlayerManager.Instance.SetLocalPlayer(CivEnum.TERRAN);
-                    //ThemeManager.Instance.ApplyTheme(ThemeEnum.Terran);
                     SetLocalCivilization(6);
                     PlaceTheYouInPlayerList(6);
                     break;
@@ -632,9 +617,11 @@ namespace Assets.Core
         }
         private void SetCivMajorCivsInGame(List<CivEnum> majorCivsInGameList)
         {
-            if (IsSinglePlayer && NetworkServer.active)
-                PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
-            //else PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
+            if (!IsSinglePlayer && NetworkServer.active)
+                PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
+            //else No server needed for single human player game
+           
+            //PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
         }
         public void SetMultiPlayer()
         {
@@ -656,10 +643,10 @@ namespace Assets.Core
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
-            if (NetworkServer.active)
+            if (NetworkServer.active) // do we ever need server for a single human player game?
             {
                 PlayerManager.Instance.ResetPlayerList();
-                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); //, majorCivsInGameList);
+                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); 
             }   
         }
 

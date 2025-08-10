@@ -1,4 +1,6 @@
 using Assets.Core;
+using Assets.SpaceCombat.AutoBattle.Scripts.Audio;
+using Assets.SpaceCombat.AutoBattle.Scripts.Starships;
 using System;
 using UnityEngine;
 
@@ -8,6 +10,8 @@ public class ShipController : MonoBehaviour
     public ShipData ShipData { get { return shipData; } set { shipData = value; } }
     public string Name;
     private ShipManager _manager;
+    public GameObject torpedoPrefab;
+    public GameObject beamWeaponPrefab;
     public GameObject ShipListUIGameObject; //The instantiated ship UI for this fleet and system ship lists.
                                             //a prefab clone, not a class but a game object
     public void Init(ShipManager shipManager)
@@ -50,6 +54,14 @@ public class ShipController : MonoBehaviour
 
     internal void FireWeapons()
     {
-        // ToDo fire weapons;
+        //var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
+        //var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
+        //var photonTorpedoScript = torpedoGo.GetComponent<Torpedo>();
+        //photonTorpedoScript.SetCurrentTarget(target);
+        //Physics.IgnoreCollision(gameObject.GetComponent<Collider>(), StarshipCollider);
+
+        //_audioPlayer.PlayClip(torpedoHardPointInfo.AudioClip);
+
+        //torpedoHardPointInfo.LoadedTorpedos--;
     }
 }

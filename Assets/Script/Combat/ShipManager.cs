@@ -23,6 +23,10 @@ public class ShipManager : MonoBehaviour
     public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
     public ShipSORegistry ShipSORegistry;
+    [SerializeField]
+    private List<GameObject> torpedoPrefabs;
+    [SerializeField]
+    private List<GameObject> beamWeaponPrefabs;
     int shipIndex = 0;
 
     private void Awake()
@@ -86,16 +90,7 @@ public class ShipManager : MonoBehaviour
         }
         return shipConList;
     }
-    //public ShipController InstantiateTheCombatShips(ShipController shipCon)
-    //{
-    //    GameObject shipGO = Instantiate(ShipPrefab, new Vector3(shipIndex, shipIndex, 0), Quaternion.identity);
 
-    //    ShipController aShipCon = shipGO.GetComponent<ShipController>();
-    //    aShipCon = shipCon;
-    //    aShipCon.transform.SetParent(shipGO.transform);
-
-    //    return aShipCon;
-    //}
     public int GetShipBuildDuration(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
     {
         ShipSO aShipSO = new ShipSO();
@@ -149,9 +144,6 @@ public class ShipManager : MonoBehaviour
                 ShipControllerGameList.Add(shipCon);
             }
         }
-
-        //if (GalaxyMenuUIController.Instance != null)
-            //GalaxyMenuUIController.Instance.UpdateSystemShipList(fleetCon);
     }
     private void InstantiateShipListUIGameObject(ShipController shipCon, GameObject parentGO)
     {
@@ -173,7 +165,8 @@ public class ShipManager : MonoBehaviour
                 {
                     textComponent.text = shipCon.ShipData.ShipType.ToString();
                 }
-
+                shipCon.torpedoPrefab = (from ship in torpedoPrefabs where (ship.name == shipCon.ShipData.CivEnum.ToString().ToUpper()) select ship).FirstOrDefault(); //torpedoPrefabs.FirstOrDefault(x => x.name.Contains(shipCon.ShipData.CivEnum.ToString().ToUpper()));
+                shipCon.beamWeaponPrefab = (from ship in beamWeaponPrefabs where (ship.name == shipCon.ShipData.CivEnum.ToString().ToUpper()) select ship).FirstOrDefault(); //beamWeaponPrefabs.FirstOrDefault(x => x.name.Contains(shipCon.ShipData.CivEnum.ToString().ToUpper()));
                 thisShipListUIGameObject.layer = 5;
                 shipCon.ShipListUIGameObject = thisShipListUIGameObject;         
 
@@ -214,9 +207,7 @@ public class ShipManager : MonoBehaviour
                 }
             }
         }
-
         fleetCon.UpdateMaxWarp();
-        //shipCon.FleetData.CurrentWarpFactor = 0f;
     }
     public List<ShipSO> FirstShipDateByTechlevel(int techLevel, CivEnum civ)
     {

@@ -130,7 +130,7 @@ public class PlayerManager : MonoBehaviour
         allPlayerDatas.Add(playerData);
     } 
     public void SetMajorCivsInGameForSinglePlayer(List<CivEnum> majorsInGame, CivEnum localPlayerCiv)
-    { 
+    { // Do we ever need server and network player for a single player game? I think not.
         if (playerDataPrefab == null && !NetworkServer.active)
         {
             Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");

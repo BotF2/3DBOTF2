@@ -38,7 +38,11 @@ public class CombatController : MonoBehaviour
     public GameObject SideTwoTorpedoPrefab;
     public GameObject SideOneBeamPrefab;
     public GameObject SideTwoBeamPrefab;
-
+    [Header("Firing Delay Ranges")]
+    [SerializeField] private float minFirstShotDelay = 0.2f;
+    [SerializeField] private float maxFirstShotDelay = 0.9f;
+    [SerializeField] private float minRefireDelay = 0.5f;
+    [SerializeField] private float maxRefireDelay = 2.5f;
     int _scoutsSide1;
     int _scoutsSide2;
     int _destroyersSide1;
@@ -137,10 +141,10 @@ public class CombatController : MonoBehaviour
         var sideOneShips = theCombatController.CombatData.SideOneShipCons;
         var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
 
-        BuildShipGOAndPosition(sideOneShips, -1); //sideOne is on the left, ships are -x axis...
-        BuildShipGOAndPosition(sideTwoShips, 1);
+        PopulateShipGOAndPosition(sideOneShips, -1); //sideOne is on the left, ships are -x axis...
+        PopulateShipGOAndPosition(sideTwoShips, 1);
     }
-    private void BuildShipGOAndPosition(List<ShipController> shipConList, int side1negSide2pog)
+    private void PopulateShipGOAndPosition(List<ShipController> shipConList, int side1negSide2pog)
     {
         int flip = -1;
         for (int i = 0; i < shipConList.Count; i++)
@@ -321,74 +325,89 @@ public class CombatController : MonoBehaviour
             default:
                 break;
         }
-        FindClosestPairs();
         StartCoroutine(AutoFireWeapons());
     }
 
     IEnumerator AutoFireWeapons()
     {
         yield return new WaitUntil(() => warpingAnimationOver && shipConsSideOne.Count >= 1 && shipConsSideTwo.Count >= 1);
-
-        float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
-        StartCoroutine(RealtimeTimerCoroutineWeaponDischarge(randomFloat));
-        FireWeaponsOnList(shipConsSideOne); 
-        FireWeaponsOnList(shipConsSideTwo);
+        FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);// get target ship for each ship on both sides
+        //float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
+        //StartCoroutine(RealtimeTimerCoroutineWeaponDischarge(randomFloat));
+        FireWeaponsOrder(shipConsSideOne); 
+        FireWeaponsOrder(shipConsSideTwo);
     }
-    void FindClosestPairs()
+    void FindClosestPairsForTargets(List<ShipController> shipList_1, List<ShipController> shipList_2)
     {
-        foreach (ShipController shipConA in shipConsSideOne)
+        for (int i = 0; i < shipList_1.Count; i++)
         {
             ShipController closestB = null;
             float shortestDist = Mathf.Infinity;
 
-            foreach (ShipController shipConB in shipConsSideTwo)
+            for (int j = 0; j < shipList_2.Count; j++)
             {
-                float distSqr = (shipConA.transform.position - shipConB.transform.position).sqrMagnitude;
+                float distSqr = (shipList_1[i].transform.position - shipList_2[j].transform.position).sqrMagnitude;
                 if (distSqr < shortestDist)
                 {
                     shortestDist = distSqr;
-                    closestB = shipConB;
+                    closestB = shipList_2[j];
                 }
             }
 
             if (closestB != null)
             {
-                shipConA.ShipData.TargetGo = closestB.gameObject; // Set the target for ship A
+                shipList_1[i].ShipData.TargetGo = closestB.gameObject; // Set the target for ship A
             }
         }
 
-        foreach (ShipController shipConB in shipConsSideTwo)
+        for (int i = 0; i < shipList_2.Count; i++)
         {
             ShipController closestA = null;
             float shortestDist = Mathf.Infinity;
 
-            foreach (ShipController shipConA in shipConsSideOne)
+            for (int j = 0; j < shipList_1.Count; j++)
             {
-                float distSqr = (shipConB.transform.position - shipConA.transform.position).sqrMagnitude;
+                float distSqr = (shipList_2[i].transform.position - shipList_1[j].transform.position).sqrMagnitude;
                 if (distSqr < shortestDist)
                 {
                     shortestDist = distSqr;
-                    closestA = shipConA;
+                    closestA = shipList_1[j];
                 }
             }
 
             if (closestA != null)
             {
-                shipConB.ShipData.TargetGo = closestA.gameObject; // Set the target for ship B
+                shipList_2[i].ShipData.TargetGo = closestA.gameObject; // Set the target for ship B
             }
         }
     }
-    private void FireWeaponsOnList(List<ShipController> shipCons)
+    private void FireWeaponsOrder(List<ShipController> shipCons)
     {
         // Implement logic to fire weapons on their enemy ships
         for (int i = 0; i < shipCons.Count; i++)
         {
             if (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0)
             {
-                float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
-                RealtimeTimerCoroutineWeaponDischarge(randomFloat);
-                shipCons[i].FireWeapons(); //???? fire here or in Shipcontroller?
+                float delay = UnityEngine.Random.Range(minFirstShotDelay, maxFirstShotDelay);
+                StartCoroutine(ShipFireLoop(shipCons[i], delay));
+                //float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
+                //RealtimeTimerCoroutineWeaponDischarge(randomFloat);
+                //shipCons[i].FireWeapons(); //???? fire here or in Shipcontroller?
             }
+        }
+    }
+    private IEnumerator ShipFireLoop(ShipController ship, float initialDelay)
+    {
+        yield return new WaitForSeconds(initialDelay);
+
+        while (true)
+        {
+            // Fire the ship's weapons
+            ship.FireWeapons();
+
+            // Wait for a random refire delay before next shot
+            float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
+            yield return new WaitForSeconds(refireDelay);
         }
     }
     IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)

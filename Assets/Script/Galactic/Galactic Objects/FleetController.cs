@@ -76,7 +76,7 @@ namespace Assets.Core
             FleetUICanvas = CanvasGO.GetComponent<Canvas>();
             FleetUICanvas.worldCamera = galaxyEventCamera;
             //CanvasToolTip.worldCamera = galaxyEventCamera;
-            FleetData.CurrentWarpFactor = 0f;
+           //FleetData.CurrentWarpFactor = 0f;
             for (int i = 0; i < FleetData.ShipsList.Count; i++)
             {
                 if (FleetData.ShipsList[i].ShipData.maxWarpFactor < this.FleetData.MaxWarpFactor)
@@ -111,7 +111,7 @@ namespace Assets.Core
                 GameObject fleetGo = hit.collider.gameObject;
                 if (fleetGo.tag != "GalaxyImage")
                 {
-                    // What a fleet FleetController does with a hit
+                    // What a fleet FleetController does with a click
                     FleetController clickedFleetCon = fleetGo.GetComponentInChildren<FleetController>();
                     if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == false) // the destination mouse pointer is off so open FleetUI for this FleetController
                     {
