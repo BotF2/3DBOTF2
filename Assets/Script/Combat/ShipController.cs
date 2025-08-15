@@ -1,8 +1,9 @@
 using Assets.Core;
-using Assets.SpaceCombat.AutoBattle.Scripts.Audio;
-using Assets.SpaceCombat.AutoBattle.Scripts.Starships;
+using System.Collections.Generic;
 using System;
 using UnityEngine;
+using System.Linq;
+
 
 public class ShipController : MonoBehaviour
 {
@@ -41,6 +42,38 @@ public class ShipController : MonoBehaviour
             Debug.Log("Controller collided with " + shipController.gameObject.name);
         }
     }
+    public void SetWeaponPrefabs() 
+    {
+        GameObject[] torpedoPrefabs = ShipManager.Instance.torpedoPrefabs;
+        GameObject[] beamPrefabs = ShipManager.Instance.beamWeaponPrefabs;
+        for (int i = 0; i < torpedoPrefabs.Length; i++)
+        {
+            if ((int)this.ShipData.CivEnum > 7)
+            {
+                torpedoPrefab = torpedoPrefabs.LastOrDefault();
+            }
+            else if (torpedoPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper()))
+            {
+                torpedoPrefab = torpedoPrefabs[i];
+
+            }
+        }
+
+        for (int i = 0; i < beamPrefabs.Length; i++)
+        {
+            if ((int)ShipData.CivEnum > 7)
+            {
+                beamWeaponPrefab = beamPrefabs.LastOrDefault();
+            }
+            else if (beamPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper()))
+            {
+               beamWeaponPrefab = beamPrefabs[i];
+
+            }
+        }
+        //var beamGo = Instantiate(shipCon.beamWeaponPrefab, shipCon.transform.position, shipCon.transform.rotation);
+        //beamGo.transform.SetParent(shipCon.transform, false);
+    }
     public void OnShipEncounteredShip(ShipController shipController)
     {
         //1) player get the ShipController of the ship GO we hit
@@ -52,16 +85,25 @@ public class ShipController : MonoBehaviour
 
     }
 
-    internal void FireWeapons()
+    internal void FireWeapons(bool baem)
     {
-        //var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
-        //var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
-        //var photonTorpedoScript = torpedoGo.GetComponent<Torpedo>();
-        //photonTorpedoScript.SetCurrentTarget(target);
-        //Physics.IgnoreCollision(gameObject.GetComponent<Collider>(), StarshipCollider);
+        if (baem && ShipData.BeamDamage > 0)
+        {
+            var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
+            var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
+            var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
+            beamWeaponScript.LineRenderer = lineRenderer;
+            beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.FireAtThis.transform);
+            Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
 
-        //_audioPlayer.PlayClip(torpedoHardPointInfo.AudioClip);
+        }
+        else if (ShipData.TorpedoDamage > 0)
+        {
+            var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
+            var torpedoScript = torpedoGo.GetComponent<Torpedo>();
+            torpedoScript.SetCurrentTarget(ShipData.FireAtThis.transform);
+            Destroy(torpedoGo, 5f); // Destroy the torpedo after 5
+        }
 
-        //torpedoHardPointInfo.LoadedTorpedos--;
     }
 }

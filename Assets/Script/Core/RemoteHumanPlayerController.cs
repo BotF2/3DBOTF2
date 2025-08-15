@@ -41,7 +41,33 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     }
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
-        // Handle remote user UI input logic, reads Unity input.
+        var combatCons = CombatManager.Instance.CombatControllers;
+        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        for (int i = 0; i < combatCons.Count; i++)
+        {
+            if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
+                aCombatCon = combatCons[i];
+            break;
+        }
+        switch (order)
+        {
+            case CombatOrders.Engage:
+                aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+                break;
+            case CombatOrders.Rush:
+                aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+                break;
+            case CombatOrders.Retreat:
+                aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+                break;
+            case CombatOrders.Formation:
+                aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+                break;
+            case CombatOrders.TargetTransports:
+                aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+
+                break;
+        }
     }
     public void ExecuteOrder(string order)
     {

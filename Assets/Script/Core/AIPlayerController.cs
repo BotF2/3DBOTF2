@@ -50,8 +50,33 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     }
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
-      
-        //CombatController..SetCombatOrder(order, PlayerData.CivEnum);
+        var combatCons = CombatManager.Instance.CombatControllers;
+        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        for (int i = 0; i < combatCons.Count; i++)
+        {
+            if ( combatCons[i] == combatCon && (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
+                aCombatCon = combatCons[i];
+            break;
+        }
+        switch (order)
+        {
+            case CombatOrders.Engage:
+                aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+                break;
+            case CombatOrders.Rush:
+                aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+                break;
+            case CombatOrders.Retreat:
+                aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+                break;
+            case CombatOrders.Formation:
+                aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+                break;
+            case CombatOrders.TargetTransports:
+                aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+
+                break;
+        }
     }
 
     public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ)
@@ -61,13 +86,41 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
 
     public void GiveIntelOrder(SecretActionsEnum order, CivEnum civ)
     {
-        // Handle AI logic for intel orders.
+      
+        //***? will we have an IntelController like the combat controller?
+        //var combatCons = CombatManager.Instance.CombatControllers;
+        //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        //for (int i = 0; i < combatCons.Count; i++)
+        //{
+        //    if (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ)
+        //        aCombatCon = combatCons[i];
+        //    break;
+        //}
+        //switch (order)
+        //{
+        //    case SecretActionsEnum.Disinformation:
+        //        aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+        //        break;
+        //    case SecretActionsEnum.Combat:
+        //        aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+        //        break;
+        //    case SecretActionsEnum.IntellectualTheft:
+        //        aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+        //        break;
+        //    case SecretActionsEnum.Sabotage:
+        //        aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+        //        break;
+        //    case SecretActionsEnum.GatherIntelligence:
+        //        aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+
+        //        break;
+        //}
     }
 
-    internal void GetAICombatOrder(SecretActionsEnum order, CivEnum civ)
+    internal void GetAICombatOrder(SecretActionsEnum order, CombatController combatCon, CivEnum civ)
     {
         // do AI combat logic here, Handle AI logic, computes behavior logic.
-        //GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
+
     }
     //.....???? more orders as needed
 }

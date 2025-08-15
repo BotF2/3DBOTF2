@@ -52,7 +52,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
         for (int i = 0; i < combatCons.Count; i++) 
         {
-            if (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ)
+            if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
                 aCombatCon = combatCons[i];
             break;
         }

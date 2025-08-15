@@ -1439,6 +1439,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d079bf9a55c773a4baea059364a81579, type: 2}
   - {fileID: 11400000, guid: 6d0a06c34836634458196ee1c57b472a, type: 2}
   ShipSORegistry: {fileID: 0}
+  targetGOPrefab: {fileID: 3986111191651871830, guid: 9f5ec565b8469c841a29976acdadf913, type: 3}
   torpedoPrefabs:
   - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
   - {fileID: 3912758670790259718, guid: cc2c0058e724b7b4e9de90526d3c4bff, type: 3}

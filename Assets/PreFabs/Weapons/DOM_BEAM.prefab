@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2916012842776572984}
   - component: {fileID: 4008110877069279972}
   - component: {fileID: 3834888845484071865}
-  - component: {fileID: -2660781976331509061}
+  - component: {fileID: -560071721799766867}
   m_Layer: 0
   m_Name: DOM_BEAM
   m_TagString: Untagged
@@ -90,7 +90,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.03486252
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -149,24 +149,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5741464907251326923}
   m_Mesh: {fileID: -8429869004850668383, guid: 200687b3df498bd46be048dadb383ad0, type: 3}
---- !u!65 &-2660781976331509061
-BoxCollider:
+--- !u!114 &-560071721799766867
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5741464907251326923}
-  m_Material: {fileID: 13400000, guid: a53b6371ea1de0a47abebc560f0886fc, type: 2}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.01, y: 0.01, z: 0.01}
-  m_Center: {x: 1474.2212, y: 52.84854, z: -5614.462}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c38117f47fa4f24f9fcd1f9655a67f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LineRenderer: {fileID: 0}
+  TargetTransform: {fileID: 0}
+  WeaponTransform: {fileID: 0}
+  _weaponAndTargetTrans:
+  - {fileID: 0}
+  - {fileID: 0}

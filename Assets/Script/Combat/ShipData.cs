@@ -20,7 +20,8 @@ public class ShipData
     public int BeamDamage;
     public int BuildDuration;
     public string ShipDescription;
-    public GameObject TargetGo;
+    public GameObject TargetMeHere;
+    public GameObject FireAtThis;
 
     public ShipData(string name)
     {

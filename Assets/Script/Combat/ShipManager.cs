@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Data.Common;
 
 public class ShipManager : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class ShipManager : MonoBehaviour
     [SerializeField]
     private ShipController shipConPrefab;
     public GameObject ShipPrefab;
-    
+
     public GameObject PrefabSphere;
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
@@ -23,10 +24,9 @@ public class ShipManager : MonoBehaviour
     public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
     public ShipSORegistry ShipSORegistry;
-    [SerializeField]
-    private List<GameObject> torpedoPrefabs;
-    [SerializeField]
-    private List<GameObject> beamWeaponPrefabs;
+    public GameObject targetGOPrefab;
+    public GameObject[] torpedoPrefabs;
+    public GameObject[] beamWeaponPrefabs;
     int shipIndex = 0;
 
     private void Awake()
@@ -80,6 +80,9 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
                 shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
                 shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
+                var position = shipCon.transform.position;
+                shipCon.ShipData.TargetMeHere = Instantiate(targetGOPrefab, new Vector3(position.x, position.y, position.z+ 10f), Quaternion.identity);
+                shipCon.ShipData.TargetMeHere.transform.SetParent(shipCon.transform, false);
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);
@@ -165,8 +168,7 @@ public class ShipManager : MonoBehaviour
                 {
                     textComponent.text = shipCon.ShipData.ShipType.ToString();
                 }
-                shipCon.torpedoPrefab = (from ship in torpedoPrefabs where (ship.name == shipCon.ShipData.CivEnum.ToString().ToUpper()) select ship).FirstOrDefault(); //torpedoPrefabs.FirstOrDefault(x => x.name.Contains(shipCon.ShipData.CivEnum.ToString().ToUpper()));
-                shipCon.beamWeaponPrefab = (from ship in beamWeaponPrefabs where (ship.name == shipCon.ShipData.CivEnum.ToString().ToUpper()) select ship).FirstOrDefault(); //beamWeaponPrefabs.FirstOrDefault(x => x.name.Contains(shipCon.ShipData.CivEnum.ToString().ToUpper()));
+                
                 thisShipListUIGameObject.layer = 5;
                 shipCon.ShipListUIGameObject = thisShipListUIGameObject;         
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.XR;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -41,8 +42,8 @@ public class CombatController : MonoBehaviour
     [Header("Firing Delay Ranges")]
     [SerializeField] private float minFirstShotDelay = 0.2f;
     [SerializeField] private float maxFirstShotDelay = 0.9f;
-    [SerializeField] private float minRefireDelay = 0.5f;
-    [SerializeField] private float maxRefireDelay = 2.5f;
+    [SerializeField] private float minRefireDelay = 5f;
+    [SerializeField] private float maxRefireDelay = 30f;
     int _scoutsSide1;
     int _scoutsSide2;
     int _destroyersSide1;
@@ -56,10 +57,6 @@ public class CombatController : MonoBehaviour
     int _totalCapitalShips;
     int _totalTransportsShips;
 
-    private void Start()
-    {
-
-    }
     public void SetCombatOrder(CombatOrders orders, CivEnum civEnum)
     {
         if (CombatData.CivEnumSideOne == civEnum)
@@ -144,12 +141,12 @@ public class CombatController : MonoBehaviour
         PopulateShipGOAndPosition(sideOneShips, -1); //sideOne is on the left, ships are -x axis...
         PopulateShipGOAndPosition(sideTwoShips, 1);
     }
-    private void PopulateShipGOAndPosition(List<ShipController> shipConList, int side1negSide2pog)
+    private void PopulateShipGOAndPosition(List<ShipController> shipConList, int side1negSide2pos)
     {
         int flip = -1;
         for (int i = 0; i < shipConList.Count; i++)
         {
-            if (side1negSide2pog < 0)
+            if (side1negSide2pos < 0)
             {
                 shipConsSideOne.Add(shipConList[i]);
             }
@@ -161,15 +158,15 @@ public class CombatController : MonoBehaviour
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.AddComponent<Rigidbody>();
-            shipGameOb.transform.SetPositionAndRotation(new Vector3(combatController.CombatData.xStart * side1negSide2pog, i * 100, i * 100),
-                Quaternion.Euler(0, 90 * side1negSide2pog, 0));
+            shipGameOb.transform.SetPositionAndRotation(new Vector3(combatController.CombatData.xStart * side1negSide2pos, i * 100, i * 100),
+                Quaternion.Euler(0, 90 * side1negSide2pos, 0));
             if (shipGameOb.GetComponent<ShipController>() != null)
             {
                 var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
 
                 if (shipType == ShipType.Transport)
                 {
-                    if (side1negSide2pog < 0)
+                    if (side1negSide2pos < 0)
                     {
 
                         sideOneA3Animator.gameObject.SetActive(true);
@@ -185,7 +182,7 @@ public class CombatController : MonoBehaviour
                 }
                 else
                 {
-                    if (side1negSide2pog < 0)
+                    if (side1negSide2pos < 0)
                     {
                         if (flip < 0)
                         {
@@ -250,9 +247,10 @@ public class CombatController : MonoBehaviour
                 length = Math.Abs(localSize.y);
                 boxCollider.size = new Vector3(width, height, length);
             }
+            shipConList[i].SetWeaponPrefabs(); // Set the weapon prefabs for the ship controller
         }
 
-        ActOnCurrentCombatOrders(shipConList, side1negSide2pog); // Act on the current combat orders for ships of this side
+        ActOnCurrentCombatOrders(shipConList, side1negSide2pos); // Act on the current combat orders for ships of this side
     }
 
     private void CountShips()
@@ -345,7 +343,7 @@ public class CombatController : MonoBehaviour
             float shortestDist = Mathf.Infinity;
 
             for (int j = 0; j < shipList_2.Count; j++)
-            {
+            { 
                 float distSqr = (shipList_1[i].transform.position - shipList_2[j].transform.position).sqrMagnitude;
                 if (distSqr < shortestDist)
                 {
@@ -356,7 +354,9 @@ public class CombatController : MonoBehaviour
 
             if (closestB != null)
             {
-                shipList_1[i].ShipData.TargetGo = closestB.gameObject; // Set the target for ship A
+                shipList_1[i].ShipData.FireAtThis = closestB.ShipData.TargetMeHere; 
+                //var localPos = shipList_1[i].ShipData.TargetGo.transform.position;
+                //shipList_1[i].ShipData.TargetGo.transform.localPosition = new Vector3(localPos.x -100f, localPos.y, localPos.z); 
             }
         }
 
@@ -376,8 +376,10 @@ public class CombatController : MonoBehaviour
             }
 
             if (closestA != null)
-            {
-                shipList_2[i].ShipData.TargetGo = closestA.gameObject; // Set the target for ship B
+            { 
+                shipList_2[i].ShipData.FireAtThis = closestA.ShipData.TargetMeHere; // Set the target for ship B
+                //var localPos = shipList_1[i].ShipData.TargetGo.transform.position;
+                //shipList_2[i].ShipData.TargetGo.transform.localPosition = new Vector3(localPos.x -100f, localPos.y, localPos.z); // Set the target back into ship mesh
             }
         }
     }
@@ -386,7 +388,7 @@ public class CombatController : MonoBehaviour
         // Implement logic to fire weapons on their enemy ships
         for (int i = 0; i < shipCons.Count; i++)
         {
-            if (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0)
+            if (shipCons[i].ShipData.FireAtThis != null & (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
             {
                 float delay = UnityEngine.Random.Range(minFirstShotDelay, maxFirstShotDelay);
                 StartCoroutine(ShipFireLoop(shipCons[i], delay));
@@ -396,15 +398,19 @@ public class CombatController : MonoBehaviour
             }
         }
     }
-    private IEnumerator ShipFireLoop(ShipController ship, float initialDelay)
+    private IEnumerator ShipFireLoop(ShipController shipCon, float initialDelay)
     {
         yield return new WaitForSeconds(initialDelay);
 
         while (true)
         {
+            bool beam = true;
             // Fire the ship's weapons
-            ship.FireWeapons();
-
+            shipCon.FireWeapons(beam);
+            if (beam)
+                beam = false;
+            else
+                beam = true;
             // Wait for a random refire delay before next shot
             float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
             yield return new WaitForSeconds(refireDelay);
