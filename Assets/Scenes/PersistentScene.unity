@@ -3236,6 +3236,7 @@ GameObject:
   - component: {fileID: 1467798004}
   - component: {fileID: 1467798002}
   - component: {fileID: 1467798003}
+  - component: {fileID: 1467798005}
   m_Layer: 0
   m_Name: ShipCombatCamera
   m_TagString: ShipCamera
@@ -3353,6 +3354,14 @@ Transform:
   m_Children: []
   m_Father: {fileID: 164970913}
   m_LocalEulerAnglesHint: {x: 9, y: 0, z: 0}
+--- !u!81 &1467798005
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1467798001}
+  m_Enabled: 1
 --- !u!1 &1489402071
 GameObject:
   m_ObjectHideFlags: 0
@@ -4437,7 +4446,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1932995083
 MonoBehaviour:
   m_ObjectHideFlags: 0

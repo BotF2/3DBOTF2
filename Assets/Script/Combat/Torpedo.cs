@@ -1,42 +1,86 @@
-using UnityEngine;
 using Assets.Core;
+using Mirror.BouncyCastle.Utilities.IO.Pem;
+using UnityEngine;
 
 public class Torpedo : MonoBehaviour
 {
-    private float _velocity = 2.5f;
-    private float _turnRate = 3f;
-    private Transform _target;
-    [SerializeField] private GameObject[] _children;
+    public float Velocity = 100f; // the velocity used appears to be set in the prefab and not this value.
+    public float TurnRatio = 10f; // same, set in prefab, not this value. keep it for now, have options different torpedos by civ
+    public Transform Target;
+    public Rigidbody torpedoRigidbody;
+    public CivEnum OwnerCivEnum; 
+    public CivEnum TargetCivEnum;
+    public int TorpedoDamage;
+    private AudioSource audioSource;
 
+    private void Awake()
+    {
+        torpedoRigidbody = GetComponent<Rigidbody>();
+        if (torpedoRigidbody == null)
+        {
+            Debug.LogError("Torpedo Rigidbody is not assigned!");
+        }
+        audioSource = GetComponent<AudioSource>();
+    }
     public void SetCurrentTarget(Transform targetTransform)
     {
-        _target = targetTransform;
+        Target = targetTransform;
     }
 
     private void FixedUpdate()
     {
-        if (_target == null)
+        if (Target == null)
         {
-            transform.Translate(Vector3.forward * _velocity * Time.deltaTime);
+            Debug.LogWarning("Torpedo target is not set. Destroying torpedo.");
+            Destroy(gameObject); // Destroy the torpedo if no target is set
             return;
         }
-
-        // TODO: Fire in-front first, then home to target, use a co-routine
-
-        //TODO: slow down to battle speed
-
-        var targetRotation = Quaternion.LookRotation(_target.position - transform.position);
-        var turningStrength = _turnRate * Time.deltaTime;
-        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, turningStrength);
-
-        transform.Translate(Vector3.forward * _velocity * Time.deltaTime);
+        Vector3 currentPosition = torpedoRigidbody.position;
+        Vector3 direction = (Target.position - currentPosition).normalized;
+        float speedWhileGameTimePaused = Velocity * Time.fixedUnscaledDeltaTime;
+        Vector3 nextPosition = Vector3.MoveTowards(currentPosition, Target.position, speedWhileGameTimePaused);
+        torpedoRigidbody.MovePosition(nextPosition);
+        if (direction != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            torpedoRigidbody.MoveRotation(Quaternion.RotateTowards(torpedoRigidbody.rotation, targetRotation, TurnRatio * Time.fixedUnscaledDeltaTime));
+        }
     }
 
-    public void OnCollisionEnter(Collision collision)
+    public void OnTriggerEnter(Collider other)
     {
         // TODO, need to add explosion and sound effects (add new a object for that)
 
-        Destroy(gameObject);
+        ShipController shipController = other.gameObject.GetComponent<ShipController>();
+        if (shipController != null && OwnerCivEnum != shipController.ShipData.CivEnum)
+        {
+            shipController.TakeDamage(TorpedoDamage);
+        }
+        if (shipController != null && TargetCivEnum == shipController.ShipData.CivEnum)
+        {
+            Destroy(gameObject); // Destroy the torpedo after it hits something
+        }
+    }
+    private void DoDamage(ShipController shipController)
+    {
+        //if (shipController.ShipData.ShieldHealth > 0)
+        //{
+        //    // If the ship has shields, damage the shields first
+        //    shipController.ShipData.ShieldHealth -= (TorpedoDamage/2);
+        //    return;
+        //}
+        //else if (shipController.ShipData.HullHealth > 0)
+        //{
+        //    shipController.ShipData.HullHealth -= (TorpedoDamage/3); // Example damage value
+        //    return;
+        //}
+        //else         
+        //{
+        //    // If both shields and hull are destroyed, destroy the ship
+        //    Destroy(shipController.gameObject);
+        //    ShipCombatCameraController.Instance.OnShipDestroyed(shipController);
+        //}
+        //Destroy(gameObject); // Destroy the torpedo after it hits something
     }
 }
 

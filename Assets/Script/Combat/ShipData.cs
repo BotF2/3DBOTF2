@@ -14,14 +14,14 @@ public class ShipData
     public Sprite ShipSprite;
     public float maxWarpFactor;
     public float currentWarpFactor;
-    public int ShieldMaxHealth;
-    public int HullMaxHealth;
+    public int ShieldHealth;
+    public int HullHealth;
     public int TorpedoDamage;
     public int BeamDamage;
     public int BuildDuration;
     public string ShipDescription;
-    public GameObject TargetMeHere;
-    public GameObject FireAtThis;
+    public ShipController TargetThisShipController;
+    public GameObject TargetForThisShip;
 
     public ShipData(string name)
     {

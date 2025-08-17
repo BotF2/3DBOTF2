@@ -151,8 +151,8 @@ public class DiplomacyManager : MonoBehaviour
         }
         
         DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
-        diplomacyController.DiplomacyData.DiplomacyEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyController);
-        diplomacyController.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyController.DiplomacyData.DiplomacyEnumOfCivs;
+        diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyController);
+        diplomacyController.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs;
         DiplomacyControllerList.Add(diplomacyController);
         InstantiateDiplomacyUIGameObject(diplomacyController);
 

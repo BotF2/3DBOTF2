@@ -1432,7 +1432,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
                     break;
                 case "RelationText":
-                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyEnumOfCivs.ToString();
+                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
                     break;
                 case "Text Points (TMP)":
                     ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();

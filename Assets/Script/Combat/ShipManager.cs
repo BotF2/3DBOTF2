@@ -75,19 +75,16 @@ public class ShipManager : MonoBehaviour
                     shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
                 shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;
                 shipCon.ShipData.currentWarpFactor = 0f;
-                shipCon.ShipData.ShieldMaxHealth = shipSOList[i].ShieldMaxHealth;
-                shipCon.ShipData.HullMaxHealth = shipSOList[i].HullMaxHealth;
+                shipCon.ShipData.ShieldHealth = shipSOList[i].ShieldMaxHealth;
+                shipCon.ShipData.HullHealth = shipSOList[i].HullMaxHealth;
                 shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
                 shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
                 shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
                 var position = shipCon.transform.position;
-                shipCon.ShipData.TargetMeHere = Instantiate(targetGOPrefab, new Vector3(position.x, position.y, position.z+ 10f), Quaternion.identity);
-                shipCon.ShipData.TargetMeHere.transform.SetParent(shipCon.transform, false);
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);
-                InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship
-                 
+                InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship                 
                 shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu 
             }
         }

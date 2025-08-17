@@ -9,7 +9,7 @@ public class DiplomacyData
     public int SideOneMultiplayerId; // network player ID, not used in single player
     public CivController CivSideTwo; // a minor civ, if any
     public int SideTwoMultiplayerId; // network player ID, not used in single player
-    public DiplomacyStatusEnum DiplomacyEnumOfCivs = DiplomacyStatusEnum.Neutral; // friendly, allied, at war
+    public DiplomacyStatusEnum DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Neutral; // the diplomacy status for this civ pair
     public int DiplomacyPointsOfCivs = 60; // neutral
     public FleetController CurrentFleetOfSideOne; // the major civ's fleet
     public FleetController CurrentFleetOfSideTwo; // the minor civ's fleet, if any 

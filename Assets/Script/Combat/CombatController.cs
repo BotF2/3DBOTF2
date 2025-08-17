@@ -59,6 +59,7 @@ public class CombatController : MonoBehaviour
 
     public void SetCombatOrder(CombatOrders orders, CivEnum civEnum)
     {
+        //**** ToDo: Create Event to update DiplomacyController state between the two civs involved in combat
         if (CombatData.CivEnumSideOne == civEnum)
         {
             CombatData.OrderSideOne = orders; // Set the combat order for Side One
@@ -223,7 +224,9 @@ public class CombatController : MonoBehaviour
             rigid.useGravity = false;
             rigid.isKinematic = true;
             BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
-            boxCollider.transform.localScale = new Vector3(6, 6, 6); //size model to fit CameraMultitarget calculations/view;
+
+            //******** ship size here for now **************
+            boxCollider.transform.localScale = new Vector3(5, 5, 5); //size model to fit CameraMultitarget calculations and the view appearance;
             float length = 1f;
             float height = 1f;
             float width = 1f;
@@ -330,8 +333,6 @@ public class CombatController : MonoBehaviour
     {
         yield return new WaitUntil(() => warpingAnimationOver && shipConsSideOne.Count >= 1 && shipConsSideTwo.Count >= 1);
         FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);// get target ship for each ship on both sides
-        //float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
-        //StartCoroutine(RealtimeTimerCoroutineWeaponDischarge(randomFloat));
         FireWeaponsOrder(shipConsSideOne); 
         FireWeaponsOrder(shipConsSideTwo);
     }
@@ -354,9 +355,7 @@ public class CombatController : MonoBehaviour
 
             if (closestB != null)
             {
-                shipList_1[i].ShipData.FireAtThis = closestB.ShipData.TargetMeHere; 
-                //var localPos = shipList_1[i].ShipData.TargetGo.transform.position;
-                //shipList_1[i].ShipData.TargetGo.transform.localPosition = new Vector3(localPos.x -100f, localPos.y, localPos.z); 
+                shipList_1[i].ShipData.TargetThisShipController = closestB;
             }
         }
 
@@ -377,9 +376,7 @@ public class CombatController : MonoBehaviour
 
             if (closestA != null)
             { 
-                shipList_2[i].ShipData.FireAtThis = closestA.ShipData.TargetMeHere; // Set the target for ship B
-                //var localPos = shipList_1[i].ShipData.TargetGo.transform.position;
-                //shipList_2[i].ShipData.TargetGo.transform.localPosition = new Vector3(localPos.x -100f, localPos.y, localPos.z); // Set the target back into ship mesh
+                shipList_2[i].ShipData.TargetThisShipController = closestA; // Set the target for ship B
             }
         }
     }
@@ -388,23 +385,19 @@ public class CombatController : MonoBehaviour
         // Implement logic to fire weapons on their enemy ships
         for (int i = 0; i < shipCons.Count; i++)
         {
-            if (shipCons[i].ShipData.FireAtThis != null & (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
+            if (shipCons[i].ShipData.TargetThisShipController != null & (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
             {
                 float delay = UnityEngine.Random.Range(minFirstShotDelay, maxFirstShotDelay);
                 StartCoroutine(ShipFireLoop(shipCons[i], delay));
-                //float randomFloat = UnityEngine.Random.Range(0f, 0.5f);
-                //RealtimeTimerCoroutineWeaponDischarge(randomFloat);
-                //shipCons[i].FireWeapons(); //???? fire here or in Shipcontroller?
             }
         }
     }
     private IEnumerator ShipFireLoop(ShipController shipCon, float initialDelay)
     {
         yield return new WaitForSeconds(initialDelay);
-
-        while (true)
+        bool beam = true;
+        while (true) // ToDo: not true when ship weapons are offline?
         {
-            bool beam = true;
             // Fire the ship's weapons
             shipCon.FireWeapons(beam);
             if (beam)

@@ -9,6 +9,7 @@ public class BeamWeapon: MonoBehaviour
     public Transform WeaponTransform;
     [SerializeField]
     private Transform[] _weaponAndTargetTrans = new Transform[2];
+
     private void Start()
     {
         LineRenderer = GetComponent<LineRenderer>();
@@ -22,14 +23,8 @@ public class BeamWeapon: MonoBehaviour
     {
         TargetTransform = target;
         WeaponTransform = weapon;
-        if (TargetTransform == null)
-        {
-            Debug.LogWarning("TargetTransform is null. Beam will not be rendered.");
-            return;
-        }
         _weaponAndTargetTrans[0] = WeaponTransform;
         _weaponAndTargetTrans[1] = TargetTransform;
-        //UpdateBeam();
     }
     private void Update()
     {

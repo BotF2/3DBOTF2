@@ -58,6 +58,15 @@ namespace Mirror
                 disabledName.onHover.textColor = fontColor;
             }
         }
+        public override void Cleanup()
+        {
+            base.Cleanup();  // <-- Make sure this is here
+        }
+
+        void OnDisable()
+        {
+            Cleanup(); // or ObjectPreview.Cleanup() if inheriting directly
+        }
 
         GUIContent title;
         Styles styles = new Styles();

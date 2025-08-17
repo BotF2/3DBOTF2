@@ -95,6 +95,18 @@ namespace Assets.Core
 
                 if (_targets.Length == 0)
                     return;
+                //else
+                //{
+                //    List<GameObject> theTargetList = _targets.ToList();
+                //    for (int i = 0; i < theTargetList.Count; i++)
+                //    {
+                //        if (_targets[i] == null)
+                //        {
+                //            theTargetList.Remove(_targets[i]);
+                //        }
+                //    }
+                //    _targets = theTargetList.ToArray();
+                //}
                 var targetPositionAndRotation = TargetPositionAndRotation(_targets);// calculate a number of things we need to know about the camera position and rotation
                 _cameraOffSet = gameObject.transform.position - _cameraTarget;
 
@@ -157,7 +169,12 @@ namespace Assets.Core
                 }
             }
         }
-
+        public void OnShipDestroyed(ShipController shipController)
+        {
+            List<GameObject> theTargetList = _targets.ToList(); 
+            theTargetList.Remove(shipController.gameObject);
+            _targets = theTargetList.ToArray();
+        }
         PositionAndRotation TargetPositionAndRotation(GameObject[] targets)
         {
             _cameraTarget = calculateCentroid(targets);

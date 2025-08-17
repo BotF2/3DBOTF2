@@ -99,12 +99,6 @@ public class CombatManager : MonoBehaviour
         aCombatController.CombatData = combatData; // set the combat data
         aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
         aCombatController.CombatData.OrderSideTwo = CombatOrders.Engage; // default order
-        aCombatController.CombatData.sideOneCiv = combatData.sideOneCiv;
-        aCombatController.CombatData.sideTwoCiv = combatData.sideTwoCiv;
-        aCombatController.CombatData.CivEnumSideOne = combatData.CivEnumSideOne;
-        aCombatController.CombatData.CivEnumSideTwo = combatData.CivEnumSideTwo;
-        aCombatController.CombatData.SideOneShipCons = combatData.SideOneShipCons;
-        aCombatController.CombatData.SideTwoShipCons = combatData.SideTwoShipCons;
         aCombatController.transform.SetParent(transform, false); 
         CombatUIController.Instance.CombatController = aCombatController;
         CombatUIController.Instance.sideOneEnum = combatData.CivEnumSideOne;
