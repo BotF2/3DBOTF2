@@ -92,10 +92,10 @@ public class ShipController : MonoBehaviour
                 var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
                 var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
                 var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
-                beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.transform; // Set the target transform
+                beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // Set the target transform
                 beamWeaponScript.WeaponTransform = this.transform; // Set the weapon transform
                 beamWeaponScript.LineRenderer = lineRenderer;
-                beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.transform); // Set the weapon and target transforms
+                beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform); // Set the weapon and target transforms
                 TakeDamage(ShipData.BeamDamage); 
                 Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
             }
@@ -106,7 +106,7 @@ public class ShipController : MonoBehaviour
                 torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
                 if (ShipData.TargetThisShipController != null)
                 {
-                    torpedoScript.Target = ShipData.TargetThisShipController.transform; // ShipData.TargetForThisShip is GameObject and Torpedo.Target is Transform
+                    torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // ShipData.TargetForThisShip is GameObject and Torpedo.Target is Transform
                     torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum; // Get the target ship's CivEnum
                 }
             }

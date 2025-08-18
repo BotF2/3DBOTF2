@@ -80,7 +80,11 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
                 shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
                 shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
-                var position = shipCon.transform.position;
+                var targetGO = Instantiate(targetGOPrefab, shipCon.transform.position, Quaternion.identity);
+                shipCon.ShipData.TargetOnThisShip = targetGO;
+                targetGO.transform.SetParent(shipCon.transform, false); // set target GO as child of ship GO          
+                shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(shipCon.transform.position.x, shipCon.transform.position.y, shipCon.transform.position.z +10);// move target location back along spine of ship
+                shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);

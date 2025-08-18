@@ -21,7 +21,7 @@ public class ShipData
     public int BuildDuration;
     public string ShipDescription;
     public ShipController TargetThisShipController;
-    public GameObject TargetForThisShip;
+    public GameObject TargetOnThisShip;
 
     public ShipData(string name)
     {
