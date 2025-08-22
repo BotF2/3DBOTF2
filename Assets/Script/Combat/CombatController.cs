@@ -1,10 +1,8 @@
 ﻿using Assets.Core;
-using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.XR;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,7 +20,6 @@ public class CombatController : MonoBehaviour
     private CombatData combatData;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
-
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
     public List<Animator> animators; // Assign in Inspector or dynamically
     public Animator sideOneA1Animator;
@@ -57,18 +54,24 @@ public class CombatController : MonoBehaviour
     int _totalCapitalShips;
     int _totalTransportsShips;
 
-    public void SetCombatOrder(CombatOrders orders, CivEnum civEnum)
+    public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
     {
         //**** ToDo: Create Event to update DiplomacyController state between the two civs involved in combat
         if (CombatData.CivEnumSideOne == civEnum)
         {
-            CombatData.OrderSideOne = orders; // Set the combat order for Side One
-            Debug.Log($"Combat order {orders} given to Side One by {civEnum}");
+            CombatData.OrderSideOne = order; // Set the combat order for Side One
+            for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
+            {
+                CombatData.SideOneShipCons[i].SetShipOrder(order); // Set the combat order for each ship in Side One
+            } 
         }
         else if (CombatData.CivEnumSideTwo == civEnum)
         {
-            CombatData.OrderSideTwo = orders; // Set the combat order for Side Two
-            Debug.Log($"Combat order {orders} given to Side Two by {civEnum}");
+            CombatData.OrderSideTwo = order; // Set the combat order for Side One
+            for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
+            {
+                CombatData.SideTwoShipCons[i].SetShipOrder(order); // Set the combat order for each ship in Side One
+            }
         }
         else
         {
@@ -332,6 +335,14 @@ public class CombatController : MonoBehaviour
     IEnumerator AutoFireWeapons()
     {
         yield return new WaitUntil(() => warpingAnimationOver && shipConsSideOne.Count >= 1 && shipConsSideTwo.Count >= 1);
+        for (int i = 0; i < shipConsSideOne.Count; i++)
+        {
+            shipConsSideOne[i].SetWarpInOver();
+        }
+        for (int i = 0; i < shipConsSideTwo.Count; i++)
+        {
+            shipConsSideTwo[i].SetWarpInOver();
+        }
         FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);// get target ship for each ship on both sides
         FireWeaponsOrder(shipConsSideOne); 
         FireWeaponsOrder(shipConsSideTwo);

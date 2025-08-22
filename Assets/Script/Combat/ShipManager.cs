@@ -86,6 +86,7 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(shipCon.transform.position.x, shipCon.transform.position.y, shipCon.transform.position.z +10);// move target location back along spine of ship
                 shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
+                shipCon.Order = CombatOrders.None;
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);
                 InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship                 
@@ -205,6 +206,7 @@ public class ShipManager : MonoBehaviour
                 if (shipCon != null)
                 {
                     shipCon.transform.SetParent(fleetCon.transform);
+                    shipCon.ShipData.FleetController = fleetCon;
                     fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
                     ShipControllerGameList.Add(shipCon);
                 }

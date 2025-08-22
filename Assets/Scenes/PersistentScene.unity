@@ -146,7 +146,7 @@ Transform:
   m_GameObject: {fileID: 58071100}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -450, y: 0, z: 0}
+  m_LocalPosition: {x: -1000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -539,6 +539,8 @@ MonoBehaviour:
   - {fileID: 1707488959}
   - {fileID: 1895409804}
   - {fileID: 1520271897}
+  AiPlayerControllers: []
+  RemoteHumanPlayerControllers: []
 --- !u!114 &321848129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2313,6 +2315,7 @@ MonoBehaviour:
   - {fileID: 343267747}
   - {fileID: 164970911}
   - {fileID: 1467798001}
+  - {fileID: 1573193661}
 --- !u!4 &1085144969
 Transform:
   m_ObjectHideFlags: 0
@@ -2789,7 +2792,7 @@ Transform:
   m_GameObject: {fileID: 1237751571}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -450, y: 0, z: 0}
+  m_LocalPosition: {x: -1000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3108,7 +3111,7 @@ Transform:
   m_GameObject: {fileID: 1356023076}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 450, y: 0, z: 0}
+  m_LocalPosition: {x: 900, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3584,6 +3587,87 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!1 &1573193661
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1573193663}
+  - component: {fileID: 1573193662}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1573193662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573193661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5469fd994438a694999596f8b7b104d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sounds:
+  - name: Borg_Beam
+    clip: {fileID: 8300000, guid: cb99134a3f2c5e34185a6b368ea40810, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Card_Distuptor
+    clip: {fileID: 8300000, guid: b05ad2c410874684093adeaaf58d42e7, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Fed_Phaser
+    clip: {fileID: 8300000, guid: f49843bb00c25a548a83c9350876fc91, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Rom_Disruptor
+    clip: {fileID: 8300000, guid: 1df8ea03cbad06346a059cbd91cebc04, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Torpedo
+    clip: {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+  - name: Torpedo
+    clip: {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+    volume: 0.25
+    pitch: 0
+    loop: 0
+    source: {fileID: 0}
+--- !u!4 &1573193663
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573193661}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1707488957
 GameObject:
   m_ObjectHideFlags: 0
@@ -3764,9 +3848,8 @@ MonoBehaviour:
   LocalPlayerCon: {fileID: 0}
   AIPlayerControllers: []
   RemoteHumanPlayerControllers: []
-  allPlayerDatas: []
+  PlayerDatas: []
   playerDataPrefab: {fileID: 5395748880904978116, guid: cc6fd977bfdde0746b46bf1ace0c2dee, type: 3}
-  Players: []
 --- !u!4 &1714972372
 Transform:
   m_ObjectHideFlags: 0
@@ -3959,7 +4042,7 @@ Transform:
   m_GameObject: {fileID: 1817417802}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 480, y: 0, z: 0}
+  m_LocalPosition: {x: 930, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4386,7 +4469,7 @@ Transform:
   m_GameObject: {fileID: 1930907612}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -480, y: 0, z: 0}
+  m_LocalPosition: {x: -1000, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4975,7 +5058,7 @@ Transform:
   m_GameObject: {fileID: 2082394488}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 450, y: 0, z: 0}
+  m_LocalPosition: {x: 900, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5056,12 +5139,12 @@ MonoBehaviour:
   - {fileID: 2082394490}
   - {fileID: 1356023078}
   - {fileID: 1817417804}
-  sideOneA1: {fileID: 1237751571}
-  sideOneA2: {fileID: 58071100}
-  sideOneA3: {fileID: 1930907612}
-  sideTwoA1: {fileID: 2082394488}
-  sideTwoA2: {fileID: 1356023076}
-  sideTwoA3: {fileID: 1817417802}
+  sideOneAnima1: {fileID: 0}
+  sideOneAnima2: {fileID: 0}
+  sideOneAnima3: {fileID: 0}
+  sideTwoAnima1: {fileID: 0}
+  sideTwoAnima2: {fileID: 0}
+  sideTwoAnima3: {fileID: 0}
   TorpedoPrefabs:
   - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
   - {fileID: 3912758670790259718, guid: cc2c0058e724b7b4e9de90526d3c4bff, type: 3}
@@ -5227,3 +5310,4 @@ SceneRoots:
   - {fileID: 465746041}
   - {fileID: 1085144969}
   - {fileID: 164970913}
+  - {fileID: 1573193663}

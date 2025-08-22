@@ -1,3 +1,4 @@
+using Mirror.BouncyCastle.Bcpg;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -38,6 +39,8 @@ namespace Assets.Core
         private Toggle previousToggle;
         public static CombatOrders order = CombatOrders.Engage;
         private LocalHumanPlayerController localPlayer; // reference to the local player controller, used to execute combat orders
+        public List<AiPlayerController> AiPlayerControllers; // list of AI player controllers, used to handle AI combat orders
+        public List<RemoteHumanPlayerController> RemoteHumanPlayerControllers; // list of remote human player controllers, used to handle remote player combat orders
         private void Start()
         {
             previousToggle = toggleOrderList[0];
@@ -289,10 +292,28 @@ namespace Assets.Core
 
         private void EnterShipCombatPhase()
         {
-            localPlayer?.GiveCombatOrder(order, CombatController, CivEnumLocalPlayer);
-            PanelCombat_Menu.SetActive(false);
+            if (CivEnumLocalPlayer == sideOneEnum || CivEnumLocalPlayer == sideTwoEnum)
+                localPlayer.GiveCombatOrder(order, CombatController, CivEnumLocalPlayer);
+    
             PanelShipCombat.SetActive(true);
-            isTimerRunning = false;
+            PanelCombat_Menu.SetActive(false);
+            
+            for (int i = 0; i < RemoteHumanPlayerControllers.Count; i++)
+            {
+                if (sideOneEnum == RemoteHumanPlayerControllers[i].PlayerCiv)
+                {
+                    PanelCombat_Menu.SetActive(false);
+                    PanelShipCombat.SetActive(true);
+                    // send intrustions to remote PC to close PanelCombat_Menu 
+                }               
+            }
+            //for (int i = 0; i < AiPlayerControllers.Count; i++)
+            //{
+            //    if (AiPlayerControllers[i].PlayerCiv != sideOneEnum || AiPlayerControllers[i].PlayerCiv == sideTwoEnum)
+            //        AiPlayerControllers[i].GiveCombatOrder(CombatOrders.Engage, CombatController, AiPlayerControllers[i].PlayerCiv);
+            //}
+
+                isTimerRunning = false;
             CombatController.RunAnimation();
             ShipCombatCameraController.Instance.SetWarpingIn(true);
             Debug.Log("Combat UI opened.");

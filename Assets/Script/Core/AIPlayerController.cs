@@ -58,6 +58,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
                 aCombatCon = combatCons[i];
             break;
         }
+        // **** run AI combat code to decide on new order based on data from combatcontroller
         switch (order)
         {
             case CombatOrders.Engage:

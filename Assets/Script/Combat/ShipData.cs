@@ -22,6 +22,7 @@ public class ShipData
     public string ShipDescription;
     public ShipController TargetThisShipController;
     public GameObject TargetOnThisShip;
+    public FleetController FleetController;
 
     public ShipData(string name)
     {

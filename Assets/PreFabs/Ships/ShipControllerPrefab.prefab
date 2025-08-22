@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3572221777895576081}
   - component: {fileID: 5225383146866348849}
+  - component: {fileID: 6600727614256059766}
   m_Layer: 0
   m_Name: ShipControllerPrefab
   m_TagString: Untagged
@@ -45,3 +46,45 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Name: 
+  torpedoPrefab: {fileID: 0}
+  beamWeaponPrefab: {fileID: 0}
+  ShipListUIGameObject: {fileID: 0}
+  clipTorpedoFire: {fileID: 0}
+  clipBeamFire: {fileID: 0}
+  TargetGroup: {fileID: 0}
+  Velocity: 10
+  OrbitDistance: 20
+  OrbitSpeed: 30
+  MaxSpeed: 50
+  Acceleration: 10
+  TurnSpeed: 60
+  PathStart: {fileID: 0}
+  PathEnd: {fileID: 0}
+  Orders: 0
+--- !u!54 &6600727614256059766
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2256503429757806656}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0

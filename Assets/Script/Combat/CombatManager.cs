@@ -17,12 +17,12 @@ public class CombatManager : MonoBehaviour
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
     public List<Animator> animators; // Assign in Inspector or dynamically
-    [SerializeField] GameObject sideOneA1;
-    [SerializeField] GameObject sideOneA2;
-    [SerializeField] GameObject sideOneA3;
-    [SerializeField] GameObject sideTwoA1;
-    [SerializeField] GameObject sideTwoA2;
-    [SerializeField] GameObject sideTwoA3;
+    [SerializeField] GameObject sideOneAnima1;
+    [SerializeField] GameObject sideOneAnima2;
+    [SerializeField] GameObject sideOneAnima3;
+    [SerializeField] GameObject sideTwoAnima1;
+    [SerializeField] GameObject sideTwoAnima2;
+    [SerializeField] GameObject sideTwoAnima3;
     public List<GameObject> TorpedoPrefabs;
     public List<GameObject> BeamPrefabs;
 
@@ -107,12 +107,12 @@ public class CombatManager : MonoBehaviour
         CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
         aCombatController.animators = animators;
-        aCombatController.sideOneA1Animator = sideOneA1.GetComponent<Animator>();
-        aCombatController.sideTwoA1Animator = sideTwoA1.GetComponent<Animator>();
-        aCombatController.sideOneA2Animator = sideOneA2.GetComponent<Animator>();
-        aCombatController.sideTwoA2Animator = sideTwoA2.GetComponent<Animator>();
-        aCombatController.sideOneA3Animator = sideOneA3.GetComponent<Animator>();
-        aCombatController.sideTwoA3Animator = sideTwoA3.GetComponent<Animator>();
+        aCombatController.sideOneA1Animator = aCombatController.animators[0];
+        aCombatController.sideOneA2Animator = aCombatController.animators[1];
+        aCombatController.sideOneA3Animator = aCombatController.animators[2];
+        aCombatController.sideTwoA1Animator = aCombatController.animators[3];
+        aCombatController.sideTwoA2Animator = aCombatController.animators[4];
+        aCombatController.sideTwoA3Animator = aCombatController.animators[5];
         aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
         aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
         aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);

@@ -81,17 +81,7 @@ namespace Assets.Core
                 }
             }
         }
-        //public FleetController BuildShipInSystemWithFleet( StarSysController sysCon, bool inSystem, CivEnum civEnum)
-        //{
-        //    // system builds a ship and we need a fleet in the system
-        //    FleetSO fleetSO = GetFleetSObyInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-        //    fleetSO = GetFleetSObyInt((int)civEnum);
 
-        //    FleetData fleetData = new FleetData(fleetSO);
-        //    FleetController fleetCon = InstantiateFleet(sysCon, fleetData, sysCon.StarSysData.GetPosition(), inSystem);
-
-        //    return fleetCon;
-        //}
         public void BuildFirstFleets(StarSysController sysCon, bool inSystem)
         {
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
@@ -116,7 +106,6 @@ namespace Assets.Core
             //
 
             CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
-
             FleetData fleetData = new FleetData(fleetSO); // FleetData is not MonoBehavior so new is OK
             fleetData.CurrentWarpFactor = 3f;
             fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
@@ -130,13 +119,13 @@ namespace Assets.Core
             fleetController.Init(this);
             return fleetController;
         }
-        public FleetController InstantiatEmptyFleetController()
-        {
-            FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
-              Quaternion.identity);
-            fleetController.Init(this);
-            return fleetController; 
-        }
+        //public FleetController InstantiatEmptyFleetController()
+        //{
+        //    FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
+        //      Quaternion.identity);
+        //    fleetController.Init(this);
+        //    return fleetController; 
+        //}
 
         public FleetController InstantiateFleet(StarSysController sysCon, FleetData fleetData, Vector3 position, bool inSystem)
         {
@@ -239,7 +228,6 @@ namespace Assets.Core
 
             }
             fleetController.FleetData.Destination = GalaxyCenter;
-
             fleetController.FleetData.ShipsList.Clear();
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {

@@ -34,11 +34,11 @@ public class PlayerManager : MonoBehaviour
     public LocalHumanPlayerController LocalPlayerCon; // Local player controller instance on this PC machine
     public List<AiPlayerController> AIPlayerControllers; // AI controller instances
     public List<RemoteHumanPlayerController> RemoteHumanPlayerControllers; // Remote player controller instances
-    public List<PlayerData> allPlayerDatas = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
+    public List<PlayerData> PlayerDatas = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
     private List<CivEnum> civEnumsForPlayerCons = new List<CivEnum>(); // List of major civilizations in the game
     [Header("Prefab to spawn for players")] 
     public GameObject playerDataPrefab; // assigned in the inspector
-    public List<PlayerData> Players = new();
+    //public List<PlayerData> Players = new();
 
     private void Awake()
     {
@@ -68,33 +68,33 @@ public class PlayerManager : MonoBehaviour
     }
     public void AddLocalPlayer(PlayerData data)
     {
-        Players.Add(data);
+        PlayerDatas.Add(data);
     }
 
     public void RemoveLocalPlayer(PlayerData data)
     {
-        Players.Remove(data);
+        PlayerDatas.Remove(data);
     }
     public void AddPlayer(PlayerData player)
     {
-        if (!allPlayerDatas.Contains(player))
+        if (!PlayerDatas.Contains(player))
         {
-            allPlayerDatas.Add(player);
+            PlayerDatas.Add(player);
             // Optionally, you can initialize player data here
         }
     }
     public void RemovePlayer(PlayerData player)
     {
-        if (allPlayerDatas.Contains(player))
+        if (PlayerDatas.Contains(player))
         {
-            allPlayerDatas.Remove(player);
+            PlayerDatas.Remove(player);
             // Optionally, clean up player data here
         }
     }
     public PlayerData GetPlayerById(int playerId)
     {
 
-        return allPlayerDatas.Find(player => player.PlayerId == playerId);
+        return PlayerDatas.Find(player => player.PlayerId == playerId);
     }
     internal void GetCivsInGameAsGalaxyIsBuilt(List<CivSO> civSOsInGame)
     {
@@ -105,8 +105,8 @@ public class PlayerManager : MonoBehaviour
     }
     public void ResetPlayerList()
     {
-        if (allPlayerDatas != null)
-            allPlayerDatas.Clear();
+        if (PlayerDatas != null)
+            PlayerDatas.Clear();
     }
     public void SetLocalPlayer(CivEnum civLocal)// List<CivEnum> majorsInGame)
      {
@@ -127,7 +127,7 @@ public class PlayerManager : MonoBehaviour
         localController.PlayerData = playerData;
         LocalPlayerCon = localController;
         isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
-        allPlayerDatas.Add(playerData);
+        PlayerDatas.Add(playerData);
     } 
     public void SetMajorCivsInGameForSinglePlayer(List<CivEnum> majorsInGame, CivEnum localPlayerCiv)
     { // Do we ever need server and network player for a single player game? I think not.
@@ -148,7 +148,7 @@ public class PlayerManager : MonoBehaviour
                 playerData.PlayerName = "AI Player";
                 playerData.PlayerCiv = majorsInGame[i];
                 playerData.PlayerType = PlayerType.AI; // Set the player type to AI
-                allPlayerDatas.Add(playerData);
+                PlayerDatas.Add(playerData);
                 AiPlayerController aiController = gameObject.AddComponent<AiPlayerController>();
                 aiController.PlayerData = playerData;
                 AIPlayerControllers.Add(aiController);
@@ -184,7 +184,7 @@ public class PlayerManager : MonoBehaviour
         {
             CivEnum civEnum = civEnumsForPlayerCons[i];
             // Assuming nextId starts from 1 for AI players, increment it for each player
-            int nextId = allPlayerDatas.Count; // Use the current count as the next ID
+            int nextId = PlayerDatas.Count; // Use the current count as the next ID
             {
                 bool isRemote = false;
                 int assignedConnectionId = GetAssignedConnectionIdForCiv(civEnumsForPlayerCons[i]); // ***Your lobby logic / network is needed from this method call
@@ -206,7 +206,7 @@ public class PlayerManager : MonoBehaviour
                     RemoteHumanPlayerController remoteController = gameObject.AddComponent<RemoteHumanPlayerController>();
                     remoteController.PlayerData = playerData;
                     RemoteHumanPlayerControllers.Add(remoteController);
-                    allPlayerDatas.Add(playerData);
+                    PlayerDatas.Add(playerData);
                 }
                 else
                 {
@@ -221,7 +221,7 @@ public class PlayerManager : MonoBehaviour
                     AiPlayerController aiController = gameObject.AddComponent<AiPlayerController>();
                     aiController.PlayerData = playerData;
                     AIPlayerControllers.Add(aiController);
-                    allPlayerDatas.Add(playerData);
+                    PlayerDatas.Add(playerData);
                 }
                 nextId++;
             }

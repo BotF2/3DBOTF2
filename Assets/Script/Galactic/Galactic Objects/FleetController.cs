@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using Unity.VisualScripting;
@@ -75,8 +76,7 @@ namespace Assets.Core
             var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
             FleetUICanvas = CanvasGO.GetComponent<Canvas>();
             FleetUICanvas.worldCamera = galaxyEventCamera;
-            //CanvasToolTip.worldCamera = galaxyEventCamera;
-           //FleetData.CurrentWarpFactor = 0f;
+
             for (int i = 0; i < FleetData.ShipsList.Count; i++)
             {
                 if (FleetData.ShipsList[i].ShipData.maxWarpFactor < this.FleetData.MaxWarpFactor)
@@ -273,21 +273,6 @@ namespace Assets.Core
             FleetManager.Instance.ExposeAllFleetInsigniaSprites(fleetData.CivEnum);
         }
 
-        public void OnFleetEncounteredPlayerDefinedTarget(PlayerDefinedTargetController playerTargetController)
-        {
-            if (this.FleetData.Destination == playerTargetController.gameObject)
-            {
-                //ClickCancelDestinationButton(this);
-                Destroy(playerTargetController.gameObject);
-                DestinationLine.lineRenderer.positionCount = 0;
-                CloseUnLoadFleetUI();
-            }
-            //????PlayerDefinedTargetManager.current.
-            //FleetManager.current.
-            //1) player get the FleetController of the new fleet GO
-            //2) ?build a deep space starbase vs a partol point for travel
-        }
-
         void MoveToDesitinationGO()
         {
             Vector3 direction = (this.FleetData.Destination.transform.position - transform.position).normalized;
@@ -440,8 +425,6 @@ namespace Assets.Core
             FleetData.LastDestination = FleetData.Destination; // save previous destination if we want to continue later 
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             FleetData.CurrentWarpFactor = 0f; // stop the fleet
-            //MousePointerChanger.Instance.ResetCursor();
-            //MousePointerChanger.Instance.HaveGalaxyMapCursor = false;
             GalaxyMenuUIController.Instance.ClickCancelDestinationButton(this);
             GalaxyMenuUIController.Instance.MouseClickSetsDestination = false;
         }
@@ -568,6 +551,21 @@ namespace Assets.Core
         private string GetDebuggerDisplay()
         {
             return ToString();
+        }
+
+        internal void RemoveShipFromFleet(ShipController shipController)
+        {
+            this.FleetData.ShipsList.Remove(shipController);
+            if (this.FleetData.ShipsList.Count == 0)
+            {
+                // no ships left, remove fleet
+                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                Destroy(this.gameObject);
+            }
+            else
+            {
+                UpdateMaxWarp();
+            }
         }
     }
 }

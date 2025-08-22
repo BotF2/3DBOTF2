@@ -1,4 +1,5 @@
 using Mirror;
+using Mirror.BouncyCastle.Bcpg;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -619,9 +620,6 @@ namespace Assets.Core
         {
             if (!IsSinglePlayer && NetworkServer.active)
                 PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
-            //else No server needed for single human player game
-           
-            //PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
         }
         public void SetMultiPlayer()
         {
@@ -635,7 +633,38 @@ namespace Assets.Core
                 PlayerManager.Instance.ResetPlayerList();
                 PlayerManager.Instance.SetLocalPlayer(localPlayerCiv);
             }
+            for (int i = 0; i < majorCivsInGameList.Count; i++)
+            {
+                if (majorCivsInGameList[i] != localPlayerCiv && majorCivsInGameList.Contains(majorCivsInGameList[i]))
+                {
+                    for (int j = 0; j < PlayerManager.Instance.RemoteHumanPlayerControllers.Count; j++)
+                    {
+                        if (PlayerManager.Instance.RemoteHumanPlayerControllers[j].PlayerCiv == majorCivsInGameList[i])
+                            SetRemotePlayer(majorCivsInGameList[i]);
+                        else
+                            SetAIPlayer(majorCivsInGameList[i]);
+                    }
+                }
+            }
         }
+
+        private void SetRemotePlayer(CivEnum civEnum)
+        {
+            RemoteHumanPlayerController remotePlayerCon = new RemoteHumanPlayerController
+            {
+                PlayerData = new PlayerData
+                {
+                    PlayerId = (int)civEnum,
+                    PlayerName = civEnum.ToString(),
+                    PlayerType = PlayerType.Remote,
+                    PlayerCiv = civEnum,
+                },
+            };
+            PlayerManager.Instance.RemoteHumanPlayerControllers.Add(remotePlayerCon);
+            PlayerManager.Instance.PlayerDatas.Add(remotePlayerCon.PlayerData);
+            CombatUIController.Instance.RemoteHumanPlayerControllers.Add(remotePlayerCon);
+        }
+
         public void SetSinglePlayer()
         {
             IsSinglePlayer = true;
@@ -643,11 +672,34 @@ namespace Assets.Core
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
+            for (int i = 0; i < majorCivsInGameList.Count; i++)
+            {
+                if (majorCivsInGameList[i] != localPlayerCiv)
+                     SetAIPlayer(majorCivsInGameList[i]);
+
+            }
             if (NetworkServer.active) // do we ever need server for a single human player game?
             {
                 PlayerManager.Instance.ResetPlayerList();
                 PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); 
             }   
+        }
+
+        private void SetAIPlayer(CivEnum civEnum)
+        {
+            AiPlayerController AiPlayerCon = new AiPlayerController
+            {
+                PlayerData = new PlayerData
+                {
+                    PlayerId = (int)civEnum,
+                    PlayerName = civEnum.ToString(),
+                    PlayerType = PlayerType.AI,
+                    PlayerCiv = civEnum,
+                },   
+            };
+            PlayerManager.Instance.AIPlayerControllers.Add(AiPlayerCon);
+            PlayerManager.Instance.PlayerDatas.Add(AiPlayerCon.PlayerData);
+            CombatUIController.Instance.AiPlayerControllers.Add(AiPlayerCon);
         }
 
         private void FedOnOffToggleReset()
