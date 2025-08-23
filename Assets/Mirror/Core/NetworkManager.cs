@@ -17,6 +17,7 @@ public class NetworkManager : MonoBehaviour
 {
     [Header("AI Custom Prefab")]
     public GameObject aiPlayerPrefab;
+    public int numberOfAI = 6;
 
     /// <summary>Enable to keep NetworkManager alive when changing scenes.</summary>
     // This should be set if your game has a single NetworkManager that exists for the lifetime of the process. If there is a NetworkManager in each scene, then this should not be set.</para>
@@ -1354,13 +1355,7 @@ public class NetworkManager : MonoBehaviour
         if (playerPrefab != null && NetworkServer.active)
         {
 
-            //PlayerData playerData = dataObj.GetComponent<PlayerData>();
-            //if (playerData != null)
-            //{
-            //    // Initialize player data with connectionId
-            //    playerData.Initialize(conn.connectionId, $"Player_{conn.connectionId}");
-            //}
-            // Spawn PlayerDataPrefab for this player
+            // Spawn PlayerDataPrefab for this player, for local player if local or remote managed by Mirror
             GameObject dataObj = Instantiate(playerPrefab);
             NetworkServer.Spawn(dataObj, conn);
             Transform startPos = GetStartPosition();
@@ -1368,10 +1363,12 @@ public class NetworkManager : MonoBehaviour
                 ? Instantiate(playerPrefab, startPos.position, startPos.rotation)
                 : Instantiate(playerPrefab);
 
-            // instantiating a "Player" prefab gives it the name "Player(clone)"
-            // => appending the connectionId is WAY more useful for debugging!
             player.name = $"{playerPrefab.name} [connId={conn.connectionId}]";
             NetworkServer.AddPlayerForConnection(conn, player);
+            if(NetworkServer.connections.Count == 1)
+            {
+                SpawnAIPlayer();
+            }
         }
     }
     [ContextMenu("Spawn AI Player")]
@@ -1379,10 +1376,12 @@ public class NetworkManager : MonoBehaviour
     {
         // Server-only AI spawn
         if (!NetworkServer.active) return;
-
-        GameObject ai = Instantiate(aiPlayerPrefab);
-        NetworkServer.Spawn(ai); // no connection → server-controlled AI
-        Debug.Log("Spawned AI Player");
+        for (int i = 0; i < numberOfAI; i++)
+        {
+            GameObject ai = Instantiate(aiPlayerPrefab);
+            NetworkServer.Spawn(ai); // no connection → server-controlled AI
+            Debug.Log("Spawned AI Player");
+        }
     }
     /// <summary>Called on server when transport raises an exception. NetworkConnection may be null.</summary>
     public virtual void OnServerError(NetworkConnectionToClient conn, TransportError error, string reason) { }
@@ -1399,13 +1398,8 @@ public class NetworkManager : MonoBehaviour
     /// <summary>Called on the client when connected to a server. By default it sets client as ready and adds a player.</summary>
     public virtual void OnClientConnect()
     {
-        // OnClientConnect by default calls AddPlayer but it should not do
-        // that when we have online/offline scenes. so we need the
-        // clientLoadedScene flag to prevent it.
         if (!clientLoadedScene)
         {
-            // Ready/AddPlayer is usually triggered by a scene load completing.
-            // if no scene was loaded, then Ready/AddPlayer it here instead.
             if (!NetworkClient.ready)
                 NetworkClient.Ready();
 

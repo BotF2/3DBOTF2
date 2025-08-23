@@ -12,21 +12,27 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
-    private static int aiNumber = 1; // Static counter to differentiate AI players
-    private void Start()
+    //private static int aiNumber = 1; // Static counter to differentiate AI players
+    [SyncVar] public string playerName = "Ai Player";
+    public string PlayerName => playerName;
+
+    public override void OnStartServer()
     {
-
+        base.OnStartServer();
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.RegisterPlayer(this, false); // false for AI
-        PlayerData = new PlayerData("AI Player" + aiNumber);
-        aiNumber++;
-        PlayerData.PlayerType = PlayerType.AI;
+            PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.AI); 
 
+    }
+    public override void OnStopServer()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
+        base.OnStopServer();
     }
     private void OnDestroy()
     {
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.UnregisterPlayer(this);
+            PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
     }
     public override void OnStartAuthority()
     {

@@ -245,7 +245,11 @@ namespace Assets.Core
         ADVANCED = 600,
         SUPREME = 900
     }
-
+    public enum GameMode
+    {
+        SINGLEPLAYER,
+        MULTIPLAYER
+    }
     public enum SystemData
     {
         Sys_Int,
@@ -443,7 +447,10 @@ namespace Assets.Core
             }
             InitializeGameManagerWithMainMenuUIController();
         }
- 
+        public void SetGameMode(GameMode mode)
+        {
+            GameController.Instance.GameData.GameMode = mode;
+        }
         public void InitializeGameManagerWithMainMenuUIController()
         {
             if (this.GameController != null)

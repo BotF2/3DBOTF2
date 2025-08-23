@@ -2,6 +2,7 @@ using Mirror;
 using Mirror.BouncyCastle.Bcpg;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -629,73 +630,23 @@ namespace Assets.Core
             panelMuliplayer.SetActive(true);
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
-
-            for (int i = 0; i < majorCivsInGameList.Count; i++)
-            {
-                if (majorCivsInGameList[i] != localPlayerCiv && majorCivsInGameList.Contains(majorCivsInGameList[i]))
-                {
-                    for (int j = 0; j < PlayerManager.Instance.AllPlayerControllers.Count; j++)
-                    {
-                        if (PlayerManager.Instance.AllPlayerControllers[j].PlayerCiv == majorCivsInGameList[i] && PlayerManager.Instance.AllPlayerControllers[j].PlayerData.PlayerType == PlayerType.Remote)
-                            SetRemotePlayer(majorCivsInGameList[i]);
-                        else
-                            SetAIPlayer(majorCivsInGameList[i]);
-                    }
-                }
-            }
+            GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
+            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
         }
 
-        private void SetRemotePlayer(CivEnum civEnum)
-        {
-            for (int i = 0; i < PlayerManager.Instance.AllPlayerControllers.Count; i++)
-            {
-                var controller = PlayerManager.Instance.AllPlayerControllers[i];
-                if (controller is RemoteHumanPlayerController)
-                {
-                    controller.PlayerData.PlayerType = PlayerType.AI;
-                    controller.PlayerData.PlayerName = civEnum.ToString();
-                    controller.PlayerData.PlayerCiv = civEnum;
-                }
-            }
-        }
-
-        public void SetSinglePlayer()
+        public void SetSinglePlayer() // button in Canvas MainMenu / Panel-Lobby when first loaded 
         {
             IsSinglePlayer = true;
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
+            GameController.Instance.GameData.GameMode = GameMode.SINGLEPLAYER;
+            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
             CombatUIController.Instance.CivEnumLocalPlayer = localPlayerCiv;
-            NetworkManager.singleton.StartHost();
-            //LocalHumanPlayerController.localInstance.ResetLocalHumanPlayerCon(localPlayerCiv);
-            //CombatUIController.Instance.LocalPlayer = LocalHumanPlayerController.localInstance;
-            //for (int i = 0; i < majorCivsInGameList.Count; i++)
-            //{
-            //    if (majorCivsInGameList[i] != localPlayerCiv)
-            //        SetAIPlayer(majorCivsInGameList[i]);
-            //   // else SetLocalPlayer(localPlayerCiv);
+            NetworkManager.singleton.StartHost(); //Starts the server (StartServer), Starts the client(StartClient), Connects the client to the server, Calls OnServerAddPlayer once the connection is established.
+                                                  //Use StartHost(), not just StartServer(), Make sure your player prefab is set in the NetworkManager, Inside OnServerAddPlayer, call NetworkServer.AddPlayerForConnection.
 
-            //}
-            //if (NetworkServer.active) // do we ever need server for a single human player game?
-            //{
-            //    PlayerManager.Instance.ResetPlayerList();
-            //    PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); 
-            //}   
-        }
-
-        private void SetAIPlayer(CivEnum civEnum)
-        {
-            for (int i = 0; i < PlayerManager.Instance.AllPlayerControllers.Count; i++)
-            { 
-                var controller = PlayerManager.Instance.AllPlayerControllers[i];
-                if (controller is AiPlayerController)
-                { 
-                    controller.PlayerData.PlayerType = PlayerType.AI;                    
-                    controller.PlayerData.PlayerName = civEnum.ToString();
-                    controller.PlayerData.PlayerCiv = civEnum;
-                }
-            }
         }
 
         private void FedOnOffToggleReset()

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Assets.Core
 {
     public class GameData
@@ -10,5 +12,7 @@ namespace Assets.Core
         public TechLevel StartingTechLevel;
         public GalaxySize GalaxySize;
         public GalaxyMapType GalaxyMapType;
+        public GameMode GameMode;
+        public List<CivEnum> MajorCivsInGameList = new List<CivEnum>();
     }
 }

@@ -2,11 +2,9 @@ using Assets.Core;
 using Mirror;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class PlayerManager : MonoBehaviour
+public class PlayerManager : NetworkBehaviour
 {
     /// <summary>
     /// Using IPlayerController interface to define player actions and properties.
@@ -30,13 +28,13 @@ public class PlayerManager : MonoBehaviour
     /// </summary>
 
     public static PlayerManager Instance; // Singleton instance
-    new bool isLocalPlayer = false; // Flag to check if this is the local player
-    //new bool isServer = false; // Flag to check if this is the server
-    //new bool isAI = false; // Flag to check if this is an AI player
+    bool isLocalPlayer = false; // Flag to check if this is the local player
+    public class SynchListPlayerData : SyncList<PlayerData> { }
+    public SynchListPlayerData AllPlayerDatas = new SynchListPlayerData(); // Synchronized list of player data for multiplayer
     public LocalHumanPlayerController LocalPlayerController { get; private set; } // Local player controller instance on this PC machine
     public IPlayerController LocalPlayer { get; private set; }
-    public List<IPlayerController> AllPlayerControllers { get; private set; } = new List<IPlayerController>(); // List of all player controllers
-    public List<PlayerData> PlayerDatas { get; private set; } = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
+    public readonly List<IPlayerController> AllPlayerControllers = new List<IPlayerController>(); // List of all player controllers
+    public List<PlayerData> PlayerDatas { get; private set; } = new List<PlayerData>(); // List of all players data in the game, local, AI, and remote players
     private List<CivEnum> civEnumsForPlayerCons = new List<CivEnum>(); // List of major civilizations in the game
 
 
@@ -51,7 +49,7 @@ public class PlayerManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    public void RegisterPlayer(IPlayerController player, bool isLocal)
+    public void RegisterPlayer(IPlayerController player, bool isLocal, string playerName, int playerId, PlayerType type)
     {
         if (player == null)
         {
@@ -59,24 +57,49 @@ public class PlayerManager : MonoBehaviour
             return;
         }
         AllPlayerControllers.RemoveAll(p => p == null); // Clean up any null references
+        var playerData = new PlayerData(playerName)
+        {
+            PlayerId = playerId,
+            PlayerName = playerName,
+            PlayerType = type,
+            // PlayerCiv = ?
+        };
+        var majorCivList = GameController.Instance.GameData.MajorCivsInGameList;
+        for (int i = 0; i < majorCivList.Count; i++)
+        {
+            if (type == PlayerType.AI)
+            {
+                playerData.PlayerCiv = majorCivList[i];
+                playerData.PlayerName = majorCivList.ToString();
+                break;
+            }
+        }
+
+        player.PlayerData = playerData;
         if (!AllPlayerControllers.Contains(player))
         {
             AllPlayerControllers.Add(player);
         }
-        if (isLocal)
-        {
-            LocalPlayerController = player as LocalHumanPlayerController;
-            isLocalPlayer = true;
-            LocalPlayer = player;
-        }
     }
-    public void UnregisterPlayer(IPlayerController player)
+    public void UnregisterPlayer(int playerID) //IPlayerController player)
     {
-        AllPlayerControllers.Remove(player);
-        if (LocalPlayerController == player)
-            LocalPlayerController = null;
-        if (LocalPlayer == player)
-            LocalPlayer = null;
+        if (AllPlayerControllers == null || AllPlayerControllers.Count == 0)
+        {
+            Debug.LogWarning("No players to unregister.");
+            return;
+        }
+        for (int i = 0; i < AllPlayerControllers.Count; i++)
+        {
+            if (AllPlayerControllers[i].PlayerData.PlayerId == playerID)
+            {
+                AllPlayerControllers.RemoveAt(i);
+                //if (LocalPlayerController == player)
+                //    LocalPlayerController = null;
+                //if (LocalPlayer == AllPlayerControllers[i])
+                //    LocalPlayer = null;
+                break;
+            }
+        }
     }
 
     public void AddLocalPlayer(PlayerData data)

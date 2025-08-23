@@ -4583,7 +4583,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8aab4c8111b7c411b9b92cf3dbc5bd4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  aiPlayerPrefab: {fileID: 0}
+  aiPlayerPrefab: {fileID: 4296096201151659868, guid: 4fa93fa57ec9dd246b37b5832ebe6c58, type: 3}
+  numberOfAI: 6
   dontDestroyOnLoad: 1
   runInBackground: 1
   headlessStartMode: 0

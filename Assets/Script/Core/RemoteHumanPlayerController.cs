@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using Assets.Core;
 using Mirror;
 using System;
@@ -12,19 +11,14 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
-    private static int remoteHumanNumber = 1; // Static counter to differentiate Remote Human players
-    private void Start()
-    {
-        if (PlayerManager.Instance != null)
-            PlayerManager.Instance.RegisterPlayer(this, false);
-        PlayerData = new PlayerData("local Remote Human" + remoteHumanNumber);
-        remoteHumanNumber++;
-        PlayerData.PlayerType = PlayerType.Remote;
-    }
+    //private static int remoteHumanNumber = 1; // Static counter to differentiate Remote Human players
+    [SyncVar] public string playerName = "Remote Player";
+    public string PlayerName => playerName;
+
     private void OnDestroy()
     {
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.UnregisterPlayer(this);
+            PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
     }
     public override void OnStartAuthority()
     {

@@ -280,6 +280,14 @@ public class CombatController : MonoBehaviour
 
     public void ActOnCurrentCombatOrders(List<ShipController> shipCons, int sideSignFactor)
     {
+        //*** if you need to know which player is ai or local
+        //foreach (var player in PlayerManager.Instance.AllPlayerControllers)
+        //{
+        //    if (player is AiPlayerController ai)
+        //        //ai.AssignFleet();
+        //    else if (player is LocalHumanPlayerController local)
+        //        //local.PrepareForCombat();
+        //}
         CombatOrders order;
         if (sideSignFactor < 0)
         {
@@ -523,17 +531,14 @@ public class CombatController : MonoBehaviour
 
     internal void GiveCombatOrders(CombatOrders order, CivEnum civEnumLocalPlayer)
     {
-        //IPlayerController LocalPlayer = null;
-        //var playerConList = PlayerManager.Instance.GetActivePlayers();
-        //for (int i = 0; i < playerConList.Count; i++)
-        //{
-        //    if (playerConList[i] == NetworkClient.localPlayer.GetComponent<IPlayerController>())
-        //    {
-        //        LocalPlayer = playerConList[i] as LocalHumanPlayerController;
-        //    }
-        //}
         if (civEnumLocalPlayer == CombatData.CivEnumSideOne || civEnumLocalPlayer == CombatData.CivEnumSideTwo)
             NetworkClient.localPlayer.GetComponent<IPlayerController>().GiveCombatOrder(order, this, civEnumLocalPlayer);
+        else if (GameController.Instance.GameData.GameMode == GameMode.SINGLEPLAYER)
+        {
+            var aiPlayer = PlayerManager.Instance.AllPlayerControllers.Find(p => p is AiPlayerController && (p as AiPlayerController));
+            if (aiPlayer != null)
+                aiPlayer.GiveCombatOrder(order, this, aiPlayer.PlayerCiv);
+        }
     }
 }
 

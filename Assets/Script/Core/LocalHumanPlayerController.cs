@@ -10,7 +10,12 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     public static LocalHumanPlayerController localInstance { get; private set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => true; // do we need this with Mirror in place?
+
+    //string IPlayerController.PlayerName => ((IPlayerController)localInstance).PlayerName;
+
     bool hasAuthority;
+    [SyncVar] public string playerName = "Local Player";
+    public string PlayerName => playerName;
 
     public override void OnStartAuthority()
     {
@@ -18,24 +23,40 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         // Only the local player can issue commands
         Debug.Log("I have authority");
     }
-    public override void OnStartLocalPlayer()
+    public override void OnStartServer()
     {
+        base.OnStartServer();
+        PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.Local);
+    }
+    public override void OnStopServer()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
+        base.OnStopServer();
+    }
+    public override void OnStartLocalPlayer()
+    { 
+        if (localInstance != null && localInstance != this)
+        {
+            Debug.LogError("Multiple LocalHumanPlayerController instances detected. There should only be one per client.");
+            return;
+        }
         PlayerData = new PlayerData("local Human");
         PlayerData.PlayerId = 0;
         PlayerData.PlayerType = PlayerType.Local;
         base.OnStartLocalPlayer();
         // Register with the PlayerManager
-        PlayerManager.Instance.RegisterPlayer(this, true);
+        PlayerManager.Instance.RegisterPlayer(this, true, PlayerName, netId.GetHashCode(), PlayerType.Local);
         localInstance = this;
     }
     private void OnDestroy()
     {
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.UnregisterPlayer(this);
+            PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
     }
     public override void OnStopClient()
     {
-        PlayerManager.Instance.UnregisterPlayer(this);
+        PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
     }
     public void ExecuteOrder(string order)
     {
