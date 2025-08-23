@@ -138,8 +138,8 @@ namespace Mirror
                 // get start position from base class
                 Transform startPos = GetStartPosition();
                 gamePlayer = startPos != null
-                    ? Instantiate(playerDataPrefab, startPos.position, startPos.rotation)
-                    : Instantiate(playerDataPrefab, Vector3.zero, Quaternion.identity);
+                    ? Instantiate(playerPrefab, startPos.position, startPos.rotation)
+                    : Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
             }
 
             if (!OnRoomServerSceneLoadedForPlayer(conn, roomPlayer, gamePlayer))
@@ -287,6 +287,8 @@ namespace Mirror
         /// <param name="conn">Connection from client.</param>
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
         {
+            GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            NetworkServer.AddPlayerForConnection(conn, player);
             // increment the index before adding the player, so first player starts at 1
             clientIndex++;
 
@@ -431,7 +433,7 @@ namespace Mirror
             else
                 NetworkClient.RegisterPrefab(roomPlayerPrefab.gameObject);
 
-            if (playerDataPrefab == null)
+            if (playerPrefab == null)
                 Debug.LogError("NetworkRoomManager no GamePlayer prefab is registered. Please add a GamePlayer prefab.");
 
             OnRoomStartClient();

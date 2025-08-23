@@ -12,7 +12,20 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
-
+    private static int remoteHumanNumber = 1; // Static counter to differentiate Remote Human players
+    private void Start()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.RegisterPlayer(this, false);
+        PlayerData = new PlayerData("local Remote Human" + remoteHumanNumber);
+        remoteHumanNumber++;
+        PlayerData.PlayerType = PlayerType.Remote;
+    }
+    private void OnDestroy()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.UnregisterPlayer(this);
+    }
     public override void OnStartAuthority()
     {
         base.OnStartAuthority();
@@ -21,9 +34,9 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     }
     public override void OnStartLocalPlayer()
     {
-        base.OnStartLocalPlayer();
-        // Register with the PlayerManager
-        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+        //base.OnStartLocalPlayer();
+        //// Register with the PlayerManager
+        //PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
     }
     [Command]
     void CmdSendOrder(string order)
@@ -41,30 +54,30 @@ public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
     }
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
-        var combatCons = CombatManager.Instance.CombatControllers;
-        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
-        for (int i = 0; i < combatCons.Count; i++)
-        {
-            if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
-                aCombatCon = combatCons[i];
-            break;
-        }
+        //var combatCons = CombatManager.Instance.CombatControllers;
+        //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        //for (int i = 0; i < combatCons.Count; i++) 
+        //{
+        //    if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
+        //        aCombatCon = combatCons[i];
+        //    break;
+        //}
         switch (order)
         {
             case CombatOrders.Engage:
-                aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Engage, civ); //PlayerCiv);
                 break;
             case CombatOrders.Rush:
-                aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Rush, civ);//PlayerCiv);
                 break;
             case CombatOrders.Retreat:
-                aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Retreat, civ); // PlayerCiv);
                 break;
             case CombatOrders.Formation:
-                aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
                 break;
             case CombatOrders.TargetTransports:
-                aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
 
                 break;
         }

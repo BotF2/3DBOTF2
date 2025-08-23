@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -15,7 +15,9 @@ public enum HeadlessStartOptions { DoNothing, AutoStartServer, AutoStartClient }
 [HelpURL("https://mirror-networking.gitbook.io/docs/components/network-manager")]
 public class NetworkManager : MonoBehaviour
 {
-      
+    [Header("AI Custom Prefab")]
+    public GameObject aiPlayerPrefab;
+
     /// <summary>Enable to keep NetworkManager alive when changing scenes.</summary>
     // This should be set if your game has a single NetworkManager that exists for the lifetime of the process. If there is a NetworkManager in each scene, then this should not be set.</para>
     [Header("Configuration")]
@@ -98,7 +100,7 @@ public class NetworkManager : MonoBehaviour
     [FormerlySerializedAs("m_PlayerPrefab")]
     [Tooltip("Prefab of the player object. Prefab must have a Network Identity component. May be an empty game object or a full avatar.")]
     [Header("Costume Prefab")]
-    public GameObject playerDataPrefab;
+    public GameObject playerPrefab;
 
     /// <summary>Enable to automatically create player objects on connect and on scene change.</summary>
     [FormerlySerializedAs("m_AutoCreatePlayer")]
@@ -169,17 +171,17 @@ public class NetworkManager : MonoBehaviour
         // always >= 0
         maxConnections = Mathf.Max(maxConnections, 0);
 
-        if (playerDataPrefab != null && !playerDataPrefab.TryGetComponent(out NetworkIdentity _))
+        if (playerPrefab != null && !playerPrefab.TryGetComponent(out NetworkIdentity _))
         {
             Debug.LogError("NetworkManager - Player Prefab must have a NetworkIdentity.");
-            playerDataPrefab = null;
+            playerPrefab = null;
         }
 
         // This avoids the mysterious "Replacing existing prefab with assetId ... Old prefab 'Player', New prefab 'Player'" warning.
-        if (playerDataPrefab != null && spawnPrefabs.Contains(playerDataPrefab))
+        if (playerPrefab != null && spawnPrefabs.Contains(playerPrefab))
         {
             Debug.LogWarning("NetworkManager - Player Prefab doesn't need to be in Spawnable Prefabs list too. Removing it.");
-            spawnPrefabs.Remove(playerDataPrefab);
+            spawnPrefabs.Remove(playerPrefab);
         }
     }
 
@@ -211,9 +213,9 @@ public class NetworkManager : MonoBehaviour
         // Don't allow collision-destroyed second instance to continue.
         if (!InitializeSingleton()) return;
         // Make sure the prefab is registered at startup
-        if (playerDataPrefab != null && !spawnPrefabs.Contains(playerDataPrefab))
+        if (playerPrefab != null && !spawnPrefabs.Contains(playerPrefab))
         {
-            spawnPrefabs.Add(playerDataPrefab);
+            spawnPrefabs.Add(playerPrefab);
         }
         // Apply configuration in Awake once already
         ApplyConfiguration();
@@ -224,6 +226,7 @@ public class NetworkManager : MonoBehaviour
 
         // setup OnSceneLoaded callback
         SceneManager.sceneLoaded += OnSceneLoaded;
+
     }
 
     // virtual so that inheriting classes' Start() can call base.Start() too
@@ -751,8 +754,8 @@ public class NetworkManager : MonoBehaviour
         NetworkClient.RegisterHandler<NotReadyMessage>(OnClientNotReadyMessageInternal, false);
         NetworkClient.RegisterHandler<SceneMessage>(OnClientSceneInternal, false);
 
-        if (playerDataPrefab != null)
-            NetworkClient.RegisterPrefab(playerDataPrefab);
+        if (playerPrefab != null)
+            NetworkClient.RegisterPrefab(playerPrefab);
 
         foreach (GameObject prefab in spawnPrefabs.Where(t => t != null))
             NetworkClient.RegisterPrefab(prefab);
@@ -1178,13 +1181,13 @@ public class NetworkManager : MonoBehaviour
     {
         //Debug.Log("NetworkManager.OnServerAddPlayer");
 
-        if (autoCreatePlayer && playerDataPrefab == null)
+        if (autoCreatePlayer && playerPrefab == null)
         {
             Debug.LogError("The PlayerPrefab is empty on the NetworkManager. Please setup a PlayerPrefab object.");
             return;
         }
 
-        if (autoCreatePlayer && !playerDataPrefab.TryGetComponent(out NetworkIdentity _))
+        if (autoCreatePlayer && !playerPrefab.TryGetComponent(out NetworkIdentity _))
         {
             Debug.LogError("The PlayerPrefab does not have a NetworkIdentity. Please add a NetworkIdentity to the player prefab.");
             return;
@@ -1348,8 +1351,9 @@ public class NetworkManager : MonoBehaviour
     // The default implementation for this function creates a new player object from the playerPrefab.
     public virtual void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        if (playerDataPrefab != null && NetworkServer.active)
+        if (playerPrefab != null && NetworkServer.active)
         {
+
             //PlayerData playerData = dataObj.GetComponent<PlayerData>();
             //if (playerData != null)
             //{
@@ -1357,20 +1361,29 @@ public class NetworkManager : MonoBehaviour
             //    playerData.Initialize(conn.connectionId, $"Player_{conn.connectionId}");
             //}
             // Spawn PlayerDataPrefab for this player
-            GameObject dataObj = Instantiate(playerDataPrefab);
+            GameObject dataObj = Instantiate(playerPrefab);
             NetworkServer.Spawn(dataObj, conn);
             Transform startPos = GetStartPosition();
             GameObject player = startPos != null
-                ? Instantiate(playerDataPrefab, startPos.position, startPos.rotation)
-                : Instantiate(playerDataPrefab);
+                ? Instantiate(playerPrefab, startPos.position, startPos.rotation)
+                : Instantiate(playerPrefab);
 
             // instantiating a "Player" prefab gives it the name "Player(clone)"
             // => appending the connectionId is WAY more useful for debugging!
-            player.name = $"{playerDataPrefab.name} [connId={conn.connectionId}]";
+            player.name = $"{playerPrefab.name} [connId={conn.connectionId}]";
             NetworkServer.AddPlayerForConnection(conn, player);
         }
     }
+    [ContextMenu("Spawn AI Player")]
+    public void SpawnAIPlayer()
+    {
+        // Server-only AI spawn
+        if (!NetworkServer.active) return;
 
+        GameObject ai = Instantiate(aiPlayerPrefab);
+        NetworkServer.Spawn(ai); // no connection → server-controlled AI
+        Debug.Log("Spawned AI Player");
+    }
     /// <summary>Called on server when transport raises an exception. NetworkConnection may be null.</summary>
     public virtual void OnServerError(NetworkConnectionToClient conn, TransportError error, string reason) { }
 

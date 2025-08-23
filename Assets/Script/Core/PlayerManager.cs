@@ -2,6 +2,8 @@ using Assets.Core;
 using Mirror;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerManager : MonoBehaviour
@@ -31,14 +33,12 @@ public class PlayerManager : MonoBehaviour
     new bool isLocalPlayer = false; // Flag to check if this is the local player
     //new bool isServer = false; // Flag to check if this is the server
     //new bool isAI = false; // Flag to check if this is an AI player
-    public LocalHumanPlayerController LocalPlayerCon; // Local player controller instance on this PC machine
-    public List<AiPlayerController> AIPlayerControllers; // AI controller instances
-    public List<RemoteHumanPlayerController> RemoteHumanPlayerControllers; // Remote player controller instances
-    public List<PlayerData> PlayerDatas = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
+    public LocalHumanPlayerController LocalPlayerController { get; private set; } // Local player controller instance on this PC machine
+    public IPlayerController LocalPlayer { get; private set; }
+    public List<IPlayerController> AllPlayerControllers { get; private set; } = new List<IPlayerController>(); // List of all player controllers
+    public List<PlayerData> PlayerDatas { get; private set; } = new List<PlayerData>(); // List of all players in the game, local, AI, and remote players
     private List<CivEnum> civEnumsForPlayerCons = new List<CivEnum>(); // List of major civilizations in the game
-    [Header("Prefab to spawn for players")] 
-    public GameObject playerDataPrefab; // assigned in the inspector
-    //public List<PlayerData> Players = new();
+
 
     private void Awake()
     {
@@ -48,24 +48,37 @@ public class PlayerManager : MonoBehaviour
             return;
         }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
-    // Example: spawn the player object from the server side
-    [Server]
-    public void SpawnPlayer(NetworkConnectionToClient conn)
+
+    public void RegisterPlayer(IPlayerController player, bool isLocal)
     {
-        if (playerDataPrefab == null)
+        if (player == null)
         {
-            Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");
+            Debug.LogError("Attempted to register a null player.");
             return;
         }
-
-        GameObject playerInstance = Instantiate(playerDataPrefab);
-        NetworkServer.AddPlayerForConnection(conn, playerInstance);
+        AllPlayerControllers.RemoveAll(p => p == null); // Clean up any null references
+        if (!AllPlayerControllers.Contains(player))
+        {
+            AllPlayerControllers.Add(player);
+        }
+        if (isLocal)
+        {
+            LocalPlayerController = player as LocalHumanPlayerController;
+            isLocalPlayer = true;
+            LocalPlayer = player;
+        }
     }
-    public void SetPlayerCivs()
+    public void UnregisterPlayer(IPlayerController player)
     {
-
+        AllPlayerControllers.Remove(player);
+        if (LocalPlayerController == player)
+            LocalPlayerController = null;
+        if (LocalPlayer == player)
+            LocalPlayer = null;
     }
+
     public void AddLocalPlayer(PlayerData data)
     {
         PlayerDatas.Add(data);
@@ -108,125 +121,7 @@ public class PlayerManager : MonoBehaviour
         if (PlayerDatas != null)
             PlayerDatas.Clear();
     }
-    public void SetLocalPlayer(CivEnum civLocal)// List<CivEnum> majorsInGame)
-     {
-        if (playerDataPrefab == null && !NetworkServer.active)
-        {
-            Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");
-            return;
-        }
-        GameObject playerDataGO = Instantiate(playerDataPrefab);
-        NetworkServer.Spawn(playerDataGO);
-        NetworkIdentity networkIdentity = playerDataGO.GetComponent<NetworkIdentity>(); 
-        PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-        playerData.PlayerId = 0; // local player is always Player 0
-        playerData.PlayerName = "Local Player";
-        playerData.PlayerCiv = civLocal;
-        playerData.PlayerType = PlayerType.Local; // Set the player type to Local                                              
-        LocalHumanPlayerController localController = gameObject.AddComponent<LocalHumanPlayerController>();
-        localController.PlayerData = playerData;
-        LocalPlayerCon = localController;
-        isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
-        PlayerDatas.Add(playerData);
-    } 
-    public void SetMajorCivsInGameForSinglePlayer(List<CivEnum> majorsInGame, CivEnum localPlayerCiv)
-    { // Do we ever need server and network player for a single player game? I think not.
-        if (playerDataPrefab == null && !NetworkServer.active)
-        {
-            Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");
-            return;
-        }
-        for (int i = 0; i < majorsInGame.Count; i++)
-        {
-            if (majorsInGame[i] != localPlayerCiv) // Avoid adding the local player's civ again
-            {
-                GameObject playerDataGO = Instantiate(playerDataPrefab);
-                NetworkServer.Spawn(playerDataGO);
-                NetworkIdentity networkIdentity = playerDataGO.GetComponent<NetworkIdentity>();
-                PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-                playerData.PlayerId = 0; // local player is always Player 0
-                playerData.PlayerName = "AI Player";
-                playerData.PlayerCiv = majorsInGame[i];
-                playerData.PlayerType = PlayerType.AI; // Set the player type to AI
-                PlayerDatas.Add(playerData);
-                AiPlayerController aiController = gameObject.AddComponent<AiPlayerController>();
-                aiController.PlayerData = playerData;
-                AIPlayerControllers.Add(aiController);
-            }
-            //else
-            //{
-            //     if (majorsInGame[i] == localPlayerCiv)
-            //     {
-            //        GameObject playerDataGO = Instantiate(playerDataPrefab);
-            //        PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-            //        playerData.PlayerId = 0; // local player is always Player 0
-            //        playerData.PlayerName = "Local Player";
-            //        playerData.PlayerCiv = majorsInGame[i];
-            //        playerData.PlayerType = PlayerType.Local; // Set the player type to Local    
-            //        LocalHumanPlayerController localController = gameObject.AddComponent<LocalHumanPlayerController>();
-            //        localController.PlayerData = playerData;
-            //        LocalPlayerCon = localController;
-            //        isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
-            //        allPlayerDatas.Add(playerData);
-            //     }
-            //}
-        }
-    }
-
-    internal void SetPlayerIds()
-    {
-        if (playerDataPrefab == null && !NetworkServer.active)
-        {
-            Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");
-            return;
-        }
-        for (int i = 0; i < civEnumsForPlayerCons.Count; i++) // local player has taken PlayerId 0 above
-        {
-            CivEnum civEnum = civEnumsForPlayerCons[i];
-            // Assuming nextId starts from 1 for AI players, increment it for each player
-            int nextId = PlayerDatas.Count; // Use the current count as the next ID
-            {
-                bool isRemote = false;
-                int assignedConnectionId = GetAssignedConnectionIdForCiv(civEnumsForPlayerCons[i]); // ***Your lobby logic / network is needed from this method call
-                // Host's connectionId is usually 0 (or use NetworkServer.localConnection)
-                if (assignedConnectionId != NetworkServer.localConnection.connectionId)
-                {
-                    isRemote = true;
-                }
-                if (isRemote)
-                {
-                    GameObject playerDataGO = Instantiate(playerDataPrefab);
-                    NetworkServer.Spawn(playerDataGO);
-                    NetworkIdentity networkIdentity = playerDataGO.GetComponent<NetworkIdentity>();
-                    PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-                    playerData.PlayerId = nextId;
-                    playerData.PlayerName = $"Player {nextId} Remote";
-                    playerData.PlayerCiv = civEnum;
-                    playerData.PlayerType = PlayerType.Remote; // Set the player type to Remote
-                    RemoteHumanPlayerController remoteController = gameObject.AddComponent<RemoteHumanPlayerController>();
-                    remoteController.PlayerData = playerData;
-                    RemoteHumanPlayerControllers.Add(remoteController);
-                    PlayerDatas.Add(playerData);
-                }
-                else
-                {
-                    GameObject playerDataGO = Instantiate(playerDataPrefab);
-                    NetworkServer.Spawn(playerDataGO);
-                    NetworkIdentity networkIdentity = playerDataGO.GetComponent<NetworkIdentity>();
-                    PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-                    playerData.PlayerId = 0; // local player is always Player 0
-                    playerData.PlayerName = "AI Player";
-                    playerData.PlayerCiv = civEnumsForPlayerCons[i];
-                    playerData.PlayerType = PlayerType.AI; // Set the player type to AI
-                    AiPlayerController aiController = gameObject.AddComponent<AiPlayerController>();
-                    aiController.PlayerData = playerData;
-                    AIPlayerControllers.Add(aiController);
-                    PlayerDatas.Add(playerData);
-                }
-                nextId++;
-            }
-        }
-    }
+ 
     public void AssignGoToPlayer(GameObject unitGO, int playerId)
     {
         PlayerData player = GetPlayerById(playerId);
@@ -260,15 +155,15 @@ public class PlayerManager : MonoBehaviour
 
     internal void SetMajorCivsInGameForMultiPlayer(List<CivEnum> majorCivsInGameList, CivEnum localPlayerCiv)
     {
-        if (playerDataPrefab == null && !NetworkServer.active)
-        {
-            Debug.LogError("[PlayerManager] No playerDataPrefab assigned for spawning.");
-            return;
-        }
-        for (int i = 0; i < majorCivsInGameList.Count; i++)
-        {
-            if (majorCivsInGameList[i] != localPlayerCiv) // Avoid adding the local player's civ again
-            {
+        //if (playerDataPrefab == null && !NetworkServer.active)
+        //{
+        //    Debug.LogError("[PlayerManager] No playerPrefab assigned for spawning.");
+        //    return;
+        //}
+        //for (int i = 0; i < majorCivsInGameList.Count; i++)
+        //{
+        //    if (majorCivsInGameList[i] != localPlayerCiv) // Avoid adding the local player's civ again
+        //    {
                 // ********** Code here for muliplayer setup
                 //PlayerData aiPlayerData = new PlayerData
                 //{
@@ -282,26 +177,9 @@ public class PlayerManager : MonoBehaviour
                 //aiController.PlayerData = aiPlayerData;
                 //AIPlayerControllers.Add(aiController);
                 //civEnumsForPlayerCons.Remove(majorsInGame[i]);
-            }
-            //else
-            //{
-            //    if (majorCivsInGameList[i] == localPlayerCiv)
-            //    {
-            //        GameObject playerDataGO = Instantiate(playerDataPrefab);
-            //NetworkServer.Spawn(playerDataGO);
-            //        PlayerData playerData = playerDataGO.GetComponent<PlayerData>();
-            //        playerData.PlayerId = 0; // local player is always Player 0
-            //        playerData.PlayerName = "Local Player";
-            //        playerData.PlayerCiv = majorCivsInGameList[i];
-            //        playerData.PlayerType = PlayerType.Local; // Set the player type to Local    
-            //        LocalHumanPlayerController localController = gameObject.AddComponent<LocalHumanPlayerController>();
-            //        localController.PlayerData = playerData;
-            //        LocalPlayerCon = localController;
-            //        isLocalPlayer = true; // Set the flag to indicate this is the local player's PlayerManager
-            //        allPlayerDatas.Add(playerData);
-            //    }
             //}
-        }
+
+        //}
     }
 }
 

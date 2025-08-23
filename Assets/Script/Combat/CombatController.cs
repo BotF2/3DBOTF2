@@ -1,9 +1,11 @@
 ﻿using Assets.Core;
+using Mirror;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 
 public class CombatController : MonoBehaviour
@@ -519,5 +521,19 @@ public class CombatController : MonoBehaviour
         return false;
     }
 
+    internal void GiveCombatOrders(CombatOrders order, CivEnum civEnumLocalPlayer)
+    {
+        //IPlayerController LocalPlayer = null;
+        //var playerConList = PlayerManager.Instance.GetActivePlayers();
+        //for (int i = 0; i < playerConList.Count; i++)
+        //{
+        //    if (playerConList[i] == NetworkClient.localPlayer.GetComponent<IPlayerController>())
+        //    {
+        //        LocalPlayer = playerConList[i] as LocalHumanPlayerController;
+        //    }
+        //}
+        if (civEnumLocalPlayer == CombatData.CivEnumSideOne || civEnumLocalPlayer == CombatData.CivEnumSideTwo)
+            NetworkClient.localPlayer.GetComponent<IPlayerController>().GiveCombatOrder(order, this, civEnumLocalPlayer);
+    }
 }
 

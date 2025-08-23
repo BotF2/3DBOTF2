@@ -12,8 +12,22 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
+    private static int aiNumber = 1; // Static counter to differentiate AI players
+    private void Start()
+    {
 
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.RegisterPlayer(this, false); // false for AI
+        PlayerData = new PlayerData("AI Player" + aiNumber);
+        aiNumber++;
+        PlayerData.PlayerType = PlayerType.AI;
 
+    }
+    private void OnDestroy()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.UnregisterPlayer(this);
+    }
     public override void OnStartAuthority()
     {
         base.OnStartAuthority();
@@ -22,9 +36,9 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     }
     public override void OnStartLocalPlayer()
     {
-        base.OnStartLocalPlayer();
-        // Register with the PlayerManager
-        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+        //base.OnStartLocalPlayer();
+        //// Register with the PlayerManager
+        //PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
     }
     public void ExecuteOrder(string order)
     {
@@ -50,31 +64,31 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     }
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
-        var combatCons = CombatManager.Instance.CombatControllers;
-        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
-        for (int i = 0; i < combatCons.Count; i++)
-        {
-            if ( combatCons[i] == combatCon && (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
-                aCombatCon = combatCons[i];
-            break;
-        }
-        // **** run AI combat code to decide on new order based on data from combatcontroller
+        //var combatCons = CombatManager.Instance.CombatControllers;
+        //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        //for (int i = 0; i < combatCons.Count; i++) 
+        //{
+        //    if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
+        //        aCombatCon = combatCons[i];
+        //    break;
+        //}
         switch (order)
         {
             case CombatOrders.Engage:
-                aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+                // run AI combat code to decide on new order based on data from combatcontroller
+                combatCon.SetCombatOrder(CombatOrders.Engage, civ); //PlayerCiv);
                 break;
             case CombatOrders.Rush:
-                aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Rush, civ);//PlayerCiv);
                 break;
             case CombatOrders.Retreat:
-                aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Retreat, civ); // PlayerCiv);
                 break;
             case CombatOrders.Formation:
-                aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
                 break;
             case CombatOrders.TargetTransports:
-                aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
 
                 break;
         }

@@ -17,7 +17,7 @@ public class SceneController : MonoBehaviour
     public static SceneController Instance { get; private set; }
 
     private static string previousSceneName;
-    public GameObject[] persistentObjects; // Changed to a field declaration to fix CS0592
+    public List<GameObject> persistentObjects;
     private GameObject galaxyCameraDragNDrop; // Reference to the Galaxy Camera Drag and Drop GameObject
 
     private void Awake()
@@ -53,7 +53,7 @@ public class SceneController : MonoBehaviour
 
     private void MarkPeristentObject()
     {
-        for (int i = 0; i < persistentObjects.Length; i++)
+        for (int i = 0; i < persistentObjects.Count; i++)
         {
 
             if (persistentObjects[i] != null)
@@ -89,7 +89,7 @@ public class SceneController : MonoBehaviour
         if (diplomacyController.DiplomacyData.CivSideOne.CivData.CivEnum <= CivEnum.TERRAN ||
             diplomacyController.DiplomacyData.CivSideTwo.CivData.CivEnum <= CivEnum.TERRAN)
         {
-            for (int i = 0; i < persistentObjects.Length; i++)
+            for (int i = 0; i < persistentObjects.Count; i++)
             {
                 if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
                 {
@@ -145,7 +145,7 @@ public class SceneController : MonoBehaviour
         SceneManager.UnloadSceneAsync("CombatScene");
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
         galaxyCameraDragNDrop.SetActive(true); // Show the Galaxy Camera Drag and Drop GameObject again
-        for (int i = 0; i < persistentObjects.Length; i++)
+        for (int i = 0; i < persistentObjects.Count; i++)
         {
             if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
             {

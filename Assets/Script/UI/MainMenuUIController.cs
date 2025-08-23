@@ -215,8 +215,7 @@ namespace Assets.Core
             MainMenuData.SelectedGalaxyType = GalaxyMapType.CANON;
             MainMenuData.SelectedTechLevel = TechLevel.EARLY;
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
-            if (NetworkServer.active)
-                PlayerManager.Instance.SetLocalPlayer(CivEnum.FED);
+            localPlayerCiv = CivEnum.FED;
         }
         private void UpdatePlayers()
         {
@@ -417,7 +416,7 @@ namespace Assets.Core
                     FedOnOff.OnSelect(null);
                     FedLocalPalyerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active FedLocalPalyerToggle.");
-                    SetLocalCivilization(0);
+                    SetLocalCivilization(0); 
                     PlaceTheYouInPlayerList(0);
                     break;
                 case "TOGGLELOCAL_ROM":
@@ -620,6 +619,8 @@ namespace Assets.Core
         {
             if (!IsSinglePlayer && NetworkServer.active)
                 PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
+            else if (IsSinglePlayer) { }
+               // PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
         }
         public void SetMultiPlayer()
         {
@@ -628,18 +629,14 @@ namespace Assets.Core
             panelMuliplayer.SetActive(true);
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
-            if (NetworkServer.active)
-            {
-                PlayerManager.Instance.ResetPlayerList();
-                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv);
-            }
+
             for (int i = 0; i < majorCivsInGameList.Count; i++)
             {
                 if (majorCivsInGameList[i] != localPlayerCiv && majorCivsInGameList.Contains(majorCivsInGameList[i]))
                 {
-                    for (int j = 0; j < PlayerManager.Instance.RemoteHumanPlayerControllers.Count; j++)
+                    for (int j = 0; j < PlayerManager.Instance.AllPlayerControllers.Count; j++)
                     {
-                        if (PlayerManager.Instance.RemoteHumanPlayerControllers[j].PlayerCiv == majorCivsInGameList[i])
+                        if (PlayerManager.Instance.AllPlayerControllers[j].PlayerCiv == majorCivsInGameList[i] && PlayerManager.Instance.AllPlayerControllers[j].PlayerData.PlayerType == PlayerType.Remote)
                             SetRemotePlayer(majorCivsInGameList[i]);
                         else
                             SetAIPlayer(majorCivsInGameList[i]);
@@ -650,19 +647,16 @@ namespace Assets.Core
 
         private void SetRemotePlayer(CivEnum civEnum)
         {
-            RemoteHumanPlayerController remotePlayerCon = new RemoteHumanPlayerController
+            for (int i = 0; i < PlayerManager.Instance.AllPlayerControllers.Count; i++)
             {
-                PlayerData = new PlayerData
+                var controller = PlayerManager.Instance.AllPlayerControllers[i];
+                if (controller is RemoteHumanPlayerController)
                 {
-                    PlayerId = (int)civEnum,
-                    PlayerName = civEnum.ToString(),
-                    PlayerType = PlayerType.Remote,
-                    PlayerCiv = civEnum,
-                },
-            };
-            PlayerManager.Instance.RemoteHumanPlayerControllers.Add(remotePlayerCon);
-            PlayerManager.Instance.PlayerDatas.Add(remotePlayerCon.PlayerData);
-            CombatUIController.Instance.RemoteHumanPlayerControllers.Add(remotePlayerCon);
+                    controller.PlayerData.PlayerType = PlayerType.AI;
+                    controller.PlayerData.PlayerName = civEnum.ToString();
+                    controller.PlayerData.PlayerCiv = civEnum;
+                }
+            }
         }
 
         public void SetSinglePlayer()
@@ -672,34 +666,36 @@ namespace Assets.Core
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
-            for (int i = 0; i < majorCivsInGameList.Count; i++)
-            {
-                if (majorCivsInGameList[i] != localPlayerCiv)
-                     SetAIPlayer(majorCivsInGameList[i]);
+            CombatUIController.Instance.CivEnumLocalPlayer = localPlayerCiv;
+            NetworkManager.singleton.StartHost();
+            //LocalHumanPlayerController.localInstance.ResetLocalHumanPlayerCon(localPlayerCiv);
+            //CombatUIController.Instance.LocalPlayer = LocalHumanPlayerController.localInstance;
+            //for (int i = 0; i < majorCivsInGameList.Count; i++)
+            //{
+            //    if (majorCivsInGameList[i] != localPlayerCiv)
+            //        SetAIPlayer(majorCivsInGameList[i]);
+            //   // else SetLocalPlayer(localPlayerCiv);
 
-            }
-            if (NetworkServer.active) // do we ever need server for a single human player game?
-            {
-                PlayerManager.Instance.ResetPlayerList();
-                PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); 
-            }   
+            //}
+            //if (NetworkServer.active) // do we ever need server for a single human player game?
+            //{
+            //    PlayerManager.Instance.ResetPlayerList();
+            //    PlayerManager.Instance.SetLocalPlayer(localPlayerCiv); 
+            //}   
         }
 
         private void SetAIPlayer(CivEnum civEnum)
         {
-            AiPlayerController AiPlayerCon = new AiPlayerController
-            {
-                PlayerData = new PlayerData
-                {
-                    PlayerId = (int)civEnum,
-                    PlayerName = civEnum.ToString(),
-                    PlayerType = PlayerType.AI,
-                    PlayerCiv = civEnum,
-                },   
-            };
-            PlayerManager.Instance.AIPlayerControllers.Add(AiPlayerCon);
-            PlayerManager.Instance.PlayerDatas.Add(AiPlayerCon.PlayerData);
-            CombatUIController.Instance.AiPlayerControllers.Add(AiPlayerCon);
+            for (int i = 0; i < PlayerManager.Instance.AllPlayerControllers.Count; i++)
+            { 
+                var controller = PlayerManager.Instance.AllPlayerControllers[i];
+                if (controller is AiPlayerController)
+                { 
+                    controller.PlayerData.PlayerType = PlayerType.AI;                    
+                    controller.PlayerData.PlayerName = civEnum.ToString();
+                    controller.PlayerData.PlayerCiv = civEnum;
+                }
+            }
         }
 
         private void FedOnOffToggleReset()
@@ -786,13 +782,14 @@ namespace Assets.Core
         }
         private void SaveButton()
         {
-            singlePlayToggleGroup.SetActive(true);
+            //singlePlayToggleGroup.SetActive(true);
             UpdatePlayers();
             UpdateNotInGame();
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(true);
+
         }
         public void OpenSettingButton()
         {
@@ -835,9 +832,6 @@ namespace Assets.Core
         {
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
-            if (NetworkServer.active)
-                PlayerManager.Instance.SetLocalPlayer((CivEnum)((int)index));
-            GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
         }
         private void LoadGalaxyScene()
@@ -869,6 +863,16 @@ namespace Assets.Core
             }
 
         }
+
+        //private void SetLocalPlayer(CivEnum civEnum)
+        //{
+        //    if (NetworkServer.active && PlayerManager.Instance.LocalPlayerController != null && PlayerManager.Instance.LocalPlayerController.PlayerCiv != civEnum)
+        //    {
+        //        PlayerManager.Instance.ResetPlayerList();
+        //        PlayerManager.Instance.SetLocalPlayer(civEnum);
+        //    }
+        //    else GameController.Instance.GameData.LocalPlayerCivEnum = civEnum;
+        //}
     }
 }
 

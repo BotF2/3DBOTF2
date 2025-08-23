@@ -2,14 +2,15 @@ using UnityEngine;
 using Assets.Core;
 using System.Collections.Generic;
 using Mirror;
+using System;
 
 public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
 {
     public PlayerData PlayerData { get; set; }
+    public static LocalHumanPlayerController localInstance { get; private set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => true; // do we need this with Mirror in place?
     bool hasAuthority;
-
 
     public override void OnStartAuthority()
     {
@@ -19,9 +20,22 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     }
     public override void OnStartLocalPlayer()
     {
+        PlayerData = new PlayerData("local Human");
+        PlayerData.PlayerId = 0;
+        PlayerData.PlayerType = PlayerType.Local;
         base.OnStartLocalPlayer();
         // Register with the PlayerManager
-        PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
+        PlayerManager.Instance.RegisterPlayer(this, true);
+        localInstance = this;
+    }
+    private void OnDestroy()
+    {
+        if (PlayerManager.Instance != null)
+            PlayerManager.Instance.UnregisterPlayer(this);
+    }
+    public override void OnStopClient()
+    {
+        PlayerManager.Instance.UnregisterPlayer(this);
     }
     public void ExecuteOrder(string order)
     {
@@ -46,32 +60,31 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         // Actual combat logic here
     }
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
-    { // **** need to set local player civ for this code
-
-        var combatCons = CombatManager.Instance.CombatControllers;
-        CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
-        for (int i = 0; i < combatCons.Count; i++) 
-        {
-            if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
-                aCombatCon = combatCons[i];
-            break;
-        }
+    {
+        //var combatCons = CombatManager.Instance.CombatControllers;
+        //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
+        //for (int i = 0; i < combatCons.Count; i++) 
+        //{
+        //    if (combatCon == combatCons[i] & (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ))
+        //        aCombatCon = combatCons[i];
+        //    break;
+        //}
         switch (order)
         {
         case CombatOrders.Engage:
-            aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Engage, civ); //PlayerCiv);
             break;
         case CombatOrders.Rush:
-            aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Rush, civ);//PlayerCiv);
             break;
         case CombatOrders.Retreat:
-            aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Retreat, civ); // PlayerCiv);
             break;
         case CombatOrders.Formation:
-            aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
+                combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
             break;
         case CombatOrders.TargetTransports:
-            aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+            combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
 
             break;
         }
@@ -91,5 +104,18 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         // Implement AI combat logic to evaluate the situation and suggest an appropriate order.
         // This  involve analyzing combatData and making decisions based on various factors.
         //GiveCombatOrder(CombatOrders.Engage); // Example order, replace with actual AI logic
+    }
+
+    internal void ResetLocalHumanPlayerCon(CivEnum localPlayerCiv)
+    {
+        //this.PlayerCiv = localPlayerCiv;
+        //PlayerData.PlayerId = 0;
+        //PlayerData.PlayerName = "Local Player";
+        //hasAuthority = true;
+    }
+
+    internal void SetCiv(CivEnum civEnum)
+    {
+        PlayerData.PlayerCiv = civEnum;
     }
 }

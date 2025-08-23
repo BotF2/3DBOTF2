@@ -38,14 +38,14 @@ namespace Assets.Core
         private Toggle activeLocalPlayerToggle;
         private Toggle previousToggle;
         public static CombatOrders order = CombatOrders.Engage;
-        private LocalHumanPlayerController localPlayer; // reference to the local player controller, used to execute combat orders
+        public LocalHumanPlayerController LocalPlayer; // reference to the local player controller, used to execute combat orders
         public List<AiPlayerController> AiPlayerControllers; // list of AI player controllers, used to handle AI combat orders
         public List<RemoteHumanPlayerController> RemoteHumanPlayerControllers; // list of remote human player controllers, used to handle remote player combat orders
         private void Start()
         {
             previousToggle = toggleOrderList[0];
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum; // get the local player civ enum from the game controller
-            localPlayer = FindFirstObjectByType<LocalHumanPlayerController>(); // Or assign via inspector
+            LocalPlayer = LocalHumanPlayerController.localInstance;//FindFirstObjectByType<LocalHumanPlayerController>(); // Or assign via inspector?
         }
         private void Awake()
         {
@@ -292,12 +292,20 @@ namespace Assets.Core
 
         private void EnterShipCombatPhase()
         {
-            if (CivEnumLocalPlayer == sideOneEnum || CivEnumLocalPlayer == sideTwoEnum)
-                localPlayer.GiveCombatOrder(order, CombatController, CivEnumLocalPlayer);
-    
-            PanelShipCombat.SetActive(true);
+            CombatController.GiveCombatOrders(order, CivEnumLocalPlayer);
+            //for (int i = 0; i < PlayerManager.Instance.AllPlayerControllers.Count; i++)
+            //{
+            //    if (PlayerManager.Instance.AllPlayerControllers[i] == LocalHumanPlayerController.localInstance)
+            //    {
+            //        LocalPlayer = PlayerManager.Instance.AllPlayerControllers[i] as LocalHumanPlayerController;
+            //    }
+            //}
+            //if (CivEnumLocalPlayer == sideOneEnum || CivEnumLocalPlayer == sideTwoEnum)
+            //    LocalPlayer.GiveCombatOrder(order, CombatController, CivEnumLocalPlayer);
+
             PanelCombat_Menu.SetActive(false);
-            
+            PanelShipCombat.SetActive(true);
+
             for (int i = 0; i < RemoteHumanPlayerControllers.Count; i++)
             {
                 if (sideOneEnum == RemoteHumanPlayerControllers[i].PlayerCiv)
@@ -313,7 +321,7 @@ namespace Assets.Core
             //        AiPlayerControllers[i].GiveCombatOrder(CombatOrders.Engage, CombatController, AiPlayerControllers[i].PlayerCiv);
             //}
 
-                isTimerRunning = false;
+            isTimerRunning = false;
             CombatController.RunAnimation();
             ShipCombatCameraController.Instance.SetWarpingIn(true);
             Debug.Log("Combat UI opened.");

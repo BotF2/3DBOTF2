@@ -93,7 +93,7 @@ public class CombatManager : MonoBehaviour
     }
 
     public void InstantiateCombatController(CombatData combatData)
-    {
+     {
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
         aCombatController.CombatData = combatData; // set the combat data
@@ -179,7 +179,9 @@ public class CombatManager : MonoBehaviour
         {
             Debug.LogError("CombatUIController component is missing on the combat UI GameObject.");
         }
-    }  
+    }
+
+
     #region // More old code moved to CombatController
 
 

@@ -20,6 +20,12 @@ public class PlayerData : NetworkBehaviour
     // Replacing NetworkVariable with a Mirror-compatible alternative
     [SyncVar]
     public string NetworkPlayerName = string.Empty;
+    private string v;
+
+    public PlayerData(string v)
+    {
+        this.v = v;
+    }
 
     public void Initialize(int id, string name)
     {
