@@ -76,7 +76,7 @@ public class ShipController : MonoBehaviour
                     // No orders, do nothing
                     break;
                 case CombatOrders.Engage:
-                    MoveLikeSpaceship();
+                    EngageWithSpaceNewtonianPhysics();
                     // MoveLikeAirplane
                     break;
                 case CombatOrders.Formation:
@@ -94,7 +94,7 @@ public class ShipController : MonoBehaviour
             }
         }
     }
-    private void MoveLikeSpaceship()
+    private void EngageWithSpaceNewtonianPhysics()
     {
         // Move towards the target group
         #region How to make realistic movement along a path in space

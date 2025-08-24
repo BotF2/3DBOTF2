@@ -60,7 +60,7 @@ public class DiplomacyController //not : MonoBehaviour
         {
             this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Allied;
         }
-        else if (currentStatusPoints >= (int)DiplomacyStatusEnum.Membership && ((int)this.DiplomacyData.CivSideOne.CivData.CivInt > 6 || (int)this.DiplomacyData.CivSideTwo.CivData.CivInt > 6))
+        else if (currentStatusPoints >= (int)DiplomacyStatusEnum.Membership && ((int)this.DiplomacyData.CivSideOne > 6 || (int)this.DiplomacyData.CivSideTwo > 6))
         {
             // only minors AI civ can become member of a playable major race
             this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Membership;

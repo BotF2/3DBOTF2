@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Assets.Core
@@ -111,6 +112,8 @@ namespace Assets.Core
                             _SOsInGame.Add(mediumMapMinorNeighborsInGame[i]);
                         if (galaxySize == 2)
                             _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
+                        //if (galaxySize >= 3)
+                          //_SOsInGame.Add(randomMinorsInGame[i]);
                     }
                 }
                 SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
@@ -291,6 +294,19 @@ namespace Assets.Core
             {
                 if (CivControllersInGame[i] == CivManager.Instance.LocalPlayerCivContoller)
                     civController = CivControllersInGame[i];
+            }
+            return civController;
+        }
+        public CivController GetCivControllerByCivEnum(CivEnum civEnum)
+        {
+            CivController civController = null;
+            for (int i = 0; i < CivControllersInGame.Count; i++)
+            {
+                if (CivControllersInGame[i].CivData.CivEnum == civEnum)
+                {
+                    civController = CivControllersInGame[i];
+                    break;
+                }
             }
             return civController;
         }

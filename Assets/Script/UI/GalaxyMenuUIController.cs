@@ -1298,8 +1298,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         //    }
         //}
         
-        CivController partyOne = diplomacyCon.DiplomacyData.CivSideOne;
-        CivController partyTwo = diplomacyCon.DiplomacyData.CivSideTwo;
+        CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
+        CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
         CivController notLocalPlayerCiv;
         CivController localPlayerCiv;
         StarSysController homeSysController;

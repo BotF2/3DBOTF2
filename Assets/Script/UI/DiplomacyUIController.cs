@@ -8,7 +8,6 @@ using UnityEngine.UI;
 
 public class DiplomacyUIController : MonoBehaviour
 {
-    //public static DiplomacyUIController Instance;
     private Camera galaxyEventCamera;
     [SerializeField]
     private Canvas parentCanvas;

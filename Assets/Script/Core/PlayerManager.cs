@@ -48,7 +48,19 @@ public class PlayerManager : NetworkBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
+    private void NetworkStatus() 
+    {
 
+        if (NetworkServer.active && NetworkClient.active)
+            Debug.Log("Host");
+        else if (NetworkServer.active)
+            Debug.Log("Dedicated server");
+        else if (NetworkClient.active)
+            Debug.Log("Client");
+        else
+            Debug.Log("Single Player (no network)");
+
+    }
     public void RegisterPlayer(IPlayerController player, bool isLocal, string playerName, int playerId, PlayerType type)
     {
         if (player == null)

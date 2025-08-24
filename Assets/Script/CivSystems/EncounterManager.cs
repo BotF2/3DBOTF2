@@ -45,13 +45,13 @@ public class EncounterManager : MonoBehaviour
             FleetController sideOneFleetCon;
             FleetController sideTwoFleetCon;
             if (reportingPlayerFleet.FleetData.CivController.CivData.CivEnum < otherFleet.FleetData.CivController.CivData.CivEnum)
-            { // local player is side one
+            { 
                 civSideOne = reportingPlayerFleet.FleetData.CivController;
                 sideOneFleetCon = reportingPlayerFleet;
                 civSideTwo = otherFleet.FleetData.CivController;
                 sideTwoFleetCon = otherFleet;
             }
-            else // other civ is side one
+            else 
             {
                 civSideOne = otherFleet.FleetData.CivController;
                 sideOneFleetCon = otherFleet;
@@ -60,7 +60,8 @@ public class EncounterManager : MonoBehaviour
             }
             if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
             { 
-                DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                 FirstContactFleetOnFleetEncounterController(reportingPlayerFleet, otherFleet);
                 Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
             }
@@ -102,13 +103,15 @@ public class EncounterManager : MonoBehaviour
                 //have we met before?
                 if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
                 { // First Contact
-                    DiplomacyManager.Instance.FirstContactGetNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    //DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                     FirstContactFleetOnStarSysNewEncounnterController(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
+                    //IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                 }
                 else
                 { // not first contact
                     DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, otherCivSysCon);
                     FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
+                    //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                 }
             }
             otherCivSysCon.gameObject.SetActive(true);
@@ -158,7 +161,7 @@ public class EncounterManager : MonoBehaviour
     }
 
     private void NextFleetToFleetEncounter(FleetController fleetA, FleetController fleetB)
-    { // Will we need this?
+    { // *** Will we need this?
         var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
         encounterData.EncounterType = EncounterType.FleetManagement;
         EncounterController encounterController = new EncounterController(encounterData); // not mono behavior
@@ -167,7 +170,7 @@ public class EncounterManager : MonoBehaviour
         EncounterControllers.Add(encounterController);
     }
     private void FirstContactFleetOnFleetEncounterController(FleetController fleetA, FleetController fleetB)
-    {
+    { // *** do we need to save this data???
         var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
         encounterData.EncounterType = EncounterType.FirstContact;
         EncounterController encounterController = new EncounterController(encounterData);
