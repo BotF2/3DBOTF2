@@ -51,10 +51,10 @@ public class CombatController : MonoBehaviour
     int _capitalsSide2;
     int _transportsSide1;
     int _transportsSide2;
-    int _totalScoutShips;
-    int _totalDestroyerShips;
-    int _totalCapitalShips;
-    int _totalTransportsShips;
+    //int _totalScoutShips;
+    //int _totalDestroyerShips;
+    //int _totalCapitalShips;
+    //int _totalTransportsShips;
 
     public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
     {
