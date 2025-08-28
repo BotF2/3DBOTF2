@@ -29,7 +29,7 @@ public class IntelligenceManager : MonoBehaviour
         if (civSideOne.CivData.CivEnum <= CivEnum.TERRAN || civSideTwo.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one major civ
         { // one or two is a major civs
 
-            intelData.CivSideOne = civSideOne.CivData.CivEnum; // local player civ  
+            intelData.CivSideOne = civSideOne.CivData.CivEnum; 
             intelData.LastSeenFleetOfSideOne = fleetControllerSideOne; // could be null, do this on combat form Diplomacy UI
             intelData.CivSideTwo = civSideTwo.CivData.CivEnum;
             intelData.LastSeenFleetOfSideTwo = fleetControllerSideTwo; // do this on combat
@@ -37,7 +37,6 @@ public class IntelligenceManager : MonoBehaviour
         }
 
         IntelligenceController intelligenceController = new IntelligenceController(intelData);
-        CivRelationsManager.Instance.UpdateCivRelationsIntelData(intelData);
         //intelligenceController.IntelligenceData.IntelligenceStatusEnumOfCivs = CalculateIntelligenceStatusOnFirstContact(intelligenceController);
         //intelligenceController.IntelligenceData.IntelligencePointsOfCivs = (int)intelligenceController.IntelligenceData.IntelligenceStatusEnumOfCivs;
         IntelligenceControllerList.Add(intelligenceController);
@@ -78,20 +77,20 @@ public class IntelligenceManager : MonoBehaviour
         }
         return found;
     }
-    public void OpenIntelligenceUI(CivController civPartyOne, CivController civPartyTwo)
+    public void OpenIntelligenceUI(CivEnum civPartyOne, CivEnum civPartyTwo)
     {
         IntelligenceController ourIntelligenceController = ReturnAnIntelligenceController(civPartyOne, civPartyTwo);
         if (ourIntelligenceController != null)
         {
-            if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
+            if (GameController.Instance.AreWeLocalPlayer(civPartyOne))
             {
-                ourIntelligenceController.IntelligenceData.CivSideOne = civPartyOne.CivData.CivEnum; // local player civ
-                ourIntelligenceController.IntelligenceData.CivSideTwo = civPartyTwo.CivData.CivEnum;
+                ourIntelligenceController.IntelligenceData.CivSideOne = civPartyOne; // local player civ
+                ourIntelligenceController.IntelligenceData.CivSideTwo = civPartyTwo;
             }
-            else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
+            else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo))
             {
-                ourIntelligenceController.IntelligenceData.CivSideOne = civPartyTwo.CivData.CivEnum; // local player civ
-                ourIntelligenceController.IntelligenceData.CivSideTwo = civPartyOne.CivData.CivEnum;
+                ourIntelligenceController.IntelligenceData.CivSideOne = civPartyTwo; // local player civ
+                ourIntelligenceController.IntelligenceData.CivSideTwo = civPartyOne;
             }
            // *** build intel UI for this!!
            // GalaxyMenuUIController.Instance.OpenAIntelligenceUI(ourIntelligenceController); // it opens the AIntelligence UI
@@ -113,14 +112,14 @@ public class IntelligenceManager : MonoBehaviour
         //}
         //IntelligenceController ourIntelligenceController = ReturnAnIntelligenceController(civPartyOne, civPartyTwo);
     }
-    public IntelligenceController ReturnAnIntelligenceController(CivController civPartyOne, CivController civPartyTwo)
+    public IntelligenceController ReturnAnIntelligenceController(CivEnum civPartyOne, CivEnum civPartyTwo)
     {
         IntelligenceController intelligenceController = null;
         for (int i = 0; i < IntelligenceControllerList.Count; i++)
         {
-            if (IntelligenceControllerList[i] != null && ((IntelligenceControllerList[i].IntelligenceData.CivSideOne == civPartyOne.CivData.CivEnum &&
-                IntelligenceControllerList[i].IntelligenceData.CivSideTwo == civPartyTwo.CivData.CivEnum)
-                || (IntelligenceControllerList[i].IntelligenceData.CivSideOne == civPartyTwo.CivData.CivEnum && IntelligenceControllerList[i].IntelligenceData.CivSideTwo == civPartyOne.CivData.CivEnum)))
+            if (IntelligenceControllerList[i] != null && ((IntelligenceControllerList[i].IntelligenceData.CivSideOne == civPartyOne &&
+                IntelligenceControllerList[i].IntelligenceData.CivSideTwo == civPartyTwo)
+                || (IntelligenceControllerList[i].IntelligenceData.CivSideOne == civPartyTwo && IntelligenceControllerList[i].IntelligenceData.CivSideTwo == civPartyOne)))
             {
                 intelligenceController = IntelligenceControllerList[i];
                 break;

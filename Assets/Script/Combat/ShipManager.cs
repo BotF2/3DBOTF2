@@ -14,8 +14,6 @@ public class ShipManager : MonoBehaviour
     [SerializeField]
     private ShipController shipConPrefab;
     public GameObject ShipPrefab;
-
-    public GameObject PrefabSphere;
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
     public List<ShipController> ShipControllerGameList = new List<ShipController>();
@@ -65,6 +63,7 @@ public class ShipManager : MonoBehaviour
             {
                 ShipController shipCon = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
                 Quaternion.identity);
+                // isKinematic = true in prefab and is set false after warp animation
                 shipCon.Init(this);
                 shipCon.ShipData = new ShipData();
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
@@ -87,6 +86,7 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 shipCon.Order = CombatOrders.None;
+                shipCon.gameObject.layer = 9; // set to "ships" layer
                 ShipControllerGameList.Add(shipCon);
                 shipConList.Add(shipCon);
                 InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship                 

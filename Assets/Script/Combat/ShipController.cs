@@ -21,9 +21,9 @@ public class ShipController : MonoBehaviour
     public float Velocity = 10f;
     public float OrbitDistance = 20f;  // radius of the orbit
     public float OrbitSpeed = 30f; // how fast to orbit (degrees per second)
-    public float MaxSpeed = 50f; // top speed
-    public float Acceleration = 20f; // units per second^2
-    public float Deceleration = 20f; // units per second^2
+    public float MaxSpeed = 1200f; // top speed
+    public float Acceleration = 500f; // units per second^2
+    public float Deceleration = 500f; // units per second^2
     public float TurnSpeed = 60f; // deg/sec rotation speed
     public Transform PathStart; // start of flight path
     public Transform PathEnd;
@@ -32,6 +32,7 @@ public class ShipController : MonoBehaviour
     private bool warpingInOver = false;
     private bool goingForward = true;
     private bool isStopping = false;
+    private GameObject beamWeaponGO;
     public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
 
 
@@ -112,7 +113,7 @@ public class ShipController : MonoBehaviour
         {
             // Accelerate forward until max speed
             if (rb.linearVelocity.magnitude < MaxSpeed)
-                rb.AddForce(transform.forward * Acceleration, ForceMode.Acceleration);
+                rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);//not clear no why negative forward but it works
         }
         else
         {
@@ -262,13 +263,14 @@ public class ShipController : MonoBehaviour
             if (baem && ShipData.BeamDamage > 0)
             {
                 var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
+                beamWeaponGO= beamWeaponGo;
                 var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
                 var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
                 beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // Set the target transform
                 beamWeaponScript.WeaponTransform = this.transform; // Set the weapon transform
                 beamWeaponScript.LineRenderer = lineRenderer;
                 beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform); // Set the weapon and target transforms
-                TakeDamage(ShipData.BeamDamage); 
+                ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage); 
                 Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
             }
             else if (ShipData.TorpedoDamage > 0)
@@ -307,7 +309,10 @@ public class ShipController : MonoBehaviour
             }
             ShipCombatCameraController.Instance.OnShipDestroyed(this);
             ShipData.TargetThisShipController = null; // Clear the target ship controller
+            this.ShipData.FleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
             Destroy(gameObject);
+            Destroy(beamWeaponGO);
+            this.ShipData.FleetController.IsTheFleetDestroyed();
             FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
         }
 

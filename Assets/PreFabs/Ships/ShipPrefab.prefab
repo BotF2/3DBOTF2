@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8027775598120614971}
   - component: {fileID: -1094753900877084347}
-  m_Layer: 9
+  m_Layer: 4
   m_Name: ShipPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -45,4 +45,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Name: 
+  torpedoPrefab: {fileID: 0}
+  beamWeaponPrefab: {fileID: 0}
   ShipListUIGameObject: {fileID: 0}
+  clipTorpedoFire: {fileID: 0}
+  clipBeamFire: {fileID: 0}
+  TargetGroup: {fileID: 0}
+  Velocity: 10
+  OrbitDistance: 20
+  OrbitSpeed: 30
+  MaxSpeed: 50
+  Acceleration: 20
+  Deceleration: 20
+  TurnSpeed: 60
+  PathStart: {fileID: 0}
+  PathEnd: {fileID: 0}
+  StopPoint: {fileID: 0}
+  Order: 0

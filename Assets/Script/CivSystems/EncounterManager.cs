@@ -121,8 +121,6 @@ public class EncounterManager : MonoBehaviour
             //React to Uninhabited system contact and Colonize option
             FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
 
-
-
             foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
             {
                 if (shipController.ShipData.ShipType == ShipType.Transport)
@@ -150,7 +148,7 @@ public class EncounterManager : MonoBehaviour
         //have we met before?
         if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
         {   // not First Contact, just by clicking on the system
-            DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo);
+            DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList);
             //DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
         }
         else

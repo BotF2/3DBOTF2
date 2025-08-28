@@ -229,7 +229,8 @@ public class CombatController : MonoBehaviour
             rigid.useGravity = false;
             rigid.isKinematic = true;
             BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
-
+            boxCollider.isTrigger = false;
+            boxCollider.includeLayers = 9;
             //******** ship size here for now **************
             boxCollider.transform.localScale = new Vector3(5, 5, 5); //size model to fit CameraMultitarget calculations and the view appearance;
             float length = 1f;
@@ -348,58 +349,93 @@ public class CombatController : MonoBehaviour
         for (int i = 0; i < shipConsSideOne.Count; i++)
         {
             shipConsSideOne[i].SetWarpInOver();
+            var rb = shipConsSideOne[i].GetComponent<Rigidbody>();
+            rb.isKinematic = false;
         }
         for (int i = 0; i < shipConsSideTwo.Count; i++)
         {
             shipConsSideTwo[i].SetWarpInOver();
+            var rb = shipConsSideTwo[i].GetComponent<Rigidbody>();
+            rb.isKinematic = false;
         }
-        FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);// get target ship for each ship on both sides
+        FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);
+        FindClosestPairsForTargets(shipConsSideTwo, shipConsSideOne);// get target ship for each ship on both sides
         FireWeaponsOrder(shipConsSideOne); 
         FireWeaponsOrder(shipConsSideTwo);
     }
-    void FindClosestPairsForTargets(List<ShipController> shipList_1, List<ShipController> shipList_2)
+    void FindClosestPairsForTargets(List<ShipController> shipListFiring, List<ShipController> shipListTargets)
     {
-        for (int i = 0; i < shipList_1.Count; i++)
+        for (int i = 0; i < shipListFiring.Count; i++)
         {
             ShipController closestB = null;
             float shortestDist = Mathf.Infinity;
-
-            for (int j = 0; j < shipList_2.Count; j++)
-            { 
-                float distSqr = (shipList_1[i].transform.position - shipList_2[j].transform.position).sqrMagnitude;
+            for (int j = 0; j < shipListTargets.Count; j++)
+            {
+                Vector3 origin = shipListFiring[i].transform.position;
+                Vector3 targetPos = shipListTargets[j].transform.position;
+                Vector3 dir = (targetPos - origin).normalized;
+                Vector3 safeOrigin = origin + dir * 10f;
+                float dist = Vector3.Distance(origin, targetPos);
+      
+                float distSqr = (shipListFiring[i].transform.position - shipListTargets[j].transform.position).sqrMagnitude;
                 if (distSqr < shortestDist)
                 {
+
                     shortestDist = distSqr;
-                    closestB = shipList_2[j];
+                    if (Physics.Raycast(safeOrigin, dir, out RaycastHit hit, dist, 9) == false)
+                    {
+                        if (dist < shortestDist)
+                        {
+                            shortestDist = dist;
+                            closestB = shipListTargets[j];
+                        }
+                    }
+                    // ********** do not know why the raycast is not working, want to check with raycast for one of our ships getting in the way
+                    //else if (Physics.Raycast(safeOrigin, dir, out RaycastHit realHit, dist, 9, QueryTriggerInteraction.Collide))
+                    //{
+
+                    //    ShipController hitShip = realHit.collider.GetComponent<ShipController>();
+
+                    //    if (hitShip != null)
+                    //    {
+                    //        // If the first ship we hit is the candidate → line of sight is clear
+                    //        if (hitShip == shipListTargets[j])
+                    //        {
+                    //            if (dist < shortestDist)
+                    //            {
+                    //                shortestDist = dist;
+                    //                closestB = shipListTargets[j];
+                    //            }
+                    //        }
+                    //        else
+                    //        {
+                    //            // Hit some other ship first (could be friendly) → blocked, skip this target
+                    //            continue;
+                    //        }
+                    //    }
+                    //}
                 }
             }
-
             if (closestB != null)
             {
-                shipList_1[i].ShipData.TargetThisShipController = closestB;
+                shipListFiring[i].ShipData.TargetThisShipController = closestB;
             }
         }
-
-        for (int i = 0; i < shipList_2.Count; i++)
-        {
-            ShipController closestA = null;
-            float shortestDist = Mathf.Infinity;
-
-            for (int j = 0; j < shipList_1.Count; j++)
-            {
-                float distSqr = (shipList_2[i].transform.position - shipList_1[j].transform.position).sqrMagnitude;
-                if (distSqr < shortestDist)
-                {
-                    shortestDist = distSqr;
-                    closestA = shipList_1[j];
-                }
-            }
-
-            if (closestA != null)
-            { 
-                shipList_2[i].ShipData.TargetThisShipController = closestA; // Set the target for ship B
-            }
-        }
+        //for (int i = 0; i < shipList_2.Count; i++)
+        //{
+        //    ShipController closestA = null;
+        //    float shortestDist = Mathf.Infinity;
+        //    for (int j = 0; j < shipList_1.Count; j++)
+        //    {
+        //        float distSqr = (shipList_2[i].transform.position - shipList_1[j].transform.position).sqrMagnitude;
+        //        if (distSqr < shortestDist) { shortestDist = distSqr; closestA = shipList_1[j];
+        //        }
+        //    }
+        //    if (closestA != null)
+        //    {
+        //        shipList_2[i].ShipData.TargetThisShipController = closestA;
+        //    }
+        //}// Set the target for ship B } } }
     }
     private void FireWeaponsOrder(List<ShipController> shipCons)
     {

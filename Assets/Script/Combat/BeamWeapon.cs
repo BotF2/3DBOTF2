@@ -30,6 +30,7 @@ public class BeamWeapon: MonoBehaviour
     {
         if (LineRenderer == null || _weaponAndTargetTrans[0] == null || _weaponAndTargetTrans[1] == null)
         {
+            Destroy(this);
             return;
         }
         LineRenderer.positionCount = 2;

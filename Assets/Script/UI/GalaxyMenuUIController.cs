@@ -9,6 +9,7 @@ using System.Linq;
 using UnityEngine.Experimental.XR.Interaction;
 using System.Runtime.CompilerServices;
 using UnityEngine.ResourceManagement;
+using Unity.VisualScripting;
 public enum Menu
 {
     None,
@@ -154,7 +155,12 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject combatButtonGO;
     [SerializeField]
     private GameObject closeDiplomacyButtonGO;
-
+    int _scouts;
+    int _destroyers;
+    int _cruisters;
+    int _ltCruisers;
+    int _hvyCruisers;
+    int _transports;
     private void Awake()
     {
         if (Instance != null)
@@ -666,78 +672,83 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void UpdateFleetMaxWarpUI(FleetController fleetCon, float theirMaxWarp)
     {
         float maxSliderValue = theirMaxWarp;
-
-        Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
-        if (slider != null)
+        if (fleetCon.FleetUIGameObject != null)
         {
-            slider.onValueChanged.RemoveAllListeners();
-            slider.maxValue = theirMaxWarp;
-            if (fleetCon.FleetData.CurrentWarpFactor > theirMaxWarp)
+            Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
+            if (slider != null)
             {
-                fleetCon.FleetData.CurrentWarpFactor = theirMaxWarp;
-                slider.value = fleetCon.FleetData.CurrentWarpFactor;
-                slider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
+                slider.onValueChanged.RemoveAllListeners();
+                slider.maxValue = theirMaxWarp;
+                if (fleetCon.FleetData.CurrentWarpFactor > theirMaxWarp)
+                {
+                    fleetCon.FleetData.CurrentWarpFactor = theirMaxWarp;
+                    slider.value = fleetCon.FleetData.CurrentWarpFactor;
+                    slider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
+                }
             }
-        }
 
-        TextMeshProUGUI[] OneTMP = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        bool areWeDoneYet = false;
-        bool areWeDone = false;
-        for (int i = 0; i < OneTMP.Length; i++)
-        {
-            OneTMP[i].enabled = true;
-            var itemName = OneTMP[i].name.ToString();
+            TextMeshProUGUI[] OneTMP = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            bool areWeDoneYet = false;
+            bool areWeDone = false;
+            for (int i = 0; i < OneTMP.Length; i++)
+            {
+                OneTMP[i].enabled = true;
+                var itemName = OneTMP[i].name.ToString();
 
-            if ("FleetMaxWarpFactor" == OneTMP[i].name)
-            {
-                OneTMP[i].text = maxSliderValue.ToString("0.0");
-                areWeDoneYet = true;
-            }
-            else if ("Warp Value Text (TMP)" == OneTMP[i].name)
-            {
-                OneTMP[i].text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
-            }
-            if (areWeDoneYet && areWeDone)
-            {
+                if ("FleetMaxWarpFactor" == OneTMP[i].name)
+                {
+                    OneTMP[i].text = maxSliderValue.ToString("0.0");
+                    areWeDoneYet = true;
+                }
+                else if ("Warp Value Text (TMP)" == OneTMP[i].name)
+                {
+                    OneTMP[i].text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
+                }
+                if (areWeDoneYet && areWeDone)
+                {
 
-                return;
+                    return;
+                }
             }
         }
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
-    {
-        float warpSliderValue = theirWarp;
-        Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
-        if (slider != null)
+    {   
+        if (fleetCon.FleetUIGameObject != null)
         {
-            slider.onValueChanged.RemoveAllListeners();
-            slider.value = warpSliderValue;
-            slider.maxValue = fleetCon.FleetData.MaxWarpFactor;
-            slider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
-        }
-
-        TextMeshProUGUI[] OneTMP = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        bool areWeThereYet = false;
-        bool areWeDoneYet = false;
-        for (int i = 0; i < OneTMP.Length; i++)
-        {
-            OneTMP[i].enabled = true;
-            var itemName = OneTMP[i].name.ToString();
-
-            // ToDo: work in tech levels
-            if ("FleetMaxWarpFactor" == OneTMP[i].name)
+            float warpSliderValue = theirWarp;
+            Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
+            if (slider != null)
             {
-                OneTMP[i].text = fleetCon.FleetData.MaxWarpFactor.ToString("0.0");
-                areWeDoneYet = true;
+                slider.onValueChanged.RemoveAllListeners();
+                slider.value = warpSliderValue;
+                slider.maxValue = fleetCon.FleetData.MaxWarpFactor;
+                slider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
             }
-            if ("Warp Value Text (TMP)" == OneTMP[i].name)
+
+            TextMeshProUGUI[] OneTMP = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            bool areWeThereYet = false;
+            bool areWeDoneYet = false;
+            for (int i = 0; i < OneTMP.Length; i++)
             {
-                OneTMP[i].text = warpSliderValue.ToString("0.0");
-                areWeThereYet = true;
-            }
-            else if (areWeThereYet && areWeDoneYet)
-            {
-                return;
+                OneTMP[i].enabled = true;
+                var itemName = OneTMP[i].name.ToString();
+
+                // ToDo: work in tech levels
+                if ("FleetMaxWarpFactor" == OneTMP[i].name)
+                {
+                    OneTMP[i].text = fleetCon.FleetData.MaxWarpFactor.ToString("0.0");
+                    areWeDoneYet = true;
+                }
+                if ("Warp Value Text (TMP)" == OneTMP[i].name)
+                {
+                    OneTMP[i].text = warpSliderValue.ToString("0.0");
+                    areWeThereYet = true;
+                }
+                else if (areWeThereYet && areWeDoneYet)
+                {
+                    return;
+                }
             }
         }
     }
@@ -1287,7 +1298,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
 
     }
-    public void OpenADiplomacyUI(DiplomacyController diplomacyCon)
+    public void OpenADiplomacyUI(DiplomacyController diplomacyCon, List<ShipController> shipList)
     {
         //var DiplomacyUIControllers = DiplomacyManager.Instance.DiplomacyUIControllerList;
         //for (int i = 0; i < DiplomacyUIControllers.Count; i++)
@@ -1422,51 +1433,73 @@ public class GalaxyMenuUIController : MonoBehaviour
         TextMeshProUGUI[] ourTMPs = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
         for (int i = 0; i < ourTMPs.Length; i++)
         {
-            int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
+            int techLevelInt = (int)notLocalPlayerCiv.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
             ourTMPs[i].enabled = true;
             var aName = ourTMPs[i].name;
-
+            var sysCiv = homeSysController.StarSysData.CurrentOwnerCivEnum;
+            string nameOfWhatWeSee =notLocalPlayerCiv.CivData.CivShortName;
+            CountShips(shipList);
+            //   ourTMPs[i].text = "No Intel";
+            //    continue;
             switch (aName)
-            {
-                case "ThierNameText":
-                    ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
-                    break;
-                case "RelationText":
-                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
-                    break;
-                case "Text Points (TMP)":
-                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
-                    break;
-                case "TraitText (1)":
-                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
-                    break;
-                case "TraitText (2)":
-                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
-                    break;
-                case "TraitText (3)":
-                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
-                    break;
-                case "TraitText (4)":
-                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
-                    break;
-                case "OurTraitText (1)":
-                    ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
-                    break;
-                case "OurTraitText (2)":
-                    ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
-                    break;
-                case "OurTraitText (3)":
-                    ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
-                    break;
-                case "OurTraitText (4)":
-                    ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();
-                    break;
-                //case "FleetMaxWarpFactor":
-                //    ourTMPs[i].text = fleetCon.FleetData.MaxWarpFactor.ToString("0.0");
-                //    break;
+                {
+                    case "ThierNameText":
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
+                        break;
+                    case "RelationText":
+                        ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
+                        break;
+                    case "Text Points (TMP)":
+                        ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
+                        break;
+                    case "TraitText (1)":
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
+                        break;
+                    case "TraitText (2)":
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
+                        break;
+                    case "TraitText (3)":
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
+                        break;
+                    case "TraitText (4)":
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
+                        break;
+                    case "OurTraitText (1)":
+                        ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
+                        break;
+                    case "OurTraitText (2)":
+                        ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
+                        break;
+                    case "OurTraitText (3)":
+                        ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
+                        break;
+                    case "OurTraitText (4)":
+                        ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();
+                        break;
+                    case "WhoWeHit":
+                        ourTMPs[i].text = nameOfWhatWeSee;
+                        break;
+                    case "NumS":
+                        ourTMPs[i].text = _scouts.ToString();
+                        break;
+                    case "NumD":
+                        ourTMPs[i].text = _destroyers.ToString();
+                        break;
+                    case "NumC":
+                        ourTMPs[i].text = _cruisters.ToString();
+                        break;
+                    case "NumLC":
+                        ourTMPs[i].text = _ltCruisers.ToString();
+                        break;
+                    case "NumHC":
+                        ourTMPs[i].text = _hvyCruisers.ToString();
+                        break;
+                    case "NumT":
+                        ourTMPs[i].text = _transports.ToString();
+                        break;
                 default:
-                    break;
-            }
+                        break;
+                }
         }
         Button[] listButtons = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Button>();
         foreach (var listButton in listButtons)
@@ -1546,7 +1579,15 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
         }
     }
-
+    private void CountShips(List<ShipController> ships)
+    {
+        _scouts =ships.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _destroyers = ships.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
+        _ltCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
+        _hvyCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
+        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Transport);
+    }
     #endregion Diplomacy
 }
 

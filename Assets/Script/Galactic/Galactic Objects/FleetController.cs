@@ -19,8 +19,6 @@ namespace Assets.Core
         private FleetManager _manager;
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
-        [SerializeField]
-        private GameObject fleetUIGameObject;
         public GameObject FleetUIGameObject; //The instantiated fleet UI for this fleet. a prefab clone, not a class but a game object
         // instantiated by FleetManager from a prefab and added to FleetController
         public string Name;
@@ -357,6 +355,7 @@ namespace Assets.Core
             {
                 FleetManager.Instance.FleetControllerList.Remove(this);
                 Destroy(fleetGO.gameObject);
+                TimeManager.Instance.ResumeTime();
             }
         }
         public void ShipManageClick(FleetController fleetCon) // open ship manager UI
@@ -565,6 +564,14 @@ namespace Assets.Core
             else
             {
                 UpdateMaxWarp();
+            }
+        }
+        public void IsTheFleetDestroyed()
+        {
+            if (this.FleetData.ShipsList.Count == 0)
+            {
+                TimeManager.Instance.ResumeTime();
+                Destroy(this);
             }
         }
     }

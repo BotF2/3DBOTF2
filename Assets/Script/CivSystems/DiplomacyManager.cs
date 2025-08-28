@@ -121,8 +121,8 @@ public class DiplomacyManager : MonoBehaviour
     public void FirstContactInitNewDiplomacyContoller(CivController civSideOne, FleetController fleetSideOne,
     CivController civSideTwo, FleetController fleetSideTwo, StarSysController sysCon)
     {
-        DiplomacyData diplomacyData = null; 
-
+        DiplomacyData diplomacyData = null;
+        List<ShipController> notLocalShips;
         diplomacyData = new DiplomacyData(civSideOne.CivData.CivEnum, civSideTwo.CivData.CivEnum);
         if (civSideOne.CivData.CivEnum <= CivEnum.TERRAN || civSideTwo.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one major civ
         { // one or two is a major civs
@@ -136,8 +136,22 @@ public class DiplomacyManager : MonoBehaviour
         diplomacyController.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs;
         DiplomacyControllerList.Add(diplomacyController);
         InstantiateDiplomacyUIGameObject(diplomacyController);
+        if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
+        {
+            if (fleetSideTwo != null)
+                notLocalShips = fleetSideTwo.FleetData.ShipsList;
+            else
+                notLocalShips = sysCon.StarSysData.ShipsList;
+        }
+        else
+        {
+            if (fleetSideOne != null)
+                notLocalShips = fleetSideOne.FleetData.ShipsList;
+            else
+                notLocalShips = sysCon.StarSysData.ShipsList;
+        } 
 
-        GalaxyMenuUIController.Instance.OpenADiplomacyUI(diplomacyController);
+            GalaxyMenuUIController.Instance.OpenADiplomacyUI(diplomacyController, notLocalShips);
     }
     
     private void DoDiplomacyForAI(DiplomacyController diploCon) //, GameObject weHitGO)
@@ -162,7 +176,7 @@ public class DiplomacyManager : MonoBehaviour
         }
         return found;
     }
-    public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo)
+    public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo, List<ShipController> shipList)
     {
         DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
         if (ourDiplomacyController != null)
@@ -177,7 +191,7 @@ public class DiplomacyManager : MonoBehaviour
                 ourDiplomacyController.DiplomacyData.CivSideOne = civPartyTwo.CivData.CivEnum; // local player civ
                 ourDiplomacyController.DiplomacyData.CivSideTwo = civPartyOne.CivData.CivEnum;
             }
-            GalaxyMenuUIController.Instance.OpenADiplomacyUI(ourDiplomacyController); // it opens the ADiplomacy UI
+            GalaxyMenuUIController.Instance.OpenADiplomacyUI(ourDiplomacyController, shipList); // it opens the ADiplomacy UI
         }
     }
     public void UpdateOurDiplomacyController(FleetController fleetPartyOne, FleetController fleetPartyTwo)

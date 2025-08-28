@@ -56,33 +56,33 @@ public class CombatManager : MonoBehaviour
         // to populate the combat data
         var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
-        var relation = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
-        if (relation != null)
+        var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);       //var intelData = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
+        if (intelCon != null)
         {
-            if (relation.IntelData == null)
+            if (intelCon == null)
             {
                 Debug.LogError("IntelData is null in CivRelationsData for civs: " + diplomacyController.DiplomacyData.CivSideOne + " and " + diplomacyController.DiplomacyData.CivSideTwo);
                 return;
             }
-            if (relation.IntelData.LastSeenFleetOfSideOne != null)
+            if (intelCon.IntelligenceData.LastSeenFleetOfSideOne != null)
             {
 
-                sideOneShips = relation.IntelData.LastSeenFleetOfSideOne.FleetData.ShipsList;
-                if (relation.IntelData.LastSeenFleetOfSideTwo != null)
+                sideOneShips = intelCon.IntelligenceData.LastSeenFleetOfSideOne.FleetData.ShipsList;
+                if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo != null)
                 {
-                    sideTwoShips = relation.IntelData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
+                    sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
                     InitCombatData(sideOneShips, sideTwoShips); // instantiate ship game objects
                 }
                 else
                 {
-                    sideTwoShips = relation.IntelData.LastSeenStarSysController.StarSysData.ShipsList;
+                    sideTwoShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
                     InitCombatData(sideOneShips, sideTwoShips);
                 }
             }
-            else if (relation.IntelData.LastSeenFleetOfSideTwo.FleetData != null)
+            else if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData != null)
             {
-                sideTwoShips = relation.IntelData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
-                sideOneShips = relation.IntelData.LastSeenStarSysController.StarSysData.ShipsList;
+                sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
+                sideOneShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
             }
         }
         
@@ -165,7 +165,7 @@ public class CombatManager : MonoBehaviour
         }
         return beamPrefab;
     }
-    public void EndCombat()
+    public void EndCombatTimePause()
     {
         TimeManager.Instance.ResumeTime(); // Resume the game when combat UI is closed
     }
