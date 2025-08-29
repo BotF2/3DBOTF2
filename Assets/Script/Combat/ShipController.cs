@@ -20,16 +20,21 @@ public class ShipController : MonoBehaviour
     public Transform TargetGroup; // for movement, The center or leader of the other group
     public float Velocity = 10f;
     public float OrbitDistance = 20f;  // radius of the orbit
-    public float OrbitSpeed = 30f; // how fast to orbit (degrees per second)
-    public float MaxSpeed = 1200f; // top speed
-    public float Acceleration = 500f; // units per second^2
-    public float Deceleration = 500f; // units per second^2
-    public float TurnSpeed = 60f; // deg/sec rotation speed
-    public Transform PathStart; // start of flight path
-    public Transform PathEnd;
-    public Transform StopPoint;
+    //public float OrbitSpeed = 30f; // how fast to orbit (degrees per second)
+    //public float MaxSpeed = 1200f; // top speed
+    public float Acceleration = 100f; // units per second^2
+    public float Deceleration = 3f; // units per second^2
+    //public float TurnSpeed = 60f; // deg/sec rotation speed
+    //public Transform PathStart; // start of flight path
+    //public Transform PathEnd;
+    //public Transform StopPoint;
+    //public float initialVelocity = 500f;   // initial forward speed
+    public float stopDistance = 3f; // distance before center line to stop
+    private int flip =1;
+    private float currentVelocity = 300f;
     private Rigidbody rb;
     private bool warpingInOver = false;
+    private bool setSpeed = true;
     private bool goingForward = true;
     private bool isStopping = false;
     private GameObject beamWeaponGO;
@@ -41,7 +46,16 @@ public class ShipController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false;            // space, microgravity set to zero
         rb.linearDamping = 0f;            // no air drag
-        rb.angularDamping = 0.5f;         // small resistance to rotation
+        rb.angularDamping = 0.5f; // small resistance to rotation
+
+    }
+    private void Start()
+    {
+        theSource = GetComponent<AudioSource>();
+        currentVelocity = 300f; // initial speed
+        if (transform.position.x < 0) flip = -1;
+        stopDistance = 3f;
+        Deceleration = 3f;
     }
     public void Init(ShipManager shipManager)
     {
@@ -77,7 +91,8 @@ public class ShipController : MonoBehaviour
                     // No orders, do nothing
                     break;
                 case CombatOrders.Engage:
-                    EngageWithSpaceNewtonianPhysics();
+                    if (warpingInOver)
+                        EngageWithSpaceNewtonianPhysics();
                     // MoveLikeAirplane
                     break;
                 case CombatOrders.Formation:
@@ -97,33 +112,70 @@ public class ShipController : MonoBehaviour
     }
     private void EngageWithSpaceNewtonianPhysics()
     {
-        // Move towards the target group
-        #region How to make realistic movement along a path in space
-        // move like a spaceship in space, Newtonian-style “thrust + coasting + braking” system.
-        if (StopPoint == null) return;
 
-        Vector3 toTarget = (StopPoint.position - transform.position);
-        float distance = toTarget.magnitude;
+        //float distanceToCenter = Mathf.Abs(transform.position.z - 0f);
 
-        // Calculate stopping distance = v² / (2a)
-        float stoppingDistance = (rb.linearVelocity.sqrMagnitude) / (2f * Deceleration);
+        //// Start decelerating once within stop distance
+        //if (distanceToCenter <= stopDistance && currentSpeed > 0)
+        //{
+        //    currentSpeed -= deceleration * Time.fixedDeltaTime;
+        //    currentSpeed = Mathf.Max(currentSpeed, 0f); // don’t go negative
+        //}
+        //rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);
+        // Move ship forward
 
-        // Decide whether to accelerate or decelerate
-        if (distance > stoppingDistance)
+        Vector3 move = currentVelocity * transform.forward * flip;
+        if (setSpeed)
         {
-            // Accelerate forward until max speed
-            if (rb.linearVelocity.magnitude < MaxSpeed)
-                rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);//not clear no why negative forward but it works
+            rb.AddForce(move * Acceleration, ForceMode.Acceleration);
+            setSpeed = false;
         }
         else
         {
-            // Start decelerating
-            isStopping = true;
-            if (rb.linearVelocity.magnitude > 0.1f)
-                rb.AddForce(-rb.linearVelocity.normalized * Deceleration, ForceMode.Acceleration);
+            float distanceToCenter = Mathf.Abs(transform.position.x - 0f);
+
+            if (distanceToCenter > stopDistance && rb.linearVelocity.magnitude > 0.1f)
+            {
+                Vector3 brakingForce = -rb.linearVelocity.normalized * Deceleration;
+                rb.AddForce(brakingForce, ForceMode.Acceleration);
+                if (this.ShipData.ShipType == ShipType.Transport)
+                {
+                    rb.AddForce(brakingForce * 0.5f, ForceMode.Acceleration);
+                }
+            }
             else
+            {
                 rb.linearVelocity = Vector3.zero; // Full stop
+            }
         }
+        //rb.MovePosition(rb.position + move);
+        // Move towards the target group
+        #region More realistic Newtonian movement along a path in space
+        // move like a spaceship in space, Newtonian-style “thrust + coasting + braking” system.
+        //if (StopPoint == null) return;
+
+        //Vector3 toTarget = (StopPoint.position - transform.position);
+        //float distance = toTarget.magnitude;
+
+        //// Calculate stopping distance = v² / (2a)
+        //float stoppingDistance = (rb.linearVelocity.sqrMagnitude) / (2f * Deceleration);
+
+        //// Decide whether to accelerate or decelerate
+        //if (distance > stoppingDistance)
+        //{
+        //    // Accelerate forward until max speed
+        //    if (rb.linearVelocity.magnitude < MaxSpeed)
+        //        rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);
+        //}
+        //else
+        //{
+        //    // Start decelerating
+        //    isStopping = true;
+        //    if (rb.linearVelocity.magnitude > 0.1f)
+        //        rb.AddForce(, ForceMode.Acceleration);
+        //    else
+        //        rb.linearVelocity = Vector3.zero; // Full stop
+        //}
 
         // Rotate ship to face velocity while moving
         //if (rb.linearVelocity.sqrMagnitude > 0.1f)
@@ -229,8 +281,12 @@ public class ShipController : MonoBehaviour
         switch (order)
         {
             case CombatOrders.Engage:
-                StopPoint = new GameObject("StopPoint").transform; // Create a stop point for the ship
-                StopPoint.Translate(transform.position + transform.forward * 350f); // Set the stop point ahead of the ship
+                //StopPoint = new GameObject("StopPoint").transform; // Create a stop point for the ship
+                //int flip;
+                //if (transform.position.x > 0) flip = 1;
+                //else flip = -1;
+                //StopPoint.position = new Vector3(100f * flip, transform.position.y, transform.position.z);
+                ////StopPoint.Translate(transform.position - transform.forward * 100f); // Set the stop point ahead of the ship
                 break;
             case CombatOrders.Rush:
                 break;

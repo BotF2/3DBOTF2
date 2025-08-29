@@ -21,8 +21,8 @@ MonoBehaviour:
   maxWarpFactor: 3.5
   ShieldMaxHealth: 30
   HullMaxHealth: 14
-  TorpedoDamage: 8
-  BeamDamage: 8
+  TorpedoDamage: 0
+  BeamDamage: 0
   BuildDuration: 10
   Prefab: {fileID: 919132149155446097, guid: 3427aa7fe2c8d6248ab73484b2da52c0, type: 3}
   ShipDescription: 
