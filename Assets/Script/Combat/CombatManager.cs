@@ -11,7 +11,8 @@ public class CombatManager : MonoBehaviour
 {
     public static CombatManager Instance { get; private set; }
 
-    public GameObject CombatUICanvas;  
+    public GameObject CombatUICanvasGO;
+    public GameObject HealthbarPrefab;
     [SerializeField]
     private CombatController combatConPrefab;   
     public List<CombatController> CombatControllers = new List<CombatController>();
@@ -171,7 +172,7 @@ public class CombatManager : MonoBehaviour
     }
     public void SetUpLocalPlayer()
     {
-        GameObject thisCombatUIGameObject = CombatUICanvas;
+        GameObject thisCombatUIGameObject = CombatUICanvasGO;
 
         if (thisCombatUIGameObject != null)
         {

@@ -1,7 +1,9 @@
 using Assets.Core;
 using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
@@ -22,30 +24,37 @@ public class ShipController : MonoBehaviour
     public float OrbitDistance = 20f;  // radius of the orbit
     //public float OrbitSpeed = 30f; // how fast to orbit (degrees per second)
     //public float MaxSpeed = 1200f; // top speed
-    public float Acceleration = 100f; // units per second^2
-    public float Deceleration = 3f; // units per second^2
+    public float Acceleration = 100f; 
+    public float Deceleration = 3f; 
     //public float TurnSpeed = 60f; // deg/sec rotation speed
     //public Transform PathStart; // start of flight path
     //public Transform PathEnd;
     //public Transform StopPoint;
     //public float initialVelocity = 500f;   // initial forward speed
-    public float stopDistance = 3f; // distance before center line to stop
-    private int flip =1;
-    private float currentVelocity = 300f;
+    public float StopDistance; // See Start()
+    private int flipCombatSide =1;
+    private float currentVelocity;
     private Rigidbody rb;
     private bool warpingInOver = false;
     private bool setSpeed = true;
-    private bool goingForward = true;
-    private bool isStopping = false;
+    //private bool goingForward = true;
+    //private bool isStopping = false;
     private GameObject beamWeaponGO;
     public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
+    [SerializeField] private float minRefireDelay; // see Start()
+    [SerializeField] private float maxRefireDelay;
+    public Image HealthFillImage;
+    public float HealthSpeed;
+    public float TargetFillAmount { get; set; } = 1.0f;
+    public float Health;
+    public float MaxHealth;
 
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        rb.useGravity = false;            // space, microgravity set to zero
-        rb.linearDamping = 0f;            // no air drag
+        rb.useGravity = false; // space, microgravity set to zero
+        rb.linearDamping = 0f; // no air drag
         rb.angularDamping = 0.5f; // small resistance to rotation
 
     }
@@ -53,21 +62,26 @@ public class ShipController : MonoBehaviour
     {
         theSource = GetComponent<AudioSource>();
         currentVelocity = 300f; // initial speed
-        if (transform.position.x < 0) flip = -1;
-        stopDistance = 3f;
+        if (transform.position.x < 0) flipCombatSide = -1; // if on left side of map, flip direction
+        StopDistance = 3f;
         Deceleration = 3f;
+        minRefireDelay = 1.5f;
+        maxRefireDelay = 2.5f;
+        MaxHealth = ShipData.HullHealth + ShipData.HullHealth;
+        Health = MaxHealth;
+        HealthSpeed = 10.0f;
+
+    }
+    void Update()
+    {
+        // see TakeDamaga()
+        if (HealthFillImage != null)
+            HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetFillAmount, HealthSpeed * Time.deltaTime);
+        TargetFillAmount = Health / MaxHealth;
     }
     public void Init(ShipManager shipManager)
     {
         ShipManager.Instance = shipManager;
-    }
-    private void Update()
-    {
-       // move ship
-        if (ShipData != null && ShipData.TargetThisShipController != null)
-        {
-
-        }
     }
 
     void OnTriggerEnter(Collider collider)
@@ -91,15 +105,14 @@ public class ShipController : MonoBehaviour
                     // No orders, do nothing
                     break;
                 case CombatOrders.Engage:
-                    if (warpingInOver)
-                        EngageWithSpaceNewtonianPhysics();
-                    // MoveLikeAirplane
+                    EngageWithSpaceNewtonianPhysics();
+                    // simple forward movement with deceleration to stop point
                     break;
                 case CombatOrders.Formation:
-                    // Stay in position or move to a defensive position
+                    // move into a defensive formation
                     break;
                 case CombatOrders.Retreat:
-                    // Patrol logic can be implemented here
+                    // try for warp out
                     break;
                 case CombatOrders.TargetTransports:
                     break;
@@ -112,19 +125,9 @@ public class ShipController : MonoBehaviour
     }
     private void EngageWithSpaceNewtonianPhysics()
     {
-
-        //float distanceToCenter = Mathf.Abs(transform.position.z - 0f);
-
-        //// Start decelerating once within stop distance
-        //if (distanceToCenter <= stopDistance && currentSpeed > 0)
-        //{
-        //    currentSpeed -= deceleration * Time.fixedDeltaTime;
-        //    currentSpeed = Mathf.Max(currentSpeed, 0f); // don’t go negative
-        //}
-        //rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);
-        // Move ship forward
-
-        Vector3 move = currentVelocity * transform.forward * flip;
+        #region Crud but mostly realistic Newtonian movement along a path in space
+        // One time push simulating warp in residual velocity
+        Vector3 move = currentVelocity * transform.forward * flipCombatSide;
         if (setSpeed)
         {
             rb.AddForce(move * Acceleration, ForceMode.Acceleration);
@@ -132,9 +135,10 @@ public class ShipController : MonoBehaviour
         }
         else
         {
+            // Gradually slow down when approaching the stop point
             float distanceToCenter = Mathf.Abs(transform.position.x - 0f);
 
-            if (distanceToCenter > stopDistance && rb.linearVelocity.magnitude > 0.1f)
+            if (distanceToCenter > StopDistance && rb.linearVelocity.magnitude > 0.1f)
             {
                 Vector3 brakingForce = -rb.linearVelocity.normalized * Deceleration;
                 rb.AddForce(brakingForce, ForceMode.Acceleration);
@@ -145,50 +149,11 @@ public class ShipController : MonoBehaviour
             }
             else
             {
+                // all stop
                 rb.linearVelocity = Vector3.zero; // Full stop
             }
         }
-        //rb.MovePosition(rb.position + move);
-        // Move towards the target group
-        #region More realistic Newtonian movement along a path in space
-        // move like a spaceship in space, Newtonian-style “thrust + coasting + braking” system.
-        //if (StopPoint == null) return;
 
-        //Vector3 toTarget = (StopPoint.position - transform.position);
-        //float distance = toTarget.magnitude;
-
-        //// Calculate stopping distance = v² / (2a)
-        //float stoppingDistance = (rb.linearVelocity.sqrMagnitude) / (2f * Deceleration);
-
-        //// Decide whether to accelerate or decelerate
-        //if (distance > stoppingDistance)
-        //{
-        //    // Accelerate forward until max speed
-        //    if (rb.linearVelocity.magnitude < MaxSpeed)
-        //        rb.AddForce(-transform.forward * Acceleration, ForceMode.Acceleration);
-        //}
-        //else
-        //{
-        //    // Start decelerating
-        //    isStopping = true;
-        //    if (rb.linearVelocity.magnitude > 0.1f)
-        //        rb.AddForce(, ForceMode.Acceleration);
-        //    else
-        //        rb.linearVelocity = Vector3.zero; // Full stop
-        //}
-
-        // Rotate ship to face velocity while moving
-        //if (rb.linearVelocity.sqrMagnitude > 0.1f)
-        //{
-        //    Quaternion targetRot = Quaternion.LookRotation(rb.linearVelocity.normalized, Vector3.up);
-        //    rb.rotation = Quaternion.RotateTowards(rb.rotation, targetRot, TurnSpeed * Time.fixedDeltaTime);
-        //}
-        //else if (isStopping)
-        //{
-        //    // Face the enemy stop point after coming to a halt
-        //    Quaternion targetRot = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
-        //    rb.rotation = Quaternion.RotateTowards(rb.rotation, targetRot, TurnSpeed * Time.fixedDeltaTime);
-        //}
         #endregion
 
     }
@@ -281,22 +246,22 @@ public class ShipController : MonoBehaviour
         switch (order)
         {
             case CombatOrders.Engage:
-                //StopPoint = new GameObject("StopPoint").transform; // Create a stop point for the ship
-                //int flip;
-                //if (transform.position.x > 0) flip = 1;
-                //else flip = -1;
-                //StopPoint.position = new Vector3(100f * flip, transform.position.y, transform.position.z);
-                ////StopPoint.Translate(transform.position - transform.forward * 100f); // Set the stop point ahead of the ship
+                Order = CombatOrders.Engage;
                 break;
             case CombatOrders.Rush:
+                Order = CombatOrders.Rush;
                 break;
             case CombatOrders.Retreat:
+                Order = CombatOrders.Retreat;
                 break;
             case CombatOrders.Formation:
+                Order = CombatOrders.Formation;     
                 break;
             case CombatOrders.TargetTransports:
+                Order = CombatOrders.TargetTransports;
                 break;
             case CombatOrders.None:
+                Order = CombatOrders.None;
                 break;
             default:
                 break;
@@ -311,7 +276,23 @@ public class ShipController : MonoBehaviour
     {
         //1) player get the OtherController of the GO
     }
-
+    public IEnumerator ShipFireLoop(float initialDelay)
+    {
+        yield return new WaitForSeconds(initialDelay);
+        bool beam = true;
+        while (true) // ToDo: not true when ship weapons are offline?
+        {
+            // Fire the ship's beam weapons
+            FireWeapons(beam);
+            if (beam)
+                beam = false;
+            else
+                beam = true;
+            // Wait for a random refire delay before next shot
+            float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
+            yield return new WaitForSeconds(refireDelay);
+        }
+    }
     internal void FireWeapons(bool baem)
     {
         if (ShipData.TargetThisShipController != null)
@@ -344,17 +325,24 @@ public class ShipController : MonoBehaviour
     }
     public void TakeDamage(int weaponDamageInt)
     {
-        if (ShipData.ShieldHealth > 0)
-        {
-            //If the ship has shields, damage the shields first
-            ShipData.ShieldHealth -= (weaponDamageInt / 2);
-            return;
+        if (Health != 0) {
+            Health -= (weaponDamageInt / 3);
+            Health = Mathf.Max(Health, 0.0f ); // if Health goes below zero, set to zero
         }
-        else if (ShipData.HullHealth > 0)
-        {
-            ShipData.HullHealth -= (weaponDamageInt  / 3);
-            return;
-        }
+        #region for tracking shields and hull individually
+        //if (ShipData.ShieldHealth > 0)
+        //{
+        //    //If the ship has shields, damage the shields first
+        //    ShipData.ShieldHealth -= (weaponDamageInt / 2);
+
+        //    return;
+        //}
+        //else if (ShipData.HullHealth > 0)
+        //{
+        //    ShipData.HullHealth -= (weaponDamageInt  / 3);
+        //    return;
+        //}
+        #endregion
         else
         {
             // If both shields and hull are destroyed, destroy the ship

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Data.Common;
+using Image = UnityEngine.UI.Image;
 
 public class ShipManager : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class ShipManager : MonoBehaviour
 
     [SerializeField]
     private ShipController shipConPrefab;
-    public GameObject ShipPrefab;
+
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
     public List<ShipController> ShipControllerGameList = new List<ShipController>();
@@ -62,9 +63,21 @@ public class ShipManager : MonoBehaviour
             if (shipSOList[i] != null)
             {
                 ShipController shipCon = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
-                Quaternion.identity);
-                // isKinematic = true in prefab and is set false after warp animation
+                Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
+                // isKinematic = keep true in prefab and set as false after warp animation is done
                 shipCon.Init(this);
+                //GameObject healthbarGO = Instantiate(healthbarPrefab, shipCon.transform.position, Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
+                //healthbarGO.SetActive(true);
+                //Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
+                //for (int j = 0; j < healthbarImages.Length; j++)
+                //{
+                //    if (healthbarImages[j].gameObject.name == "HealthFill")
+                //    {
+                //        shipCon.HealthFillImage = healthbarImages[j];
+                //        shipCon.HealthFillImage.fillAmount = 1f; // set to full health
+                //        shipCon.HealthFillImage.color = Color.green; // set to green color
+                //    }
+                //}
                 shipCon.ShipData = new ShipData();
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
@@ -79,10 +92,10 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
                 shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
                 shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
-                var targetGO = Instantiate(targetGOPrefab, shipCon.transform.position, Quaternion.identity);
+                var targetGO = Instantiate(targetGOPrefab, shipCon.transform.position, Quaternion.identity); // where other ship weapons target 
                 shipCon.ShipData.TargetOnThisShip = targetGO;
-                targetGO.transform.SetParent(shipCon.transform, false); // set target GO as child of ship GO          
-                shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(shipCon.transform.position.x, shipCon.transform.position.y, shipCon.transform.position.z +10);// move target location back along spine of ship
+                targetGO.transform.SetParent(shipCon.transform, false); // set target GO as child of ship GO
+                shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(shipCon.transform.position.x, shipCon.transform.position.y, shipCon.transform.position.z + 10); // move target location back along spine of ship
                 shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 shipCon.Order = CombatOrders.None;

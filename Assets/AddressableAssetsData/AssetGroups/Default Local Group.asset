@@ -13,13 +13,16 @@ MonoBehaviour:
   m_Name: Default Local Group
   m_EditorClassIdentifier: 
   m_GroupName: Default Local Group
-  m_Data:
-    m_SerializedData: []
   m_GUID: 6527632361845e74aae08314b03a00bf
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 6a1143ee683302f4aa628c052723efc1
+    m_Address: Packages/com.unity.render-pipelines.universal/Runtime/Materials/SimpleLit.mat
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: dc6ce6bc432f372418825e8ebe0f1220, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 8eddf21360bb111438b5315baed6924a, type: 2}
     - {fileID: 11400000, guid: d845ca7548843ff4b97b1003f5c1e022, type: 2}
+    - {fileID: 11400000, guid: 8eddf21360bb111438b5315baed6924a, type: 2}

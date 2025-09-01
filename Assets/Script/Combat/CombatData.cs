@@ -14,10 +14,7 @@ public class CombatData
     public string Name;
     public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
     public List<ShipController> SideTwoShipCons = new List<ShipController>();
-    private int sideOneShipLayer;
-    private int sideTwoShipLayer;
-    //public CivController sideOneCivCon; //{ Civilization.FED };
-    //public CivController sideTwoCivCon;
+
     public GameObject cameraEmpty;
     [SerializeField]
     private GameObject animFriend1;
@@ -44,15 +41,8 @@ public class CombatData
     int _totalDestroyerShips;
     int _totalCapitalShips;
     int _totalTransportsShips;
-    public int xStart = 450; // in the wings out of the field of view
-    public int xEnd = 100; // end of warpin on x left-right axis
     public int rotationOnY = 90; // face right
-    //public int ySeparator = 40; 
-    //public int zSeparator = 70; 
-    //public float shipScale = 100f;
-    //public int yScout = 180; // shipGameOb types gap roes up
-    //public int yCapital = 90;
-    //public int yDestroyer = 0;
+
 
     public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
     private string[] arrayCountShipTypes; // change to array ship type
