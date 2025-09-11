@@ -19,6 +19,7 @@ public class SceneController : MonoBehaviour
     private static string previousSceneName;
     public List<GameObject> persistentObjects;
     private GameObject galaxyCameraDragNDrop; // Reference to the Galaxy Camera Drag and Drop GameObject
+    public GameObject ShipCombatCameraGO;
 
     private void Awake()
     {

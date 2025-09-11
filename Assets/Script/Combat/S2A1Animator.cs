@@ -17,7 +17,7 @@ namespace Assets.Core
 
         public void RunAnimation()
         {
-            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.warpingIn)
+            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.WarpingIn)
             {
                 anim.SetBool("WarpInS2A1", true);
                 PlayWarp();

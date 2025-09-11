@@ -26,10 +26,10 @@ namespace Assets.Core
         public float Pitch;
         public float Yaw;
         public float Roll;
-        public float PaddingLeft = 310f;
-        public float PaddingRight = 310f;
-        public float PaddingUp = 310f;
-        public float PaddingDown = 310f;
+        public float PaddingLeft = 300f;
+        public float PaddingRight = 300f;
+        public float PaddingUp = 300f;
+        public float PaddingDown = 300f;
         public float MoveSmoothTime = 0.19f;
         [SerializeField]
         private Camera _shipCamera;
@@ -95,18 +95,18 @@ namespace Assets.Core
 
                 if (_targets.Length == 0)
                     return;
-                //else
-                //{
-                //    List<GameObject> theTargetList = _targets.ToList();
-                //    for (int i = 0; i < theTargetList.Count; i++)
-                //    {
-                //        if (_targets[i] == null)
-                //        {
-                //            theTargetList.Remove(_targets[i]);
-                //        }
-                //    }
-                //    _targets = theTargetList.ToArray();
-                //}
+                else
+                {
+                    List<GameObject> theTargetList = _targets.ToList();
+                    for (int i = 0; i < theTargetList.Count; i++)
+                    {
+                        if (_targets[i] == null)
+                        {
+                            theTargetList.Remove(_targets[i]);
+                        }
+                    }
+                    _targets = theTargetList.ToArray();
+                }
                 var targetPositionAndRotation = TargetPositionAndRotation(_targets);// calculate a number of things we need to know about the camera position and rotation
                 _cameraOffSet = gameObject.transform.position - _cameraTarget;
 

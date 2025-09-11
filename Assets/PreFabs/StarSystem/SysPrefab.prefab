@@ -387,6 +387,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -408,6 +410,7 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -569,7 +572,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6661614357293291305}
-  - component: {fileID: 5067626825348705314}
+  - component: {fileID: 1004882706530766950}
   m_Layer: 4
   m_Name: LookAtCameraHolder
   m_TagString: Untagged
@@ -594,7 +597,7 @@ Transform:
   - {fileID: 7722906831640458837}
   m_Father: {fileID: 5744765435430504605}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5067626825348705314
+--- !u!114 &1004882706530766950
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -603,9 +606,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4942334795299522690}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfd9330479ce7844995d6188ebcce402, type: 3}
+  m_Script: {fileID: 11500000, guid: 11e858768c8b40e438f212946ac7a265, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Core.Billboard
 --- !u!1 &5600272353072756992
 GameObject:
   m_ObjectHideFlags: 0
@@ -753,6 +756,7 @@ GameObject:
   - component: {fileID: 2288487821784046947}
   - component: {fileID: 4903180204303875410}
   - component: {fileID: 7399741297211749873}
+  - component: {fileID: 5701368572679431816}
   m_Layer: 4
   m_Name: StarSprite
   m_TagString: Untagged
@@ -807,6 +811,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -828,6 +834,7 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 919144659
   m_SortingLayer: 1
   m_SortingOrder: 0
@@ -842,6 +849,18 @@ SpriteRenderer:
   m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &5701368572679431816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5710607628615256866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11e858768c8b40e438f212946ac7a265, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Core.Billboard
 --- !u!1 &5859342701520505373
 GameObject:
   m_ObjectHideFlags: 0
@@ -943,10 +962,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6000483729355016117}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -975,6 +994,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d116b78ae9cd6b84c8714da7db2c4686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  PlayerID: 0
   starSysUIGameObject: {fileID: 0}
   canvasToolTip: {fileID: 4392431061251062606}
   buildListGridLayoutGroup: {fileID: 0}
@@ -1056,6 +1076,8 @@ LineRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1077,6 +1099,7 @@ LineRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 919144659
   m_SortingLayer: 1
   m_SortingOrder: 0

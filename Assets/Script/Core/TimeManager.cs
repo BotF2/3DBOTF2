@@ -110,9 +110,11 @@ public class TimeManager : MonoBehaviour
     // Method to resume time progression
     public void ResumeTime()
     {
-        timeRunning = true;
-        timeCoroutine = StartCoroutine(TimeProgression());
-
+        if (this != null && timeCoroutine != null)
+        { 
+            timeRunning = true;
+            timeCoroutine = StartCoroutine(TimeProgression());
+        }
     }
 
     // Method to get current oneInXChance

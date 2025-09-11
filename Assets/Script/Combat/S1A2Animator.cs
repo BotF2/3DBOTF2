@@ -12,7 +12,7 @@ namespace Assets.Core
         {
             anim = GetComponent<Animator>();
             anim.enabled = true;
-            anim.SetBool("WarpInS1A2", false);
+            anim.SetBool("WarpInS1A2", true);
 
         }
 
@@ -28,7 +28,7 @@ namespace Assets.Core
         }
         public void RunAnimation()
         {
-            if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.warpingIn)
+            if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.WarpingIn)
             {
                 anim.SetBool("WarpInS1A2", true); // code state turns on warp animation
                 PlayWarp();

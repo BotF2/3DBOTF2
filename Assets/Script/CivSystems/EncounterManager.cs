@@ -114,13 +114,13 @@ public class EncounterManager : MonoBehaviour
                     //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                 }
             }
-            otherCivSysCon.gameObject.SetActive(true);
+            otherCivSysCon.gameObject.SetActive(true);    
         }
         else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
         {
             //React to Uninhabited system contact and Colonize option
             FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
-
+            Destroy(fleetConEmpty.gameObject); // we do not need the empty fleet controller anymore
             foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
             {
                 if (shipController.ShipData.ShipType == ShipType.Transport)

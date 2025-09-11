@@ -12,6 +12,7 @@ public class CombatManager : MonoBehaviour
     public static CombatManager Instance { get; private set; }
 
     public GameObject CombatUICanvasGO;
+    public Canvas Cambat3DCamvas;
     public GameObject HealthbarPrefab;
     [SerializeField]
     private CombatController combatConPrefab;   
@@ -57,7 +58,7 @@ public class CombatManager : MonoBehaviour
         // to populate the combat data
         var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
-        var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);       //var intelData = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
+        var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo); //var intelData = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
         if (intelCon != null)
         {
             if (intelCon == null)
@@ -109,6 +110,7 @@ public class CombatManager : MonoBehaviour
      {
         CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
             Quaternion.identity);
+        aCombatController.ShipCombatCanvas = Cambat3DCamvas;
         aCombatController.CombatData = combatData; // set the combat data
         aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
         aCombatController.CombatData.OrderSideTwo = CombatOrders.Engage; // default order
@@ -119,13 +121,19 @@ public class CombatManager : MonoBehaviour
         CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
         CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
         aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
-        aCombatController.animators = animators;
-        aCombatController.sideOneA1Animator = aCombatController.animators[0];
-        aCombatController.sideOneA2Animator = aCombatController.animators[1];
-        aCombatController.sideOneA3Animator = aCombatController.animators[2];
-        aCombatController.sideTwoA1Animator = aCombatController.animators[3];
-        aCombatController.sideTwoA2Animator = aCombatController.animators[4];
-        aCombatController.sideTwoA3Animator = aCombatController.animators[5];
+        
+        aCombatController.sideOneA1Animator = sideOneAnima1.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideOneA1Animator);
+        aCombatController.sideOneA2Animator = sideOneAnima2.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideOneA2Animator);
+        aCombatController.sideOneA3Animator = sideOneAnima3.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideOneA3Animator);
+        aCombatController.sideTwoA1Animator = sideTwoAnima1.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideTwoA1Animator);
+        aCombatController.sideTwoA2Animator = sideTwoAnima2.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideTwoA2Animator);
+        aCombatController.sideTwoA3Animator = sideTwoAnima3.GetComponent<Animator>();
+        aCombatController.animators.Add(aCombatController.sideTwoA3Animator);    
         aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
         aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
         aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);

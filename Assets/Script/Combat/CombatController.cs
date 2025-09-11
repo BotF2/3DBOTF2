@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -21,6 +22,7 @@ public class CombatController : MonoBehaviour
     /// </summary>
 
     private CombatData combatData;
+    public Canvas ShipCombatCanvas;
     public CombatData CombatData { get { return combatData; } set { combatData = value; } }
     private CombatController combatController;
     public List<Vector2Int> spiralPositions = new List<Vector2Int>();
@@ -33,8 +35,8 @@ public class CombatController : MonoBehaviour
     public Animator sideTwoA3Animator;
     private List<ShipController> shipConsSideOne = new List<ShipController>();
     private List<ShipController> shipConsSideTwo = new List<ShipController>();
-    public bool warpingIn = false;
-    public bool warpingAnimationOver = false;
+    public bool WarpingIn = false;
+    public bool WarpingAnimationOver = false;
     public GameObject SideOneTorpedoPrefab;
     public GameObject SideTwoTorpedoPrefab;
     public GameObject SideOneBeamPrefab;
@@ -53,13 +55,32 @@ public class CombatController : MonoBehaviour
     int _transportsSide2;
     List<Vector2Int> _spiralPositionsTran1 = new List<Vector2Int>();
     List<Vector2Int> _spiralPositionsTran2 = new List<Vector2Int>();
-    List<Vector2Int> _spiralPositionsOther1 = new List<Vector2Int>();
-    List<Vector2Int> _spiralPositionsOther2 = new List<Vector2Int>();
+    List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
+    List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
+    List<GameObject> healthbarRenderers = new List<GameObject>();
+    public Vector3 fixedLocalPosition = new Vector3(0,0,0);
+    public Vector3 fixedLocalRotation = new Vector3(0,0,0);
 
     private void Start()
     {
         minFirstShotDelay = 0.2f;
         maxFirstShotDelay = 0.9f;
+    }
+
+
+    void LateUpdate()
+    {
+        if (WarpingIn && !WarpingAnimationOver)
+        {
+            for (int i = 0; i < shipConsSideOne.Count; i++)
+            {
+                shipConsSideOne[i].transform.localPosition = new Vector3(0, shipConsSideOne[i].transform.position.y, shipConsSideOne[i].transform.position.z);
+            }
+            for (int i = 0; i < shipConsSideTwo.Count; i++)
+            {
+                shipConsSideTwo[i].transform.localPosition = new Vector3(0, shipConsSideTwo[i].transform.position.y, shipConsSideTwo[i].transform.position.z); ;
+            }
+        }
     }
     public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
     {
@@ -85,7 +106,19 @@ public class CombatController : MonoBehaviour
             Debug.LogWarning("Player does not belong to either combat side.");
         }
     }
-
+    public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
+    {
+        List<ShipController> shipCons = null; 
+        // Determine which list of ships to use based on the civOfOrder  
+        if (civOfOrder == CombatData.CivEnumSideOne)
+        {
+            CombatData.OrderSideOne = order;
+        }
+        else if (civOfOrder == CombatData.CivEnumSideTwo)
+        {
+            CombatData.OrderSideTwo = order;
+        }
+    }
     public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diplomacyCon, IPlayerController player)
     {
         // Implement logic for handling UI diplomacy orders.
@@ -95,24 +128,7 @@ public class CombatController : MonoBehaviour
     {
         // Implement logic for handling UI intel orders.
     }
-    public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
-    {
-        List<ShipController> shipCons = null; // Initialize the variable  
-        //int sideSignFactor = -1; // Default to -1 for Side One, will be set to 1 for Side Two
-        // Determine which list of ships to use based on the civOfOrder  
-        if (civOfOrder == CombatData.CivEnumSideOne)
-        {
-            //shipCons = CombatData.SideOneShipCons;
-            //sideSignFactor = -1; // Side One is always on the left side, ie negative x-axis
-            CombatData.OrderSideOne = order;
-        }
-        else if (civOfOrder == CombatData.CivEnumSideTwo)
-        {
-            //shipCons = CombatData.SideTwoShipCons;
-            // sideSignFactor = 1; // Side Two is always on the right side, ie positive x-axis
-            CombatData.OrderSideTwo = order;
-        }
-    }
+
     internal void TrySetPlayerOrders(CombatData combatData)
     {
         //ToDo: Implement logic to set player orders based on the combat data.
@@ -122,6 +138,7 @@ public class CombatController : MonoBehaviour
     public void EndCombat()
     {
         ResetFriendAndEnemyLists(); // Resetting friend and enemy lists
+        SceneController.Instance.UnloadCombatScene();
     }
     public void ResetFriendAndEnemyLists()
     {
@@ -146,34 +163,40 @@ public class CombatController : MonoBehaviour
             return;
         }
         CombatUIController.Instance.PanelCombat_Menu.SetActive(true);
-        var sideOneShips = theCombatController.CombatData.SideOneShipCons;
-        var sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
-
-        PopulateShipGOAndAnimation(sideOneShips, -1); //sideOne is on the left, ships are -x axis...
-        PopulateShipGOAndAnimation(sideTwoShips, 1);
+        List<ShipController> sideOneShips = theCombatController.CombatData.SideOneShipCons;
+        List<ShipController> sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
+        if (_spiralPositionsTran1.Count == 0 || _spiralPositionsOtherShipsSide1.Count == 0)
+            PopulateShipGOAndAnimation(sideOneShips, -1); //sideOne is on the left, ships are -x axis world space attached to an animator...
+        if (_spiralPositionsTran2.Count == 0 || _spiralPositionsOtherShipsSide2.Count == 0)
+            PopulateShipGOAndAnimation(sideTwoShips, 1);
     }
     private void PopulateShipGOAndAnimation(List<ShipController> shipConList, int side1negSide2pos)
     {
+        if (ShipCombatCanvas == null)
+        {
+            ShipCombatCanvas = FindAnyObjectByType<Canvas>(); 
+        }
+        ShipCombatCanvas.worldCamera = SceneController.Instance.ShipCombatCameraGO.GetComponent<Camera>();
         int currentTransportIndex1 = -1;
         int currentTransportIndex2 = -1;
         int currentOtherShipIndex1 = -1;
         int currentOtherShipIndex2 = -1;
 
-        if (_transportsSide1 > 0)
+        if (_transportsSide1 > 0 && _spiralPositionsTran1.Count == 0)
         {
             _spiralPositionsTran1 = GenerateSpiralPositions(_transportsSide1);
         }
-        if (_transportsSide2 > 0)
+        if (_transportsSide2 > 0 && _spiralPositionsTran2.Count == 0)
         {
             _spiralPositionsTran2 = GenerateSpiralPositions(_transportsSide2);
         }
-        if (_scoutsSide1 + _destroyersSide1 + _capitalsSide1 > 0)
+        if (_scoutsSide1 + _destroyersSide1 + _capitalsSide1 > 0 && _spiralPositionsOtherShipsSide1.Count == 0)
         {
-            _spiralPositionsOther1 = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 + _capitalsSide1);
+            _spiralPositionsOtherShipsSide1 = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 + _capitalsSide1);
         }
-        if (_scoutsSide2 + _destroyersSide2 + _capitalsSide2 > 0)
+        if (_scoutsSide2 + _destroyersSide2 + _capitalsSide2 > 0 && _spiralPositionsOtherShipsSide2.Count == 0)
         {
-            _spiralPositionsOther2 = GenerateSpiralPositions(_scoutsSide2 + _destroyersSide2 + _capitalsSide2);
+            _spiralPositionsOtherShipsSide2 = GenerateSpiralPositions(_scoutsSide2 + _destroyersSide2 + _capitalsSide2);
         }
         int flipAnimation1 = -1;
         int flipAnimation2 = -1;
@@ -191,10 +214,11 @@ public class CombatController : MonoBehaviour
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             shipConList[i].gameObject.SetActive(true);
             //********** Healthbar code here for now *************
-            GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab, shipConList[i].transform.position, Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
+            GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab, 
+                shipConList[i].transform.position, Quaternion.identity, ShipCombatCanvas.transform);
             healthbarGO.SetActive(true);
             healthbarGO.transform.SetParent(shipConList[i].transform, false);
-            healthbarGO.transform.localPosition = new Vector3(0, -1.5f, 0); // below ship model
+            healthbarGO.transform.localPosition = new Vector3(-4, -1.5f, 7); // below ship model and closer to camcera
             healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // scale down to fit ship model
             healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0); // face off the side of the ship model
             Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
@@ -205,13 +229,14 @@ public class CombatController : MonoBehaviour
                     shipConList[i].HealthFillImage = healthbarImages[j];
                     shipConList[i].HealthFillImage.fillAmount = 1f; // set to full health
                     shipConList[i].HealthFillImage.color = Color.green; // set to green color
-                    //shipConList[i].HealthFillImage.transform.SetParent(shipConList[i].transform, false);
                 }
             }
-            //shipConList[i].HealthFillImage = shipConList[i].GetComponentInChildren<Image>();
+            healthbarGO.SetActive(false);
+            healthbarRenderers.Add(healthbarGO);
+            healthbarGO.AddComponent<BillboardCameraCombat>();
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.transform.SetPositionAndRotation(new Vector3(0, 0, 0),
-                Quaternion.Euler(0, 90 * side1negSide2pos, 29 * side1negSide2pos));
+                Quaternion.Euler(0, 90 * side1negSide2pos, 0));
             if (shipGameOb.GetComponent<ShipController>() != null)
             {
                 var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
@@ -243,14 +268,14 @@ public class CombatController : MonoBehaviour
                         {
                             sideOneA1Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOther1);
+                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
                             flipAnimation1 = 1;
                         }
                         else
                         {
                             sideOneA2Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOther1);
+                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
                             flipAnimation1 = -1;
                         }
                     }
@@ -261,28 +286,27 @@ public class CombatController : MonoBehaviour
                         {
                             sideTwoA1Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOther2);
+                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
                             flipAnimation2 = 1;
                         }
                         else
                         {
                             sideTwoA2Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOther2);
+                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
                             flipAnimation2 = -1;
                         }
                     }
                 }
             }
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
-            rigid.transform.localScale = Vector3.one;
             rigid.useGravity = false;
             rigid.isKinematic = true; // kinematic until warp in is over
             BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
             boxCollider.isTrigger = false;
             boxCollider.includeLayers = 9;
             //******** ship size here for now **************
-            boxCollider.transform.localScale = new Vector3(5, 5, 5); //size model to fit CameraMultitarget calculations and the view appearance;
+            boxCollider.transform.localScale = new Vector3(5, 5, 5); //size model to fit ShipCombatCameraController calculations and the view appearance;
             float length = 1f;
             float height = 1f;
             float width = 1f;
@@ -291,9 +315,10 @@ public class CombatController : MonoBehaviour
             {  
                 mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
             }
-            GameObject fbx = Instantiate(mesheGO, shipConList[i].transform);// fbx is as a prefab so instantiate it  
+            GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
             fbx.name = shipConList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
             fbx.transform.SetParent(shipGameOb.transform, false);
+
             Renderer renderer = fbx.GetComponentInChildren<Renderer>();
             if (renderer != null)
             {
@@ -307,7 +332,6 @@ public class CombatController : MonoBehaviour
             }
             shipConList[i].SetWeaponPrefabs(); // Set the weapon prefabs for the ship controller
         }
-
     }
 
     private void SetLocalTransportPosition(GameObject shipGameOb, int indexTrans, List<Vector2Int> spiralPositions)
@@ -316,75 +340,9 @@ public class CombatController : MonoBehaviour
     }
     private void SetLocalOtherShipPosition(GameObject shipGameOb, int indexOther, List<Vector2Int> spiralPositions)
     {
-        shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexOther].y * 100, spiralPositions[indexOther].x * 100);
+        shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexOther].x * 100, spiralPositions[indexOther].y * 100);
     }
 
-    public void SetPositionByOrders(List<ShipController> shipCons, int sideSignFactor)
-    {
-        //*** if you need to know which player is ai or local
-        //foreach (var player in PlayerManager.Instance.AllPlayerControllers)
-        //{
-        //    if (player is AiPlayerController ai)
-        //        //ai.AssignFleet();
-        //    else if (player is LocalHumanPlayerController local)
-        //        //local.PrepareForCombat();
-        //}
-        CombatOrders order;
-        if (sideSignFactor < 0)
-        {
-            order = CombatData.OrderSideOne;
-        }
-        else
-        {
-            order = CombatData.OrderSideTwo;
-        }
-        switch (order)
-        {
-            case CombatOrders.Engage:
-                if (_transportsSide1 > 0)
-                {
-                    List<Vector2Int> spiralPositions = GenerateSpiralPositions(_transportsSide1);
-                    // If there are transports, they should be positioned behind the center of the formation
-                    int foundOne = -1;
-                    for (int i = 0; i < shipCons.Count; i++)
-                    {
-                        if (shipCons[i].ShipData.ShipType == ShipType.Transport)
-                        {
-                            foundOne++;
-                            shipCons[i].transform.position = new Vector3((sideTwoA3Animator.transform.position.x * sideSignFactor), spiralPositions[foundOne].x, spiralPositions[foundOne].y);
-                        }
-                    }
-                }
-                else
-                {
-                    List<Vector2Int> spiralPositions = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 + _capitalsSide1);
-                    int foundOne = -1;
-                    for (int i = 0; i < shipCons.Count; i++)
-                    {
-                        if (shipCons[i].ShipData.ShipType != ShipType.Transport)
-                        {
-                            foundOne++;
-                            shipCons[i].transform.position = new Vector3((sideTwoA1Animator.transform.position.x * sideSignFactor), spiralPositions[foundOne].x, spiralPositions[foundOne].y);
-                        }
-                    }
-                }
-                break;
-            case CombatOrders.Rush:
-                break;
-            case CombatOrders.Retreat:
-                break;
-            case CombatOrders.Formation:
-                break;
-            case CombatOrders.TargetTransports:
-                break;
-            default:
-                break;
-        }
-        SetRigidbody();
-        //FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);
-        //FindClosestPairsForTargets(shipConsSideTwo, shipConsSideOne);
-        // await warp over in IEnumerator WaitForAllAnimations()
-    }
     private void CountShips()
     {
         _scoutsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
@@ -401,45 +359,23 @@ public class CombatController : MonoBehaviour
         _transportsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
         _transportsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
-
-
-
-    private void SetRigidbody()
-    {
-        for (int i = 0; i < shipConsSideOne.Count; i++)
-        {
-            //shipConsSideOne[i].SetWarpInOver();
-            var rb = shipConsSideOne[i].GetComponent<Rigidbody>();
-            rb.isKinematic = false;
-        }
-        for (int i = 0; i < shipConsSideTwo.Count; i++)
-        {
-            //shipConsSideTwo[i].SetWarpInOver();
-            var rb = shipConsSideTwo[i].GetComponent<Rigidbody>();
-            rb.isKinematic = false;
-        }
-    }
-
-    //IEnumerator AutoFireWeapons()
+    //private void SetRigidbody()
     //{
-    //    yield return new WaitUntil(() => warpingAnimationOver && shipConsSideOne.Count >= 1 && shipConsSideTwo.Count >= 1);
     //    for (int i = 0; i < shipConsSideOne.Count; i++)
     //    {
-    //        shipConsSideOne[i].SetWarpInOver();
+    //        //shipConsSideOne[i].SetWarpInOver();
     //        var rb = shipConsSideOne[i].GetComponent<Rigidbody>();
     //        rb.isKinematic = false;
     //    }
     //    for (int i = 0; i < shipConsSideTwo.Count; i++)
     //    {
-    //        shipConsSideTwo[i].SetWarpInOver();
+    //        //shipConsSideTwo[i].SetWarpInOver();
     //        var rb = shipConsSideTwo[i].GetComponent<Rigidbody>();
     //        rb.isKinematic = false;
     //    }
-    //    FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);
-    //    FindClosestPairsForTargets(shipConsSideTwo, shipConsSideOne);// get target ship for each ship on both sides
-    //    FireWeaponsOrder(shipConsSideOne); 
-    //    FireWeaponsOrder(shipConsSideTwo);
     //}
+
+
     void FindClosestPairsForTargets(List<ShipController> shipListFiring, List<ShipController> shipListTargets)
     {
         for (int i = 0; i < shipListFiring.Count; i++)
@@ -511,23 +447,7 @@ public class CombatController : MonoBehaviour
             }
         }
     }
-    //private IEnumerator ShipFireLoop(ShipController shipCon, float initialDelay)
-    //{
-    //    yield return new WaitForSeconds(initialDelay);
-    //    bool beam = true;
-    //    while (true) // ToDo: not true when ship weapons are offline?
-    //    {
-    //        // Fire the ship's beam weapons
-    //        shipCon.FireWeapons(beam);
-    //        if (beam)
-    //            beam = false;
-    //        else
-    //            beam = true;
-    //        // Wait for a random refire delay before next shot
-    //        float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
-    //        yield return new WaitForSeconds(refireDelay);
-    //    }
-    //}
+    
     IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)
     {
         yield return new WaitForSecondsRealtime(delayInSeconds);
@@ -535,16 +455,21 @@ public class CombatController : MonoBehaviour
 
     public void RunAnimation()
     {
+        // combat warpin animation runs when ship prefab is instantiated, Start() function of animator script is called
+        WarpingIn = true;
+        WarpingAnimationOver = false;
         List<GameObject> shipGameObjects = new List<GameObject>();
         for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
         {
             CombatData.SideOneShipCons[i].gameObject.SetActive(true);
             shipGameObjects.Add(CombatData.SideOneShipCons[i].gameObject);
+            CombatData.SideOneShipCons[i].SetWarpInOver();
         }
         for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
         {
             CombatData.SideTwoShipCons[i].gameObject.SetActive(true);
             shipGameObjects.Add(CombatData.SideTwoShipCons[i].gameObject);
+            CombatData.SideTwoShipCons[i].SetWarpInOver();
         }
         Scene scene = SceneManager.GetSceneByName("CombatScene");
         while (!scene.isLoaded)
@@ -557,12 +482,6 @@ public class CombatController : MonoBehaviour
         ShipCombatCameraController.Instance.SetTargets(cameraTargets);
         StartCoroutine(WaitForAllAnimations());
 
-        sideOneA1Animator.SetBool("WarpInS1A1", true);
-        sideOneA2Animator.SetBool("WarpInS1A2", true);
-        sideOneA3Animator.SetBool("WarpInS1A3", true);
-        sideTwoA1Animator.SetBool("WarpInS2A1", true);
-        sideTwoA2Animator.SetBool("WarpInS2A2", true);
-        sideTwoA3Animator.SetBool("WarpInS2A3", true);
     }
     private List<Vector2Int> GenerateSpiralPositions(int count)
     {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
@@ -606,12 +525,16 @@ public class CombatController : MonoBehaviour
         // Wait until all animators have stopped playing
         while (AnyAnimatorIsPlaying())
         {
-            yield return null; // wait a frame
+            yield return null;
         }
-
         ShipCombatCameraController.Instance.SetWarpingIn(false);
         ShipCombatCameraController.Instance.SetWarpingInOver(true);
-        warpingAnimationOver = true;
+        for (int i = 0; i < healthbarRenderers.Count; i++)
+        {
+            healthbarRenderers[i].SetActive(true); // make sure healthbars are visible after warp in
+        }
+        WarpingAnimationOver = true;
+        WarpingIn = false;
         FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);
         FindClosestPairsForTargets(shipConsSideTwo, shipConsSideOne);
         FireWeaponsOrderOnShipControllers(shipConsSideOne);

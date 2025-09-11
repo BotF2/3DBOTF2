@@ -28,9 +28,9 @@ public class PlayerManager : NetworkBehaviour
     /// </summary>
 
     public static PlayerManager Instance; // Singleton instance
-    bool isLocalPlayer = false; // Flag to check if this is the local player
+    readonly bool isLocalPlayer = false; // Flag to check if this is the local player
     public class SynchListPlayerData : SyncList<PlayerData> { }
-    public SynchListPlayerData AllPlayerDatas = new SynchListPlayerData(); // Synchronized list of player data for multiplayer
+    public readonly SynchListPlayerData AllPlayerDatas = new SynchListPlayerData(); // Synchronized list of player data for multiplayer
     public LocalHumanPlayerController LocalPlayerController { get; private set; } // Local player controller instance on this PC machine
     public IPlayerController LocalPlayer { get; private set; }
     public readonly List<IPlayerController> AllPlayerControllers = new List<IPlayerController>(); // List of all player controllers

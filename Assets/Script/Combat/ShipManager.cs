@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Data.Common;
 using Image = UnityEngine.UI.Image;
+using System;
 
 public class ShipManager : MonoBehaviour
 {
@@ -66,18 +67,6 @@ public class ShipManager : MonoBehaviour
                 Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
                 // isKinematic = keep true in prefab and set as false after warp animation is done
                 shipCon.Init(this);
-                //GameObject healthbarGO = Instantiate(healthbarPrefab, shipCon.transform.position, Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
-                //healthbarGO.SetActive(true);
-                //Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
-                //for (int j = 0; j < healthbarImages.Length; j++)
-                //{
-                //    if (healthbarImages[j].gameObject.name == "HealthFill")
-                //    {
-                //        shipCon.HealthFillImage = healthbarImages[j];
-                //        shipCon.HealthFillImage.fillAmount = 1f; // set to full health
-                //        shipCon.HealthFillImage.color = Color.green; // set to green color
-                //    }
-                //}
                 shipCon.ShipData = new ShipData();
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
@@ -119,7 +108,7 @@ public class ShipManager : MonoBehaviour
     }
     public ShipSO GetShipSO(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
     {
-        ShipSO ourShipSO = new ShipSO();
+        ShipSO ourShipSO = null;
         switch (techLevel)
         {
             case TechLevel.EARLY:
@@ -133,17 +122,24 @@ public class ShipManager : MonoBehaviour
                 ourShipSO = shipSOd;
                 break;
             case TechLevel.ADVANCED:
-                var shipSOIEnumAdvanced = ShipSOListTech1.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
+                var shipSOIEnumAdvanced = ShipSOListTech2.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
                 var shipSOa = shipSOIEnumAdvanced.ToList().FirstOrDefault();
                 ourShipSO = shipSOa;
                 break;
             case TechLevel.SUPREME:
-                var shipSOIEnumSup = ShipSOListTech1.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
+                var shipSOIEnumSup = ShipSOListTech3.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
                 var shipSOs = shipSOIEnumSup.ToList().FirstOrDefault();
                 ourShipSO = shipSOs;
                 break;
             default:
                 break;
+        }
+        if (ourShipSO == null)
+        {
+            Debug.Log("No shipSO found for " + shipType.ToString() + " at tech level " + techLevel.ToString() + " for civ " + civEnum.ToString() + ". Returning default scout ship.");
+            var shipSOIEnumDefault = ShipSOListTech0.Where(x => x.ShipType == ShipType.Scout && x.CivEnum == civEnum);
+            var shipSOdft = shipSOIEnumDefault.ToList().FirstOrDefault();
+            ourShipSO = shipSOdft;
         }
         return ourShipSO;
     }
@@ -279,5 +275,23 @@ public class ShipManager : MonoBehaviour
                 break;
         }
         return listOfShipSOs;
+    }
+
+    internal void RemoveShipControllerFromList(ShipController shipCon)
+    {
+        int foundOne = -1;
+        for (int i = 0; i < ShipControllerGameList.Count; i++)
+        {
+            if (shipCon == ShipControllerGameList[i])
+            {
+                foundOne = i;
+            }
+        }
+        if (foundOne > -1)
+        {
+            ShipControllerGameList.RemoveAt(foundOne);
+            Destroy(ShipControllerGameList[foundOne].ShipListUIGameObject);
+            Destroy(ShipControllerGameList[foundOne].gameObject);
+        }
     }
 }

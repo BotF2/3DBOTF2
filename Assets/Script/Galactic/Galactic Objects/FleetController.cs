@@ -74,23 +74,39 @@ namespace Assets.Core
             var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
             FleetUICanvas = CanvasGO.GetComponent<Canvas>();
             FleetUICanvas.worldCamera = galaxyEventCamera;
-
-            for (int i = 0; i < FleetData.ShipsList.Count; i++)
-            {
-                if (FleetData.ShipsList[i].ShipData.maxWarpFactor < this.FleetData.MaxWarpFactor)
-                { this.FleetData.MaxWarpFactor = FleetData.ShipsList[i].ShipData.maxWarpFactor; }
+            if (FleetData != null && FleetData.ShipsList != null)
+            { 
+                for (int i = 0; i < FleetData.ShipsList.Count; i++)
+                {
+                    if (FleetData.ShipsList[i].ShipData.maxWarpFactor < this.FleetData.MaxWarpFactor)
+                    { this.FleetData.MaxWarpFactor = FleetData.ShipsList[i].ShipData.maxWarpFactor; }
+                }
             }
             DestinationLine = this.GetComponentInChildren<MapLineMovable>();
             DestinationLine.GetLineRenderer();
             DestinationLine.transform.SetParent(transform, false);
-            FleetData.Destination = FleetManager.Instance.GalaxyCenter;
+            if (FleetData != null && FleetData.Destination != null)
+            {
+                FleetData.Destination = FleetManager.Instance.GalaxyCenter;
+            }
+
         }
         private void FixedUpdate()
         {
-            if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
+            // Destroying Fleets with no ships is problematic
+            // The FleetController FeetData is still running in script
+            // and if the player clicks on or OnTrigerEntere.... it causes errors
+            //if (FleetData != null && FleetData.ShipsList.Count == 0)
+            //{
+            //    OnDestroy();
+            //}   
+            if (FleetData != null && FleetData.Destination != null)
             {
-                MoveToDesitinationGO();
-                DrawDestinationLine(FleetData.Destination.transform.position);
+                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
+                {
+                    MoveToDesitinationGO();
+                    DrawDestinationLine(FleetData.Destination.transform.position);
+                }
             }
         }
         public Rigidbody GetRigidbody() { return rb; }
@@ -136,83 +152,86 @@ namespace Assets.Core
         }
         void OnTriggerEnter(Collider collider) // Not using OnCollisionEnter....
         {
-            bool weAreLocalPlayer = GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum);
-
-            bool isOurDestination = false;
-            if (this.FleetData.Destination == collider.gameObject) // it is our destination
+            if (FleetData != null)
             {
-                isOurDestination = true;
-                if (weAreLocalPlayer)
-                {
-                    CloseUnLoadFleetUI(); // we are there and have other things to do
-                }
-            }
+                bool weAreLocalPlayer = GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum);
 
-            if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
-            {
-                if (isOurDestination)
+                bool isOurDestination = false;
+                if (this.FleetData.Destination == collider.gameObject) // it is our destination
                 {
-                    ClickCancelDestinationButton(this);// we stop, cancel destination
-
-                    if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
+                    isOurDestination = true;
+                    if (weAreLocalPlayer)
                     {
-                        OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                                                        
-                        EncounterManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
-                        //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
-                        EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
+                        CloseUnLoadFleetUI(); // we are there and have other things to do
+                    }
+                }
 
-                        if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+                if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
+                {
+                    if (isOurDestination)
+                    {
+                        ClickCancelDestinationButton(this);// we stop, cancel destination
+
+                        if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
                         {
-                            ClickCancelDestinationButton(hitFleetCon); // they stop
+                            OnADestinationThatIsOtherCivFleet(hitFleetCon);
 
-                            CloseUnLoadFleetUI(); // need more code to handle this encounter 
+                            EncounterManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
+                            //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
+                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
+
+                            if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+                            {
+                                ClickCancelDestinationButton(hitFleetCon); // they stop
+
+                                CloseUnLoadFleetUI(); // need more code to handle this encounter 
+                            }
+
                         }
-
-                    }
-                    else //our fleet
-                    {
-                        // do ships?
-                        OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
-                    }
-                }
-                else
-                {
-                    // not our destination ignore for now
-                }
-            }
-            else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
-            {
-                if (isOurDestination)
-                {
-                    ClickCancelDestinationButton(this); // we stop, cancel destination
-
-                    if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // not our system
-                    {
-                        if (weAreLocalPlayer)
+                        else //our fleet
                         {
-                            EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
+                            // do ships?
+                            OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
                         }
-                        OnEnterForeignStarSystem(); // ToDo
-                        EncounterManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
-
                     }
-                    else // ToDo: enter our system
+                    else
                     {
-
+                        // not our destination ignore for now
                     }
                 }
-                else
+                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
                 {
-                    // not our destination ignore for now
+                    if (isOurDestination)
+                    {
+                        ClickCancelDestinationButton(this); // we stop, cancel destination
+
+                        if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // not our system
+                        {
+                            if (weAreLocalPlayer)
+                            {
+                                EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
+                            }
+                            OnEnterForeignStarSystem(); // ToDo
+                            EncounterManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+
+                        }
+                        else // ToDo: enter our system
+                        {
+
+                        }
+                    }
+                    else
+                    {
+                        // not our destination ignore for now
+                    }
                 }
-            }
-            else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
-            {
-                if (isOurDestination)
+                else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
                 {
-                    ClickCancelDestinationButton(this); // we stop, cancel destination
-                    Destroy(collider.gameObject); // remove the player defined target
+                    if (isOurDestination)
+                    {
+                        ClickCancelDestinationButton(this); // we stop, cancel destination
+                        Destroy(collider.gameObject); // remove the player defined target
+                    }
                 }
             }
 
@@ -570,8 +589,21 @@ namespace Assets.Core
         {
             if (this.FleetData.ShipsList.Count == 0)
             {
-                TimeManager.Instance.ResumeTime();
                 Destroy(this);
+            }
+        }
+        private void OnDestroy()
+        {
+            //StopAllCoroutines();
+            if (this.FleetData != null && FleetData.FleetInt != null)
+            { 
+                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                if (FleetManager.Instance.FleetControllerList.Contains(this))
+                {
+                    FleetManager.Instance.FleetControllerList.Remove(this);
+                    Destroy(this.gameObject);
+                    TimeManager.Instance.ResumeTime();
+                }
             }
         }
     }

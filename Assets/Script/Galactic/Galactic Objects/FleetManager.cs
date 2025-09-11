@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using System;
 
 
 namespace Assets.Core
@@ -437,6 +438,29 @@ namespace Assets.Core
                         }
                     }
                 }
+            }
+        }
+
+        internal void RemoveFleetConIfShipListIsEmpty(ShipController shipController)
+        {
+            int foundOne = -1;
+            for (int i = 0; i < FleetControllersInGame.Count; i++)
+            {
+                if (shipController.ShipData.FleetController == FleetControllerList[i])
+                {
+                    if (FleetControllerList[i].FleetData.ShipsList.Count == 0)
+                    {
+                        foundOne = i;
+                    }
+                }
+            }
+            if (foundOne > -1)
+            {
+                //FleetControllersInGame[foundOne].IsDestroyed();
+                //RemoveFleetInt(FleetControllersInGame[foundOne].FleetData.CivEnum, FleetControllersInGame[foundOne].FleetData.FleetInt);
+                //FleetControllersInGame.RemoveAt(foundOne);
+                //Destroy(FleetControllerList[foundOne].FleetUIGameObject);
+                //Destroy(FleetControllerList[foundOne].gameObject);
             }
         }
     }

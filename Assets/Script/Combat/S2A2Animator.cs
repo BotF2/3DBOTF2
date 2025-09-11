@@ -12,12 +12,12 @@ namespace Assets.Core
         {
             anim = GetComponent<Animator>();
             anim.enabled = true; // Ensure the animator is enabled
-            anim.SetBool("WarpInS2A2", false); // Ensure the animation is not running at start
+            anim.SetBool("WarpInS2A2", true); // Ensure the animation is not running at start
         }
 
         public void RunAnimation()
         {
-            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.warpingIn)
+            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.WarpingIn)
             {
                 anim.SetBool("WarpInS2A2", true); // code state turns on warp animation
                 PlayWarp();

@@ -22,23 +22,14 @@ public class ShipController : MonoBehaviour
     public Transform TargetGroup; // for movement, The center or leader of the other group
     public float Velocity = 10f;
     public float OrbitDistance = 20f;  // radius of the orbit
-    //public float OrbitSpeed = 30f; // how fast to orbit (degrees per second)
-    //public float MaxSpeed = 1200f; // top speed
     public float Acceleration = 100f; 
     public float Deceleration = 3f; 
-    //public float TurnSpeed = 60f; // deg/sec rotation speed
-    //public Transform PathStart; // start of flight path
-    //public Transform PathEnd;
-    //public Transform StopPoint;
-    //public float initialVelocity = 500f;   // initial forward speed
     public float StopDistance; // See Start()
     private int flipCombatSide =1;
-    private float currentVelocity;
+    private float currentVelocity = 1;
     private Rigidbody rb;
-    private bool warpingInOver = false;
+    public bool WarpingInOver = false;
     private bool setSpeed = true;
-    //private bool goingForward = true;
-    //private bool isStopping = false;
     private GameObject beamWeaponGO;
     public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
     [SerializeField] private float minRefireDelay; // see Start()
@@ -79,25 +70,10 @@ public class ShipController : MonoBehaviour
             HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetFillAmount, HealthSpeed * Time.deltaTime);
         TargetFillAmount = Health / MaxHealth;
     }
-    public void Init(ShipManager shipManager)
-    {
-        ShipManager.Instance = shipManager;
-    }
-
-    void OnTriggerEnter(Collider collider)
-    {
-        // this is for SpaceCombatScene, not galaxy map 
-        ShipController shipController = collider.gameObject.GetComponent<ShipController>();
-        if (shipController != null) // it is a shipController 
-        {
-            OnShipEncounteredShip(shipController);
-            Debug.Log("Controller collided with " + shipController.gameObject.name);
-        }
-    }
 
     private void FixedUpdate()
     {
-        if (warpingInOver)
+        if (WarpingInOver)
         {
             switch (Order)
             {
@@ -123,13 +99,30 @@ public class ShipController : MonoBehaviour
             }
         }
     }
+    public void Init(ShipManager shipManager)
+    {
+        ShipManager.Instance = shipManager;
+    }
+    void OnTriggerEnter(Collider collider)
+    {
+        // this is for SpaceCombatScene, not galaxy map 
+        ShipController shipController = collider.gameObject.GetComponent<ShipController>();
+        if (shipController != null) // it is a shipController 
+        {
+            OnShipEncounteredShip(shipController);
+            Debug.Log("Controller collided with " + shipController.gameObject.name);
+        }
+    }
+
     private void EngageWithSpaceNewtonianPhysics()
     {
-        #region Crud but mostly realistic Newtonian movement along a path in space
+        #region Simplistic but mostly realistic Newtonian movement along a path in space
         // One time push simulating warp in residual velocity
         Vector3 move = currentVelocity * transform.forward * flipCombatSide;
         if (setSpeed)
         {
+            rb.linearVelocity = Vector3.zero; //  0 linear momentum
+            rb.angularVelocity = Vector3.zero; // 0 angular momentum
             rb.AddForce(move * Acceleration, ForceMode.Acceleration);
             setSpeed = false;
         }
@@ -141,15 +134,15 @@ public class ShipController : MonoBehaviour
             if (distanceToCenter > StopDistance && rb.linearVelocity.magnitude > 0.1f)
             {
                 Vector3 brakingForce = -rb.linearVelocity.normalized * Deceleration;
+                rb.angularVelocity = Vector3.zero; // 0 angular momentum
                 rb.AddForce(brakingForce, ForceMode.Acceleration);
-                if (this.ShipData.ShipType == ShipType.Transport)
+                if (this.ShipData.ShipType == ShipType.Transport) // extra braking for transports
                 {
                     rb.AddForce(brakingForce * 0.5f, ForceMode.Acceleration);
                 }
             }
             else
             {
-                // all stop
                 rb.linearVelocity = Vector3.zero; // Full stop
             }
         }
@@ -159,7 +152,7 @@ public class ShipController : MonoBehaviour
     }
     private void MoveLikeAirplane()
     {
-        #region How to make ships circle each other
+        #region How to make ships circle each other, move like airplanes
         //Instead of always moving towards the enemy group’s center, compute a circle vector around that center:
         // Ships move like banking airplanes and not like spaceships in a vacuum.
         if (TargetGroup != null)
@@ -296,29 +289,32 @@ public class ShipController : MonoBehaviour
     internal void FireWeapons(bool baem)
     {
         if (ShipData.TargetThisShipController != null)
-        { 
-            if (baem && ShipData.BeamDamage > 0)
+        {
+            if (this != null && transform != null)
             {
-                var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
-                beamWeaponGO= beamWeaponGo;
-                var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
-                var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
-                beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // Set the target transform
-                beamWeaponScript.WeaponTransform = this.transform; // Set the weapon transform
-                beamWeaponScript.LineRenderer = lineRenderer;
-                beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform); // Set the weapon and target transforms
-                ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage); 
-                Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
-            }
-            else if (ShipData.TorpedoDamage > 0)
-            {
-                var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
-                var torpedoScript = torpedoGo.GetComponent<Torpedo>();
-                torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
-                if (ShipData.TargetThisShipController != null)
+                if (baem && ShipData.BeamDamage > 0)
                 {
-                    torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // ShipData.TargetForThisShip is GameObject and Torpedo.Target is Transform
-                    torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum; // Get the target ship's CivEnum
+                    var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
+                    beamWeaponGO = beamWeaponGo;
+                    var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
+                    var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
+                    beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // Set the target transform
+                    beamWeaponScript.WeaponTransform = this.transform; // Set the weapon transform
+                    beamWeaponScript.LineRenderer = lineRenderer;
+                    beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform); // Set the weapon and target transforms
+                    ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage);
+                    Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
+                }
+                else if (ShipData.TorpedoDamage > 0)
+                {
+                    var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
+                    var torpedoScript = torpedoGo.GetComponent<Torpedo>();
+                    torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
+                    if (ShipData.TargetThisShipController != null)
+                    {
+                        torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // ShipData.TargetForThisShip is GameObject and Torpedo.Target is Transform
+                        torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum; // Get the target ship's CivEnum
+                    }
                 }
             }
         }
@@ -354,9 +350,12 @@ public class ShipController : MonoBehaviour
             ShipCombatCameraController.Instance.OnShipDestroyed(this);
             ShipData.TargetThisShipController = null; // Clear the target ship controller
             this.ShipData.FleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
+            // this can be problematic, FleetController can be null when script is still running giving null reference exception
+            // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
             Destroy(gameObject);
             Destroy(beamWeaponGO);
             this.ShipData.FleetController.IsTheFleetDestroyed();
+            ShipManager.Instance.RemoveShipControllerFromList(this);
             FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
         }
 
@@ -364,6 +363,7 @@ public class ShipController : MonoBehaviour
 
     internal void SetWarpInOver()
     {
-        warpingInOver = true;
+        WarpingInOver = true;
+        rb.isKinematic = false; // enable physics
     }
 }

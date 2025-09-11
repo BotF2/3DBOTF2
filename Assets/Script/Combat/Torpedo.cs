@@ -31,7 +31,6 @@ public class Torpedo : MonoBehaviour
     {
         if (Target == null)
         {
-            Debug.LogWarning("Torpedo target is not set. Destroying torpedo.");
             Destroy(gameObject); // Destroy the torpedo if no target is set
             return;
         }
