@@ -201,5 +201,22 @@ public class CombatManager : MonoBehaviour
             Debug.LogError("CombatUIController component is missing on the combat UI GameObject.");
         }
     }
+
+    internal void RemoveShip(ShipController shipController)
+    {
+        for (int i = 0; i < CombatControllers.Count; i++)
+        {
+            if (CombatControllers[i].CombatData.SideOneShipCons.Contains(shipController))
+            {
+                CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
+                CombatControllers[i].shipConsSideOne.Remove(shipController);
+            }
+            if (CombatControllers[i].CombatData.SideTwoShipCons.Contains(shipController))
+            {
+                CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
+                CombatControllers[i].shipConsSideTwo.Remove(shipController);
+            }
+        }
+    }
 }
 

@@ -12,7 +12,7 @@ public class FleetData
     public CivEnum CivEnum;
     public Vector3 Position;
     public List<ShipController> ShipsList;
-    public List<FleetController> FleetGroupControllers; // used to hold fleets exchanging ships
+    public List<FleetController> FleetGroupControllers; // maybe used to hold fleets exchanging ships
     public float MaxWarpFactor = 3f;
     public float CurrentWarpFactor = 0f;
     public GameObject Destination;

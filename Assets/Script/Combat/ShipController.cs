@@ -321,7 +321,8 @@ public class ShipController : MonoBehaviour
     }
     public void TakeDamage(int weaponDamageInt)
     {
-        if (Health != 0) {
+        if (Health != 0) 
+        {
             Health -= (weaponDamageInt / 3);
             Health = Mathf.Max(Health, 0.0f ); // if Health goes below zero, set to zero
         }
@@ -346,6 +347,7 @@ public class ShipController : MonoBehaviour
             if (fleetController != null)
             {
                 fleetController.RemoveShipFromFleet(this);
+                CombatManager.Instance.RemoveShip(this);  
             }
             ShipCombatCameraController.Instance.OnShipDestroyed(this);
             ShipData.TargetThisShipController = null; // Clear the target ship controller

@@ -33,8 +33,8 @@ public class CombatController : MonoBehaviour
     public Animator sideTwoA1Animator;
     public Animator sideTwoA2Animator;
     public Animator sideTwoA3Animator;
-    private List<ShipController> shipConsSideOne = new List<ShipController>();
-    private List<ShipController> shipConsSideTwo = new List<ShipController>();
+    public List<ShipController> shipConsSideOne = new List<ShipController>();
+    public List<ShipController> shipConsSideTwo = new List<ShipController>();
     public bool WarpingIn = false;
     public bool WarpingAnimationOver = false;
     public GameObject SideOneTorpedoPrefab;
@@ -67,7 +67,6 @@ public class CombatController : MonoBehaviour
         maxFirstShotDelay = 0.9f;
     }
 
-
     void LateUpdate()
     {
         if (WarpingIn && !WarpingAnimationOver)
@@ -80,6 +79,10 @@ public class CombatController : MonoBehaviour
             {
                 shipConsSideTwo[i].transform.localPosition = new Vector3(0, shipConsSideTwo[i].transform.position.y, shipConsSideTwo[i].transform.position.z); ;
             }
+        }
+        if (shipConsSideOne.Count == 0 || shipConsSideTwo.Count == 0)
+        {
+            EndCombat();
         }
     }
     public void SetCombatOrder(CombatOrders order, CivEnum civEnum)

@@ -144,6 +144,7 @@ public class SceneController : MonoBehaviour
     public void UnloadCombatScene()
     {
         SceneManager.UnloadSceneAsync("CombatScene");
+        previousSceneName = "CombatScene";
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
         galaxyCameraDragNDrop.SetActive(true); // Show the Galaxy Camera Drag and Drop GameObject again
         for (int i = 0; i < persistentObjects.Count; i++)
@@ -153,7 +154,7 @@ public class SceneController : MonoBehaviour
                 persistentObjects[i].SetActive(true); 
             }
         }
-
+        //HideScene(previousSceneName);
         //if (!string.IsNullOrEmpty(previousSceneName))
         //{
         //    Scene scene = SceneManager.GetSceneByName(previousSceneName);

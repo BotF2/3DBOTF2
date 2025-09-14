@@ -578,7 +578,8 @@ namespace Assets.Core
             {
                 // no ships left, remove fleet
                 FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
-                Destroy(this.gameObject);
+                FleetData.ShipsList.Remove(shipController);
+                //Destroy(this.gameObject);
             }
             else
             {
