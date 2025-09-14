@@ -33,8 +33,8 @@ public class CombatController : MonoBehaviour
     public Animator sideTwoA1Animator;
     public Animator sideTwoA2Animator;
     public Animator sideTwoA3Animator;
-    public List<ShipController> shipConsSideOne = new List<ShipController>();
-    public List<ShipController> shipConsSideTwo = new List<ShipController>();
+    //public List<ShipController> ShipConsSideOne = new List<ShipController>();
+    //public List<ShipController> ShipConsSideTwo = new List<ShipController>();
     public bool WarpingIn = false;
     public bool WarpingAnimationOver = false;
     public GameObject SideOneTorpedoPrefab;
@@ -71,16 +71,16 @@ public class CombatController : MonoBehaviour
     {
         if (WarpingIn && !WarpingAnimationOver)
         {
-            for (int i = 0; i < shipConsSideOne.Count; i++)
+            for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
             {
-                shipConsSideOne[i].transform.localPosition = new Vector3(0, shipConsSideOne[i].transform.position.y, shipConsSideOne[i].transform.position.z);
+                CombatData.SideOneShipCons[i].transform.localPosition = new Vector3(0, CombatData.SideOneShipCons[i].transform.position.y, CombatData.SideOneShipCons[i].transform.position.z);
             }
-            for (int i = 0; i < shipConsSideTwo.Count; i++)
+            for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
             {
-                shipConsSideTwo[i].transform.localPosition = new Vector3(0, shipConsSideTwo[i].transform.position.y, shipConsSideTwo[i].transform.position.z); ;
+                CombatData.SideTwoShipCons[i].transform.localPosition = new Vector3(0, CombatData.SideTwoShipCons[i].transform.position.y, CombatData.SideTwoShipCons[i].transform.position.z);
             }
         }
-        if (shipConsSideOne.Count == 0 || shipConsSideTwo.Count == 0)
+        if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
         {
             EndCombat();
         }
@@ -134,7 +134,7 @@ public class CombatController : MonoBehaviour
 
     internal void TrySetPlayerOrders(CombatData combatData)
     {
-        //ToDo: Implement logic to set player orders based on the combat data.
+        //ToDo: Implement AI logic to set player orders based on the combat data.
         //and is player AiPlayerController (do it now) vs RemoteHumanPlayerController (wait for network messages)
 
     }
@@ -142,6 +142,8 @@ public class CombatController : MonoBehaviour
     {
         ResetFriendAndEnemyLists(); // Resetting friend and enemy lists
         SceneController.Instance.UnloadCombatScene();
+        //TimeManager.Instance.SetTimeSpeedMultiplier(10f);
+        TimeManager.Instance.ResumeTime();
     }
     public void ResetFriendAndEnemyLists()
     {
@@ -207,11 +209,11 @@ public class CombatController : MonoBehaviour
         {
             if (side1negSide2pos < 0)
             {
-                shipConsSideOne.Add(shipConList[i]);
+                CombatData.SideOneShipCons.Add(shipConList[i]);
             }
             else
             {
-                shipConsSideTwo.Add(shipConList[i]);
+                CombatData.SideTwoShipCons.Add(shipConList[i]);
             }
             shipConList[i].transform.localScale = Vector3.one;
             shipConList[i].name = shipConList[i].ShipData.ShipName;
@@ -246,58 +248,70 @@ public class CombatController : MonoBehaviour
 
                 if (shipType == ShipType.Transport)
                 {
-
                     if (side1negSide2pos < 0)
                     {
                         currentTransportIndex1++;
-                        sideOneA3Animator.gameObject.SetActive(true);
-                        shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform, false);
-                        SetLocalTransportPosition(shipGameOb, currentTransportIndex1, _spiralPositionsTran1);
+                        //if (currentTransportIndex1 <= _spiralPositionsTran1.Count - 1)
+                        {
+                            sideOneA3Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform, false);
+                            SetLocalTransportPosition(shipGameOb, currentTransportIndex1, _spiralPositionsTran1);
+                        }
                     }
                     else
                     {
                         currentTransportIndex2++;
-                        sideTwoA3Animator.gameObject.SetActive(true);
-                        shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform, false);
-                        SetLocalTransportPosition(shipGameOb, currentTransportIndex2, _spiralPositionsTran2);
+                        //if (currentTransportIndex2 <= _spiralPositionsTran2.Count - 1)
+                        {
+                            sideTwoA3Animator.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform, false);
+                            SetLocalTransportPosition(shipGameOb, currentTransportIndex2, _spiralPositionsTran2);
+                        }
                     }
                 }
                 else
                 {
                     if (side1negSide2pos < 0)
                     {
-                        currentOtherShipIndex1++;      
-                        if (flipAnimation1 < 0)
+                        currentOtherShipIndex1++;
+                        //if (currentOtherShipIndex1 <= _spiralPositionsOtherShipsSide1.Count -1)
                         {
-                            sideOneA1Animator.gameObject.SetActive(true);
-                            shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-                            flipAnimation1 = 1;
+                            if (flipAnimation1 < 0)
+                            {
+                                sideOneA1Animator.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
+                                SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
+                                flipAnimation1 = 1;
+                            }
+                            else
+                            {
+                                sideOneA2Animator.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
+                                SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
+                                flipAnimation1 = -1;
+                            }
                         }
-                        else
-                        {
-                            sideOneA2Animator.gameObject.SetActive(true);
-                            shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-                            flipAnimation1 = -1;
-                        }
+
                     }
-                    else
+                    else if (side1negSide2pos > 0)
                     {
                         currentOtherShipIndex2++;
-                        if (flipAnimation2 < 0)
+                        //if (currentOtherShipIndex2 <= _spiralPositionsOtherShipsSide2.Count -1)
                         {
-                            sideTwoA1Animator.gameObject.SetActive(true);
-                            shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-                            flipAnimation2 = 1;
-                        }
-                        else
-                        {
-                            sideTwoA2Animator.gameObject.SetActive(true);
-                            shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
-                            SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-                            flipAnimation2 = -1;
+                            if (flipAnimation2 < 0)
+                            {
+                                sideTwoA1Animator.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
+                                SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
+                                flipAnimation2 = 1;
+                            }
+                            else
+                            {
+                                sideTwoA2Animator.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
+                                SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
+                                flipAnimation2 = -1;
+                            }
                         }
                     }
                 }
@@ -538,10 +552,10 @@ public class CombatController : MonoBehaviour
         }
         WarpingAnimationOver = true;
         WarpingIn = false;
-        FindClosestPairsForTargets(shipConsSideOne, shipConsSideTwo);
-        FindClosestPairsForTargets(shipConsSideTwo, shipConsSideOne);
-        FireWeaponsOrderOnShipControllers(shipConsSideOne);
-        FireWeaponsOrderOnShipControllers(shipConsSideTwo);
+        FindClosestPairsForTargets(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
+        FindClosestPairsForTargets(CombatData.SideTwoShipCons, CombatData.SideOneShipCons);
+        FireWeaponsOrderOnShipControllers(CombatData.SideOneShipCons);
+        FireWeaponsOrderOnShipControllers(CombatData.SideTwoShipCons);
 
     }
     private bool AnyAnimatorIsPlaying()

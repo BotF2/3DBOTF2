@@ -53,7 +53,6 @@ public class TimeManager : MonoBehaviour
             yield return new WaitForSeconds(10f / timeSpeedup); // 10 seconds in game = 1 oneInXChance
             currentStardate++;
             OnStardateChanged?.Invoke();
-
             CheckSpecialEvents();
         }
     }
@@ -110,6 +109,8 @@ public class TimeManager : MonoBehaviour
     // Method to resume time progression
     public void ResumeTime()
     {
+        SetTimeSpeedMultiplier(timeSpeedup);
+        timeCoroutine = StartCoroutine(TimeProgression());
         if (this != null && timeCoroutine != null)
         { 
             timeRunning = true;

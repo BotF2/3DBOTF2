@@ -433,14 +433,14 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.DiplomacyMenu:
                 diplomacyBackground.SetActive(false);
                 diplomacyMenuView.SetActive(false);
-                TimeManager.Instance.ResumeTime();
+               // TimeManager.Instance.ResumeTime();
                 openMenuWas = diplomacyMenuView;
                 break;
             case Menu.ADiplomacyMenu:
                 MoveBackAnyDiplomacyUIGO();
                 diplomacyBackground.SetActive(false);
                 aDiplomacyMenuView.SetActive(false);
-                TimeManager.Instance.ResumeTime();
+                //TimeManager.Instance.ResumeTime();
                 openMenuWas = aDiplomacyMenuView;
                 break;
             case Menu.IntellMenu:
@@ -454,7 +454,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = encyclopediaMenuView;
                 break;
             case Menu.HabitableSysMenu:
-                TimeManager.Instance.ResumeTime();
+               // TimeManager.Instance.ResumeTime();
                 habitableSysMenu.SetActive(false);
                 openMenuWas = habitableSysMenu;
                 break;

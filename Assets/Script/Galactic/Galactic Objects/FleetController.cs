@@ -374,7 +374,7 @@ namespace Assets.Core
             {
                 FleetManager.Instance.FleetControllerList.Remove(this);
                 Destroy(fleetGO.gameObject);
-                TimeManager.Instance.ResumeTime();
+               // TimeManager.Instance.ResumeTime();
             }
         }
         public void ShipManageClick(FleetController fleetCon) // open ship manager UI
@@ -590,7 +590,7 @@ namespace Assets.Core
         {
             if (this.FleetData.ShipsList.Count == 0)
             {
-                Destroy(this);
+                OnDestroy();
             }
         }
         private void OnDestroy()
@@ -603,7 +603,7 @@ namespace Assets.Core
                 {
                     FleetManager.Instance.FleetControllerList.Remove(this);
                     Destroy(this.gameObject);
-                    TimeManager.Instance.ResumeTime();
+                    //TimeManager.Instance.ResumeTime();
                 }
             }
         }

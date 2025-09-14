@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class CombatManager : MonoBehaviour
@@ -209,12 +210,39 @@ public class CombatManager : MonoBehaviour
             if (CombatControllers[i].CombatData.SideOneShipCons.Contains(shipController))
             {
                 CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
-                CombatControllers[i].shipConsSideOne.Remove(shipController);
             }
             if (CombatControllers[i].CombatData.SideTwoShipCons.Contains(shipController))
             {
                 CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
-                CombatControllers[i].shipConsSideTwo.Remove(shipController);
+            }
+        }
+    }
+
+    internal void RemoveThisShipController(ShipController shipController)
+    {
+        for (int i = 0; i < CombatControllers.Count; i++)
+        {
+            for (int j = 0; j < CombatControllers[i].CombatData.SideOneShipCons.Count; j++)
+            {
+                if (CombatControllers[i].CombatData.SideOneShipCons[j] == shipController)
+                {
+                    CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
+                    Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+                    combatScene.GetRootGameObjects().ToList().ForEach(go => Destroy(go));
+                    ShipCombatCameraController.Instance.WarpingInOver = false; // also turns off autoroation of camera
+                    break;
+                }
+            }
+            for (int j = 0; j < CombatControllers[i].CombatData.SideTwoShipCons.Count; j++)
+            {
+                if (CombatControllers[i].CombatData.SideTwoShipCons[j] == shipController)
+                {
+                    CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
+                    Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+                    combatScene.GetRootGameObjects().ToList().ForEach(go => Destroy(go));
+                    ShipCombatCameraController.Instance.WarpingInOver = false;
+                    break;
+                }
             }
         }
     }

@@ -59,7 +59,7 @@ public class HabitableSysUIController: MonoBehaviour
     {
         //SwitchToTab(0);
         HabitableSysUIToggle.SetActive(false);
-        TimeManager.Instance.ResumeTime();
+        //TimeManager.Instance.ResumeTime();
     }
     private void ClamSystem(CivController civCon, StarSysController sysCon)
     {

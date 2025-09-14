@@ -77,7 +77,6 @@ public class SceneController : MonoBehaviour
     {
         //GameObject parent = GameObject.FindGameObjectWithTag("CombatUIParent");
         //CombatManager.Instance.SetUpCombatUIGameObject(parent);
-
     }
 
     public void LoadCombatScene(DiplomacyController diplomacyController)
@@ -143,7 +142,6 @@ public class SceneController : MonoBehaviour
     }
     public void UnloadCombatScene()
     {
-        SceneManager.UnloadSceneAsync("CombatScene");
         previousSceneName = "CombatScene";
         ExposeScene("MainMenuScene"); // Re-enable the previous scene
         galaxyCameraDragNDrop.SetActive(true); // Show the Galaxy Camera Drag and Drop GameObject again
@@ -154,19 +152,7 @@ public class SceneController : MonoBehaviour
                 persistentObjects[i].SetActive(true); 
             }
         }
-        //HideScene(previousSceneName);
-        //if (!string.IsNullOrEmpty(previousSceneName))
-        //{
-        //    Scene scene = SceneManager.GetSceneByName(previousSceneName);
-        //    if (scene.IsValid())
-        //    {
-        //        foreach (GameObject obj in scene.GetRootGameObjects())
-        //        {
-        //            obj.SetActive(true); // Re-enable all objects
-        //        }
-        //    }
-        //}
-        //else if (string.IsNullOrEmpty(previousSceneName)) ;
+        HideScene("CombatScene");
     }
     public void LoadNextScene(string sceneName)
     {

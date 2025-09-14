@@ -39,7 +39,7 @@ namespace Assets.Core
         #region added to cameraMuliTararget
         private Vector3 _cameraOffSet;
         private bool _warpingIn = false;
-        private bool _warpingInOver = false;
+        public bool WarpingInOver = false;
         private float _autoRotationTimer = 5f;
         private float _rotationDirectionTimer = 4f;
         public Vector3 _cameraTarget;
@@ -78,7 +78,17 @@ namespace Assets.Core
             DontDestroyOnLoad(gameObject);
 
         }
-
+        private void Start()
+        {
+            _warpingIn = false;
+             WarpingInOver = false;
+            if (_shipCamera == null)
+            {
+                _shipCamera = GetComponent<Camera>();
+            }
+            _cameraOffSet = gameObject.transform.position - _cameraTarget;
+        }
+        
         private void LateUpdate()
         {
             Scene scene = SceneManager.GetSceneByName("CombatScene");
@@ -90,7 +100,7 @@ namespace Assets.Core
             {
                 _shipCamera.fieldOfView = 95f;
             }
-            else if (_warpingInOver)
+            else if (WarpingInOver)
             {
 
                 if (_targets.Length == 0)
@@ -322,7 +332,7 @@ namespace Assets.Core
         }
         internal void SetWarpingInOver(bool isWarpingDone)
         {
-            _warpingInOver = isWarpingDone;
+            WarpingInOver = isWarpingDone;
         }
     }
 }
