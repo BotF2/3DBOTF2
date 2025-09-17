@@ -11,6 +11,7 @@ public class DiplomacyData
     public int SideTwoMultiplayerId; // network player ID, not used in single player
     public DiplomacyStatusEnum DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Neutral; // the diplomacy status for this civ pair
     public int DiplomacyPointsOfCivs = 60; // neutral
+    public bool CombatIntiated = false; // true if combat has been initiated between these civs
 
     public DiplomacyData(CivEnum civOne, CivEnum civTwo) //, StarSysController starSysController)
     {

@@ -344,24 +344,26 @@ public class ShipController : MonoBehaviour
         {
             // If both shields and hull are zero, destroy the ship
             var fleetController = this.ShipData.FleetController;
-            if (fleetController != null)
+            if (fleetController != null && !ShipData.Distroyed)
             {
+                ShipData.Distroyed = true;
                 fleetController.RemoveShipFromFleet(this);
                 CombatManager.Instance.RemoveThisShipController(this);
+
+                ShipCombatCameraController.Instance.OnShipDestroyed(this);
+                ShipData.TargetThisShipController = null; // Clear the target ship controller
+                this.ShipData.FleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
+                                                                                // this can be problematic, FleetController can be null when its script is still running giving null reference exception
+                                                                                // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
+                Destroy(beamWeaponGO);
+                Destroy(gameObject);
+
+                this.ShipData.FleetController.IsTheFleetDestroyed();
+                ShipManager.Instance.RemoveShipControllerFromList(this);
+                FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
+                
             }
-            ShipCombatCameraController.Instance.OnShipDestroyed(this);
-            ShipData.TargetThisShipController = null; // Clear the target ship controller
-            this.ShipData.FleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
-            // this can be problematic, FleetController can be null when its script is still running giving null reference exception
-            // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
-            Destroy(beamWeaponGO);
-            Destroy(gameObject);
-
-            this.ShipData.FleetController.IsTheFleetDestroyed();
-            ShipManager.Instance.RemoveShipControllerFromList(this);
-            FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
         }
-
     }
 
     internal void SetWarpInOver()

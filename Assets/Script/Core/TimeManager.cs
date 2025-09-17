@@ -1,5 +1,6 @@
 using Assets.Core;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -36,7 +37,6 @@ public class TimeManager : MonoBehaviour
         timeCoroutine = StartCoroutine(TimeProgression());
         currentStardate = StaringStardate;
     }
-
     void Update()
     {
 
@@ -122,6 +122,15 @@ public class TimeManager : MonoBehaviour
     public int CurrentStarDate()
     {
         return currentStardate;
+    }
+    public IEnumerator DelayedAction()
+    {
+        Debug.Log("Action before delay.");
+
+        // Wait for 1 second
+        yield return new WaitForSeconds(1f);
+
+        Debug.Log("Action after 1 second delay.");
     }
 }
 

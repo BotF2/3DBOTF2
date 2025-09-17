@@ -66,7 +66,7 @@ namespace Assets.Core
                 remainingTime -= Time.deltaTime;
                 if (remainingTime > 0f)
                 {
-                    timerText.text = Mathf.FloorToInt(remainingTime).ToString("00");
+                    timerText.text = Mathf.FloorToInt(remainingTime).ToString("10");
                     // Here you can add logic to handle the end of the timer, start the combat phase
                 }
                 else
@@ -74,7 +74,7 @@ namespace Assets.Core
                     isTimerRunning = false;
                     remainingTime = 0f;
                     timerText.text = "00";
-                    EnterShipCombatPhase(); 
+                    EnterShipCombatPhase();
                 }
             }
         }
@@ -85,7 +85,7 @@ namespace Assets.Core
                 case "TOGGLE_ENGAGE":
                     activeToggle.enabled = !activeToggle.isOn; // toggle the engage button
                     activeLocalPlayerToggle = Engage;
-                    order = CombatOrders.Engage; 
+                    order = CombatOrders.Engage;
                     Debug.Log("Active Engage.");
                     break;
                 case "TOGGLE_RUSH":
@@ -99,7 +99,7 @@ namespace Assets.Core
                     activeLocalPlayerToggle = Retreat;
                     order = CombatOrders.Retreat;
                     Debug.Log("Active Retreat.");
-                   // CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
+                    // CombatController.SetThisUILocalPlayerCombatOrder(CombatOrders.Retreat, CivEnumLocalPlayer);
                     break;
                 case "TOGGLE_FORMATION":
                     Debug.Log("Active Formation.");
@@ -120,16 +120,16 @@ namespace Assets.Core
             }
         }
         private void OnToggleENGAGE(bool isOn)
-        {  
+        {
             order = CombatOrders.Engage;
-            if (Engage.isOn)  
-            {  
-                if (previousToggle != Engage)  
-                {  
-                    previousToggle.isOn = false;  
-                }  
-                previousToggle = Engage;  
-                ActivePlayerToggle(Engage);  
+            if (Engage.isOn)
+            {
+                if (previousToggle != Engage)
+                {
+                    previousToggle.isOn = false;
+                }
+                previousToggle = Engage;
+                ActivePlayerToggle(Engage);
             }
         }
         private void OnToggleRUSH(bool isOn)
@@ -181,9 +181,9 @@ namespace Assets.Core
                     previousToggle.isOn = false;
                 }
                 previousToggle = TargetTransports;
-                ActivePlayerToggle(TargetTransports  );
+                ActivePlayerToggle(TargetTransports);
             }
-        }  
+        }
 
         public void OpenCombatUI(GameObject thisCombatUIGameObject)
         {
@@ -242,7 +242,7 @@ namespace Assets.Core
             foreach (var aToggle in ArrayToggles)
             {
                 //CombatController = thisCombatUIGameObject.GetComponent<CombatController>();
-                
+
                 switch (aToggle.name)
                 {
                     case "Toggle_ENGAGE":
@@ -251,7 +251,7 @@ namespace Assets.Core
                         Engage.onValueChanged.AddListener(OnToggleENGAGE);
                         break;
                     case "Toggle_RUSH":
-                        Rush = aToggle; 
+                        Rush = aToggle;
                         Rush.onValueChanged.RemoveAllListeners();
                         Rush.onValueChanged.AddListener(OnToggleRUSH);
                         break;

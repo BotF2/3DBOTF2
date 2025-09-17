@@ -23,6 +23,7 @@ public class ShipData
     public ShipController TargetThisShipController;
     public GameObject TargetOnThisShip;
     public FleetController FleetController;
+    public bool Distroyed = false;
 
     public ShipData(string name)
     {

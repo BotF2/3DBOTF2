@@ -120,12 +120,15 @@ public class DiplomacyController //not : MonoBehaviour
     }
     public void Combat(DiplomacyController diplomacyController)
     {
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-        SceneController.Instance.LoadCombatScene(diplomacyController);
-        //*******load combat menu for local player and AI civs
-        // here
-            // what do we realy have to send to combat if not ship controllers?
-        // the FleetMajor is the first null CombatManager.Instance.InitCombat(diplomacyController.DiplomacyData.FleetMajor.FleetData.ShipsList, diplomacyController.DiplomacyData.FleetOther.FleetData.ShipsList);
+        if (diplomacyController.DiplomacyData.CombatIntiated != true)
+        {
+            diplomacyController.DiplomacyData.CombatIntiated = true;
+
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+            SceneController.Instance.LoadCombatScene(diplomacyController);
+        }
+        //*******load combat menu for local player and do AI civs
+       
     }
 
 }

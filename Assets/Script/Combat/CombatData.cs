@@ -14,7 +14,7 @@ public class CombatData
     public string Name;
     public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
     public List<ShipController> SideTwoShipCons = new List<ShipController>();
-
+    
     public GameObject cameraEmpty;
     [SerializeField]
     private GameObject animFriend1;
@@ -42,7 +42,6 @@ public class CombatData
     int _totalCapitalShips;
     int _totalTransportsShips;
     public int rotationOnY = 90; // face right
-
 
     public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
     private string[] arrayCountShipTypes; // change to array ship type

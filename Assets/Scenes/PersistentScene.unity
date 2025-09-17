@@ -251,6 +251,7 @@ MonoBehaviour:
   PaddingDown: 300
   MoveSmoothTime: 0.19
   _shipCamera: {fileID: 1467798002}
+  WarpingInOver: 0
   _cameraTarget: {x: 0, y: 0, z: 0}
   _mouseRotationSpeed: 5
 --- !u!4 &164970913
@@ -267,6 +268,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1467798004}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &180178175
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 180178176}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &180178176
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 180178175}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &250179466
@@ -5295,12 +5327,12 @@ MonoBehaviour:
   - {fileID: 316868891}
   - {fileID: 828282623}
   - {fileID: 1453592725}
-  sideOneAnima1: {fileID: 688541184}
-  sideOneAnima2: {fileID: 1814486030}
-  sideOneAnima3: {fileID: 451964738}
-  sideTwoAnima1: {fileID: 316868888}
-  sideTwoAnima2: {fileID: 828282620}
-  sideTwoAnima3: {fileID: 1453592722}
+  _sideOneA1Animator: {fileID: 688541187}
+  _sideOneA2Animator: {fileID: 1814486033}
+  _sideOneA3Animator: {fileID: 451964741}
+  _sideTwoA1Animator: {fileID: 316868891}
+  _sideTwoA2Animator: {fileID: 828282623}
+  _sideTwoA3Animator: {fileID: 1453592725}
   TorpedoPrefabs:
   - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
   - {fileID: 3912758670790259718, guid: cc2c0058e724b7b4e9de90526d3c4bff, type: 3}
@@ -5467,6 +5499,7 @@ SceneRoots:
   - {fileID: 514841830}
   - {fileID: 2008088903}
   - {fileID: 86532933}
+  - {fileID: 180178176}
   - {fileID: 2102662241}
   - {fileID: 465746041}
   - {fileID: 1085144969}

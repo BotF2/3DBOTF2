@@ -16,16 +16,78 @@ public class CombatManager : MonoBehaviour
     public Canvas Cambat3DCamvas;
     public GameObject HealthbarPrefab;
     [SerializeField]
-    private CombatController combatConPrefab;   
+    private CombatController combatConPrefab;  
+    private CombatData _combatData;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
-    public List<Animator> animators; // Assign in Inspector or dynamically
+    //public List<Animator> animators; // Assign in Inspector or dynamically
     [SerializeField] GameObject sideOneAnima1;
     [SerializeField] GameObject sideOneAnima2;
     [SerializeField] GameObject sideOneAnima3;
     [SerializeField] GameObject sideTwoAnima1;
     [SerializeField] GameObject sideTwoAnima2;
     [SerializeField] GameObject sideTwoAnima3;
+    [SerializeField] private Animator _sideOneA1Animator;
+    public Animator sideOneA1Animator
+    {
+        get => _sideOneA1Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideOneA1Animator = value;
+        }
+    }
+    [SerializeField] private Animator _sideOneA2Animator;
+    public Animator sideOneA2Animator
+    {
+        get => _sideOneA2Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideOneA2Animator = value;
+        }
+    }
+    [SerializeField] private Animator _sideOneA3Animator;
+    public Animator sideOneA3Animator
+    {
+        get => _sideOneA3Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideOneA3Animator = value;
+        }
+    }
+    [SerializeField] private Animator _sideTwoA1Animator;
+    public Animator sideTwoA1Animator
+    {
+        get => _sideTwoA1Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideTwoA1Animator = value;
+        }
+    }
+    [SerializeField] private Animator _sideTwoA2Animator;
+    public Animator sideTwoA2Animator
+    {
+        get => _sideTwoA2Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideTwoA2Animator = value;
+        }
+    }
+    [SerializeField] private Animator _sideTwoA3Animator;
+    public Animator sideTwoA3Animator
+    {
+        get => _sideTwoA3Animator;
+        set
+        {
+            if (value == null) Debug.LogWarning("Assigned null animator");
+            _sideTwoA3Animator = value;
+        }
+    }
+
     public List<GameObject> TorpedoPrefabs;
     public List<GameObject> BeamPrefabs;
 
@@ -74,12 +136,14 @@ public class CombatManager : MonoBehaviour
                 if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo != null)
                 {
                     sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
-                    InitCombatData(sideOneShips, sideTwoShips); // instantiate ship game objects
+                    if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
+                        InstantiateCombatController(sideOneShips, sideTwoShips);
                 }
-                else
+                else if (intelCon.IntelligenceData.LastSeenStarSysController != null)
                 {
                     sideTwoShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
-                    InitCombatData(sideOneShips, sideTwoShips);
+                    if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
+                        InstantiateCombatController(sideOneShips, sideTwoShips);
                 }
             }
             else if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData != null)
@@ -88,62 +152,73 @@ public class CombatManager : MonoBehaviour
                 sideOneShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
             }
         }
-        
-    }
-    public void InitCombatData(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
-    {
-        CombatData combatData = new CombatData
-        {
-            SideOneShipCons = sideOneShipCons,
-            SideTwoShipCons = sideTwoShipCons,
-            CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum, 
-            CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
-            Name = "CombatData_" + CombatControllers.Count.ToString(),
-
-        };
-        if (GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideTwo))
-        {
-            InstantiateCombatController(combatData);
-        }
     }
 
-    public void InstantiateCombatController(CombatData combatData)
+    //public CombatData InitCombatControllerWithCombatData(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
+    //{
+    //    CombatData combatData = new CombatData
+    //    {
+    //        SideOneShipCons = sideOneShipCons,
+    //        SideTwoShipCons = sideTwoShipCons,
+    //        CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum, 
+    //        CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
+    //        Name = "CombatData_" + CombatControllers.Count.ToString(),
+
+    //    };
+    //    InstantiateCombatController(combatData);
+    //    return combatData;
+    //    //if (GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideTwo))
+    //    //{
+
+    //    //}
+    //}
+
+    public void InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
      {
-        CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
-            Quaternion.identity);
-        aCombatController.ShipCombatCanvas = Cambat3DCamvas;
-        aCombatController.CombatData = combatData; // set the combat data
-        aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
-        aCombatController.CombatData.OrderSideTwo = CombatOrders.Engage; // default order
-        aCombatController.transform.SetParent(transform, false); 
-        CombatUIController.Instance.CombatController = aCombatController;
-        CombatUIController.Instance.sideOneEnum = combatData.CivEnumSideOne;
-        CombatUIController.Instance.sideTwoEnum = combatData.CivEnumSideTwo;
-        CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
-        CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
-        aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
-        
-        aCombatController.sideOneA1Animator = sideOneAnima1.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideOneA1Animator);
-        aCombatController.sideOneA2Animator = sideOneAnima2.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideOneA2Animator);
-        aCombatController.sideOneA3Animator = sideOneAnima3.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideOneA3Animator);
-        aCombatController.sideTwoA1Animator = sideTwoAnima1.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideTwoA1Animator);
-        aCombatController.sideTwoA2Animator = sideTwoAnima2.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideTwoA2Animator);
-        aCombatController.sideTwoA3Animator = sideTwoAnima3.GetComponent<Animator>();
-        aCombatController.animators.Add(aCombatController.sideTwoA3Animator);    
-        aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
-        aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
-        aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);
-        aCombatController.SideTwoBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideTwo);
-        CombatControllers.Add(aCombatController);
-        aCombatController.PopulateShipData(aCombatController);
-        aCombatController.TrySetPlayerOrders(combatData);
-        SetUpLocalPlayer();
-        TimeManager.Instance.PauseTime(); // Pause the game when combat UI is opened
+        {
+            CombatData combatData = new CombatData();
+
+            combatData.SideOneShipCons = sideOneShipCons;
+            combatData.SideTwoShipCons = sideTwoShipCons;
+            combatData.CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum;
+            combatData.CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum;
+            combatData.Name = "CombatData_" + CombatControllers.Count.ToString();
+            CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
+                Quaternion.identity);
+            aCombatController.ShipCombatCanvas = Cambat3DCamvas;
+            aCombatController.CombatData = combatData; // set the combat data
+            aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
+            aCombatController.CombatData.OrderSideTwo = CombatOrders.Engage; // default order
+            aCombatController.transform.SetParent(transform, false);
+            CombatUIController.Instance.CombatController = aCombatController;
+            CombatUIController.Instance.sideOneEnum = combatData.CivEnumSideOne;
+            CombatUIController.Instance.sideTwoEnum = combatData.CivEnumSideTwo;
+            CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
+            CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
+            aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
+
+            aCombatController.sideOneA1Animator = sideOneA1Animator;
+            aCombatController.animators.Add(aCombatController.sideOneA1Animator);
+            aCombatController.sideOneA2Animator = sideOneA2Animator;
+            aCombatController.animators.Add(aCombatController.sideOneA2Animator);
+            aCombatController.sideOneA3Animator = sideOneA3Animator;
+            aCombatController.animators.Add(aCombatController.sideOneA3Animator);
+            aCombatController.sideTwoA1Animator = sideTwoA1Animator;
+            aCombatController.animators.Add(aCombatController.sideTwoA1Animator);
+            aCombatController.sideTwoA2Animator = sideTwoA2Animator;
+            aCombatController.animators.Add(aCombatController.sideTwoA2Animator);
+            aCombatController.sideTwoA3Animator = sideTwoA3Animator;
+            aCombatController.animators.Add(aCombatController.sideTwoA3Animator);    
+            aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
+            aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
+            aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);
+            aCombatController.SideTwoBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideTwo);
+            CombatControllers.Add(aCombatController);
+            aCombatController.PopulateShipData(aCombatController);
+            aCombatController.TrySetPlayerOrders(combatData);
+            SetUpLocalPlayer();
+            TimeManager.Instance.PauseTime(); // Pause the game when combat UI is opened
+        }
     }
 
     private GameObject GetTorpedoPrefabs(CombatController aCombatController, CivEnum civEnum)
@@ -203,20 +278,20 @@ public class CombatManager : MonoBehaviour
         }
     }
 
-    internal void RemoveShip(ShipController shipController)
-    {
-        for (int i = 0; i < CombatControllers.Count; i++)
-        {
-            if (CombatControllers[i].CombatData.SideOneShipCons.Contains(shipController))
-            {
-                CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
-            }
-            if (CombatControllers[i].CombatData.SideTwoShipCons.Contains(shipController))
-            {
-                CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
-            }
-        }
-    }
+    //internal void RemoveShip(ShipController shipController)
+    //{
+    //    for (int i = 0; i < CombatControllers.Count; i++)
+    //    {
+    //        if (CombatControllers[i].CombatData.SideOneShipCons.Contains(shipController))
+    //        {
+    //            CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
+    //        }
+    //        if (CombatControllers[i].CombatData.SideTwoShipCons.Contains(shipController))
+    //        {
+    //            CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
+    //        }
+    //    }
+    //}
 
     internal void RemoveThisShipController(ShipController shipController)
     {

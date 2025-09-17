@@ -176,6 +176,20 @@ public class DiplomacyManager : MonoBehaviour
         }
         return found;
     }
+    public DiplomacyController ReturnADiplomacyController(CivEnum oneSide, CivEnum otherSide)
+    {
+        DiplomacyController diplomacyController = null;
+        for (int i = 0; i < DiplomacyControllerList.Count; i++)
+        {
+            if (DiplomacyControllerList[i] != null && ((DiplomacyControllerList[i].DiplomacyData.CivSideOne == oneSide && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == otherSide)
+                || (DiplomacyControllerList[i].DiplomacyData.CivSideOne == otherSide && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == oneSide)))
+            {
+                diplomacyController = DiplomacyControllerList[i];
+                break;
+            }
+        }
+        return diplomacyController;
+    }
     public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo, List<ShipController> shipList)
     {
         DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
