@@ -25,7 +25,7 @@ public enum Menu
     EncyclopedianMenu,
     FirstContactMenu,
     HabitableSysMenu,
-    Combat
+    Combat // used by diplomacy to start combat scene
 }
 public class GalaxyMenuUIController : MonoBehaviour
 {
@@ -187,7 +187,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         aDiplomacyMenuView.SetActive(false);
         intelMenuView.SetActive(false);
         encyclopediaMenuView.SetActive(false);
-        closeMenuButton.SetActive(false);
+        closeMenuButton.SetActive(true);
         sysBackground.SetActive(false);
         fleetBackground.SetActive(false);
         diplomacyBackground.SetActive(false);
@@ -210,7 +210,6 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void CloseTheBackgrounds()
     {
-        closeMenuButton.SetActive(false);
         sysBackground.SetActive(false);
         fleetBackground.SetActive(false);
         diplomacyBackground.SetActive(false);
@@ -263,6 +262,27 @@ public class GalaxyMenuUIController : MonoBehaviour
             OpenMenu(Menu.EncyclopedianMenu, null);
     }
     // Home System view is in GalaxyCameraDragMoveZoom.cs
+    public void CloseButtonPressed()
+    {
+        if (encyclopediaMenuView.activeSelf)
+            CloseMenu(Menu.EncyclopedianMenu);
+        if (intelMenuView.activeSelf)
+            CloseMenu(Menu.IntellMenu);
+        if (diplomacyMenuView.activeSelf)
+            CloseMenu(Menu.DiplomacyMenu);
+        if (fleetsMenuView.activeSelf)
+        {
+            CloseMenu(Menu.FleetsMenu);
+        }
+        else if (aFleetMenuView.activeSelf)
+        {
+            CloseMenu(Menu.AFleetMenu);
+        }
+        if (systemsMenuView.activeSelf)
+            CloseMenu(Menu.SystemsMenu);
+        else if (aSystemMenuView.activeSelf)
+            CloseMenu(Menu.ASystemMenu);
+    }
     public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
     {
         if (openMenuWas != null)
@@ -326,6 +346,8 @@ public class GalaxyMenuUIController : MonoBehaviour
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
                 // ToDo: put a pause indicator on screen
+                diplomacyMenuView.gameObject.SetActive(true);
+                
                 diplomacyMenuView.SetActive(true);
                 diplomacyBackground.SetActive(true);
                 openMenuWas = diplomacyMenuView;
@@ -352,7 +374,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 CloseTheBackgrounds();
                 InactivateCallingMenu(callingMenuOrGalaxyObject);
                 encyclopediaMenuView.SetActive(true);
-                intelBackground.SetActive(true);
+                encyclopediaBackground.SetActive(true);
                 openMenuWas = encyclopediaMenuView;
                 openMenuEnumWas = Menu.EncyclopedianMenu;
                 break;
@@ -1299,16 +1321,7 @@ public class GalaxyMenuUIController : MonoBehaviour
 
     }
     public void OpenADiplomacyUI(DiplomacyController diplomacyCon, List<ShipController> shipList)
-    {
-        //var DiplomacyUIControllers = DiplomacyManager.Instance.DiplomacyUIControllerList;
-        //for (int i = 0; i < DiplomacyUIControllers.Count; i++)
-        //{
-        //    if (DiplomacyUIControllers[i].DiplomacyController == diplomacyCon)
-        //    {
-        //        diplomacyCon.DiplomacyUIGameObject
-        //    }
-        //}
-        
+    { 
         CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
         CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
         CivController notLocalPlayerCiv;
