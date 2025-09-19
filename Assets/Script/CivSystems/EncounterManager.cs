@@ -4,16 +4,7 @@ using System.Linq;
 using UnityEngine;
 using Assets.Core;
 
-public enum EncounterType
-{
-    FirstContact,
-    Diplomacy, // civ to civ and civs can be local player or AI
-    Combat,  //? is this a subtype of Diplomacy as seen by Diplomacy
-    FleetManagement, // thinking we can do this back in the fleetController without calling it in Encounters
-    EnterSystem,
-    UninhabitedSystem,
-    StrangeGalacticObject,
-}
+
 /// <summary>
 /// Encoutner decides how is side one and side two for diplomacy and combat.
 /// Consider using for AI trade, sabotage, espionage, disinformation, as well as sending on to diplomacy or dealing with colonization, worm holes.....
@@ -21,7 +12,7 @@ public enum EncounterType
 public class EncounterManager : MonoBehaviour
 {
     public List<EncounterController> EncounterControllers = new List<EncounterController>(); // EncounterController is not MonoBehavior
-
+    private EncounterController encounterController;
     public static EncounterManager Instance { get; private set; }
     private void Awake()
     {
@@ -35,101 +26,103 @@ public class EncounterManager : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
-    public void ResolveEncounterWithOtherCivFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
-    { // already not one of our fleets
-        StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
-        if (reportingPlayerFleet != null)
-        {
-            CivController civSideOne;
-            CivController civSideTwo;
-            FleetController sideOneFleetCon;
-            FleetController sideTwoFleetCon;
-            if (reportingPlayerFleet.FleetData.CivController.CivData.CivEnum < otherFleet.FleetData.CivController.CivData.CivEnum)
-            { 
-                civSideOne = reportingPlayerFleet.FleetData.CivController;
-                sideOneFleetCon = reportingPlayerFleet;
-                civSideTwo = otherFleet.FleetData.CivController;
-                sideTwoFleetCon = otherFleet;
-            }
-            else 
-            {
-                civSideOne = otherFleet.FleetData.CivController;
-                sideOneFleetCon = otherFleet;
-                civSideTwo = reportingPlayerFleet.FleetData.CivController;
-                sideTwoFleetCon = reportingPlayerFleet;
-            }
-            if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
-            { 
-                DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
-                IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
-                FirstContactFleetOnFleetEncounterController(reportingPlayerFleet, otherFleet);
-                Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
-            }
-            else
-            {
-                DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, sideTwoFleetCon);
-                NextFleetToFleetEncounter(sideOneFleetCon, sideTwoFleetCon); // Will we need this? Is it all done in Diplomacy and FleetControllers?
-            }
-        }
-    }
-    public void ResolveEncounterOtherCivSystem(FleetController reportingPlayerfleet, StarSysController otherCivSysCon)
-    { // already not one of our systems
-        FleetController fleetConEmpty = FleetManager.Instance.InstatiateEmptyFleetController();
-        int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebulas)
+    //public void ResolveEncounterWithOtherCivFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
+    //{ // already not one of our fleets
+    //    StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
+    //    if (reportingPlayerFleet != null)
+    //    {
+    //        CivController civSideOne;
+    //        CivController civSideTwo;
+    //        FleetController sideOneFleetCon;
+    //        FleetController sideTwoFleetCon;
+    //        if (reportingPlayerFleet.FleetData.CivController.CivData.CivEnum < otherFleet.FleetData.CivController.CivData.CivEnum)
+    //        { 
+    //            civSideOne = reportingPlayerFleet.FleetData.CivController;
+    //            sideOneFleetCon = reportingPlayerFleet;
+    //            civSideTwo = otherFleet.FleetData.CivController;
+    //            sideTwoFleetCon = otherFleet;
+    //        }
+    //        else 
+    //        {
+    //            civSideOne = otherFleet.FleetData.CivController;
+    //            sideOneFleetCon = otherFleet;
+    //            civSideTwo = reportingPlayerFleet.FleetData.CivController;
+    //            sideTwoFleetCon = reportingPlayerFleet;
+    //        }
+    //        if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
+    //        { 
+    //            //EncounterController ourEncoutnerController = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
+    //            //Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
+    //            DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+    //            IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+    //            FirstContactFleetOnFleetEncounterController(reportingPlayerFleet, otherFleet);
+    //            Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
+    //        }
+    //        else
+    //        {
+    //            DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, sideTwoFleetCon);
+    //            NextFleetToFleetEncounter(sideOneFleetCon, sideTwoFleetCon); // Will we need this? Is it all done in Diplomacy and FleetControllers?
+    //        }
+    //    }
+    //}
+    //public void ResolveEncounterOtherCivSystem(FleetController reportingPlayerfleet, StarSysController otherCivSysCon)
+    //{ // already not one of our systems
+    //    FleetController fleetConEmpty = FleetManager.Instance.InstatiateEmptyFleetController();
+    //    int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebulas)
 
-        if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited
-        {
-            if (reportingPlayerfleet != null) // it is a FleetController and not a StarSystem or other with collider                                                                                                                                                    leetController
-            {
-                CivController civSideOne;
-                CivController civSideTwo;
-                FleetController sideOneFleetCon;
-                FleetController sideTwoFleetCon;
-                if (reportingPlayerfleet.FleetData.CivController.CivData.CivEnum < otherCivSysCon.StarSysData.CurrentCivController.CivData.CivEnum)
-                { // local player is side one
-                    civSideOne = reportingPlayerfleet.FleetData.CivController;
-                    sideOneFleetCon = reportingPlayerfleet;
-                    civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
-                    sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
-                }
-                else // other civ is side one
-                {
-                    civSideOne = otherCivSysCon.StarSysData.CurrentCivController;
-                    sideOneFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
-                    civSideTwo = reportingPlayerfleet.FleetData.CivController;
-                    sideTwoFleetCon = reportingPlayerfleet;
-                }
+    //    if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited
+    //    {
+    //        if (reportingPlayerfleet != null) // it is a FleetController and not a StarSystem or other with collider                                                                                                                                                    leetController
+    //        {
+    //            CivController civSideOne;
+    //            CivController civSideTwo;
+    //            FleetController sideOneFleetCon;
+    //            FleetController sideTwoFleetCon;
+    //            if (reportingPlayerfleet.FleetData.CivController.CivData.CivEnum < otherCivSysCon.StarSysData.CurrentCivController.CivData.CivEnum)
+    //            { // local player is side one
+    //                civSideOne = reportingPlayerfleet.FleetData.CivController;
+    //                sideOneFleetCon = reportingPlayerfleet;
+    //                civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
+    //                sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+    //            }
+    //            else // other civ is side one
+    //            {
+    //                civSideOne = otherCivSysCon.StarSysData.CurrentCivController;
+    //                sideOneFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+    //                civSideTwo = reportingPlayerfleet.FleetData.CivController;
+    //                sideTwoFleetCon = reportingPlayerfleet;
+    //            }
 
-                //have we met before?
-                if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
-                { // First Contact
-                    //DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                    FirstContactFleetOnStarSysNewEncounnterController(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
-                    //IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                }
-                else
-                { // not first contact
-                    DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, otherCivSysCon);
-                    FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
-                    //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                }
-            }
-            otherCivSysCon.gameObject.SetActive(true);    
-        }
-        else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
-        {
-            //React to Uninhabited system contact and Colonize option
-            FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
-            Destroy(fleetConEmpty.gameObject); // we do not need the empty fleet controller anymore
-            foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
-            {
-                if (shipController.ShipData.ShipType == ShipType.Transport)
-                {
-                    // ToDo: Colonies Opption/ UI?
-                }
-            }
-        }
-    }
+    //            //have we met before?
+    //            if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
+    //            { // First Contact
+    //                //DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+    //                FirstContactFleetOnStarSysNewEncounnterController(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
+    //                //IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+    //            }
+    //            else
+    //            { // not first contact
+    //                DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, otherCivSysCon);
+    //                FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
+    //                //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+    //            }
+    //        }
+    //        otherCivSysCon.gameObject.SetActive(true);    
+    //    }
+    //    else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+    //    {
+    //        //React to Uninhabited system contact and Colonize option
+    //        FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
+    //        Destroy(fleetConEmpty.gameObject); // we do not need the empty fleet controller anymore
+    //        foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
+    //        {
+    //            if (shipController.ShipData.ShipType == ShipType.Transport)
+    //            {
+    //                // ToDo: Colonies Opption/ UI?
+    //            }
+    //        }
+    //    }
+    //}
     public void ResolveClickSysstem(CivController localCiv, StarSysController sysCon)
     { // already not one of our fleets
         CivController civPartyOne;
@@ -158,24 +151,24 @@ public class EncounterManager : MonoBehaviour
         }
     }
 
-    private void NextFleetToFleetEncounter(FleetController fleetA, FleetController fleetB)
-    { // *** Will we need this?
-        var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
-        encounterData.EncounterType = EncounterType.FleetManagement;
-        EncounterController encounterController = new EncounterController(encounterData); // not mono behavior
-        encounterController.EncounterData.isCompleted = false;
-        //encounterController.ResolveFleetEncounter();
-        EncounterControllers.Add(encounterController);
-    }
-    private void FirstContactFleetOnFleetEncounterController(FleetController fleetA, FleetController fleetB)
-    { // *** do we need to save this data???
-        var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
-        encounterData.EncounterType = EncounterType.FirstContact;
-        EncounterController encounterController = new EncounterController(encounterData);
-        encounterController.EncounterData.isCompleted = false;
-        //encounterController.ResolveFleetEncounter();
-        EncounterControllers.Add(encounterController);
-    }
+    //private void NextFleetToFleetEncounter(FleetController fleetA, FleetController fleetB)
+    //{ // *** Will we need this?
+    //    var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
+    //    encounterData.EncounterType = EncounterType.FleetManagement;
+    //    EncounterController encounterController = new EncounterController(encounterData); 
+    //    encounterController.EncounterData.isCompleted = false;
+    //    //encounterController.ResolveFleetEncounter();
+    //    EncounterControllers.Add(encounterController);
+    //}
+    //private void FirstContactFleetOnFleetEncounterController(FleetController fleetA, FleetController fleetB)
+    //{ // *** do we need to save this data???
+    //    var encounterData = GetEncounterData(fleetA, fleetB); 
+    //    encounterData.EncounterType = EncounterType.FirstContact;
+    //    EncounterController encounterController = new EncounterController(encounterData);
+    //    encounterController.EncounterData.isCompleted = false;
+    //    encounterController.EncounterData.firstContact = true;
+    //    EncounterControllers.Add(encounterController);
+    //}
     private void FirstContactFleetOnFleetEncounterController(CivController localCiv, StarSysController sysCon)
     { //ToDo: if we know the system's owner and we click on it what happens? 
         //var encounterData = GetEncounterData(fleetA, fleetB); // not mono behavior
@@ -194,17 +187,18 @@ public class EncounterManager : MonoBehaviour
         encounterController.EncounterData.isCompleted = false;
         if (starSysCon.StarSysData.SystemType >= GalaxyObjectType.BlackHole) // resolve a non diplomatic encounter
             encounterController.ResolveFleetToStrangGalacticEncounter(encounterController);
+        encounterController.EncounterData.firstContact = true;
         EncounterControllers.Add(encounterController);
     }
 
-    public void FeetToSysNotSameCivNotFirstEncounter(FleetController fleetA, StarSysController sysCon)
-    {
-        var encounterData = GetEncounterData(fleetA, sysCon); // not mono behavior
-        encounterData.EncounterType = EncounterType.Diplomacy;
-        EncounterController encounterController = new EncounterController(encounterData);
-        encounterController.EncounterData.isCompleted = false;
-        EncounterControllers.Add(encounterController);
-    }
+    //public void FeetToSysNotSameCivNotFirstEncounter(FleetController fleetA, StarSysController sysCon)
+    //{
+    //    var encounterData = GetEncounterData(fleetA, sysCon); // not mono behavior
+    //    encounterData.EncounterType = EncounterType.Diplomacy;
+    //    EncounterController encounterController = new EncounterController(encounterData);
+    //    encounterController.EncounterData.isCompleted = false;
+    //    EncounterControllers.Add(encounterController);
+    //}
     public void FeetsUninhabitedSysEncounter(FleetController fleetA, StarSysController uninhabitedSysCon)
     {
         var encounterData = GetEncounterData(fleetA, uninhabitedSysCon); // not mono behavior
@@ -216,15 +210,15 @@ public class EncounterManager : MonoBehaviour
 
         // ToDo work out claming system in HabitableSysUIController!!
     }
-    private EncounterData GetEncounterData(FleetController fleetConA, FleetController fleetConB)
-    {
-        EncounterData encounterData = new EncounterData();
-        encounterData.FleetControllerCivOne = fleetConA;
-        encounterData.CivOne = fleetConA.FleetData.CivController;
-        encounterData.FleetContollerCivTwo = fleetConB;
-        encounterData.CivTwo = fleetConB.FleetData.CivController;
-        return encounterData;
-    }
+    //private EncounterData GetEncounterData(FleetController fleetConA, FleetController fleetConB)
+    //{
+    //    EncounterData encounterData = new EncounterData();
+    //    encounterData.FleetControllerCivOne = fleetConA;
+    //    encounterData.CivOne = fleetConA.FleetData.CivController;
+    //    encounterData.FleetContollerCivTwo = fleetConB;
+    //    encounterData.CivTwo = fleetConB.FleetData.CivController;
+    //    return encounterData;
+    //}
     private EncounterData GetEncounterData(FleetController fleetConA, StarSysController starSysCon)
     {
         EncounterData encounterData = new EncounterData();

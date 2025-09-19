@@ -176,7 +176,7 @@ namespace Assets.Core
                         {
                             OnADestinationThatIsOtherCivFleet(hitFleetCon);
 
-                            EncounterManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
+                            DiplomacyManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
                             //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
                             EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
 
@@ -212,7 +212,7 @@ namespace Assets.Core
                                 EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
                             }
                             OnEnterForeignStarSystem(); // ToDo
-                            EncounterManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+                            DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
 
                         }
                         else // ToDo: enter our system

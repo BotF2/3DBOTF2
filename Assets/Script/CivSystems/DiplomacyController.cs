@@ -1,10 +1,20 @@
 using Assets.Core;
+using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-
+public enum EncounterType
+{
+    FirstContact,
+    Diplomacy, // civ to civ and civs can be local player or AI
+    Combat,  //? is this a subtype of Diplomacy as seen by Diplomacy
+    FleetManagement, // thinking we can do this back in the fleetController without calling it in Encounters
+    EnterSystem,
+    UninhabitedSystem,
+    StrangeGalacticObject,
+}
 public class DiplomacyController //not : MonoBehaviour
 {
     private DiplomacyData diplomacyData; // holds civOne and two and diplomacy enum
@@ -131,4 +141,21 @@ public class DiplomacyController //not : MonoBehaviour
        
     }
 
+    internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)
+    {
+        // ToDo: Resolve the encounter with the strange galactic object
+    }
+
+    internal void ResolveUninhabitedSystem(CivController realCivController, StarSysController uninhabitedSysCon)
+    {
+        // UI for uninhabited system management
+        if (GameController.Instance.AreWeLocalPlayer(realCivController.CivData.CivEnum))
+            uninhabitedSysCon.DoHabitalbeSystemUI(realCivController);
+        else
+        {
+            // do AI uninhabited system management
+        }
+        DiplomacyData.isCompleted = true;
+        // destroy the encounter controller
+    }
 }

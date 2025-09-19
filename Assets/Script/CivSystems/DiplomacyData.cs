@@ -12,7 +12,16 @@ public class DiplomacyData
     public DiplomacyStatusEnum DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Neutral; // the diplomacy status for this civ pair
     public int DiplomacyPointsOfCivs = 60; // neutral
     public bool CombatIntiated = false; // true if combat has been initiated between these civs
+    public CivController CivOne;
+    public CivController CivTwo;
+    public FleetController FleetControllerCivOne;
+    public FleetController FleetContollerCivTwo;
+    public StarSysController StarSysController;
+    public EncounterType EncounterType;
+    public bool isCompleted = false;
+    public bool firstContact = false;
 
+    public DiplomacyData() { }
     public DiplomacyData(CivEnum civOne, CivEnum civTwo) //, StarSysController starSysController)
     {
         this.CivSideOne = civOne;

@@ -1,6 +1,7 @@
 using Assets.Core;
 using System;
 using System.Collections.Generic;
+using Unity.Services.Multiplay.Authoring.Core.MultiplayApi;
 using UnityEngine;
 
 public enum DiplomacyStatusEnum // between two civs held in the DiplomacyData
@@ -81,7 +82,7 @@ public enum GreedyEnum
 public class DiplomacyManager : MonoBehaviour
 {
     public static DiplomacyManager Instance;
-    public List<DiplomacyController> DiplomacyControllerList { get; private set; } = new List<DiplomacyController>();
+    public List<DiplomacyController> DiplomacyControllers { get; private set; } = new List<DiplomacyController>();
     [SerializeField]
     private GameObject diplomacyUIPrefab;
     [SerializeField]
@@ -114,6 +115,7 @@ public class DiplomacyManager : MonoBehaviour
                 thisDiplomacyUIGameObject.layer = 5;
                 diplomacyCon.DiplomacyUIGameObject = thisDiplomacyUIGameObject;
                 diplomacyUIGO = thisDiplomacyUIGameObject;
+
             }
         }
     }
@@ -134,7 +136,7 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
         diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyController);
         diplomacyController.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs;
-        DiplomacyControllerList.Add(diplomacyController);
+        DiplomacyControllers.Add(diplomacyController);
         InstantiateDiplomacyUIGameObject(diplomacyController);
         if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
         {
@@ -162,12 +164,12 @@ public class DiplomacyManager : MonoBehaviour
     {
         bool found = false;
         //List<DiplomacyController> placeholderControllers = new List<DiplomacyController>();
-        for (int i = 0; i < DiplomacyControllerList.Count; i++)
+        for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllerList[i] != null)
+            if (DiplomacyControllers[i] != null)
             {
-                if (DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum
-                    || DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum && DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum)
+                if (DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum
+                    || DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum)
                 {
                     found = true;
                     break;
@@ -179,12 +181,12 @@ public class DiplomacyManager : MonoBehaviour
     public DiplomacyController ReturnADiplomacyController(CivEnum oneSide, CivEnum otherSide)
     {
         DiplomacyController diplomacyController = null;
-        for (int i = 0; i < DiplomacyControllerList.Count; i++)
+        for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllerList[i] != null && ((DiplomacyControllerList[i].DiplomacyData.CivSideOne == oneSide && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == otherSide)
-                || (DiplomacyControllerList[i].DiplomacyData.CivSideOne == otherSide && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == oneSide)))
+            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivSideOne == oneSide && DiplomacyControllers[i].DiplomacyData.CivSideTwo == otherSide)
+                || (DiplomacyControllers[i].DiplomacyData.CivSideOne == otherSide && DiplomacyControllers[i].DiplomacyData.CivSideTwo == oneSide)))
             {
-                diplomacyController = DiplomacyControllerList[i];
+                diplomacyController = DiplomacyControllers[i];
                 break;
             }
         }
@@ -250,13 +252,13 @@ public class DiplomacyManager : MonoBehaviour
     public DiplomacyController ReturnADiplomacyController(CivController civPartyOne, CivController civPartyTwo)
     {
         DiplomacyController diplomacyController = null;
-        for (int i = 0; i < DiplomacyControllerList.Count; i++)
+        for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllerList[i] != null && ((DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && 
-                DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum)
-                || (DiplomacyControllerList[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum && DiplomacyControllerList[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum)))
+            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && 
+                DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum)
+                || (DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum)))
             {
-                diplomacyController = DiplomacyControllerList[i];
+                diplomacyController = DiplomacyControllers[i];
                 break;
             }
         }
@@ -307,6 +309,176 @@ public class DiplomacyManager : MonoBehaviour
         }
         return diplomacyStatus;
     }
+
+
+    public void ResolveEncounterWithOtherCivFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
+    { // already not one of our fleets
+        StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
+        if (reportingPlayerFleet != null)
+        {
+            CivController civSideOne;
+            CivController civSideTwo;
+            FleetController sideOneFleetCon;
+            FleetController sideTwoFleetCon;
+            if (reportingPlayerFleet.FleetData.CivController.CivData.CivEnum < otherFleet.FleetData.CivController.CivData.CivEnum)
+            {
+                civSideOne = reportingPlayerFleet.FleetData.CivController;
+                sideOneFleetCon = reportingPlayerFleet;
+                civSideTwo = otherFleet.FleetData.CivController;
+                sideTwoFleetCon = otherFleet;
+            }
+            else
+            {
+                civSideOne = otherFleet.FleetData.CivController;
+                sideOneFleetCon = otherFleet;
+                civSideTwo = reportingPlayerFleet.FleetData.CivController;
+                sideTwoFleetCon = reportingPlayerFleet;
+            }
+            if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
+            {
+                //EncounterController ourEncoutnerController = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
+                //Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
+                DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                FirstContactFleetOnFleetEncounterController(reportingPlayerFleet, otherFleet);
+                Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
+            }
+            else
+            {
+                DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, sideTwoFleetCon);
+                NextFleetToFleetEncounter(sideOneFleetCon, sideTwoFleetCon); // Will we need this? Is it all done in Diplomacy and FleetControllers?
+            }
+        }
+    }
+
+    private void FirstContactFleetOnFleetEncounterController(FleetController reportingPlayerFleet, FleetController otherFleet)
+    {
+        var diplomacyData = GetEncounterData(reportingPlayerFleet, otherFleet);
+        diplomacyData.EncounterType = EncounterType.FirstContact;
+        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+        diplomacyController.DiplomacyData.isCompleted = false;
+        diplomacyController.DiplomacyData.firstContact = true;
+        DiplomacyControllers.Add(diplomacyController);
+    }
+    private DiplomacyData GetEncounterData(FleetController fleetConA, FleetController fleetConB)
+    {
+        DiplomacyData diplomacyData = new DiplomacyData();
+        diplomacyData.FleetControllerCivOne = fleetConA;
+        diplomacyData.CivOne = fleetConA.FleetData.CivController;
+        diplomacyData.FleetContollerCivTwo = fleetConB;
+        diplomacyData.CivTwo = fleetConB.FleetData.CivController;
+        return diplomacyData;
+    }
+    private DiplomacyData GetEncounterData(FleetController fleetConA, StarSysController starSysCon)
+    {
+        DiplomacyData diplomacyData = new DiplomacyData();
+        diplomacyData.FleetControllerCivOne = fleetConA;
+        diplomacyData.CivOne = fleetConA.FleetData.CivController;
+        diplomacyData.StarSysController = starSysCon;
+        diplomacyData.CivTwo = starSysCon.StarSysData.CurrentCivController;
+        return diplomacyData;
+    }
+    private void NextFleetToFleetEncounter(FleetController fleetA, FleetController fleetB)
+    { // *** Will we need this?
+        var diplomacyData = GetEncounterData(fleetA, fleetB); // not mono behavior
+        diplomacyData.EncounterType = EncounterType.FleetManagement;
+        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+        diplomacyController.DiplomacyData.isCompleted = false;
+        //encounterController.ResolveFleetEncounter();
+        DiplomacyControllers.Add(diplomacyController);
+    }
+
+    internal void ResolveEncounterOtherCivSystem(FleetController reportingPlayerfleet, StarSysController otherCivSysCon)
+    {
+        // already not one of our systems
+        FleetController fleetConEmpty = FleetManager.Instance.InstatiateEmptyFleetController();
+        int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebulas)
+
+        if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited
+        {
+            if (reportingPlayerfleet != null) // it is a FleetController and not a StarSystem or other with collider                                                                                                                                                    leetController
+            {
+                CivController civSideOne;
+                CivController civSideTwo;
+                FleetController sideOneFleetCon;
+                FleetController sideTwoFleetCon;
+                if (reportingPlayerfleet.FleetData.CivController.CivData.CivEnum < otherCivSysCon.StarSysData.CurrentCivController.CivData.CivEnum)
+                { // local player is side one
+                    civSideOne = reportingPlayerfleet.FleetData.CivController;
+                    sideOneFleetCon = reportingPlayerfleet;
+                    civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
+                    sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+                }
+                else // other civ is side one
+                {
+                    civSideOne = otherCivSysCon.StarSysData.CurrentCivController;
+                    sideOneFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+                    civSideTwo = reportingPlayerfleet.FleetData.CivController;
+                    sideTwoFleetCon = reportingPlayerfleet;
+                }
+
+                //have we met before?
+                if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
+                { // First Contact
+                    //DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    FirstContactFleetOnStarSysNewEncounnterController(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
+                    //IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                }
+                else
+                { // not first contact
+                    DiplomacyManager.Instance.UpdateOurDiplomacyController(sideOneFleetCon, otherCivSysCon);
+                    FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
+                    //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                }
+            }
+            otherCivSysCon.gameObject.SetActive(true);
+        }
+        else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+        {
+            //React to Uninhabited system contact and Colonize option
+            FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
+            Destroy(fleetConEmpty.gameObject); // we do not need the empty fleet controller anymore
+            foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
+            {
+                if (shipController.ShipData.ShipType == ShipType.Transport)
+                {
+                    // ToDo: Colonies Opption/ UI?
+                }
+            }
+        }
+    }
+
+    private void FeetsUninhabitedSysEncounter(FleetController reportingPlayerfleet, StarSysController uninhabitedSysCon)
+    {
+        var diplomacyData = GetEncounterData(reportingPlayerfleet, uninhabitedSysCon); // not mono behavior
+        diplomacyData.EncounterType = EncounterType.UninhabitedSystem;
+        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+        diplomacyController.DiplomacyData.isCompleted = false;
+        diplomacyController.ResolveUninhabitedSystem(reportingPlayerfleet.FleetData.CivController, uninhabitedSysCon);
+        DiplomacyControllers.Add(diplomacyController);
+    }
+
+    private void FirstContactFleetOnStarSysNewEncounnterController(FleetController fleetCon, StarSysController starSysCon)
+    {
+        var diplomacyData = GetEncounterData(fleetCon, starSysCon); // not mono behavior
+        diplomacyData.EncounterType = EncounterType.FirstContact;
+        diplomacyData.isCompleted = false;
+        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+        diplomacyController.DiplomacyData.isCompleted = false;
+        if (starSysCon.StarSysData.SystemType >= GalaxyObjectType.BlackHole) // resolve a non diplomatic encounter
+            diplomacyController.ResolveFleetToStrangGalacticEncounter(diplomacyController);
+        diplomacyController.DiplomacyData.firstContact = true;
+        DiplomacyControllers.Add(diplomacyController);
+    }
+    public void FeetToSysNotSameCivNotFirstEncounter(FleetController fleetA, StarSysController sysCon)
+    {
+        var diplomacyData = GetEncounterData(fleetA, sysCon); // not mono behavior
+        diplomacyData.EncounterType = EncounterType.Diplomacy;
+        DiplomacyController encounterController = new DiplomacyController(diplomacyData);
+        encounterController.DiplomacyData.isCompleted = false;
+        DiplomacyControllers.Add(encounterController);
+    }
+
 }
 
 

@@ -13,8 +13,7 @@ public class EncounterController
     }
     public void ResolveFirstContact(EncounterController thisEncounterController)
     {
-        //GalaxyMenuUIController.Instance.OpenMenu(Menu.DiplomacyMenu, null);
-
+        GalaxyMenuUIController.Instance.HideNoContactUI();
     }
     public void ResolveEncounter(CivController controllerA, CivController controllerB)
     {  // Do all this in?

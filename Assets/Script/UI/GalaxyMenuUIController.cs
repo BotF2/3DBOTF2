@@ -54,6 +54,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private GameObject diplomacyMenuView;
     [SerializeField]
+    private GameObject diplomacyNoContacts;
+    [SerializeField]
     private GameObject diplomacyListContainter;
     [SerializeField]
     private GameObject aDiplomacyMenuView;
@@ -1600,6 +1602,11 @@ public class GalaxyMenuUIController : MonoBehaviour
         _ltCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
         _hvyCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
         _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Transport);
+    }
+
+    internal void HideNoContactUI()
+    {
+        diplomacyNoContacts.SetActive(false);
     }
     #endregion Diplomacy
 }
