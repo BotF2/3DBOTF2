@@ -36,6 +36,14 @@ public class DiplomacyController //not : MonoBehaviour
     {
         DiplomacyData = diplomacyData;
     }
+    public void DoAIDiplomacy()
+    {
+        if (GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivSideOne) || GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivSideTwo))
+        {
+            DiplomacyUIGameObject.SetActive(true);
+            //ToDo: AI civ diplomacy actions for on or both civs that are AI.
+        }
+    }
     public void UpdateDiplomacyControllerData(DiplomacyData diplomacyData)
     {
         this.DiplomacyData = diplomacyData;
@@ -155,7 +163,5 @@ public class DiplomacyController //not : MonoBehaviour
         {
             // do AI uninhabited system management
         }
-        DiplomacyData.isCompleted = true;
-        // destroy the encounter controller
     }
 }

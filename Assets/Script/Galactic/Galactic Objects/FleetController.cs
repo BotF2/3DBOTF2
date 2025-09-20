@@ -176,7 +176,7 @@ namespace Assets.Core
                         {
                             OnADestinationThatIsOtherCivFleet(hitFleetCon);
 
-                            DiplomacyManager.Instance.ResolveEncounterWithOtherCivFleet(this, hitFleetCon);
+                            DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
                             //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
                             EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
 
@@ -285,7 +285,6 @@ namespace Assets.Core
         private void EncounterUnknownFleetGetNameAndSprite(GameObject hitGO)
         {
             var fleetData = hitGO.GetComponent<FleetController>().FleetData;
-
             StarSysManager.Instance.ExposeAllSystemName(fleetData.CivEnum);
             FleetManager.Instance.ExposeAllFleetInsigniaSprites(fleetData.CivEnum);
         }

@@ -495,7 +495,7 @@ namespace Assets.Core
                     }
                     else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                     { // this is a system local player does not own but we know them
-                        EncounterManager.Instance.ResolveClickSysstem(CivManager.Instance.LocalPlayerCivContoller, this);
+                        DiplomacyManager.Instance.ResolveDiplomacyForClickSystem(CivManager.Instance.LocalPlayerCivContoller, this);
                     }
                 }
             }

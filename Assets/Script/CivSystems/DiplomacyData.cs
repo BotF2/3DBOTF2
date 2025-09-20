@@ -18,7 +18,6 @@ public class DiplomacyData
     public FleetController FleetContollerCivTwo;
     public StarSysController StarSysController;
     public EncounterType EncounterType;
-    public bool isCompleted = false;
     public bool firstContact = false;
 
     public DiplomacyData() { }
