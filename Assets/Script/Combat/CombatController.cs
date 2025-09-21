@@ -1,5 +1,6 @@
 ﻿using Assets.Core;
 using Mirror;
+using Mirror.BouncyCastle.Bcpg;
 using NUnit.Framework;
 using System;
 using System.Collections;
@@ -56,13 +57,21 @@ public class CombatController : MonoBehaviour
     List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
     List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
     List<GameObject> healthbarRenderers = new List<GameObject>();
-    public Vector3 fixedLocalPosition = new Vector3(0,0,0);
-    public Vector3 fixedLocalRotation = new Vector3(0,0,0);
+    //public Vector3 fixedLocalPosition = new Vector3(0,0,0);
+    //public Vector3 fixedLocalRotation = new Vector3(0,0,0);
+    [Header("Move animators to move ships")]
+    public float initialSpeed = 30f;     // starting velocity (units/sec)
+    public float stopDistance = 50f;    // distance over which to stop
+    private float deceleration;         // computed deceleration
+    private float currentSpeed;
+    private List<Vector3> moveDirections = new List<Vector3>();
+    private bool isMoving = false;
 
     private void Start()
     {
         minFirstShotDelay = 0.2f;
         maxFirstShotDelay = 0.9f;
+        //currentSpeed = 30f;
     }
 
     void LateUpdate()
@@ -78,10 +87,57 @@ public class CombatController : MonoBehaviour
                 CombatData.SideTwoShipCons[i].transform.localPosition = new Vector3(0, CombatData.SideTwoShipCons[i].transform.position.y, CombatData.SideTwoShipCons[i].transform.position.z);
             }
         }
+        else if (WarpingAnimationOver && !WarpingIn)
+        {
+            if (isMoving)
+            {
+                float step = currentSpeed * Time.deltaTime;
+                for (int i = 0; i < animators.Count; i++)
+                {
+                    var numChildren = animators[i].transform.childCount; 
+                    for (int j = 0; j < numChildren; j++)
+                    {
+                        animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * step, Space.Self);
+                    }
+                }
+                //currentSpeed -= deceleration * Time.deltaTime;
+                //if (currentSpeed <= 0f)
+                //{
+                //    currentSpeed = 0f; 
+                //    //isMoving = false;
+                //    // Movement complete, do something here if needed
+                //}
+            }
+        }
         if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
         {
             EndCombat();
         }
+
+    }
+    public void BeginPhysicsLikeMovement()
+    {
+        moveDirections.Clear();
+        for (int i = 0; i < animators.Count; i++)
+        {
+            Vector3 dir = Vector3.zero;
+            if (animators[i].transform.childCount > 0)
+            {
+
+                dir = (i < 3) ? -animators[i].transform.GetChild(0).transform.right.normalized
+                                    : animators[i].transform.GetChild(0).transform.right.normalized;
+            }
+            else
+            {
+                dir = Vector3.zero;
+            }
+        
+            moveDirections.Add(dir.normalized); // cache direction
+        }
+
+        deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance);
+        currentSpeed = initialSpeed;
+        isMoving = true;
     }
     public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
     {
@@ -136,6 +192,7 @@ public class CombatController : MonoBehaviour
         //and is player AiPlayerController (do it now) vs RemoteHumanPlayerController (wait for network messages)
 
     }
+
     public void EndCombat()
     {
         SceneController.Instance.UnloadCombatScene();
@@ -528,6 +585,7 @@ public class CombatController : MonoBehaviour
         }
         ShipCombatCameraController.Instance.SetWarpingIn(false);
         ShipCombatCameraController.Instance.SetWarpingInOver(true);
+        BeginPhysicsLikeMovement();
         for (int i = 0; i < healthbarRenderers.Count; i++)
         {
             healthbarRenderers[i].SetActive(true); // make sure healthbars are visible after warp in

@@ -20,42 +20,46 @@ public class ShipController : MonoBehaviour
     public AudioClip clipBeamFire;
     private AudioSource theSource;
     public Transform TargetGroup; // for movement, The center or leader of the other group
-    public float Velocity = 10f;
-    public float OrbitDistance = 20f;  // radius of the orbit
-    public float Acceleration = 100f; 
-    public float Deceleration = 3f; 
-    public float StopDistance; // See Start()
-    private int flipCombatSide =1;
-    private float currentVelocity = 1;
-    private Rigidbody rb;
+    //private float initialSpeed = 30000f;
+    //public float OrbitDistance = 20f;  // radius of the orbit
+    //public float Acceleration = 100f; 
+    //private float deceleration; 
+    //private float stopDistance; // See Start()
+    private int flipShipForward =1;
+    //private Vector3 moveDirection;
+    //private bool isMoving = false;
+    //private float currentSpeed;
+    //private Rigidbody rb;
     public bool WarpingInOver = false;
-    private bool setSpeed = true;
+    //private bool setSpeed = true;
     private GameObject beamWeaponGO;
     public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
     [SerializeField] private float minRefireDelay; // see Start()
     [SerializeField] private float maxRefireDelay;
     public Image HealthFillImage;
     public float HealthSpeed;
-    public float TargetFillAmount { get; set; } = 1.0f;
+    public float TargetHealthFillAmount { get; set; } = 1.0f;
     public float Health;
     public float MaxHealth;
 
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.useGravity = false; // space, microgravity set to zero
-        rb.linearDamping = 0f; // no air drag
-        rb.angularDamping = 0.5f; // small resistance to rotation
+        // if we use Unity physics
+        //rb = GetComponent<Rigidbody>();
+        //rb.useGravity = false; // space, microgravity set to zero
+        //rb.linearDamping = 0f; // no air drag
+        //rb.angularDamping = 0.5f; // small resistance to rotation
 
     }
     private void Start()
     {
         theSource = GetComponent<AudioSource>();
-        currentVelocity = 300f; // initial speed
-        if (transform.position.x < 0) flipCombatSide = -1; // if on left side of map, flip direction
-        StopDistance = 3f;
-        Deceleration = 3f;
+        //currentSpeed = 0f;
+        //initialSpeed = 30000f;
+        //stopDistance = 50f; // how close to center of map to stop
+        if (transform.position.x < 0) flipShipForward = -1; // if on left side of map, flip direction ship faces
+        //moveDirection = transform.forward.normalized * flipShipForward; // initial move direction
         minRefireDelay = 1.5f;
         maxRefireDelay = 2.5f;
         MaxHealth = ShipData.HullHealth + ShipData.HullHealth;
@@ -67,8 +71,26 @@ public class ShipController : MonoBehaviour
     {
         // see TakeDamaga()
         if (HealthFillImage != null)
-            HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetFillAmount, HealthSpeed * Time.deltaTime);
-        TargetFillAmount = Health / MaxHealth;
+            HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetHealthFillAmount, HealthSpeed * Time.deltaTime);
+        TargetHealthFillAmount = Health / MaxHealth;
+        //if (!isMoving) return;
+
+        //if (WarpingInOver && currentSpeed > 0f)
+        //{
+            
+        //    // Move object
+        //    transform.position += moveDirection * currentSpeed * Time.deltaTime;
+
+        //    // Decelerate
+        //    currentSpeed -= deceleration * Time.deltaTime;
+
+        //    // Clamp speed at zero
+        //    if (currentSpeed <= 0f)
+        //    {
+        //        currentSpeed = 0f;
+        //        isMoving = false; // Done moving
+        //    }
+        //}
     }
 
     private void FixedUpdate()
@@ -81,7 +103,7 @@ public class ShipController : MonoBehaviour
                     // No orders, do nothing
                     break;
                 case CombatOrders.Engage:
-                    EngageWithSpaceNewtonianPhysics();
+                    //EngageLooksLikeNewtonianPhysics();
                     // simple forward movement with deceleration to stop point
                     break;
                 case CombatOrders.Formation:
@@ -113,39 +135,46 @@ public class ShipController : MonoBehaviour
             Debug.Log("Controller collided with " + shipController.gameObject.name);
         }
     }
-
-    private void EngageWithSpaceNewtonianPhysics()
+    //public void BeginPhysicsLikeMovement()
+    //{
+    //    // Compute deceleration based on u² = 2as
+    //    deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance);
+    //    currentSpeed = initialSpeed;
+    //    isMoving = true;
+    //}
+    private void EngageLooksLikeNewtonianPhysics()
     {
         #region Simplistic but mostly realistic Newtonian movement along a path in space
-        // One time push simulating warp in residual velocity
-        Vector3 move = currentVelocity * transform.forward * flipCombatSide;
-        if (setSpeed)
-        {
-            rb.linearVelocity = Vector3.zero; //  0 linear momentum
-            rb.angularVelocity = Vector3.zero; // 0 angular momentum
-            rb.AddForce(move * Acceleration, ForceMode.Acceleration);
-            setSpeed = false;
-        }
-        else
-        {
-            // Gradually slow down when approaching the stop point
-            float distanceToCenter = Mathf.Abs(transform.position.x - 0f);
 
-            if (distanceToCenter > StopDistance && rb.linearVelocity.magnitude > 0.1f)
-            {
-                Vector3 brakingForce = -rb.linearVelocity.normalized * Deceleration;
-                rb.angularVelocity = Vector3.zero; // 0 angular momentum
-                rb.AddForce(brakingForce, ForceMode.Acceleration);
-                if (this.ShipData.ShipType == ShipType.Transport) // extra braking for transports
-                {
-                    rb.AddForce(brakingForce * 0.5f, ForceMode.Acceleration);
-                }
-            }
-            else
-            {
-                rb.linearVelocity = Vector3.zero; // Full stop
-            }
-        }
+        // *** using Unity physics, One time push simulating warp in residual velocity
+        //Vector3 move = currentVelocity * transform.forward * flipShipForward;
+        //if (setSpeed)
+        //{
+        //    rb.linearVelocity = Vector3.zero; //  0 linear momentum
+        //    rb.angularVelocity = Vector3.zero; // 0 angular momentum
+        //    rb.AddForce(move * Acceleration, ForceMode.Acceleration);
+        //    setSpeed = false;
+        //}
+        //else
+        //{
+        //    // Gradually slow down when approaching the stop point
+        //    float distanceToCenter = Mathf.Abs(transform.position.x - 0f);
+
+        //    if (distanceToCenter > StopDistance && rb.linearVelocity.magnitude > 0.1f)
+        //    {
+        //        Vector3 brakingForce = -rb.linearVelocity.normalized * Deceleration;
+        //        rb.angularVelocity = Vector3.zero; // 0 angular momentum
+        //        rb.AddForce(brakingForce, ForceMode.Acceleration);
+        //        if (this.ShipData.ShipType == ShipType.Transport) // extra braking for transports
+        //        {
+        //            rb.AddForce(brakingForce * 0.5f, ForceMode.Acceleration);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        rb.linearVelocity = Vector3.zero; // Full stop
+        //    }
+        //}
 
         #endregion
 
@@ -155,52 +184,52 @@ public class ShipController : MonoBehaviour
         #region How to make ships circle each other, move like airplanes
         //Instead of always moving towards the enemy group’s center, compute a circle vector around that center:
         // Ships move like banking airplanes and not like spaceships in a vacuum.
-        if (TargetGroup != null)
-        {
-            // Direction to the enemy group
-            Vector3 toTarget = (TargetGroup.position - rb.position).normalized;
+        //if (TargetGroup != null)
+        //{
+        //    // Direction to the enemy group
+        //    Vector3 toTarget = (TargetGroup.position - rb.position).normalized;
 
-            // Choose an "orbit axis" (here: world up for flat 2D circling)
-            Vector3 orbitAxis = Vector3.up;
+        //    // Choose an "orbit axis" (here: world up for flat 2D circling)
+        //    Vector3 orbitAxis = Vector3.up;
 
-            // Rotate the direction vector 90° around the axis to get tangent direction
-            Vector3 orbitDirection = Quaternion.AngleAxis(90, orbitAxis) * toTarget;
+        //    // Rotate the direction vector 90° around the axis to get tangent direction
+        //    Vector3 orbitDirection = Quaternion.AngleAxis(90, orbitAxis) * toTarget;
 
-            // Blend between circling and moving toward the orbit distance
-            Vector3 desiredPosition = TargetGroup.position - toTarget * OrbitDistance;
-            Vector3 moveDir = (desiredPosition - rb.position).normalized;
+        //    // Blend between circling and moving toward the orbit distance
+        //    Vector3 desiredPosition = TargetGroup.position - toTarget * OrbitDistance;
+        //    Vector3 moveDir = (desiredPosition - rb.position).normalized;
 
-            // Add orbiting movement
-            Vector3 finalDir = (moveDir + orbitDirection * 0.5f).normalized;
+        //    // Add orbiting movement
+        //    Vector3 finalDir = (moveDir + orbitDirection * 0.5f).normalized;
 
-            // Move
-            Vector3 nextPosition = rb.position + finalDir * Velocity * Time.fixedUnscaledDeltaTime;
-            rb.MovePosition(nextPosition);
+        //    // Move
+        //    Vector3 nextPosition = rb.position + finalDir * velocity * Time.fixedUnscaledDeltaTime;
+        //    rb.MovePosition(nextPosition);
 
-            // Rotate to face movement
-            if (finalDir != Vector3.zero)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(finalDir);
-                rb.MoveRotation(Quaternion.RotateTowards(rb.rotation, targetRot, 200f * Time.fixedUnscaledDeltaTime));
-            }
-            //        What this does
+        //    // Rotate to face movement
+        //    if (finalDir != Vector3.zero)
+        //    {
+        //        Quaternion targetRot = Quaternion.LookRotation(finalDir);
+        //        rb.MoveRotation(Quaternion.RotateTowards(rb.rotation, targetRot, 200f * Time.fixedUnscaledDeltaTime));
+        //    }
+        //    //        What this does
 
-            //TargetGroup = the other fleet’s center or leader GameObject.
+        //    //TargetGroup = the other fleet’s center or leader GameObject.
 
-            //Ships try to maintain a distance(OrbitDistance) from that point.
+        //    //Ships try to maintain a distance(OrbitDistance) from that point.
 
-            //They add a tangential offset(orbitDirection) so they don’t collide head - on but instead circle.
+        //    //They add a tangential offset(orbitDirection) so they don’t collide head - on but instead circle.
 
-            //Both groups, if given each other as TargetGroup, will end up orbiting each other like two swarms circling.
+        //    //Both groups, if given each other as TargetGroup, will end up orbiting each other like two swarms circling.
 
-            //Options to tweak
+        //    //Options to tweak
 
-            //Change orbitAxis: Vector3.up for flat 2D plane battles, or Vector3.Cross(toTarget, Vector3.up) for more dynamic 3D orbits.
+        //    //Change orbitAxis: Vector3.up for flat 2D plane battles, or Vector3.Cross(toTarget, Vector3.up) for more dynamic 3D orbits.
 
-            //Adjust OrbitDistance to avoid collisions between fleets.
+        //    //Adjust OrbitDistance to avoid collisions between fleets.
 
-            //Randomize OrbitSpeed slightly per ship for more natural motion.
-        }
+        //    //Randomize OrbitSpeed slightly per ship for more natural motion.
+        //}
         #endregion
     }
     public void SetWeaponPrefabs() 
@@ -369,6 +398,8 @@ public class ShipController : MonoBehaviour
     internal void SetWarpInOver()
     {
         WarpingInOver = true;
-        rb.isKinematic = false; // enable physics
+        //BeginPhysicsLikeMovement();
+        //setSpeed = true;
+        //rb.isKinematic = false; // enable Unity physics
     }
 }
