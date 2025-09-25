@@ -69,28 +69,9 @@ public class ShipController : MonoBehaviour
     }
     void Update()
     {
-        // see TakeDamaga()
         if (HealthFillImage != null)
             HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetHealthFillAmount, HealthSpeed * Time.deltaTime);
         TargetHealthFillAmount = Health / MaxHealth;
-        //if (!isMoving) return;
-
-        //if (WarpingInOver && currentSpeed > 0f)
-        //{
-            
-        //    // Move object
-        //    transform.position += moveDirection * currentSpeed * Time.deltaTime;
-
-        //    // Decelerate
-        //    currentSpeed -= deceleration * Time.deltaTime;
-
-        //    // Clamp speed at zero
-        //    if (currentSpeed <= 0f)
-        //    {
-        //        currentSpeed = 0f;
-        //        isMoving = false; // Done moving
-        //    }
-        //}
     }
 
     private void FixedUpdate()
@@ -127,21 +108,14 @@ public class ShipController : MonoBehaviour
     }
     void OnTriggerEnter(Collider collider)
     {
-        // this is for SpaceCombatScene, not galaxy map 
+        // !!! this is for ships / SpaceCombatScene, not galaxy map fleets
         ShipController shipController = collider.gameObject.GetComponent<ShipController>();
         if (shipController != null) // it is a shipController 
         {
-            OnShipEncounteredShip(shipController);
+            OnShipEncounteredShip(shipController); // does nothing yet
             Debug.Log("Controller collided with " + shipController.gameObject.name);
         }
     }
-    //public void BeginPhysicsLikeMovement()
-    //{
-    //    // Compute deceleration based on u² = 2as
-    //    deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance);
-    //    currentSpeed = initialSpeed;
-    //    isMoving = true;
-    //}
     private void EngageLooksLikeNewtonianPhysics()
     {
         #region Simplistic but mostly realistic Newtonian movement along a path in space
@@ -372,25 +346,36 @@ public class ShipController : MonoBehaviour
         else
         {
             // If both shields and hull are zero, destroy the ship
-            var fleetController = this.ShipData.FleetController;
+            var fleetController = this.ShipData.CurrentFleetController;
+            var starSysController = this.ShipData.CurrentStarSysController;
             if (fleetController != null && !ShipData.Distroyed)
             {
                 ShipData.Distroyed = true;
                 fleetController.RemoveShipFromFleet(this);
                 CombatManager.Instance.RemoveThisShipController(this);
-
                 ShipCombatCameraController.Instance.OnShipDestroyed(this);
                 ShipData.TargetThisShipController = null; // Clear the target ship controller
-                this.ShipData.FleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
+                this.ShipData.CurrentFleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
                                                                                 // this can be problematic, FleetController can be null when its script is still running giving null reference exception
                                                                                 // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
                 Destroy(beamWeaponGO);
                 Destroy(gameObject);
-
-                this.ShipData.FleetController.IsTheFleetDestroyed();
+                this.ShipData.CurrentFleetController.IsTheFleetDestroyed();
                 ShipManager.Instance.RemoveShipControllerFromList(this);
                 FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
-                
+            }
+            
+            else if (starSysController!= null && !ShipData.Distroyed)
+            {
+                ShipData.Distroyed = true;
+                starSysController.StarSysData.ShipsList.Remove(this);
+                CombatManager.Instance.RemoveThisShipController(this);
+                ShipCombatCameraController.Instance.OnShipDestroyed(this);
+                ShipData.TargetThisShipController = null; // Clear the target ship controller
+                Destroy(beamWeaponGO);
+                Destroy(gameObject);
+                ShipManager.Instance.RemoveShipControllerFromList(this);
+                FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
             }
         }
     }
@@ -398,8 +383,6 @@ public class ShipController : MonoBehaviour
     internal void SetWarpInOver()
     {
         WarpingInOver = true;
-        //BeginPhysicsLikeMovement();
-        //setSpeed = true;
-        //rb.isKinematic = false; // enable Unity physics
+
     }
 }

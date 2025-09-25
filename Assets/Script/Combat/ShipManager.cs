@@ -18,7 +18,7 @@ public class ShipManager : MonoBehaviour
 
     [SerializeField]
     private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
-    public List<ShipController> ShipControllerGameList = new List<ShipController>();
+    public List<ShipController> ShipControllerList = new List<ShipController>();
     public List<ShipSO> ShipSOListTech0 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech1 = new List<ShipSO>();
     public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
@@ -60,12 +60,10 @@ public class ShipManager : MonoBehaviour
         List<ShipController> shipConList = new List<ShipController>();
         for (int i = 0; i < shipSOList.Count; i++)
         {
-
             if (shipSOList[i] != null)
             {
                 ShipController shipCon = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
                 Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
-                // isKinematic = keep true in prefab and set as false after warp animation is done
                 shipCon.Init(this);
                 shipCon.ShipData = new ShipData();
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
@@ -89,8 +87,23 @@ public class ShipManager : MonoBehaviour
                 shipCon.gameObject.name = shipCon.ShipData.ShipName;
                 shipCon.Order = CombatOrders.None;
                 shipCon.gameObject.layer = 9; // set to "ships" layer
-                ShipControllerGameList.Add(shipCon);
-                shipConList.Add(shipCon);
+                ShipControllerList.Add(shipCon);
+                if (parentGO.GetComponentInChildren<FleetController>() == null)
+                {
+                    var sysCon = parentGO.GetComponent<StarSysController>();
+                    shipCon.ShipData.CurrentStarSysController = sysCon;
+                    if (sysCon.StarSysData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
+                        sysCon.StarSysData.ShipsList.Add(shipCon.GetComponent<ShipController>());
+                    shipCon.ShipData.CurrentFleetController = null;
+                }
+                else if (parentGO.GetComponentInChildren<StarSysController>() == null)
+                {
+                    var fleetCon = parentGO.GetComponent<FleetController>();    
+                    shipCon.ShipData.CurrentFleetController = fleetCon;
+                    if(fleetCon.FleetData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
+                        fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
+                    shipCon.ShipData.CurrentStarSysController = null;
+                }
                 InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship                 
                 shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu 
             }
@@ -143,7 +156,6 @@ public class ShipManager : MonoBehaviour
         }
         return ourShipSO;
     }
-
     public void BuildShipInSystem(ShipType shipType, StarSysController sysCon)
     {
         ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
@@ -155,7 +167,9 @@ public class ShipManager : MonoBehaviour
             {
                 shipCon.transform.SetParent(sysCon.transform);
                 sysCon.StarSysData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                ShipControllerGameList.Add(shipCon);
+                ShipControllerList.Add(shipCon);
+                shipCon.ShipData.CurrentStarSysController = sysCon;
+                shipCon.ShipData.CurrentFleetController = null;
             }
         }
     }
@@ -215,9 +229,9 @@ public class ShipManager : MonoBehaviour
                 if (shipCon != null)
                 {
                     shipCon.transform.SetParent(fleetCon.transform);
-                    shipCon.ShipData.FleetController = fleetCon;
+                    shipCon.ShipData.CurrentFleetController = fleetCon;
                     fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                    ShipControllerGameList.Add(shipCon);
+                    ShipControllerList.Add(shipCon);
                 }
             }
         }
@@ -280,18 +294,18 @@ public class ShipManager : MonoBehaviour
     internal void RemoveShipControllerFromList(ShipController shipCon)
     {
         int foundOne = -1;
-        for (int i = 0; i < ShipControllerGameList.Count; i++)
+        for (int i = 0; i < ShipControllerList.Count; i++)
         {
-            if (shipCon == ShipControllerGameList[i])
+            if (shipCon == ShipControllerList[i])
             {
                 foundOne = i;
             }
         }
         if (foundOne > -1)
         {
-            ShipControllerGameList.RemoveAt(foundOne);
-            Destroy(ShipControllerGameList[foundOne].ShipListUIGameObject);
-            Destroy(ShipControllerGameList[foundOne].gameObject);
+            ShipControllerList.RemoveAt(foundOne);
+            Destroy(ShipControllerList[foundOne].ShipListUIGameObject);
+            Destroy(ShipControllerList[foundOne].gameObject);
         }
     }
 }

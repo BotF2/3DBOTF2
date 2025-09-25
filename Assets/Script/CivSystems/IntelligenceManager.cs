@@ -31,8 +31,16 @@ public class IntelligenceManager : MonoBehaviour
 
             intelData.CivSideOne = civSideOne.CivData.CivEnum; 
             intelData.LastSeenFleetOfSideOne = fleetControllerSideOne; // could be null, do this on combat form Diplomacy UI
+            if (fleetControllerSideOne != null && fleetControllerSideOne.FleetData != null && fleetControllerSideOne.FleetData.ShipsList != null)
+            {
+                intelData.LastSeenFleetOfSideOne.FleetData.ShipsList = fleetControllerSideOne.FleetData.ShipsList; // make a copy of the list
+            }
             intelData.CivSideTwo = civSideTwo.CivData.CivEnum;
             intelData.LastSeenFleetOfSideTwo = fleetControllerSideTwo; // do this on combat
+            if ( fleetControllerSideTwo != null && fleetControllerSideTwo.FleetData != null && fleetControllerSideTwo.FleetData.ShipsList != null)
+            {
+                intelData.LastSeenFleetOfSideTwo.FleetData.ShipsList = fleetControllerSideTwo.FleetData.ShipsList;
+            }
             intelData.LastSeenStarSysController = sysCon; // do this on combat
         }
 
@@ -122,6 +130,10 @@ public class IntelligenceManager : MonoBehaviour
                 || (IntelligenceControllerList[i].IntelligenceData.CivSideOne == civPartyTwo && IntelligenceControllerList[i].IntelligenceData.CivSideTwo == civPartyOne)))
             {
                 intelligenceController = IntelligenceControllerList[i];
+                //if (intelligenceController.IntelligenceData.LastSeenFleetOfSideOne != null)
+                //{
+                //    intelligenceController.IntelligenceData.LastSeenFleetOfSideOne.FleetData.ShipsList.;
+                //}
                 break;
             }
         }

@@ -10,7 +10,7 @@ public enum EncounterType
     FirstContact,
     Diplomacy, // civ to civ and civs can be local player or AI
     Combat,  //? is this a subtype of Diplomacy as seen by Diplomacy
-    FleetManagement, // thinking we can do this back in the fleetController without calling it in Encounters
+    FleetManagement, // thinking we can do this back in the fleetController
     EnterSystem,
     UninhabitedSystem,
     StrangeGalacticObject,

@@ -127,7 +127,7 @@ public class DiplomacyManager : MonoBehaviour
     CivController civSideTwo, FleetController fleetSideTwo, StarSysController sysCon)
     {
         DiplomacyData diplomacyData = null;
-        List<ShipController> notLocalShips;
+        List<ShipController> shipsToSeeInLocalPayerDiploUI;
         diplomacyData = new DiplomacyData(civSideOne.CivData.CivEnum, civSideTwo.CivData.CivEnum);
         if (civSideOne.CivData.CivEnum <= CivEnum.TERRAN || civSideTwo.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one major civ
         { 
@@ -142,20 +142,20 @@ public class DiplomacyManager : MonoBehaviour
         InstantiateDiplomacyUIGameObject(diplomacyController);
         if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
         {
-            if (fleetSideTwo != null)
-                notLocalShips = fleetSideTwo.FleetData.ShipsList;
+            if (fleetSideTwo != null && fleetSideTwo.FleetData != null)
+                shipsToSeeInLocalPayerDiploUI = fleetSideTwo.FleetData.ShipsList;
             else
-                notLocalShips = sysCon.StarSysData.ShipsList;
+                shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
         }
         else
         {
-            if (fleetSideOne != null)
-                notLocalShips = fleetSideOne.FleetData.ShipsList;
+            if (fleetSideOne != null && fleetSideOne.FleetData != null)
+                shipsToSeeInLocalPayerDiploUI = fleetSideOne.FleetData.ShipsList;
             else
-                notLocalShips = sysCon.StarSysData.ShipsList;
+                shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
         } 
 
-            GalaxyMenuUIController.Instance.OpenADiplomacyUI(diplomacyController, notLocalShips);
+            GalaxyMenuUIController.Instance.OpenADiplomacyUI(diplomacyController, shipsToSeeInLocalPayerDiploUI);
     }
 
     public bool FoundADiplomacyController(CivController civPartyOne, CivController civPartyTwo) //, GameObject hitGO)
@@ -314,7 +314,6 @@ public class DiplomacyManager : MonoBehaviour
         return diplomacyStatus;
     }
 
-
     public void FleetControllerVsOtherCivFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
     { // already not one of our fleets
         StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
@@ -415,12 +414,13 @@ public class DiplomacyManager : MonoBehaviour
                     sideTwoFleetCon = reportingPlayerfleet;
                 }
 
-                //have we met before?
+                //have we met before? Do I know you?
                 if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
                 { // First Contact
-                    //DiplomacyManager.Instance.FirstContactInitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                     FirstContactFleetVsStarSys(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
-                    //IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    DiplomacyManager.Instance.InitNewDiplomacyContoller(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    Destroy(fleetConEmpty.gameObject); 
                 }
                 else
                 { // not first contact

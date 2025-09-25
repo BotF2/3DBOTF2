@@ -229,7 +229,7 @@ namespace Assets.Core
 
             }
             fleetController.FleetData.Destination = GalaxyCenter;
-            fleetController.FleetData.ShipsList.Clear();
+            //fleetController.FleetData.ShipsList.Clear();
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
                 if (civCon.CivData.CivEnum == fleetData.CivEnum)
@@ -446,7 +446,7 @@ namespace Assets.Core
             int foundOne = -1;
             for (int i = 0; i < FleetControllersInGame.Count; i++)
             {
-                if (shipController.ShipData.FleetController == FleetControllerList[i])
+                if (shipController.ShipData.CurrentFleetController == FleetControllerList[i])
                 {
                     if (FleetControllerList[i].FleetData.ShipsList.Count == 0)
                     {

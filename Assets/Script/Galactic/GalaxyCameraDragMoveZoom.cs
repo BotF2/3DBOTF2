@@ -39,8 +39,6 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
     [SerializeField]
     private bool atHomePosition = true;
 
-
-
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); }

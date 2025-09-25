@@ -197,6 +197,19 @@ namespace Assets.Core
                 SysData.SystemType = starSysSO.StarType;
                 SysData.StarSprit = starSysSO.StarSprit;
                 SysData.Description = starSysSO.Description;
+                //var shipConList = ShipManager.Instance.ShipControllerGameList;
+                //for (int s = 0; s < shipConList.Count; s++)
+                //{
+                //    if (shipConList[s].ShipData.CivEnum == SysData.CurrentOwnerCivEnum)
+                //    {
+                //        if (!SysData.ShipsList.Contains(shipConList[s]) && shipConList[i].GetComponentInParent<StarSysController>)
+                //            SysData.ShipsList.Add(shipConList[s]);
+                //    }
+                //}
+                //SysData.ShipsList
+                //SysData.ShipsList.Clear();
+                //ShipManager.Instance.InstantiateShipControllersWithDataFromSO(ShipType.Scout, 1, SysData, civSOList[i].CivInt);
+                //SysData.ShipsList.Add()
 
                 InstantiateSystem(SysData, civSOList[i]);
                 //if (civSOList[i].HasWarp)
@@ -298,8 +311,6 @@ namespace Assets.Core
                         }
                     }
                 }
-
-
                 starSysCon.name = sysData.GetSysName();
                 starSysCon.StarSysData = sysData;
                 CivController[] controllers = CivManager.Instance.CivControllersInGame.ToArray();
@@ -326,10 +337,10 @@ namespace Assets.Core
                 if (civSO.HasWarp)
                 {
                     FleetManager.Instance.BuildFirstFleets(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
-                    if (starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN)
-                    {
-                        ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
-                    }
+                    //if (starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN)
+                    //{
+                    ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
+                    //}
                 }
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
                 {

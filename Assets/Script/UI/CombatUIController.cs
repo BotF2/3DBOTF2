@@ -23,6 +23,7 @@ namespace Assets.Core
         public CivEnum CivEnumLocalPlayer; // the local player enum, used to determine which side the local player is on
         public GameObject PanelCombat_Menu;
         public GameObject PanelShipCombat;
+        public GameObject PanelCombatOver;
         public int negIsSideOnePosIsSideTwo = 1; // used to determine which side the local player is on, -1 for side one, 1 for side two
         public List<ShipController> SideOneShipControllers; // mainly local player vs not local player
         public List<ShipController> SideTwoShipControllers;
@@ -46,6 +47,7 @@ namespace Assets.Core
             previousToggle = toggleOrderList[0];
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum; // get the local player civ enum from the game controller
             LocalPlayer = LocalHumanPlayerController.localInstance;//FindFirstObjectByType<LocalHumanPlayerController>(); // Or assign via inspector?
+            PanelCombatOver.SetActive(false);
         }
         private void Awake()
         {
@@ -369,6 +371,17 @@ namespace Assets.Core
                     break;
             }
         }
+
+        internal void RunCombatOverPanel()
+        {
+            PanelCombatOver.SetActive(true);
+        }
+
+        internal void CloseCombatOverPanel()
+        {
+            PanelCombatOver.SetActive(false);
+        }
     }
 }
+
 

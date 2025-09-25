@@ -14,6 +14,7 @@ public class TimeManager : MonoBehaviour
     public Action<TrekStardateEventSO> OnStardateSpecialEvent;
     public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
     private float timer;
+    //public TMPro.TextMeshProUGUI messageText;
     public int currentStardate { get; private set; }
     private Coroutine timeCoroutine;
     private float timeSpeedup = 10f;// a lower number is slower time
@@ -123,14 +124,49 @@ public class TimeManager : MonoBehaviour
     {
         return currentStardate;
     }
-    public IEnumerator DelayedAction()
+    public IEnumerator DelayedAction(float delay)
     {
         Debug.Log("Action before delay.");
 
-        // Wait for 1 second
-        yield return new WaitForSeconds(1f);
+        // Wait for 1/2 second
+        yield return new WaitForSeconds(delay);
 
-        Debug.Log("Action after 1 second delay.");
+        Debug.Log("Action after delay.");
+    }
+    //public void PauseForMessage(float delay)
+    //{
+    //    // Start the coroutine to pause and resume time
+    //    StartCoroutine(PauseForMessageCoroutine(delay));
+    //}
+    //private IEnumerator PauseForMessageCoroutine(float delay)
+    //{
+    //    Time.timeScale = 0f;
+    //    PauseTime();
+    //    yield return new WaitForSecondsRealtime(delay);
+    //    ResumeTime();
+    //    Time.timeScale = 1f;
+    //}
+    private bool isPausing = false;
+
+    public void PauseForMessage(float delay)
+    {
+        if (!isPausing)
+            StartCoroutine(PauseForMessageCoroutine(delay));
+    }
+
+    private IEnumerator PauseForMessageCoroutine(float delay)
+    {
+        isPausing = true;
+
+        Time.timeScale = 0f;
+        PauseTime();
+
+        yield return new WaitForSecondsRealtime(delay);
+
+        ResumeTime();
+        Time.timeScale = 1f;
+
+        isPausing = false;
     }
 }
 

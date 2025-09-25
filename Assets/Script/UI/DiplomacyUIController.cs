@@ -52,24 +52,10 @@ public class DiplomacyUIController : MonoBehaviour
     [SerializeField]
     private Image[] TabButtonMasks;
 
-    private void Awake()
-    {
-        //if (Instance != null)
-        //{
-        //    Destroy(gameObject);
-        //}
-        //else
-        //{
-        //    Instance = this;
-        //    DontDestroyOnLoad(gameObject);
-        //}
-    }
 
     private void Start()
     {
-        //DiplomacyUIToggle.SetActive(false);
-        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-        //parentCanvas.worldCamera = galaxyEventCamera;
+
     }
 
     public void LoadDiplomacyUI(DiplomacyController ourDiplomacyController)

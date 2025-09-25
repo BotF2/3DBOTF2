@@ -272,14 +272,12 @@ public class GalaxyMenuUIController : MonoBehaviour
             CloseMenu(Menu.IntellMenu);
         if (diplomacyMenuView.activeSelf)
             CloseMenu(Menu.DiplomacyMenu);
+        if (aDiplomacyMenuView.activeSelf)
+            CloseMenu(Menu.ADiplomacyMenu);
         if (fleetsMenuView.activeSelf)
-        {
             CloseMenu(Menu.FleetsMenu);
-        }
         else if (aFleetMenuView.activeSelf)
-        {
             CloseMenu(Menu.AFleetMenu);
-        }
         if (systemsMenuView.activeSelf)
             CloseMenu(Menu.SystemsMenu);
         else if (aSystemMenuView.activeSelf)
@@ -347,9 +345,8 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.DiplomacyMenu:
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
-                // ToDo: put a pause indicator on screen
-                diplomacyMenuView.gameObject.SetActive(true);
-                
+                // ToDo: put a paused time indicator on screen
+                diplomacyMenuView.gameObject.SetActive(true);               
                 diplomacyMenuView.SetActive(true);
                 diplomacyBackground.SetActive(true);
                 openMenuWas = diplomacyMenuView;
@@ -483,7 +480,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = habitableSysMenu;
                 break;
             case Menu.Combat:// close combat scenes
-
                 break;
             default:
                 break;
@@ -1298,7 +1294,7 @@ public class GalaxyMenuUIController : MonoBehaviour
 
     #region Diplomacy UI
 
-    // ToDo: Build out Encounters and Diplomacy to work with traites for AI and human players
+    // ToDo: Build out Diplomacy to work with traites for AI and human players
     private void MoveTheDiplomacyUIGO(GameObject fleetConGO)
     {
         for (int i = 0; i < listOfDiplomacyUiGos.Count; i++)
@@ -1318,12 +1314,9 @@ public class GalaxyMenuUIController : MonoBehaviour
                 aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
         }
     }
-    private void LoadCombat()
-    {
-
-    }
     public void OpenADiplomacyUI(DiplomacyController diplomacyCon, List<ShipController> shipList)
     { 
+        HideNoContactUI();
         CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
         CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
         CivController notLocalPlayerCiv;
@@ -1429,7 +1422,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     rectTransforms[i].gameObject.SetActive(true);
                     combatButtonGO = rectTransforms[i].gameObject;
                     break;
-                case "ButtonCloseDiplomacytUI": // do we need this?
+                case "ButtonCloseDiplomacytUI": 
                     rectTransforms[i].gameObject.SetActive(true);
                     closeDiplomacyButtonGO = rectTransforms[i].gameObject;
                     break;
@@ -1608,6 +1601,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         diplomacyNoContacts.SetActive(false);
     }
+
     #endregion Diplomacy
 }
 

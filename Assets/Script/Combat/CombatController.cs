@@ -43,7 +43,6 @@ public class CombatController : MonoBehaviour
     [Header("First Firing Delay Ranges")]
     [SerializeField] private float minFirstShotDelay = 0.2f;
     [SerializeField] private float maxFirstShotDelay = 0.9f;
-
     int _scoutsSide1;
     int _scoutsSide2;
     int _destroyersSide1;
@@ -57,21 +56,21 @@ public class CombatController : MonoBehaviour
     List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
     List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
     List<GameObject> healthbarRenderers = new List<GameObject>();
-    //public Vector3 fixedLocalPosition = new Vector3(0,0,0);
-    //public Vector3 fixedLocalRotation = new Vector3(0,0,0);
     [Header("Move animators to move ships")]
     public float initialSpeed = 30f;     // starting velocity (units/sec)
-    public float stopDistance = 50f;    // distance over which to stop
+    public float stopDistance;    // distance over which to stop
     private float deceleration;         // computed deceleration
     private float currentSpeed;
     private List<Vector3> moveDirections = new List<Vector3>();
-    private bool isMoving = false;
+    public bool isMoving = false;
+    public bool isClosing = false;
 
     private void Start()
     {
         minFirstShotDelay = 0.2f;
         maxFirstShotDelay = 0.9f;
-        //currentSpeed = 30f;
+        currentSpeed = 30f;
+        stopDistance = 390f;
     }
 
     void LateUpdate()
@@ -100,18 +99,22 @@ public class CombatController : MonoBehaviour
                         animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * step, Space.Self);
                     }
                 }
-                //currentSpeed -= deceleration * Time.deltaTime;
-                //if (currentSpeed <= 0f)
-                //{
-                //    currentSpeed = 0f; 
-                //    //isMoving = false;
-                //    // Movement complete, do something here if needed
-                //}
+                currentSpeed -= deceleration * Time.deltaTime;
+                if (currentSpeed <= 0f)
+                {
+                    currentSpeed = 0f;
+                    isMoving = false;
+                }
             }
         }
-        if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
+        if (!isClosing)
         {
-            EndCombat();
+            if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
+            {
+                isClosing = true;
+                CombatUIController.Instance.RunCombatOverPanel();
+                StartCoroutine(DelayedActionHalfSec());
+            }
         }
 
     }
@@ -123,7 +126,6 @@ public class CombatController : MonoBehaviour
             Vector3 dir = Vector3.zero;
             if (animators[i].transform.childCount > 0)
             {
-
                 dir = (i < 3) ? -animators[i].transform.GetChild(0).transform.right.normalized
                                     : animators[i].transform.GetChild(0).transform.right.normalized;
             }
@@ -135,7 +137,7 @@ public class CombatController : MonoBehaviour
             moveDirections.Add(dir.normalized); // cache direction
         }
 
-        deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance);
+        deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance ); // 2f would be stop at the distance.
         currentSpeed = initialSpeed;
         isMoving = true;
     }
@@ -195,8 +197,10 @@ public class CombatController : MonoBehaviour
 
     public void EndCombat()
     {
+        CombatUIController.Instance.CloseCombatOverPanel();
+
         SceneController.Instance.UnloadCombatScene();
-        CombatManager.Instance.Cambat3DCamvas.gameObject.SetActive(false);
+        //CombatManager.Instance.Cambat3DCamvas.gameObject.SetActive(false);
         DiplomacyController theDiplomacyCon = DiplomacyManager.Instance.ReturnADiplomacyController(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
         theDiplomacyCon.DiplomacyData.CombatIntiated = false; // reset combat initiated flag
         TimeManager.Instance.ResumeTime();
@@ -210,7 +214,8 @@ public class CombatController : MonoBehaviour
             if (shipCon != null)
                 Destroy(shipCon.gameObject); // Marks for destruction at end of frame
         }
-        ResetFriendAndEnemyLists(); 
+        ResetFriendAndEnemyLists();
+        Destroy(this.gameObject); // Destroy the CombatController instance
     }
     public void ResetFriendAndEnemyLists()
     {
@@ -572,6 +577,12 @@ public class CombatController : MonoBehaviour
             stepSize++;
         }
         return spiralPositions.ToList();
+    }
+    IEnumerator DelayedActionHalfSec()
+    {
+        yield return new WaitForSeconds(0.5f);
+        // Action to perform after the delay
+        EndCombat();
     }
     public IEnumerator WaitForAllAnimations()
     {

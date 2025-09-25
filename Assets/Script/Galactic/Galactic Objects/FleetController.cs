@@ -190,7 +190,7 @@ namespace Assets.Core
                         }
                         else //our fleet
                         {
-                            // do ships?
+                            // do ships management?
                             OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
                         }
                     }

@@ -13,7 +13,7 @@ public class CombatManager : MonoBehaviour
     public static CombatManager Instance { get; private set; }
 
     public GameObject CombatUICanvasGO;
-    public Canvas Cambat3DCamvas;
+    private Canvas Cambat3DCamvas;
     public GameObject HealthbarPrefab;
     [SerializeField]
     private CombatController combatConPrefab;  
@@ -154,25 +154,6 @@ public class CombatManager : MonoBehaviour
         }
     }
 
-    //public CombatData InitCombatControllerWithCombatData(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
-    //{
-    //    CombatData combatData = new CombatData
-    //    {
-    //        SideOneShipCons = sideOneShipCons,
-    //        SideTwoShipCons = sideTwoShipCons,
-    //        CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum, 
-    //        CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
-    //        Name = "CombatData_" + CombatControllers.Count.ToString(),
-
-    //    };
-    //    InstantiateCombatController(combatData);
-    //    return combatData;
-    //    //if (GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(combatData.CivEnumSideTwo))
-    //    //{
-
-    //    //}
-    //}
-
     public void InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
      {
         {
@@ -185,6 +166,10 @@ public class CombatManager : MonoBehaviour
             combatData.Name = "CombatData_" + CombatControllers.Count.ToString();
             CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
                 Quaternion.identity);
+            aCombatController.isMoving = false;
+            aCombatController.isClosing = false;
+            aCombatController.WarpingIn = false;
+            aCombatController.WarpingAnimationOver = false;
             aCombatController.ShipCombatCanvas = Cambat3DCamvas;
             aCombatController.CombatData = combatData; // set the combat data
             aCombatController.CombatData.OrderSideOne = CombatOrders.Engage; // default order
@@ -264,7 +249,6 @@ public class CombatManager : MonoBehaviour
             thisCombatUIGameObject.layer = 5;
         }
 
-        //thisCombatUIGameObject.SetActive(true);
         var combatUiController = thisCombatUIGameObject.GetComponent<CombatUIController>();
         if (combatUiController != null)
         {
