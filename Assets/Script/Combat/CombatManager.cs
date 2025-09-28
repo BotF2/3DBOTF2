@@ -262,21 +262,6 @@ public class CombatManager : MonoBehaviour
         }
     }
 
-    //internal void RemoveShip(ShipController shipController)
-    //{
-    //    for (int i = 0; i < CombatControllers.Count; i++)
-    //    {
-    //        if (CombatControllers[i].CombatData.SideOneShipCons.Contains(shipController))
-    //        {
-    //            CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
-    //        }
-    //        if (CombatControllers[i].CombatData.SideTwoShipCons.Contains(shipController))
-    //        {
-    //            CombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
-    //        }
-    //    }
-    //}
-
     internal void RemoveThisShipController(ShipController shipController)
     {
         for (int i = 0; i < CombatControllers.Count; i++)

@@ -55,9 +55,6 @@ public class ShipController : MonoBehaviour
     private void Start()
     {
         theSource = GetComponent<AudioSource>();
-        //currentSpeed = 0f;
-        //initialSpeed = 30000f;
-        //stopDistance = 50f; // how close to center of map to stop
         if (transform.position.x < 0) flipShipForward = -1; // if on left side of map, flip direction ship faces
         //moveDirection = transform.forward.normalized * flipShipForward; // initial move direction
         minRefireDelay = 1.5f;

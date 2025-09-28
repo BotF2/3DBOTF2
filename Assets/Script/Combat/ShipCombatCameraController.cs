@@ -26,10 +26,10 @@ namespace Assets.Core
         public float Pitch;
         public float Yaw;
         public float Roll;
-        public float PaddingLeft = 300f;
-        public float PaddingRight = 300f;
-        public float PaddingUp = 300f;
-        public float PaddingDown = 300f;
+        public float PaddingLeft = 100f;
+        public float PaddingRight = 100f;
+        public float PaddingUp = 100f;
+        public float PaddingDown = 100f;
         public float MoveSmoothTime = 0.19f;
         [SerializeField]
         private Camera _shipCamera;
@@ -86,6 +86,7 @@ namespace Assets.Core
             {
                 _shipCamera = GetComponent<Camera>();
             }
+            gameObject.transform.position = new Vector3(0, 500, -800);
             _cameraOffSet = gameObject.transform.position - _cameraTarget;
         }
         
@@ -121,13 +122,6 @@ namespace Assets.Core
                     return;
                 else
                 {
-                    //_shipCamera.fieldOfView = Mathf.Lerp(_shipCamera.fieldOfView, 60f, Time.deltaTime * 0.5f);
-                    //if (_shipCamera.fieldOfView <= 61f)
-                    //{
-                    //    _shipCamera.fieldOfView = 60f;
-                    //    WarpingInOver = false;
-                    //}
-
                     var targetPositionAndRotation = TargetPositionAndRotation(_targets);
 
                     _cameraOffSet = gameObject.transform.position - _cameraTarget;

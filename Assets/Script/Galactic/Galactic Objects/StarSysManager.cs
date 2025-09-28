@@ -336,7 +336,7 @@ namespace Assets.Core
                 }
                 if (civSO.HasWarp)
                 {
-                    FleetManager.Instance.BuildFirstFleets(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
+                    FleetManager.Instance.BuildFirstFleetsNearSys(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
                     //if (starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN)
                     //{
                     ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);

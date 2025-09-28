@@ -83,7 +83,7 @@ namespace Assets.Core
             }
         }
 
-        public void BuildFirstFleets(StarSysController sysCon, bool inSystem)
+        public void BuildFirstFleetsNearSys(StarSysController sysCon, bool inSystem)
         {
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
             FleetSO fleetSO = GetFleetSObyInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
@@ -143,7 +143,9 @@ namespace Assets.Core
             fleetController.gameObject.layer = 6; // galaxy layer
             fleetController.BackgroundGalaxyImage = galaxyImage;
             fleetController.FleetData = fleetData;
+            fleetController.FleetData.ShipsList.Clear();
             Canvas[] canvasArray = fleetController.gameObject.GetComponentsInChildren<Canvas>();
+            // Tool Tip?
             //for (int j = 0; j < canvasArray.Length; j++)
             //{
             //    if (canvasArray[j].name == "CanvasToolTip")
@@ -156,9 +158,10 @@ namespace Assets.Core
                 var transGalaxyCenter = GalaxyCenter.gameObject.transform;
                 var trans = sysCon.gameObject.transform;
                 fleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, it is not in a star system
-                                                                                // now put it near the home world and visible/seen on the galaxy map, in galaxy space. It is not 'hidden' in the system
+                                                                              // now put it near the home world and visible/seen on the galaxy map, in galaxy space. It is not 'hidden' in the system
                 fleetController.transform.Translate(new Vector3(trans.position.x + 20f, trans.position.y + 20f, trans.position.z));
                 fleetData.Position = fleetController.transform.position;
+                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
             }
             else // it is in the system shipyard so 'hidden' on the galaxy map inside the system
             {
@@ -168,7 +171,8 @@ namespace Assets.Core
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             fleetController.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
             fleetData.Name = fleetController.gameObject.name;
-
+            //if (!inSystem)
+            //    ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
             fleetController.FleetData.FleetInt = fleetInt;
             fleetController.Name = fleetData.Name;
             FleetControllersInGame.Add(fleetController);
@@ -229,18 +233,16 @@ namespace Assets.Core
 
             }
             fleetController.FleetData.Destination = GalaxyCenter;
-            //fleetController.FleetData.ShipsList.Clear();
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
                 if (civCon.CivData.CivEnum == fleetData.CivEnum)
                     fleetData.CivController = civCon;
             }
-            List<FleetController> list = new List<FleetController>() { fleetController };
+            List<FleetController> list = new List<FleetController>() {fleetController};
             fleetController.FleetData.FleetGroupControllers = list;
-            fleetController.UpdateMaxWarp();
             fleetController.gameObject.SetActive(true);
-            if (!inSystem) // all first fleets are not in system
-                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
+
+            fleetController.UpdateMaxWarp();
             InstantiateFleetUIGameObject(fleetController);
             return fleetController;          
         }

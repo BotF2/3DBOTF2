@@ -282,9 +282,9 @@ public class CombatController : MonoBehaviour
                 shipConList[i].transform.position, Quaternion.identity, ShipCombatCanvas.transform);
             healthbarGO.SetActive(true);
             healthbarGO.transform.SetParent(shipConList[i].transform, false);
-            healthbarGO.transform.localPosition = new Vector3(-4, -1.5f, 7); // below ship model and closer to camcera
+            healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0); // below ship model and closer to camcera
             healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // scale down to fit ship model
-            healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0); // face off the side of the ship model
+            healthbarGO.transform.localRotation = Quaternion.Euler(0,-90 * side1negSide2pos, 0); // face off the side of the ship model
             Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
             for (int j = 0; j < healthbarImages.Length; j++)
             {
@@ -300,7 +300,7 @@ public class CombatController : MonoBehaviour
             healthbarGO.AddComponent<BillboardCameraCombat>();
             GameObject shipGameOb = shipConList[i].gameObject;
             shipGameOb.transform.SetPositionAndRotation(new Vector3(0, 0, 0),
-                Quaternion.Euler(0, 90 * side1negSide2pos, 0));
+                Quaternion.Euler(0, 0, 0)); // 90 * side1negSide2pos, 0));
             if (shipGameOb.GetComponent<ShipController>() != null)
             {
                 var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
@@ -315,6 +315,7 @@ public class CombatController : MonoBehaviour
                             sideOneA3Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform, false);
                             SetLocalTransportPosition(shipGameOb, currentTransportIndex1, _spiralPositionsTran1);
+
                         }
                     }
                     else
@@ -325,6 +326,7 @@ public class CombatController : MonoBehaviour
                             sideTwoA3Animator.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform, false);
                             SetLocalTransportPosition(shipGameOb, currentTransportIndex2, _spiralPositionsTran2);
+
                         }
                     }
                 }
@@ -340,6 +342,7 @@ public class CombatController : MonoBehaviour
                                 sideOneA1Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
+                
                                 flipAnimation1 = 1;
                             }
                             else
@@ -347,6 +350,7 @@ public class CombatController : MonoBehaviour
                                 sideOneA2Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
+        
                                 flipAnimation1 = -1;
                             }
                         }
@@ -362,6 +366,7 @@ public class CombatController : MonoBehaviour
                                 sideTwoA1Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
+                        
                                 flipAnimation2 = 1;
                             }
                             else
@@ -369,12 +374,14 @@ public class CombatController : MonoBehaviour
                                 sideTwoA2Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
+                      
                                 flipAnimation2 = -1;
                             }
                         }
                     }
                 }
             }
+            shipGameOb.transform.localRotation = Quaternion.Euler(0, 90 * side1negSide2pos, 0);
             Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
             rigid.useGravity = false;
             rigid.isKinematic = true; // kinematic until warp in is over
