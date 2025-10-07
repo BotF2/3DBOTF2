@@ -74,7 +74,7 @@ namespace Assets.Core
         {
             if (frameMove != Vector3.zero)
             {
-                Vector3 speedModFrameMove = new Vector3(frameMove.x * lateralSpeed, frameMove.y * inOutSpeed, frameMove.z * upDownSpeed);
+                Vector3 speedModFrameMove = new Vector3(frameMove.x * lateralSpeed, frameMove.y * inOutSpeed, -frameMove.z * upDownSpeed);
                 transform.position += transform.TransformDirection(speedModFrameMove) * Time.deltaTime;
                 LockPositionInBounds();
                 frameMove = Vector3.zero;

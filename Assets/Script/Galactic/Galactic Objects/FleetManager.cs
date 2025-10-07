@@ -17,6 +17,12 @@ namespace Assets.Core
     public class FleetManager : MonoBehaviour
     {
         public static FleetManager Instance;
+        public GameObject scoutBluePrintPrefab;
+        public GameObject destroyerBluePrintPrefab;
+        public GameObject cruiserBluePrintPrefab;
+        public GameObject ltCruiserBluePrintPrefab;
+        public GameObject hvyCruiserBluePrintPrefab;
+        public GameObject transportBluePrintPrefab;
         [SerializeField]
         private Canvas parentCanavas;
         [SerializeField]
@@ -120,13 +126,28 @@ namespace Assets.Core
             fleetController.Init(this);
             return fleetController;
         }
-        //public FleetController InstantiatEmptyFleetController()
-        //{
-        //    FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
-        //      Quaternion.identity);
-        //    fleetController.Init(this);
-        //    return fleetController; 
-        //}
+
+        public void MoveShipOutOfFleet(ShipController shipCon, FleetController targetFleet, StarSysController targetSys)
+        {
+            if (shipCon.ShipData.CurrentFleetController != null)
+            {
+                shipCon.ShipData.CurrentFleetController.FleetData.ShipsList.Remove(shipCon);
+                //shipCon.ShipData.CurrentFleetController.FleetData.UpdateFleetStats();
+                //RemoveFleetConIfShipListIsEmpty(shipCon);
+            }
+            if (targetFleet != null)
+            {
+                targetFleet.FleetData.ShipsList.Add(shipCon);
+                shipCon.ShipData.CurrentFleetController = targetFleet;
+                shipCon.ShipData.CurrentStarSysController = null;
+            }
+            else if (targetSys != null)
+            {
+                targetSys.StarSysData.ShipsList.Add(shipCon);
+                shipCon.ShipData.CurrentStarSysController = targetSys;
+                shipCon.ShipData.CurrentFleetController = null;
+            }
+        }
 
         public FleetController InstantiateFleet(StarSysController sysCon, FleetData fleetData, Vector3 position, bool inSystem)
         {
@@ -271,33 +292,7 @@ namespace Assets.Core
                 }
             }
         }
-        public void InstantiateFleetsShipManagerUI(FleetController fleetCon)
-        {
-            GameObject shipManagerUIInstance = (GameObject)Instantiate(shipManagerMenuPrefab, new Vector3(0, -70, 0),
-                Quaternion.identity);
-            GalaxyMenuUIController.Instance.SetActiveManageFleetsShipMenu(shipManagerUIInstance);
-            shipManagerUIInstance.layer = 5; //UI layer
-            canvasShipManager.SetActive(true);
-
-            // getting the ships data so they can send images for drag drop
-            shipManagerUIInstance.transform.SetParent(canvasShipManager.transform, false);
-            ShipInFleetDrag[] ships = shipManagerUIInstance.GetComponentsInChildren<ShipInFleetDrag>();
-
-
-            for (int m = 0; m < ships.Length; m++)
-            {
-                ships[m].FleetController = fleetCon;
-                if (ships[m].ShipType == ShipType.Scout)
-                {
-                    // To Do Find subtypes, unlike facilities with prefabs the ship data is in the SOs;
-                }
-                else if (ships[m].ShipType == ShipType.Destroyer) { }
-                else if (ships[m].ShipType == ShipType.Transport) { }
-                else if (ships[m].ShipType == ShipType.Cruiser) { }
-                else if (ships[m].ShipType == ShipType.LtCruiser) { }
-                else if (ships[m].ShipType == ShipType.HvyCruiser) { }
-            }
-        }
+        
         void RemoveFleetConrollerFromAllControllers(FleetController fleetController)
         {
             FleetControllerList.Remove(fleetController);
@@ -320,11 +315,6 @@ namespace Assets.Core
                 //call up AI for civ fleet management
             }
 
-        }
-        public void GetFleetGroupInSystemForShipTransfer(StarSysController starSysCon)
-        {
-            //GameObject fleetGroupNewGO = (GameObject)Instantiate(fleetGroupPrefab, new Vector3(0, 0, 0),
-            //        Quaternion.identity);
         }
 
         public FleetSO GetFleetSObyInt(int fleetInt)
@@ -464,6 +454,11 @@ namespace Assets.Core
                 //Destroy(FleetControllerList[foundOne].FleetUIGameObject);
                 //Destroy(FleetControllerList[foundOne].gameObject);
             }
+        }
+
+        internal void NewImageInShipInventory(ShipType scout)
+        {
+            
         }
     }
 }

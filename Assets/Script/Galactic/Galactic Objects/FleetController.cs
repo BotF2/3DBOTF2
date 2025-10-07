@@ -376,11 +376,11 @@ namespace Assets.Core
                // TimeManager.Instance.ResumeTime();
             }
         }
-        public void ShipManageClick(FleetController fleetCon) // open ship manager UI
-        {
-            FleetManager.Instance.InstantiateFleetsShipManagerUI(this);
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.ManageShipsMenu, null);
-        }
+        //public void ShipManageClick(FleetController fleetCon) // open ship manager UI
+        //{
+        //    //FleetManager.Instance.InstantiateFleetsShipManagerUI(this);
+        //    GalaxyMenuUIController.Instance.OpenMenu(Menu.ShipsMenu, null);
+        //}
         public void FleetOnWarpUpClick(FleetController fleetCon)
         {
             if (this == fleetCon)
@@ -434,8 +434,6 @@ namespace Assets.Core
                 MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
             }
         }
-
-
         public void ClickCancelDestinationButton(FleetController fleetCon)
         {
             DestinationLine.gameObject.SetActive(false);
@@ -546,7 +544,7 @@ namespace Assets.Core
             if (fleetCon == this && fleetCon == GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
             {
                 GameObject notAMenu = new GameObject();
-                GalaxyMenuUIController.Instance.OpenMenu(Menu.ManageShipsMenu, notAMenu);
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.ShipsMenu, notAMenu);
                 Destroy(notAMenu);
             }
         }
@@ -563,7 +561,7 @@ namespace Assets.Core
             GalaxyMenuUIController.Instance.MouseClickSetsDestination = false;
             MousePointerChanger.Instance.ResetCursor();
             GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetsMenu);
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.ShipsMenu);
         }
         private string GetDebuggerDisplay()
         {
@@ -606,6 +604,45 @@ namespace Assets.Core
                 }
             }
         }
+
+        //internal void NewImageInShipInventory(ShipType shipType)
+        //{
+        //    switch (shipType)
+        //    {
+        //        case ShipType.Scout:
+        //            GameObject ItemSGO = (GameObject)Instantiate(scoutBluePrintPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            ItemSGO.transform.SetParent(scoutInventorySlot.transform, false);
+        //            break;
+        //        case ShipType.Destroyer:
+        //            GameObject ItemDGO = (GameObject)Instantiate(destroyerBluePrintPrefab, new Vector3(0, 0, 0),
+        //               Quaternion.identity);
+        //            ItemDGO.transform.SetParent(destroyerInventorySlot.transform, false);
+        //            break;
+        //        case ShipType.Cruiser:
+        //            GameObject cruiserItemGO = (GameObject)Instantiate(cruiserBluePrintPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            cruiserItemGO.transform.SetParent(cruiserInventorySlot.transform, false);
+        //            break;
+        //        case ShipType.LtCruiser:
+        //            GameObject ltCruiserItemGO = (GameObject)Instantiate(ltCruiserBluePrintPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            ltCruiserItemGO.transform.SetParent(ltCruiserInventorySlot.transform, false);
+        //            break;
+        //        case ShipType.HvyCruiser:
+        //            GameObject hvyCruiserItemGO = (GameObject)Instantiate(hvyCruiserBluePrintPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            hvyCruiserItemGO.transform.SetParent(hvyCruiserInventorySlot.transform, false);
+        //            break;
+        //        case ShipType.Transport:
+        //            GameObject transportItemGO = (GameObject)Instantiate(transportBluePrintPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            transportItemGO.transform.SetParent(transportInventorySlot.transform, false);
+        //            break;
+        //        default:
+        //            break;
+        //    }
+        //}
     }
 }
 

@@ -43,6 +43,8 @@ namespace Assets.Core
 
         [SerializeField]
         private GameObject sysUIPrefab;
+        [SerializeField]
+        private GameObject sysShipsUIPrefab;
         public List<StarSysController> StarSysControllerList { get; private set; } = new List<StarSysController>();
         public GameObject PowerPlantPrefab;
         public GameObject FactoryPrefab;
@@ -86,7 +88,9 @@ namespace Assets.Core
         [SerializeField]
         private GameObject researchCenterInventorySlotPrefab;
         [SerializeField]
-        private GameObject contentFolderParent;
+        private GameObject sysItemContentFolderParent;
+        [SerializeField]
+        private GameObject sysShipsContentFolderParent;
         [SerializeField]
         private ThemeSO localPlayerTheme;
         [SerializeField]
@@ -113,11 +117,11 @@ namespace Assets.Core
         public void Start()
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-            
+
         }
         public void SetShipBuildPerfabs(CivEnum localCiv)
         {
-          
+
             TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;// to do GameDate to know staring tech level
             List<ShipSO> shipSOList = new List<ShipSO>();
             switch (techLevel)
@@ -141,42 +145,42 @@ namespace Assets.Core
             {
                 if (shipSOList[i].ShipType == ShipType.Scout)
                 {
-                    var shipBuildScript = scoutBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = scoutBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     scoutBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Destroyer)
                 {
-                    var shipBuildScript = destroyerBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = destroyerBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     destroyerBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Cruiser)
                 {
-                    var shipBuildScript = cruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = cruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     cruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.LtCruiser)
                 {
-                    var shipBuildScript = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = ltCruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     ltCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.HvyCruiser)
                 {
-                    var shipBuildScript = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = hvyCruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     hvyCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
                 }
                 else if (shipSOList[i].ShipType == ShipType.Transport)
                 {
-                    var shipBuildScript = transportBluePrintPrefab.GetComponent<ShipInFleetDrag>();
+                    var shipBuildScript = transportBluePrintPrefab.GetComponent<SystemBuildShipDrag>();
                     shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
                     shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
                     transportBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
@@ -188,11 +192,11 @@ namespace Assets.Core
             StarSysData SysData = new StarSysData("null");
             List<StarSysData> starSysDatas = new List<StarSysData>();
             starSysDatas.Add(SysData);
-            for (int i = 0; i < civSOList.Count; i++) 
+            for (int i = 0; i < civSOList.Count; i++)
             {
                 StarSysSO starSysSO = GetStarSObyInt(civSOList[i].CivInt);
                 SysData = new StarSysData(starSysSO);
-               
+
                 SysData.CurrentOwnerCivEnum = starSysSO.FirstOwner;
                 SysData.SystemType = starSysSO.StarType;
                 SysData.StarSprit = starSysSO.StarSprit;
@@ -241,18 +245,18 @@ namespace Assets.Core
                 // pending a merge of the two branches to replace this.
                 StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-                starSysCon.Init(this);starSysCon.StarSysData = sysData;
+                starSysCon.Init(this); starSysCon.StarSysData = sysData;
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
                     sysData.GetPosition().y, sysData.GetPosition().z));
                 starSysCon.transform.SetParent(galaxyCenter.transform, true);
                 starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
-                
+
                 Transform fogObsticleTransform = starSysCon.transform.Find("FogObstacle");
                 fogObsticleTransform.SetParent(galaxyCenter.transform, false);
                 fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));
                 starSysCon.name = sysData.GetSysName();
-     
+
                 starSysCon.StarSysData.ShipsList.Clear();
                 sysData.SysGameObject = starSysCon.gameObject;
 
@@ -269,7 +273,7 @@ namespace Assets.Core
                         else
                         {
                             TheText[i].text = sysData.GetSysName();
-                           //var sysThingy = fleetData
+                            //var sysThingy = fleetData
                         }
                     }
                     else if (TheText[i] != null && TheText[i].name == "SysDescription (TMP)")
@@ -287,7 +291,7 @@ namespace Assets.Core
                 ourDropLine.SetUpLine(points);
 
                 var Renderers = starSysCon.GetComponentsInChildren<SpriteRenderer>();
-                for (int i = 0;i < Renderers.Length; i++)
+                for (int i = 0; i < Renderers.Length; i++)
                 {
                     if (Renderers[i] != null)
                     {
@@ -317,7 +321,7 @@ namespace Assets.Core
                 for (int i = 0; controllers.Length > 0; i++)
                 {
                     if (controllers[i].CivData.CivEnum == starSysCon.StarSysData.GetFirstOwner())
-                    { 
+                    {
                         starSysCon.StarSysData.CurrentCivController = controllers[i];
                         break;
                     }
@@ -337,20 +341,17 @@ namespace Assets.Core
                 if (civSO.HasWarp)
                 {
                     FleetManager.Instance.BuildFirstFleetsNearSys(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
-                    //if (starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN)
-                    //{
                     ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
-                    //}
                 }
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
                 {
                     StarSysSO starSysSO = GetStarSObyInt(civSO.CivInt);
                     sysData.PowerPlants = AddSystemFacilities(starSysSO.PowerStations, PowerPlantPrefab, civSO.CivInt, sysData, 1);
                     sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, civSO.CivInt, sysData, 1);
-                    sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, civSO.CivInt, sysData,1);
-                    sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, civSO.CivInt, sysData,1);
-                    sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, civSO.CivInt, sysData,1);
-                    sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, civSO.CivInt, sysData,1);
+                    sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, civSO.CivInt, sysData, 1);
+                    sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, civSO.CivInt, sysData, 1);
+                    sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, civSO.CivInt, sysData, 1);
+                    sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, civSO.CivInt, sysData, 1);
                     SetParentForFacilities(starSysCon.gameObject, sysData);
 
                 }
@@ -359,6 +360,7 @@ namespace Assets.Core
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
                 InstantiateSysUIGameObject(starSysCon);
+                InstantiateSysShipsUIGameObject(starSysCon);
                 //***** This is temporary so we can test a multi-starsystem civ
                 //******* before diplomacy will alow civs/systems to join another civ
                 //if (systemCount == 8)
@@ -418,14 +420,14 @@ namespace Assets.Core
                         powerPlantData.CivInt = civInt;
                         powerPlantData.TechLevel = techLevel;
                         powerPlantData.FacilitiesEnumType = StarSysFacilities.PowerPlanet;
-                        powerPlantData.Name = powerPlantSO.Name;                       
+                        powerPlantData.Name = powerPlantSO.Name;
                         powerPlantData.StartStarDate = startingStarDate;
                         powerPlantData.BuildDuration = powerPlantSO.BuildDuration;
-                        powerPlantData.PowerOutput = powerPlantSO.PowerOutput;  
+                        powerPlantData.PowerOutput = powerPlantSO.PowerOutput;
                         powerPlantData.PowerPlantSprite = powerPlantSO.PowerPlantSprite;
                         powerPlantData.Description = powerPlantSO.Description;
                         sysData.PowerPlantData = powerPlantData;
-                        
+
                         List<PowerPlantData> powerPlantDatas = new List<PowerPlantData>();
                         for (int i = 0; i < numOf; i++)
                         {
@@ -435,11 +437,11 @@ namespace Assets.Core
                             newFacilityGO.layer = 5;
                             GetPowerPlantText(newFacilityGO, powerPlantData, numOf);
                             newFacilityGO.SetActive(false);
-                            
+
                             powerPlantData.SysGameObject = newFacilityGO;
                             list.Add(newFacilityGO);
-                        }  
-                        
+                        }
+
                         break;
                     }
                 case "FactoryData":
@@ -611,7 +613,7 @@ namespace Assets.Core
         private void GetPowerPlantText(GameObject go, PowerPlantData plantData, int numOf)
         {
             TextMeshProUGUI[] TheText = go.GetComponentsInChildren<TextMeshProUGUI>();
-            for (int i = 0;i < TheText.Length;i++) 
+            for (int i = 0; i < TheText.Length; i++)
             {
                 TheText[i].enabled = true;
                 if (TheText[i].name == "NameText (TMP)")
@@ -642,7 +644,7 @@ namespace Assets.Core
                     TheText[i].text = factoryData.PowerLoad.ToString();
                 else if (TheText[i].name == "DescriptionFactory")
                     TheText[i].text = factoryData.Description;
-                    
+
                 // image here
 
             }
@@ -723,7 +725,7 @@ namespace Assets.Core
         private StarSysSO GetStarSObyInt(int sysInt)
         {
             StarSysSO result = null;
-            for (int i = 0; i< starSysSOList.Count; i++)
+            for (int i = 0; i < starSysSOList.Count; i++)
             {
                 if (starSysSOList[i].StarSysInt == sysInt)
                 {
@@ -734,7 +736,7 @@ namespace Assets.Core
             return result;
 
         }
-        private PowerPlantSO GetPowrPlantSObyCivInt(int  civInt)
+        private PowerPlantSO GetPowrPlantSObyCivInt(int civInt)
         {
             PowerPlantSO result = null;
             if (civInt <= 6)
@@ -750,28 +752,28 @@ namespace Assets.Core
         private FactorySO GetFactorySObyCivInt(int civInt)
         {
             FactorySO result = null;
-            if(civInt <= 6)
+            if (civInt <= 6)
             {
                 result = factorySOList[civInt];
             }
             else
             {
-                result = factorySOList[0];                 
-            }          
+                result = factorySOList[0];
+            }
             return result;
         }
         private ShipyardSO GetShipyardSObyCivInt(int civInt)
         {
             ShipyardSO result = null;
 
-                if (civInt <= 6)
-                {
-                    result = shipyardSOList[civInt];
+            if (civInt <= 6)
+            {
+                result = shipyardSOList[civInt];
             }
-                else
-                {
-                    result = shipyardSOList[0];
-                }               
+            else
+            {
+                result = shipyardSOList[0];
+            }
             return result;
         }
         private ShieldGeneratorSO GetShieldGeneratorSObyCivInt(int civInt)
@@ -784,7 +786,7 @@ namespace Assets.Core
             else
             {
                 result = shieldGeneratorSOList[0];
-            }        
+            }
             return result;
         }
         private OrbitalBatterySO GetOrbitalBatterySObyCivInt(int civInt)
@@ -797,13 +799,13 @@ namespace Assets.Core
             else
             {
                 result = orbitalBatterySOList[0];
-            }    
+            }
             return result;
         }
         private ResearchCenterSO GetResearchCenterSObyCivInt(int civInt)
         {
             ResearchCenterSO result = null;
-            if ( civInt <= 6)
+            if (civInt <= 6)
             {
                 result = researchCenterSOList[civInt];
             }
@@ -817,7 +819,7 @@ namespace Assets.Core
         {
 
             StarSysData result = null;
-            for (int i = 0;i< StarSysControllerList.Count; i++)
+            for (int i = 0; i < StarSysControllerList.Count; i++)
             {
 
                 if (StarSysControllerList[i].StarSysData.GetSysName().Equals(name))
@@ -849,7 +851,7 @@ namespace Assets.Core
                     thisStarSysUIGameObject.layer = 5;
                     sysController.StarSysUIGameObject = thisStarSysUIGameObject;
                     sysController.StarSysUIGameObject.SetActive(true);
-                    thisStarSysUIGameObject.transform.SetParent(contentFolderParent.transform, false);
+                    thisStarSysUIGameObject.transform.SetParent(sysItemContentFolderParent.transform, false);
 
                     var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
                     for (int j = 0; j < transforms.Length; j++)
@@ -859,11 +861,35 @@ namespace Assets.Core
                             sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
                             return;
                         }
-                    }                   
+                    }
                 }
             }
         }
+        public void InstantiateSysShipsUIGameObject(StarSysController sysController)
+        {
+            if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
+            {
+                if (sysController.SystemShipsUIGameObject == null)
+                {
+                    GameObject thisShipSysUIGameObject = (GameObject)Instantiate(sysShipsUIPrefab, new Vector3(0, 0, 0),
+                        Quaternion.identity);
+                    thisShipSysUIGameObject.layer = 5;
+                    sysController.SystemShipsUIGameObject = thisShipSysUIGameObject;
+                    sysController.SystemShipsUIGameObject.SetActive(true);
+                    thisShipSysUIGameObject.transform.SetParent(sysShipsContentFolderParent.transform, false);
 
+                    var transforms = thisShipSysUIGameObject.transform.GetComponentsInChildren<Transform>();
+                    for (int j = 0; j < transforms.Length; j++)
+                    {
+                        if (transforms[j].gameObject.name == "SysShipContent")
+                        {
+                            sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
@@ -875,7 +901,7 @@ namespace Assets.Core
 
             // getting the FactoryBuildableItems code, set StarSysController/Data for them so they can send image endDrags back.
             sysBuildListInstance.transform.SetParent(canvasBuildList.transform, false);
-            FactoryBuildableItem[] buildable = sysBuildListInstance.GetComponentsInChildren<FactoryBuildableItem>();
+            FactoryBuildItemDrag[] buildable = sysBuildListInstance.GetComponentsInChildren<FactoryBuildItemDrag>();
 
 
             for (int m = 0; m < buildable.Length; m++)
@@ -1044,7 +1070,7 @@ namespace Assets.Core
                             {
                                 if (itemScoutImage[i].name == "ItemScout" || itemScoutImage[i].name == "ImageScoutBackground")
                                 {
-                                    itemScoutImage[i].sprite = scoutBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemScoutImage[i].sprite = scoutBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1058,7 +1084,7 @@ namespace Assets.Core
                             {
                                 if (itemDestroyerImage[i].name == "ItemDestroyer" || itemDestroyerImage[i].name == "ImageDestroyerBackground")
                                 {
-                                    itemDestroyerImage[i].sprite = destroyerBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemDestroyerImage[i].sprite = destroyerBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1078,7 +1104,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemCruiser" || itemCruiserImage[i].name == "ImageCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = cruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemCruiserImage[i].sprite = cruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1098,7 +1124,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemLtCruiser" || itemCruiserImage[i].name == "ImageLtCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = ltCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemCruiserImage[i].sprite = ltCruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1117,7 +1143,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemHvyCruiser" || itemCruiserImage[i].name == "ImageHvyCruiserBackground")
                                 {
-                                    itemCruiserImage[i].sprite = hvyCruiserBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemCruiserImage[i].sprite = hvyCruiserBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1131,7 +1157,7 @@ namespace Assets.Core
                             {
                                 if (itemCruiserImage[i].name == "ItemTransport" || itemCruiserImage[i].name == "ImageTransportBackground")
                                 {
-                                    itemCruiserImage[i].sprite = transportBluePrintPrefab.GetComponent<ShipInFleetDrag>().ShipSprite;
+                                    itemCruiserImage[i].sprite = transportBluePrintPrefab.GetComponent<SystemBuildShipDrag>().ShipSprite;
                                 }
                             }
                             break;
@@ -1148,8 +1174,8 @@ namespace Assets.Core
             shipSliderGO.layer = 5; //UI layer
 
         }
-        
-        public void NewImageInEmptyBuildableInventory(GameObject prefab, StarSysController sysCon) 
+
+        public void NewImageInEmptyBuildableInventory(GameObject prefab, StarSysController sysCon)
         {
             //if (sysCon == null)
             //    sysCon = currentActiveSysCon;
@@ -1201,7 +1227,7 @@ namespace Assets.Core
                     break;
             }
         }
-        public void NewImageInEmptyShipBuildableInventory(ShipType shiptype)
+        public void NewImageInShipInventory(ShipType shiptype)
         {
             switch (shiptype)
             {
@@ -1257,7 +1283,7 @@ namespace Assets.Core
                             ourGO.SetActive(true);
                             ourGO.GetComponentInChildren<TextMeshProUGUI>().text = starSysController.StarSysData.SysName;
                             oneDown = true;
-                           
+
                         }
                         if (ourGO.name == "OwnerInsignia")
                         {
@@ -1265,7 +1291,7 @@ namespace Assets.Core
                             ourGO.GetComponent<SpriteRenderer>().enabled = true;
                             ourGO.GetComponent<SpriteRenderer>().sortingOrder = 0;
                             oneMoreDown = true;
-                            
+
                         }
                         if (oneDown && oneMoreDown)
                         {
@@ -1292,6 +1318,26 @@ namespace Assets.Core
                 }
             }
         }
-    }   
+        public void MoveShipOutOfStarSys(ShipController shipCon, FleetController targetFleet, StarSysController targetSys)
+        {
+            if (shipCon.ShipData.CurrentStarSysController != null)
+            {
+                shipCon.ShipData.CurrentStarSysController.StarSysData.ShipsList.Remove(shipCon);
+            }
+            if (targetFleet != null)
+            {
+                targetFleet.FleetData.ShipsList.Add(shipCon);
+                shipCon.ShipData.CurrentFleetController = targetFleet;
+                shipCon.ShipData.CurrentStarSysController = null;
+            }
+            else if (targetSys != null)
+            {
+                targetSys.StarSysData.ShipsList.Add(shipCon);
+                shipCon.ShipData.CurrentStarSysController = targetSys;
+                shipCon.ShipData.CurrentFleetController = null;
+            }
+
+        }
+    }
 }
 

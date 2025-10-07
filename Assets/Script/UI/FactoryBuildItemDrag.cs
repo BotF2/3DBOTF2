@@ -5,14 +5,14 @@ using UnityEngine.EventSystems;
 using Assets.Core;
 
 
-public class ShipInFleetDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     public Transform originalParent;
     
-    public FleetController FleetController;
-    public ShipType ShipType;
+    public StarSysController StarSysController;
+    public StarSysFacilities FacilityType;
     public Sprite ShipSprite;
     public int BuildDuration;
 
@@ -23,26 +23,26 @@ public class ShipInFleetDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetDrag>();
+        var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
         switch (eventData.pointerDrag.name)
         {
-            case "ItemScout":
-                theDragedScript.ShipType = ShipType.Scout;
+            case "ItemPowerPlant":
+                theDragedScript.FacilityType = StarSysFacilities.PowerPlanet;
                     break;
             case "ItemFactory":
-                theDragedScript.ShipType = ShipType.Destroyer;
+                theDragedScript.FacilityType = StarSysFacilities.Factory;
                 break;
             case "ItemShipyard":
-                theDragedScript.ShipType = ShipType.Cruiser;
+                theDragedScript.FacilityType = StarSysFacilities.Shipyard;
                 break;
             case "ItemShieldGenerator":
-                theDragedScript.ShipType = ShipType.LtCruiser;
+                theDragedScript.FacilityType = StarSysFacilities.ShieldGenerator;
                 break;
             case "ItemOrbitalBattery":
-                theDragedScript.ShipType = ShipType.HvyCruiser;
+                theDragedScript.FacilityType = StarSysFacilities.OrbitalBattery;
                 break;
             case "ItemResearchCenter":
-                theDragedScript.ShipType = ShipType.Transport;
+                theDragedScript.FacilityType = StarSysFacilities.ResearchCenter;
                 break;
             default:
                 break;
@@ -64,58 +64,58 @@ public class ShipInFleetDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.blocksRaycasts = true;
-        if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
+        if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("FactoryBuildSlot"))
         {
             transform.SetParent(eventData.pointerEnter.transform);
-            var theDragedScript = eventData.pointerDrag.GetComponent<ShipInFleetDrag>();
+            var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
             switch (eventData.pointerDrag.name)
             {
                 case "ItemPowerPlant":
                 case "ItemPowerPlant Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.Scout;
+                    theDragedScript.FacilityType = StarSysFacilities.PowerPlanet;
                     break;
                 case "ItemFactory":
                 case "ItemFactory Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.Destroyer;
+                    theDragedScript.FacilityType = StarSysFacilities.Factory;
                     break;
                 case "ItemShipyard":
                 case "ItemShipyard Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.Cruiser;
+                    theDragedScript.FacilityType = StarSysFacilities.Shipyard;
                     break;
                 case "ItemShieldGenerator":
                 case "ItemShieldGenerator Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.LtCruiser;
+                    theDragedScript.FacilityType = StarSysFacilities.ShieldGenerator;
                     break;
                 case "ItemOrbitalBattery":
                 case "ItemOrbitalBattery Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.HvyCruiser;
+                    theDragedScript.FacilityType = StarSysFacilities.OrbitalBattery;
                     break;
                 case "ItemResearchCenter":
                 case "ItemResearchCenter Variant(Clone)":
-                    theDragedScript.ShipType = ShipType.Transport;
+                    theDragedScript.FacilityType = StarSysFacilities.ResearchCenter;
                     break;
                 default:
                     break;
             }
-            switch (theDragedScript.ShipType)
+            switch (theDragedScript.FacilityType)
             {
-                case ShipType.Scout:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.Scout);                //StarSysManager.Instance.scoutBluePrintPrefab);
+                case StarSysFacilities.PowerPlanet:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.PowerPlantPrefab, this.StarSysController);
                     break;
-                case ShipType.Destroyer:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.Destroyer);
+                case StarSysFacilities.Factory:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.FactoryPrefab, this.StarSysController);
                     break;
-                case ShipType.Cruiser:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.Cruiser);
+                case StarSysFacilities.Shipyard:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ShipyardPrefab, this.StarSysController);
                     break;
-                case ShipType.LtCruiser:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.LtCruiser);
+                case StarSysFacilities.ShieldGenerator:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ShieldGeneratorPrefab, this.StarSysController);
                     break;
-                case ShipType.HvyCruiser:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.HvyCruiser);
+                case StarSysFacilities.OrbitalBattery:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.OrbitalBatteryPrefab, this.StarSysController);
                     break;
-                case ShipType.Transport:
-                    StarSysManager.Instance.NewImageInEmptyShipBuildableInventory(ShipType.Transport);
+                case StarSysFacilities.ResearchCenter:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ResearchCenterPrefab, this.StarSysController);
                     break;
                 default:
                     break;

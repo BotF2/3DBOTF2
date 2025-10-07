@@ -81,6 +81,22 @@ public class StarSysData
     {
         return this.position;
     }
+    public List<ShipController> GetShipList()
+    {
+        return ShipsList;
+    }
+    public void SetShipList(List<ShipController> newShipList)
+    {
+        ShipsList = newShipList;
+    }
+    public void AddToShipList(ShipController shipController)
+    {
+        ShipsList.Add(shipController);
+    }
+    public void RemoveFromShipList(ShipController shipController)
+    {
+        ShipsList.Remove(shipController);
+    }
     public string GetSysName() { return this.sysName; }
     public CivEnum GetFirstOwner() { return this.firstOwnerCivEnum; }
 }

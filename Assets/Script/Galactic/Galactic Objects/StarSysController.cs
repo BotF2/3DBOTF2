@@ -22,7 +22,9 @@ namespace Assets.Core
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
         [SerializeField]
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
-        // instantiated by StarSysManager from the prefab and added to StarSysController
+
+        private GameObject systemShipUIGameObject;// instantiated by StarSysManager from the prefab and added to StarSysController
+        public GameObject SystemShipsUIGameObject { get { return systemShipUIGameObject; } set { systemShipUIGameObject = value; } }
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
         private Camera galaxyEventCamera;
         [SerializeField]
@@ -133,7 +135,7 @@ namespace Assets.Core
                     starTimer = true;
                     TimeToBuild = 0;
                     buildingItem = null;
-                    switch (sysBuildQueueList[0].gameObject.GetComponentInChildren<FactoryBuildableItem>().FacilityType)
+                    switch (sysBuildQueueList[0].gameObject.GetComponentInChildren<FactoryBuildItemDrag>().FacilityType)
                     {
                         case StarSysFacilities.PowerPlanet:
                             this.StarSysData.PowerPlants.Add(StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, (int)this.StarSysData.CurrentOwnerCivEnum, this.StarSysData, 0)[0]);
@@ -180,7 +182,7 @@ namespace Assets.Core
                             break;
                     }
                     var imageTransform = sysBuildQueueList[0];
-                    imageTransform.SetParent(imageTransform.GetComponent<FactoryBuildableItem>().originalParent, false);
+                    imageTransform.SetParent(imageTransform.GetComponent<FactoryBuildItemDrag>().originalParent, false);
                     if (imageTransform.parent.childCount > 1)
                     {
                         Destroy(imageTransform.gameObject);
@@ -218,7 +220,7 @@ namespace Assets.Core
                     shipBuildingItem = null;
                     CivEnum localPlayerCivEnum = CivManager.Instance.LocalPlayerCivContoller.CivData.CivEnum;
 
-                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<ShipInFleetDrag>().ShipType)
+                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<SystemBuildShipDrag>().ShipType)
                     {
                         case ShipType.Scout:
                             shipType = ShipType.Scout;
@@ -244,25 +246,12 @@ namespace Assets.Core
                     ShipManager.Instance.BuildShipInSystem(shipType, this);
 
                     var imageTransform = shipBuildQueueList[0];
-                    imageTransform.SetParent(imageTransform.GetComponent<ShipInFleetDrag>().originalParent, false);
+                    imageTransform.SetParent(imageTransform.GetComponent<SystemBuildShipDrag>().originalParent, false);
                     if (imageTransform.parent.childCount > 1)
                     {
                         Destroy(imageTransform.gameObject);
                     }
                     shipBuildQueueList.Remove(shipBuildQueueList[0]);
-                    //if (this.StarSysData.ShipsList.Count > 0)
-                    //{
-                    //    var shipDropdown = this.StarSysUIGameObject.GetComponentInChildren<TMP_Dropdown>();
-                    //    if (shipDropdown != null && shipDropdown.options.Count > 0)
-                    //    {
-                    //        shipDropdown.options.Clear();
-                    //        foreach (var ship in this.StarSysData.ShipsList)
-                    //        {
-                    //            shipDropdown.options.Add(new TMP_Dropdown.OptionData(ship.Name));
-                    //        }
-                    //    }
-                    //    shipDropdown.RefreshShownValue();
-                    //}
                 }
             }
             else if (ShipTimeToBuild < 0)
@@ -303,7 +292,7 @@ namespace Assets.Core
 
                 if (buildingItem != lastBuildingItem)
                 {
-                    TimeToBuild = GetBuildTimeDuration(buildingItem.gameObject.GetComponentInChildren<FactoryBuildableItem>().FacilityType);
+                    TimeToBuild = GetBuildTimeDuration(buildingItem.gameObject.GetComponentInChildren<FactoryBuildItemDrag>().FacilityType);
                     lastBuildingItem = buildingItem;
                     starTimer = true;
                 }
@@ -339,7 +328,7 @@ namespace Assets.Core
 
                 if (shipBuildingItem != lastShipBuildingItem)
                 {
-                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<ShipInFleetDrag>();
+                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<SystemBuildShipDrag>();
                     ShipTimeToBuild = ShipManager.Instance.GetShipBuildDuration(shipBuildableItem.ShipType, this.StarSysData.CurrentCivController.CivData.TechLevel, this.StarSysData.CurrentOwnerCivEnum);
                     lastShipBuildingItem = shipBuildingItem;
                     shipStartTimer = true;

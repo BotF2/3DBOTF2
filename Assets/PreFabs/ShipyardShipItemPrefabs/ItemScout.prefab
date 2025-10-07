@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6321614478493960931}
   - component: {fileID: 6321614478493960942}
   - component: {fileID: 6321614478493960929}
-  - component: {fileID: 730054625060831294}
+  - component: {fileID: 5311744857681814039}
   - component: {fileID: 6321614478493960943}
   m_Layer: 5
   m_Name: ItemScout
@@ -77,7 +77,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &730054625060831294
+--- !u!114 &5311744857681814039
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -88,9 +88,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0811ed44453ad9349872ae8f5c7c4d91, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::FleetSystemShipDrag
   originalParent: {fileID: 0}
-  FleetController: {fileID: 0}
+  FleetControllerOne: {fileID: 0}
+  FleetControllerTwo: {fileID: 0}
+  StarSysController: {fileID: 0}
   ShipType: 0
   ShipSprite: {fileID: 0}
   BuildDuration: 0

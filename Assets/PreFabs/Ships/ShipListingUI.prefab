@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8907916103172586343}
   - component: {fileID: 4303562923511528755}
   - component: {fileID: 9070003892515775203}
+  - component: {fileID: 7832649142337502281}
   m_Layer: 5
   m_Name: ShipListingUI
   m_TagString: Untagged
@@ -36,7 +37,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1624, y: -103}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 136, y: 30}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &4303562923511528755
@@ -77,6 +78,22 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7832649142337502281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097691733155681692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8b7ba54f37f61a46b7a50601d4b7494, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShipDrag
+  originalParent: {fileID: 0}
+  ShipType: 0
+  ShipSprite: {fileID: 0}
+  BuildDuration: 0
 --- !u!1 &5585935713694846409
 GameObject:
   m_ObjectHideFlags: 0
