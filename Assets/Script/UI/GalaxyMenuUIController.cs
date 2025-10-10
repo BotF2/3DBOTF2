@@ -131,8 +131,11 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private GameObject cancelDestinationButtonGO;
     [SerializeField]
+    private GameObject selectOtherSysOrFleetButtonGO;
+    [SerializeField]
     private GameObject dragDestinationTargetButtonGO;
     public bool MouseClickSetsDestination = false;// used by FleetController and StarSysController
+    public bool MouseClickSellectsSysOrFleetForShipExchange = false;// used by FleetController and StarSysController
     [SerializeField]
     private TextMeshProUGUI destinationName;
     [SerializeField]
@@ -569,11 +572,11 @@ public class GalaxyMenuUIController : MonoBehaviour
                                 rectTransforms[i].gameObject.SetActive(true);
                                 warpSlider = rectTransforms[i].GetComponent<Slider>();
                                 break;
-                            //case "ButtonShipManager":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    shipManagementButtonGO = rectTransforms[i].gameObject;
-                            //    break;
-                                
+                            case "SelectOtherSysOrFleetForShipsButton":
+                                rectTransforms[i].gameObject.SetActive(true);
+                                selectOtherSysOrFleetButtonGO = rectTransforms[i].gameObject;
+                                break;
+
                             default:
                                 break;
                         }
@@ -836,7 +839,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         {
             if (MousePointerChanger.Instance.HaveGalaxyMapCursor == false)
             {
-                // FleetConsLookingForDestination.Add(fleetConWaitingForDestination); // list for mulitplayer games
                 dragDestinationTargetButtonGO.SetActive(false); // to see cancel destination button below
                 cancelDestinationButtonGO.SetActive(true);
                 selectDestinationCursorButtonGO.SetActive(false);
@@ -887,6 +889,21 @@ public class GalaxyMenuUIController : MonoBehaviour
         MouseClickSetsDestination = false;
         cancelDestinationButtonGO.SetActive(true);
         dragDestinationTargetButtonGO.SetActive(false);
+    }
+    public void SelectedShipExhangeCursor(FleetController fleetConForShipExhange)
+    {
+        if (GameController.Instance.AreWeLocalPlayer(fleetConForShipExhange.FleetData.CivEnum))
+        {
+            if (MousePointerChanger.Instance.HaveGalaxyMapCursor == false)
+            {
+                dragDestinationTargetButtonGO.SetActive(true); // to see cancel destination button below
+                cancelDestinationButtonGO.SetActive(true);
+                selectOtherSysOrFleetButtonGO.SetActive(false);
+                MouseClickSetsDestination = false;
+                //MousePointerChanger.Instance.ChangeToGalaxyMapCursor(fleetConWaitingForDestination);
+                //MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
+            }
+        }
     }
     #endregion FleetUI
 
