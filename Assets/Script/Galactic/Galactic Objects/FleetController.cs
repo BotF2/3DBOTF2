@@ -20,7 +20,7 @@ namespace Assets.Core
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
         public GameObject FleetUIGameObject; //The instantiated fleet UI for this fleet. a prefab clone, not a class but a game object
-        // instantiated by FleetManager from a prefab and added to FleetController
+        public GameObject RightSideShipManagementFleetUIGO; 
         public string Name;
         public int intName = 1;
         private float warpFudgeFactor = 10f;
@@ -127,18 +127,23 @@ namespace Assets.Core
                 {
                     // What a fleet FleetController does with a click
                     FleetController clickedFleetCon = fleetGo.GetComponentInChildren<FleetController>();
-                    if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == false) // the destination mouse pointer is off so open FleetUI for this FleetController
+                    if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == false && GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange == false) // the destination mouse pointer is off so open FleetUI for this FleetController
                     {
                         if (GameController.Instance.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
                         {
                             GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, fleetGo);
                         }
                     }
-                    else if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true && clickedFleetCon == this)
+                    else if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true && clickedFleetCon != this)
                     {
                         FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
                         theFleetConLookingForDestination.FleetData.Destination = fleetGo; // set the destination for the fleet looking for a destination
                         theFleetConLookingForDestination.SetAsDestinationInUI(fleetGo);
+                    }
+                    else if (GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange == true && clickedFleetCon != this)
+                    {
+                        // load the right side fleet UI prefab into the AFleetMenuView
+                        GalaxyMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(fleetGo);
                     }
                 }
             }
@@ -177,8 +182,8 @@ namespace Assets.Core
                             OnADestinationThatIsOtherCivFleet(hitFleetCon);
 
                             DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
-                            //ToDo: resovle an encounter with galaxy object that does not have a civ, black hole, wormhole, transwarp hub, etc
-                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // setactive sprite and name
+                            //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
+                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
 
                             if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
                             {
@@ -199,7 +204,7 @@ namespace Assets.Core
                         // not our destination ignore for now
                     }
                 }
-                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reporst a collition for now, not the sys
+                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reports a collision for now, not the system
                 {
                     if (isOurDestination)
                     {
@@ -241,7 +246,7 @@ namespace Assets.Core
             // pixel coordinates (x,y)
             Vector3 mousePoint = Input.mousePosition;
 
-            //z coordiante of game object on screen
+            //z coordinate of game object on screen
             mousePoint.z = ourZCoordinate;
 
             return galaxyEventCamera.ScreenToWorldPoint(mousePoint);
@@ -324,7 +329,7 @@ namespace Assets.Core
         }
         void OnADestinationThatIsOtherCivFleet(FleetController theirFleetCon)
         {
-            // Fleet only Logic to handle what happens when our fleet arrives at thier fleet destination
+            // Fleet only Logic to handle what happens when our fleet arrives at their fleet destination
             //GalaxyMenuUIController.Instance.ClickCancelDestinationButton(); 
         }
         void OnADestinationThatIsOurOtherFleet(FleetController ourOtherFleet)
@@ -376,11 +381,7 @@ namespace Assets.Core
                // TimeManager.Instance.ResumeTime();
             }
         }
-        //public void ShipManageClick(FleetController fleetCon) // open ship manager UI
-        //{
-        //    //FleetManager.Instance.InstantiateFleetsShipManagerUI(this);
-        //    GalaxyMenuUIController.Instance.OpenMenu(Menu.ShipsMenu, null);
-        //}
+
         public void FleetOnWarpUpClick(FleetController fleetCon)
         {
             if (this == fleetCon)
@@ -424,13 +425,28 @@ namespace Assets.Core
             FleetData.CurrentWarpFactor = newWarpValue;
             GalaxyMenuUIController.Instance.UpdateFleetWarpUI(this, newWarpValue);
         }
+        public void SelectedShipManageCursor(FleetController fleetCon)
+        {
+            if (MousePointerChanger.Instance.HaveGalaxyMapShipManageCursor == false)
+            {
+                GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange = true;
+                GalaxyMenuUIController.Instance.SelectedShipManageCursor(this);
+                MousePointerChanger.Instance.ChangeToGalaxyMapShipManageCursor(fleetCon);
+                MousePointerChanger.Instance.HaveGalaxyMapShipManageCursor = true;
+            }
+        }
+        public void ClickCancelShipManageButton(FleetController fleetCon)
+        {
+            GalaxyMenuUIController.Instance.ClickCancelShipManageButton(this);
+            GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange = false;
+        }
         public void SelectedDestinationCursor(FleetController fleetCon)
         {
             if (MousePointerChanger.Instance.HaveGalaxyMapCursor == false)
             {
                 GalaxyMenuUIController.Instance.MouseClickSetsDestination = true;
                 GalaxyMenuUIController.Instance.SelectedDestinationCursor(this);
-                MousePointerChanger.Instance.ChangeToGalaxyMapCursor(fleetCon);
+                MousePointerChanger.Instance.ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
                 MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
             }
         }
@@ -604,45 +620,6 @@ namespace Assets.Core
                 }
             }
         }
-
-        //internal void NewImageInShipInventory(ShipType shipType)
-        //{
-        //    switch (shipType)
-        //    {
-        //        case ShipType.Scout:
-        //            GameObject ItemSGO = (GameObject)Instantiate(scoutBluePrintPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            ItemSGO.transform.SetParent(scoutInventorySlot.transform, false);
-        //            break;
-        //        case ShipType.Destroyer:
-        //            GameObject ItemDGO = (GameObject)Instantiate(destroyerBluePrintPrefab, new Vector3(0, 0, 0),
-        //               Quaternion.identity);
-        //            ItemDGO.transform.SetParent(destroyerInventorySlot.transform, false);
-        //            break;
-        //        case ShipType.Cruiser:
-        //            GameObject cruiserItemGO = (GameObject)Instantiate(cruiserBluePrintPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            cruiserItemGO.transform.SetParent(cruiserInventorySlot.transform, false);
-        //            break;
-        //        case ShipType.LtCruiser:
-        //            GameObject ltCruiserItemGO = (GameObject)Instantiate(ltCruiserBluePrintPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            ltCruiserItemGO.transform.SetParent(ltCruiserInventorySlot.transform, false);
-        //            break;
-        //        case ShipType.HvyCruiser:
-        //            GameObject hvyCruiserItemGO = (GameObject)Instantiate(hvyCruiserBluePrintPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            hvyCruiserItemGO.transform.SetParent(hvyCruiserInventorySlot.transform, false);
-        //            break;
-        //        case ShipType.Transport:
-        //            GameObject transportItemGO = (GameObject)Instantiate(transportBluePrintPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            transportItemGO.transform.SetParent(transportInventorySlot.transform, false);
-        //            break;
-        //        default:
-        //            break;
-        //    }
-        //}
     }
 }
 

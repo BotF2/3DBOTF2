@@ -102,7 +102,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private Menu openMenuEnumWas;
     [SerializeField]
-    private GameObject fleetUI_Prefab;// GameObject controlles this active UI on/off
+    private GameObject fleetUI_Prefab;// GameObject controls this active UI on/off
     [SerializeField]
     private Slider warpSlider;
     [SerializeField]
@@ -203,7 +203,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
         diplomacyControllers = new List<DiplomacyController>();
-        SetupSystemUIData();//get our system ui game objects to match your sys controllers
+        SetupSystemUIData();//get our system ui game objects to match your system controllers
         SetupFleetsAndSystemsShipUIData();//get our fleet ui game objects to match your fleet controllers
     }
 
@@ -212,11 +212,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         sysBuildMenu = prefabMenu;
         sysBuildMenu.SetActive(true);
     }
-    //public void SetActiveManageFleetsShipMenu(GameObject prefabMenu)
-    //{
-    //    manageFleetShipsMenu = prefabMenu;
-    //    manageFleetShipsMenu.SetActive(true);
-    //}
+
     public void CloseTheBackgrounds()
     {
         sysBackground.SetActive(false);
@@ -353,7 +349,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
                 // ToDo: put a paused time indicator on screen
-                diplomacyMenuView.gameObject.SetActive(true);               
+                diplomacyMenuView.gameObject.SetActive(true);
                 diplomacyMenuView.SetActive(true);
                 diplomacyBackground.SetActive(true);
                 openMenuWas = diplomacyMenuView;
@@ -461,7 +457,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.DiplomacyMenu:
                 diplomacyBackground.SetActive(false);
                 diplomacyMenuView.SetActive(false);
-               // TimeManager.Instance.ResumeTime();
+                // TimeManager.Instance.ResumeTime();
                 openMenuWas = diplomacyMenuView;
                 break;
             case Menu.ADiplomacyMenu:
@@ -482,7 +478,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = encyclopediaMenuView;
                 break;
             case Menu.HabitableSysMenu:
-               // TimeManager.Instance.ResumeTime();
+                // TimeManager.Instance.ResumeTime();
                 habitableSysMenu.SetActive(false);
                 openMenuWas = habitableSysMenu;
                 break;
@@ -515,8 +511,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
     }
     public void SetupFleetsAndSystemsShipUIData()
-    { // populate the fleet ship UIs and sys ship UI with the data from the fleetControllers...
-
+    {
+        // populate the fleet ship UIs and system ship UI with the data from the fleetControllers...
         for (int j = 0; j < FleetManager.Instance.FleetControllerList.Count; j++)
         {
             var fleetCon = FleetManager.Instance.FleetControllerList[j];
@@ -650,17 +646,20 @@ public class GalaxyMenuUIController : MonoBehaviour
                             listButton.onClick.RemoveAllListeners();
                             listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI());  //fleetCon));
                             break;
-                        case "ButtonShipManager":
-                            // ToDo: open ship manager UI, instantiate prefab  similar to systems build menu with drag and drop
+                        case "SelectOtherSysOrFleetForShipsButton":
                             listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => fleetCon.OnClickShipManager(fleetCon));  //fleetCon));
+                            listButton.onClick.AddListener(() => fleetCon.SelectedShipManageCursor(fleetCon));  //fleetCon));
+                            break;
+                        case "CancelSysOrFleetForShipsButton":
+                            listButton.onClick.RemoveAllListeners();
+                            listButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton(fleetCon));  //fleetCon));
                             break;
                         default:
                             break;
                     }
                 }
                 for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
-                {                 
+                {
                     if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
                     {
                         var transforms = fleetCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
@@ -793,7 +792,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
-    {   
+    {
         if (fleetCon.FleetUIGameObject != null)
         {
             float warpSliderValue = theirWarp;
@@ -843,11 +842,12 @@ public class GalaxyMenuUIController : MonoBehaviour
                 cancelDestinationButtonGO.SetActive(true);
                 selectDestinationCursorButtonGO.SetActive(false);
                 MouseClickSetsDestination = true;
-                MousePointerChanger.Instance.ChangeToGalaxyMapCursor(fleetConWaitingForDestination);
+                MousePointerChanger.Instance.ChangeToGalaxyMapCursorForLocalPlayer(fleetConWaitingForDestination);
                 MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
             }
         }
     }
+
     public void ClickCancelDestinationButton(FleetController fleetCon)
     {
         UpdateFleetWarpUI(fleetCon, 0f);
@@ -890,20 +890,25 @@ public class GalaxyMenuUIController : MonoBehaviour
         cancelDestinationButtonGO.SetActive(true);
         dragDestinationTargetButtonGO.SetActive(false);
     }
-    public void SelectedShipExhangeCursor(FleetController fleetConForShipExhange)
+    public void SelectedShipManageCursor(FleetController fleetConForShipManage)
     {
-        if (GameController.Instance.AreWeLocalPlayer(fleetConForShipExhange.FleetData.CivEnum))
+        if (GameController.Instance.AreWeLocalPlayer(fleetConForShipManage.FleetData.CivEnum))
         {
-            if (MousePointerChanger.Instance.HaveGalaxyMapCursor == false)
+            if (MousePointerChanger.Instance.HaveGalaxyMapShipManageCursor == false)
             {
-                dragDestinationTargetButtonGO.SetActive(true); // to see cancel destination button below
-                cancelDestinationButtonGO.SetActive(true);
-                selectOtherSysOrFleetButtonGO.SetActive(false);
-                MouseClickSetsDestination = false;
-                //MousePointerChanger.Instance.ChangeToGalaxyMapCursor(fleetConWaitingForDestination);
-                //MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
+                selectOtherSysOrFleetButtonGO.SetActive(false); // to see cancel ship manage button below it
+                MouseClickSellectsSysOrFleetForShipExchange = true;
+                MousePointerChanger.Instance.ChangeToGalaxyMapShipManageCursor(fleetConForShipManage);
+                MousePointerChanger.Instance.HaveGalaxyMapShipManageCursor = true;
             }
         }
+    }
+    public void ClickCancelShipManageButton(FleetController fleetCon)
+    {
+        MousePointerChanger.Instance.ResetCursor();
+        MousePointerChanger.Instance.HaveGalaxyMapShipManageCursor = false;
+        MouseClickSellectsSysOrFleetForShipExchange = false;
+        selectOtherSysOrFleetButtonGO.SetActive(true);
     }
     #endregion FleetUI
 
@@ -952,7 +957,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 sysController.StarSysUIGameObject.SetActive(true);
                 //sysController.SystemShipsUIGameObject.SetActive(true);
                 sysController.StarSysUIGameObject.transform.SetParent(sysListContainer.transform, false);
-               // sysController.SystemShipsUIGameObject.transform.SetParent(sysShipListContainer.transform, false);
+                // sysController.SystemShipsUIGameObject.transform.SetParent(sysShipListContainer.transform, false);
                 sysControllers.Add(sysController);// add to list for the ContentSystems (queue) folder
                 listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
                 //listOfSysShipUiGos.Add(sysController.SystemShipsUIGameObject);
@@ -978,13 +983,13 @@ public class GalaxyMenuUIController : MonoBehaviour
 
                     switch (name)
                     {
-                        case "SysName": // text in the button for sys activation
+                        case "SysName": // text in the button for system activation
                             OneTMP[i].text = sysController.StarSysData.SysName;
                             break;
                         case "HeaderPowerUnitText":
                             //if (sysController.StarSysData.PowerPlants.Count > 0)  
                             OneTMP[i].text = sysController.StarSysData.PowerPlantData.Name;
-                            //ToDo: can make it race specific here, not defaul "Plasma Reactor"
+                            //ToDo: can make it race specific here, not default "Plasma Reactor"
                             break;
                         case "NumPUnits":
                             OneTMP[i].text = (sysController.StarSysData.PowerPlants.Count).ToString();
@@ -1088,7 +1093,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                         case "PowerOverload":
                             OneTMP[i].gameObject.SetActive(false);
                             powerOverload = OneTMP[i].gameObject; //.SetActive(true);
-                            break;                       
+                            break;
                         default:
                             break;
 
@@ -1192,7 +1197,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     }
                 }
                 for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
-                {       
+                {
                     if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
                     {
                         var transforms = sysController.StarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
@@ -1360,14 +1365,14 @@ public class GalaxyMenuUIController : MonoBehaviour
         selectDestinationCursorButtonGO.SetActive(true);
         //selectDestinationBttonText.text = "Select Destination";
         MouseClickSetsDestination = true;
-        MousePointerChanger.Instance.ChangeToGalaxyMapCursor(fleetCon);
+        MousePointerChanger.Instance.ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
         MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
     }
     #endregion Player Defined Drag Target Destination
 
     #region Diplomacy UI
 
-    // ToDo: Build out Diplomacy to work with traites for AI and human players
+    // ToDo: Build out Diplomacy to work with traits for AI and human players
     private void MoveTheDiplomacyUIGO(GameObject fleetConGO)
     {
         for (int i = 0; i < listOfDiplomacyUiGos.Count; i++)
@@ -1388,7 +1393,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
     }
     public void OpenADiplomacyUI(DiplomacyController diplomacyCon, List<ShipController> shipList)
-    { 
+    {
         HideNoContactUI();
         CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
         CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
@@ -1495,7 +1500,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                     rectTransforms[i].gameObject.SetActive(true);
                     combatButtonGO = rectTransforms[i].gameObject;
                     break;
-                case "ButtonCloseDiplomacytUI": 
+                case "ButtonCloseDiplomacytUI":
                     rectTransforms[i].gameObject.SetActive(true);
                     closeDiplomacyButtonGO = rectTransforms[i].gameObject;
                     break;
@@ -1518,69 +1523,69 @@ public class GalaxyMenuUIController : MonoBehaviour
             ourTMPs[i].enabled = true;
             var aName = ourTMPs[i].name;
             var sysCiv = homeSysController.StarSysData.CurrentOwnerCivEnum;
-            string nameOfWhatWeSee =notLocalPlayerCiv.CivData.CivShortName;
+            string nameOfWhatWeSee = notLocalPlayerCiv.CivData.CivShortName;
             CountShips(shipList);
             //   ourTMPs[i].text = "No Intel";
             //    continue;
             switch (aName)
-                {
-                    case "ThierNameText":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
-                        break;
-                    case "RelationText":
-                        ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
-                        break;
-                    case "Text Points (TMP)":
-                        ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
-                        break;
-                    case "TraitText (1)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
-                        break;
-                    case "TraitText (2)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
-                        break;
-                    case "TraitText (3)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
-                        break;
-                    case "TraitText (4)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
-                        break;
-                    case "OurTraitText (1)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
-                        break;
-                    case "OurTraitText (2)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
-                        break;
-                    case "OurTraitText (3)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
-                        break;
-                    case "OurTraitText (4)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();
-                        break;
-                    case "WhoWeHit":
-                        ourTMPs[i].text = nameOfWhatWeSee;
-                        break;
-                    case "NumS":
-                        ourTMPs[i].text = _scouts.ToString();
-                        break;
-                    case "NumD":
-                        ourTMPs[i].text = _destroyers.ToString();
-                        break;
-                    case "NumC":
-                        ourTMPs[i].text = _cruisters.ToString();
-                        break;
-                    case "NumLC":
-                        ourTMPs[i].text = _ltCruisers.ToString();
-                        break;
-                    case "NumHC":
-                        ourTMPs[i].text = _hvyCruisers.ToString();
-                        break;
-                    case "NumT":
-                        ourTMPs[i].text = _transports.ToString();
-                        break;
+            {
+                case "ThierNameText":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
+                    break;
+                case "RelationText":
+                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
+                    break;
+                case "Text Points (TMP)":
+                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
+                    break;
+                case "TraitText (1)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
+                    break;
+                case "TraitText (2)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
+                    break;
+                case "TraitText (3)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
+                    break;
+                case "TraitText (4)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
+                    break;
+                case "OurTraitText (1)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
+                    break;
+                case "OurTraitText (2)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
+                    break;
+                case "OurTraitText (3)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
+                    break;
+                case "OurTraitText (4)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();
+                    break;
+                case "WhoWeHit":
+                    ourTMPs[i].text = nameOfWhatWeSee;
+                    break;
+                case "NumS":
+                    ourTMPs[i].text = _scouts.ToString();
+                    break;
+                case "NumD":
+                    ourTMPs[i].text = _destroyers.ToString();
+                    break;
+                case "NumC":
+                    ourTMPs[i].text = _cruisters.ToString();
+                    break;
+                case "NumLC":
+                    ourTMPs[i].text = _ltCruisers.ToString();
+                    break;
+                case "NumHC":
+                    ourTMPs[i].text = _hvyCruisers.ToString();
+                    break;
+                case "NumT":
+                    ourTMPs[i].text = _transports.ToString();
+                    break;
                 default:
-                        break;
-                }
+                    break;
+            }
         }
         Button[] listButtons = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Button>();
         foreach (var listButton in listButtons)
@@ -1662,7 +1667,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     private void CountShips(List<ShipController> ships)
     {
-        _scouts =ships.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _scouts = ships.Count(s => s.ShipData.ShipType == ShipType.Scout);
         _destroyers = ships.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
         _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
         _ltCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
@@ -1674,8 +1679,181 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         diplomacyNoContacts.SetActive(false);
     }
-
     #endregion Diplomacy
+
+    internal void LoadRightSideShipManagerFleetUIPrefab(GameObject fleetGo)
+    {
+        //for (int j = 0; j < FleetManager.Instance.FleetControllerList.Count; j++)
+        //{
+        var fleetCon = fleetGo.GetComponent<FleetController>();
+        if (GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+        {
+            //GameObject RightSideShipManagementFleetUIGO = Instantiate(fleetCon.RightSideShipManagementFleetUIGO);
+            fleetCon.RightSideShipManagementFleetUIGO.SetActive(true);
+            fleetCon.RightSideShipManagementFleetUIGO.transform.SetParent(aFleetMenuView.transform, false);
+            //fleetControllers.Add(fleetCon);// add to list for ContentFleets GalaxyMenuUI knows 
+            //listOfFleetUiGos.Add(fleetCon.FleetUIGameObject); // add to list of FleetUI Game Objects GalaxyMenuUI knows
+            RectTransform[] rectTransforms = fleetCon.FleetUIGameObject.GetComponentsInChildren<RectTransform>();
+            for (int i = 0; i < rectTransforms.Length; i++)
+            {
+                switch (rectTransforms[i].name)
+                {
+                    case "RedDot":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor
+                        float y = 0f;
+                        float z = fleetCon.FleetData.Position.z * 0.12f;
+                        rectTransforms[i].Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
+                        break;
+                    case "DestinationDragTarget Button":
+                        rectTransforms[i].gameObject.SetActive(true); // Ensure the GameObject is active
+                        dragDestinationTargetButtonGO = rectTransforms[i].gameObject; // Assign the GameObject reference to the variable
+                        break;
+                    case "Cancel Destination Button":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        cancelDestinationButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "ButtonWarpUp":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        warpUpButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "ButtonWarpDown":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        warpDownButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "SelectDestinationCursorButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        selectDestinationCursorButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "Destination Coordinates":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        destinationCoordinates = rectTransforms[i].GetComponent<TextMeshProUGUI>();
+                        break;
+                    case "Destination Name Text":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        destinationName = rectTransforms[i].GetComponent<TextMeshProUGUI>();
+                        break;
+                    case "WarpSlider":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        warpSlider = rectTransforms[i].GetComponent<Slider>();
+                        break;
+                    case "SelectOtherSysOrFleetForShipsButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        selectOtherSysOrFleetButtonGO = rectTransforms[i].gameObject;
+                        break;
+
+                    default:
+                        break;
+                }
+
+            }
+
+            TextMeshProUGUI[] ourTMPs = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            for (int i = 0; i < ourTMPs.Length; i++)
+            {
+                int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
+                ourTMPs[i].enabled = true;
+                var name = ourTMPs[i].name;
+
+                switch (name)
+                {
+                    case "Text FleetName (TMP)":
+                        ourTMPs[i].text = fleetCon.FleetData.Name;
+                        break;
+                    case "Destination Name Text":
+                        ourTMPs[i].text = "No Destination";
+                        break;
+                    case "Destination Coordinates":
+                        ourTMPs[i].text = "";
+                        break;
+                    case "Warp Value Text (TMP)":
+                        ourTMPs[i].text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
+                        break;
+                    case "FleetMaxWarpFactor":
+                        ourTMPs[i].text = fleetCon.FleetData.MaxWarpFactor.ToString("0.0");
+                        break;
+                }
+            }
+            Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>();
+            if (slider != null)
+            {
+                slider.onValueChanged.RemoveAllListeners();
+                slider.value = fleetCon.FleetData.CurrentWarpFactor;
+                slider.maxValue = fleetCon.FleetData.MaxWarpFactor;
+                slider.enabled = true;
+                slider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
+            }
+            Button[] listButtons = fleetCon.FleetUIGameObject.GetComponentsInChildren<Button>();
+            foreach (var listButton in listButtons)
+            {
+                switch (listButton.name)
+                {
+                    case "SelectDestinationCursorButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.SelectedDestinationCursor(fleetCon));
+                        break;
+                    case "Cancel Destination Button":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton(fleetCon));
+                        break;
+                    case "DestinationDragTarget Button":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
+                        break;
+                    case "ButtonWarpUp":
+                        fleetCon.FleetData.FleetButtonUp = listButton;
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.FleetOnWarpUpClick(fleetCon));
+                        break;
+                    case "ButtonWarpDown":
+                        fleetCon.FleetData.FleetButtonDown = listButton;
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
+                        break;
+                    case "ButtonCloseFleetUI":
+                        fleetCon.FleetData.FleetButtonUIClose = listButton;
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI());  //fleetCon));
+                        break;
+                    case "SelectOtherSysOrFleetForShipsButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.SelectedShipManageCursor(fleetCon));  //fleetCon));
+                        break;
+                    case "CancelSysOrFleetForShipsButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton(fleetCon));  //fleetCon));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            for (int i = 0; i < fleetCon.FleetData.ShipsList.Count; i++)
+            {
+                if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
+                {
+                    var transforms = fleetCon.FleetUIGameObject.transform.GetComponentsInChildren<Transform>();
+                    for (int k = 0; k < transforms.Length; k++)
+                    {
+                        if (transforms[k].gameObject.name == "ShipContent")
+                        {
+                            shipContainer = transforms[k].gameObject;
+                            break;
+                        }
+                    }
+                    fleetCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(shipContainer.transform, false);
+                }
+            }
+        }
+        //if (fleetCon.RightSideShipManagementFleetUIGO != null)
+        //{
+        //    fleetCon.RightSideShipManagementFleetUIGO.SetActive(true);
+        //    fleetCon.RightSideShipManagementFleetUIGO.transform.SetParent(shipsListContainer.transform, false);
+        //}
+    }
 }
+    
+
+    
+
 
 

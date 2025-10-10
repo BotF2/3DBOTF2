@@ -267,7 +267,7 @@ namespace Assets.Core
         {
             lastBuildQueueCount = this.buildListGridLayoutGroup.transform.childCount;
             Debug.Log("Grid layout has changed!");
-            // update syscontroller sysBuildQueue list to match buildListBridLayoutGroup.tranform children
+            // update star system controller sysBuildQueue list to match buildListBridLayoutGroup.tranform children
             foreach (Transform child in buildListGridLayoutGroup.transform)
             {
                 if (!sysBuildQueueList.Contains(child))
@@ -303,7 +303,7 @@ namespace Assets.Core
         {
             lastShipBuildQueueCount = this.shipListGridLayoutGroup.transform.childCount;
             Debug.Log("Ship Grid layout has changed!");
-            // update syscontroller list to match buildShipListBridLayoutGroup.tranform children
+            // update star system controller list to match buildShipListBridLayoutGroup.tranform children
             foreach (Transform child in shipListGridLayoutGroup.transform)
             {
                 if (!shipBuildQueueList.Contains(child))

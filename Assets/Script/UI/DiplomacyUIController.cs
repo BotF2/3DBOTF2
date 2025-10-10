@@ -12,9 +12,9 @@ public class DiplomacyUIController : MonoBehaviour
     [SerializeField]
     private Canvas parentCanvas;
     public DiplomacyController DiplomacyController;
-    public GameObject DiplomacyUIToggle; // GameObject controlles this active UI on/off
+    public GameObject DiplomacyUIToggle; // GameObject control this active UI on/off
     [SerializeField]
-    private GameObject firstContatct;
+    private GameObject firstContact;
     [SerializeField]
     private TMP_Text theirNameTMP;
     [SerializeField]

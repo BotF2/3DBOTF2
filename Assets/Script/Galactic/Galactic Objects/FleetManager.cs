@@ -34,6 +34,8 @@ namespace Assets.Core
         [SerializeField]
         private GameObject fleetUIPrefab;
         [SerializeField]
+        private GameObject rightSideShipManagerFleetUIPrefab;
+        [SerializeField]
         private GameObject shipManagerMenuPrefab;
         [SerializeField]
         private Material fogPlaneMaterial;
