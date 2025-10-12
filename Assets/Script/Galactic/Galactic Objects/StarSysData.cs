@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.UI;
 /// <summary>
 /// This is a type of galactic object that is a 'StarSystem' class (Manager/Controller/Data and can have a habitable 'planet') 
-/// with a real star or a nebula or a complex as in the Borg Unicomplex)
+/// with a real star or a nebula or a complex as in the Borg Uni-complex)
 /// Other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
-/// and blackholes/wormholes (one class.)
+/// and black-holes/wormholes (one class.)
 /// Star systems also hold ships just like fleets hold ships
 /// </summary>
 public class StarSysData

@@ -12,9 +12,9 @@ namespace Assets.Core
     /// <summary>
     /// Instantiates the star system (a StarSysController and a StarSysData) using StarSysSO.
     /// This is a type of galactic object that is a 'StarSystem' class (Manager/Controller/Data and can have a habitable 'planet') 
-    /// with a real star or a nebula or a complex as in the Borg Unicomplex)
+    /// with a real star or a nebula or a complex as in the Borg Uni-complex)
     /// Other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
-    /// and blackholes/wormholes (one class.) 
+    /// and black-holes/wormholes (one class.) 
     /// </summary>
     public class StarSysManager : MonoBehaviour
     {
@@ -233,20 +233,18 @@ namespace Assets.Core
         {
 
             if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
-            { // do something random with sys and fleetData.position
+            { // do something random with system and fleetData.position
             }
             else if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RING)
             {
-                // do something in a ring with sys and fleetData.position
+                // do something in a ring with system and fleetData.position
             }
             else
             {
-                // In the CombatScene branch this use of the game object is prelaced with getting the StarSysController from the prefab
-                // pending a merge of the two branches to replace this.
                 StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
                 starSysCon.Init(this); starSysCon.StarSysData = sysData;
-                starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
+                starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
                     sysData.GetPosition().y, sysData.GetPosition().z));
                 starSysCon.transform.SetParent(galaxyCenter.transform, true);
@@ -300,7 +298,7 @@ namespace Assets.Core
                             Renderers[i].sprite = civSO.Insignia;
                             Renderers[i].gameObject.transform.position =
                                 new Vector3(starSysCon.transform.position.x, galaxyPlanePoint.y + 1f, starSysCon.transform.position.z);
-                            Renderers[i].gameObject.layer = 4; // water layer (also used by fog of war for obsticles with shows to line of sight
+                            Renderers[i].gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
                             if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
                             {
                                 Renderers[i].sortingOrder = 0;
@@ -340,7 +338,7 @@ namespace Assets.Core
                 }
                 if (civSO.HasWarp)
                 {
-                    FleetManager.Instance.BuildFirstFleetsNearSys(starSysCon, false); // fleet for first ships as game loads, not for ships instatiated by working shipyard in system
+                    FleetManager.Instance.BuildFirstFleetsNearSys(starSysCon, false); // fleet for first ships as game loads, not for ships instantiated by working shipyard in system
                     ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
                 }
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
@@ -361,8 +359,8 @@ namespace Assets.Core
                 }
                 InstantiateSysUIGameObject(starSysCon);
                 InstantiateSysShipsUIGameObject(starSysCon);
-                //***** This is temporary so we can test a multi-starsystem civ
-                //******* before diplomacy will alow civs/systems to join another civ
+                //***** This is temporary so we can test a multi-star system civ
+                //******* before diplomacy will alow civ/systems to join another civ
                 //if (systemCount == 8)
                 //{
                 //    CivManager.current.nowCivsCanJoinTheFederation = true;
@@ -869,13 +867,13 @@ namespace Assets.Core
         {
             if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
             {
-                if (sysController.SystemShipsUIGameObject == null)
+                if (sysController.StarSysShipsUIGameObject == null)
                 {
                     GameObject thisShipSysUIGameObject = (GameObject)Instantiate(sysShipsUIPrefab, new Vector3(0, 0, 0),
                         Quaternion.identity);
                     thisShipSysUIGameObject.layer = 5;
-                    sysController.SystemShipsUIGameObject = thisShipSysUIGameObject;
-                    sysController.SystemShipsUIGameObject.SetActive(true);
+                    sysController.StarSysShipsUIGameObject = thisShipSysUIGameObject;
+                    sysController.StarSysShipsUIGameObject.SetActive(true);
                     thisShipSysUIGameObject.transform.SetParent(sysShipsContentFolderParent.transform, false);
 
                     var transforms = thisShipSysUIGameObject.transform.GetComponentsInChildren<Transform>();

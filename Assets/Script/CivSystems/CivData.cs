@@ -12,7 +12,7 @@ namespace Assets.Core
         public string CivLongName;
         public string CivHomeSystemName;
         public Vector3 HomeStarSystemPosition; 
-        public WarLikeEnum Warlike;// a enum scale from most worklike 0 to neutral 3 and most peasful 5
+        public WarLikeEnum Warlike;// a enum scale from most work like 0 to neutral 3 and most peaceful 5
         public XenophobiaEnum Xenophbia; // XenophobiaEnum
         public RuthlessEnum Ruthelss; //XenophobiaEnum
         public GreedyEnum Greedy; //XenophobiaEnum
@@ -21,7 +21,7 @@ namespace Assets.Core
         public int Population = 5;
        // public int Credits = 100;
         public int TechPoints = 10; // 10 for pre warp and playable get 90 more to be tech level early at 100; 
-        public TechLevel TechLevel; // all cis have tech points and the techlevel enum value sets a level threashold
+        public TechLevel TechLevel; // all cis have tech points and the tech level enum value sets a level threshold
         public bool Playable;
         public bool PlayedByAI = true;
         public CivEnum LocalPlayerCivEnum;
@@ -30,8 +30,8 @@ namespace Assets.Core
         public List<StarSysController> StarSysOwned;
         //public List<CivController> CivControllersWeKnow;
         //public List<CivEnum> CivEnumsWeKnow;
-        //public float TaxRate; // universal or variable by civ/sys??
-        //public float GrowthRate; // universal or variable by civ/sys??
+        //public float TaxRate; // universal or variable by civ/system??
+        //public float GrowthRate; // universal or variable by civ/system??
         public float IntelPoints;
 
         //public void AddToCivControllersWeKnow(CivController civControllerWeFound)

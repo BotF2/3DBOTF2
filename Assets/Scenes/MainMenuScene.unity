@@ -19007,6 +19007,7 @@ MonoBehaviour:
   dragDestinationTargetButtonGO: {fileID: 0}
   MouseClickSetsDestination: 0
   MouseClickSellectsSysOrFleetForShipExchange: 0
+  activeFleetOrSystemControllerForShipExchange: {fileID: 0}
   destinationName: {fileID: 0}
   destinationCoordinates: {fileID: 0}
   InteractionButtonGO: {fileID: 0}
@@ -29440,6 +29441,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 57f71a291c37e6344b1bc1986f8acc1f, type: 2}
   fleetPrefab: {fileID: 3939678481243734066, guid: ef3b3036010abf54e8925e887e9010ad, type: 3}
   fleetUIPrefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
+  rightSideShipManagerFleetUIPrefab: {fileID: 0}
   shipManagerMenuPrefab: {fileID: 8637087807823003284, guid: 7997ef2e58d487c48bdbe97951aa4adc, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
   galaxyImage: {fileID: 843799567}
@@ -39694,7 +39696,7 @@ GameObject:
   - component: {fileID: 1850390556}
   - component: {fileID: 1850390555}
   m_Layer: 5
-  m_Name: Content
+  m_Name: ContentFleetAndSystems
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
