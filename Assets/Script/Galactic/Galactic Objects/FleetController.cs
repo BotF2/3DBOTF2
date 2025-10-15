@@ -480,12 +480,10 @@ namespace Assets.Core
         }
         public void SelectedShipManageCursor()
         {
-            //if (GalaxyMenuUIController.Instance.CurrentClickMode != GalaxyClickMode.SelectForShipExchange)
-            //{
-                GalaxyMenuUIController.Instance.BeginShipExchange();
-                GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-                MousePointerChanger.Instance.SetShipExchangeCursor();
-            //}
+            GalaxyMenuUIController.Instance.BeginShipExchange();
+            GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+            MousePointerChanger.Instance.SetShipExchangeCursor();
+
         }
         public void ClickCancelShipManageButton()
         {
@@ -618,7 +616,7 @@ namespace Assets.Core
             if (fleetCon == this && fleetCon == GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
             {
                 GameObject notAMenu = new GameObject();
-                GalaxyMenuUIController.Instance.OpenMenu(Menu.ShipsMenu, notAMenu);
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.FleetMenu, notAMenu);
                 Destroy(notAMenu);
             }
         }
@@ -635,7 +633,7 @@ namespace Assets.Core
             GalaxyMenuUIController.Instance.ResetClickMode();
             MousePointerChanger.Instance.ResetCursor();
             GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.ShipsMenu);
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
         }
         private string GetDebuggerDisplay()
         {

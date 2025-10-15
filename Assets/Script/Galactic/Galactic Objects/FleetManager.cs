@@ -285,7 +285,7 @@ namespace Assets.Core
                     var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
                     for (int i = 0; i < transforms.Length; i++)
                     {
-                        if (transforms[i].name == "ShipContent")
+                        if (transforms[i].name == "FleetShipContent")
                         {
                             fleetCon.FleetData.ShipListUIParent = transforms[i].gameObject;
                             return;

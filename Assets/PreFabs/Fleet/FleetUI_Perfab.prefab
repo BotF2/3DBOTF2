@@ -1392,7 +1392,7 @@ GameObject:
   - component: {fileID: 7923280168277459966}
   - component: {fileID: 1860283613731189088}
   m_Layer: 5
-  m_Name: ShipContent
+  m_Name: FleetShipContent
   m_TagString: ShipUIContainer
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1414,7 +1414,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -57.867702}
+  m_AnchoredPosition: {x: 0, y: 134.94566}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &7923280168277459966
@@ -2214,8 +2214,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 3620380937307815153}
   m_HandleRect: {fileID: 7977469839549130173}
   m_Direction: 2
-  m_Value: 0
-  m_Size: 0.85714287
+  m_Value: 1
+  m_Size: 0.74285716
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -3022,7 +3022,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: Other Fleets
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+  m_fontAsset: {fileID: 0}
   m_sharedMaterial: {fileID: 2180264, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}

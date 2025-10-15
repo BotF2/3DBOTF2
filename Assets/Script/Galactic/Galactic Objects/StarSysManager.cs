@@ -201,20 +201,6 @@ namespace Assets.Core
                 SysData.SystemType = starSysSO.StarType;
                 SysData.StarSprit = starSysSO.StarSprit;
                 SysData.Description = starSysSO.Description;
-                //var shipConList = ShipManager.Instance.ShipControllerGameList;
-                //for (int s = 0; s < shipConList.Count; s++)
-                //{
-                //    if (shipConList[s].ShipData.CivEnum == SysData.CurrentOwnerCivEnum)
-                //    {
-                //        if (!SysData.ShipsList.Contains(shipConList[s]) && shipConList[i].GetComponentInParent<StarSysController>)
-                //            SysData.ShipsList.Add(shipConList[s]);
-                //    }
-                //}
-                //SysData.ShipsList
-                //SysData.ShipsList.Clear();
-                //ShipManager.Instance.InstantiateShipControllersWithDataFromSO(ShipType.Scout, 1, SysData, civSOList[i].CivInt);
-                //SysData.ShipsList.Add()
-
                 InstantiateSystem(SysData, civSOList[i]);
                 //if (civSOList[i].HasWarp)
                 //    FleetManager.Instance.FleetDataFromSO(, false);
@@ -874,17 +860,19 @@ namespace Assets.Core
                     thisShipSysUIGameObject.layer = 5;
                     sysController.StarSysShipsUIGameObject = thisShipSysUIGameObject;
                     sysController.StarSysShipsUIGameObject.SetActive(true);
-                    thisShipSysUIGameObject.transform.SetParent(sysShipsContentFolderParent.transform, false);
+             
 
                     var transforms = thisShipSysUIGameObject.transform.GetComponentsInChildren<Transform>();
                     for (int j = 0; j < transforms.Length; j++)
                     {
                         if (transforms[j].gameObject.name == "SysShipContent")
                         {
+                            sysShipsContentFolderParent = transforms[j].gameObject;
                             sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
                             return;
                         }
                     }
+                    thisShipSysUIGameObject.transform.SetParent(sysShipsContentFolderParent.transform, false);
                 }
             }
         }
