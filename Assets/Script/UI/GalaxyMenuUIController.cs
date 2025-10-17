@@ -58,7 +58,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private GameObject fleetMenuView;
     [SerializeField]
-    private GameObject fleetListContainer;
+    private RectTransform fleetListContainer;
     [SerializeField]
     private GameObject fleetShipListContainer;
     [SerializeField]
@@ -180,6 +180,13 @@ public class GalaxyMenuUIController : MonoBehaviour
     int _ltCruisers;
     int _hvyCruisers;
     int _transports;
+    [Header("Grid Settings")]
+    public int rows = 100;
+    public int cols = 2;
+    public Vector2 cellSize = new Vector2(948, 200);
+    public Vector2 spacing = new Vector2(1, 1);
+    public Vector2 padding = new Vector2(1,1);
+    private GameObject[,] gridItems;
     private void Awake()
     {
         if (Instance != null)
@@ -212,6 +219,32 @@ public class GalaxyMenuUIController : MonoBehaviour
         diplomacyBackground.SetActive(false);
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
+        gridItems = new GameObject[rows, cols];
+        // Add or get GridLayoutGroup
+        GridLayoutGroup grid = fleetListContainer.gameObject.GetComponent<GridLayoutGroup>();
+        if (grid == null) grid = fleetListContainer.gameObject.AddComponent<GridLayoutGroup>();
+
+        grid.cellSize = cellSize;
+        grid.spacing = spacing;
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 4; // Number of columns
+
+        //// Populate grid
+        //for (int i = 0; i < numberOfItems; i++)
+        //{
+        //    GameObject newItem = Instantiate(itemPrefab, container);
+        //    newItem.name = $"Item {i}";
+        //}
+
+        //// Optional: Resize container height for scrolling
+        //int rows = Mathf.CeilToInt((float)numberOfItems / grid.constraintCount);
+        //container.sizeDelta = new Vector2(container.sizeDelta.x, height);
+
+        // Calculate container size
+        float width = cols * (cellSize.x + spacing.x) + padding.x;
+        float height = rows * (cellSize.y + spacing.y) + padding.y;
+        fleetListContainer.sizeDelta = new Vector2(width, height);
+
         diplomacyControllers = new List<DiplomacyController>();
         SetupSystemUIData();//get our system ui game objects to match your system controllers
         SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
@@ -415,16 +448,15 @@ public class GalaxyMenuUIController : MonoBehaviour
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
     }
-    public void SetUpASystemShipsUIData(StarSysController theSysCon) 
+    public void SetUpASystemRightSideShipsUIData(StarSysController theSysCon) 
     {
-        theSysCon.StarSysShipsUIGameObject.SetActive(true);
-        //activeFleetOrSystemControllerForShipExchange = theSysCon.StarSysShipsUIGameObject;
-        theSysCon.StarSysShipsUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
-        theSysCon.StarSysShipsUIGameObject.transform.Translate(new Vector3(950f, 0f, 0f), Space.Self);
+        theSysCon.StarSysRightSideShipsUIGameObject.SetActive(true);
+        theSysCon.StarSysRightSideShipsUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
+        theSysCon.StarSysRightSideShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
     }
     public void CloseSystemShipsUI(StarSysController theSysCon) 
     {
-        theSysCon.StarSysShipsUIGameObject.SetActive(false);
+        theSysCon.StarSysRightSideShipsUIGameObject.SetActive(false);
         CloseSystemShipsUI(theSysCon);
         //activeFleetOrSystemControllerForShipExchange = null;
 

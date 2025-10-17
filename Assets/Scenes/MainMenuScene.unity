@@ -18668,7 +18668,7 @@ MonoBehaviour:
   aSystemShipContainer: {fileID: 2074790877}
   sysBuildMenu: {fileID: 441464050}
   fleetMenuView: {fileID: 1039005432}
-  fleetListContainer: {fileID: 1850390553}
+  fleetListContainer: {fileID: 1850390554}
   fleetShipListContainer: {fileID: 0}
   aFleetMenuView: {fileID: 1169095161}
   aFleetShipContainer: {fileID: 0}
@@ -18723,6 +18723,11 @@ MonoBehaviour:
   sabatogeButtonGO: {fileID: 0}
   combatButtonGO: {fileID: 0}
   closeDiplomacyButtonGO: {fileID: 0}
+  rows: 100
+  cols: 2
+  cellSize: {x: 948, y: 200}
+  spacing: {x: 1, y: 1}
+  padding: {x: 1, y: 1}
 --- !u!224 &895974090
 RectTransform:
   m_ObjectHideFlags: 0
@@ -39167,7 +39172,7 @@ GameObject:
   - component: {fileID: 1850390556}
   - component: {fileID: 1850390555}
   m_Layer: 5
-  m_Name: ContentFleets
+  m_Name: ContentFleetList
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39201,7 +39206,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1850390553}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
   m_Name: 

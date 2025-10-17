@@ -22,7 +22,7 @@ namespace Assets.Core
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
 
         private GameObject starSysShipUIGameObject;// instantiated by StarSysManager from the prefab and added to StarSysController
-        public GameObject StarSysShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
+        public GameObject StarSysRightSideShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
         private Camera galaxyEventCamera;
         [SerializeField]
@@ -477,43 +477,7 @@ namespace Assets.Core
                 case GalaxyClickMode.SelectForShipExchange:
                     HandleShipExchangeClick(clickedSystemCon);
                     break;
-            }
-            //if (Physics.Raycast(ray, out hit))
-            //{
-                //GameObject sysGO = hit.collider.gameObject;
-                // what a Star System Controller does with a hit
-                //StarSysController clickedSystemCon = sysGO.GetComponentInChildren<StarSysController>();
-                //if (sysGO.tag != "GalaxyImage") // && GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-                //{
-                    //if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true)
-                    //{
-                    //    FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
-                    //    theFleetConLookingForDestination.FleetData.Destination = sysGO;
-                    //    theFleetConLookingForDestination.SetAsDestinationInUI(sysGO);
-                    //}
-                    //else if (this.StarSysData.CurrentCivController.CivData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum && GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange != true)
-                    //{
-                    //    GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
-                    //    GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
-                    //    GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
-                    //    GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
-                    //    GalaxyMenuUIController.Instance.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
-                    //    GalaxyMenuUIController.Instance.UpdateSystemPowerLoad(this);
-                    //    GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, sysGO); // set the system UI to this system
-                    //}
-                    //else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
-                    //{ // this is a system local player does not own but we know them
-                    //    DiplomacyManager.Instance.ResolveDiplomacyForClickSystem(CivManager.Instance.LocalPlayerCivContoller, this);
-                    //}
-                    //else if (GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange == true && clickedSystemCon == this)
-                    //{
-                    //    GalaxyMenuUIController.Instance.SetUpASystemShipsUIData(this);
-                    //    FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
-                    //    GalaxyMenuUIController.Instance.InactivateSelectOtherSystemOrFleetButton();
-                    //    MousePointerChanger.Instance.ResetCursor();
-                    //}
-                //}
-            //}
+            }            
         }
 
         private void HandleDestinationClick(StarSysController clickedSystemCon)
@@ -529,7 +493,7 @@ namespace Assets.Core
         private void HandleShipExchangeClick(object clickedSystemCon)
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.SetUpASystemShipsUIData(this);
+            galaxyUI.SetUpASystemRightSideShipsUIData(this);
             galaxyUI.InactivateSelectOtherSystemOrFleetButton();
             MousePointerChanger.Instance.ResetCursor(); // we selected the system so turn off ship exchange cursor
             //galaxyUI.activeFleetOrSystemControllerForShipExchange = this.gameObject;
