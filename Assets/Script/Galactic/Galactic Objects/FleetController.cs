@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Android;
 using UnityEngine.Rendering;
@@ -53,7 +52,7 @@ namespace Assets.Core
         private List<ShipData> shipList;
         private TMP_Dropdown shipDropdown;
         [SerializeField]
-        public GameObject ShipDropdownGO;
+        public GameObject ShipDropDownGO;
         [SerializeField]
         private TMP_Text dropdownShipText;
         [SerializeField]
@@ -109,7 +108,7 @@ namespace Assets.Core
                 }
             }
         }
-        public Rigidbody GetRigidbody() { return rb; }
+        public Rigidbody GetRigidBody() { return rb; }
 
         public void Init(FleetManager fleetManager)
         {
@@ -118,60 +117,35 @@ namespace Assets.Core
         private void OnMouseDown()
         {
             Ray ray = galaxyEventCamera.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out RaycastHit hit)) return;
+            RaycastHit hit;
 
-            GameObject fleetGo = hit.collider.gameObject;
-            if (fleetGo.CompareTag("GalaxyImage")) return;
-
-            FleetController clickedFleetCon = fleetGo.GetComponentInChildren<FleetController>();
-            var galaxyUI = GalaxyMenuUIController.Instance;
-
-            switch (galaxyUI.CurrentClickMode)
+            if (Physics.Raycast(ray, out hit))
             {
-                case GalaxyClickMode.Normal:
-                    HandleNormalClick(clickedFleetCon);
-                    break;
+                GameObject fleetGo = hit.collider.gameObject;
+                if (fleetGo.tag != "GalaxyImage")
+                {
+                    var galaxyUI = GalaxyMenuUIController.Instance;
+                    // What a fleet FleetController does with a click
+                    FleetController clickedFleetCon = fleetGo.GetComponentInChildren<FleetController>();
+                    if (galaxyUI.CurrentClickMode != GalaxyClickMode.SetDestination && galaxyUI.CurrentClickMode != GalaxyClickMode.SelectForShipExchange) 
+                    {
+                        if (GameController.Instance.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        {
+                            galaxyUI.CloseButtonPressed();
+                            HandleNormalClick(clickedFleetCon);
+                        }
+                    }
+                    else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SetDestination && clickedFleetCon == this)
+                    {
+                        HandleDestinationClick(clickedFleetCon);
 
-                case GalaxyClickMode.SetDestination:
-                    HandleDestinationClick(clickedFleetCon);
-                    break;
-
-                case GalaxyClickMode.SelectForShipExchange:
-                    HandleShipExchangeClick(clickedFleetCon);
-                    break;
+                    }
+                    else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)                        
+                    {
+                        HandleShipExchangeClick(clickedFleetCon); // a fleet or system is looking for ship exchange with this fleet
+                    }
+                }
             }
-            //Ray ray = galaxyEventCamera.ScreenPointToRay(Input.mousePosition);
-            //RaycastHit hit;
-
-            //if (Physics.Raycast(ray, out hit))
-            //{
-            //    GameObject fleetGo = hit.collider.gameObject;
-            //    if (fleetGo.tag != "GalaxyImage")
-            //    {
-            //        // What a fleet FleetController does with a click
-            //        FleetController clickedFleetCon = fleetGo.GetComponentInChildren<FleetController>();
-            //        if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == false && GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange == false) // the destination mouse pointer is off so open FleetUI for this FleetController
-            //        {
-            //            if (GameController.Instance.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
-            //            {
-            //                GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, fleetGo);
-            //            }
-            //        }
-            //        else if (GalaxyMenuUIController.Instance.MouseClickSetsDestination == true && clickedFleetCon == this)
-            //        {
-            //            FleetController theFleetConLookingForDestination = MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
-            //            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
-            //            theFleetConLookingForDestination.SetAsDestinationInUI(fleetGo);
-            //        }
-            //        else if (GalaxyMenuUIController.Instance.MouseClickSellectsSysOrFleetForShipExchange == true && clickedFleetCon == this)
-            //        {
-            //            // load the right side fleet UI prefab into the AFleetMenuView
-            //            GalaxyMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(fleetGo);
-            //            MousePointerChanger.Instance.ResetCursor();
-            //            GalaxyMenuUIController.Instance.activeFleetOrSystemControllerForShipExchange = this.RightSideShipManagementFleetUIGO;
-            //        }
-            //    }
-            //}
 
         }
         private void HandleNormalClick(FleetController clickedFleetCon)
@@ -184,20 +158,17 @@ namespace Assets.Core
 
         private void HandleDestinationClick(FleetController clickedFleetCon)
         {
-            if (clickedFleetCon != this) return;
-
-            this.fleetData.Destination = gameObject;
-            this.SetAsDestinationInUI(clickedFleetCon.gameObject);
+            FleetController theFleetConLookingForDestination = GalaxyMenuUIController.Instance.FleetLookingForDestination;//MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
+            if (theFleetConLookingForDestination == null) return;
+            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
+            theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
         }
 
         private void HandleShipExchangeClick(FleetController clickedFleetCon)
         {
             if (clickedFleetCon != this) return;
-
-            var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.LoadRightSideShipManagerFleetUIPrefab(clickedFleetCon.gameObject);
+            FleetMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(clickedFleetCon.gameObject);
             MousePointerChanger.Instance.ResetCursor();
-            //galaxyUI.activeFleetOrSystemControllerForShipExchange = RightSideShipManagementFleetUIGO;
         }
 
 
@@ -351,12 +322,13 @@ namespace Assets.Core
         {
             Vector3 direction = (this.FleetData.Destination.transform.position - transform.position).normalized;
             float distance = Vector3.Distance(transform.position, this.FleetData.Destination.transform.position);
-            if (this.FleetData.CurrentWarpFactor > this.FleetData.MaxWarpFactor)
+            float howFast = this.FleetData.CurrentWarpFactor;
+            if (howFast > this.FleetData.MaxWarpFactor)
             {
                 this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
             }
             Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
-            FleetData.CurrentWarpFactor * warpFudgeFactor * Time.fixedDeltaTime);
+            howFast * warpFudgeFactor * Time.fixedDeltaTime);
             rb.MovePosition(nextPosition); // kinematic with physics movement
             this.FleetData.Position = nextPosition;
             Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
@@ -373,7 +345,6 @@ namespace Assets.Core
                 DestinationLine.transform.SetParent(transform, false);
                 DestinationLine.enabled = true;
             }
-
             Vector3[] points = { transform.position, destinationPoint };
             DestinationLine.gameObject.SetActive(true);
             DestinationLine.lineRenderer.startColor = Color.blue;
@@ -422,7 +393,7 @@ namespace Assets.Core
             }
             fleetData.MaxWarpFactor = maxWarp;
             if (GalaxyMenuUIController.Instance != null)
-                GalaxyMenuUIController.Instance.UpdateFleetMaxWarpUI(this, maxWarp);
+                FleetMenuUIController.Instance.UpdateFleetMaxWarpUI(this, maxWarp);
         }
         public void DestroyFleet(FleetData fleetData, GameObject fleetGO)
         {
@@ -476,62 +447,61 @@ namespace Assets.Core
             }
 
             FleetData.CurrentWarpFactor = newWarpValue;
-            GalaxyMenuUIController.Instance.UpdateFleetWarpUI(this, newWarpValue);
+            FleetMenuUIController.Instance.UpdateFleetWarpUI(this, newWarpValue);
         }
         public void SelectedShipManageCursor()
         {
-            GalaxyMenuUIController.Instance.BeginShipExchange();
-            GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-            MousePointerChanger.Instance.SetShipExchangeCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.BeginShipExchange(this);
+            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+            MousePointerChanger.Instance.SetShipExchangeCursor(this);
 
         }
         public void ClickCancelShipManageButton()
         {
-            GalaxyMenuUIController.Instance.ClickCancelShipManageButton();
-            GalaxyMenuUIController.Instance.ResetClickMode();
-            //GalaxyMenuUIController.Instance.activeFleetOrSystemControllerForShipExchange = null;
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.ClickCancelShipManageButton();
+            galaxyUI.ResetClickMode();
+            galaxyUI.CompleteSetDestination();
             MousePointerChanger.Instance.ResetCursor();
         }
         public void SelectedDestinationCursor(FleetController fleetCon)
         {
-            //if (GalaxyMenuUIController.Instance.CurrentClickMode != GalaxyClickMode.SetDestination)
-            //{
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.BeginSetDestination(fleetCon);
             galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-            galaxyUI.SelectedDestinationCursor(this);
-            MousePointerChanger.Instance.SetDestinationCursor();//ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
-               // MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
-            //}
+            FleetMenuUIController.Instance.SelectedDestinationCursor(this);
+            galaxyUI.FleetLookingForDestination = this;
+            MousePointerChanger.Instance.SetDestinationCursor();
         }
         public void ClickCancelDestinationButton()
         {
             DestinationLine.gameObject.SetActive(false);
-            FleetData.LastDestination = FleetData.Destination; // save previous destination if we want to continue later 
+            FleetData.LastDestination = FleetData.Destination; 
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             FleetData.CurrentWarpFactor = 0f; // stop the fleet
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.CompleteSetDestination();
-            galaxyUI.ClickCancelDestinationButton(this);
+            FleetMenuUIController.Instance.ClickCancelDestinationButton(this);
             galaxyUI.SetClickMode(GalaxyClickMode.Normal);
+            MousePointerChanger.Instance.ResetCursor();
         }
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
 
-            //FleetData.Destination = hitObject;           
+            fleetData.Destination = hitObject;           
             int typeOfDestination = -1;// galaxy object type Enum SystemType if =>1
             string destinationNameText = "";
-            //destinationCoordinates.text
+           
             string coordiantesText = "X " + (hitObject.transform.position.x).ToString()
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
-
                 if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, starSysController.StarSysData.CurrentCivController))
-                {
+                { // if it is our star system we do have a diplomacy controller
                     typeOfDestination = -1;
                     destinationNameText += starSysController.StarSysData.SysName;
                 }
@@ -599,14 +569,14 @@ namespace Assets.Core
                     break;
 
             }
-            GalaxyMenuUIController.Instance.SetAsDestination(destinationNameText, coordiantesText);
+            FleetMenuUIController.Instance.SetAsDestination(destinationNameText, coordiantesText);
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
         {
             if (this == fleetCon)
             {
-                GalaxyMenuUIController.Instance.SetAsDestination("Drag target to", "your destination");
+                FleetMenuUIController.Instance.SetAsDestination("Drag target to", "your destination");
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
                 GalaxyMenuUIController.Instance.GetPlayerDefinedTargetDestination(this);    
             }
@@ -632,6 +602,7 @@ namespace Assets.Core
         {
             GalaxyMenuUIController.Instance.ResetClickMode();
             MousePointerChanger.Instance.ResetCursor();
+            FleetMenuUIController.Instance.UpdateFleetWarpUI(this, 0);
             GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
             GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
         }
@@ -675,6 +646,16 @@ namespace Assets.Core
                     //TimeManager.Instance.ResumeTime();
                 }
             }
+        }
+
+        internal void SelectedOtherForShips(FleetController fleetCon)
+        {
+            //throw new NotImplementedException();
+        }
+
+        internal void ClickCancelForShipsButton()
+        {
+            //throw new NotImplementedException();
         }
     }
 }

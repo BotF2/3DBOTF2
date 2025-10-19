@@ -33,8 +33,8 @@ namespace Assets.Core
         private FleetController fleetPrefab;
         [SerializeField]
         private GameObject fleetUIPrefab;
-        [SerializeField]
-        private GameObject rightSideShipManagerFleetUIPrefab;
+        //[SerializeField]
+        //private GameObject rightSideShipManagerFleetUIPrefab;
         [SerializeField]
         private GameObject shipManagerMenuPrefab;
         [SerializeField]
