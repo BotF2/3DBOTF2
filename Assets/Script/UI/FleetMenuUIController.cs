@@ -96,8 +96,20 @@ public class FleetMenuUIController : MonoBehaviour
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
     }
+
     public void MoveTheFleetUIGO(GameObject fleetConGO)
     {
+        //int numFound = 0;
+        //List<GameObject> foundGoList = new List<GameObject>();
+        //for (int i = 0; i < aFleetMenuView.transform.childCount; i++)
+        //{
+        //    numFound = i;
+        //    if (i > 0)
+        //        foundGoList.Add(aFleetMenuView.transform.GetChild(i).gameObject);
+        //}
+        //if (numFound > 0)
+        //    for (int j = 0; j < numFound; j++)
+        //        Destroy(foundGoList[j]);
         for (int i = 0; i < listOfFleetUiGos.Count; i++)
         {
             if (listOfFleetUiGos[i] == fleetConGO)
@@ -107,14 +119,12 @@ public class FleetMenuUIController : MonoBehaviour
             }
         }
     }
-
     public void MoveBackAnyFleetUIGO()
     {
         for (int i = 0; i < aFleetMenuView.transform.childCount; i++)
         {
-            var child = aFleetMenuView.transform.GetChild(i)?.gameObject;
-            if (child != null)
-                child.transform.SetParent(fleetShipListContainer.transform, false);
+            if (aFleetMenuView.transform.GetChild(i).gameObject != null)
+                aFleetMenuView.transform.GetChild(i).gameObject.transform.SetParent(fleetListContainer.transform, false);
         }
     }
 
