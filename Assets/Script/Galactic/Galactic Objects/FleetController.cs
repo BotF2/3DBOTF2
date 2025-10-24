@@ -578,7 +578,7 @@ namespace Assets.Core
             {
                 FleetMenuUIController.Instance.SetAsDestination("Drag target to", "your destination");
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
-                GalaxyMenuUIController.Instance.GetPlayerDefinedTargetDestination(this);    
+                FleetMenuUIController.Instance.GetPlayerDefinedTargetDestination(this);    
             }
         }
         public void OnClickShipManager(FleetController fleetCon)

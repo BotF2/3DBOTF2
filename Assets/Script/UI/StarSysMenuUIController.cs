@@ -9,6 +9,9 @@ using UnityEngine.UI;
 public class StarSysMenuUIController : MonoBehaviour
 {
     public static StarSysMenuUIController Instance;
+    //private Camera galaxyEventCamera;
+    //[SerializeField]
+    //private Canvas parentCanvas;
     [Header("References (assign in Inspector)")]
     [SerializeField] private GameObject systemsMenuView;
     [SerializeField] private GameObject sysListContainer;
@@ -50,6 +53,8 @@ public class StarSysMenuUIController : MonoBehaviour
             systemsMenuView.SetActive(false);
         if (aSystemMenuView != null)
             aSystemMenuView.SetActive(false);
+        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
+        //parentCanvas.worldCamera = galaxyEventCamera;
     }
     public void ShowSystemMenuView()
     {

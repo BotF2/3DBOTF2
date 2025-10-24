@@ -11,6 +11,9 @@ using Assets.Core;
 public class FleetMenuUIController : MonoBehaviour
 {
     public static FleetMenuUIController Instance;
+    //private Camera galaxyEventCamera;
+    //[SerializeField]
+    //private Canvas parentCanvas;
     [Header("References (assign in Inspector)")]
     [SerializeField] private GameObject fleetMenuView;
     [SerializeField] private RectTransform fleetListContainer;
@@ -19,9 +22,6 @@ public class FleetMenuUIController : MonoBehaviour
     public GameObject AFleetMenuView => aFleetMenuView;
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
-    //[SerializeField] private GameObject fleetUI_Prefab;
-    //[SerializeField] private GameObject shipListingUIPrefab;
-
     [Header("Destination UI (optional)")]
     [SerializeField] private TextMeshProUGUI destinationName;
     [SerializeField] private TextMeshProUGUI destinationCoordinates;
@@ -54,6 +54,8 @@ public class FleetMenuUIController : MonoBehaviour
             fleetMenuView.SetActive(false);
         if (aFleetMenuView != null) 
             aFleetMenuView.SetActive(false);
+        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
+        //parentCanvas.worldCamera = galaxyEventCamera;
     }
     public void ShowFleetMenuView()
     {
@@ -84,7 +86,7 @@ public class FleetMenuUIController : MonoBehaviour
                 GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
             {
                 // wire up individual fleet UI
-                SetupFleetElements(fleetCon, fleetCon.FleetUIGameObject);
+                SetupFleetUIElements(fleetCon, fleetCon.FleetUIGameObject);
                 listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
                 fleetCon.FleetUIGameObject.SetActive(true);
                 fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
@@ -114,20 +116,20 @@ public class FleetMenuUIController : MonoBehaviour
         {
             var child = aFleetMenuView.transform.GetChild(i)?.gameObject;
             if (child != null)
-                child.transform.SetParent(fleetShipListContainer.transform, false);
+                child.transform.SetParent(fleetListContainer.transform, false);
         }
     }
 
-    public void SetupFleetElements(FleetController fleetCon, GameObject fleetPrefabGO)
+    public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
     {
-        if (fleetCon == null || fleetPrefabGO == null) return;
+        if (fleetCon == null || newFleetUIGO == null) return;
         if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
         {
-            fleetPrefabGO.SetActive(true);
+            newFleetUIGO.SetActive(true);
             fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
             listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
 
-            RectTransform[] rectTransforms = fleetPrefabGO.GetComponentsInChildren<RectTransform>(true);
+            RectTransform[] rectTransforms = newFleetUIGO.GetComponentsInChildren<RectTransform>(true);
             for (int i = 0; i < rectTransforms.Length; i++)
             {
                 if (rectTransforms[i].name == "RedDot")
@@ -360,7 +362,7 @@ public class FleetMenuUIController : MonoBehaviour
         if (fleetCon == null) return;
         if (GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
         {
-            SetupFleetElements(fleetCon, fleetCon.RightSideShipManagementFleetUIGO);
+            SetupFleetUIElements(fleetCon, fleetCon.RightSideShipManagementFleetUIGO);
             fleetCon.RightSideShipManagementFleetUIGO.SetActive(true);
             fleetCon.RightSideShipManagementFleetUIGO.transform.SetParent(aFleetMenuView.transform, false);
         }
@@ -369,5 +371,15 @@ public class FleetMenuUIController : MonoBehaviour
     public void CloseDestinationSelectionCursor()
     {
         MousePointerChanger.Instance.ResetCursor();
+    }
+    public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
+    {
+        dragDestinationTargetButtonGO.SetActive(false); // to see cancel destination button
+        cancelDestinationButtonGO.SetActive(true);
+        selectDestinationCursorButtonGO.SetActive(true);
+        //selectDestinationButtonText.text = "Select Destination";
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
+        MousePointerChanger.Instance.SetDestinationCursor();//ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
+        //MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
     }
 }

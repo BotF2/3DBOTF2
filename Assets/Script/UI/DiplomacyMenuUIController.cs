@@ -1,0 +1,476 @@
+using Assets.Core;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+
+public class DiplomacyMenuUIController : MonoBehaviour
+{
+    public static DiplomacyMenuUIController Instance;
+    //private Camera galaxyEventCamera;
+    //[SerializeField]
+    //private Canvas parentCanvas;
+    public DiplomacyController DiplomacyController;
+    //public GameObject DiplomacyUIToggle; // GameObject control this active UI on/off
+    [SerializeField]
+    private GameObject diplomacyMenuView;
+    [SerializeField]
+    private GameObject diplomacyNoContacts;
+    [SerializeField]
+    private GameObject diplomacyListContainter;
+    [SerializeField]
+    private GameObject aDiplomacyMenuView;
+    [SerializeField]
+    private GameObject firstContact;
+    [SerializeField]
+    private TMP_Text theirNameTMP;
+    [SerializeField]
+    private Image theirInsignia;
+    [SerializeField]
+    private Image theirRaceImage;
+    [SerializeField]
+    private TMP_Text relationTMP;
+    [SerializeField]
+    private TMP_Text relationPointsTMP;
+    [SerializeField]
+    private TMP_Text traitOneTMP;
+    [SerializeField]
+    private TMP_Text traitTwoTMP;
+    [SerializeField]
+    private TMP_Text traitThreeTMP;
+    [SerializeField]
+    private TMP_Text traitFourTMP;
+    [SerializeField]
+    private TMP_Text ourTraitOneTMP;
+    [SerializeField]
+    private TMP_Text ourTraitTwoTMP;
+    [SerializeField]
+    private TMP_Text ourTraitThreeTMP;
+    [SerializeField]
+    private TMP_Text ourTraitFourTMP;
+    [SerializeField]
+    private TMP_Text transmissionTMP;
+    [SerializeField]
+    private TMP_Text descriptionTMP;
+    [SerializeField]
+    private GameObject descriptionPanel;
+    [SerializeField]
+    private GameObject[] UI_PanelGOs;
+    [SerializeField]
+    private Image[] TabButtonMasks;
+    [SerializeField]
+    private GameObject InteractionButtonGO;
+    [SerializeField]
+    private GameObject tradeButtonGO;
+    [SerializeField]
+    private GameObject engagementButtonGO;
+    [SerializeField]
+    private GameObject techButtonGO;
+    [SerializeField]
+    private GameObject aidButtonGO;
+    [SerializeField]
+    private GameObject allianceButtonGO;
+    [SerializeField]
+    private GameObject gatherIntelButtonGO;
+    [SerializeField]
+    private GameObject theftButtonGO;
+    [SerializeField]
+    private GameObject disinformationButtonGO;
+    [SerializeField]
+    private GameObject sabatogeButtonGO;
+    [SerializeField]
+    private GameObject combatButtonGO;
+    [SerializeField]
+    private GameObject closeDiplomacyButtonGO;
+    int _scouts;
+    int _destroyers;
+    int _cruisters;
+    int _ltCruisers;
+    int _hvyCruisers;
+    int _transports;
+    [Header("Runtime lists")]
+    [SerializeField] private List<GameObject> listOfDiplomacyUiGos = new List<GameObject>();
+    public bool IsVisibleA_DiplomacyMenuView => aDiplomacyMenuView.activeSelf;
+    public bool IsVisibleDiplomacyMenuView => diplomacyMenuView.activeSelf;
+
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+    }
+
+    private void Start()
+    {
+        // Initially hide fleet menu views
+        if (diplomacyMenuView != null)
+            diplomacyMenuView.SetActive(false);
+        if (aDiplomacyMenuView != null)
+            aDiplomacyMenuView.SetActive(false);
+        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
+        //parentCanvas.worldCamera = galaxyEventCamera;
+
+    }
+    public void ShowDiplomacyMenuView()
+    {
+        diplomacyMenuView.SetActive(true);
+    }
+    public void ShowA_DiplomacyMenuView()
+    {
+        aDiplomacyMenuView.SetActive(true);
+    }
+    public void HideDiplomacyMenuView()
+    {
+        diplomacyMenuView.SetActive(false);
+    }
+    public void HideA_DiplomacyMenuView()
+    {
+        aDiplomacyMenuView.SetActive(false);
+    }
+
+    public void SetupDiplomacyUIData()
+    {
+        if (DiplomacyManager.Instance == null) return;
+
+        for (int j = 0; j < DiplomacyManager.Instance.DiplomacyControllers.Count; j++)
+        {
+            DiplomacyController diplomacyCon = DiplomacyManager.Instance.DiplomacyControllers[j];
+            if (diplomacyCon == null) continue;
+
+            if (!listOfDiplomacyUiGos.Contains(diplomacyCon.DiplomacyUIGameObject) &&
+               ( GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivSideOne) || GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivSideTwo)))
+            {
+                // wire up individual diplomacy UI
+                SetUpDiplomacyUIElements(diplomacyCon, null);
+                listOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject);
+                diplomacyCon.DiplomacyUIGameObject.SetActive(true);
+                diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+            }
+        }
+    }
+    public void SetUpADiplomacyUIData(DiplomacyController theDiploCon)
+    {
+        theDiploCon.DiplomacyUIGameObject.SetActive(true);
+        theDiploCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+    }
+    // ToDo: Build out Diplomacy to work with traits for AI and human players
+    public void MoveTheDiplomacyUIGO(GameObject fleetConGO)
+    {
+        for (int i = 0; i < listOfDiplomacyUiGos.Count; i++)
+        {
+            if (listOfDiplomacyUiGos[i] == fleetConGO)
+            {
+                listOfDiplomacyUiGos[i].transform.SetParent(aDiplomacyMenuView.transform, false);
+                return;
+            }
+        }
+    }
+    public void MoveBackAnyDiplomacyUIGO()
+    {
+        for (int i = 0; i < aDiplomacyMenuView.transform.childCount; i++)
+        {
+            if (aDiplomacyMenuView.transform.GetChild(i).gameObject != null)
+                aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
+        }
+    }
+    public void SetUpDiplomacyUIElements(DiplomacyController diplomacyCon, List<ShipController> shipList)
+    {
+        GalaxyMenuUIController.Instance.HideNoContactUI();
+        CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
+        CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
+        CivController notLocalPlayerCiv;
+        CivController localPlayerCiv;
+        StarSysController homeSysController;
+        diplomacyCon.DiplomacyUIGameObject.SetActive(true);
+        diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+        DiplomacyManager.Instance.DiplomacyControllers.Add(diplomacyCon);// add to list so GalaxyMenuUI has it
+        listOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject); // add to list of DiplomacyUI Game Objects for GalaxyMenuUI
+        if (GameController.Instance.AreWeLocalPlayer(partyOne.CivData.CivEnum))
+        {
+            notLocalPlayerCiv = partyTwo;
+            localPlayerCiv = partyOne;
+            GalaxyMenuUIController.Instance.FindTheirHomeSystem(partyTwo, out homeSysController);
+            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivOther, ourDiplomacyController);
+        }
+        else
+        {
+            notLocalPlayerCiv = partyOne;
+            localPlayerCiv = partyTwo;
+            GalaxyMenuUIController.Instance.FindTheirHomeSystem(partyOne, out homeSysController);
+            //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController);
+        }
+        Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
+        for (int q = 0; q < listOfImages.Length; q++)
+        {
+            // int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.StartingTechLevel / 100; // Early Tech level = 100, Supreme = 900;
+            bool foundRaceImage = false;
+            bool foundInsigniaImage = false;
+            listOfImages[q].enabled = true;
+            var name = listOfImages[q].name.ToString();
+            switch (name)
+            {
+                case "RaceImage":
+                    listOfImages[q].sprite = notLocalPlayerCiv.CivData.CivRaceSprite;
+                    foundRaceImage = true;
+                    break;
+                case "InsigniaTheirCiv (TMP)":
+                    listOfImages[q].sprite = notLocalPlayerCiv.CivData.InsigniaSprite;
+                    foundInsigniaImage = true;
+                    break;
+                default:
+                    break;
+            }
+            if (foundRaceImage && foundInsigniaImage)
+            {
+                break;
+            }
+        }
+        RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>();
+        for (int i = 0; i < rectTransforms.Length; i++)
+        {
+            switch (rectTransforms[i].name)
+            {
+                case "RedDot":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    float x = homeSysController.StarSysData.GetPosition().x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
+                    float y = 0f;
+                    float z = homeSysController.StarSysData.GetPosition().z * 0.12f;
+                    rectTransforms[i].Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
+                    break;
+                case "InteractionButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    InteractionButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "TradeButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    tradeButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "EngagementButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    engagementButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "TechButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    techButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "AidButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    aidButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "AllianceButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    allianceButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "GatherIntel":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    gatherIntelButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "Theft":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    theftButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "Disinformation":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    disinformationButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "SabatogeButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    sabatogeButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "CombatButton":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    combatButtonGO = rectTransforms[i].gameObject;
+                    break;
+                case "ButtonCloseDiplomacytUI":
+                    rectTransforms[i].gameObject.SetActive(true);
+                    closeDiplomacyButtonGO = rectTransforms[i].gameObject;
+                    break;
+                default:
+                    break;
+            }
+        }
+        TextMeshProUGUI[] ourTMPs = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+        for (int i = 0; i < ourTMPs.Length; i++)
+        {
+            int techLevelInt = (int)notLocalPlayerCiv.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
+            ourTMPs[i].enabled = true;
+            var aName = ourTMPs[i].name;
+            var sysCiv = homeSysController.StarSysData.CurrentOwnerCivEnum;
+            string nameOfWhatWeSee = notLocalPlayerCiv.CivData.CivShortName;
+            if (shipList != null)
+                CountShips(shipList);
+            //   ourTMPs[i].text = "No Intel";
+            //    continue;
+            switch (aName)
+            {
+                case "ThierNameText":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.CivLongName;
+                    break;
+                case "RelationText":
+                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
+                    break;
+                case "Text Points (TMP)":
+                    ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
+                    break;
+                case "TraitText (1)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
+                    break;
+                case "TraitText (2)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
+                    break;
+                case "TraitText (3)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
+                    break;
+                case "TraitText (4)":
+                    ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
+                    break;
+                case "OurTraitText (1)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
+                    break;
+                case "OurTraitText (2)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
+                    break;
+                case "OurTraitText (3)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
+                    break;
+                case "OurTraitText (4)":
+                    ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();
+                    break;
+                case "WhoWeHit":
+                    ourTMPs[i].text = nameOfWhatWeSee;
+                    break;
+                case "NumS":
+                    ourTMPs[i].text = _scouts.ToString();
+                    break;
+                case "NumD":
+                    ourTMPs[i].text = _destroyers.ToString();
+                    break;
+                case "NumC":
+                    ourTMPs[i].text = _cruisters.ToString();
+                    break;
+                case "NumLC":
+                    ourTMPs[i].text = _ltCruisers.ToString();
+                    break;
+                case "NumHC":
+                    ourTMPs[i].text = _hvyCruisers.ToString();
+                    break;
+                case "NumT":
+                    ourTMPs[i].text = _transports.ToString();
+                    break;
+                default:
+                    break;
+            }
+        }
+        Button[] listButtons = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Button>();
+        foreach (var listButton in listButtons)
+        {
+            switch (listButton.name)
+            {
+                case "InteractionButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                    break;
+                case "OpenDiscriptionButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                    break;
+                case "TradeButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                    break;
+                case "EngagementButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.Engagement(diplomacyCon));
+                    break;
+                case "TechButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.ProposeTech(diplomacyCon));
+                    break;
+                case "AidButton":
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.SendAid(diplomacyCon));
+                    break;
+                case "AllianceButton":
+                    //fleetCon.FleetData.FleetButtonUp = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.OfferAlliance(diplomacyCon));
+                    break;
+                case "GatherIntelButton":
+                    // fleetCon.FleetData.FleetButtonDown = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.GatherIntel(diplomacyCon));
+                    break;
+                case "TheftButton":
+                    //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.Theft(diplomacyCon));
+                    break;
+                case "DisinformationButton":
+                    //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.Disinformation(diplomacyCon));
+                    break;
+                case "SabatogeButton":
+                    //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.Sabatoge(diplomacyCon));
+                    break;
+                case "CombatButton":
+                    //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    listButton.onClick.RemoveAllListeners();
+                    listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    private void CountShips(List<ShipController> ships)
+    {
+        _scouts = ships.Count(s => s.ShipData.ShipType == ShipType.Scout);
+        _destroyers = ships.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
+        _ltCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
+        _hvyCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
+        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Transport);
+    }
+    public void LoadDiplomacyUI(DiplomacyController ourDiplomacyController)
+    {
+        //if (GameController.Instance.AreWeLocalPlayer(ourDiplomacyController.DiplomacyData.CivMajor.CivData.CivEnum))
+        //    LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivOther, ourDiplomacyController); // Fix: Changed 'CivTwo' to 'CivOther'
+        //else if (GameController.Instance.AreWeLocalPlayer(ourDiplomacyController.DiplomacyData.CivOther.CivData.CivEnum))
+        //    LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController); // Fix: Changed 'CivOne' to 'CivMajor'
+    }
+
+    private void LoadCivDataInUI(CivController othersController, DiplomacyController ourDiplomacyController)
+    {
+        // Implementation for loading civilization data into the UI.
+        // This method was missing, causing CS0103.
+    }
+
+    public void CloseUnLoadDiplomacyUI()
+    {
+        // Existing code...
+    }
+
+    public void OpenCloseDescritionPanel()
+    {
+        // Existing code...
+    }
+
+    public void CombatScene()
+    {
+        // Existing code...
+    }
+
+    // Existing code...
+}

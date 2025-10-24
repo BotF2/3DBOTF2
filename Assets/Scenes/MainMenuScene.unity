@@ -18777,7 +18777,7 @@ GameObject:
   - component: {fileID: 895974090}
   - component: {fileID: 895974089}
   m_Layer: 5
-  m_Name: GalaxyMenuUIs
+  m_Name: GalaxyMenuUIController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -18798,21 +18798,10 @@ MonoBehaviour:
   parentCanvas: {fileID: 966764658}
   fleetMenuUIController: {fileID: 1887217962}
   starSysMenuUIController: {fileID: 2128377793}
-  buildListUI: {fileID: 315311927}
-  systemsMenuView: {fileID: 288715443}
-  sysListContainer: {fileID: 44498444}
-  sysShipListContainer: {fileID: 0}
-  aSystemMenuView: {fileID: 2074790877}
+  diplomacyMenuUIController: {fileID: 2053568952}
   aSystemShipContainer: {fileID: 2074790877}
   sysBuildMenu: {fileID: 441464050}
-  fleetListContainer: {fileID: 1850390554}
-  fleetShipListContainer: {fileID: 0}
-  aFleetShipContainer: {fileID: 0}
-  manageFleetShipsMenu: {fileID: 1423239684}
-  diplomacyMenuView: {fileID: 276954025}
   diplomacyNoContacts: {fileID: 1682047500}
-  diplomacyListContainter: {fileID: 1786321515}
-  aDiplomacyMenuView: {fileID: 2115934444}
   intelMenuView: {fileID: 983926167}
   encyclopediaMenuView: {fileID: 864062688}
   aNull: {fileID: 0}
@@ -18833,17 +18822,8 @@ MonoBehaviour:
   openMenuWas: {fileID: 0}
   openMenuEnumWas: 0
   fleetUI_Prefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
-  warpSlider: {fileID: 0}
-  maxSliderValue: 10
-  warpUpButtonGO: {fileID: 0}
-  warpDownButtonGO: {fileID: 0}
-  warpChange: 0.1
-  warpButtonPress: 0
-  shipListingUIPrefab: {fileID: 1097691733155681692, guid: 80e448e987f83f14a9351c9b3de176b4, type: 3}
-  selectDestinationCursorButtonGO: {fileID: 0}
-  cancelDestinationButtonGO: {fileID: 0}
-  selectOtherSysOrFleetButtonGO: {fileID: 0}
   dragDestinationTargetButtonGO: {fileID: 0}
+  selectOtherSysOrFleetButtonGO: {fileID: 0}
   InteractionButtonGO: {fileID: 0}
   tradeButtonGO: {fileID: 0}
   engagementButtonGO: {fileID: 0}
@@ -18856,11 +18836,6 @@ MonoBehaviour:
   sabatogeButtonGO: {fileID: 0}
   combatButtonGO: {fileID: 0}
   closeDiplomacyButtonGO: {fileID: 0}
-  rows: 100
-  cols: 2
-  cellSize: {x: 948, y: 200}
-  spacing: {x: 1, y: 1}
-  padding: {x: 1, y: 1}
 --- !u!224 &895974090
 RectTransform:
   m_ObjectHideFlags: 0
@@ -29239,7 +29214,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 57f71a291c37e6344b1bc1986f8acc1f, type: 2}
   fleetPrefab: {fileID: 3939678481243734066, guid: ef3b3036010abf54e8925e887e9010ad, type: 3}
   fleetUIPrefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
-  rightSideShipManagerFleetUIPrefab: {fileID: 0}
   shipManagerMenuPrefab: {fileID: 8637087807823003284, guid: 7997ef2e58d487c48bdbe97951aa4adc, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
   galaxyImage: {fileID: 843799567}
@@ -43767,8 +43741,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2053568951}
+  - component: {fileID: 2053568952}
   m_Layer: 5
-  m_Name: GameObject (2)
+  m_Name: DiplomacyMenuUIController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -43793,6 +43768,54 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2053568952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2053568950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6fa067ba07f13040a4c42ddef573451, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DiplomacyMenuUIController
+  diplomacyMenuView: {fileID: 276954025}
+  diplomacyNoContacts: {fileID: 0}
+  diplomacyListContainter: {fileID: 1786321515}
+  aDiplomacyMenuView: {fileID: 2115934444}
+  firstContact: {fileID: 0}
+  theirNameTMP: {fileID: 0}
+  theirInsignia: {fileID: 0}
+  theirRaceImage: {fileID: 0}
+  relationTMP: {fileID: 0}
+  relationPointsTMP: {fileID: 0}
+  traitOneTMP: {fileID: 0}
+  traitTwoTMP: {fileID: 0}
+  traitThreeTMP: {fileID: 0}
+  traitFourTMP: {fileID: 0}
+  ourTraitOneTMP: {fileID: 0}
+  ourTraitTwoTMP: {fileID: 0}
+  ourTraitThreeTMP: {fileID: 0}
+  ourTraitFourTMP: {fileID: 0}
+  transmissionTMP: {fileID: 0}
+  descriptionTMP: {fileID: 0}
+  descriptionPanel: {fileID: 0}
+  UI_PanelGOs: []
+  TabButtonMasks: []
+  InteractionButtonGO: {fileID: 0}
+  tradeButtonGO: {fileID: 0}
+  engagementButtonGO: {fileID: 0}
+  techButtonGO: {fileID: 0}
+  aidButtonGO: {fileID: 0}
+  allianceButtonGO: {fileID: 0}
+  gatherIntelButtonGO: {fileID: 0}
+  theftButtonGO: {fileID: 0}
+  disinformationButtonGO: {fileID: 0}
+  sabatogeButtonGO: {fileID: 0}
+  combatButtonGO: {fileID: 0}
+  closeDiplomacyButtonGO: {fileID: 0}
+  listOfDiplomacyUiGos: []
 --- !u!1001 &2056045500
 PrefabInstance:
   m_ObjectHideFlags: 0

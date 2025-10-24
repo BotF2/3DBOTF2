@@ -506,6 +506,7 @@ namespace Assets.Core
                 if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
                     var starSysUI = StarSysMenuUIController.Instance;
+                    starSysUI.SetUpASystemUIData(this);
                     starSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                     starSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
                     starSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
@@ -513,7 +514,7 @@ namespace Assets.Core
                     starSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
                     starSysUI.UpdateSystemPowerLoad(this);
                     GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
-                }
+                  }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                 { // this is a system local player does not own but we know them
                     DiplomacyManager.Instance.ResolveDiplomacyForClickSystem(CivManager.Instance.LocalPlayerCivContoller, this);
