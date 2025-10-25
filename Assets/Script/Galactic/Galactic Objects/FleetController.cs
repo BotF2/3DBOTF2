@@ -148,28 +148,6 @@ namespace Assets.Core
             }
 
         }
-        private void HandleNormalClick(FleetController clickedFleetCon)
-        {
-            if (GameController.Instance.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
-            {
-                GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
-            }
-        }
-
-        private void HandleDestinationClick(FleetController clickedFleetCon)
-        {
-            FleetController theFleetConLookingForDestination = GalaxyMenuUIController.Instance.FleetLookingForDestination;//MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
-            if (theFleetConLookingForDestination == null) return;
-            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
-            theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
-        }
-
-        private void HandleShipExchangeClick(FleetController clickedFleetCon)
-        {
-            if (clickedFleetCon != this) return;
-            FleetMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(clickedFleetCon.gameObject);
-            MousePointerChanger.Instance.ResetCursor();
-        }
 
 
         private void OnMouseDrag()
@@ -265,6 +243,28 @@ namespace Assets.Core
             }
 
         }
+        private void HandleNormalClick(FleetController clickedFleetCon)
+        {
+            if (GameController.Instance.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+            {
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject, null);
+            }
+        }
+        private void HandleDestinationClick(FleetController clickedFleetCon)
+        {
+            FleetController theFleetConLookingForDestination = GalaxyMenuUIController.Instance.FleetLookingForDestination;//MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
+            if (theFleetConLookingForDestination == null) return;
+            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
+            theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
+        }
+
+        private void HandleShipExchangeClick(FleetController clickedFleetCon)
+        {
+            if (clickedFleetCon != this) return;
+            FleetMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(clickedFleetCon.gameObject);
+            MousePointerChanger.Instance.ResetCursor();
+        }
+
         private Vector3 GetMouseWorldPosition()
         {
             // pixel coordinates (x,y)
@@ -586,7 +586,7 @@ namespace Assets.Core
             if (fleetCon == this && fleetCon == GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
             {
                 GameObject notAMenu = new GameObject();
-                GalaxyMenuUIController.Instance.OpenMenu(Menu.FleetMenu, notAMenu);
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.FleetMenu, notAMenu, null);
                 Destroy(notAMenu);
             }
         }
@@ -636,7 +636,7 @@ namespace Assets.Core
         private void OnDestroy()
         {
             //StopAllCoroutines();
-            if (this.FleetData != null && FleetData.FleetInt != null)
+            if (this.FleetData != null)
             { 
                 FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
                 if (FleetManager.Instance.FleetControllerList.Contains(this))

@@ -44,7 +44,7 @@ public class HabitableSysUIController: MonoBehaviour
             TimeManager.Instance.PauseTime(); // ToDo: put a pause indicator on screen
                                               //ToDo: manage open UIs so we keep a UI with interaction pending when a fleet reaches a new target and player need more than one UI still open
             GameObject aNull = new GameObject();
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull, null);
             //YourStarSysUIManager.Instance.CloseUnLoadStarSysUI();
             //FleetUIController.Instance.CloseDestinationSelectionCursor();
             ////FleetSelectionUI.current.UnLoadShipManagerUI();

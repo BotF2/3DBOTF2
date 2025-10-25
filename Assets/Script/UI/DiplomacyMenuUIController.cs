@@ -14,15 +14,14 @@ public class DiplomacyMenuUIController : MonoBehaviour
     //[SerializeField]
     //private Canvas parentCanvas;
     public DiplomacyController DiplomacyController;
-    //public GameObject DiplomacyUIToggle; // GameObject control this active UI on/off
-    [SerializeField]
-    private GameObject diplomacyMenuView;
+    //[SerializeField]
+    public GameObject diplomacyMenuView;
     [SerializeField]
     private GameObject diplomacyNoContacts;
     [SerializeField]
     private GameObject diplomacyListContainter;
-    [SerializeField]
-    private GameObject aDiplomacyMenuView;
+    //[SerializeField]
+    public GameObject aDiplomacyMenuView;
     [SerializeField]
     private GameObject firstContact;
     [SerializeField]
@@ -93,8 +92,8 @@ public class DiplomacyMenuUIController : MonoBehaviour
     int _transports;
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfDiplomacyUiGos = new List<GameObject>();
-    public bool IsVisibleA_DiplomacyMenuView => aDiplomacyMenuView.activeSelf;
-    public bool IsVisibleDiplomacyMenuView => diplomacyMenuView.activeSelf;
+    public bool IsVisibleA_DiplomacyMenuView => aDiplomacyMenuView.activeSelf; // for pause time
+    public bool IsVisibleDiplomacyMenuView => diplomacyMenuView.activeSelf; // for pause time
 
     private void Awake()
     {
@@ -157,18 +156,19 @@ public class DiplomacyMenuUIController : MonoBehaviour
             }
         }
     }
-    public void SetUpADiplomacyUIData(DiplomacyController theDiploCon)
+    public void SetUpADiplomacyUIData(DiplomacyMenuUIController theDiploMenuUI)
     {
-        theDiploCon.DiplomacyUIGameObject.SetActive(true);
-        theDiploCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+        theDiploMenuUI.gameObject.SetActive(true);
+        theDiploMenuUI.transform.SetParent(diplomacyMenuView.transform, false);
     }
     // ToDo: Build out Diplomacy to work with traits for AI and human players
-    public void MoveTheDiplomacyUIGO(GameObject fleetConGO)
+    public void MoveTheDiplomacyUIGO(DiplomacyMenuUIController diploMenu)
     {
         for (int i = 0; i < listOfDiplomacyUiGos.Count; i++)
         {
-            if (listOfDiplomacyUiGos[i] == fleetConGO)
+            if (listOfDiplomacyUiGos[i] == diploMenu.gameObject)
             {
+                listOfDiplomacyUiGos[i].SetActive(true);
                 listOfDiplomacyUiGos[i].transform.SetParent(aDiplomacyMenuView.transform, false);
                 return;
             }
@@ -185,6 +185,7 @@ public class DiplomacyMenuUIController : MonoBehaviour
     public void SetUpDiplomacyUIElements(DiplomacyController diplomacyCon, List<ShipController> shipList)
     {
         GalaxyMenuUIController.Instance.HideNoContactUI();
+        
         CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
         CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
         CivController notLocalPlayerCiv;
@@ -433,6 +434,7 @@ public class DiplomacyMenuUIController : MonoBehaviour
                     break;
             }
         }
+        GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu,diplomacyCon.DiplomacyUIGameObject, diplomacyCon.DiplomacyUIGameObject.GetComponent<DiplomacyMenuUIController>());
     }
     private void CountShips(List<ShipController> ships)
     {

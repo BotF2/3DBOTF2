@@ -31,8 +31,8 @@ public class StarSysMenuUIController : MonoBehaviour
     public GameObject SystemsMenuView => systemsMenuView;
     public GameObject ASystemMenuView => aSystemMenuView;
     public GameObject SysListContainer => sysListContainer;
-    public bool IsVisibleA_SystemMenuView => aSystemMenuView.activeSelf;
-    public bool IsVisibleSystemMenuView => systemsMenuView.activeSelf;
+    //public bool IsVisibleA_SystemMenuView => aSystemMenuView.activeSelf;
+    //public bool IsVisibleSystemMenuView => systemsMenuView.activeSelf;
 
     private void Awake()
     {

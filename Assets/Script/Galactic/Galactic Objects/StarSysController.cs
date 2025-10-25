@@ -513,11 +513,11 @@ namespace Assets.Core
                     starSysUI.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
                     starSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
                     starSysUI.UpdateSystemPowerLoad(this);
-                    GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
+                    GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, this.gameObject, null); // set the system UI to this system
                   }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                 { // this is a system local player does not own but we know them
-                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystem(CivManager.Instance.LocalPlayerCivContoller, this);
+                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivContoller, this);
                 }
             }
         }
@@ -645,13 +645,13 @@ namespace Assets.Core
         public void BuildClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildListUI(this);
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null);
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null, null);
 
         }
         public void ShipClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildListUI(this);
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null);
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null, null);
         }
         public void FacilityOnClick(StarSysController sysCon, string name)
         {

@@ -32,8 +32,8 @@ public class FleetMenuUIController : MonoBehaviour
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
-    public bool IsVisibleA_FleetMenuView => aFleetMenuView.activeSelf;
-    public bool IsVisibleFleetMenuView => fleetMenuView.activeSelf;
+    //public bool IsVisibleA_FleetMenuView => aFleetMenuView.activeSelf;
+    //public bool IsVisibleFleetMenuView => fleetMenuView.activeSelf;
 
     private void Awake()
     {

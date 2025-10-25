@@ -224,47 +224,18 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void SystemButtonPressed()
     {
         CloseButtonPressed();
-        if (starSysMenuUIController.IsVisibleSystemMenuView)
-            starSysMenuUIController.HideSystemMenuView();
-        else if (starSysMenuUIController.IsVisibleA_SystemMenuView)
-            starSysMenuUIController.HideA_SystemMenuView();
-        else
-        { 
-            OpenMenu(Menu.SystemsMenu, null);
-            //starSysMenuUIController.ShowSystemMenuView();
-        }
+        OpenMenu(Menu.SystemsMenu, gameObject, null);
     }
  
     public void FleetButtonPressed() // The CanvasGalaxyMenuRibbon/MainGalaxyMenuPanel/FleetButton in the Hierarchy is set to this class.method
     {
         CloseButtonPressed();
-        //if (fleetMenuUIController.IsVisibleFleetMenuView)
-        //{
-        //    fleetMenuUIController.HideFleetMenuView();
-        //}
-        //else if (fleetMenuUIController.IsVisibleA_FleetMenuView)
-        //{
-        //    fleetMenuUIController.HideA_FleetMenuView();
-        //}
-        //else
-        //{
-        OpenMenu(Menu.FleetMenu, gameObject);
-            //fleetMenuUIController.ShowFleetMenuView();
-        //}
-
+        OpenMenu(Menu.FleetMenu, gameObject, null);
     }
     public void DiplomacyButtonPressed()
     {
         CloseButtonPressed();
-        if (diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
-            CloseMenu(Menu.DiplomacyMenu);
-        else if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView)
-            CloseMenu(Menu.ADiplomacyMenu);
-        else
-        {
-            OpenMenu(Menu.DiplomacyMenu, null);
-        }
-
+        OpenMenu(Menu.DiplomacyMenu, gameObject, null);
     }
     public void IntelButtonPressed()
     {
@@ -274,7 +245,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         else
         {
             CloseMenu(Menu.IntellMenu);
-            OpenMenu(Menu.IntellMenu, null);
+            OpenMenu(Menu.IntellMenu, null, null);
         }
 
     }
@@ -285,7 +256,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             CloseMenu(Menu.EncyclopedianMenu);
         else
         {
-            OpenMenu(Menu.EncyclopedianMenu, null);
+            OpenMenu(Menu.EncyclopedianMenu, null, null);
         }
 
     }
@@ -302,7 +273,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             diplomacyNoContacts.SetActive(false);
             diplomacyMenuUIController.HideA_DiplomacyMenuView();
             CloseMenu(Menu.ADiplomacyMenu);
-        if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView)
+        if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
             TimeManager.Instance.ResumeTime();
             fleetMenuUIController.HideFleetMenuView();
             CloseMenu(Menu.FleetMenu);
@@ -318,7 +289,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             CloseMenu(Menu.ASystemMenu);
         
     }
-    public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
+    public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject, DiplomacyMenuUIController diploMenu)
     {
         if (openMenuWas != null)
         {
@@ -374,9 +345,9 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.DiplomacyMenu:
                 diplomacyMenuUIController.ShowDiplomacyMenuView();
                 CloseTheBackgrounds();
+                diplomacyBackground.SetActive(true);
                 TimeManager.Instance.PauseTime();
                 diplomacyMenuUIController.MoveBackAnyDiplomacyUIGO();
-                diplomacyBackground.SetActive(true);
                 openMenuWas = null;
                 openMenuEnumWas = Menu.DiplomacyMenu;
                 break;
@@ -384,9 +355,9 @@ public class GalaxyMenuUIController : MonoBehaviour
                 diplomacyMenuUIController.ShowA_DiplomacyMenuView();
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
-                diplomacyMenuUIController.SetUpADiplomacyUIData(callingMenuOrGalaxyObject.GetComponentInChildren<DiplomacyController>());
+                diplomacyMenuUIController.SetUpADiplomacyUIData(diploMenu);
                 diplomacyBackground.SetActive(true);
-                diplomacyMenuUIController.MoveTheDiplomacyUIGO(callingMenuOrGalaxyObject);
+                diplomacyMenuUIController.MoveTheDiplomacyUIGO(diploMenu);
                 openMenuWas = null;
                 openMenuEnumWas = Menu.ADiplomacyMenu;
                 break;
