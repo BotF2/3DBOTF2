@@ -1,12 +1,14 @@
 using Assets.Core;
-using NUnit.Framework;
+using DG.Tweening.Plugins;
+using Mirror.BouncyCastle.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
-
+/// <summary>
+/// The UI controller owns hierarchy and presentation.
+/// </summary>
 public class DiplomacyMenuUIController : MonoBehaviour
 {
     public static DiplomacyMenuUIController Instance;
@@ -86,12 +88,12 @@ public class DiplomacyMenuUIController : MonoBehaviour
     private GameObject closeDiplomacyButtonGO;
     int _scouts;
     int _destroyers;
-    int _cruisters;
+    int _cruisers;
     int _ltCruisers;
     int _hvyCruisers;
     int _transports;
     [Header("Runtime lists")]
-    [SerializeField] private List<GameObject> listOfDiplomacyUiGos = new List<GameObject>();
+    [SerializeField] public List<GameObject> ListOfDiplomacyUiGos = new List<GameObject>();
     public bool IsVisibleA_DiplomacyMenuView => aDiplomacyMenuView.activeSelf; // for pause time
     public bool IsVisibleDiplomacyMenuView => diplomacyMenuView.activeSelf; // for pause time
 
@@ -136,65 +138,62 @@ public class DiplomacyMenuUIController : MonoBehaviour
         aDiplomacyMenuView.SetActive(false);
     }
 
-    public void SetupDiplomacyUIData()
+    public void SetParentForADiplomacyUIData(DiplomacyController diploCon)
     {
-        if (DiplomacyManager.Instance == null) return;
-
-        for (int j = 0; j < DiplomacyManager.Instance.DiplomacyControllers.Count; j++)
-        {
-            DiplomacyController diplomacyCon = DiplomacyManager.Instance.DiplomacyControllers[j];
-            if (diplomacyCon == null) continue;
-
-            if (!listOfDiplomacyUiGos.Contains(diplomacyCon.DiplomacyUIGameObject) &&
-               ( GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivSideOne) || GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivSideTwo)))
-            {
-                // wire up individual diplomacy UI
-                SetUpDiplomacyUIElements(diplomacyCon, null);
-                listOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject);
-                diplomacyCon.DiplomacyUIGameObject.SetActive(true);
-                diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
-            }
-        }
-    }
-    public void SetUpADiplomacyUIData(DiplomacyMenuUIController theDiploMenuUI)
-    {
-        theDiploMenuUI.gameObject.SetActive(true);
-        theDiploMenuUI.transform.SetParent(diplomacyMenuView.transform, false);
+        diploCon.DiplomacyUIGameObject.SetActive(true);
+        diploCon.DiplomacyUIGameObject.transform.SetParent(diplomacyMenuView.transform, false);
     }
     // ToDo: Build out Diplomacy to work with traits for AI and human players
-    public void MoveTheDiplomacyUIGO(DiplomacyMenuUIController diploMenu)
+    public void MoveTheDiplomacyUIGO(GameObject diploMenu)
     {
-        for (int i = 0; i < listOfDiplomacyUiGos.Count; i++)
+        for (int i = 0; i < ListOfDiplomacyUiGos.Count; i++)
         {
-            if (listOfDiplomacyUiGos[i] == diploMenu.gameObject)
+            if (ListOfDiplomacyUiGos[i] == diploMenu)
             {
-                listOfDiplomacyUiGos[i].SetActive(true);
-                listOfDiplomacyUiGos[i].transform.SetParent(aDiplomacyMenuView.transform, false);
+                ListOfDiplomacyUiGos[i].SetActive(true);
+                ListOfDiplomacyUiGos[i].transform.SetParent(aDiplomacyMenuView.transform, false);
                 return;
             }
         }
     }
     public void MoveBackAnyDiplomacyUIGO()
     {
-        for (int i = 0; i < aDiplomacyMenuView.transform.childCount; i++)
+        //for (int i = 0; i < aDiplomacyMenuView.transform.childCount; i++)
+        //{
+        //    if (aDiplomacyMenuView.transform.GetChild(i).gameObject != null)
+        //        aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
+        //}
+        while (aDiplomacyMenuView.transform.childCount > 0)
         {
-            if (aDiplomacyMenuView.transform.GetChild(i).gameObject != null)
-                aDiplomacyMenuView.transform.GetChild(i).gameObject.transform.SetParent(diplomacyListContainter.transform, false); ;
+            var child = aDiplomacyMenuView.transform.GetChild(0).gameObject;
+            child.transform.SetParent(diplomacyListContainter.transform, false);
         }
     }
-    public void SetUpDiplomacyUIElements(DiplomacyController diplomacyCon, List<ShipController> shipList)
+    public void SetUpDiplomacyUIElements(GameObject diplomacyUIGO, GameObject diplomacyControllerGO, List<ShipController> shipList)
     {
+        DiplomacyController diplomacyCon = diplomacyControllerGO.GetComponent<DiplomacyController>();
+        Debug.Log($"SetUpDiplomacyUIElements called for DiplomacyController: {(diplomacyCon == null ? "null" : diplomacyCon.DiplomacyData.CivOne?.CivData.CivShortName ?? "unknown")}");
+
+        if (diplomacyUIGO != null)
+            diplomacyCon.DiplomacyUIGameObject = diplomacyUIGO;
         GalaxyMenuUIController.Instance.HideNoContactUI();
-        
-        CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideOne);
-        CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivSideTwo);
+        aDiplomacyMenuView.gameObject.SetActive(true);
+        diplomacyMenuView.gameObject.SetActive(true);
+        diplomacyListContainter.gameObject.SetActive(true);
+       // diplomacyUIGO.GetComponent<DiplomacyMenuUIController>() = this;
+        CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideOne);
+        CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideTwo);
         CivController notLocalPlayerCiv;
         CivController localPlayerCiv;
         StarSysController homeSysController;
         diplomacyCon.DiplomacyUIGameObject.SetActive(true);
         diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
-        DiplomacyManager.Instance.DiplomacyControllers.Add(diplomacyCon);// add to list so GalaxyMenuUI has it
-        listOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject); // add to list of DiplomacyUI Game Objects for GalaxyMenuUI
+        
+        
+        if (!DiplomacyManager.Instance.DiplomacyControllers.Contains(diplomacyCon))
+            DiplomacyManager.Instance.DiplomacyControllers.Add(diplomacyCon);// add to list so GalaxyMenuUI has it
+        if (!ListOfDiplomacyUiGos.Contains(diplomacyCon.DiplomacyUIGameObject))
+            ListOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject); // add to list of DiplomacyUI Game Objects for GalaxyMenuUI
         if (GameController.Instance.AreWeLocalPlayer(partyOne.CivData.CivEnum))
         {
             notLocalPlayerCiv = partyTwo;
@@ -356,7 +355,7 @@ public class DiplomacyMenuUIController : MonoBehaviour
                     ourTMPs[i].text = _destroyers.ToString();
                     break;
                 case "NumC":
-                    ourTMPs[i].text = _cruisters.ToString();
+                    ourTMPs[i].text = _cruisers.ToString();
                     break;
                 case "NumLC":
                     ourTMPs[i].text = _ltCruisers.ToString();
@@ -434,45 +433,91 @@ public class DiplomacyMenuUIController : MonoBehaviour
                     break;
             }
         }
-        GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu,diplomacyCon.DiplomacyUIGameObject, diplomacyCon.DiplomacyUIGameObject.GetComponent<DiplomacyMenuUIController>());
     }
+    //public void ListDiplomacyUIGO(GameObject diploGO)
+    //{
+    //    if (diploGO == null)
+    //    {
+    //        Debug.LogError("RegisterDiplomacyUIGO called with null GameObject.");
+    //        return;
+    //    }
+
+    //    //// If container is missing, fallback to attaching to this controller
+    //    //Transform parentTransform = aDiplomacyMenuView != null
+    //    //    ? aDiplomacyMenuView.transform
+    //    //    : diplomacyListContainter.transform;
+
+    //    //diploGO.transform.SetParent(parentTransform, false);
+    //    //diploGO.SetActive(true);
+    //    //diploGO.layer = 5;
+
+    //    // Prevent duplicates
+    //    if (!ListOfDiplomacyUiGos.Contains(diploGO))
+    //    {
+    //        ListOfDiplomacyUiGos.Add(diploGO);
+    //        Debug.Log($"Registered diplomacy UI '{diploGO.name}' under '{parentTransform.name}'.");
+    //    }
+    //    else
+    //    {
+    //        Debug.Log($"Diplomacy UI '{diploGO.name}' is already registered — skipping duplicate add.");
+    //    }
+    //}
+
+    public void UnregisterDiplomacyUIGO(GameObject diploGO)
+    {
+        if (diploGO == null)
+            return;
+
+        if (ListOfDiplomacyUiGos.Remove(diploGO))
+        {
+            Debug.Log($"Unregistered diplomacy UI '{diploGO.name}'.");
+        }
+    }
+
+    public void ClearAllDiplomacyUIs()
+    {
+        foreach (var go in ListOfDiplomacyUiGos)
+        {
+            if (go != null)
+                Destroy(go);
+        }
+        ListOfDiplomacyUiGos.Clear();
+        Debug.Log("Cleared all diplomacy UI GameObjects.");
+    }
+
     private void CountShips(List<ShipController> ships)
     {
         _scouts = ships.Count(s => s.ShipData.ShipType == ShipType.Scout);
         _destroyers = ships.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
+        _cruisers = ships.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
         _ltCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
         _hvyCruisers = ships.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
-        _cruisters = ships.Count(s => s.ShipData.ShipType == ShipType.Transport);
+        _transports = ships.Count(s => s.ShipData.ShipType == ShipType.Transport);
     }
-    public void LoadDiplomacyUI(DiplomacyController ourDiplomacyController)
+    public void RemoveDiplomacyUIGO(GameObject diploGO)
+    {// if a diplomacy UI is destroyed, remove it from our list
+        if (ListOfDiplomacyUiGos.Contains(diploGO))
+        {
+            ListOfDiplomacyUiGos.Remove(diploGO);
+        }
+    }
+    private void OnDisable()
     {
-        //if (GameController.Instance.AreWeLocalPlayer(ourDiplomacyController.DiplomacyData.CivMajor.CivData.CivEnum))
-        //    LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivOther, ourDiplomacyController); // Fix: Changed 'CivTwo' to 'CivOther'
-        //else if (GameController.Instance.AreWeLocalPlayer(ourDiplomacyController.DiplomacyData.CivOther.CivData.CivEnum))
-        //    LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController); // Fix: Changed 'CivOne' to 'CivMajor'
+        // When the UI menu closes (e.g., switching menus or hiding canvas)
+        CleanupDestroyedOrInactiveUIs();
     }
 
-    private void LoadCivDataInUI(CivController othersController, DiplomacyController ourDiplomacyController)
+    private void OnDestroy()
     {
-        // Implementation for loading civilization data into the UI.
-        // This method was missing, causing CS0103.
+        // When this controller is destroyed (e.g., scene unload)
+        ClearAllDiplomacyUIs();
     }
 
-    public void CloseUnLoadDiplomacyUI()
+    public void CleanupDestroyedOrInactiveUIs()
     {
-        // Existing code...
+        // Remove any destroyed or inactive GameObjects from the list
+        ListOfDiplomacyUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
+        Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
     }
 
-    public void OpenCloseDescritionPanel()
-    {
-        // Existing code...
-    }
-
-    public void CombatScene()
-    {
-        // Existing code...
-    }
-
-    // Existing code...
 }

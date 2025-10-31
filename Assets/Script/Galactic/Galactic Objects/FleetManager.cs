@@ -125,7 +125,6 @@ namespace Assets.Core
         { 
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-            fleetController.Init(this);
             return fleetController;
         }
 
@@ -161,21 +160,20 @@ namespace Assets.Core
 
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-            fleetController.Init(this);
             FleetControllerList.Add(fleetController); // add to list of all fleet controllers
             fleetController.gameObject.layer = 6; // galaxy layer
             fleetController.BackgroundGalaxyImage = galaxyImage;
             fleetController.FleetData = fleetData;
             fleetController.FleetData.ShipsList.Clear();
-            Canvas[] canvasArray = fleetController.gameObject.GetComponentsInChildren<Canvas>();
-            // Tool Tip?
-            //for (int j = 0; j < canvasArray.Length; j++)
-            //{
-            //    if (canvasArray[j].name == "CanvasToolTip")
-            //    {
-            //        fleetController.CanvasToolTip = canvasArray[j];
-            //    }
-            //}
+            //// Tool Tip?
+            //Canvas[] canvasArray = fleetController.gameObject.GetComponentsInChildren<Canvas>();
+            ////for (int j = 0; j < canvasArray.Length; j++)
+            ////{
+            ////    if (canvasArray[j].name == "CanvasToolTip")
+            ////    {
+            ////        fleetController.CanvasToolTip = canvasArray[j];
+            ////    }
+            ////}
             if (!inSystem)
             {
                 var transGalaxyCenter = GalaxyCenter.gameObject.transform;
@@ -261,8 +259,6 @@ namespace Assets.Core
                 if (civCon.CivData.CivEnum == fleetData.CivEnum)
                     fleetData.CivController = civCon;
             }
-            List<FleetController> list = new List<FleetController>() {fleetController};
-            fleetController.FleetData.FleetGroupControllers = list;
             fleetController.gameObject.SetActive(true);
 
             fleetController.UpdateMaxWarp();

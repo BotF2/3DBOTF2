@@ -5,7 +5,9 @@ using UnityEngine;
 using System;
 using System.Collections;
 using UnityEngine.UI;
-
+/// <summary>
+/// The UI controller owns hierarchy and presentation.
+/// </summary>
 public class StarSysMenuUIController : MonoBehaviour
 {
     public static StarSysMenuUIController Instance;
@@ -318,7 +320,7 @@ public class StarSysMenuUIController : MonoBehaviour
             }
         }
     }
-    public void SetUpASystemUIData(StarSysController theSysCon)
+    public void SetActiveUIGO(StarSysController theSysCon)
     {
         if (theSysCon == null) return;
         theSysCon.StarSysUIGameObject.SetActive(true);
@@ -356,11 +358,11 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    public void CloseSystemShipsUI(StarSysController theSysCon)
-    {
-        if (theSysCon == null) return;
-        theSysCon.StarSysRightSideShipsUIGameObject.SetActive(false);
-    }
+    //public void CloseSystemShipsUI(StarSysController theSysCon)
+    //{
+    //    if (theSysCon == null) return;
+    //    theSysCon.StarSysRightSideShipsUIGameObject.SetActive(false);
+    //}
 
     public void RemoveSystem(StarSysController sysController)
     {
@@ -511,5 +513,32 @@ public class StarSysMenuUIController : MonoBehaviour
         }
         systemCon.StarSysRightSideShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
     }
+    private void OnDisable()
+    {
+        // When the UI menu closes (e.g., switching menus or hiding canvas)
+        CleanupDestroyedOrInactiveUIs();
+    }
 
+    private void OnDestroy()
+    {
+        // When this controller is destroyed (e.g., scene unload)
+        ClearAllDiplomacyUIs();
+    }
+
+    public void CleanupDestroyedOrInactiveUIs()
+    {
+        // Remove any destroyed or inactive GameObjects from the list
+        listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
+        Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
+    }
+    public void ClearAllDiplomacyUIs()
+    {
+        foreach (var go in listOfStarSysUiGos)
+        {
+            if (go != null)
+                Destroy(go);
+        }
+        listOfStarSysUiGos.Clear();
+        Debug.Log("Cleared all diplomacy UI GameObjects.");
+    }
 }

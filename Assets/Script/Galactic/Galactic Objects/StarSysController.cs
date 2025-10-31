@@ -108,7 +108,7 @@ namespace Assets.Core
                 }
             }
             // Are we building anything 
-            if (building && TimeToBuild > 0) 
+            if (building && TimeToBuild > 0)
             {
 
                 if (starTimer)
@@ -456,7 +456,7 @@ namespace Assets.Core
         private void OnMouseDown()
         {
             Ray ray = galaxyEventCamera.ScreenPointToRay(Input.mousePosition);
-            
+
             if (!Physics.Raycast(ray, out RaycastHit hit)) return;
 
             GameObject sysGO = hit.collider.gameObject;
@@ -476,7 +476,7 @@ namespace Assets.Core
                 case GalaxyClickMode.SelectForShipExchange:
                     HandleShipExchangeClick(clickedSystemCon);
                     break;
-            }            
+            }
         }
 
         private void HandleDestinationClick(StarSysController clickedSystemCon)
@@ -506,15 +506,15 @@ namespace Assets.Core
                 if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
                     var starSysUI = StarSysMenuUIController.Instance;
-                    starSysUI.SetUpASystemUIData(this);
+                    starSysUI.SetActiveUIGO(this);
                     starSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                     starSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
                     starSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
                     starSysUI.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
                     starSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
                     starSysUI.UpdateSystemPowerLoad(this);
-                    GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, this.gameObject, null); // set the system UI to this system
-                  }
+                    GalaxyMenuUIController.Instance.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
+                }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                 { // this is a system local player does not own but we know them
                     DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivContoller, this);
@@ -645,13 +645,13 @@ namespace Assets.Core
         public void BuildClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildListUI(this);
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null, null);
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null);
 
         }
         public void ShipClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildListUI(this);
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null, null);
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.BuildMenu, null);
         }
         public void FacilityOnClick(StarSysController sysCon, string name)
         {
@@ -878,7 +878,7 @@ namespace Assets.Core
             SliderBuildProgress.value = progress;
         }
         public void SetShipBuildProgress(float shipProgress)
-        {    
+        {
             ShipSliderBuildProgress.value = shipProgress;
         }
         public void SelectedShipManageCursor(StarSysController starSysCon)
@@ -886,7 +886,7 @@ namespace Assets.Core
             GalaxyMenuUIController.Instance.BeginShipExchange(this);
             GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SelectForShipExchange);
             MousePointerChanger.Instance.SetShipExchangeCursor(this);
-            
+
         }
         public void ClickCancelShipManageButton()
         {
@@ -899,7 +899,7 @@ namespace Assets.Core
         internal void SelectedOtherForShips(StarSysController sysController)
         {
             //Implement ship transfer between sysController looking and selected system or fleet
-           // GalaxyMenuUIController.Instance.TransferShipsBetweenSystemsForShipExchange(this, sysController);
+            // GalaxyMenuUIController.Instance.TransferShipsBetweenSystemsForShipExchange(this, sysController);
         }
 
         internal void ClickCancelForShipsButton()
@@ -908,6 +908,19 @@ namespace Assets.Core
             GalaxyMenuUIController.Instance.ResetClickMode();
             MousePointerChanger.Instance.ResetCursor();
         }
-    }
 
+        public void CleanupStarSysUIs()
+        {
+            foreach (var starSysCon in StarSysManager.Instance.StarSysControllerList)
+            {
+                if (starSysCon.StarSysUIGameObject == null)
+                    continue;
+
+                if (!starSysCon.StarSysUIGameObject.activeInHierarchy)
+                {
+                    starSysCon.StarSysUIGameObject = null;
+                }
+            }
+        }
+    }
 }

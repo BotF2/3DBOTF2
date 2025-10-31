@@ -7,7 +7,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Assets.Core;
-
+/// <summary>
+/// /// <summary>
+/// The UI controller owns hierarchy and presentation.
+/// </summary>
+/// </summary>
 public class FleetMenuUIController : MonoBehaviour
 {
     public static FleetMenuUIController Instance;
@@ -93,7 +97,7 @@ public class FleetMenuUIController : MonoBehaviour
             }
         }
     }
-    public void SetUpAFleetUIData(FleetController theFleetCon)
+    public void SetActiveUIGO(FleetController theFleetCon)
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
@@ -382,4 +386,33 @@ public class FleetMenuUIController : MonoBehaviour
         MousePointerChanger.Instance.SetDestinationCursor();//ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
         //MousePointerChanger.Instance.HaveGalaxyMapCursor = true;
     }
+    private void OnDisable()
+    {
+        // When the UI menu closes (e.g., switching menus or hiding canvas)
+        CleanupDestroyedOrInactiveUIs();
+    }
+
+    private void OnDestroy()
+    {
+        // When this controller is destroyed (e.g., scene unload)
+        ClearAllDiplomacyUIs();
+    }
+
+    public void CleanupDestroyedOrInactiveUIs()
+    {
+        // Remove any destroyed or inactive GameObjects from the list
+        listOfFleetUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
+        Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
+    }
+    public void ClearAllDiplomacyUIs()
+    {
+        foreach (var go in listOfFleetUiGos)
+        {
+            if (go != null)
+                Destroy(go);
+        }
+        listOfFleetUiGos.Clear();
+        Debug.Log("Cleared all diplomacy UI GameObjects.");
+    }
+
 }

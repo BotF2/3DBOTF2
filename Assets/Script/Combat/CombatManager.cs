@@ -121,12 +121,12 @@ public class CombatManager : MonoBehaviour
         // to populate the combat data
         var sideOneShips = new List<ShipController>();
         var sideTwoShips = new List<ShipController>();
-        var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo); //var intelData = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
+        var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivEnumSideOne, diplomacyController.DiplomacyData.CivEnumSideTwo); //var intelData = CivRelationsManager.Instance.GetRelationsData(diplomacyController.DiplomacyData.CivSideOne, diplomacyController.DiplomacyData.CivSideTwo);
         if (intelCon != null)
         {
             if (intelCon == null)
             {
-                Debug.LogError("IntelData is null in CivRelationsData for civs: " + diplomacyController.DiplomacyData.CivSideOne + " and " + diplomacyController.DiplomacyData.CivSideTwo);
+                Debug.LogError("IntelData is null in CivRelationsData for civs: " + diplomacyController.DiplomacyData.CivEnumSideOne + " and " + diplomacyController.DiplomacyData.CivEnumSideTwo);
                 return;
             }
             if (intelCon.IntelligenceData.LastSeenFleetOfSideOne != null)

@@ -85,17 +85,12 @@ public class DiplomacyManager : MonoBehaviour
     public List<DiplomacyController> DiplomacyControllers { get; private set; } = new List<DiplomacyController>();
     [SerializeField]
     private GameObject diplomacyUIPrefab;
-    //[SerializeField]
-    //private GameObject diplomacyUIGO;
-    //private Camera galaxyEventCamera;
-
+    [SerializeField]
+    private GameObject diplomacControllerPrefab;
 
     private void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-        }
+        if (Instance != null) { Destroy(gameObject); }
         else
         {
             Instance = this;
@@ -107,67 +102,88 @@ public class DiplomacyManager : MonoBehaviour
        // galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
 
     }
+
+    public DiplomacyController InstantiateDiplomacyController(CivController civSideOne, FleetController fleetSideOne,
+    CivController civSideTwo, FleetController fleetSideTwo, StarSysController sysCon)
+    {
+        List<ShipController> shipsToSeeInLocalPayerDiploUI = new List<ShipController>();
+        DiplomacyData diplomacyData = new DiplomacyData(civSideOne.CivData.CivEnum, civSideTwo.CivData.CivEnum);
+        DiplomacyController diplomacyCon = Instantiate(diplomacControllerPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity).GetComponent<DiplomacyController>();
+        diplomacyCon.enabled = true;
+        diplomacyCon.DiplomacyData = diplomacyData;
+     
+        if (!DiplomacyControllers.Contains(diplomacyCon))
+            DiplomacyControllers.Add(diplomacyCon);
+        diplomacyCon.gameObject.SetActive(true);
+        diplomacyCon.gameObject.layer = 5;
+        diplomacyCon.transform.SetParent(this.transform);
+        if (civSideOne.CivData.CivEnum <= CivEnum.TERRAN || civSideTwo.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one or more major civ
+        {
+            // one or two is a major civ so minors do not have diplomacy with other minors
+            diplomacyData.CivEnumSideOne = civSideOne.CivData.CivEnum;
+            diplomacyData.CivOne = civSideOne;
+            diplomacyData.CivEnumSideTwo = civSideTwo.CivData.CivEnum;
+            diplomacyData.CivTwo = civSideTwo;
+            if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
+            {
+                if (fleetSideTwo.FleetData != null)
+                {
+                    shipsToSeeInLocalPayerDiploUI = fleetSideTwo.FleetData.ShipsList;
+                    diplomacyData.FleetContollerCivTwo = fleetSideTwo;
+                }
+                else if (sysCon.StarSysData != null)
+                {
+                    shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
+                    diplomacyData.StarSysController = sysCon;
+                }
+            }
+            else
+            {
+                if (fleetSideOne.FleetData != null)
+                    shipsToSeeInLocalPayerDiploUI = fleetSideOne.FleetData.ShipsList;
+                else
+                    shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
+            }
+            diplomacyData.FleetControllerCivOne = fleetSideOne;
+            diplomacyData.firstContact = true;
+            diplomacyData.EncounterType = EncounterType.FirstContact;
+            
+        }
+        else if (sysCon.StarSysData.SystemType >= GalaxyObjectType.BlackHole) // resolve a non conventional encounter
+        {
+            diplomacyCon.ResolveFleetToStrangGalacticEncounter(diplomacyCon); // ToDo
+        }
+        diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyCon);
+        diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
+        InstantiateDiplomacyUIGameObject(diplomacyCon);
+        DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(diplomacyCon.DiplomacyUIGameObject,
+            diplomacyCon.gameObject, shipsToSeeInLocalPayerDiploUI);
+
+        return diplomacyCon;
+    }
     private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
     {
-        if (diplomacyCon.DiplomacyData.CivSideOne == GameController.Instance.GameData.LocalPlayerCivEnum
-             || diplomacyCon.DiplomacyData.CivSideTwo == GameController.Instance.GameData.LocalPlayerCivEnum)
+        if (diplomacyCon.DiplomacyData.CivEnumSideOne == GameController.Instance.GameData.LocalPlayerCivEnum ||
+                     diplomacyCon.DiplomacyData.CivEnumSideTwo == GameController.Instance.GameData.LocalPlayerCivEnum)
         {
             if (diplomacyCon.DiplomacyUIGameObject == null)
             {
-                GameObject thisDiplomacyUIGameObject = (GameObject)Instantiate(diplomacyUIPrefab, new Vector3(0, 0, 0),
-                Quaternion.identity);
-                thisDiplomacyUIGameObject.SetActive(true);
-                thisDiplomacyUIGameObject.layer = 5;
-                diplomacyCon.DiplomacyUIGameObject = thisDiplomacyUIGameObject;
-                
+                GameObject uiGO = (GameObject)Instantiate(diplomacyUIPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
+                uiGO.SetActive(true);
+                uiGO.layer = 5;
+                diplomacyCon.DiplomacyUIGameObject = uiGO;
+                diplomacyCon.DiplomacyUIGameObject.SetActive(true);
+                DiplomacyMenuUIController.Instance.aDiplomacyMenuView.SetActive(true);
+                uiGO.transform.SetParent(DiplomacyMenuUIController.Instance.aDiplomacyMenuView.transform, false);
+                if (DiplomacyMenuUIController.Instance != null && !DiplomacyMenuUIController.Instance.ListOfDiplomacyUiGos.Contains(uiGO))
+                {
+                    DiplomacyMenuUIController.Instance.ListOfDiplomacyUiGos.Add(uiGO);
+                }
             }
         }
     }
-
-    public void InitNewDiplomacyController(CivController civSideOne, FleetController fleetSideOne,
-    CivController civSideTwo, FleetController fleetSideTwo, StarSysController sysCon)
-    {
-        DiplomacyData diplomacyData = null;
-        List<ShipController> shipsToSeeInLocalPayerDiploUI;
-        diplomacyData = new DiplomacyData(civSideOne.CivData.CivEnum, civSideTwo.CivData.CivEnum);
-        if (civSideOne.CivData.CivEnum <= CivEnum.TERRAN || civSideTwo.CivData.CivEnum <= CivEnum.TERRAN) // diplomacy only when there is one or more major civ
-        { 
-            // one or two is a major civ
-           // diplomacyData.CivSideOne = civSideOne.CivData.CivEnum;
-            diplomacyData.CivOne = civSideOne;
-            //diplomacyData.CivSideTwo = civSideTwo.CivData.CivEnum;
-            diplomacyData.CivTwo = civSideTwo;
-            if (fleetSideTwo.FleetData != null)
-                diplomacyData.FleetContollerCivTwo = fleetSideTwo;
-            diplomacyData.FleetControllerCivOne = fleetSideOne;
-            //diplomacyData.EncounterType = EncounterType.FirstContact;
-            diplomacyData.firstContact = true;
-            if (sysCon.StarSysData != null)
-                diplomacyData.StarSysController = sysCon;
-        }
-        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
-        diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyController);
-        diplomacyController.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs;
-        DiplomacyControllers.Add(diplomacyController);
-        InstantiateDiplomacyUIGameObject(diplomacyController);
-        if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
-        {
-            if (fleetSideTwo.FleetData != null)
-                shipsToSeeInLocalPayerDiploUI = fleetSideTwo.FleetData.ShipsList;
-            else
-                shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
-        }
-        else
-        {
-            if (fleetSideOne.FleetData != null)
-                shipsToSeeInLocalPayerDiploUI = fleetSideOne.FleetData.ShipsList;
-            else
-                shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
-        } 
-
-        DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(diplomacyController, shipsToSeeInLocalPayerDiploUI);
-    }
-
     public bool FoundADiplomacyController(CivController civPartyOne, CivController civPartyTwo) //, GameObject hitGO)
     {
         bool found = false;
@@ -176,8 +192,8 @@ public class DiplomacyManager : MonoBehaviour
         {
             if (DiplomacyControllers[i] != null)
             {
-                if (DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum
-                    || DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum)
+                if (DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyTwo.CivData.CivEnum
+                    || DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyOne.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyTwo.CivData.CivEnum)
                 {
                     found = true;
                     break;
@@ -191,8 +207,8 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController diplomacyController = null;
         for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivSideOne == oneSide && DiplomacyControllers[i].DiplomacyData.CivSideTwo == otherSide)
-                || (DiplomacyControllers[i].DiplomacyData.CivSideOne == otherSide && DiplomacyControllers[i].DiplomacyData.CivSideTwo == oneSide)))
+            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == oneSide && DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == otherSide)
+                || (DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == otherSide && DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == oneSide)))
             {
                 diplomacyController = DiplomacyControllers[i];
                 break;
@@ -207,16 +223,16 @@ public class DiplomacyManager : MonoBehaviour
         {
             if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
             {
-                ourDiplomacyController.DiplomacyData.CivSideOne = civPartyOne.CivData.CivEnum; // local player civ
-                ourDiplomacyController.DiplomacyData.CivSideTwo = civPartyTwo.CivData.CivEnum;
+                ourDiplomacyController.DiplomacyData.CivEnumSideOne = civPartyOne.CivData.CivEnum; // local player civ
+                ourDiplomacyController.DiplomacyData.CivEnumSideTwo = civPartyTwo.CivData.CivEnum;
             }
             else if (GameController.Instance.AreWeLocalPlayer(civPartyTwo.CivData.CivEnum))
             {
-                ourDiplomacyController.DiplomacyData.CivSideOne = civPartyTwo.CivData.CivEnum; // local player civ
-                ourDiplomacyController.DiplomacyData.CivSideTwo = civPartyOne.CivData.CivEnum;
+                ourDiplomacyController.DiplomacyData.CivEnumSideOne = civPartyTwo.CivData.CivEnum; // local player civ
+                ourDiplomacyController.DiplomacyData.CivEnumSideTwo = civPartyOne.CivData.CivEnum;
             }
-            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController, shipList); // it opens the ADiplomacy UI
-            GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, ourDiplomacyController.DiplomacyUIGameObject, null);
+            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject, 
+                ourDiplomacyController.gameObject, shipList);
         }
     }
     public void CheckForAIDiplomacy(FleetController fleetCon1, FleetController fleetCon2)
@@ -269,9 +285,9 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController diplomacyController = null;
         for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyOne.CivData.CivEnum && 
-                DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyTwo.CivData.CivEnum)
-                || (DiplomacyControllers[i].DiplomacyData.CivSideOne == civPartyTwo.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivSideTwo == civPartyOne.CivData.CivEnum)))
+            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyOne.CivData.CivEnum && 
+                DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyTwo.CivData.CivEnum)
+                || (DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyTwo.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyOne.CivData.CivEnum)))
             {
                 diplomacyController = DiplomacyControllers[i];
                 break;
@@ -281,8 +297,8 @@ public class DiplomacyManager : MonoBehaviour
     }
     public DiplomacyStatusEnum CalculateDiplomaticStatusOnFirstContact(DiplomacyController ourDiploCon)
     {
-        CivController civOne = CivManager.Instance.GetCivControllerByCivEnum(ourDiploCon.DiplomacyData.CivSideOne);
-        CivController civTwo = CivManager.Instance.GetCivControllerByCivEnum(ourDiploCon.DiplomacyData.CivSideTwo);
+        CivController civOne = CivManager.Instance.GetCivControllerByCivEnum(ourDiploCon.DiplomacyData.CivEnumSideOne);
+        CivController civTwo = CivManager.Instance.GetCivControllerByCivEnum(ourDiploCon.DiplomacyData.CivEnumSideTwo);
         DiplomacyStatusEnum diplomacyStatus = DiplomacyStatusEnum.Neutral;
         int warLike = Math.Abs((int)civOne.CivData.Warlike - (int)civTwo.CivData.Warlike);
         int xenophobia = Math.Abs((int)civOne.CivData.Xenophbia - (int)civTwo.CivData.Xenophbia);
@@ -350,7 +366,9 @@ public class DiplomacyManager : MonoBehaviour
             }
             if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
             {
-                DiplomacyManager.Instance.InitNewDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                DiplomacyController newDiplomacyCon = DiplomacyManager.Instance.InstantiateDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
+                if (!DiplomacyControllers.Contains(newDiplomacyCon))
+                         DiplomacyControllers.Add(newDiplomacyCon);
                 IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                 FirstContactFleetVsFleet(reportingPlayerFleet, otherFleet); // and add new diplomacy controller
                 Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
@@ -367,9 +385,31 @@ public class DiplomacyManager : MonoBehaviour
     {
         var diplomacyData = EntereDiplomacyData(reportingPlayerFleet, otherFleet);
         diplomacyData.EncounterType = EncounterType.FirstContact;
-        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+
+        // Instantiate a DiplomacyController MonoBehaviour from prefab (or add component) so it's a Unity-managed component
+        DiplomacyController diplomacyController = null;
+        if (diplomacControllerPrefab != null)
+        {
+            GameObject dipGo = Instantiate(diplomacControllerPrefab, Vector3.zero, Quaternion.identity);
+            dipGo.SetActive(true);
+            dipGo.layer = 5;
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.GetComponent<DiplomacyController>();
+            if (diplomacyController == null)
+                diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+        else
+        {
+            GameObject dipGo = new GameObject("DiplomacyController");
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+
+        diplomacyController.DiplomacyData = diplomacyData;
         diplomacyController.DiplomacyData.firstContact = true;
-        //DiplomacyControllers.Add(diplomacyController);
+
+        if (!DiplomacyControllers.Contains(diplomacyController))
+            DiplomacyControllers.Add(diplomacyController);
     }
     private DiplomacyData EntereDiplomacyData(FleetController fleetConA, FleetController fleetConB)
     {
@@ -385,10 +425,10 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyData diplomacyData = new DiplomacyData();
         diplomacyData.FleetControllerCivOne = fleetConA;
         diplomacyData.CivOne = fleetConA.FleetData.CivController;
-        diplomacyData.CivSideOne = fleetConA.FleetData.CivEnum;
+        diplomacyData.CivEnumSideOne = fleetConA.FleetData.CivEnum;
         diplomacyData.StarSysController = starSysCon;
         diplomacyData.CivTwo = starSysCon.StarSysData.CurrentCivController;
-        diplomacyData.CivSideTwo = starSysCon.StarSysData.CurrentOwnerCivEnum;
+        diplomacyData.CivEnumSideTwo = starSysCon.StarSysData.CurrentOwnerCivEnum;
         diplomacyData.FleetContollerCivTwo = null;
         return diplomacyData;
     }
@@ -401,6 +441,7 @@ public class DiplomacyManager : MonoBehaviour
 
     internal void ResolveEncounterOtherCivSystem(FleetController reportingPlayerfleet, StarSysController otherCivSysCon)
     {
+        Debug.Log("DiplomacyManager: ResolveEncounterOtherCivSystem called.");
         // already not one of our systems
         FleetController fleetConEmpty = FleetManager.Instance.InstatiateEmptyFleetController();
         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebula)
@@ -418,7 +459,7 @@ public class DiplomacyManager : MonoBehaviour
                     civSideOne = reportingPlayerfleet.FleetData.CivController;
                     sideOneFleetCon = reportingPlayerfleet;
                     civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
-                    sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+                    sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty place holder
                 }
                 else // other civ is side one
                 {
@@ -429,16 +470,17 @@ public class DiplomacyManager : MonoBehaviour
                 }
 
                 //have we met before? Do I know you?
-                if (!DiplomacyManager.Instance.FoundADiplomacyController(civSideOne, civSideTwo))
+                if (!FoundADiplomacyController(civSideOne, civSideTwo))
                 { // First Contact
-                    FirstContactFleetVsStarSys(reportingPlayerfleet, otherCivSysCon); // do we do something special with system entry here?
-                    DiplomacyManager.Instance.InitNewDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    DiplomacyController newDiplomacyCon = InstantiateDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    if (!DiplomacyControllers.Contains(newDiplomacyCon))
+                        DiplomacyControllers.Add(newDiplomacyCon);
                     IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                     Destroy(fleetConEmpty.gameObject); 
                 }
                 else
                 { // not first contact
-                    DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, otherCivSysCon);
+                    CheckForAIDiplomacy(sideOneFleetCon, otherCivSysCon);
                     FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
                     //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                 }
@@ -464,27 +506,62 @@ public class DiplomacyManager : MonoBehaviour
     {
         var diplomacyData = EntereDiplomacyData(reportingPlayerfleet, uninhabitedSysCon); // not mono behavior
         diplomacyData.EncounterType = EncounterType.UninhabitedSystem;
-        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+
+        // Instantiate a DiplomacyController MonoBehaviour from prefab (or add component) so it's Unity-managed
+        DiplomacyController diplomacyController = null;
+        if (diplomacControllerPrefab != null)
+        {
+            GameObject dipGo = Instantiate(diplomacControllerPrefab, Vector3.zero, Quaternion.identity);
+            dipGo.SetActive(true);
+            dipGo.layer = 5;
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.GetComponent<DiplomacyController>();
+            if (diplomacyController == null)
+                diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+        else
+        {
+            GameObject dipGo = new GameObject("DiplomacyController");
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+
+        diplomacyController.DiplomacyData = diplomacyData;
         diplomacyController.ResolveUninhabitedSystem(reportingPlayerfleet.FleetData.CivController, uninhabitedSysCon);
+
+        if (!DiplomacyControllers.Contains(diplomacyController))
+            DiplomacyControllers.Add(diplomacyController);
         //DiplomacyControllers.Add(diplomacyController);
     }
 
-    private void FirstContactFleetVsStarSys(FleetController fleetCon, StarSysController starSysCon)
-    {
-        var diplomacyData = EntereDiplomacyData(fleetCon, starSysCon); // not mono behavior
-        diplomacyData.EncounterType = EncounterType.FirstContact;
-        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
-        if (starSysCon.StarSysData.SystemType >= GalaxyObjectType.BlackHole) // resolve a non diplomatic encounter
-            diplomacyController.ResolveFleetToStrangGalacticEncounter(diplomacyController);
-        diplomacyController.DiplomacyData.firstContact = true;
-        //DiplomacyControllers.Add(diplomacyController);
-        //GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyController.DiplomacyUIGameObject);
-    }
+
     public void FeetToSysNotSameCivNotFirstEncounter(FleetController fleetA, StarSysController sysCon)
     {
         var diplomacyData = EntereDiplomacyData(fleetA, sysCon); // not mono behavior
         diplomacyData.EncounterType = EncounterType.Diplomacy;
-        DiplomacyController diplomacyController = new DiplomacyController(diplomacyData);
+
+        // Instantiate a DiplomacyController MonoBehaviour from prefab (or add component)
+        DiplomacyController diplomacyController = null;
+        if (diplomacControllerPrefab != null)
+        {
+            GameObject dipGo = Instantiate(diplomacControllerPrefab, Vector3.zero, Quaternion.identity);
+            dipGo.SetActive(true);
+            dipGo.layer = 5;
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.GetComponent<DiplomacyController>();
+            if (diplomacyController == null)
+                diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+        else
+        {
+            GameObject dipGo = new GameObject("DiplomacyController");
+            dipGo.transform.SetParent(this.transform, false);
+            diplomacyController = dipGo.AddComponent<DiplomacyController>();
+        }
+
+        diplomacyController.DiplomacyData = diplomacyData;
+        if (!DiplomacyControllers.Contains(diplomacyController))
+            DiplomacyControllers.Add(diplomacyController);
         //DiplomacyControllers.Add(diplomacyController);
         //GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyController.DiplomacyUIGameObject);
     }
@@ -509,7 +586,6 @@ public class DiplomacyManager : MonoBehaviour
         if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
         {   // not First Contact, just by clicking on the system
             DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, starSysController.StarSysData.ShipsList);
-            //DiplomacyManager.Instance.UpdateOurDiplomacyController(civPartyOne, civPartyTwo);
         }
         else
         {

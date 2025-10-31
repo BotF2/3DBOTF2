@@ -15,9 +15,9 @@ public enum EncounterType
     UninhabitedSystem,
     StrangeGalacticObject,
 }
-public class DiplomacyController //not : MonoBehaviour
+public class DiplomacyController : MonoBehaviour
 {
-    private DiplomacyData diplomacyData; // holds civOne and two and diplomacy enum
+    private DiplomacyData diplomacyData; // holds civOne and two, diplomacy enum...
     public DiplomacyData DiplomacyData { get { return diplomacyData; } set { diplomacyData = value; } }
     private static string declareWar = "The A declares war on the B.";
     private static string requestSomething = "The A request X from the B.";
@@ -30,17 +30,20 @@ public class DiplomacyController //not : MonoBehaviour
     public List<DiplomaticEventEnum> DiplomaticEvents = new List<DiplomaticEventEnum>
     { DiplomaticEventEnum.War, DiplomaticEventEnum.DiscoveredSabotage, DiplomaticEventEnum.DiscoveredDisinformation, DiplomaticEventEnum.DiscoveredIntellectualTheft,
         DiplomaticEventEnum.Trade, DiplomaticEventEnum.ShareTech, DiplomaticEventEnum.GiveAid};
-    public GameObject DiplomacyUIGameObject; //The instantiated UI for this civ pair. a prefab clone, not a class but a game object
-                                             // instantiated by DiplomacyManager from a prefab and added to DiplomacyController
-    public DiplomacyController(DiplomacyData diplomacyData)
+    public GameObject DiplomacyUIGameObject;
+
+    // MonoBehaviour should not rely on parameterized constructors. Use Init(...) after AddComponent/Instantiate.
+    public void Init(DiplomacyData data)
     {
-        DiplomacyData = diplomacyData;
+        DiplomacyData = data;
     }
+
     public void DoAIDiplomacy()
     {
-        if (GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivSideOne) || GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivSideTwo))
+        if (GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideTwo))
         {
-            DiplomacyUIGameObject.SetActive(true);
+            if (DiplomacyUIGameObject != null)
+                DiplomacyUIGameObject.SetActive(true);
             //ToDo: AI civ diplomacy actions for on or both civs that are AI.
         }
     }
@@ -78,7 +81,7 @@ public class DiplomacyController //not : MonoBehaviour
         {
             this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Allied;
         }
-        else if (currentStatusPoints >= (int)DiplomacyStatusEnum.Membership && ((int)this.DiplomacyData.CivSideOne > 6 || (int)this.DiplomacyData.CivSideTwo > 6))
+        else if (currentStatusPoints >= (int)DiplomacyStatusEnum.Membership && ((int)this.DiplomacyData.CivEnumSideOne > 6 || (int)this.DiplomacyData.CivEnumSideTwo > 6))
         {
             // only minors AI civ can become member of a playable major race
             this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.Membership;
@@ -151,7 +154,7 @@ public class DiplomacyController //not : MonoBehaviour
 
     internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)
     {
-        // ToDo: Resolve the encounter with the strange galactic object
+        GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, this.DiplomacyUIGameObject);
     }
 
     internal void ResolveUninhabitedSystem(CivController realCivController, StarSysController uninhabitedSysCon)
@@ -164,4 +167,18 @@ public class DiplomacyController //not : MonoBehaviour
             // do AI uninhabited system management
         }
     }
+    public void CleanupDestroyedUIs()
+    {
+        foreach (var diplomacyCon in DiplomacyManager.Instance.DiplomacyControllers)
+        {
+            if (diplomacyCon.DiplomacyUIGameObject == null)
+                continue;
+
+            if (!diplomacyCon.DiplomacyUIGameObject.activeInHierarchy)
+            {
+                diplomacyCon.DiplomacyUIGameObject = null;
+            }
+        }
+    }
+
 }

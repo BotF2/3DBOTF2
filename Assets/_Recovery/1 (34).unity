@@ -492,6 +492,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4711736}
   m_CullTransparentMesh: 1
+--- !u!1 &12714528
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 12714530}
+  - component: {fileID: 12714529}
+  m_Layer: 0
+  m_Name: DiplomacyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &12714529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12714528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89f24bf724abdae46853d70540aeda36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  diplomacyUIPrefab: {fileID: 4764215955950854528, guid: 8fc1ae8773788b443ba863fe74207f8b, type: 3}
+--- !u!4 &12714530
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12714528}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1091640995}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &12966701
 GameObject:
   m_ObjectHideFlags: 0
@@ -13041,16 +13086,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 652325729}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 129.5, y: 10, z: 184.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1091640995}
+  m_Father: {fileID: 843799568}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -60}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &652325731
@@ -13066,7 +13111,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   diplomacyUIPrefab: {fileID: 4764215955950854528, guid: 8fc1ae8773788b443ba863fe74207f8b, type: 3}
-  diplomacControllerPrefab: {fileID: 820952266113596234, guid: 396c8c3fb0e55bd4d8f63755777041fe, type: 3}
 --- !u!1 &656392009
 GameObject:
   m_ObjectHideFlags: 0
@@ -17864,6 +17908,7 @@ RectTransform:
   - {fileID: 1362581733}
   - {fileID: 229979043}
   - {fileID: 1936528632}
+  - {fileID: 652325730}
   - {fileID: 176182447}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -18767,7 +18812,6 @@ MonoBehaviour:
   habitableSysMenu: {fileID: 627077778}
   sysControllers: []
   fleetControllers: []
-  diplomacyControllers: []
   listOfStarSysUiGos: []
   listOfSysShipUiGos: []
   listOfFleetUiGos: []
@@ -23412,7 +23456,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 377896301}
-  - {fileID: 652325730}
+  - {fileID: 12714530}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1092876997
@@ -43947,7 +43991,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6fa067ba07f13040a4c42ddef573451, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DiplomacyMenuUIController
-  DiplomacyController: {fileID: 0}
   diplomacyMenuView: {fileID: 276954025}
   diplomacyNoContacts: {fileID: 0}
   diplomacyListContainter: {fileID: 1786321515}
