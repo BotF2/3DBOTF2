@@ -138,7 +138,7 @@ namespace Assets.Core
                     }
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
                     {
-                        HandleShipExchangeClick(clickedFleetCon); // a fleet or system is looking for ship exchange with this fleet
+                        HandleShipExchangeSelection(clickedFleetCon); // a fleet or system is looking for ship exchange with this fleet
                     }
                 }
             }
@@ -165,7 +165,7 @@ namespace Assets.Core
                     isOurDestination = true;
                     if (weAreLocalPlayer)
                     {
-                        CloseUnLoadFleetUI(); // we are there and have other things to do
+                        CloseUnLoadFleetUI(this); // we are there and have other things to do
                     }
                 }
 
@@ -187,7 +187,7 @@ namespace Assets.Core
                             {
                                 ClickCancelDestinationButton(); // they stop
 
-                                CloseUnLoadFleetUI(); // need more code to handle this encounter 
+                                CloseUnLoadFleetUI(this); // need more code to handle this encounter 
                             }
 
                         }
@@ -254,11 +254,14 @@ namespace Assets.Core
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
         }
 
-        private void HandleShipExchangeClick(FleetController clickedFleetCon)
+        private void HandleShipExchangeSelection(FleetController clickedFleetCon)
         {
             if (clickedFleetCon != this) return;
-            FleetMenuUIController.Instance.LoadRightSideShipManagerFleetUIPrefab(clickedFleetCon.gameObject);
             MousePointerChanger.Instance.ResetCursor();
+            FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
+            var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+            this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
+            this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
         }
 
         private Vector3 GetMouseWorldPosition()
@@ -445,12 +448,14 @@ namespace Assets.Core
             FleetData.CurrentWarpFactor = newWarpValue;
             FleetMenuUIController.Instance.UpdateFleetWarpUI(this, newWarpValue);
         }
-        public void SelectedShipManageCursor()
+        public void SelectedShipManageCursor(FleetController fleetCon)
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.BeginShipExchange(this);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
             MousePointerChanger.Instance.SetShipExchangeCursor(this);
+            FleetMenuUIController.Instance.SelectedShipManagerCursor(this);
+            //FleetMenuUIController.Instance.select();
 
         }
         public void ClickCancelShipManageButton()
@@ -458,7 +463,7 @@ namespace Assets.Core
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.ClickCancelShipManageButton();
             galaxyUI.ResetClickMode();
-            galaxyUI.CompleteSetDestination();
+            FleetMenuUIController.Instance.ClickCancelShipManagerButton(this);
             MousePointerChanger.Instance.ResetCursor();
         }
         public void SelectedDestinationCursor(FleetController fleetCon)
@@ -594,11 +599,11 @@ namespace Assets.Core
             // Update the UI
             dropdown.RefreshShownValue();
         }
-        public void CloseUnLoadFleetUI()
+        public void CloseUnLoadFleetUI(FleetController theFleetCon)
         {
             GalaxyMenuUIController.Instance.ResetClickMode();
             MousePointerChanger.Instance.ResetCursor();
-            FleetMenuUIController.Instance.UpdateFleetWarpUI(this, 0);
+            FleetMenuUIController.Instance.UpdateFleetWarpUI(theFleetCon, 0);
             GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
             GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
         }
@@ -642,16 +647,6 @@ namespace Assets.Core
                     //TimeManager.Instance.ResumeTime();
                 }
             }
-        }
-
-        internal void SelectedOtherForShips(FleetController fleetCon)
-        {
-            //throw new NotImplementedException();
-        }
-
-        internal void ClickCancelForShipsButton()
-        {
-            //throw new NotImplementedException();
         }
 
         public void CleanupFleetUIs()

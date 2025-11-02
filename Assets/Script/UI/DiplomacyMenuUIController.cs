@@ -138,7 +138,7 @@ public class DiplomacyMenuUIController : MonoBehaviour
         aDiplomacyMenuView.SetActive(false);
     }
 
-    public void SetParentForADiplomacyUIData(DiplomacyController diploCon)
+    public void SetActiveSetParentADiplomacyUIData(DiplomacyController diploCon)
     {
         diploCon.DiplomacyUIGameObject.SetActive(true);
         diploCon.DiplomacyUIGameObject.transform.SetParent(diplomacyMenuView.transform, false);

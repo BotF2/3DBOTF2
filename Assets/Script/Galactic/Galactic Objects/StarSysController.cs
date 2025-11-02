@@ -474,7 +474,7 @@ namespace Assets.Core
                     HandleDestinationClick(clickedSystemCon);
                     break;
                 case GalaxyClickMode.SelectForShipExchange:
-                    HandleShipExchangeClick(clickedSystemCon);
+                    HandleShipExchangeSelection(clickedSystemCon);
                     break;
             }
         }
@@ -489,12 +489,15 @@ namespace Assets.Core
             }
         }
 
-        private void HandleShipExchangeClick(StarSysController clickedSystemCon)
+        private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
-            StarSysMenuUIController.Instance.LoadRightSideShipManagerSystemUIPrefab(clickedSystemCon.gameObject);
             MousePointerChanger.Instance.ResetCursor();
-            GalaxyMenuUIController.Instance.InactivateSelectOtherSystemOrFleetButton();
+            FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
+            var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+            this.starSysUIGameObject.transform.Translate(new Vector3(0, -200, 0));
+            this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+
         }
 
         private void HandleNormalClick(StarSysController clickedSystemCon)
@@ -506,7 +509,7 @@ namespace Assets.Core
                 if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
                     var starSysUI = StarSysMenuUIController.Instance;
-                    starSysUI.SetActiveUIGO(this);
+                    starSysUI.SetActiveSetParentUIGO(this);
                     starSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                     starSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
                     starSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);

@@ -33,9 +33,18 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject selectDestinationCursorButtonGO;
     [SerializeField] private GameObject cancelDestinationButtonGO;
     [SerializeField] private GameObject dragDestinationTargetButtonGO;
+    [SerializeField] private GameObject selectShipManagerCursorButtonGO;
+    [SerializeField] private GameObject cancelShipManagerButtonGO;
+    [SerializeField] private GameObject warpButtonUpGO;
+    [SerializeField] private GameObject warpButtonDownGO;
+    [SerializeField] private GameObject closeFleetUIButtonGO;
+
+
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
+
+
     //public bool IsVisibleA_FleetMenuView => aFleetMenuView.activeSelf;
     //public bool IsVisibleFleetMenuView => fleetMenuView.activeSelf;
 
@@ -97,7 +106,7 @@ public class FleetMenuUIController : MonoBehaviour
             }
         }
     }
-    public void SetActiveUIGO(FleetController theFleetCon)
+    public void SetActiveSetParentUIGO(FleetController theFleetCon)
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
@@ -162,6 +171,26 @@ public class FleetMenuUIController : MonoBehaviour
                     case "WarpSlider":
                         rectTransforms[i].gameObject.SetActive(true);
                         break;
+                    case "ButtonWarpUp":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        warpButtonUpGO = rectTransforms[i].gameObject;
+                        break;
+                    case "ButtonWarpDown":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        warpButtonDownGO = rectTransforms[i].gameObject;
+                        break;
+                    case "ButtonCloseFleetUI":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        closeFleetUIButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "SelectShipManagerCursorButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        selectShipManagerCursorButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "CancelShipManagerButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        cancelShipManagerButtonGO = rectTransforms[i].gameObject;
+                        break;
                 }
             }
 
@@ -214,18 +243,33 @@ public class FleetMenuUIController : MonoBehaviour
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
                         break;
+                    case "ButtonWarpUp":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.FleetOnWarpUpClick(fleetCon));
+                        break;
+                    case "ButtonWarpDown":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
+                        break;
                     case "DestinationDragTarget Button":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
                         break;
-                    case "SelectOtherSysOrFleetForShipsButton": // ToDo; Implement functionality
+                    case "ButtonCloseFleetUI":
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => fleetCon.SelectedOtherForShips(fleetCon));
+                        listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI(fleetCon));
                         break;
-                    case "CancelSysOrFleetForShipsButton":
-                        listButton.onClick.RemoveAllListeners();// ToDo; Implement functionality
-                        listButton.onClick.AddListener(() => fleetCon.ClickCancelForShipsButton());
+                    case "SelectShipManagerCursorButton": 
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.SelectedShipManageCursor(fleetCon));
                         break;
+                    case "CancelShipManagerButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton());
+                        break;
+                    default:
+                        break;
+                        
                 }
             }
 
@@ -415,4 +459,18 @@ public class FleetMenuUIController : MonoBehaviour
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
+    internal void SelectedShipManagerCursor(FleetController fleetControllerWaitingToExchangeShips)
+    {
+        if (GameController.Instance.AreWeLocalPlayer(fleetControllerWaitingToExchangeShips.FleetData.CivEnum))
+        {
+            selectShipManagerCursorButtonGO?.SetActive(false); 
+            cancelShipManagerButtonGO?.SetActive(true);
+        }
+    }
+    internal void ClickCancelShipManagerButton(FleetController fleetCon)
+    {
+        MousePointerChanger.Instance.ResetCursor();
+        selectShipManagerCursorButtonGO?.SetActive(true);
+        //cancelShipManagerButtonGO?.SetActive(false);
+    }
 }

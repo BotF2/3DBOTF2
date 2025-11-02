@@ -98,8 +98,10 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject dragDestinationTargetButtonGO;
     public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
     public FleetController FleetLookingForDestination { get; set; }
-    public StarSysController SystemLookingForDestination { get; private set; }
+    public FleetController FleetLookingForShipExchange { get; set; }
+    public StarSysController StarSysLookingForShipExchang{ get; set; }
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
+
     [SerializeField]
     private GameObject InteractionButtonGO;
     [SerializeField]
@@ -160,7 +162,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         diplomacyControllers = new List<DiplomacyController>();
         StarSysMenuUIController.Instance.SetupSystemUIData();//get our system ui game objects to match your system controllers
         FleetMenuUIController.Instance.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
-        //DiplomacyMenuUIController.Instance.SetupDiplomacyUIData();//get our diplomacy ui game objects to match your diplomacy controllers
+        // Not For DiplomacyMenuUIController, we do that with each new first contact of civs / fleets
     }
 
     public void SetActiveBuildMenu(GameObject prefabMenu)
@@ -225,11 +227,10 @@ public class GalaxyMenuUIController : MonoBehaviour
             CloseMenu(Menu.EncyclopedianMenu);
         if (intelMenuView.activeSelf)
             CloseMenu(Menu.IntellMenu);
-
-            //diplomacyMenuUIController.HideDiplomacyMenuView();
+            diplomacyMenuUIController.HideDiplomacyMenuView();
             CloseMenu(Menu.DiplomacyMenu);
             diplomacyNoContacts.SetActive(false);
-            //diplomacyMenuUIController.HideA_DiplomacyMenuView();
+            diplomacyMenuUIController.HideA_DiplomacyMenuView();
             CloseMenu(Menu.ADiplomacyMenu);
 
             fleetMenuUIController.HideFleetMenuView();
@@ -241,7 +242,6 @@ public class GalaxyMenuUIController : MonoBehaviour
             starSysMenuUIController.HideSystemMenuView();
             CloseMenu(Menu.SystemsMenu);
          
-
             starSysMenuUIController.HideA_SystemMenuView();
             CloseMenu(Menu.ASystemMenu);
         
@@ -270,7 +270,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.ASystemMenu:
                 starSysMenuUIController.ShowA_SystemMenuView();
                 CloseTheBackgrounds();
-                starSysMenuUIController.SetActiveUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<StarSysController>());
+                starSysMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<StarSysController>());
                 sysBackground.SetActive(true);
                 starSysMenuUIController.MoveTheSysUIGO(callingMenuOrGalaxyObject);
                 openMenuWas = null;
@@ -293,7 +293,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.AFleetMenu:
                 fleetMenuUIController.ShowA_FleetMenuView();
                 CloseTheBackgrounds();
-                fleetMenuUIController.SetActiveUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<FleetController>());
+                fleetMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<FleetController>());
                 fleetsBackground.SetActive(true);
                 fleetMenuUIController.MoveTheFleetUIGO(callingMenuOrGalaxyObject);
                 openMenuWas = null;
@@ -312,8 +312,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 diplomacyMenuUIController.ShowA_DiplomacyMenuView();
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
-                // updated: pass the diplomacy UI GameObject (diploMenuGO)
-                diplomacyMenuUIController.SetParentForADiplomacyUIData(callingMenuOrGalaxyObject.GetComponentInChildren<DiplomacyController>());
+                diplomacyMenuUIController.SetActiveSetParentADiplomacyUIData(callingMenuOrGalaxyObject.GetComponentInChildren<DiplomacyController>());
                 diplomacyBackground.SetActive(true);
                 diplomacyMenuUIController.MoveTheDiplomacyUIGO(callingMenuOrGalaxyObject);
                 openMenuWas = null;
@@ -363,7 +362,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         theSysCon.StarSysRightSideShipsUIGameObject.SetActive(false);
         CloseSystemShipsUI(theSysCon);
         //activeFleetOrSystemControllerForShipExchange = null;
-
     }  
 
     public void CloseMenu(Menu enumMenu)
@@ -375,13 +373,11 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
             case Menu.SystemsMenu:
                 sysBackground.SetActive(false);
-                //systemsMenuView.SetActive(false);
                 openMenuWas = null;
                 break;
             case Menu.ASystemMenu:
                 starSysMenuUIController.MoveBackAnySysUIGO();
                 sysBackground.SetActive(false);
-                //aSystemMenuView.SetActive(false);
                 openMenuWas = null;
                 break;
             case Menu.BuildMenu:
@@ -391,28 +387,23 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.FleetMenu:
                 fleetsBackground.SetActive(false);
                 fleetMenuUIController.CloseDestinationSelectionCursor();
-                // fleetMenuUIController.HideFleetMenuView();
                 openMenuWas = null;
                 break;
             case Menu.AFleetMenu:
                 fleetMenuUIController.MoveBackAnyFleetUIGO();
                 fleetsBackground.SetActive(false);
                 fleetMenuUIController.CloseDestinationSelectionCursor();
-               // fleetMenuUIController.HideA_FleetMenuView();
-                //aFleetMenuView.SetActive(false);
                 openMenuWas = null;
                 break;
             case Menu.DiplomacyMenu:
                 diplomacyBackground.SetActive(false);
-                //diplomacyMenuUIController.HideDiplomacyMenuView();
-                // TimeManager.Instance.ResumeTime();
+                TimeManager.Instance.ResumeTime();
                 openMenuWas = null;
                 break;
             case Menu.ADiplomacyMenu:
                 diplomacyMenuUIController.MoveBackAnyDiplomacyUIGO();
+                TimeManager.Instance.ResumeTime();
                 diplomacyBackground.SetActive(false);
-               // diplomacyMenuUIController.HideA_DiplomacyMenuView();
-                //TimeManager.Instance.ResumeTime();
                 openMenuWas = null;
                 break;
             case Menu.IntellMenu:
@@ -426,7 +417,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = encyclopediaMenuView;
                 break;
             case Menu.HabitableSysMenu:
-                // TimeManager.Instance.ResumeTime();
                 habitableSysMenu.SetActive(false);
                 openMenuWas = habitableSysMenu;
                 break;
@@ -436,9 +426,6 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
         }
     }
-
-
-    
 
     public void FindTheirHomeSystem(CivController civCon, out StarSysController homeSysController)
     {
@@ -453,7 +440,6 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
         }
     }
-
 
     internal void HideNoContactUI()
     {
@@ -494,26 +480,25 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         MousePointerChanger.Instance.ResetCursor();
         CurrentClickMode = GalaxyClickMode.Normal;
-        selectOtherSysOrFleetButtonGO.SetActive(true);
+       // sele.SetActive(true);
     }
-    public void InactivateSelectOtherSystemOrFleetButton()
-    {
-        selectOtherSysOrFleetButtonGO.SetActive(false);
-    }
+
     public void BeginShipExchange(FleetController fleetConLooking)
     {
-        FleetLookingForDestination = fleetConLooking;
+        FleetLookingForShipExchange = fleetConLooking;
+        StarSysLookingForShipExchang = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
     public void BeginShipExchange(StarSysController starSysConLooking)
     {
-        SystemLookingForDestination = starSysConLooking;
+        StarSysLookingForShipExchang = starSysConLooking;
+        FleetLookingForShipExchange = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
     public void CompleteShipExchange()
     {
-        FleetLookingForDestination = null;
-        SystemLookingForDestination = null;
+        FleetLookingForShipExchange = null;
+        StarSysLookingForShipExchang = null;
         ResetClickMode();
     }
 

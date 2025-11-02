@@ -320,7 +320,7 @@ public class StarSysMenuUIController : MonoBehaviour
             }
         }
     }
-    public void SetActiveUIGO(StarSysController theSysCon)
+    public void SetActiveSetParentUIGO(StarSysController theSysCon)
     {
         if (theSysCon == null) return;
         theSysCon.StarSysUIGameObject.SetActive(true);
@@ -541,4 +541,11 @@ public class StarSysMenuUIController : MonoBehaviour
         listOfStarSysUiGos.Clear();
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
+    //internal void LoadSystemUIToAFleet(GameObject gameObject)
+    //{
+        
+    //    FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
+    //    var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+    //    this.transform.SetParent(aFleetView.transform, false);
+    //}
 }
