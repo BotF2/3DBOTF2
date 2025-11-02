@@ -24,6 +24,8 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject fleetShipListContainer;
     [SerializeField] private GameObject aFleetMenuView;
     public GameObject AFleetMenuView => aFleetMenuView;
+    public GameObject FleetMenuView => fleetMenuView;
+    public RectTransform FleetListContainer => fleetListContainer;
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
     [Header("Destination UI (optional)")]
@@ -84,6 +86,7 @@ public class FleetMenuUIController : MonoBehaviour
     }
     public void HideA_FleetMenuView()
     {
+
         aFleetMenuView.SetActive(false);
     }
     public void SetupFleetUIData()
@@ -102,6 +105,8 @@ public class FleetMenuUIController : MonoBehaviour
                 SetupFleetUIElements(fleetCon, fleetCon.FleetUIGameObject);
                 listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
                 fleetCon.FleetUIGameObject.SetActive(true);
+                if (fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
+                    fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = fleetListContainer.transform;
                 fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
             }
         }
@@ -123,13 +128,24 @@ public class FleetMenuUIController : MonoBehaviour
         }
     }
 
-    public void MoveBackAnyFleetUIGO()
+    public void MoveBackAnyaFleetUIGO()
     {
+        aFleetMenuView.SetActive(true);
         for (int i = 0; i < aFleetMenuView.transform.childCount; i++)
         {
             var child = aFleetMenuView.transform.GetChild(i)?.gameObject;
             if (child != null)
-                child.transform.SetParent(fleetListContainer.transform, false);
+            {   
+                if(child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
+                {
+                    Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
+                    child.transform.SetParent(originalParent, false);
+                }
+
+
+                //else if (child.gameObject.GetComponentInParent<StarSysController>() != null)
+                //    child.transform.SetParent(StarSysMenuUIController.Instance.SysListContainer.transform, false);
+            }
         }
     }
 

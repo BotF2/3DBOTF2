@@ -88,7 +88,7 @@ namespace Assets.Core
         [SerializeField]
         private GameObject researchCenterInventorySlotPrefab;
         [SerializeField]
-        private GameObject sysItemContentFolderParent;
+        private GameObject sysUIGOContentParent;
         [SerializeField]
         private GameObject sysShipsContentFolderParent;
         [SerializeField]
@@ -835,8 +835,14 @@ namespace Assets.Core
                     thisStarSysUIGameObject.layer = 5;
                     sysController.StarSysUIGameObject = thisStarSysUIGameObject;
                     sysController.StarSysUIGameObject.SetActive(true);
-                    thisStarSysUIGameObject.transform.SetParent(sysItemContentFolderParent.transform, false);
-
+                    //var originalParent = sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>();
+                    //if (originalParent != null)
+                    //{
+                    //    StarSysMenuUIController.Instance.SystemsMenuView.gameObject.SetActive(true);
+                    //    originalParent.OriginalParentTransform = StarSysMenuUIController.Instance.SysListContainer.transform;
+                    //    StarSysMenuUIController.Instance.SystemsMenuView.gameObject.SetActive(false);
+                    //}
+                    thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
                     var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
                     for (int j = 0; j < transforms.Length; j++)
                     {

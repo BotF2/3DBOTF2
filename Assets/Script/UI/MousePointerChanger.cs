@@ -48,17 +48,18 @@ public class MousePointerChanger : MonoBehaviour
     {
         ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
         fleetConBehindGalaxyMapShipCursor = fleetCon;
-        //ChangeToGalaxyMapShipManageCursor();
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
     }
     public void SetShipExchangeCursor(StarSysController sysCon)
     {
         ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
         sysConBehindGalaxyMapShipCursor = sysCon;
-        //ChangeToGalaxyMapShipManageCursor();
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
     }
     public void SetShipExchangeCursor()
     {
         ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
 
     }
     public void ChangeToGalaxyMapCursorForLocalPlayer(FleetController fleetCon)
@@ -91,8 +92,6 @@ public class MousePointerChanger : MonoBehaviour
     // Function to change the cursor
     private void ChangeCursor(Texture2D cursorTexture, Vector2 hotSpot, CursorMode cursorMode, bool fromShipManager)
     {
-        //if (fromShipManager == false) HaveGalaxyMapCursor = true; // used by FleetUIController
-        //else HaveGalaxyMapShipManageCursor = true;
         Cursor.SetCursor(cursorTexture, hotSpot, cursorMode);
     }
 
@@ -107,10 +106,12 @@ public class MousePointerChanger : MonoBehaviour
     {
         ChangeToCivSpacificGalaxyMapCursor();
         fleetConBehindGalaxyMapDestinationCursor = fleetCon;
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
     }
     internal void SetDestinationCursor()
     {
         ChangeToCivSpacificGalaxyMapCursor();
+        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
     }
 }
 

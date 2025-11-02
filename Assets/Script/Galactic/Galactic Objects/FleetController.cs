@@ -178,7 +178,7 @@ namespace Assets.Core
                         if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
                         {
                             OnADestinationThatIsOtherCivFleet(hitFleetCon);
-
+                            FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO(); // close our fleet UI
                             DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
                             //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
                             EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
@@ -215,6 +215,7 @@ namespace Assets.Core
                                 EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
                             }
                             //OnEnterForeignStarSystem(); // ToDo
+                            FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO(); // close our fleet UI
                             DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
 
                         }

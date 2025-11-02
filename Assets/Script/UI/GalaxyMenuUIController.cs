@@ -221,6 +221,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     // Home System view is in GalaxyCameraDragMoveZoom.cs
     public void CloseButtonPressed()
     {
+        FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+        StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
         if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
             TimeManager.Instance.ResumeTime();
         if (encyclopediaMenuView.activeSelf)
@@ -263,7 +265,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 starSysMenuUIController.ShowSystemMenuView();
                 CloseTheBackgrounds();
                 sysBackground.SetActive(true);
-                starSysMenuUIController.MoveBackAnySysUIGO();
+                starSysMenuUIController.MoveBackAnyaSysUIGO();
                 openMenuWas = null;
                 openMenuEnumWas = Menu.SystemsMenu;
                 break;
@@ -286,7 +288,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 fleetMenuUIController.ShowFleetMenuView();
                 CloseTheBackgrounds();
                 fleetsBackground.SetActive(true);
-                fleetMenuUIController.MoveBackAnyFleetUIGO();
+                fleetMenuUIController.MoveBackAnyaFleetUIGO();
                 openMenuWas = null;
                 openMenuEnumWas = Menu.FleetMenu;
                 break;
@@ -376,7 +378,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = null;
                 break;
             case Menu.ASystemMenu:
-                starSysMenuUIController.MoveBackAnySysUIGO();
+                starSysMenuUIController.MoveBackAnyaSysUIGO();
                 sysBackground.SetActive(false);
                 openMenuWas = null;
                 break;
@@ -390,7 +392,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = null;
                 break;
             case Menu.AFleetMenu:
-                fleetMenuUIController.MoveBackAnyFleetUIGO();
+                fleetMenuUIController.MoveBackAnyaFleetUIGO();
                 fleetsBackground.SetActive(false);
                 fleetMenuUIController.CloseDestinationSelectionCursor();
                 openMenuWas = null;

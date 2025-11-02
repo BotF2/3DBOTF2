@@ -86,10 +86,12 @@ public class StarSysMenuUIController : MonoBehaviour
             if (!listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject) &&
                 GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
             {
+                // wire up individual star system UI
                 sysController.StarSysUIGameObject.SetActive(true);
                 sysController.StarSysUIGameObject.transform.SetParent(sysListContainer.transform, false);
                 listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
-
+                if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
+                    sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = sysListContainer.transform;
                 RectTransform[] transforArrayInStarSysUI = sysController.StarSysUIGameObject.GetComponentsInChildren<RectTransform>();
                 for (int i = 0; i < transforArrayInStarSysUI.Length; i++)
                 {
@@ -349,12 +351,24 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    public void MoveBackAnySysUIGO()
+    public void MoveBackAnyaSysUIGO()
     {
+        aSystemMenuView.SetActive(true);
         for (int i = 0; i < aSystemMenuView.transform.childCount; i++)
         {
-            if (aSystemMenuView.transform.GetChild(i).gameObject != null)
-                aSystemMenuView.transform.GetChild(i).gameObject.transform.SetParent(sysListContainer.transform, false);
+            var child = aSystemMenuView.transform.GetChild(i)?.gameObject;
+            if (child != null)
+            {
+                if (child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
+                {
+                    Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
+                    child.transform.SetParent(originalParent, false);
+                }
+                //if (child.gameObject.GetComponentInParent<StarSysController>() != null)
+                //    child.transform.SetParent(SysListContainer.transform, false);
+                //else if (child.gameObject.GetComponentInParent<FleetController>() != null)
+                //    child.transform.SetParent(FleetMenuUIController.Instance.FleetListContainer.transform, false);
+            }
         }
     }
 

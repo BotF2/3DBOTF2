@@ -33,8 +33,6 @@ namespace Assets.Core
         private FleetController fleetPrefab;
         [SerializeField]
         private GameObject fleetUIPrefab;
-        //[SerializeField]
-        //private GameObject rightSideShipManagerFleetUIPrefab;
         [SerializeField]
         private GameObject shipManagerMenuPrefab;
         [SerializeField]
@@ -44,8 +42,6 @@ namespace Assets.Core
         public GameObject GalaxyCenter;
         public List<FleetController> FleetControllerList { get; private set; } = new List<FleetController>();
         [SerializeField]
-        private GameObject fleetGroupPrefab;
-        [SerializeField]
         private Sprite unknownfleet;
         [SerializeField]
         private GameObject canvasShipManager;
@@ -54,7 +50,9 @@ namespace Assets.Core
         private Dictionary<CivEnum, List<int>> fleetNumsInUse  = new Dictionary<CivEnum, List<int>>();
         public List<FleetController> FleetControllersInGame = new List<FleetController>();
         [SerializeField]
-        private GameObject contentFolderParent;
+        private GameObject fleetUIGOContentParent;
+        [SerializeField]
+        private GameObject fleetShipsContentFolderParent;
         private List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
 
 
@@ -277,7 +275,16 @@ namespace Assets.Core
                     thisFleetUIGameObject.layer = 5;
                     fleetCon.FleetUIGameObject = thisFleetUIGameObject;
                     fleetCon.FleetUIGameObject.SetActive(true);
-                    thisFleetUIGameObject.transform.SetParent(contentFolderParent.transform, false);
+                    //var originalParent = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
+                    //if (originalParent != null)
+                    //{
+                    //    //MainMenuUIController.Instance.GalaxyMenuGO.SetActive(true);
+                    //    FleetMenuUIController.Instance.FleetMenuView.gameObject.SetActive(true);
+                    //    originalParent.OriginalParentTransform = FleetMenuUIController.Instance.FleetListContainer.transform;
+                    //    FleetMenuUIController.Instance.FleetMenuView.gameObject.SetActive(false);
+                    //    //MainMenuUIController.Instance.GalaxyMenuGO.SetActive(false);
+                    //}
+                    thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
                     var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
                     for (int i = 0; i < transforms.Length; i++)
                     {

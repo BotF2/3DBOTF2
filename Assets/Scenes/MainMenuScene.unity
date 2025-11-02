@@ -908,7 +908,7 @@ GameObject:
   - component: {fileID: 44498446}
   - component: {fileID: 44498447}
   m_Layer: 5
-  m_Name: ContentSystemItems
+  m_Name: ContentSystemUIGO
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3099,7 +3099,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainMenuCanvas: {fileID: 538500094}
-  galaxyMenuGO: {fileID: 966764655}
+  GalaxyMenuGO: {fileID: 966764655}
   TipCanvas: {fileID: 2112011882}
   mainMenuButton: {fileID: 180774141}
   galaxyCenter: {fileID: 564492290}
@@ -24629,7 +24629,7 @@ GameObject:
   - component: {fileID: 1152897037}
   - component: {fileID: 1152897036}
   m_Layer: 5
-  m_Name: Content
+  m_Name: ContentShips
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -29384,12 +29384,12 @@ MonoBehaviour:
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
   galaxyImage: {fileID: 843799567}
   GalaxyCenter: {fileID: 564492290}
-  fleetGroupPrefab: {fileID: 3717699476320669143, guid: 724c5663d5780da4a9ab08bdbf7ccc98, type: 3}
   unknownfleet: {fileID: 21300000, guid: 4d704142da734fb46b88fe56645880c0, type: 3}
   canvasShipManager: {fileID: 1423239684}
   destinationIntsInUse: 00000000
   FleetControllersInGame: []
-  contentFolderParent: {fileID: 1850390553}
+  fleetUIGOContentParent: {fileID: 1850390553}
+  fleetShipsContentFolderParent: {fileID: 1152897034}
 --- !u!4 &1362581733
 Transform:
   m_ObjectHideFlags: 0
@@ -39561,7 +39561,7 @@ GameObject:
   - component: {fileID: 1850390556}
   - component: {fileID: 1850390555}
   m_Layer: 5
-  m_Name: ContentFleetList
+  m_Name: ContentFleetUIGO
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -40182,6 +40182,11 @@ MonoBehaviour:
   selectDestinationCursorButtonGO: {fileID: 0}
   cancelDestinationButtonGO: {fileID: 0}
   dragDestinationTargetButtonGO: {fileID: 0}
+  selectShipManagerCursorButtonGO: {fileID: 0}
+  cancelShipManagerButtonGO: {fileID: 0}
+  warpButtonUpGO: {fileID: 0}
+  warpButtonDownGO: {fileID: 0}
+  closeFleetUIButtonGO: {fileID: 0}
   listOfFleetUiGos: []
 --- !u!1 &1903676183
 GameObject:
@@ -42407,8 +42412,8 @@ MonoBehaviour:
   shieldGenInventorySlotPrefab: {fileID: 3495803306671581478, guid: cb5eafa1d2e2f4941b3909489aa55010, type: 3}
   orbitalBatteryInventorySlotPrefab: {fileID: 5373250282860476608, guid: 9cb646e9c872b8542958609d19fbe52c, type: 3}
   researchCenterInventorySlotPrefab: {fileID: 981188120279098555, guid: 27d52b6bb5c04fe448f83b694838951b, type: 3}
-  sysItemContentFolderParent: {fileID: 44498444}
-  sysShipsContentFolderParent: {fileID: 0}
+  sysUIGOContentParent: {fileID: 44498444}
+  sysShipsContentFolderParent: {fileID: 1152897034}
   localPlayerTheme: {fileID: 0}
   galaxyImage: {fileID: 843799567}
   canvasBuildList: {fileID: 315311927}
@@ -43983,7 +43988,7 @@ MonoBehaviour:
   sabatogeButtonGO: {fileID: 0}
   combatButtonGO: {fileID: 0}
   closeDiplomacyButtonGO: {fileID: 0}
-  listOfDiplomacyUiGos: []
+  ListOfDiplomacyUiGos: []
 --- !u!1001 &2056045500
 PrefabInstance:
   m_ObjectHideFlags: 0
