@@ -8,10 +8,9 @@ using UnityEngine.UI;
 using TMPro;
 using Assets.Core;
 /// <summary>
-/// /// <summary>
 /// The UI controller owns hierarchy and presentation.
 /// </summary>
-/// </summary>
+
 public class FleetMenuUIController : MonoBehaviour
 {
     public static FleetMenuUIController Instance;
@@ -19,19 +18,17 @@ public class FleetMenuUIController : MonoBehaviour
     //[SerializeField]
     //private Canvas parentCanvas;
     [Header("References (assign in Inspector)")]
-    [SerializeField] private GameObject fleetMenuView;
-    [SerializeField] private RectTransform fleetListContainer;
-    [SerializeField] private GameObject fleetShipListContainer;
-    [SerializeField] private GameObject aFleetMenuView;
-    public GameObject AFleetMenuView => aFleetMenuView;
-    public GameObject FleetMenuView => fleetMenuView;
-    public RectTransform FleetListContainer => fleetListContainer;
+    public GameObject FleetMenuView;
+    public GameObject AFleetMenuView;
+    public GameObject FleetListContainer;
+    [Header("Private UI Elements (assign in Inspector)")]
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
+    private GameObject fleetShipListContainer;
+
     [Header("Destination UI (optional)")]
     [SerializeField] private TextMeshProUGUI destinationName;
     [SerializeField] private TextMeshProUGUI destinationCoordinates;
-    //public float WarpValue;
     [SerializeField] private GameObject selectDestinationCursorButtonGO;
     [SerializeField] private GameObject cancelDestinationButtonGO;
     [SerializeField] private GameObject dragDestinationTargetButtonGO;
@@ -41,14 +38,9 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject warpButtonDownGO;
     [SerializeField] private GameObject closeFleetUIButtonGO;
 
-
-
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
 
-
-    //public bool IsVisibleA_FleetMenuView => aFleetMenuView.activeSelf;
-    //public bool IsVisibleFleetMenuView => fleetMenuView.activeSelf;
 
     private void Awake()
     {
@@ -65,29 +57,29 @@ public class FleetMenuUIController : MonoBehaviour
     private void Start()
     {
         // Initially hide fleet menu views
-        if (fleetMenuView != null)
-            fleetMenuView.SetActive(false);
-        if (aFleetMenuView != null) 
-            aFleetMenuView.SetActive(false);
+        if (FleetMenuView != null)
+            FleetMenuView.SetActive(false);
+        if (AFleetMenuView != null) 
+            AFleetMenuView.SetActive(false);
         //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
         //parentCanvas.worldCamera = galaxyEventCamera;
     }
     public void ShowFleetMenuView()
     {
-        fleetMenuView.SetActive(true);
+        FleetMenuView.SetActive(true);
     }
     public void ShowA_FleetMenuView()
     {
-        aFleetMenuView.SetActive(true);
+        AFleetMenuView.SetActive(true);
     }
     public void HideFleetMenuView()
     {
-        fleetMenuView.SetActive(false);
+        FleetMenuView.SetActive(false);
     }
     public void HideA_FleetMenuView()
     {
 
-        aFleetMenuView.SetActive(false);
+        AFleetMenuView.SetActive(false);
     }
     public void SetupFleetUIData()
     {
@@ -106,15 +98,15 @@ public class FleetMenuUIController : MonoBehaviour
                 listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
                 fleetCon.FleetUIGameObject.SetActive(true);
                 if (fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
-                    fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = fleetListContainer.transform;
-                fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
+                    fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = FleetListContainer.transform;
+                fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
             }
         }
     }
     public void SetActiveSetParentUIGO(FleetController theFleetCon)
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
-        theFleetCon.FleetUIGameObject.transform.SetParent(aFleetMenuView.transform, false);
+        theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
     }
     public void MoveTheFleetUIGO(GameObject fleetConGO)
     {
@@ -122,7 +114,7 @@ public class FleetMenuUIController : MonoBehaviour
         {
             if (listOfFleetUiGos[i] == fleetConGO)
             {
-                listOfFleetUiGos[i].transform.SetParent(aFleetMenuView.transform, false);
+                listOfFleetUiGos[i].transform.SetParent(AFleetMenuView.transform, false);
                 return;
             }
         }
@@ -130,10 +122,10 @@ public class FleetMenuUIController : MonoBehaviour
 
     public void MoveBackAnyaFleetUIGO()
     {
-        aFleetMenuView.SetActive(true);
-        for (int i = 0; i < aFleetMenuView.transform.childCount; i++)
+        AFleetMenuView.SetActive(true);
+        for (int i = 0; i < AFleetMenuView.transform.childCount; i++)
         {
-            var child = aFleetMenuView.transform.GetChild(i)?.gameObject;
+            var child = AFleetMenuView.transform.GetChild(i)?.gameObject;
             if (child != null)
             {   
                 if(child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
@@ -155,7 +147,7 @@ public class FleetMenuUIController : MonoBehaviour
         if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
         {
             newFleetUIGO.SetActive(true);
-            fleetCon.FleetUIGameObject.transform.SetParent(fleetListContainer.transform, false);
+            fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
             listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
 
             RectTransform[] rectTransforms = newFleetUIGO.GetComponentsInChildren<RectTransform>(true);
@@ -420,17 +412,17 @@ public class FleetMenuUIController : MonoBehaviour
         MousePointerChanger.Instance.ResetCursor();
     }
 
-    public void LoadRightSideShipManagerFleetUIPrefab(GameObject fleetGo)
-    {
-        var fleetCon = fleetGo.GetComponent<FleetController>();
-        if (fleetCon == null) return;
-        if (GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
-        {
-            SetupFleetUIElements(fleetCon, fleetCon.RightSideShipManagementFleetUIGO);
-            fleetCon.RightSideShipManagementFleetUIGO.SetActive(true);
-            fleetCon.RightSideShipManagementFleetUIGO.transform.SetParent(aFleetMenuView.transform, false);
-        }
-    }
+    //public void LoadRightSideShipManagerFleetUIPrefab(GameObject fleetGo)
+    //{
+    //    var fleetCon = fleetGo.GetComponent<FleetController>();
+    //    if (fleetCon == null) return;
+    //    if (GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+    //    {
+    //        SetupFleetUIElements(fleetCon, fleetCon.RightSideShipManagementFleetUIGO);
+    //        fleetCon.RightSideShipManagementFleetUIGO.SetActive(true);
+    //        fleetCon.RightSideShipManagementFleetUIGO.transform.SetParent(aFleetMenuView.transform, false);
+    //    }
+    //}
 
     public void CloseDestinationSelectionCursor()
     {
@@ -479,6 +471,7 @@ public class FleetMenuUIController : MonoBehaviour
     {
         if (GameController.Instance.AreWeLocalPlayer(fleetControllerWaitingToExchangeShips.FleetData.CivEnum))
         {
+           // GalaxyMenuUIController.Instance.FleetLookingForShipExchange = fleetControllerWaitingToExchangeShips;
             selectShipManagerCursorButtonGO?.SetActive(false); 
             cancelShipManagerButtonGO?.SetActive(true);
         }
@@ -488,5 +481,29 @@ public class FleetMenuUIController : MonoBehaviour
         MousePointerChanger.Instance.ResetCursor();
         selectShipManagerCursorButtonGO?.SetActive(true);
         //cancelShipManagerButtonGO?.SetActive(false);
+    }
+
+    internal void MoveShips(FleetController fleetLooking, GameObject controller)
+    {
+        // do ship exchange
+        List<ShipController> upperShipsToMove = new List<ShipController>();
+        upperShipsToMove = fleetLooking.FleetData.ShipsList;
+        List<ShipController> lowerShipsToMove = new List<ShipController>();
+        if (controller.GetComponent<StarSysController>() == null)
+        {
+            FleetController lookedAtfleet = controller.GetComponent<FleetController>();
+            lowerShipsToMove = lookedAtfleet.FleetData.ShipsList;
+        }
+        else if(controller.GetComponent<FleetController>() == null)
+        {
+            StarSysController lookedAtSys = controller.GetComponent<StarSysController>();
+            lowerShipsToMove = lookedAtSys.StarSysData.ShipsList;
+        } 
+        MoveShipView(upperShipsToMove, lowerShipsToMove);
+    }
+
+    private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)
+    {
+        // drag and drop, Can we do this in MovingShipsView class?
     }
 }

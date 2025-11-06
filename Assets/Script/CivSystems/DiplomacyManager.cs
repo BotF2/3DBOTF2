@@ -175,8 +175,8 @@ public class DiplomacyManager : MonoBehaviour
                 uiGO.layer = 5;
                 diplomacyCon.DiplomacyUIGameObject = uiGO;
                 diplomacyCon.DiplomacyUIGameObject.SetActive(true);
-                DiplomacyMenuUIController.Instance.aDiplomacyMenuView.SetActive(true);
-                uiGO.transform.SetParent(DiplomacyMenuUIController.Instance.aDiplomacyMenuView.transform, false);
+                DiplomacyMenuUIController.Instance.ADiplomacyMenuView.SetActive(true);
+                uiGO.transform.SetParent(DiplomacyMenuUIController.Instance.ADiplomacyMenuView.transform, false);
                 if (DiplomacyMenuUIController.Instance != null && !DiplomacyMenuUIController.Instance.ListOfDiplomacyUiGos.Contains(uiGO))
                 {
                     DiplomacyMenuUIController.Instance.ListOfDiplomacyUiGos.Add(uiGO);

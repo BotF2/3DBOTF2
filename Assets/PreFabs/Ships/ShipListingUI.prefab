@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4303562923511528755}
   - component: {fileID: 9070003892515775203}
   - component: {fileID: 7832649142337502281}
+  - component: {fileID: 7752711392333610530}
   m_Layer: 5
   m_Name: ShipListingUI
   m_TagString: Untagged
@@ -94,6 +95,18 @@ MonoBehaviour:
   ShipType: 0
   ShipSprite: {fileID: 0}
   BuildDuration: 0
+--- !u!225 &7752711392333610530
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097691733155681692}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &5585935713694846409
 GameObject:
   m_ObjectHideFlags: 0

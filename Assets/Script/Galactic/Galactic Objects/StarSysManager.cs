@@ -859,13 +859,13 @@ namespace Assets.Core
         {
             if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
             {
-                if (sysController.StarSysRightSideShipsUIGameObject == null)
+                if (sysController.StarSysShipsUIGameObject == null)
                 {
                     GameObject thisShipSysUIGameObject = (GameObject)Instantiate(sysShipsUIPrefab, new Vector3(0, 0, 0),
                         Quaternion.identity);
                     thisShipSysUIGameObject.layer = 5;
-                    sysController.StarSysRightSideShipsUIGameObject = thisShipSysUIGameObject;
-                    sysController.StarSysRightSideShipsUIGameObject.SetActive(true);
+                    sysController.StarSysShipsUIGameObject = thisShipSysUIGameObject;
+                    sysController.StarSysShipsUIGameObject.SetActive(true);
              
 
                     var transforms = thisShipSysUIGameObject.transform.GetComponentsInChildren<Transform>();

@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using Assets.Core;
 
 
-public class ShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -48,6 +48,7 @@ public class ShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDrag
         }
         originalParent = transform.parent;
         canvasGroup.interactable = true;
+        canvasGroup.alpha = 0.6f; // make it transparent
         canvasGroup.blocksRaycasts = false; // allow drag
         transform.SetParent(transform.root); // down list to top layer to be seen
         transform.SetAsLastSibling();
@@ -63,6 +64,7 @@ public class ShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDrag
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
@@ -129,4 +131,8 @@ public class ShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDrag
         Debug.Log("onEndDrag");
     }
 
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        Debug.Log("OnPonterDown");
+    }
 }

@@ -160,8 +160,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         encyclopediaBackground.SetActive(false);
 
         diplomacyControllers = new List<DiplomacyController>();
-        StarSysMenuUIController.Instance.SetupSystemUIData();//get our system ui game objects to match your system controllers
-        FleetMenuUIController.Instance.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
+        starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
+        fleetMenuUIController.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
         // Not For DiplomacyMenuUIController, we do that with each new first contact of civs / fleets
     }
 
@@ -355,13 +355,13 @@ public class GalaxyMenuUIController : MonoBehaviour
 
     public void SetUpASystemRightSideShipsUIData(StarSysController theSysCon) 
     {
-        theSysCon.StarSysRightSideShipsUIGameObject.SetActive(true);
-        theSysCon.StarSysRightSideShipsUIGameObject.transform.SetParent(fleetMenuUIController.AFleetMenuView.transform, false);
-        theSysCon.StarSysRightSideShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
+        theSysCon.StarSysShipsUIGameObject.SetActive(true);
+        theSysCon.StarSysShipsUIGameObject.transform.SetParent(fleetMenuUIController.AFleetMenuView.transform, false);
+        theSysCon.StarSysShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
     }
     public void CloseSystemShipsUI(StarSysController theSysCon) 
     {
-        theSysCon.StarSysRightSideShipsUIGameObject.SetActive(false);
+        theSysCon.StarSysShipsUIGameObject.SetActive(false);
         CloseSystemShipsUI(theSysCon);
         //activeFleetOrSystemControllerForShipExchange = null;
     }  
@@ -494,7 +494,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void BeginShipExchange(StarSysController starSysConLooking)
     {
         StarSysLookingForShipExchang = starSysConLooking;
-        FleetLookingForShipExchange = null;
+       // FleetLookingForShipExchange = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
     public void CompleteShipExchange()

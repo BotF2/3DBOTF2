@@ -193,7 +193,12 @@ public class ShipManager : MonoBehaviour
                 {
                     textComponent.text = shipCon.ShipData.ShipType.ToString();
                 }
-                
+                CanvasGroup canvasGroup = thisShipListUIGameObject.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = 1f;
+                    canvasGroup.gameObject.SetActive(true);
+                }
                 thisShipListUIGameObject.layer = 5;
                 shipCon.ShipListUIGameObject = thisShipListUIGameObject;         
 

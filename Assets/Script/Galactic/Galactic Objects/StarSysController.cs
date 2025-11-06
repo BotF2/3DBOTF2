@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +23,7 @@ namespace Assets.Core
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
 
         private GameObject starSysShipUIGameObject;// instantiated by StarSysManager from the prefab and added to StarSysController
-        public GameObject StarSysRightSideShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
+        public GameObject StarSysShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
         private Camera galaxyEventCamera;
         [SerializeField]
@@ -54,6 +55,8 @@ namespace Assets.Core
         private int shipCurrentProgress = 1;
         private int shipStartDate = 1;
         public int ShipTimeToBuild = 1;
+        private GameObject topSlot;
+        private GameObject bottomSlot;
 
         private void Start()
         {
@@ -62,6 +65,8 @@ namespace Assets.Core
             TimeManager.Instance.OnRandomSpecialEvent += DoDisaster;
             OnOffSysFacilityEvents.current.FacilityOnClick += FacilityOnClick;// subscribe method to the event += () => Debug.Log("Action Invoked!");
             starDateOfCompletion = 0f;
+            topSlot = ShipMoverMenuUIController.Instance.TopSlot;
+            bottomSlot = ShipMoverMenuUIController.Instance.BottomSlot;
         }
         private void Update()
         {
@@ -493,11 +498,36 @@ namespace Assets.Core
         {
             if (clickedSystemCon != this) return;
             MousePointerChanger.Instance.ResetCursor();
-            FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
-            var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-            this.starSysUIGameObject.transform.Translate(new Vector3(0, -200, 0));
-            this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-
+            //FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
+            //ShipMoverMenuUIController.Instance.ShipMoveMenuView.gameObject.SetActive(true);
+            var fleetLooking = GalaxyMenuUIController.Instance.FleetLookingForDestination;
+            var starysLooking = GalaxyMenuUIController.Instance.StarSysLookingForShipExchang;
+            if (fleetLooking == null)
+            {
+                for (int i = 0; i < this.StarSysData.ShipsList.Count; i++)
+                {
+                    StarSysData.ShipsList[i].transform.SetParent(topSlot.transform);
+                }
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.SetActive(true);
+                this.starSysUIGameObject.transform.Translate(new Vector3(0, -200, 0)); // move down below the calling fleet or starsys 
+                this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+            }
+            else if (starysLooking == null)
+            {
+                for (int j = 0; j < starysLooking.StarSysData.ShipsList.Count; j++)
+                {
+                    starysLooking.StarSysData.ShipsList[j].transform.SetParent(topSlot.transform);
+                }
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
+                this.starSysUIGameObject.transform.Translate(new Vector3(0, -200, 0)); // move down below the calling fleet or starsys 
+                this.starSysUIGameObject.transform.SetParent(aSysView.transform, false);
+            }
+            for (int j = 0; j < this.StarSysData.ShipsList.Count; j++)
+            {
+                this.StarSysData.ShipsList[j].transform.SetParent(bottomSlot.transform);
+            }
         }
 
         private void HandleNormalClick(StarSysController clickedSystemCon)
@@ -885,32 +915,41 @@ namespace Assets.Core
             ShipSliderBuildProgress.value = shipProgress;
         }
         public void SelectedShipManageCursor(StarSysController starSysCon)
-        {
-            GalaxyMenuUIController.Instance.BeginShipExchange(this);
-            GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        {   
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.BeginShipExchange(this);
+            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+            galaxyUI.StarSysLookingForShipExchang = starSysCon;
             MousePointerChanger.Instance.SetShipExchangeCursor(this);
-
         }
+
         public void ClickCancelShipManageButton()
         {
-            GalaxyMenuUIController.Instance.ClickCancelShipManageButton();
-            GalaxyMenuUIController.Instance.ResetClickMode();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.ClickCancelShipManageButton();
+            galaxyUI.ResetClickMode();
+            galaxyUI.CompleteShipExchange();
             //GalaxyMenuUIController.Instance.activeFleetOrSystemControllerForShipExchange = null;
             MousePointerChanger.Instance.ResetCursor();
         }
 
         internal void SelectedOtherForShips(StarSysController sysController)
         {
+            if (GalaxyMenuUIController.Instance.FleetLookingForShipExchange != null)
+            {
+                var fleetLooking = GalaxyMenuUIController.Instance.FleetLookingForShipExchange;
+                FleetMenuUIController.Instance.MoveShips(fleetLooking, sysController.gameObject);
+            }
+            else if (GalaxyMenuUIController.Instance.StarSysLookingForShipExchang != null)
+            {
+                var starSysLooking = GalaxyMenuUIController.Instance.StarSysLookingForShipExchang;
+                StarSysMenuUIController.Instance.MoveShips(starSysLooking, sysController.gameObject);
+            }
+
             //Implement ship transfer between sysController looking and selected system or fleet
             // GalaxyMenuUIController.Instance.TransferShipsBetweenSystemsForShipExchange(this, sysController);
         }
 
-        internal void ClickCancelForShipsButton()
-        {
-            GalaxyMenuUIController.Instance.ClickCancelShipManageButton();
-            GalaxyMenuUIController.Instance.ResetClickMode();
-            MousePointerChanger.Instance.ResetCursor();
-        }
 
         public void CleanupStarSysUIs()
         {

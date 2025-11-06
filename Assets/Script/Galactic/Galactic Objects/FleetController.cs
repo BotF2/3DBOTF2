@@ -63,6 +63,8 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         internal int ownerId;
+        private GameObject topSlot;
+        private GameObject bottomSlot;
 
         private void Start()
         {
@@ -87,7 +89,8 @@ namespace Assets.Core
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
-
+            topSlot = ShipMoverMenuUIController.Instance.TopSlot;
+            bottomSlot = ShipMoverMenuUIController.Instance.BottomSlot;
         }
         private void FixedUpdate()
         {
@@ -133,12 +136,12 @@ namespace Assets.Core
                     }
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SetDestination && clickedFleetCon == this)
                     {
-                        HandleDestinationClick(clickedFleetCon);
+                        HandleDestinationClick(this);
 
                     }
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
                     {
-                        HandleShipExchangeSelection(clickedFleetCon); // a fleet or system is looking for ship exchange with this fleet
+                        HandleShipExchangeSelection(this); // a fleet or system is looking for ship exchange with this fleet
                     }
                 }
             }
@@ -255,14 +258,43 @@ namespace Assets.Core
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
         }
 
-        private void HandleShipExchangeSelection(FleetController clickedFleetCon)
+        private void HandleShipExchangeSelection(FleetController clickedFleetCon) //this
         {
             if (clickedFleetCon != this) return;
+            
             MousePointerChanger.Instance.ResetCursor();
             FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
-            var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-            this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
-            this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+            ShipMoverMenuUIController.Instance.ShipMoveMenuView.gameObject.SetActive(true);
+            var fleetLooking = GalaxyMenuUIController.Instance.FleetLookingForDestination;
+            var starysLooking = GalaxyMenuUIController.Instance.StarSysLookingForShipExchang;
+            if (fleetLooking == null)
+            {
+                for (int i = 0; i < fleetLooking.FleetData.ShipsList.Count; i++)
+                {
+                    fleetLooking.FleetData.ShipsList[i].transform.SetParent(topSlot.transform);
+                }
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
+                this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+            }
+            else if (starysLooking == null)
+            {
+                for (int j = 0; j < starysLooking.StarSysData.ShipsList.Count; j++)
+                {
+                    starysLooking.StarSysData.ShipsList[j].transform.SetParent(topSlot.transform);
+                }
+                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
+                this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+            }
+            for (int i = 0; i < this.FleetData.ShipsList.Count; i++)
+            {
+                FleetData.ShipsList[i].transform.SetParent(topSlot.transform);
+            }
+            for (int j = 0; j < this.FleetData.ShipsList.Count; j++)
+            {
+                this.FleetData.ShipsList[j].transform.SetParent(bottomSlot.transform);
+            }
         }
 
         private Vector3 GetMouseWorldPosition()
@@ -454,16 +486,18 @@ namespace Assets.Core
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.BeginShipExchange(this);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+            galaxyUI.FleetLookingForShipExchange = this;
             MousePointerChanger.Instance.SetShipExchangeCursor(this);
             FleetMenuUIController.Instance.SelectedShipManagerCursor(this);
             //FleetMenuUIController.Instance.select();
-
         }
         public void ClickCancelShipManageButton()
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.ClickCancelShipManageButton();
             galaxyUI.ResetClickMode();
+            galaxyUI.CompleteShipExchange();
+            //galaxyUI.FleetLookingForShipExchange = null;
             FleetMenuUIController.Instance.ClickCancelShipManagerButton(this);
             MousePointerChanger.Instance.ResetCursor();
         }

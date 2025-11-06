@@ -861,6 +861,7 @@ GameObject:
   - component: {fileID: 5611938125724218782}
   - component: {fileID: 5414316957167358881}
   - component: {fileID: 6064902315119983643}
+  - component: {fileID: 3500399169202190820}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -986,6 +987,18 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!225 &3500399169202190820
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1123147902904897269}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1352411068707775619
 GameObject:
   m_ObjectHideFlags: 0
@@ -1834,7 +1847,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5da587407cd53ee4892fa4daac5a849c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FleetAndSystemChildController
-  originalParentTransform: {fileID: 0}
+  OriginalParentTransform: {fileID: 0}
 --- !u!1 &3149927222220872153
 GameObject:
   m_ObjectHideFlags: 0
