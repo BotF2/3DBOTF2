@@ -2,7 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class GridInitializer : MonoBehaviour
-{
+{ 
+    // custom script to initialize a grid layout in Unity UI
     [Header("References")]
     public RectTransform container;
     public GameObject itemPrefab;

@@ -42,16 +42,15 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField]
     private StarSysMenuUIController starSysMenuUIController;
     [SerializeField] 
-    private DiplomacyMenuUIController diplomacyMenuUIController;  
-
+    private DiplomacyMenuUIController diplomacyMenuUIController;
+    [SerializeField]
+    private ShipMoverMenuUIController shipMoveMenuUIController;
     [SerializeField]
     private GameObject aSystemShipContainer;
     [SerializeField]
     private GameObject sysBuildMenu;
-
     [SerializeField]
     private GameObject diplomacyNoContacts;
-
     [SerializeField]
     private GameObject intelMenuView;
     [SerializeField]
@@ -94,12 +93,10 @@ public class GalaxyMenuUIController : MonoBehaviour
     private Menu openMenuEnumWas;
     [SerializeField]
     private GameObject fleetUI_Prefab;
-    [SerializeField]
-    private GameObject dragDestinationTargetButtonGO;
     public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
     public FleetController FleetLookingForDestination { get; set; }
     public FleetController FleetLookingForShipExchange { get; set; }
-    public StarSysController StarSysLookingForShipExchang{ get; set; }
+    public StarSysController StarSysLookingForShipExchange{ get; set; }
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
 
     [SerializeField]
@@ -223,6 +220,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
         StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
+        shipMoveMenuUIController.HideShipMoveMenuView();
         if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
             TimeManager.Instance.ResumeTime();
         if (encyclopediaMenuView.activeSelf)
@@ -485,22 +483,22 @@ public class GalaxyMenuUIController : MonoBehaviour
        // sele.SetActive(true);
     }
 
-    public void BeginShipExchange(FleetController fleetConLooking)
+    public void WhatFleetIsLookingForShips(FleetController fleetConLooking)
     {
         FleetLookingForShipExchange = fleetConLooking;
-        StarSysLookingForShipExchang = null;
+        StarSysLookingForShipExchange = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
-    public void BeginShipExchange(StarSysController starSysConLooking)
+    public void WhatSysIsLookingForShips(StarSysController starSysConLooking)
     {
-        StarSysLookingForShipExchang = starSysConLooking;
-       // FleetLookingForShipExchange = null;
+        StarSysLookingForShipExchange = starSysConLooking;
+        FleetLookingForShipExchange = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
     public void CompleteShipExchange()
     {
-        FleetLookingForShipExchange = null;
-        StarSysLookingForShipExchang = null;
+        //FleetLookingForShipExchange = null;
+        //StarSysLookingForShipExchange = null;
         ResetClickMode();
     }
 
@@ -515,37 +513,44 @@ public class GalaxyMenuUIController : MonoBehaviour
         FleetLookingForDestination = null;
         ResetClickMode();
     }
-    private void HandleShipExchange(MonoBehaviour origin, MonoBehaviour target)
-    {
-        // Cast to the appropriate type to handle logic
-        var originFleet = origin as FleetController;
-        var originSystem = origin as StarSysController;
+    //private void HandleShipExchange(MonoBehaviour origin, MonoBehaviour target)
+    //{
+    //    // Cast to the appropriate type to handle logic
+    //    var originFleet = origin as FleetController;
+    //    var originSystem = origin as StarSysController;
 
-        var targetFleet = target as FleetController;
-        var targetSystem = target as StarSysController;
+    //    var targetFleet = target as FleetController;
+    //    var targetSystem = target as StarSysController;
 
-        // ✅ Examples of how you might handle this:
-        if (originFleet != null && targetFleet != null)
-        {
-            Debug.Log($"Exchange ships between fleet {originFleet.name} and fleet {targetFleet.name}");
-            // ExchangeFleetToFleet(originFleet, targetFleet);
-        }
-        else if (originFleet != null && targetSystem != null)
-        {
-            Debug.Log($"Exchange ships between fleet {originFleet.name} and system {targetSystem.name}");
-            // ExchangeFleetToSystem(originFleet, targetSystem);
-        }
-        else if (originSystem != null && targetFleet != null)
-        {
-            Debug.Log($"Exchange ships between system {originSystem.name} and fleet {targetFleet.name}");
-            // ExchangeSystemToFleet(originSystem, targetFleet);
-        }
-    }
+    //    // ✅ Examples of how you might handle this:
+    //    if (originFleet != null && targetFleet != null)
+    //    {
+    //        Debug.Log($"Exchange ships between fleet {originFleet.name} and fleet {targetFleet.name}");
+    //        // ExchangeFleetToFleet(originFleet, targetFleet);
+    //    }
+    //    else if (originFleet != null && targetSystem != null)
+    //    {
+    //        Debug.Log($"Exchange ships between fleet {originFleet.name} and system {targetSystem.name}");
+    //        // ExchangeFleetToSystem(originFleet, targetSystem);
+    //    }
+    //    else if (originSystem != null && targetFleet != null)
+    //    {
+    //        Debug.Log($"Exchange ships between system {originSystem.name} and fleet {targetFleet.name}");
+    //        // ExchangeSystemToFleet(originSystem, targetFleet);
+    //    }
+    //}
 
     private void CurrentClickModeReset()
     {
         GalaxyMenuUIController.Instance.ResetClickMode();
     }
+
+    //internal void WhatFleetIsSelectedForShipMove(FleetController fleetController)
+    //{
+    //    Flee = fleetConLooking;
+    //    StarSysLookingForShipExchange = null;
+    //    SetClickMode(GalaxyClickMode.SelectForShipExchange);
+    //}
 }
 
 

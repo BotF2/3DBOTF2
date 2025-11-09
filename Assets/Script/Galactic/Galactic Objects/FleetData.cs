@@ -3,6 +3,7 @@ using UnityEngine;
 using Assets.Core;
 using System.Linq;
 using UnityEngine.UI;
+using System;
 public class FleetData
 {
     public int CivIndex;
@@ -79,6 +80,11 @@ public class FleetData
     }
 
     public string GetFleetName() { return this.Name; }
+
+    internal void PopulateShipsList()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 

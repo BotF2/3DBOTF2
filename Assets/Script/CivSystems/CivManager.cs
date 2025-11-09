@@ -54,40 +54,40 @@ namespace Assets.Core
             }
             //ToDo: early random minor races set before menu selects size and tech
         }
-        private void Update()
-        {
-            #region temp multi-starsystem hack
-            //***** This is temporary so we can test a multi-starsystem civCon
-            //******* before diplomacy will alow civs/systems to join another civCon
+        //private void Update()
+        //{
+        //    #region temp multi-starsystem hack
+        //    //***** This is temporary so we can test a multi-starsystem civCon
+        //    //******* before diplomacy will alow civs/systems to join another civCon
 
-            //if (nowCivsCanJoinTheFederation && HoldCivSize == 1)
-            //{
-            //    foreach (var civCon in CivControllersInGame)
-            //    {
-            //        if(civCon.CivData.CivEnum == CivEnum.ANDORIANS || civCon.CivData.CivEnum == CivEnum.VULCANS || civCon.CivData.CivEnum == CivEnum.TELLARITES)
-            //        {
-            //            civCon.CivData.CivInt = CivControllersInGame[0].CivData.CivInt;
-            //            civCon.CivData.CivEnum = CivControllersInGame[0].CivData.CivEnum;
-            //            civCon.CivData.CivShortName = CivControllersInGame[0].CivData.CivShortName;
-            //            civCon.CivData.CivLongName = CivControllersInGame[0].CivData.CivLongName;
-            //            civCon.CivData.CivHomeSystemName = CivControllersInGame[0].CivData.CivHomeSystemName;
-            //            civCon.CivData.TraitOne = CivControllersInGame[0].CivData.TraitOne;
-            //            civCon.CivData.TraitTwo = CivControllersInGame[0].CivData.TraitTwo;
-            //            civCon.CivData.CivRaceSprite = CivControllersInGame[0].CivData.CivRaceSprite;
-            //            civCon.CivData.InsigniaSprite = CivControllersInGame[0].CivData.InsigniaSprite;
-            //            civCon.CivData.Playable = true;
-            //            civCon.CivData.PlayedByAI = true;
-            //            civCon.CivData.HasWarp =true;
-            //            civCon.CivData.Decription = "temp civCon member of Federation";
-            //        }
-            //    }
-            //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.ANDORIANS, CivEnum.FED);
-            //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.VULCANS, CivEnum.FED);
-            //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.TELLARITES, CivEnum.FED);
-            //}
-            //nowCivsCanJoinTheFederation = false;
-            #endregion
-        }
+        //    //if (nowCivsCanJoinTheFederation && HoldCivSize == 1)
+        //    //{
+        //    //    foreach (var civCon in CivControllersInGame)
+        //    //    {
+        //    //        if(civCon.CivData.CivEnum == CivEnum.ANDORIANS || civCon.CivData.CivEnum == CivEnum.VULCANS || civCon.CivData.CivEnum == CivEnum.TELLARITES)
+        //    //        {
+        //    //            civCon.CivData.CivInt = CivControllersInGame[0].CivData.CivInt;
+        //    //            civCon.CivData.CivEnum = CivControllersInGame[0].CivData.CivEnum;
+        //    //            civCon.CivData.CivShortName = CivControllersInGame[0].CivData.CivShortName;
+        //    //            civCon.CivData.CivLongName = CivControllersInGame[0].CivData.CivLongName;
+        //    //            civCon.CivData.CivHomeSystemName = CivControllersInGame[0].CivData.CivHomeSystemName;
+        //    //            civCon.CivData.TraitOne = CivControllersInGame[0].CivData.TraitOne;
+        //    //            civCon.CivData.TraitTwo = CivControllersInGame[0].CivData.TraitTwo;
+        //    //            civCon.CivData.CivRaceSprite = CivControllersInGame[0].CivData.CivRaceSprite;
+        //    //            civCon.CivData.InsigniaSprite = CivControllersInGame[0].CivData.InsigniaSprite;
+        //    //            civCon.CivData.Playable = true;
+        //    //            civCon.CivData.PlayedByAI = true;
+        //    //            civCon.CivData.HasWarp =true;
+        //    //            civCon.CivData.Decription = "temp civCon member of Federation";
+        //    //        }
+        //    //    }
+        //    //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.ANDORIANS, CivEnum.FED);
+        //    //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.VULCANS, CivEnum.FED);
+        //    //    StarSysManager.current.UpdateStarSystemOwner(CivEnum.TELLARITES, CivEnum.FED);
+        //    //}
+        //    //nowCivsCanJoinTheFederation = false;
+        //    #endregion
+        //}
         public void SetSingleVsMulitplayer()
         {
 

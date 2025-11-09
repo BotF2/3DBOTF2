@@ -344,7 +344,7 @@ namespace Assets.Core
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
                 InstantiateSysUIGameObject(starSysCon);
-                InstantiateSysShipsUIGameObject(starSysCon);
+               // InstantiateSysShipsUIGameObject(starSysCon);
                 //***** This is temporary so we can test a multi-star system civ
                 //******* before diplomacy will alow civ/systems to join another civ
                 //if (systemCount == 8)
@@ -855,33 +855,7 @@ namespace Assets.Core
                 }
             }
         }
-        public void InstantiateSysShipsUIGameObject(StarSysController sysController)
-        {
-            if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
-            {
-                if (sysController.StarSysShipsUIGameObject == null)
-                {
-                    GameObject thisShipSysUIGameObject = (GameObject)Instantiate(sysShipsUIPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
-                    thisShipSysUIGameObject.layer = 5;
-                    sysController.StarSysShipsUIGameObject = thisShipSysUIGameObject;
-                    sysController.StarSysShipsUIGameObject.SetActive(true);
-             
 
-                    var transforms = thisShipSysUIGameObject.transform.GetComponentsInChildren<Transform>();
-                    for (int j = 0; j < transforms.Length; j++)
-                    {
-                        if (transforms[j].gameObject.name == "SysShipContent")
-                        {
-                            sysShipsContentFolderParent = transforms[j].gameObject;
-                            sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
-                            return;
-                        }
-                    }
-                    thisShipSysUIGameObject.transform.SetParent(sysShipsContentFolderParent.transform, false);
-                }
-            }
-        }
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
@@ -1157,6 +1131,20 @@ namespace Assets.Core
 
                     default:
                         break;
+                }
+            }
+            Button[] closeButton = sysBuildListInstance.GetComponentsInChildren<Button>();
+            for (int l = 0; (l < closeButton.Length); l++)
+            {
+                closeButton[l].gameObject.SetActive(true);
+                switch (closeButton[l].gameObject.name)
+                {
+                    case "CloseBuilding":
+                        {
+                            closeButton[l].onClick.RemoveAllListeners();
+                            closeButton[l].onClick.AddListener(() => StarSysMenuUIController.Instance.CloseBuildingQueues());
+                            break;
+                        }
                 }
             }
             GameObject shipSliderGO = (GameObject)Instantiate(shipBuildSliderPrefab, new Vector3(0, 0, 0),

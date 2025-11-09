@@ -142,7 +142,7 @@ namespace Assets.Core
                     }
                     else if (_autoRotationTimer > 0)
                     {
-                        // use multitarget camera controller to keep all ships in view
+                        // use multi-target camera controller to keep all ships in view
                         transform.position = Vector3.SmoothDamp(transform.position, targetPositionAndRotation.Position, ref _velocity, MoveSmoothTime);
                         transform.rotation = targetPositionAndRotation.Rotation;
                         _autoRotationTimer -= Time.deltaTime;
