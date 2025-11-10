@@ -503,23 +503,6 @@ public class StarSysMenuUIController : MonoBehaviour
         // Implement specific incremental updates here when you need them.
     }
 
-    //internal void LoadRightSideShipManagerSystemUIPrefab(GameObject gameObject)
-    //{
-
-    //    var systemCon = gameObject.GetComponent<StarSysController>();
-    //    if (systemCon == null) return;
-    //    if (GameController.Instance.AreWeLocalPlayer(systemCon.StarSysData.CurrentOwnerCivEnum))
-    //    {
-    //        if (fleetMenuUIController != null && fleetMenuUIController.AFleetMenuView != null)
-    //            systemCon.StarSysShipsUIGameObject.transform.SetParent(fleetMenuUIController.AFleetMenuView.transform, false);
-    //        else
-    //            systemCon.StarSysShipsUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
-
-    //        systemCon.StarSysShipsUIGameObject.SetActive(true);
-    //        systemCon.StarSysShipsUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
-    //    }
-    //    systemCon.StarSysShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
-    //}
     private void OnDisable()
     {
         // When the UI menu closes (e.g., switching menus or hiding canvas)
@@ -549,25 +532,6 @@ public class StarSysMenuUIController : MonoBehaviour
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
-    //internal void MoveShips(StarSysController starSysLooking, GameObject controller)//StarSysController or FleetController)
-    //{
-    //    // do ship exchange
-    //    List<ShipController> upperShipsToMove = new List<ShipController>();
-    //    upperShipsToMove = starSysLooking.StarSysData.ShipsList;
-    //    List<ShipController> lowerShipsToMove = new List<ShipController>();
-    //    if (controller.GetComponent<StarSysController>() == null)
-    //    {
-    //        FleetController lookedAtfleet = controller.GetComponent<FleetController>();
-    //        lowerShipsToMove = lookedAtfleet.FleetData.ShipsList;
-    //    }
-    //    else if (controller.GetComponent<FleetController>() == null)
-    //    {
-    //        StarSysController lookedAtSys = controller.GetComponent<StarSysController>();
-    //        lowerShipsToMove = lookedAtSys.StarSysData.ShipsList;
-    //    }
-    //    MoveShipView(upperShipsToMove, lowerShipsToMove);
-    //}
-
     private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)
     {
         // drag and drop, Can we do this in MovingShipsView class?
@@ -578,7 +542,7 @@ public class StarSysMenuUIController : MonoBehaviour
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatSysIsLookingForShips(starSysControllerWaitingToExchangeShips);
-            //galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
             //galaxyUI.StarSysLookingForShipExchange = starSysControllerWaitingToExchangeShips;
             MousePointerChanger.Instance.SetShipExchangeCursor(starSysControllerWaitingToExchangeShips);
             //ShipMoverMenuUIController.Instance.WhoIsLooking(starSysControllerWaitingToExchangeShips);

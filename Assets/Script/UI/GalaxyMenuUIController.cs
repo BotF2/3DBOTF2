@@ -155,7 +155,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         diplomacyBackground.SetActive(false);
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
-
+        //shipMoveMenuUIController.gameObject.SetActive(false);
+        shipMoveMenuUIController.HideShipMoveMenuView();
         diplomacyControllers = new List<DiplomacyController>();
         starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
         fleetMenuUIController.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
@@ -220,7 +221,9 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
         StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
+        shipMoveMenuUIController.gameObject.SetActive(false);
         shipMoveMenuUIController.HideShipMoveMenuView();
+        GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
         if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
             TimeManager.Instance.ResumeTime();
         if (encyclopediaMenuView.activeSelf)
@@ -260,6 +263,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = null;
                 break;
             case Menu.SystemsMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 starSysMenuUIController.ShowSystemMenuView();
                 CloseTheBackgrounds();
                 sysBackground.SetActive(true);
@@ -268,6 +272,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.SystemsMenu;
                 break;
             case Menu.ASystemMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 starSysMenuUIController.ShowA_SystemMenuView();
                 CloseTheBackgrounds();
                 starSysMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<StarSysController>());
@@ -283,6 +288,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.BuildMenu;
                 break;
             case Menu.FleetMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 fleetMenuUIController.ShowFleetMenuView();
                 CloseTheBackgrounds();
                 fleetsBackground.SetActive(true);
@@ -291,6 +297,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.FleetMenu;
                 break;
             case Menu.AFleetMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 fleetMenuUIController.ShowA_FleetMenuView();
                 CloseTheBackgrounds();
                 fleetMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<FleetController>());
@@ -300,6 +307,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.AFleetMenu;
                 break;
             case Menu.DiplomacyMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 diplomacyMenuUIController.ShowDiplomacyMenuView();
                 CloseTheBackgrounds();
                 diplomacyBackground.SetActive(true);
@@ -309,6 +317,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.DiplomacyMenu;
                 break;
             case Menu.ADiplomacyMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 diplomacyMenuUIController.ShowA_DiplomacyMenuView();
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
@@ -319,6 +328,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.ADiplomacyMenu;
                 break;
             case Menu.IntellMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 CloseTheBackgrounds();
                 intelMenuView.SetActive(true);
                 intelBackground.SetActive(true);
@@ -326,6 +336,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.IntellMenu;
                 break;
             case Menu.EncyclopedianMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 CloseTheBackgrounds();
                 InactivateCallingMenu(callingMenuOrGalaxyObject);
                 encyclopediaMenuView.SetActive(true);
@@ -334,6 +345,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.EncyclopedianMenu;
                 break;
             case Menu.HabitableSysMenu:
+                shipMoveMenuUIController.HideShipMoveMenuView();
                 habitableSysMenu.SetActive(true);
                 openMenuWas = habitableSysMenu;
                 openMenuEnumWas = Menu.HabitableSysMenu;
@@ -351,12 +363,12 @@ public class GalaxyMenuUIController : MonoBehaviour
             callingMenu.SetActive(false);
     }
 
-    public void SetUpASystemRightSideShipsUIData(StarSysController theSysCon) 
-    {
-        theSysCon.StarSysShipsUIGameObject.SetActive(true);
-        theSysCon.StarSysShipsUIGameObject.transform.SetParent(fleetMenuUIController.AFleetMenuView.transform, false);
-        theSysCon.StarSysShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
-    }
+    //public void SetUpASystemRightSideShipsUIData(StarSysController theSysCon) 
+    //{
+    //    theSysCon.StarSysShipsUIGameObject.SetActive(true);
+    //    theSysCon.StarSysShipsUIGameObject.transform.SetParent(fleetMenuUIController.AFleetMenuView.transform, false);
+    //    theSysCon.StarSysShipsUIGameObject.transform.Translate(new Vector3(0f, 0f, 0f), Space.Self);
+    //}
     public void CloseSystemShipsUI(StarSysController theSysCon) 
     {
         theSysCon.StarSysShipsUIGameObject.SetActive(false);

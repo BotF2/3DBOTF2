@@ -264,29 +264,20 @@ namespace Assets.Core
             MousePointerChanger.Instance.ResetCursor();
             SelectedUsForShips(this); // informs ShipMoverMenuUIController of who is selected for ship exchange
             //MousePointerChanger.Instance.ResetCursor();
-            //FleetMenuUIController.Instance.AFleetMenuView.gameObject.SetActive(true);
-            //ShipMoverMenuUIController.Instance.ShipMoveMenuView.gameObject.SetActive(true);
+
             var fleetLooking = GalaxyMenuUIController.Instance.FleetLookingForDestination;
             var starysLooking = GalaxyMenuUIController.Instance.StarSysLookingForShipExchange;
             if (fleetLooking != null)
             {
-                //for (int i = 0; i < fleetLooking.FleetData.ShipsList.Count; i++)
-                //{
-                //    fleetLooking.FleetData.ShipsList[i].transform.SetParent(topSlot.transform);
-                //}
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
                 this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                FleetUIGameObject.transform.SetAsLastSibling();
             }
             else if (starysLooking != null)
             {
-                //for (int j = 0; j < starysLooking.StarSysData.ShipsList.Count; j++)
-                //{
-                //    starysLooking.StarSysData.ShipsList[j].transform.SetParent(topSlot.transform);
-                //}
                 var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-                this.FleetUIGameObject.transform.Translate(new Vector3(0, -200, 0));
                 this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+                FleetUIGameObject.transform.SetAsLastSibling();
             }
 
             ShipMoverMenuUIController.Instance.SetUpBottomShipLists(this);

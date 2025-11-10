@@ -50,14 +50,14 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
         canvasGroup.interactable = true;
         canvasGroup.alpha = 0.6f; // make it transparent
         canvasGroup.blocksRaycasts = false; // allow drag
-        transform.SetParent(transform.root); // down list to top layer to be seen
-        transform.SetAsLastSibling();
+        transform.SetParent(transform.root); 
+        transform.SetAsLastSibling();// down list = top layer to be seen
         Debug.Log("onBeginDrag");
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        // follow the mouse cursor
+        // follow the mouse cursor every frame
         rectTransform.anchoredPosition += eventData.delta / rectTransform.lossyScale;
         Debug.Log("onDraging");
     }

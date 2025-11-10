@@ -305,7 +305,7 @@ public class FleetMenuUIController : MonoBehaviour
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
         galaxyUI.WhatFleetIsLookingForShips(fleetCon);
-        //galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
        //galaxyUI.FleetLookingForShipExchange = fleetCon;
         MousePointerChanger.Instance.SetShipExchangeCursor(fleetCon);
         //ShipMoverMenuUIController.Instance.WhoIsLooking(fleetCon);
@@ -480,6 +480,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     internal void SelectedShipManager(FleetController fleetControllerWaitingToExchangeShips)
     {
+        
         //if (GameController.Instance.AreWeLocalPlayer(fleetControllerWaitingToExchangeShips.FleetData.CivEnum))
         //{
         //    ShipMoverMenuUIController.Instance.WhoIsLooking(fleetControllerWaitingToExchangeShips);
