@@ -29,6 +29,8 @@ TagManager:
   - FogPlaneParent
   - ShipCamera
   - ShipCameraHolder
+  - TopShipDeploySlot
+  - BottomShipDeploySlot
   layers:
   - Default
   - TransparentFX

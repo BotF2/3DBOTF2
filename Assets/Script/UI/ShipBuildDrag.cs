@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using Assets.Core;
 
 
-public class SystemBuildShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -22,7 +22,7 @@ public class SystemBuildShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHan
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var theDragedScript = eventData.pointerDrag.GetComponent<SystemBuildShipDrag>();
+        var theDragedScript = eventData.pointerDrag.GetComponent<ShipBuildDrag>();
         switch (eventData.pointerDrag.name)
         {
             case "ItemScout":
@@ -47,7 +47,7 @@ public class SystemBuildShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHan
                 break;
         }
         originalParent = transform.parent;
-        canvasGroup.blocksRaycasts = false; // allow drag
+        canvasGroup.blocksRaycasts = false; // see slot below
         transform.SetParent(transform.root); // down list to top layer to be seen
         transform.SetAsLastSibling();
         Debug.Log("onBeginDrag");
@@ -66,31 +66,25 @@ public class SystemBuildShipDrag : MonoBehaviour, IBeginDragHandler, IEndDragHan
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
             transform.SetParent(eventData.pointerEnter.transform);
-            var theDragedScript = eventData.pointerDrag.GetComponent<SystemBuildShipDrag>();
+            var theDragedScript = eventData.pointerDrag.GetComponent<ShipBuildDrag>();
             switch (eventData.pointerDrag.name)
             {
                 case "ItemScout":
-                    // case "ItemPowerPlant Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Scout;
                     break;
                 case "ItemDestroyer":
-                    //case "ItemFactory Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Destroyer;
                     break;
                 case "ItemCruiser":
-                    //case "ItemShipyard Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Cruiser;
                     break;
                 case "ItemLtCruiser":
-                    //case "ItemShieldGenerator Variant(Clone)":
                     theDragedScript.ShipType = ShipType.LtCruiser;
                     break;
                 case "ItemHvyCruiser":
-                    //case "ItemOrbitalBattery Variant(Clone)":
                     theDragedScript.ShipType = ShipType.HvyCruiser;
                     break;
                 case "ItemTransport":
-                    //case "ItemResearchCenter Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Transport;
                     break;
                 default:

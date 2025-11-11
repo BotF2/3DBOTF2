@@ -55,8 +55,6 @@ namespace Assets.Core
         private int shipCurrentProgress = 1;
         private int shipStartDate = 1;
         public int ShipTimeToBuild = 1;
-        //private GameObject topSlot;
-        //private GameObject bottomSlot;
 
         private void Start()
         {
@@ -64,9 +62,6 @@ namespace Assets.Core
             canvasToolTip.worldCamera = galaxyEventCamera;
             TimeManager.Instance.OnRandomSpecialEvent += DoDisaster;
             OnOffSysFacilityEvents.current.FacilityOnClick += FacilityOnClick;// subscribe method to the event += () => Debug.Log("Action Invoked!");
-            starDateOfCompletion = 0f;
-            //topSlot = ShipMoverMenuUIController.Instance.TopSlot;
-            //bottomSlot = ShipMoverMenuUIController.Instance.BottomSlot;
         }
         private void Update()
         {
@@ -222,7 +217,7 @@ namespace Assets.Core
                     shipBuildingItem = null;
                     CivEnum localPlayerCivEnum = CivManager.Instance.LocalPlayerCivContoller.CivData.CivEnum;
 
-                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<SystemBuildShipDrag>().ShipType)
+                    switch (shipBuildQueueList[0].gameObject.GetComponentInChildren<ShipBuildDrag>().ShipType)
                     {
                         case ShipType.Scout:
                             shipType = ShipType.Scout;
@@ -248,7 +243,7 @@ namespace Assets.Core
                     ShipManager.Instance.BuildShipInSystem(shipType, this);
 
                     var imageTransform = shipBuildQueueList[0];
-                    imageTransform.SetParent(imageTransform.GetComponent<SystemBuildShipDrag>().originalParent, false);
+                    imageTransform.SetParent(imageTransform.GetComponent<ShipBuildDrag>().originalParent, false);
                     if (imageTransform.parent.childCount > 1)
                     {
                         Destroy(imageTransform.gameObject);
@@ -330,7 +325,7 @@ namespace Assets.Core
 
                 if (shipBuildingItem != lastShipBuildingItem)
                 {
-                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<SystemBuildShipDrag>();
+                    var shipBuildableItem = shipBuildingItem.gameObject.GetComponentInChildren<ShipBuildDrag>();
                     ShipTimeToBuild = ShipManager.Instance.GetShipBuildDuration(shipBuildableItem.ShipType, this.StarSysData.CurrentCivController.CivData.TechLevel, this.StarSysData.CurrentOwnerCivEnum);
                     lastShipBuildingItem = shipBuildingItem;
                     shipStartTimer = true;
@@ -497,7 +492,7 @@ namespace Assets.Core
         private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
-            ShipMoverMenuUIController.Instance.ShowShipMoveMenuView();
+            ShipDeployMenuUIController.Instance.ShowShipMoveMenuView();
             MousePointerChanger.Instance.ResetCursor();
             SelectedUsForShips(this);
             var galaxyUI = GalaxyMenuUIController.Instance;
@@ -517,7 +512,7 @@ namespace Assets.Core
                 this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
             }
-            ShipMoverMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
         }
 
         private void HandleNormalClick(StarSysController clickedSystemCon)
@@ -868,7 +863,7 @@ namespace Assets.Core
 
         internal void SelectedUsForShips(StarSysController sysController)
         {
-            ShipMoverMenuUIController.Instance.WhoIsSelectedForShipMove(this);
+            ShipDeployMenuUIController.Instance.WhoIsSelectedForShipMove(this);
         }
 
 

@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using Assets.Core;
 
 
-public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
+public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
@@ -13,7 +13,6 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
 
     public ShipType ShipType;
     public Sprite ShipSprite;
-    public int BuildDuration;
 
     private void Awake()
     {
@@ -22,7 +21,8 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var theDragedScript = eventData.pointerDrag.GetComponent<ShipDrag>();
+        
+        var theDragedScript = eventData.pointerDrag.GetComponent<ShipListItemDrag>();
         switch (eventData.pointerDrag.name)
         {
             case "ItemScout":
@@ -49,7 +49,7 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
         originalParent = transform.parent;
         canvasGroup.interactable = true;
         canvasGroup.alpha = 0.6f; // make it transparent
-        canvasGroup.blocksRaycasts = false; // allow drag
+        canvasGroup.blocksRaycasts = false; // see item slots below
         transform.SetParent(transform.root); 
         transform.SetAsLastSibling();// down list = top layer to be seen
         Debug.Log("onBeginDrag");
@@ -66,62 +66,41 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
     {
         canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
-        if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
+        if (eventData.pointerEnter != null)
         {
-            transform.SetParent(eventData.pointerEnter.transform);
-            var theDragedScript = eventData.pointerDrag.GetComponent<ShipDrag>();
+            if (eventData.pointerEnter.tag == "TopShipDeploySlot")
+            {
+                transform.SetParent(eventData.pointerEnter.transform);
+            }
+            else if (eventData.pointerEnter.tag == "BottomShipDeploySlot")
+            {
+                transform.SetParent(eventData.pointerEnter.transform);
+            }
+            
+            var theDragedScript = eventData.pointerDrag.GetComponent<ShipListItemDrag>();
             switch (eventData.pointerDrag.name)
             {
                 case "ItemScout":
-                    // case "ItemPowerPlant Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Scout;
                     break;
                 case "ItemDestroyer":
-                    //case "ItemFactory Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Destroyer;
                     break;
                 case "ItemCruiser":
-                    //case "ItemShipyard Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Cruiser;
                     break;
                 case "ItemLtCruiser":
-                    //case "ItemShieldGenerator Variant(Clone)":
                     theDragedScript.ShipType = ShipType.LtCruiser;
                     break;
                 case "ItemHvyCruiser":
-                    //case "ItemOrbitalBattery Variant(Clone)":
                     theDragedScript.ShipType = ShipType.HvyCruiser;
                     break;
                 case "ItemTransport":
-                    //case "ItemResearchCenter Variant(Clone)":
                     theDragedScript.ShipType = ShipType.Transport;
                     break;
                 default:
                     break;
-            }
-            switch (theDragedScript.ShipType)
-            {
-                case ShipType.Scout:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.Scout); 
-                    break;
-                case ShipType.Destroyer:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.Destroyer);
-                    break;
-                case ShipType.Cruiser:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.Cruiser);
-                    break;
-                case ShipType.LtCruiser:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.LtCruiser);
-                    break;
-                case ShipType.HvyCruiser:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.HvyCruiser);
-                    break;
-                case ShipType.Transport:
-                    StarSysManager.Instance.NewImageInShipInventory(ShipType.Transport);
-                    break;
-                default:
-                    break;
-            }      
+            }    
         }
         else
         {
@@ -133,6 +112,7 @@ public class ShipDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, I
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        Debug.Log("OnPonterDown");
+        Debug.Log("OnPointerDown");
+        //Can we do something here later?
     }
 }

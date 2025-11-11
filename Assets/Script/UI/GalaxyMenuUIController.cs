@@ -44,7 +44,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     [SerializeField] 
     private DiplomacyMenuUIController diplomacyMenuUIController;
     [SerializeField]
-    private ShipMoverMenuUIController shipMoveMenuUIController;
+    private ShipDeployMenuUIController shipDeployMenuUIController;
     [SerializeField]
     private GameObject aSystemShipContainer;
     [SerializeField]
@@ -155,8 +155,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         diplomacyBackground.SetActive(false);
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
-        //shipMoveMenuUIController.gameObject.SetActive(false);
-        shipMoveMenuUIController.HideShipMoveMenuView();
+        habitableSysMenu.SetActive(false);
+        shipDeployMenuUIController.HideShipDeployMenuView();
         diplomacyControllers = new List<DiplomacyController>();
         starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
         fleetMenuUIController.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
@@ -221,8 +221,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
         StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
-        shipMoveMenuUIController.gameObject.SetActive(false);
-        shipMoveMenuUIController.HideShipMoveMenuView();
+        shipDeployMenuUIController.gameObject.SetActive(false);
+        shipDeployMenuUIController.HideShipDeployMenuView();
         GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
         if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
             TimeManager.Instance.ResumeTime();
@@ -263,7 +263,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuWas = null;
                 break;
             case Menu.SystemsMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 starSysMenuUIController.ShowSystemMenuView();
                 CloseTheBackgrounds();
                 sysBackground.SetActive(true);
@@ -272,7 +272,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.SystemsMenu;
                 break;
             case Menu.ASystemMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 starSysMenuUIController.ShowA_SystemMenuView();
                 CloseTheBackgrounds();
                 starSysMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<StarSysController>());
@@ -288,7 +288,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.BuildMenu;
                 break;
             case Menu.FleetMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 fleetMenuUIController.ShowFleetMenuView();
                 CloseTheBackgrounds();
                 fleetsBackground.SetActive(true);
@@ -297,7 +297,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.FleetMenu;
                 break;
             case Menu.AFleetMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 fleetMenuUIController.ShowA_FleetMenuView();
                 CloseTheBackgrounds();
                 fleetMenuUIController.SetActiveSetParentUIGO(callingMenuOrGalaxyObject.GetComponentInChildren<FleetController>());
@@ -307,7 +307,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.AFleetMenu;
                 break;
             case Menu.DiplomacyMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 diplomacyMenuUIController.ShowDiplomacyMenuView();
                 CloseTheBackgrounds();
                 diplomacyBackground.SetActive(true);
@@ -317,7 +317,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.DiplomacyMenu;
                 break;
             case Menu.ADiplomacyMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 diplomacyMenuUIController.ShowA_DiplomacyMenuView();
                 CloseTheBackgrounds();
                 TimeManager.Instance.PauseTime();
@@ -328,7 +328,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.ADiplomacyMenu;
                 break;
             case Menu.IntellMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 CloseTheBackgrounds();
                 intelMenuView.SetActive(true);
                 intelBackground.SetActive(true);
@@ -336,7 +336,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.IntellMenu;
                 break;
             case Menu.EncyclopedianMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 CloseTheBackgrounds();
                 InactivateCallingMenu(callingMenuOrGalaxyObject);
                 encyclopediaMenuView.SetActive(true);
@@ -345,7 +345,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.EncyclopedianMenu;
                 break;
             case Menu.HabitableSysMenu:
-                shipMoveMenuUIController.HideShipMoveMenuView();
+                shipDeployMenuUIController.HideShipDeployMenuView();
                 habitableSysMenu.SetActive(true);
                 openMenuWas = habitableSysMenu;
                 openMenuEnumWas = Menu.HabitableSysMenu;
@@ -509,8 +509,6 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void CompleteShipExchange()
     {
-        //FleetLookingForShipExchange = null;
-        //StarSysLookingForShipExchange = null;
         ResetClickMode();
     }
 
@@ -525,44 +523,13 @@ public class GalaxyMenuUIController : MonoBehaviour
         FleetLookingForDestination = null;
         ResetClickMode();
     }
-    //private void HandleShipExchange(MonoBehaviour origin, MonoBehaviour target)
-    //{
-    //    // Cast to the appropriate type to handle logic
-    //    var originFleet = origin as FleetController;
-    //    var originSystem = origin as StarSysController;
 
-    //    var targetFleet = target as FleetController;
-    //    var targetSystem = target as StarSysController;
-
-    //    // ✅ Examples of how you might handle this:
-    //    if (originFleet != null && targetFleet != null)
-    //    {
-    //        Debug.Log($"Exchange ships between fleet {originFleet.name} and fleet {targetFleet.name}");
-    //        // ExchangeFleetToFleet(originFleet, targetFleet);
-    //    }
-    //    else if (originFleet != null && targetSystem != null)
-    //    {
-    //        Debug.Log($"Exchange ships between fleet {originFleet.name} and system {targetSystem.name}");
-    //        // ExchangeFleetToSystem(originFleet, targetSystem);
-    //    }
-    //    else if (originSystem != null && targetFleet != null)
-    //    {
-    //        Debug.Log($"Exchange ships between system {originSystem.name} and fleet {targetFleet.name}");
-    //        // ExchangeSystemToFleet(originSystem, targetFleet);
-    //    }
-    //}
 
     private void CurrentClickModeReset()
     {
         GalaxyMenuUIController.Instance.ResetClickMode();
     }
 
-    //internal void WhatFleetIsSelectedForShipMove(FleetController fleetController)
-    //{
-    //    Flee = fleetConLooking;
-    //    StarSysLookingForShipExchange = null;
-    //    SetClickMode(GalaxyClickMode.SelectForShipExchange);
-    //}
 }
 
 

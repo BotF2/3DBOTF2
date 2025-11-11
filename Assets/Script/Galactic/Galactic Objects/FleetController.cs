@@ -63,15 +63,13 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         internal int ownerId;
-        //private GameObject topSlot;
-        //private GameObject bottomSlot;
 
         private void Start()
         {
             rb = GetComponent<Rigidbody>();
             rb.isKinematic = true;
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
-            var CanvasGO = GameObject.Find("CanvasGalaxyMenuRibbon");
+            var CanvasGO = GameObject.Find("CanvasGalaxy");
             FleetUICanvas = CanvasGO.GetComponent<Canvas>();
             FleetUICanvas.worldCamera = galaxyEventCamera;
             if (FleetData != null && FleetData.ShipsList != null)
@@ -260,7 +258,7 @@ namespace Assets.Core
         private void HandleShipExchangeSelection(FleetController clickedFleetCon) //this
         {
             if (clickedFleetCon != this) return;
-            ShipMoverMenuUIController.Instance.ShowShipMoveMenuView();
+            ShipDeployMenuUIController.Instance.ShowShipMoveMenuView();
             MousePointerChanger.Instance.ResetCursor();
             SelectedUsForShips(this); // informs ShipMoverMenuUIController of who is selected for ship exchange
             //MousePointerChanger.Instance.ResetCursor();
@@ -280,7 +278,7 @@ namespace Assets.Core
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
 
-            ShipMoverMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
         }
 
         private Vector3 GetMouseWorldPosition()
@@ -471,7 +469,7 @@ namespace Assets.Core
 
         internal void SelectedUsForShips(FleetController fleetCon)
         {
-            ShipMoverMenuUIController.Instance.WhoIsSelectedForShipMove(this);
+            ShipDeployMenuUIController.Instance.WhoIsSelectedForShipMove(this);
         }
         public void ClickCancelDestinationButton()
         {

@@ -21,12 +21,10 @@ public class FleetMenuUIController : MonoBehaviour
     public GameObject FleetMenuView;
     public GameObject AFleetMenuView;
     public GameObject FleetListContainer;
-    [Header("Private UI Elements (assign in Inspector)")]
+    [Header("Private UI Elements")]
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
     private GameObject fleetShipListContainer;
-
-    [Header("Destination UI (optional)")]
     [SerializeField] private TextMeshProUGUI destinationName;
     [SerializeField] private TextMeshProUGUI destinationCoordinates;
     [SerializeField] private GameObject selectDestinationCursorButtonGO;
@@ -306,9 +304,7 @@ public class FleetMenuUIController : MonoBehaviour
         var galaxyUI = GalaxyMenuUIController.Instance;
         galaxyUI.WhatFleetIsLookingForShips(fleetCon);
         galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-       //galaxyUI.FleetLookingForShipExchange = fleetCon;
         MousePointerChanger.Instance.SetShipExchangeCursor(fleetCon);
-        //ShipMoverMenuUIController.Instance.WhoIsLooking(fleetCon);
     }
     public void ClickCancelShipManageButton(FleetController fleetCon)
     {
@@ -480,14 +476,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     internal void SelectedShipManager(FleetController fleetControllerWaitingToExchangeShips)
     {
-        
-        //if (GameController.Instance.AreWeLocalPlayer(fleetControllerWaitingToExchangeShips.FleetData.CivEnum))
-        //{
-        //    ShipMoverMenuUIController.Instance.WhoIsLooking(fleetControllerWaitingToExchangeShips);
-        //    // GalaxyMenuUIController.Instance.FleetLookingForShipExchange = fleetControllerWaitingToExchangeShips;
-        //    //selectShipManagerCursorButtonGO?.SetActive(false); 
-        //    //cancelShipManagerButtonGO?.SetActive(true);
-        //}
+       
     }
     internal void ClickCancelShipManagerButton(FleetController fleetCon)
     {
