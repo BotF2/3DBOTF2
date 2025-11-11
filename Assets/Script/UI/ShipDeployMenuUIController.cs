@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 public class ShipDeployMenuUIController : MonoBehaviour 
 {
     public static ShipDeployMenuUIController Instance;
-    public GameObject ShipDeployMenuView;
+    public GameObject ShipDeployPanel;
     public GameObject TopSlot;
     public GameObject BottomSlot;
     private FleetController fleetConLookingAtShips;
@@ -31,13 +31,13 @@ public class ShipDeployMenuUIController : MonoBehaviour
     }
     public void ShowShipMoveMenuView()
     {
-        ShipDeployMenuView.SetActive(true);
+        ShipDeployPanel.SetActive(true);
         transform.SetAsLastSibling();
     }
 
     public void HideShipDeployMenuView()
     {
-        ShipDeployMenuView.SetActive(false);
+        ShipDeployPanel.SetActive(false);
     }
 
     internal void SetUpBottomShipLists(FleetController chosenFleet)

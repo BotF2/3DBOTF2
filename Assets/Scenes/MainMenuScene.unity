@@ -36433,7 +36433,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8450d30c15e210d428ac56a3a6063c8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShipMoverMenuUIController
-  ShipDeployMenuView: {fileID: 1383265579}
+  ShipDeployPanel: {fileID: 1383265579}
   TopSlot: {fileID: 1297411287}
   BottomSlot: {fileID: 1838351553}
   updateShipsLists: {fileID: 0}
