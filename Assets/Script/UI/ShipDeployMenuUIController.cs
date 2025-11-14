@@ -11,10 +11,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
     public GameObject ShipDeployPanel;
     public GameObject TopSlot;
     public GameObject BottomSlot;
-    private FleetController fleetConLookingAtShips;
-    private StarSysController starSysConLookingAtShips;
-    private FleetController fleetConSelectedForShips;
-    private StarSysController starSysConSelectedForShips;
+    public FleetController FleetConLookingAtShips;
+    public StarSysController StarSysConLookingAtShips;
+    public FleetController FleetConSelectedForShips;
+    public StarSysController StarSysConSelectedForShips;
     [SerializeField]
     private Button updateShipsLists;
     private void Awake()
@@ -79,12 +79,12 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
     internal void WhoIsSelectedForShipMove(FleetController fleetController)
     {
-        fleetConSelectedForShips = fleetController;
-        starSysConSelectedForShips = null;
+        FleetConSelectedForShips = fleetController;
+        StarSysConSelectedForShips = null;
     }
     internal void WhoIsSelectedForShipMove(StarSysController starSysController)
     {
-        starSysConSelectedForShips = starSysController;
-        fleetConSelectedForShips = null;
+        StarSysConSelectedForShips = starSysController;
+        FleetConSelectedForShips = null;
     }
 }

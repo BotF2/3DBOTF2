@@ -139,7 +139,8 @@ namespace Assets.Core
                     }
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
                     {
-                        HandleShipExchangeSelection(this); 
+                        if (GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum))
+                            HandleShipExchangeSelection(this); 
                     }
                 }
             }

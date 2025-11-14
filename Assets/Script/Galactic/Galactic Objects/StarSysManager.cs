@@ -855,7 +855,6 @@ namespace Assets.Core
                 }
             }
         }
-
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),

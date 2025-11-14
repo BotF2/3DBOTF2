@@ -474,7 +474,8 @@ namespace Assets.Core
                     HandleDestinationClick(clickedSystemCon);
                     break;
                 case GalaxyClickMode.SelectForShipExchange:
-                    HandleShipExchangeSelection(clickedSystemCon);
+                    if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
+                        HandleShipExchangeSelection(clickedSystemCon);
                     break;
             }
         }
@@ -497,15 +498,15 @@ namespace Assets.Core
             SelectedUsForShips(this);
             var galaxyUI = GalaxyMenuUIController.Instance;
             var fleetLooking = galaxyUI.FleetLookingForShipExchange;
-            var starysLooking = galaxyUI.StarSysLookingForShipExchange;
-            if (fleetLooking == null)
+            var starSysLooking = galaxyUI.StarSysLookingForShipExchange;
+            if (fleetLooking == null) 
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
                 aSysView.SetActive(true); 
                 this.starSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
             }
-            else if (starysLooking == null)
+            else if (starSysLooking == null)
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
                 aFleetView.SetActive(true); 
