@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Assets.Core;
+using System;
 
 
 public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
@@ -10,6 +11,8 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     public Transform originalParent;
+    private FleetController oldFleet;
+    private StarSysController oldStarSys;
 
     public ShipType ShipType;
     public Sprite ShipSprite;
@@ -67,7 +70,52 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
         canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
         if (eventData.pointerEnter != null)
-        {
+        {            
+            var shipUI = eventData.pointerDrag.GetComponent<ShipUiItem>();
+            if (shipUI == null) return;
+            if (shipUI.CurrentFleet != null)
+            {
+                oldFleet = shipUI.CurrentFleet;
+            }
+            else if (shipUI.CurrentStarSys != null)
+            {
+                oldStarSys = shipUI.CurrentStarSys;
+            }
+            if (eventData.pointerEnter.name == "TopSlot")
+            {
+                if (GalaxyMenuUIController.Instance.FleetLookingForShipDeploy != null)
+                {
+                    shipUI.CurrentFleet = GalaxyMenuUIController.Instance.FleetLookingForShipDeploy;
+                    shipUI.CurrentStarSys = null;
+                    RemoveFromOldList(shipUI.ShipController);
+                    shipUI.CurrentFleet.AddToShipList(shipUI.ShipController);
+
+                }
+                else if (GalaxyMenuUIController.Instance.StarSysLookingForShipDeploy != null)
+                {
+                    shipUI.CurrentStarSys = GalaxyMenuUIController.Instance.StarSysLookingForShipDeploy;
+                    shipUI.CurrentFleet = null;
+                    RemoveFromOldList(shipUI.ShipController);
+                    shipUI.CurrentStarSys.StarSysData.AddToShipList(shipUI.ShipController);
+                }
+            }
+            else if (eventData.pointerEnter.name == "BottomSlot")
+            {
+                if (GalaxyMenuUIController.Instance.FleetConSelectedForShipDeploy != null)
+                {
+                    shipUI.CurrentFleet = GalaxyMenuUIController.Instance.FleetConSelectedForShipDeploy;
+                    shipUI.CurrentStarSys = null;
+                    RemoveFromOldList(shipUI.ShipController);
+                    shipUI.CurrentFleet.AddToShipList(shipUI.ShipController);
+                }
+                else if (GalaxyMenuUIController.Instance.StarSysConSelectedForShipDeploy != null)
+                {
+                    shipUI.CurrentStarSys = GalaxyMenuUIController.Instance.StarSysConSelectedForShipDeploy;
+                    shipUI.CurrentFleet = null;
+                    RemoveFromOldList(shipUI.ShipController);
+                    shipUI.CurrentStarSys.StarSysData.AddToShipList(shipUI.ShipController);
+                }
+            }
             if (eventData.pointerEnter.tag == "TopShipDeploySlot")
             {
                 transform.SetParent(eventData.pointerEnter.transform);
@@ -76,7 +124,6 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
             {
                 transform.SetParent(eventData.pointerEnter.transform);
             }
-            
             var theDragedScript = eventData.pointerDrag.GetComponent<ShipListItemDrag>();
             switch (eventData.pointerDrag.name)
             {
@@ -100,7 +147,7 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
                     break;
                 default:
                     break;
-            }    
+            }
         }
         else
         {
@@ -108,6 +155,18 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
         }
         rectTransform.anchoredPosition = Vector2.zero;
         Debug.Log("onEndDrag");
+    }
+
+    private void RemoveFromOldList(ShipController shipController)
+    {
+        if (oldFleet != null)
+        {
+            oldFleet.RemoveFromShipList(shipController);
+        }
+        else if (oldStarSys != null)
+        {
+            oldStarSys.RemoveFromShipList(shipController);
+        }
     }
 
     public void OnPointerDown(PointerEventData eventData)

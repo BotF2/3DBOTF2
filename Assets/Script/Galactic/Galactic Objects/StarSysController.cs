@@ -471,11 +471,12 @@ namespace Assets.Core
                     HandleNormalClick(clickedSystemCon);
                     break;
                 case GalaxyClickMode.SetDestination:
-                    HandleDestinationClick(clickedSystemCon);
+                    if (clickedSystemCon = this)
+                        HandleDestinationClick(clickedSystemCon);
                     break;
                 case GalaxyClickMode.SelectForShipExchange:
                     if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-                        HandleShipExchangeSelection(clickedSystemCon);
+                        HandleShipExchangeSelection(this);
                     break;
             }
         }
@@ -493,12 +494,12 @@ namespace Assets.Core
         private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
-            ShipDeployMenuUIController.Instance.ShowShipMoveMenuView();
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
             MousePointerChanger.Instance.ResetCursor();
-            SelectedUsForShips(this);
             var galaxyUI = GalaxyMenuUIController.Instance;
-            var fleetLooking = galaxyUI.FleetLookingForShipExchange;
-            var starSysLooking = galaxyUI.StarSysLookingForShipExchange;
+            galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
+            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+            var starSysLooking = galaxyUI.StarSysLookingForShipDeploy;
             if (fleetLooking == null) 
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
@@ -512,7 +513,9 @@ namespace Assets.Core
                 aFleetView.SetActive(true); 
                 this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
+
             }
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
         }
 
@@ -842,30 +845,6 @@ namespace Assets.Core
             ShipSliderBuildProgress.value = shipProgress;
         }
         //public void SelectedShipManageCursor(StarSysController starSysCon)
-        //{   
-        //    var galaxyUI = GalaxyMenuUIController.Instance;
-        //    galaxyUI.BeginShipExchange(this);
-        //    galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-        //    galaxyUI.StarSysLookingForShipExchang = starSysCon;
-        //    MousePointerChanger.Instance.SetShipExchangeCursor(this);
-        //    StarSysMenuUIController.Instance.SelectedShipManager(this);
-        //    ShipMoverMenuUIController.Instance.HowIsLooking(this);
-        //}
-
-        //public void ClickCancelShipManageButton()
-        //{
-        //    var galaxyUI = GalaxyMenuUIController.Instance;
-        //    galaxyUI.ClickCancelShipManageButton();
-        //    galaxyUI.ResetClickMode();
-        //    galaxyUI.CompleteShipExchange();
-        //    //GalaxyMenuUIController.Instance.activeFleetOrSystemControllerForShipExchange = null;
-        //    MousePointerChanger.Instance.ResetCursor();
-        //}
-
-        internal void SelectedUsForShips(StarSysController sysController)
-        {
-            ShipDeployMenuUIController.Instance.WhoIsSelectedForShipMove(this);
-        }
 
 
         public void CleanupStarSysUIs()
@@ -885,6 +864,11 @@ namespace Assets.Core
         internal void InitNewFleet()
         {
             // ToDo: implement fleet creation in system
+        }
+
+        internal void RemoveFromShipList(ShipController shipController)
+        {
+            this.StarSysData.RemoveFromShipList(shipController);
         }
     }
 }

@@ -182,6 +182,7 @@ public class ShipManager : MonoBehaviour
                 GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
                 thisShipListUIGameObject.SetActive(true);
+                thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;        
                 UnityEngine.UI.Image[] imageComponents = thisShipListUIGameObject.GetComponentsInChildren<UnityEngine.UI.Image>();
                 if (imageComponents[1] != null)
                 {
@@ -200,10 +201,12 @@ public class ShipManager : MonoBehaviour
                     canvasGroup.gameObject.SetActive(true);
                 }
                 thisShipListUIGameObject.layer = 5;
-                shipCon.ShipListUIGameObject = thisShipListUIGameObject;         
-
+                shipCon.ShipListUIGameObject = thisShipListUIGameObject;
+                var shipUiItem = thisShipListUIGameObject.GetComponent<ShipUiItem>();
+                shipUiItem.ShipController = shipCon;
                 if (parentGO.TryGetComponent(out StarSysController sysCon))
-                {
+                {  
+                    shipUiItem.CurrentStarSys = sysCon;
                     if (sysCon.StarSysData.ShipListUIParent != null)
                     {
                         shipCon.ShipListUIGameObject.transform.SetParent(sysCon.StarSysData.ShipListUIParent.transform, false);
@@ -211,6 +214,7 @@ public class ShipManager : MonoBehaviour
                 }
                 if (parentGO.TryGetComponent(out FleetController fleetCon))
                 {
+                    shipUiItem.CurrentFleet = fleetCon;
                     if (fleetCon.FleetData.ShipListUIParent != null)
                     {
                         shipCon.ShipListUIGameObject.transform.SetParent(fleetCon.FleetData.ShipListUIParent.transform, false);

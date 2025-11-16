@@ -126,28 +126,6 @@ namespace Assets.Core
             return fleetController;
         }
 
-        public void MoveShipOutOfFleet(ShipController shipCon, FleetController targetFleet, StarSysController targetSys)
-        {
-            if (shipCon.ShipData.CurrentFleetController != null)
-            {
-                shipCon.ShipData.CurrentFleetController.FleetData.ShipsList.Remove(shipCon);
-                //shipCon.ShipData.CurrentFleetController.FleetData.UpdateFleetStats();
-                //RemoveFleetConIfShipListIsEmpty(shipCon);
-            }
-            if (targetFleet != null)
-            {
-                targetFleet.FleetData.ShipsList.Add(shipCon);
-                shipCon.ShipData.CurrentFleetController = targetFleet;
-                shipCon.ShipData.CurrentStarSysController = null;
-            }
-            else if (targetSys != null)
-            {
-                targetSys.StarSysData.ShipsList.Add(shipCon);
-                shipCon.ShipData.CurrentStarSysController = targetSys;
-                shipCon.ShipData.CurrentFleetController = null;
-            }
-        }
-
         public FleetController InstantiateFleet(StarSysController sysCon, FleetData fleetData, Vector3 position, bool inSystem)
         {
             IEnumerable<StarSysController> ourCivSysCons =

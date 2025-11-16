@@ -18,7 +18,6 @@ namespace Assets.Core
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
         public GameObject FleetUIGameObject; //The instantiated fleet UI for this fleet. a prefab clone, not a class but a game object
-        public GameObject RightSideShipManagementFleetUIGO;
         public string Name;
         public int intName = 1;
         private float warpFudgeFactor = 10f;
@@ -27,7 +26,7 @@ namespace Assets.Core
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
         [SerializeField]
-        private List<string> shipDropdownOptions;
+        //private List<string> shipDropdownOptions;
         private Camera galaxyEventCamera;
         private GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
         public Canvas FleetUICanvas { get; private set; }
@@ -87,8 +86,6 @@ namespace Assets.Core
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
-            //topSlot = ShipMoverMenuUIController.Instance.TopSlot;
-            //bottomSlot = ShipMoverMenuUIController.Instance.BottomSlot;
         }
         private void FixedUpdate()
         {
@@ -140,7 +137,7 @@ namespace Assets.Core
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
                     {
                         if (GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum))
-                            HandleShipExchangeSelection(this); 
+                            HandleShipDeploySelection(this); 
                     }
                 }
             }
@@ -256,16 +253,15 @@ namespace Assets.Core
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
         }
 
-        private void HandleShipExchangeSelection(FleetController clickedFleetCon) //this
+        private void HandleShipDeploySelection(FleetController clickedFleetCon) //this
         {
             if (clickedFleetCon != this) return;
-            ShipDeployMenuUIController.Instance.ShowShipMoveMenuView();
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
             MousePointerChanger.Instance.ResetCursor();
-            SelectedUsForShips(this); // informs ShipMoverMenuUIController of who is selected for ship exchange
-            //MousePointerChanger.Instance.ResetCursor();
-
-            var fleetLooking = GalaxyMenuUIController.Instance.FleetLookingForDestination;
-            var starysLooking = GalaxyMenuUIController.Instance.StarSysLookingForShipExchange;
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatFleetIsSelectedForShipDiploy(this);
+            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+            var starysLooking = galaxyUI.StarSysLookingForShipDeploy;
             if (fleetLooking != null)
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
@@ -278,7 +274,7 @@ namespace Assets.Core
                 this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
-
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
         }
 
@@ -389,8 +385,7 @@ namespace Assets.Core
         //}
         public void AddToShipList(ShipController shipController)
         {
-            // need to include the attached ship list UIGO!!
-            foreach (var ShipData in this.FleetData.GetShipList())
+            //foreach (var ShipData in this.FleetData.GetShipList())
                 FleetData.AddToShipList(shipController);
             UpdateMaxWarp();
         }
@@ -468,10 +463,10 @@ namespace Assets.Core
             FleetMenuUIController.Instance.UpdateFleetWarpUI(this, newWarpValue);
         }
 
-        internal void SelectedUsForShips(FleetController fleetCon)
-        {
-            ShipDeployMenuUIController.Instance.WhoIsSelectedForShipMove(this);
-        }
+        //internal void SelectedUsForShips(FleetController fleetCon)
+        //{
+        //    GalaxyMenuUIController.Instance.WhoIsSelectedForShipDiploy(this);
+        //}
         public void ClickCancelDestinationButton()
         {
             DestinationLine.gameObject.SetActive(false);

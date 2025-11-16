@@ -275,17 +275,21 @@ public class StarSysMenuUIController : MonoBehaviour
                             listButton.onClick.RemoveAllListeners();
                             listButton.onClick.AddListener(() => sysController.FacilityOnClick(sysController, listButton.name));
                             break;
-                        case "New Fleet Button":
+                        case "ShipDeployButton":
                             listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => sysController.InitNewFleet());
+                            listButton.onClick.AddListener(() => SelectedShipDeployCursor(sysController));
                             break;
-                        case "SelectShipManagerCursorButton":
+                        case "CancelShipDeployButton":
                             listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => SelectedShipManagerCursor(sysController));
+                            listButton.onClick.AddListener(() => ClickCancelShipDeployButton());
                             break;
-                        case "CancelShipManagerButton":
+                        case "NewFleetButton":
                             listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => ClickCancelShipManagerButton());
+                            listButton.onClick.AddListener(() => ClickNewFleetButton(sysController));
+                            break;
+                        case "CancelNewFleetButton":
+                            listButton.onClick.RemoveAllListeners();
+                            listButton.onClick.AddListener(() => ClickCancelFleetButton());
                             break;
                         default:
                             break;
@@ -318,6 +322,7 @@ public class StarSysMenuUIController : MonoBehaviour
             }
         }
     }
+
     public void SetActiveSetParentUIGO(StarSysController theSysCon)
     {
         if (theSysCon == null) return;
@@ -360,10 +365,6 @@ public class StarSysMenuUIController : MonoBehaviour
                     Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
                     child.transform.SetParent(originalParent, false);
                 }
-                //if (child.gameObject.GetComponentInParent<StarSysController>() != null)
-                //    child.transform.SetParent(SysListContainer.transform, false);
-                //else if (child.gameObject.GetComponentInParent<FleetController>() != null)
-                //    child.transform.SetParent(FleetMenuUIController.Instance.FleetListContainer.transform, false);
             }
         }
     }
@@ -512,7 +513,7 @@ public class StarSysMenuUIController : MonoBehaviour
     private void OnDestroy()
     {
         // When this controller is destroyed (e.g., scene unload)
-        ClearAllDiplomacyUIs();
+        ClearAllStarSysUIs();
     }
 
     public void CleanupDestroyedOrInactiveUIs()
@@ -521,7 +522,7 @@ public class StarSysMenuUIController : MonoBehaviour
         listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
         Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
     }
-    public void ClearAllDiplomacyUIs()
+    public void ClearAllStarSysUIs()
     {
         foreach (var go in listOfStarSysUiGos)
         {
@@ -532,27 +533,32 @@ public class StarSysMenuUIController : MonoBehaviour
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
-    private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)
-    {
-        // drag and drop, Can we do this in MovingShipsView class?
-    }
-    internal void SelectedShipManagerCursor(StarSysController starSysControllerWaitingToExchangeShips)
+    internal void SelectedShipDeployCursor(StarSysController starSysControllerWaitingToExchangeShips)
     {
         if (GameController.Instance.AreWeLocalPlayer(starSysControllerWaitingToExchangeShips.StarSysData.CurrentOwnerCivEnum))
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSysIsLookingForShips(starSysControllerWaitingToExchangeShips);
+            galaxyUI.WhatSysIsLookingForShipDeploy(starSysControllerWaitingToExchangeShips);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-            //galaxyUI.StarSysLookingForShipExchange = starSysControllerWaitingToExchangeShips;
             MousePointerChanger.Instance.SetShipExchangeCursor(starSysControllerWaitingToExchangeShips);
-            //ShipMoverMenuUIController.Instance.WhoIsLooking(starSysControllerWaitingToExchangeShips);
         }
     }
-    private void ClickCancelShipManagerButton()
+    private void ClickCancelShipDeployButton()
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
-        galaxyUI.ClickCancelShipManageButton();
+        galaxyUI.ClickCancelShipDeployButton();
         galaxyUI.ResetClickMode();
         MousePointerChanger.Instance.ResetCursor();
+    }
+    private void ClickNewFleetButton(StarSysController sysController)
+    {
+        MousePointerChanger.Instance.ResetCursor();
+        GalaxyMenuUIController.Instance.ResetClickMode();
+        // to do
+    }
+    private void ClickCancelFleetButton()
+    {
+        MousePointerChanger.Instance.ResetCursor();
+        // to do
     }
 }

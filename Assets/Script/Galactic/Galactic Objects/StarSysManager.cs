@@ -855,6 +855,7 @@ namespace Assets.Core
                 }
             }
         }
+
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
@@ -1007,7 +1008,8 @@ namespace Assets.Core
                         }
                     case "Cruiser (TMP)":
                         {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY || sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
+                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY ||
+                                sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
                             {
                                 theSlots[l].gameObject.SetActive(false);
                                 break;
@@ -1277,23 +1279,6 @@ namespace Assets.Core
                             return;
                         }
                     }
-                    // Not changing a sys sprite for now
-                    //var Renderers = starSysController.gameObject.GetComponentsInChildren<SpriteRenderer>();
-                    //for (int i = 0; i < Renderers.Length; i++)
-                    //{
-                    //    if (Renderers[i] != null)
-                    //    {
-                    //        if (Renderers[i].name == "StarSprite")
-                    //        {
-                    //            Renderers[i].gameObject.SetActive(true);
-                    //            //var fog = starSysController.gameObject.GetComponent<csFogVisibilityAgent>();
-                    //            //if (fog != null)
-                    //            //    fog.spriteRenderers.Add(Renderers[i]);
-                    //        }
-                    //        else if (Renderers[i].name == "InsigniaUnknown")
-                    //            Renderers[i].gameObject.SetActive(false);
-                    //    }
-                    //}
                 }
             }
         }

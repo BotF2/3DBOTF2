@@ -38,6 +38,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
+    public FleetController ActiveFleetController;
 
 
     private void Awake()
@@ -105,6 +106,7 @@ public class FleetMenuUIController : MonoBehaviour
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
+        ActiveFleetController = theFleetCon;
     }
     public void MoveTheFleetUIGO(GameObject fleetConGO)
     {
@@ -131,14 +133,10 @@ public class FleetMenuUIController : MonoBehaviour
                     Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
                     child.transform.SetParent(originalParent, false);
                 }
-
-
-                //else if (child.gameObject.GetComponentInParent<StarSysController>() != null)
-                //    child.transform.SetParent(StarSysMenuUIController.Instance.SysListContainer.transform, false);
             }
         }
+        ActiveFleetController = null;
     }
-
     public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
     {
         if (fleetCon == null || newFleetUIGO == null) return;
@@ -302,14 +300,14 @@ public class FleetMenuUIController : MonoBehaviour
     private void SelectedShipManageCursor(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
-        galaxyUI.WhatFleetIsLookingForShips(fleetCon);
+        galaxyUI.WhatFleetIsLookingForShipDeploy(fleetCon);
         galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
         MousePointerChanger.Instance.SetShipExchangeCursor(fleetCon);
     }
     public void ClickCancelShipManageButton(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
-        galaxyUI.ClickCancelShipManageButton();
+        galaxyUI.ClickCancelShipDeployButton();
         galaxyUI.ResetClickMode();
         galaxyUI.CompleteShipExchange();
         ClickCancelShipManagerButton(fleetCon);
@@ -454,7 +452,7 @@ public class FleetMenuUIController : MonoBehaviour
     private void OnDestroy()
     {
         // When this controller is destroyed (e.g., scene unload)
-        ClearAllDiplomacyUIs();
+        ClearAllFleetUIs();
     }
 
     public void CleanupDestroyedOrInactiveUIs()
@@ -463,7 +461,7 @@ public class FleetMenuUIController : MonoBehaviour
         listOfFleetUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
         Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
     }
-    public void ClearAllDiplomacyUIs()
+    public void ClearAllFleetUIs()
     {
         foreach (var go in listOfFleetUiGos)
         {
@@ -474,35 +472,12 @@ public class FleetMenuUIController : MonoBehaviour
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
-    internal void SelectedShipManager(FleetController fleetControllerWaitingToExchangeShips)
-    {
-       
-    }
     internal void ClickCancelShipManagerButton(FleetController fleetCon)
     {
         MousePointerChanger.Instance.ResetCursor();
         selectShipManagerCursorButtonGO?.SetActive(true);
         //cancelShipManagerButtonGO?.SetActive(false);
     }
-
-    //internal void MoveShips(FleetController fleetLooking, GameObject controller)
-    //{
-    //    // do ship exchange
-    //    List<ShipController> upperShipsToMove = new List<ShipController>();
-    //    upperShipsToMove = fleetLooking.FleetData.ShipsList;
-    //    List<ShipController> lowerShipsToMove = new List<ShipController>();
-    //    if (controller.GetComponent<StarSysController>() == null)
-    //    {
-    //        FleetController lookedAtfleet = controller.GetComponent<FleetController>();
-    //        lowerShipsToMove = lookedAtfleet.FleetData.ShipsList;
-    //    }
-    //    else if(controller.GetComponent<FleetController>() == null)
-    //    {
-    //        StarSysController lookedAtSys = controller.GetComponent<StarSysController>();
-    //        lowerShipsToMove = lookedAtSys.StarSysData.ShipsList;
-    //    } 
-    //    MoveShipView(upperShipsToMove, lowerShipsToMove);
-    //}
 
     private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)
     {

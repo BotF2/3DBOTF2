@@ -24,7 +24,7 @@ public class StarSysData
     public CivController CurrentCivController;
     public GalaxyObjectType SystemType;
     //public StartingTechLevel is a civ level value, not a system data value.
-    public int TechUnits; // ResearchCenters centers provide tech output units that determins progress to a civ level StartingTechLevel enum.
+    public int TechUnits; // ResearchCenters centers provide tech output units that determines progress to a civ level StartingTechLevel enum.
     public Sprite StarSprit;
     public List<ShipController> ShipsList = new List<ShipController>();
     public List<GameObject> PowerPlants;

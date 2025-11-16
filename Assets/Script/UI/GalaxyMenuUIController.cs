@@ -96,8 +96,11 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject fleetUI_Prefab;
     public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
     public FleetController FleetLookingForDestination { get; set; }
-    public FleetController FleetLookingForShipExchange { get; set; }
-    public StarSysController StarSysLookingForShipExchange{ get; set; }
+    public FleetController FleetLookingForShipDeploy { get; set; }
+    public StarSysController StarSysLookingForShipDeploy{ get; set; }
+    public FleetController FleetConSelectedForShipDeploy { get; set; }
+    public StarSysController StarSysConSelectedForShipDeploy { get; set; }
+
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
 
     [SerializeField]
@@ -157,7 +160,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
         habitableSysMenu.SetActive(false);              
-        // centralize ship-deploy state
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
         starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
@@ -165,19 +167,19 @@ public class GalaxyMenuUIController : MonoBehaviour
         // Not For DiplomacyMenuUIController here/now, we do that with each new first contact of civs / fleets
     }
 
-    // ShipDeploy menu lifecycle helpers — central control point
+    // ShipDeploy menu life cycle helpers — central control point
     public void ShowShipDeployMenuForFleet(FleetController fleet)
     {
         if (shipDeployMenuUIController == null) return;
         // ensure any other menus are hidden
-        HideShipDeployMenu();
+        //HideShipDeployMenu();
         MousePointerChanger.Instance.ResetCursor();
-        shipDeployMenuUIController.ShowShipMoveMenuView();
+        shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
 
         // move the fleet UI under the active AFleet/A_System view if appropriate
         var fleetLooking = FleetLookingForDestination;
-        var starsLooking = StarSysLookingForShipExchange;
+        var starsLooking = StarSysLookingForShipDeploy;
         if (fleetLooking != null)
         {
             var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
@@ -205,12 +207,12 @@ public class GalaxyMenuUIController : MonoBehaviour
         if (shipDeployMenuUIController == null) return;
         HideShipDeployMenu();
         MousePointerChanger.Instance.ResetCursor();
-        shipDeployMenuUIController.ShowShipMoveMenuView();
+        shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
 
         var galaxyUI = this;
-        var fleetLooking = galaxyUI.FleetLookingForShipExchange;
-        var starsLooking = galaxyUI.StarSysLookingForShipExchange;
+        var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+        var starsLooking = galaxyUI.StarSysLookingForShipDeploy;
 
         if (fleetLooking == null)
         {
@@ -242,16 +244,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         shipDeployMenuUIController.gameObject.SetActive(false);
         ResetClickMode();
         MousePointerChanger.Instance.ResetCursor();
-    }
-
-    // Forward selection helpers to the ShipDeploy controller
-    public void SelectedUsForShips(FleetController fleet)
-    {
-        shipDeployMenuUIController?.WhoIsSelectedForShipMove(fleet);
-    }
-    public void SelectedUsForShips(StarSysController sys)
-    {
-        shipDeployMenuUIController?.WhoIsSelectedForShipMove(sys);
     }
 
     public void SetActiveBuildMenu(GameObject prefabMenu)
@@ -400,7 +392,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
             case Menu.ShipDeployMenu:
                 HideShipDeployMenu();
-                shipDeployMenuUIController.ShowShipMoveMenuView();
+                shipDeployMenuUIController.ShowShipDeployMenuView();
                 openMenuWas = shipDeployMenuUIController.gameObject;
                 openMenuEnumWas = Menu.ShipDeployMenu;
                 break;
@@ -454,40 +446,59 @@ public class GalaxyMenuUIController : MonoBehaviour
                 break;
         }
     }
+    internal void WhatFleetIsSelectedForShipDiploy(FleetController fleetController)
+    {
+        FleetConSelectedForShipDeploy = fleetController;
+        StarSysConSelectedForShipDeploy = null;
+    }
+    internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
+    {
+        StarSysConSelectedForShipDeploy = starSysController;
+        FleetConSelectedForShipDeploy = null;
+    }
     private void MoveBackShipUIGO()
     {
-        if (ShipDeployMenuUIController.Instance.FleetConLookingAtShips != null)
+        if (FleetLookingForShipDeploy != null)
         {
-            GameObject fleetShipListParentGO = FleetLookingForShipExchange.FleetData.ShipListUIParent;
-            var shipListControllers = FleetLookingForShipExchange.FleetData.ShipsList;
-            for (int i = 0; i < shipListControllers.Count; i++)
+            GameObject fleetShipListParentGO = FleetLookingForShipDeploy.FleetData.ShipListUIParent;
+            var shipControllers = FleetLookingForShipDeploy.FleetData.ShipsList;
+            var shipUIGOs = ShipDeployMenuUIController.Instance.GetTopSlotShipListItems().ToList();
+            for (int i = 0; i < shipUIGOs.Count; i++)
             {
-                shipListControllers[i].ShipListUIGameObject.transform.SetParent(fleetShipListParentGO.transform, false);
+                shipUIGOs[i].transform.SetParent(fleetShipListParentGO.transform, false);
             }
-            //{
-            //    FleetLookingForShipExchange.FleetUIGameObject.transform.SetParent(fleetShipListParentGO.transform, false);
-            //    FleetLookingForShipExchange.FleetUIGameObject.transform.SetAsLastSibling();
-            //}
+            for (int i = 0; i < shipControllers.Count; i++)
+            {
+                //shipControllers[i].ShipListUIGameObject.transform.SetParent(fleetShipListParentGO.transform, false);
+            }
         }
-        else if (ShipDeployMenuUIController.Instance.StarSysConLookingAtShips != null)
+        else if (StarSysLookingForShipDeploy != null)
         {
-            GameObject starSysShipListParentGO = shipDeployMenuUIController.StarSysConLookingAtShips.StarSysData.ShipListUIParent;
-            var shipListControllers = shipDeployMenuUIController.StarSysConLookingAtShips.StarSysData.ShipsList;
-            for (int i = 0; i < shipListControllers.Count; i++)
+            GameObject starSysShipListParentGO = StarSysLookingForShipDeploy.StarSysData.ShipListUIParent;
+            var shipUIGOs = ShipDeployMenuUIController.Instance.GetTopSlotShipListItems().ToList();
+            for (int i = 0; i < shipUIGOs.Count; i++)
             {
-                shipListControllers[i].ShipListUIGameObject.transform.SetParent(starSysShipListParentGO.transform, false);
+                shipUIGOs[i].transform.SetParent(starSysShipListParentGO.transform, false);
             }
-            //if (StarSysLookingForShipExchange.StarSysShipsUIGameObject != null)
-            //{
-            //    StarSysLookingForShipExchange.StarSysShipsUIGameObject.transform.SetParent(aStarSysView.transform, false);
-            //    StarSysLookingForShipExchange.StarSysShipsUIGameObject.transform.SetAsLastSibling();
-            //}
         }
-        //if (shipDeployMenuUIController.FleetConSelectedForShips != null)
-        //{
-        //    var aFleetView = shipDeployMenuUIController.FleetConSelectedForShips;
-        //    //if (aFleetView.FleetData.Fl
-        //}
+        if (FleetConSelectedForShipDeploy != null)
+        {
+            GameObject fleetShipListParentGO = FleetConSelectedForShipDeploy.FleetData.ShipListUIParent;
+            var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListItems().ToList();
+            for (int i = 0; i < shipUIGOs.Count; i++)
+            {
+                shipUIGOs[i].transform.SetParent(fleetShipListParentGO.transform, false);
+            }
+        }
+        else if (StarSysConSelectedForShipDeploy != null)
+        {
+            GameObject starSysShipListParentGO = StarSysConSelectedForShipDeploy.StarSysData.ShipListUIParent;
+            var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListItems().ToList();
+            for (int i = 0; i < shipUIGOs.Count; i++)
+            {
+                shipUIGOs[i].transform.SetParent(starSysShipListParentGO.transform, false);
+            }
+        }
     }
 
     private void InactivateCallingMenu(GameObject callingMenu)
@@ -619,23 +630,23 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
     }
 
-    public void ClickCancelShipManageButton() // button is both in fleet and system UI
+    public void ClickCancelShipDeployButton() // button is both in fleet and system UI
     {
         MousePointerChanger.Instance.ResetCursor();
         CurrentClickMode = GalaxyClickMode.Normal;
        // sele.SetActive(true);
     }
 
-    public void WhatFleetIsLookingForShips(FleetController fleetConLooking)
+    public void WhatFleetIsLookingForShipDeploy(FleetController fleetConLooking)
     {
-        FleetLookingForShipExchange = fleetConLooking;
-        StarSysLookingForShipExchange = null;
+        FleetLookingForShipDeploy = fleetConLooking;
+        StarSysLookingForShipDeploy = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
-    public void WhatSysIsLookingForShips(StarSysController starSysConLooking)
+    public void WhatSysIsLookingForShipDeploy(StarSysController starSysConLooking)
     {
-        StarSysLookingForShipExchange = starSysConLooking;
-        FleetLookingForShipExchange = null;
+        StarSysLookingForShipDeploy = starSysConLooking;
+        FleetLookingForShipDeploy = null;
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
     }
     public void CompleteShipExchange()

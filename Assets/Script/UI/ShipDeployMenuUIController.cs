@@ -11,10 +11,6 @@ public class ShipDeployMenuUIController : MonoBehaviour
     public GameObject ShipDeployPanel;
     public GameObject TopSlot;
     public GameObject BottomSlot;
-    public FleetController FleetConLookingAtShips;
-    public StarSysController StarSysConLookingAtShips;
-    public FleetController FleetConSelectedForShips;
-    public StarSysController StarSysConSelectedForShips;
     [SerializeField]
     private Button updateShipsLists;
     private void Awake()
@@ -29,7 +25,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
-    public void ShowShipMoveMenuView()
+    public void ShowShipDeployMenuView()
     {
         ShipDeployPanel.SetActive(true);
         transform.SetAsLastSibling();
@@ -44,6 +40,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
     {
         for (int i = 0; chosenFleet.FleetData.ShipsList.Count > i; i++)
         {
+            chosenFleet.FleetData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
             chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
         }
         SetUpTopShipLists();
@@ -52,39 +49,47 @@ public class ShipDeployMenuUIController : MonoBehaviour
     {
         for (int i = 0; chosenStarSys.StarSysData.ShipsList.Count > i; i++)
         {
+            chosenStarSys.StarSysData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
             chosenStarSys.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
         }
         SetUpTopShipLists();
     }
-    private void SetUpTopShipLists()
+    internal void SetUpTopShipLists() // load top ship deployment view containers 
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
-        if (galaxyUI.FleetLookingForShipExchange != null)
+        if (galaxyUI.FleetLookingForShipDeploy != null)
         {
-            var listItem =  galaxyUI.FleetLookingForShipExchange.FleetData.ShipsList;
-            for (int i = 0; listItem.Count > i; i++)
+            var shipCon =  galaxyUI.FleetLookingForShipDeploy.FleetData.ShipsList;
+            for (int i = 0; shipCon.Count > i; i++)
             {
-                listItem[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
             }
         }
-        else if (galaxyUI.StarSysLookingForShipExchange != null)
+        else if (galaxyUI.StarSysLookingForShipDeploy != null)
         {
-            var listItem = galaxyUI.StarSysLookingForShipExchange.StarSysData.ShipsList;
-            for (int i = 0; listItem.Count > i; i++)
+            var shipCon = galaxyUI.StarSysLookingForShipDeploy.StarSysData.ShipsList;
+            for (int i = 0; shipCon.Count > i; i++)
             {
-                listItem[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
             }
         }
     }
-
-    internal void WhoIsSelectedForShipMove(FleetController fleetController)
+    public GameObject[] GetTopSlotShipListItems()
     {
-        FleetConSelectedForShips = fleetController;
-        StarSysConSelectedForShips = null;
+        List<GameObject> shipListItems = new List<GameObject>();
+        for (int i = 0; TopSlot.transform.childCount > i; i++)
+        {
+            shipListItems.Add(TopSlot.transform.GetChild(i).gameObject);
+        }
+        return shipListItems.ToArray();
     }
-    internal void WhoIsSelectedForShipMove(StarSysController starSysController)
+    public GameObject[] GetBottomSlotShipListItems()
     {
-        StarSysConSelectedForShips = starSysController;
-        FleetConSelectedForShips = null;
+        List<GameObject> shipListItems = new List<GameObject>();
+        for (int i = 0; BottomSlot.transform.childCount > i; i++)
+        {
+            shipListItems.Add(BottomSlot.transform.GetChild(i).gameObject);
+        }
+        return shipListItems.ToArray();
     }
 }
