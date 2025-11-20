@@ -1,9 +1,13 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+
+/// <summary>
+/// Attached to the Ship Drag Drop Item Slot, top and bottom UI view areas, GameObject to handle drop events
+/// for the shiplistUI_shipnamehere_(clone) GameObjects being dragged and dropped into the slots.
+/// </summary>
+
 [System.Serializable]
-public class ItemSlot : MonoBehaviour, IDropHandler
+public class ShipDragDropItemSlot : MonoBehaviour, IDropHandler
 {
     public void OnDrop(PointerEventData eventData)
     {

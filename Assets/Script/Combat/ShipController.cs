@@ -1,11 +1,9 @@
 using Assets.Core;
-using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
-using Vector3 = UnityEngine.Vector3;
 
 
 public class ShipController : MonoBehaviour
@@ -20,12 +18,7 @@ public class ShipController : MonoBehaviour
     public AudioClip clipBeamFire;
     private AudioSource theSource;
     public Transform TargetGroup; // for movement, The center or leader of the other group
-    //private float initialSpeed = 30000f;
-    //public float OrbitDistance = 20f;  // radius of the orbit
-    //public float Acceleration = 100f; 
-    //private float deceleration; 
-    //private float stopDistance; // See Start()
-    private int flipShipForward =1;
+    private int flipShipForward = 1;
     //private Vector3 moveDirection;
     //private bool isMoving = false;
     //private float currentSpeed;
@@ -203,7 +196,7 @@ public class ShipController : MonoBehaviour
         //}
         #endregion
     }
-    public void SetWeaponPrefabs() 
+    public void SetWeaponPrefabs()
     {
         GameObject[] torpedoPrefabs = ShipManager.Instance.torpedoPrefabs;
         GameObject[] beamPrefabs = ShipManager.Instance.beamWeaponPrefabs;
@@ -228,7 +221,7 @@ public class ShipController : MonoBehaviour
             }
             else if (beamPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper()))
             {
-               beamWeaponPrefab = beamPrefabs[i];
+                beamWeaponPrefab = beamPrefabs[i];
 
             }
         }
@@ -248,7 +241,7 @@ public class ShipController : MonoBehaviour
                 Order = CombatOrders.Retreat;
                 break;
             case CombatOrders.Formation:
-                Order = CombatOrders.Formation;     
+                Order = CombatOrders.Formation;
                 break;
             case CombatOrders.TargetTransports:
                 Order = CombatOrders.TargetTransports;
@@ -321,10 +314,10 @@ public class ShipController : MonoBehaviour
     }
     public void TakeDamage(int weaponDamageInt)
     {
-        if (Health != 0) 
+        if (Health != 0)
         {
             Health -= (weaponDamageInt / 3);
-            Health = Mathf.Max(Health, 0.0f ); // if Health goes below zero, set to zero
+            Health = Mathf.Max(Health, 0.0f); // if Health goes below zero, set to zero
         }
         #region for tracking shields and hull individually
         //if (ShipData.ShieldHealth > 0)
@@ -353,16 +346,16 @@ public class ShipController : MonoBehaviour
                 ShipCombatCameraController.Instance.OnShipDestroyed(this);
                 ShipData.TargetThisShipController = null; // Clear the target ship controller
                 this.ShipData.CurrentFleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
-                                                                                // this can be problematic, FleetController can be null when its script is still running giving null reference exception
-                                                                                // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
+                                                                                       // this can be problematic, FleetController can be null when its script is still running giving null reference exception
+                                                                                       // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
                 Destroy(beamWeaponGO);
                 Destroy(gameObject);
                 this.ShipData.CurrentFleetController.IsTheFleetDestroyed();
                 ShipManager.Instance.RemoveShipControllerFromList(this);
                 FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
             }
-            
-            else if (starSysController!= null && !ShipData.Distroyed)
+
+            else if (starSysController != null && !ShipData.Distroyed)
             {
                 ShipData.Distroyed = true;
                 starSysController.StarSysData.ShipsList.Remove(this);

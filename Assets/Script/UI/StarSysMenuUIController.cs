@@ -1,9 +1,8 @@
 using Assets.Core;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using System;
-using System.Collections;
 using UnityEngine.UI;
 /// <summary>
 /// The UI controller owns hierarchy and presentation.
@@ -370,7 +369,7 @@ public class StarSysMenuUIController : MonoBehaviour
     }
     public void CloseBuildingQueues()
     {
-           GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
+        GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
     }
     public void RemoveSystem(StarSysController sysController)
     {
@@ -553,8 +552,15 @@ public class StarSysMenuUIController : MonoBehaviour
     private void ClickNewFleetButton(StarSysController sysController)
     {
         MousePointerChanger.Instance.ResetCursor();
-        GalaxyMenuUIController.Instance.ResetClickMode();
-        // to do
+        var fleetManager = FleetManager.Instance;
+        FleetController newFleetCon = fleetManager.InstatiateNewFleetController(sysController);
+        var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+        galaxyMenuUICon.ResetClickMode();
+        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleetCon;
+        galaxyMenuUICon.StarSysConSelectedForShipDeploy = null;
+        galaxyMenuUICon.StarSysLookingForShipDeploy = sysController;
+        galaxyMenuUICon.FleetLookingForShipDeploy = null;
+        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleetCon);
     }
     private void ClickCancelFleetButton()
     {

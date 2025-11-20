@@ -71,7 +71,7 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
         canvasGroup.blocksRaycasts = true;
         if (eventData.pointerEnter != null)
         {            
-            var shipUI = eventData.pointerDrag.GetComponent<ShipUiItem>();
+            var shipUI = eventData.pointerDrag.GetComponent<ShipListUI_Item>();
             if (shipUI == null) return;
             if (shipUI.CurrentFleet != null)
             {

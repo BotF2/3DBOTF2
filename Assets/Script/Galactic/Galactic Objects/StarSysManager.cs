@@ -1,5 +1,4 @@
 using FischlWorks_FogWar;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -344,7 +343,7 @@ namespace Assets.Core
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
                 InstantiateSysUIGameObject(starSysCon);
-               // InstantiateSysShipsUIGameObject(starSysCon);
+                // InstantiateSysShipsUIGameObject(starSysCon);
                 //***** This is temporary so we can test a multi-star system civ
                 //******* before diplomacy will alow civ/systems to join another civ
                 //if (systemCount == 8)
@@ -628,9 +627,7 @@ namespace Assets.Core
                     TheText[i].text = factoryData.PowerLoad.ToString();
                 else if (TheText[i].name == "DescriptionFactory")
                     TheText[i].text = factoryData.Description;
-
                 // image here
-
             }
         }
 

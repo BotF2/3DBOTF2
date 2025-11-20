@@ -202,7 +202,7 @@ public class ShipManager : MonoBehaviour
                 }
                 thisShipListUIGameObject.layer = 5;
                 shipCon.ShipListUIGameObject = thisShipListUIGameObject;
-                var shipUiItem = thisShipListUIGameObject.GetComponent<ShipUiItem>();
+                var shipUiItem = thisShipListUIGameObject.GetComponent<ShipListUI_Item>();
                 shipUiItem.ShipController = shipCon;
                 if (parentGO.TryGetComponent(out StarSysController sysCon))
                 {  

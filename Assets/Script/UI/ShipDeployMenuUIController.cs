@@ -1,11 +1,9 @@
 using Assets.Core;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
-public class ShipDeployMenuUIController : MonoBehaviour 
+public class ShipDeployMenuUIController : MonoBehaviour
 {
     public static ShipDeployMenuUIController Instance;
     public GameObject ShipDeployPanel;
@@ -45,12 +43,17 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
         SetUpTopShipLists();
     }
-    internal void SetUpBottomShipLists(StarSysController chosenStarSys)
+    internal void SetUpBottomShipLists(StarSysController StarSysLooking)
     {
-        for (int i = 0; chosenStarSys.StarSysData.ShipsList.Count > i; i++)
+        if (StarSysLooking.SettingUpNewFleet) return; // new fleet has no ships yet
+        else
         {
-            chosenStarSys.StarSysData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
-            chosenStarSys.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+            var galaxyMenu = GalaxyMenuUIController.Instance;
+            for (int i = 0; galaxyMenu.StarSysConSelectedForShipDeploy.StarSysData.ShipsList.Count > i; i++)
+            {
+                galaxyMenu.StarSysConSelectedForShipDeploy.StarSysData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
+                galaxyMenu.StarSysConSelectedForShipDeploy.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+            }
         }
         SetUpTopShipLists();
     }
@@ -59,7 +62,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         var galaxyUI = GalaxyMenuUIController.Instance;
         if (galaxyUI.FleetLookingForShipDeploy != null)
         {
-            var shipCon =  galaxyUI.FleetLookingForShipDeploy.FleetData.ShipsList;
+            var shipCon = galaxyUI.FleetLookingForShipDeploy.FleetData.ShipsList;
             for (int i = 0; shipCon.Count > i; i++)
             {
                 shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);

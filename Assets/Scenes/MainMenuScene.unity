@@ -24369,6 +24369,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0002e87401eb4c14bb0b5cf84b7064b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  GalaxyImage: {fileID: 1259275945}
 --- !u!1 &1158233144
 GameObject:
   m_ObjectHideFlags: 0
@@ -29076,7 +29077,6 @@ MonoBehaviour:
   fleetUIPrefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
   shipManagerMenuPrefab: {fileID: 8637087807823003284, guid: 7997ef2e58d487c48bdbe97951aa4adc, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
-  galaxyImage: {fileID: 843799567}
   GalaxyCenter: {fileID: 564492290}
   unknownfleet: {fileID: 21300000, guid: 4d704142da734fb46b88fe56645880c0, type: 3}
   canvasShipManager: {fileID: 0}
@@ -38631,9 +38631,6 @@ MonoBehaviour:
   GameController: {fileID: 1144744801}
   _weAreFriend: 0
   _warpingInIsOver: 0
-  _statePassedCombatMenu_Init: 0
-  _statePassedCombatInit: 0
-  _statePassedCombatPlay: 0
 --- !u!1 &1835359260
 GameObject:
   m_ObjectHideFlags: 0

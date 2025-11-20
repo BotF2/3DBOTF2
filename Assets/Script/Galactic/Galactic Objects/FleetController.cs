@@ -141,7 +141,6 @@ namespace Assets.Core
                     }
                 }
             }
-
         }
 
         private void OnMouseDrag()

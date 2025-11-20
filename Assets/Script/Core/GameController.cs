@@ -12,7 +12,7 @@ public class GameController : MonoBehaviour
     public static GameController Instance;
     private GameData gameData;
     public GameData GameData { get { return gameData; } set { gameData = value; } }
-    //private List<IPlayerController> players = new List<IPlayerController>();
+    public GameObject GalaxyImage;
 
     public void Awake()
     {

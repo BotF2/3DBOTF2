@@ -358,81 +358,8 @@ namespace Assets.Core
         public bool _weAreFriend = false;
         public bool _warpingInIsOver = false; // WarpingInCompleted() called from E_Animator3 sets true and set false again in CombatCompleted state in BeginState
 
-        private SolarSystemView solarSystemView;
-        /// <summary>
-        /// Old combat tool for view of all ships in combat
-        /// </summary>
-        //public CameraMultiTarget cameraMultiTarget; 
-        //private GameObject[] _cameraTargets; // = new GameObject [] { Friend_0, Enemy_0 };
-        /// <summary>
 
-        /// Old pre combat opening ship warpin animation and setup for start of combat
-        /// </summary>
-        //public GameObject animFriend1;
-        //public GameObject animFriend2;
-        //public GameObject animFriend3;
-        //public GameObject animEnemy1;
-        //public GameObject animEnemy2;
-        //public GameObject animEnemy3;
-        //public GameObject Friend_0; // prefab empty gameobject to clone instantiat into the grids
-        //public GameObject Enemy_0;
 
-        //public int yFactor = 3000; // old LoadCombatData combat, gap in grid between empties on y axis
-        //public int zFactor = 3000;
-        //public int offsetFriendLeft = -5500; // listSONames of x axis for friend grid left side (start here), world location
-        //public int offsetFriendRight = 5800; // listSONames of x axis for friend grid right side, world location
-        //public int offsetEnemyRight = 5500; // start here
-        //public int offsetEnemyLeft = -5800;
-
-        #region Animation empties by ship type Now from ActOnCombatOrder.cs?
-        //public GameObject FriendScout_Y0_Z0;
-        //public GameObject FriendDestroyer_Y0_Z1;
-        //public GameObject FriendCapital_Y0_Z2;
-        //public GameObject FriendColony_Y1_Z0;
-        //public GameObject Friend_Y1_Z1;
-        //public GameObject Friend_Y1_Z2;
-        //public GameObject EnemyScout_Y0_Z0;
-        //public GameObject EnemyDestroyer_Y0_Z1;
-        //public GameObject EnemyCapital_Y0_Z2;
-        //public GameObject EnemyColony_Y1_Z0;
-        //public GameObject Enemy_Y1_Z1;
-        //public GameObject Enemy_Y1_Z2;
-
-        //public GameObject[] animationEmpties = new GameObject[12]; // Populated in Unity Hierarchy under SpaceCombatScene for animation empty objexts
-        // { FriendScout_Y0_Z0, 
-        //    FriendDestroyer_Y0_Z1, FriendCapitalShip_Y0_Z2, FriendColony_Y1_Z0, Friend_Y1_Z1, Friend_Y1_Z2, 
-        //    EnemyScout_Y0_Z0, EnemyDestroyer_Y0_Z1, EnemyCapital_Y0_Z2, EnemyColony_Y1_Z0, Enemy_Y1_Z1, Enemy_Y1_Z2 };
-        // Unity does not like c# lists
-        #endregion
-
-        //public static List<string> StartGameObjectNames = new List<string>();
-        //public  string[] FriendNameArray; // For old SpaceCombatScene ****
-        //public  string[] EnemyNameArray;
-
-        //public int friends;
-        //public int enemies;
-        //public  List<GameObject> FriendShips = new List<GameObject>();  // updated to current combat
-        //public  List<GameObject> EnemyShips = new List<GameObject>();
-
-        //private int friendShipLayer;
-        //private int enemyShipLayer;
-        //private int _level;
-
-        //public int Level
-        //{
-        //    //get { return _level; }
-        //    //set { _level = value; }
-        //}
-
-        //bool _isSwitchingState = false;
-
-        //public bool _statePassedLobbyInit = false;
-        //public bool _statePassedMain_Init = false;
-        public bool _statePassedCombatMenu_Init = false;
-        public bool _statePassedCombatInit = false; // COMBAT INIT
-        public bool _statePassedCombatPlay = false;
-       // public GameObject UICamera;
-       // public GameObject GalaxyCamera;
 
         private void Awake()
         {

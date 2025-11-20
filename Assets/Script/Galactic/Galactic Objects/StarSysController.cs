@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,10 +20,10 @@ namespace Assets.Core
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
         [SerializeField]
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
-
-        private GameObject starSysShipUIGameObject; // instantiated by StarSysManager from the prefab and added to StarSysController
-        public GameObject StarSysShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
+        public bool SettingUpNewFleet = false;
+        //private GameObject starSysShipUIGameObject; // instantiated by StarSysManager from the prefab and added to StarSysController
+        //public GameObject StarSysShipsUIGameObject { get { return starSysShipUIGameObject; } set { starSysShipUIGameObject = value; } }
         private Camera galaxyEventCamera;
         [SerializeField]
         private Canvas canvasToolTip;
@@ -500,17 +499,17 @@ namespace Assets.Core
             galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
             var starSysLooking = galaxyUI.StarSysLookingForShipDeploy;
-            if (fleetLooking == null) 
+            if (fleetLooking == null)
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-                aSysView.SetActive(true); 
+                aSysView.SetActive(true);
                 this.starSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
             }
             else if (starSysLooking == null)
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.SetActive(true); 
+                aFleetView.SetActive(true);
                 this.starSysUIGameObject.transform.SetParent(aFleetView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
 
