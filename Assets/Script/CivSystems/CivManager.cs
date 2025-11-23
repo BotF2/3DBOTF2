@@ -240,7 +240,7 @@ namespace Assets.Core
             {
                 CivEnumsInGame.Add(listOfCivSO[i].CivEnum);
             }
-            FleetManager.Instance.CleanUpDictinaryForFleetNums();
+            FleetManager.Instance.CleanUpDictionaryForFleetNums();
             }
         public CivData GetCivDataByName(string shortName)
         {

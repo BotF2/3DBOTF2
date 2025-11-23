@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Android;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace Assets.Core
@@ -25,8 +22,7 @@ namespace Assets.Core
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
-        [SerializeField]
-        //private List<string> shipDropdownOptions;
+        [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
         private GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
         public Canvas FleetUICanvas { get; private set; }
@@ -62,6 +58,20 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text selectDestinationBttonText;
         internal int ownerId;
+
+        // New: explicit accessor for the fleet's ShipList UI parent.
+        // Setting this will also trigger ShipManager to process any pending UI items.
+        public GameObject ShipListUIParent
+        {
+            get => FleetData?.ShipListUIParent;
+            set
+            {
+                if (FleetData != null)
+                    FleetData.ShipListUIParent = value;
+                // Process any pending ship UI items now that the parent is available.
+                ShipManager.Instance?.ProcessPendingShipUIs();
+            }
+        }
 
         private void Start()
         {
@@ -137,7 +147,7 @@ namespace Assets.Core
                     else if (galaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
                     {
                         if (GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum))
-                            HandleShipDeploySelection(this); 
+                            HandleShipDeploySelection(this);
                     }
                 }
             }
@@ -260,7 +270,7 @@ namespace Assets.Core
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatFleetIsSelectedForShipDiploy(this);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
-            var starysLooking = galaxyUI.StarSysLookingForShipDeploy;
+            var starysLooking = galaxyUI.StarSystLookingForShipDeploy;
             if (fleetLooking != null)
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
@@ -379,19 +389,51 @@ namespace Assets.Core
             //GalaxyMenuUIController.Instance.ClickCancelDestinationButton(); 
         }
         //void OnEnterForeignStarSystem()
-        //{
+        //{ 
         //    // do something
         //}
         public void AddToShipList(ShipController shipController)
         {
-            //foreach (var ShipData in this.FleetData.GetShipList())
+            if (shipController == null) return;
+
+            // Reparent gameplay ship under this fleet so scene hierarchy and transform stay correct.
+            // Keep world position so the ship doesn't jump unexpectedly.
+            shipController.transform.SetParent(this.transform, worldPositionStays: true);
+
+            // Add to FleetData (model). FleetData.AddToShipList should guard duplicates but check anyway.
+            if (!FleetData.ShipsList.Contains(shipController))
                 FleetData.AddToShipList(shipController);
+
+            // Move the UI representation under the fleet's UI parent if available.
+            if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
+            {
+                shipController.ShipListUIGameObject.transform.SetParent(FleetData.ShipListUIParent.transform, false);
+            }
+
+            // Update controller state (max warp etc.)
             UpdateMaxWarp();
         }
         public void RemoveFromShipList(ShipController shipController)
         {
-            this.FleetData.RemoveFromShipList(shipController);
+            if (shipController == null) return;
+
+            // Remove from model list
+            if (FleetData.ShipsList.Contains(shipController))
+                FleetData.RemoveFromShipList(shipController);
+
+            // Update controller state
             UpdateMaxWarp();
+
+            // If the ship was parented to this fleet in the scene hierarchy, unparent it to scene root.
+            if (shipController.transform.IsChildOf(this.transform))
+                shipController.transform.SetParent(null, worldPositionStays: true);
+
+            // Optionally move UI item to a neutral parent if the fleet UI parent still exists.
+            // Keep it in the UI so the ShipListUIGameObject can be reused by other owners.
+            if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
+            {
+                shipController.ShipListUIGameObject.transform.SetParent(FleetData.ShipListUIParent.transform, false);
+            }
         }
         public void UpdateMaxWarp()
         {
@@ -466,6 +508,69 @@ namespace Assets.Core
         //{
         //    GalaxyMenuUIController.Instance.WhoIsSelectedForShipDiploy(this);
         //}
+        public void CloseUnLoadFleetUI(FleetController theFleetCon)
+        {
+            GalaxyMenuUIController.Instance.ResetClickMode();
+            MousePointerChanger.Instance.ResetCursor();
+            FleetMenuUIController.Instance.UpdateFleetWarpUI(theFleetCon, 0);
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
+        }
+        //private string GetDebuggerDisplay()
+        //{
+        //    return ToString();
+        //}
+
+        internal void RemoveShipFromFleet(ShipController shipController)
+        {
+            this.FleetData.ShipsList.Remove(shipController);
+            if (this.FleetData.ShipsList.Count == 0)
+            {
+                // no ships left, remove fleet
+                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                FleetData.ShipsList.Remove(shipController);
+                //Destroy(this.gameObject);
+            }
+            else
+            {
+                UpdateMaxWarp();
+            }
+        }
+        public void IsTheFleetDestroyed()
+        {
+            if (this.FleetData.ShipsList.Count == 0)
+            {
+                OnDestroy();
+            }
+        }
+        private void OnDestroy()
+        {
+            //StopAllCoroutines();
+            if (this.FleetData != null)
+            {
+                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                if (FleetManager.Instance.FleetControllerList.Contains(this))
+                {
+                    FleetManager.Instance.FleetControllerList.Remove(this);
+                    Destroy(this.gameObject);
+                    //TimeManager.Instance.ResumeTime();
+                }
+            }
+        }
+
+        public void CleanupFleetUIs()
+        {
+            foreach (var diplomacyCon in FleetManager.Instance.FleetControllerList)
+            {
+                if (diplomacyCon.FleetUIGameObject == null)
+                    continue;
+
+                if (!diplomacyCon.FleetUIGameObject.activeInHierarchy)
+                {
+                    diplomacyCon.FleetUIGameObject = null;
+                }
+            }
+        }
         public void ClickCancelDestinationButton()
         {
             DestinationLine.gameObject.SetActive(false);
@@ -571,86 +676,6 @@ namespace Assets.Core
                 FleetMenuUIController.Instance.SetAsDestination("Drag target to", "your destination");
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
                 FleetMenuUIController.Instance.GetPlayerDefinedTargetDestination(this);
-            }
-        }
-        //public void OnClickShipManager(FleetController fleetCon)
-        //{
-        //    if (fleetCon == this && fleetCon == GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
-        //    {
-        //        GameObject notAMenu = new GameObject();
-        //        GalaxyMenuUIController.Instance.OpenMenu(Menu.FleetMenu, notAMenu);
-        //        Destroy(notAMenu);
-        //    }
-        //}
-
-        //private void ReorderDropdownOptions(TMP_Dropdown dropdown)
-        //{
-        //    List<TMP_Dropdown.OptionData> options = dropdown.options;
-        //    options.Reverse();
-        //    // Update the UI
-        //    dropdown.RefreshShownValue();
-        //}
-        public void CloseUnLoadFleetUI(FleetController theFleetCon)
-        {
-            GalaxyMenuUIController.Instance.ResetClickMode();
-            MousePointerChanger.Instance.ResetCursor();
-            FleetMenuUIController.Instance.UpdateFleetWarpUI(theFleetCon, 0);
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
-        }
-        //private string GetDebuggerDisplay()
-        //{
-        //    return ToString();
-        //}
-
-        internal void RemoveShipFromFleet(ShipController shipController)
-        {
-            this.FleetData.ShipsList.Remove(shipController);
-            if (this.FleetData.ShipsList.Count == 0)
-            {
-                // no ships left, remove fleet
-                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
-                FleetData.ShipsList.Remove(shipController);
-                //Destroy(this.gameObject);
-            }
-            else
-            {
-                UpdateMaxWarp();
-            }
-        }
-        public void IsTheFleetDestroyed()
-        {
-            if (this.FleetData.ShipsList.Count == 0)
-            {
-                OnDestroy();
-            }
-        }
-        private void OnDestroy()
-        {
-            //StopAllCoroutines();
-            if (this.FleetData != null)
-            {
-                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
-                if (FleetManager.Instance.FleetControllerList.Contains(this))
-                {
-                    FleetManager.Instance.FleetControllerList.Remove(this);
-                    Destroy(this.gameObject);
-                    //TimeManager.Instance.ResumeTime();
-                }
-            }
-        }
-
-        public void CleanupFleetUIs()
-        {
-            foreach (var diplomacyCon in FleetManager.Instance.FleetControllerList)
-            {
-                if (diplomacyCon.FleetUIGameObject == null)
-                    continue;
-
-                if (!diplomacyCon.FleetUIGameObject.activeInHierarchy)
-                {
-                    diplomacyCon.FleetUIGameObject = null;
-                }
             }
         }
     }

@@ -28910,7 +28910,7 @@ MonoBehaviour:
   destroyerBluePrintPrefab: {fileID: 0}
   cruiserBluePrintPrefab: {fileID: 0}
   ltCruiserBluePrintPrefab: {fileID: 0}
-  hvyCruiserBluePrintPrefab: {fileID: 0}
+  heavyCruiserBluePrintPrefab: {fileID: 0}
   transportBluePrintPrefab: {fileID: 0}
   parentCanavas: {fileID: 966764658}
   fogWar: {fileID: 1784209282}
@@ -29561,7 +29561,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.21560161, g: 0.8962264, b: 0.7181334, a: 0.2627451}
+  m_Color: {r: 0.8773585, g: 0.1779548, b: 0.1779548, a: 0.3254902}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

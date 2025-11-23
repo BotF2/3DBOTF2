@@ -1,7 +1,8 @@
+using Assets.Core;
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Assets.Core;
+using UnityEngine.InputSystem;
 
 public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
 {
@@ -39,6 +40,8 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
     [SerializeField]
     private bool atHomePosition = true;
 
+    private UIControls uiControls;
+
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); }
@@ -47,7 +50,22 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
+
+        // Create InputAction asset instance early so actions are available
+        if (uiControls == null) uiControls = new UIControls();
     }
+
+    private void OnEnable()
+    {
+        uiControls ??= new UIControls();
+        uiControls.Enable();
+    }
+
+    private void OnDisable()
+    {
+        uiControls?.Disable();
+    }
+
     void Update()
     {
         DoZoom();
@@ -70,58 +88,151 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
 
     private void DoZoom()
     {
-        galaxyCam.fieldOfView -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
-        if (Input.GetKey("q"))
+        // Read scroll from the InputSystem action (UIControls) if available, otherwise fall back to Mouse.current
+        float scrollValue = 0f;
+        if (uiControls != null)
         {
-            galaxyCam.fieldOfView += 1f;
+            Vector2 v = uiControls.UI.ScrollWheel.ReadValue<Vector2>();
+            scrollValue = v.y;
         }
-        if (Input.GetKey("e"))
+        else if (Mouse.current != null)
         {
-            galaxyCam.fieldOfView -= 1f;
+            scrollValue = Mouse.current.scroll.ReadValue().y;
         }
-        galaxyCam.fieldOfView = Mathf.Clamp(galaxyCam.fieldOfView, 25f, 90f);
+        else
+        {
+            // Fallback to legacy API (shouldn't be needed once InputSystem is used everywhere)
+            scrollValue = Input.GetAxis("Mouse ScrollWheel");
+        }
 
+        galaxyCam.fieldOfView -= scrollValue * zoomSpeed;
+
+        // Q / E keys using InputSystem Keyboard
+        var kb = Keyboard.current;
+        if (kb != null)
+        {
+            if (kb.qKey.isPressed)
+            {
+                galaxyCam.fieldOfView += 1f;
+            }
+            if (kb.eKey.isPressed)
+            {
+                galaxyCam.fieldOfView -= 1f;
+            }
+        }
+        else
+        {
+            if (Input.GetKey("q"))
+            {
+                galaxyCam.fieldOfView += 1f;
+            }
+            if (Input.GetKey("e"))
+            {
+                galaxyCam.fieldOfView -= 1f;
+            }
+        }
+
+        galaxyCam.fieldOfView = Mathf.Clamp(galaxyCam.fieldOfView, 25f, 90f);
     }
     void DrageCameraWithLeftMouse()
     {
-        if (Input.GetMouseButtonDown(0)) 
+        var mouse = Mouse.current;
+        if (mouse != null)
         {
-            lastMousePosition = Input.mousePosition;
-        }
-        else if (Input.GetMouseButton(0)) 
-        {
-            if (EventSystem.current != null)
+            if (mouse.leftButton.wasPressedThisFrame)
             {
-                if (!EventSystem.current.IsPointerOverGameObject()) // do not drage camera when over UI
+                var pos = mouse.position.ReadValue();
+                lastMousePosition = new Vector3(pos.x, pos.y, 0f);
+            }
+            else if (mouse.leftButton.isPressed)
+            {
+                if (EventSystem.current != null)
                 {
-                    Vector3 delta = (Input.mousePosition - lastMousePosition) / mouseSpeed;//
-                    MoveCamera(delta.x, delta.y);
-                    lastMousePosition = Input.mousePosition;
+                    if (!EventSystem.current.IsPointerOverGameObject()) // do not drag camera when over UI
+                    {
+                        var pos = mouse.position.ReadValue();
+                        Vector3 currentPos = new Vector3(pos.x, pos.y, 0f);
+                        Vector3 delta = (currentPos - lastMousePosition) / mouseSpeed;
+                        MoveCamera(delta.x, delta.y);
+                        lastMousePosition = currentPos;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Fallback to legacy Input
+            if (Input.GetMouseButtonDown(0))
+            {
+                lastMousePosition = Input.mousePosition;
+            }
+            else if (Input.GetMouseButton(0))
+            {
+                if (EventSystem.current != null)
+                {
+                    if (!EventSystem.current.IsPointerOverGameObject())
+                    {
+                        Vector3 delta = (Input.mousePosition - lastMousePosition) / mouseSpeed;
+                        MoveCamera(delta.x, delta.y);
+                        lastMousePosition = Input.mousePosition;
+                    }
                 }
             }
         }
     }
     void RotateCamerWithRightMouse()
     {
-        if (Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.Space))
-        {
-            lastMousePosition.y = Input.mousePosition.y;
-        }
-        if (Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space))
-        {
+        var mouse = Mouse.current;
+        var kb = Keyboard.current;
+        bool spacePressed = kb != null ? kb.spaceKey.isPressed : Input.GetKey(KeyCode.Space);
 
-            var rotation = transform.eulerAngles.x;
-            float delta = rotation;
-            if ((Input.mousePosition.y - lastMousePosition.y) != 0f)
+        if (mouse != null)
+        {
+            if (mouse.rightButton.wasPressedThisFrame && !spacePressed)
             {
-                delta = rotation += (Input.mousePosition.y - lastMousePosition.y) / (mouseSpeed * 10f);
+                var pos = mouse.position.ReadValue();
+                lastMousePosition.y = pos.y;
             }
-            transform.eulerAngles = new Vector3(delta, transform.eulerAngles.y, transform.eulerAngles.z);
+            if (mouse.rightButton.isPressed && !spacePressed)
+            {
+                var rotation = transform.eulerAngles.x;
+                float delta = rotation;
+                var pos = mouse.position.ReadValue();
+                if ((pos.y - lastMousePosition.y) != 0f)
+                {
+                    delta = rotation += (pos.y - lastMousePosition.y) / (mouseSpeed * 10f);
+                }
+                transform.eulerAngles = new Vector3(delta, transform.eulerAngles.y, transform.eulerAngles.z);
 
-            lastMousePosition = Input.mousePosition;
-            Vector3 currentRotation = transform.eulerAngles;
-            float clampX = Mathf.Clamp((currentRotation.x > 180) ? currentRotation.x - 360 : currentRotation.x, -40, 50);
-            transform.eulerAngles = new Vector3(clampX, currentRotation.y, currentRotation.z);
+                lastMousePosition = new Vector3(pos.x, pos.y, 0f);
+                Vector3 currentRotation = transform.eulerAngles;
+                float clampX = Mathf.Clamp((currentRotation.x > 180) ? currentRotation.x - 360 : currentRotation.x, -40, 50);
+                transform.eulerAngles = new Vector3(clampX, currentRotation.y, currentRotation.z);
+            }
+        }
+        else
+        {
+            // Legacy fallback
+            if (Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.Space))
+            {
+                lastMousePosition.y = Input.mousePosition.y;
+            }
+            if (Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space))
+            {
+
+                var rotation = transform.eulerAngles.x;
+                float delta = rotation;
+                if ((Input.mousePosition.y - lastMousePosition.y) != 0f)
+                {
+                    delta = rotation += (Input.mousePosition.y - lastMousePosition.y) / (mouseSpeed * 10f);
+                }
+                transform.eulerAngles = new Vector3(delta, transform.eulerAngles.y, transform.eulerAngles.z);
+
+                lastMousePosition = Input.mousePosition;
+                Vector3 currentRotation = transform.eulerAngles;
+                float clampX = Mathf.Clamp((currentRotation.x > 180) ? currentRotation.x - 360 : currentRotation.x, -40, 50);
+                transform.eulerAngles = new Vector3(clampX, currentRotation.y, currentRotation.z);
+            }
         }
     }
 
@@ -131,22 +242,47 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour //, IPointerClickHandler
         float inputZ = 0f;
         float inputX = 0f;
 
-        if (Input.GetKey("w"))
+        var kb = Keyboard.current;
+        if (kb != null)
         {
-            inputZ += panSpeed * Time.deltaTime;
+            if (kb.wKey.isPressed)
+            {
+                inputZ += panSpeed * Time.deltaTime;
+            }
+            if (kb.sKey.isPressed)
+            {
+                inputZ -= panSpeed * Time.deltaTime;
+            }
+            if (kb.aKey.isPressed)
+            {
+                inputX += panSpeed * Time.deltaTime;
+            }
+            if (kb.dKey.isPressed)
+            {
+                inputX -= panSpeed * Time.deltaTime;
+            }
         }
-        if (Input.GetKey("s"))
+        else
         {
-            inputZ -= panSpeed * Time.deltaTime;
+            // Legacy fallback
+            if (Input.GetKey("w"))
+            {
+                inputZ += panSpeed * Time.deltaTime;
+            }
+            if (Input.GetKey("s"))
+            {
+                inputZ -= panSpeed * Time.deltaTime;
+            }
+            if (Input.GetKey("a"))
+            {
+                inputX += panSpeed * Time.deltaTime;
+            }
+            if (Input.GetKey("d"))
+            {
+                inputX -= panSpeed * Time.deltaTime;
+            }
         }
-        if (Input.GetKey("a"))
-        {
-            inputX += panSpeed * Time.deltaTime;
-        }
-        if (Input.GetKey("d"))
-        {
-            inputX -= panSpeed * Time.deltaTime;
-        }
+
         MoveCamera(inputX, inputZ);
     }
 

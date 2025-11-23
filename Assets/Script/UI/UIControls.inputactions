@@ -1,0 +1,66 @@
+{
+    "version": 1,
+    "name": "UIControls",
+    "maps": [
+        {
+            "name": "UI",
+            "id": "6ba4ce8c-6fa0-4a52-a4f6-1970c42a91df",
+            "actions": [
+                {
+                    "name": "ScrollWheel",
+                    "type": "Value",
+                    "id": "678e6278-1eb4-4a8f-9454-fbdf196bf3d5",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Point",
+                    "type": "Value",
+                    "id": "09cfefdf-3d31-4b6f-8c9e-adb779c4e0f8",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "058b6525-ad7f-4214-b131-4ea88a4329ca",
+                    "path": "<Mouse>/scroll",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ScrollWheel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a39d289e-aee6-47ba-a702-6019944a733a",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ScrollWheel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b3de13ff-fd9b-418f-b930-082f72ab0ac1",
+                    "path": "<Mouse>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Point",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

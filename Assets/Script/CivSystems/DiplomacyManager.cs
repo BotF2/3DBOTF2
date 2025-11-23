@@ -443,7 +443,7 @@ public class DiplomacyManager : MonoBehaviour
     {
         Debug.Log("DiplomacyManager: ResolveEncounterOtherCivSystem called.");
         // already not one of our systems
-        FleetController fleetConEmpty = FleetManager.Instance.InstatiateEmptyFleetController();
+        FleetController fleetConEmpty = FleetManager.Instance.InsatiateEmptyFleetController();
         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebula)
 
         if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited

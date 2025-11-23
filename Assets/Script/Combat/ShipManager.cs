@@ -2,12 +2,7 @@ using Assets.Core;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using UnityEngine.UI;
 using UnityEngine;
-using UnityEngine.UIElements;
-using System.Data.Common;
-using Image = UnityEngine.UI.Image;
-using System;
 
 public class ShipManager : MonoBehaviour
 {
@@ -28,6 +23,9 @@ public class ShipManager : MonoBehaviour
     public GameObject[] torpedoPrefabs;
     public GameObject[] beamWeaponPrefabs;
     int shipIndex = 0;
+
+    // Pending UI items that couldn't be properly parented when created
+    private readonly List<ShipController> pendingShipUI = new List<ShipController>();
 
     private void Awake()
     {
@@ -69,7 +67,7 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
                 shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
-                shipCon.ShipData.ShipType = shipSOList[i].ShipType;    
+                shipCon.ShipData.ShipType = shipSOList[i].ShipType;
                 if (shipSOList[i].shipSprite != null)
                     shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
                 shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;
@@ -98,13 +96,17 @@ public class ShipManager : MonoBehaviour
                 }
                 else if (parentGO.GetComponentInChildren<StarSysController>() == null)
                 {
-                    var fleetCon = parentGO.GetComponent<FleetController>();    
+                    var fleetCon = parentGO.GetComponent<FleetController>();
                     shipCon.ShipData.CurrentFleetController = fleetCon;
-                    if(fleetCon.FleetData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
+                    if (fleetCon.FleetData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
                         fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
                     shipCon.ShipData.CurrentStarSysController = null;
                 }
-                InstantiateShipListUIGameObject(shipCon, parentGO); // create the ship list UI g.o. for this ship                 
+
+                // Create the UI object and try to parent it to the owner's ShipListUIParent.
+                InstantiateShipListUIGameObject(shipCon, parentGO);
+
+                // Put gameplay ship under parent in scene
                 shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu 
             }
         }
@@ -173,6 +175,7 @@ public class ShipManager : MonoBehaviour
             }
         }
     }
+
     private void InstantiateShipListUIGameObject(ShipController shipCon, GameObject parentGO)
     {
         if (shipCon.ShipData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
@@ -182,9 +185,9 @@ public class ShipManager : MonoBehaviour
                 GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
                 thisShipListUIGameObject.SetActive(true);
-                thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;        
+                thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;
                 UnityEngine.UI.Image[] imageComponents = thisShipListUIGameObject.GetComponentsInChildren<UnityEngine.UI.Image>();
-                if (imageComponents[1] != null)
+                if (imageComponents.Length > 1 && imageComponents[1] != null)
                 {
                     imageComponents[1].sprite = shipCon.ShipData.ShipSprite;
                 }
@@ -204,28 +207,100 @@ public class ShipManager : MonoBehaviour
                 shipCon.ShipListUIGameObject = thisShipListUIGameObject;
                 var shipUiItem = thisShipListUIGameObject.GetComponent<ShipListUI_Item>();
                 shipUiItem.ShipController = shipCon;
+
+                // Try to parent to owner's ShipListUIParent.  If missing, parent to scene Canvas and queue for reparenting.
                 if (parentGO.TryGetComponent(out StarSysController sysCon))
-                {  
-                    shipUiItem.CurrentStarSys = sysCon;
+                {
+                    shipUiItem.CurrentStarSyst = sysCon;
                     if (sysCon.StarSysData.ShipListUIParent != null)
                     {
                         shipCon.ShipListUIGameObject.transform.SetParent(sysCon.StarSysData.ShipListUIParent.transform, false);
                     }
+                    else
+                    {
+                        // fallback to scene canvas so UI is visible; add to pending for reparenting later
+                        var canvas = FindFirstObjectByType<Canvas>();
+                        if (canvas != null)
+                            shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
+
+                        pendingShipUI.Add(shipCon);
+                        Debug.LogWarning($"Ship UI created before system ShipListUIParent for {sysCon.name}; queued for reparenting.");
+                    }
                 }
-                if (parentGO.TryGetComponent(out FleetController fleetCon))
+                else if (parentGO.TryGetComponent(out FleetController fleetCon))
                 {
                     shipUiItem.CurrentFleet = fleetCon;
                     if (fleetCon.FleetData.ShipListUIParent != null)
                     {
                         shipCon.ShipListUIGameObject.transform.SetParent(fleetCon.FleetData.ShipListUIParent.transform, false);
                     }
+                    else
+                    {
+                        // fallback to scene canvas and queue
+                        var canvas = FindFirstObjectByType<Canvas>();
+                        if (canvas != null)
+                            shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
+
+                        pendingShipUI.Add(shipCon);
+                        Debug.LogWarning($"Ship UI created before fleet ShipListUIParent for {fleetCon.gameObject.name}; queued for reparenting.");
+                    }
                 }
             }
         }
     }
+
+    // Call this after you instantiate system/fleet UI so any pending ship UI gets reparented correctly.
+    public void ProcessPendingShipUIs()
+    {
+        if (pendingShipUI.Count == 0) return;
+
+        for (int i = pendingShipUI.Count - 1; i >= 0; i--)
+        {
+            var shipCon = pendingShipUI[i];
+            if (shipCon == null || shipCon.ShipListUIGameObject == null)
+            {
+                pendingShipUI.RemoveAt(i);
+                continue;
+            }
+
+            var uiItem = shipCon.ShipListUIGameObject.GetComponent<ShipListUI_Item>();
+            if (uiItem == null)
+            {
+                pendingShipUI.RemoveAt(i);
+                continue;
+            }
+
+            bool reparented = false;
+
+            if (uiItem.CurrentStarSyst != null)
+            {
+                var sys = uiItem.CurrentStarSyst;
+                if (sys.StarSysData != null && sys.StarSysData.ShipListUIParent != null)
+                {
+                    shipCon.ShipListUIGameObject.transform.SetParent(sys.StarSysData.ShipListUIParent.transform, false);
+                    reparented = true;
+                }
+            }
+            else if (uiItem.CurrentFleet != null)
+            {
+                var fleet = uiItem.CurrentFleet;
+                if (fleet.FleetData != null && fleet.FleetData.ShipListUIParent != null)
+                {
+                    shipCon.ShipListUIGameObject.transform.SetParent(fleet.FleetData.ShipListUIParent.transform, false);
+                    reparented = true;
+                }
+            }
+
+            if (reparented)
+            {
+                pendingShipUI.RemoveAt(i);
+            }
+        }
+    }
+
     public void BuildShipsOfFirstFleet(FleetController fleetCon)
     {
-       // var shipCon = shipCon.GetComponent<FleetController>();
+        // var shipCon = shipCon.GetComponent<FleetController>();
         CivEnum civEnum = fleetCon.FleetData.CivEnum;
         List<ShipSO> ships = new List<ShipSO>();
         ships = FirstShipDateByTechlevel((int)CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
@@ -294,7 +369,8 @@ public class ShipManager : MonoBehaviour
                     {
                         listOfShipSOs.Add(shipSO);
                     }
-                };
+                }
+                ;
                 break;
         }
         return listOfShipSOs;
@@ -312,9 +388,10 @@ public class ShipManager : MonoBehaviour
         }
         if (foundOne > -1)
         {
+            var toDestroy = ShipControllerList[foundOne];
             ShipControllerList.RemoveAt(foundOne);
-            Destroy(ShipControllerList[foundOne].ShipListUIGameObject);
-            Destroy(ShipControllerList[foundOne].gameObject);
+            if (toDestroy.ShipListUIGameObject != null) Destroy(toDestroy.ShipListUIGameObject);
+            if (toDestroy.gameObject != null) Destroy(toDestroy.gameObject);
         }
     }
 }

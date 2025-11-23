@@ -55,6 +55,19 @@ namespace Assets.Core
         private int shipStartDate = 1;
         public int ShipTimeToBuild = 1;
 
+        // New: explicit accessor for the system's ShipList UI parent.
+        // Setting this will also trigger ShipManager to process any pending UI items.
+        public GameObject ShipListUIParent
+        {
+            get => StarSysData?.ShipListUIParent;
+            set
+            {
+                if (StarSysData != null)
+                    StarSysData.ShipListUIParent = value;
+                ShipManager.Instance?.ProcessPendingShipUIs();
+            }
+        }
+
         private void Start()
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
@@ -432,7 +445,7 @@ namespace Assets.Core
                     timeDuration = this.StarSysData.OrbitalBatteryData.BuildDuration;
                     break;
                 case StarSysFacilities.ResearchCenter:
-                    timeDuration = this.StarSysData.ResearchCenterData.BuildDuration;
+                    timeDuration = this.starSysData.ResearchCenterData.BuildDuration;
                     break;
                 default:
                     break;
@@ -498,7 +511,7 @@ namespace Assets.Core
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
-            var starSysLooking = galaxyUI.StarSysLookingForShipDeploy;
+            var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
             if (fleetLooking == null)
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
@@ -867,7 +880,34 @@ namespace Assets.Core
 
         internal void RemoveFromShipList(ShipController shipController)
         {
-            this.StarSysData.RemoveFromShipList(shipController);
+            // Remove from model list
+            if (shipController == null) return;
+            StarSysData.RemoveFromShipList(shipController);
+
+            // If the ship GameObject is parented to this system, unparent it (or leave as is if caller handles reparenting)
+            if (shipController.transform.IsChildOf(this.transform))
+                shipController.transform.SetParent(null, worldPositionStays: true);
+
+            // Move UI item back to the system UI parent if available
+            if (shipController.ShipListUIGameObject != null && StarSysData.ShipListUIParent != null)
+                shipController.ShipListUIGameObject.transform.SetParent(StarSysData.ShipListUIParent.transform, false);
+        }
+
+        // New: add ship to this star system (gameplay object + model + UI)
+        public void AddToShipList(ShipController shipController)
+        {
+            if (shipController == null) return;
+
+            // Reparent gameplay ship under this star system in the scene
+            shipController.transform.SetParent(this.transform, worldPositionStays: true);
+
+            // Add to model list
+            if (!StarSysData.ShipsList.Contains(shipController))
+                StarSysData.AddToShipList(shipController);
+
+            // Move UI element under system UI parent if available
+            if (shipController.ShipListUIGameObject != null && StarSysData.ShipListUIParent != null)
+                shipController.ShipListUIGameObject.transform.SetParent(StarSysData.ShipListUIParent.transform, false);
         }
     }
 }

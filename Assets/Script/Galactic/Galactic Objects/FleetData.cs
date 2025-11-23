@@ -1,9 +1,8 @@
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.Core;
+using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using UnityEngine.UI;
-using System;
 public class FleetData
 {
     public int CivIndex;
@@ -13,7 +12,6 @@ public class FleetData
     public CivEnum CivEnum;
     public Vector3 Position;
     public List<ShipController> ShipsList;
-    //public List<FleetController> FleetGroupControllers; // maybe used to hold fleets exchanging ships
     public float MaxWarpFactor = 3f;
     public float CurrentWarpFactor = 0f;
     public GameObject Destination;
@@ -83,7 +81,7 @@ public class FleetData
 
     internal void PopulateShipsList()
     {
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
     }
 }
 

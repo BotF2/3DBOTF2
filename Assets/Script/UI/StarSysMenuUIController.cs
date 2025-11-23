@@ -42,6 +42,17 @@ public class StarSysMenuUIController : MonoBehaviour
     }
     private void Start()
     {
+        //record the original parent of the ASystemMenuView
+        for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
+        {
+            var sysCon = StarSysManager.Instance.StarSysControllerList[i];
+            if (sysCon != null && sysCon.StarSysUIGameObject != null)
+            {
+                if (sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
+                    sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = ASystemMenuView.transform;
+            }
+        }
+
         // Initially hide fleet menu views
         if (SystemsMenuView != null)
             SystemsMenuView.SetActive(false);
@@ -537,7 +548,7 @@ public class StarSysMenuUIController : MonoBehaviour
         if (GameController.Instance.AreWeLocalPlayer(starSysControllerWaitingToExchangeShips.StarSysData.CurrentOwnerCivEnum))
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSysIsLookingForShipDeploy(starSysControllerWaitingToExchangeShips);
+            galaxyUI.WhatSystIsLookingForShipDeploy(starSysControllerWaitingToExchangeShips);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
             MousePointerChanger.Instance.SetShipExchangeCursor(starSysControllerWaitingToExchangeShips);
         }
@@ -553,14 +564,23 @@ public class StarSysMenuUIController : MonoBehaviour
     {
         MousePointerChanger.Instance.ResetCursor();
         var fleetManager = FleetManager.Instance;
-        FleetController newFleetCon = fleetManager.InstatiateNewFleetController(sysController);
+        FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
+        var position = sysController.StarSysData.GetPosition();
+
+        CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
+        FleetData fleetData = new FleetData(fleetSO);
+        fleetData.CurrentWarpFactor = 3f;
+        fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
+        fleetData.CivShortName = thisCivData.CivShortName;
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
-        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleetCon;
-        galaxyMenuUICon.StarSysConSelectedForShipDeploy = null;
-        galaxyMenuUICon.StarSysLookingForShipDeploy = sysController;
+        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
         galaxyMenuUICon.FleetLookingForShipDeploy = null;
-        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleetCon);
+        ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
+        fleetManager.InstantiateFleet(sysController, fleetData, position, true);
+        //Call this in InstantiateFleet: galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleetCon);
+
     }
     private void ClickCancelFleetButton()
     {

@@ -77,26 +77,26 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
             {
                 oldFleet = shipUI.CurrentFleet;
             }
-            else if (shipUI.CurrentStarSys != null)
+            else if (shipUI.CurrentStarSyst != null)
             {
-                oldStarSys = shipUI.CurrentStarSys;
+                oldStarSys = shipUI.CurrentStarSyst;
             }
             if (eventData.pointerEnter.name == "TopSlot")
             {
                 if (GalaxyMenuUIController.Instance.FleetLookingForShipDeploy != null)
                 {
                     shipUI.CurrentFleet = GalaxyMenuUIController.Instance.FleetLookingForShipDeploy;
-                    shipUI.CurrentStarSys = null;
+                    shipUI.CurrentStarSyst = null;
                     RemoveFromOldList(shipUI.ShipController);
                     shipUI.CurrentFleet.AddToShipList(shipUI.ShipController);
 
                 }
-                else if (GalaxyMenuUIController.Instance.StarSysLookingForShipDeploy != null)
+                else if (GalaxyMenuUIController.Instance.StarSystLookingForShipDeploy != null)
                 {
-                    shipUI.CurrentStarSys = GalaxyMenuUIController.Instance.StarSysLookingForShipDeploy;
+                    shipUI.CurrentStarSyst = GalaxyMenuUIController.Instance.StarSystLookingForShipDeploy;
                     shipUI.CurrentFleet = null;
                     RemoveFromOldList(shipUI.ShipController);
-                    shipUI.CurrentStarSys.StarSysData.AddToShipList(shipUI.ShipController);
+                    shipUI.CurrentStarSyst.StarSysData.AddToShipList(shipUI.ShipController);
                 }
             }
             else if (eventData.pointerEnter.name == "BottomSlot")
@@ -104,16 +104,16 @@ public class ShipListItemDrag : MonoBehaviour, IPointerDownHandler, IBeginDragHa
                 if (GalaxyMenuUIController.Instance.FleetConSelectedForShipDeploy != null)
                 {
                     shipUI.CurrentFleet = GalaxyMenuUIController.Instance.FleetConSelectedForShipDeploy;
-                    shipUI.CurrentStarSys = null;
+                    shipUI.CurrentStarSyst = null;
                     RemoveFromOldList(shipUI.ShipController);
                     shipUI.CurrentFleet.AddToShipList(shipUI.ShipController);
                 }
-                else if (GalaxyMenuUIController.Instance.StarSysConSelectedForShipDeploy != null)
+                else if (GalaxyMenuUIController.Instance.StarSystConSelectedForShipDeploy != null)
                 {
-                    shipUI.CurrentStarSys = GalaxyMenuUIController.Instance.StarSysConSelectedForShipDeploy;
+                    shipUI.CurrentStarSyst = GalaxyMenuUIController.Instance.StarSystConSelectedForShipDeploy;
                     shipUI.CurrentFleet = null;
                     RemoveFromOldList(shipUI.ShipController);
-                    shipUI.CurrentStarSys.StarSysData.AddToShipList(shipUI.ShipController);
+                    shipUI.CurrentStarSyst.StarSysData.AddToShipList(shipUI.ShipController);
                 }
             }
             if (eventData.pointerEnter.tag == "TopShipDeploySlot")

@@ -1,3 +1,5 @@
+// Ignore Spelling: Nums
+
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +20,7 @@ namespace Assets.Core
         public GameObject destroyerBluePrintPrefab;
         public GameObject cruiserBluePrintPrefab;
         public GameObject ltCruiserBluePrintPrefab;
-        public GameObject hvyCruiserBluePrintPrefab;
+        public GameObject heavyCruiserBluePrintPrefab;
         public GameObject transportBluePrintPrefab;
         [SerializeField]
         private Canvas parentCanavas;
@@ -50,7 +52,8 @@ namespace Assets.Core
         [SerializeField]
         private GameObject fleetShipsContentFolderParent;
         private List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
-
+        internal GameObject fleetShipUIGOContentParent;
+        private float newFleetSpacer = 0f;
 
         private void Awake()
         {
@@ -72,7 +75,7 @@ namespace Assets.Core
             }
             galaxyImage = GameController.Instance.GalaxyImage;
         }
-        public void CleanUpDictinaryForFleetNums()
+        public void CleanUpDictionaryForFleetNums()
         {
             var civs = CivManager.Instance.CivSOListAllPossible;
 
@@ -86,11 +89,11 @@ namespace Assets.Core
             }
         }
 
-        public void BuildFirstFleetsNearSys(StarSysController sysCon, bool inSystem)
+        public void BuildFleetsNearSyst(StarSysController systCon)
         {
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
-            FleetSO fleetSO = GetFleetSObyInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-            var position = sysCon.StarSysData.GetPosition();
+            FleetSO fleetSO = GetFleetSO_byInt((int)systCon.StarSysData.CurrentOwnerCivEnum);
+            var position = systCon.StarSysData.GetPosition();
 
             // *** This is an option for more fleets/ships with larger galaxy
             //switch (GameManager.current.GalaxySize)
@@ -114,16 +117,16 @@ namespace Assets.Core
             fleetData.CurrentWarpFactor = 3f;
             fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
             fleetData.CivShortName = thisCivData.CivShortName;
-            FleetController aFleet = InstantiateFleet(sysCon, fleetData, position, inSystem);
+            FleetController aFleet = InstantiateFleet(systCon, fleetData, position, false);
         }
-        public FleetController InstatiateEmptyFleetController()
+        public FleetController InsatiateEmptyFleetController()
         {
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
             return fleetController;
         }
 
-        public FleetController InstantiateFleet(StarSysController sysCon, FleetData fleetData, Vector3 position, bool inSystem)
+        public FleetController InstantiateFleet(StarSysController systCon, FleetData fleetData, Vector3 position, bool newFleet)
         {
             IEnumerable<StarSysController> ourCivSysCons =
             from x in StarSysManager.Instance.StarSysControllerList
@@ -133,6 +136,10 @@ namespace Assets.Core
 
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
+            if (newFleet)
+            {
+                GalaxyMenuUIController.Instance.FleetConSelectedForShipDeploy = fleetController;
+            }
             FleetControllerList.Add(fleetController); // add to list of all fleet controllers
             fleetController.gameObject.layer = 6; // galaxy layer
             fleetController.BackgroundGalaxyImage = galaxyImage;
@@ -147,20 +154,28 @@ namespace Assets.Core
             ////        fleetController.CanvasToolTip = canvasArray[j];
             ////    }
             ////}
-            if (!inSystem)
-            {
-                var transGalaxyCenter = GalaxyCenter.gameObject.transform;
-                var trans = sysCon.gameObject.transform;
-                fleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, it is not in a star system
-                                                                              // now put it near the home world and visible/seen on the galaxy map, in galaxy space. It is not 'hidden' in the system
+            //if (!inSystem)
+            //{
+            var transGalaxyCenter = GalaxyCenter.gameObject.transform;
+            var trans = systCon.gameObject.transform;
+            fleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, it is not in a star system
+                                                                          // now put it near the home world and visible/seen on the galaxy map, in galaxy space. It is not 'hidden' in the system
+            if (!newFleet)
                 fleetController.transform.Translate(new Vector3(trans.position.x + 20f, trans.position.y + 20f, trans.position.z));
-                fleetData.Position = fleetController.transform.position;
-                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
-            }
-            else // it is in the system shipyard so 'hidden' on the galaxy map inside the system
+            else
             {
-                fleetController.transform.SetParent(sysCon.gameObject.transform, false);
+                if (newFleetSpacer > 8f)
+                    newFleetSpacer = 0;
+                fleetController.transform.Translate(new Vector3(trans.position.x - 15f - newFleetSpacer, trans.position.y - 15f - newFleetSpacer, trans.position.z));
+                newFleetSpacer = newFleetSpacer + 2f;
             }
+            fleetData.Position = fleetController.transform.position;
+            ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
+            //}
+            //else // it is in the system shipyard so 'hidden' on the galaxy map inside the system
+            //{
+            //    fleetController.transform.SetParent(systCon.gameObject.transform, false);
+            //}
             fleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             fleetController.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
@@ -236,6 +251,19 @@ namespace Assets.Core
 
             fleetController.UpdateMaxWarp();
             InstantiateFleetUIGameObject(fleetController);
+            if (newFleet)
+            {
+                fleetController.FleetUIGameObject.SetActive(true);
+
+                var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+                //galaxyMenuUICon.ResetClickMode();
+                galaxyMenuUICon.FleetConSelectedForShipDeploy = fleetController;
+                //galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+                //galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
+                //galaxyMenuUICon.FleetLookingForShipDeploy = null;
+                galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, fleetController);
+                ShipDeployMenuUIController.Instance.BottomFleet = fleetController;
+            }
             return fleetController;
         }
         private void InstantiateFleetUIGameObject(FleetController fleetCon)
@@ -250,27 +278,40 @@ namespace Assets.Core
                     thisFleetUIGameObject.layer = 5;
                     fleetCon.FleetUIGameObject = thisFleetUIGameObject;
                     fleetCon.FleetUIGameObject.SetActive(true);
-                    //var originalParent = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
-                    //if (originalParent != null)
-                    //{
-                    //    //MainMenuUIController.Instance.GalaxyMenuGO.SetActive(true);
-                    //    FleetMenuUIController.Instance.FleetMenuView.gameObject.SetActive(true);
-                    //    originalParent.OriginalParentTransform = FleetMenuUIController.Instance.FleetListContainer.transform;
-                    //    FleetMenuUIController.Instance.FleetMenuView.gameObject.SetActive(false);
-                    //    //MainMenuUIController.Instance.GalaxyMenuGO.SetActive(false);
-                    //}
                     thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
-                    var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
-                    for (int i = 0; i < transforms.Length; i++)
+                    //var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
+                    //for (int i = 0; i < transforms.Length; i++)
+                    //{
+                    //    if (transforms[i].name == "FleetShipContent")
+                    //    {
+                    //        fleetCon.FleetData.ShipListUIParent = transforms[i].gameObject;
+                    //        return;
+                    //    }
+                    //}
+                    var shipContent = thisFleetUIGameObject.GetComponentsInChildren<Transform>(true)
+                               .FirstOrDefault(t => t.name == "FleetShipContent");
+                    if (shipContent != null)
                     {
-                        if (transforms[i].name == "FleetShipContent")
+                        fleetCon.FleetData.ShipListUIParent = shipContent.gameObject;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
+                    }
+
+                    // existing code to wire other UI child references...
+                    var transforms = thisFleetUIGameObject.transform.GetComponentsInChildren<Transform>();
+                    for (int j = 0; j < transforms.Length; j++)
+                    {
+                        if (transforms[j].gameObject.name == "ShipContent")
                         {
-                            fleetCon.FleetData.ShipListUIParent = transforms[i].gameObject;
+                            fleetCon.FleetData.ShipListUIParent = transforms[j].gameObject;
                             return;
                         }
                     }
                 }
             }
+            ShipManager.Instance?.ProcessPendingShipUIs();
         }
 
         void RemoveFleetConrollerFromAllControllers(FleetController fleetController)
@@ -297,7 +338,7 @@ namespace Assets.Core
 
         }
 
-        public FleetSO GetFleetSObyInt(int fleetInt)
+        public FleetSO GetFleetSO_byInt(int fleetInt)
         {
             FleetSO result = null;
             for (int i = 0; i < fleetSOList.Count; i++)
@@ -436,99 +477,122 @@ namespace Assets.Core
             }
         }
 
-        internal FleetController InstatiateNewFleetController(StarSysController sysController)
-        {
-            //FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 100, 0),
-            //    Quaternion.identity);
-            FleetSO fleetSO = GetFleetSObyInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
-            var position = sysController.StarSysData.GetPosition();
-            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
-            FleetData fleetData = new FleetData(fleetSO);
-            FleetController fleetController = InstantiateFleet(sysController, fleetData, position + new Vector3(0, 100, 0), true);
+        //internal FleetController InstatiateNewFleetController(StarSysController sysController)
+        //{
+        //    FleetSO fleetSO = GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
+        //    var position = sysController.StarSysData.GetPosition();
+        //    CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
+        //    FleetData fleetData = new FleetData(fleetSO);
+        //    FleetController fleetController = InstantiateFleet(sysController, fleetData, position + new Vector3(0, 100, 0), true);
 
-            fleetController.BackgroundGalaxyImage = galaxyImage;
-            FleetManager.Instance.FleetControllerList.Add(fleetController);
-            fleetController.gameObject.layer = 6; // galaxy layer
-            fleetController.FleetData = fleetData;
-            fleetController.FleetData.ShipsList.Clear();
-            fleetController.transform.SetParent(sysController.gameObject.transform, false);
-            var moveAmount = new Vector3(-50, -50, 0);
-            fleetController.transform.localPosition += moveAmount;
-            fleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
-            //int fleetInt = GetNewFleetInt(fleetData.CivEnum);
-            fleetController.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetData.FleetInt.ToString(); // name game object
-            fleetData.Name = fleetController.gameObject.name;
-            //if (!inSystem)
-            //    ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
-            //fleetController.FleetData.FleetInt = fleetInt;
-            //fleetController.Name = fleetData.Name;
-            FleetControllersInGame.Add(fleetController);
-            fleetController.FleetData.CurrentWarpFactor = 0f;
-            //TextMeshProUGUI TheText = fleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
-            if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
-            {
-                var ourFogRevealerFleet = new csFogWar.FogRevealer(fleetController.transform, 200, true);
-                fogWar.AddFogRevealer(ourFogRevealerFleet);
-            }
-            else
-            {
-                fleetController.gameObject.AddComponent<csFogVisibilityAgent>();
-                var ourFogVisibilityAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
-                ourFogVisibilityAgent.FogWar = fogWar;
-                ourFogVisibilityAgent.enabled = true;
-            }
-            //TheText.text = fleetController.gameObject.name;
-            //fleetData.Name = TheText.text;
-            var Renderers = fleetController.gameObject.GetComponentsInChildren<SpriteRenderer>();
-            for (int i = 0; i < Renderers.Length; i++)
-            {
-                if (Renderers[i] != null)
-                {
-                    if (Renderers[i].name == "InsigniaSprite")
-                    {
-                        Renderers[i].sprite = fleetController.FleetData.Insignia;
-                        if (!GameController.Instance.AreWeLocalPlayer(fleetController.FleetData.CivEnum) && !localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum))
-                        {
-                            Renderers[i].gameObject.SetActive(false);
-                        }
-                        else Renderers[i].gameObject.SetActive(true);
-                    }
-                    if (Renderers[i].name == "InsigniaUnknown" && (GameController.Instance.AreWeLocalPlayer(fleetController.FleetData.CivEnum) || localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum)))
-                    {
-                        Renderers[i].gameObject.SetActive(false);
-                    }
-                }
-            }
-            // The line from Fleet to underlying galaxy image and to destination
-            MapLineMovable[] ourLineToGalaxyImageScript = fleetController.gameObject.GetComponentsInChildren<MapLineMovable>();
-            for (int i = 0; i < ourLineToGalaxyImageScript.Length; i++)
-            {
-                if (ourLineToGalaxyImageScript[i].name == "DropLine")
-                {
-                    ourLineToGalaxyImageScript[i].GetLineRenderer();
-                    ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
-                    ourLineToGalaxyImageScript[i].lineRenderer.endColor = Color.red;
-                    ourLineToGalaxyImageScript[i].transform.SetParent(fleetController.transform, false);
-                    Vector3 galaxyPlanePoint = new Vector3(fleetController.transform.position.x,
-                        galaxyImage.transform.position.y, fleetController.transform.position.z);
-                    Vector3[] points = { fleetController.transform.position, galaxyPlanePoint };
-                    ourLineToGalaxyImageScript[i].SetUpLine(points);
-                    fleetController.DropLine = ourLineToGalaxyImageScript[i];
-                }
+        //    fleetController.BackgroundGalaxyImage = galaxyImage;
+        //    FleetManager.Instance.FleetControllerList.Add(fleetController);
+        //    fleetController.gameObject.layer = 6; // galaxy layer
+        //    fleetController.FleetData = fleetData;
+        //    fleetController.FleetData.ShipsList.Clear();
+        //    fleetController.transform.SetParent(sysController.gameObject.transform, false);
+        //    var moveAmount = new Vector3(-1, -1, 0);
+        //    fleetController.transform.localPosition += moveAmount;
+        //    fleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
+        //    //int fleetInt = GetNewFleetInt(fleetData.CivEnum);
+        //    fleetController.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetData.FleetInt.ToString(); // name game object
+        //    fleetData.Name = fleetController.gameObject.name;
 
-            }
-            fleetController.FleetData.Destination = GalaxyCenter;
-            foreach (var civCon in CivManager.Instance.CivControllersInGame)
-            {
-                if (civCon.CivData.CivEnum == fleetData.CivEnum)
-                    fleetData.CivController = civCon;
-            }
-            fleetController.gameObject.SetActive(true);
+        //    // --- Replace reflection-only string assignment with a proper TMP component update ---
+        //    // Find the TMP text component inside the instantiated prefab and set its text.
+        //    // Also store that TMP component back into the private FleetName field (via reflection)
+        //    // so existing FleetController logic that uses the field keeps working.
+        //    TMP_Text nameText = fleetController.GetComponentInChildren<TMP_Text>(true);
+        //    if (nameText == null)
+        //    {
+        //        // Try TextMeshProUGUI as a fallback
+        //        nameText = fleetController.GetComponentInChildren<TextMeshProUGUI>(true) as TMP_Text;
+        //    }
 
-            fleetController.UpdateMaxWarp();
-            InstantiateFleetUIGameObject(fleetController);
-            fleetController.FleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
-            return fleetController;
-        }
+        //    if (nameText != null)
+        //    {
+        //        nameText.text = fleetData.Name;
+
+        //        var fleetNameField = fleetController.GetType().GetField("FleetName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        //        if (fleetNameField != null && fleetNameField.FieldType.IsAssignableFrom(typeof(TMP_Text)))
+        //        {
+        //            // assign the actual TMP_Text component instance to the private field
+        //            fleetNameField.SetValue(fleetController, nameText);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        Debug.LogWarning($"InstantiateNewFleetController: no TMP_Text found under {fleetController.gameObject.name}, fleet name not shown in UI.");
+        //    }
+        //    // -------------------------------------------------------------------------------
+
+        //    FleetControllersInGame.Add(fleetController);
+        //    fleetController.FleetData.CurrentWarpFactor = 0f;
+        //    //TextMeshProUGUI TheText = fleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
+        //    if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
+        //    {
+        //        var ourFogRevealerFleet = new csFogWar.FogRevealer(fleetController.transform, 200, true);
+        //        fogWar.AddFogRevealer(ourFogRevealerFleet);
+        //    }
+        //    else
+        //    {
+        //        fleetController.gameObject.AddComponent<csFogVisibilityAgent>();
+        //        var ourFogVisibilityAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
+        //        ourFogVisibilityAgent.FogWar = fogWar;
+        //        ourFogVisibilityAgent.enabled = true;
+        //    }
+        //    //TheText.text = fleetController.gameObject.name;
+        //    //fleetData.Name = TheText.text;
+        //    var Renderers = fleetController.gameObject.GetComponentsInChildren<SpriteRenderer>();
+        //    for (int i = 0; i < Renderers.Length; i++)
+        //    {
+        //        if (Renderers[i] != null)
+        //        {
+        //            if (Renderers[i].name == "InsigniaSprite")
+        //            {
+        //                Renderers[i].sprite = fleetController.FleetData.Insignia;
+        //                if (!GameController.Instance.AreWeLocalPlayer(fleetController.FleetData.CivEnum) && !localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum))
+        //                {
+        //                    Renderers[i].gameObject.SetActive(false);
+        //                }
+        //                else Renderers[i].gameObject.SetActive(true);
+        //            }
+        //            if (Renderers[i].name == "InsigniaUnknown" && (GameController.Instance.AreWeLocalPlayer(fleetController.FleetData.CivEnum) || localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum)))
+        //            {
+        //                Renderers[i].gameObject.SetActive(false);
+        //            }
+        //        }
+        //    }
+        //    // The line from Fleet to underlying galaxy image and to destination
+        //    MapLineMovable[] ourLineToGalaxyImageScript = fleetController.gameObject.GetComponentsInChildren<MapLineMovable>();
+        //    for (int i = 0; i < ourLineToGalaxyImageScript.Length; i++)
+        //    {
+        //        if (ourLineToGalaxyImageScript[i].name == "DropLine")
+        //        {
+        //            ourLineToGalaxyImageScript[i].GetLineRenderer();
+        //            ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
+        //            ourLineToGalaxyImageScript[i].lineRenderer.endColor = Color.red;
+        //            ourLineToGalaxyImageScript[i].transform.SetParent(fleetController.transform, false);
+        //            Vector3 galaxyPlanePoint = new Vector3(fleetController.transform.position.x,
+        //                galaxyImage.transform.position.y, fleetController.transform.position.z);
+        //            Vector3[] points = { fleetController.transform.position, galaxyPlanePoint };
+        //            ourLineToGalaxyImageScript[i].SetUpLine(points);
+        //            fleetController.DropLine = ourLineToGalaxyImageScript[i];
+        //        }
+
+        //    }
+        //    fleetController.FleetData.Destination = GalaxyCenter;
+        //    foreach (var civCon in CivManager.Instance.CivControllersInGame)
+        //    {
+        //        if (civCon.CivData.CivEnum == fleetData.CivEnum)
+        //            fleetData.CivController = civCon;
+        //    }
+        //    fleetController.gameObject.SetActive(true);
+
+        //    fleetController.UpdateMaxWarp();
+        //    InstantiateFleetUIGameObject(fleetController);
+        //    fleetController.FleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
+        //    return fleetController;
+        //}
     }
 }

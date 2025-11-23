@@ -103,6 +103,8 @@ namespace Assets.Core
         private Camera galaxyEventCamera;
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
+        internal GameObject sysShipUIGOContentParent;
+
         //private int systemCount = -1; // Used only in testing multiple systems in Federation
         private void Awake()
         {
@@ -312,6 +314,10 @@ namespace Assets.Core
                 starSysCon.gameObject.SetActive(true);
                 StarSysControllerList.Add(starSysCon);
 
+                // Ensure the system UI is instantiated early so ShipListUIParent is available
+                // before any code that creates ship UI items or builds ships/fleets.
+                InstantiateSysUIGameObject(starSysCon);
+
                 List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
                 CivManager.Instance.AddSystemToOwnSystemListAndHomeSys(listStarSysCon);
                 var canvases = starSysCon.GetComponentsInChildren<Canvas>();
@@ -319,11 +325,12 @@ namespace Assets.Core
                 if (starSystemCounter == CivManager.Instance.CivControllersInGame.Count)
                 {
                     csFogWar.Instance.RunFogOfWar(); // star systems are in place so time to scan for the fog
+                                                     // instantiate and wire the system UI now (so ShipListUIParent is available
 
                 }
                 if (civSO.HasWarp)
                 {
-                    FleetManager.Instance.BuildFirstFleetsNearSys(starSysCon, false); // fleet for first ships as game loads, not for ships instantiated by working shipyard in system
+                    FleetManager.Instance.BuildFleetsNearSyst(starSysCon); // fleet for first ships as game loads, not for ships instantiated by working shipyard in system
                     ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
                 }
                 if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
@@ -342,14 +349,6 @@ namespace Assets.Core
                 {
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
-                InstantiateSysUIGameObject(starSysCon);
-                // InstantiateSysShipsUIGameObject(starSysCon);
-                //***** This is temporary so we can test a multi-star system civ
-                //******* before diplomacy will alow civ/systems to join another civ
-                //if (systemCount == 8)
-                //{
-                //    CivManager.current.nowCivsCanJoinTheFederation = true;
-                //}
             }
 
             GameObject[] allGO = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
@@ -832,20 +831,29 @@ namespace Assets.Core
                     thisStarSysUIGameObject.layer = 5;
                     sysController.StarSysUIGameObject = thisStarSysUIGameObject;
                     sysController.StarSysUIGameObject.SetActive(true);
-                    //var originalParent = sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>();
-                    //if (originalParent != null)
-                    //{
-                    //    StarSysMenuUIController.Instance.SystemsMenuView.gameObject.SetActive(true);
-                    //    originalParent.OriginalParentTransform = StarSysMenuUIController.Instance.SysListContainer.transform;
-                    //    StarSysMenuUIController.Instance.SystemsMenuView.gameObject.SetActive(false);
-                    //}
+
                     thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
+
+                    // Find the UI container that will hold ship UI items (include inactive children)
+                    var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
+                                                   .FirstOrDefault(t => t.name == "ShipContent");
+                    if (shipContent != null)
+                    {
+                        sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"InstantiateSysUIGameObject: ShipContent not found in UI prefab for system {sysController.name}");
+                    }
+
+                    // existing code to wire other UI child references...
                     var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
                     for (int j = 0; j < transforms.Length; j++)
                     {
                         if (transforms[j].gameObject.name == "ShipContent")
                         {
                             sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
+                            ShipManager.Instance?.ProcessPendingShipUIs();
                             return;
                         }
                     }
