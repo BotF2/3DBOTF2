@@ -282,6 +282,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
 
     }
+
     // jump to Home System is in GalaxyCameraDragMoveZoom.cs
     public void CloseButtonPressed()
     {
@@ -318,6 +319,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         starSysMenuUIController.HideA_SystemMenuView();
         CloseMenu(Menu.ASystemMenu);
     }
+
     public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
     {
         if (openMenuWas != null)
@@ -492,11 +494,6 @@ public class GalaxyMenuUIController : MonoBehaviour
             callingMenu.SetActive(false);
     }
 
-    //public void CloseSystemShipsUI(StarSysController theSystCon)
-    //{
-    //    theSystCon.StarSysUIGameObject.SetActive(false);
-    //    CloseSystemShipsUI(theSystCon);
-    //}
 
     public void CloseMenu(Menu enumMenu)
     {

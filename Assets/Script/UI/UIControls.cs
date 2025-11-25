@@ -19,7 +19,7 @@ using UnityEngine.InputSystem.Utilities;
 /// Provides programmatic access to <see cref="InputActionAsset" />, <see cref="InputActionMap" />, <see cref="InputAction" /> and <see cref="InputControlScheme" /> instances defined in asset "Assets/Script/UI/UIControls.inputactions".
 /// </summary>
 /// <remarks>
-/// This class is source generated and any manual edits will be discarded if the associated asset is re-imported or modified.
+/// This class is source generated and any manual edits will be discarded if the associated asset is reimported or modified.
 /// </remarks>
 /// <example>
 /// <code>

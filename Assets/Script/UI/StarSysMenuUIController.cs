@@ -40,19 +40,37 @@ public class StarSysMenuUIController : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
+
     private void Start()
     {
-        //record the original parent of the ASystemMenuView
+        // Record the original parent of each StarSysUIGameObject as its current parent (or fall back to SysListContainer / ASystemMenuView).
         for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
         {
             var sysCon = StarSysManager.Instance.StarSysControllerList[i];
             if (sysCon != null && sysCon.StarSysUIGameObject != null)
             {
-                if (sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
-                    sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = ASystemMenuView.transform;
+                var child = sysCon.StarSysUIGameObject;
+                var childController = child.GetComponent<FleetAndSystemChildController>();
+                if (childController != null && childController.OriginalParentTransform == null)
+                {
+                    // Prefer the current hierarchy parent first
+                    if (child.transform.parent != null)
+                    {
+                        childController.OriginalParentTransform = child.transform.parent;
+                    }
+                    // Next prefer the SysListContainer if available
+                    else if (SysListContainer != null)
+                    {
+                        childController.OriginalParentTransform = SysListContainer.transform;
+                    }
+                    // Last resort: ASystemMenuView (preserve existing behavior if nothing else)
+                    else if (ASystemMenuView != null)
+                    {
+                        childController.OriginalParentTransform = ASystemMenuView.transform;
+                    }
+                }
             }
         }
-
         // Initially hide fleet menu views
         if (SystemsMenuView != null)
             SystemsMenuView.SetActive(false);
@@ -362,19 +380,27 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    public void MoveBackAnyaSysUIGO()
+public void MoveBackAnyaSysUIGO()
     {
         ASystemMenuView.SetActive(true);
         for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
         {
             var child = ASystemMenuView.transform.GetChild(i)?.gameObject;
-            if (child != null)
+            if (child == null) continue;
+
+            var childCtrl = child.GetComponent<FleetAndSystemChildController>();
+            if (childCtrl != null)
             {
-                if (child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
+                Transform originalParent = childCtrl.OriginalParentTransform;
+                // Fallback: if OriginalParentTransform is null or equals ASystemMenuView, use SysListContainer if available
+                if (originalParent == null || originalParent == ASystemMenuView.transform)
                 {
-                    Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
-                    child.transform.SetParent(originalParent, false);
+                    if (SysListContainer != null)
+                        originalParent = SysListContainer.transform;
                 }
+
+                if (originalParent != null)
+                    child.transform.SetParent(originalParent, false);
             }
         }
     }

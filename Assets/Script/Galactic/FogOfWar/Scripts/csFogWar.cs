@@ -11,7 +11,9 @@ using System;                       // Convert
 using System.Collections.Generic;   // List
 using System.IO;                    // Directory
 using System.Linq;                  // Enumerable
-using UnityEditor;                  // Handles
+#if UNITY_EDITOR
+using UnityEditor;                  // Handles (editor-only)
+#endif
 using UnityEngine;                  // Monobehaviour
 
 
