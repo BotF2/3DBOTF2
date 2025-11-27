@@ -46,7 +46,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
             // UI item is a separate prefab instance - move the UI object into the slot
             chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
         }
-        topFleet = chosenFleet;
+        BottomFleet = chosenFleet;
         bottomStarSyst = null;
         SetUpTopShipLists();
     }
@@ -63,7 +63,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
             }
         }
         bottomStarSyst = StarSysLooking;
-        topFleet = null;
+        BottomFleet = null;
         SetUpTopShipLists();
     }
 
@@ -110,31 +110,29 @@ public class ShipDeployMenuUIController : MonoBehaviour
         return shipListItems.ToArray();
     }
 
-    internal void DeployShips()
+    internal void DeployShipsUIGOToNewFleetOrSystem()
     {
         if (topFleet != null && BottomFleet != null)
         {
-            DeployShipsBetweenFleets(topFleet, BottomFleet);
+            DeployShipUIgoBetweenFleets(topFleet, BottomFleet);
         }
         else if (topFleet != null && bottomStarSyst != null)
         {
-            DeployShipsFromFleetToStarSys(topFleet, bottomStarSyst);
+            DeployShipUIgoFromFleetToStarSys(topFleet, bottomStarSyst);
         }
         else if (TopStarSyst != null && BottomFleet != null)
         {
-            DeployShipsFromStarSysToFleet(TopStarSyst, BottomFleet);
+            DeployShipUIgoFromStarSysToFleet(TopStarSyst, BottomFleet);
         }
         else if (TopStarSyst != null && bottomStarSyst != null)
         {
-            DeployShipsBetweenStarSys(TopStarSyst, bottomStarSyst);
+            DeployShipUIgoBetweenStarSys(TopStarSyst, bottomStarSyst);
         }
-
-        // After UI elements are moved we must sync the game play data structures (FleetData / StarSysData)
-        // to reflect the new ownership. See UpdateOwnersFromUI() for implementation.
-        UpdateOwnersFromUI();
+        // The drag handler (ShipListItemDrag) performs authoritative Remove/Add on the model.
+        // Keep this UI mover lightweight. If you need to reconcile programmatically, call UpdateOwnersFromUI().
     }
 
-    private void DeployShipsBetweenStarSys(StarSysController topStarSyst, StarSysController bottomStarSyst)
+    private void DeployShipUIgoBetweenStarSys(StarSysController topStarSyst, StarSysController bottomStarSyst)
     {
         for (int i = 0; GetTopSlotShipListUIGOs().Length > i; i++)
         {
@@ -154,7 +152,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
     }
 
-    private void DeployShipsFromStarSysToFleet(StarSysController topStarSyst, FleetController bottomFleet)
+    private void DeployShipUIgoFromStarSysToFleet(StarSysController topStarSyst, FleetController bottomFleet)
     {
         for (int i = 0; GetTopSlotShipListUIGOs().Length > i; i++)
         {
@@ -174,28 +172,31 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
     }
 
-    private void DeployShipsFromFleetToStarSys(FleetController topFleet, StarSysController bottomStarSyst)
+    private void DeployShipUIgoFromFleetToStarSys(FleetController topFleet, StarSysController bottomStarSyst)
     {
+        // Cache both arrays ONCE
+        GameObject[] shipUIGOsTop = GetTopSlotShipListUIGOs();
+        GameObject[] shipUIGOsBottom = GetBottomSlotShipListUIGOs();
 
-        for (int i = 0; i < GetTopSlotShipListUIGOs().Length; i++)
+        // local cached array, not affected by reparenting
+        for (int i = 0; i < shipUIGOsTop.Length; i++)
         {
-            var shipUIGOtop = GetTopSlotShipListUIGOs()[i];
-            var shipListUI_Item = shipUIGOtop.GetComponent<ShipListUI_Item>();
-            shipListUI_Item.CurrentFleet = topFleet;
-            shipListUI_Item.CurrentStarSyst = null;
-            shipUIGOtop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+            ShipListUI_Item item = shipUIGOsTop[i].GetComponent<ShipListUI_Item>();
+            item.CurrentFleet = topFleet;
+            item.CurrentStarSyst = null;
+            item.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
         }
-        for (int i = 0; i < GetBottomSlotShipListUIGOs().Length; i++)
+
+        for (int i = 0; i < shipUIGOsBottom.Length; i++)
         {
-            var shipUIGOBottom = GetBottomSlotShipListUIGOs()[i];
-            var shipListUI_Item = shipUIGOBottom.GetComponent<ShipListUI_Item>();
-            shipListUI_Item.CurrentStarSyst = bottomStarSyst;
-            shipListUI_Item.CurrentFleet = null;
-            shipUIGOBottom.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
+            ShipListUI_Item item = shipUIGOsBottom[i].GetComponent<ShipListUI_Item>();
+            item.CurrentStarSyst = bottomStarSyst;
+            item.CurrentFleet = null;
+            item.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
         }
     }
 
-    private void DeployShipsBetweenFleets(FleetController topFleet, FleetController bottomFleet)
+    private void DeployShipUIgoBetweenFleets(FleetController topFleet, FleetController bottomFleet)
     {
         for (int i = 0; i < GetTopSlotShipListUIGOs().Length; i++)
         {
@@ -215,11 +216,11 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
     }
 
-    // ---- New: synchronize model ownership to match UI after drag/drop ----
+    // synchronize model ownership to match UI after drag/drop ----
     // After UI objects have been moved between UI parents we rebuild FleetData/StarSysData ship lists
     // from the UI elements. This keeps game play (FleetData.ShipsList / StarSysData.ShipsList)
     // as the single source of truth for ownership while allowing UI items to be transient and moved.
-    private void UpdateOwnersFromUI()
+    private void UpdateOwnersFromUI() // only used if we need a check that slots for ships UIGO do match model data
     {
         // Collect affected owners to clear lists first
         var fleetsToClear = new HashSet<FleetController>();
@@ -233,7 +234,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         // Clear existing lists so we can rebuild
         foreach (var f in fleetsToClear)
         {
-            f.FleetData.ShipsList.Clear();
+            f.FleetData.ShipsList.Clear(); // clear ship 
         }
         foreach (var s in starSysToClear)
         {
@@ -258,7 +259,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
     private void RebuildFromUIParent(Transform parent)
     {
-        for (int i = 0; i < parent.childCount; i++)  // wrong bottom count!!!
+        for (int i = 0; i < parent.childCount; i++)
         {
             var child = parent.GetChild(i).gameObject;
             var item = child.GetComponent<ShipListUI_Item>();
@@ -304,7 +305,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
             // Optional: update the ShipController to know its current owner if it exposes such a property.
             // Use reflection or a known property name if necessary. Keep this optional and silent if not present.
-            try // not working, prop null !!!!!
+            try // not working, prop null !!!!
             {
                 var shipCon = item.ShipController;
                 var shipType = shipCon.GetType();
@@ -320,5 +321,4 @@ public class ShipDeployMenuUIController : MonoBehaviour
             }
         }
     }
-    // -------------------------------------------------------------------
 }

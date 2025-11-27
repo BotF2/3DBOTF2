@@ -1,12 +1,8 @@
-
-using System;
-using System.Collections;
+using Assets.Core;
 using System.Collections.Generic;
-using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using Assets.Core;
 /// <summary>
 /// The UI controller owns hierarchy and presentation.
 /// </summary>
@@ -55,10 +51,37 @@ public class FleetMenuUIController : MonoBehaviour
     }
     private void Start()
     {
+        for (int i = 0; i < FleetManager.Instance.FleetControllerList.Count; i++)
+        {
+            var fleetCon = FleetManager.Instance.FleetControllerList[i];
+            if (fleetCon != null && fleetCon.FleetUIGameObject != null)
+            {
+                var child = fleetCon.FleetUIGameObject;
+                var childController = child.GetComponent<FleetAndSystemChildController>();
+                if (childController != null && childController.OriginalParentTransform == null)
+                {
+                    // Prefer the current hierarchy parent first
+                    if (child.transform.parent != null)
+                    {
+                        childController.OriginalParentTransform = child.transform.parent;
+                    }
+                    // Next prefer the SysListContainer if available
+                    else if (FleetListContainer != null)
+                    {
+                        childController.OriginalParentTransform = FleetListContainer.transform;
+                    }
+                    // Last resort: ASystemMenuView (preserve existing behavior if nothing else)
+                    else if (AFleetMenuView != null)
+                    {
+                        childController.OriginalParentTransform = AFleetMenuView.transform;
+                    }
+                }
+            }
+        }
         // Initially hide fleet menu views
         if (FleetMenuView != null)
             FleetMenuView.SetActive(false);
-        if (AFleetMenuView != null) 
+        if (AFleetMenuView != null)
             AFleetMenuView.SetActive(false);
         //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
         //parentCanvas.worldCamera = galaxyEventCamera;
@@ -127,8 +150,8 @@ public class FleetMenuUIController : MonoBehaviour
         {
             var child = AFleetMenuView.transform.GetChild(i)?.gameObject;
             if (child != null)
-            {   
-                if(child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
+            {
+                if (child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
                 {
                     Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
                     child.transform.SetParent(originalParent, false);
@@ -263,7 +286,7 @@ public class FleetMenuUIController : MonoBehaviour
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI(fleetCon));
                         break;
-                    case "SelectShipManagerCursorButton": 
+                    case "SelectShipManagerCursorButton":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => SelectedShipManageCursor(fleetCon));
                         break;
@@ -273,7 +296,7 @@ public class FleetMenuUIController : MonoBehaviour
                         break;
                     default:
                         break;
-                        
+
                 }
             }
 
@@ -296,7 +319,7 @@ public class FleetMenuUIController : MonoBehaviour
             }
         }
     }
-    
+
     private void SelectedShipManageCursor(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;

@@ -221,7 +221,7 @@ namespace Assets.Core
         ZZUNINHABITED51,
         ZZUNINHABITED52,
         ZZUNINHABITED53,
-        None, 
+        None,
         #endregion
     }
     public enum GalaxyMapType
@@ -297,7 +297,7 @@ namespace Assets.Core
         /// system GalaxyObjectTypes are inhabited with a planet or are planet like in the case of the UniComplex. 
         /// Also, system can be uninhabited star systems or nebulas with habitable planet so available for colonization by a transport ship in a visiting fleet
         /// The station will be treated as its own class with fields/properties, but like a fleet that does not move 
-        /// The galactic objects blackholes and wormholes will have their own class with fields and/properties
+        /// The galactic objects black-holes and wormholes will have their own class with fields and/properties
         /// The Target Destination is user defined location in deep space.
         /// </summary>
         BlueStar,

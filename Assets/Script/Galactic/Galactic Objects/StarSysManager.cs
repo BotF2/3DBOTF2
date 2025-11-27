@@ -326,7 +326,6 @@ namespace Assets.Core
                 {
                     csFogWar.Instance.RunFogOfWar(); // star systems are in place so time to scan for the fog
                                                      // instantiate and wire the system UI now (so ShipListUIParent is available
-
                 }
                 if (civSO.HasWarp)
                 {

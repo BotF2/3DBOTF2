@@ -884,13 +884,14 @@ namespace Assets.Core
             if (shipController == null) return;
             StarSysData.RemoveFromShipList(shipController);
 
-            // If the ship GameObject is parented to this system, unparent it (or leave as is if caller handles reparenting)
-            if (shipController.transform.IsChildOf(this.transform))
+            // If the ship controller GO is parented to this system (under the GalaxyCenter go), unparent it to scene root.
+            if (shipController.transform.IsChildOf(transform))
                 shipController.transform.SetParent(null, worldPositionStays: true);
 
-            // Move UI item back to the system UI parent if available
-            if (shipController.ShipListUIGameObject != null && StarSysData.ShipListUIParent != null)
-                shipController.ShipListUIGameObject.transform.SetParent(StarSysData.ShipListUIParent.transform, false);
+            // Move ship UI GO item back to the system UI parent if available
+
+            //if (shipController.ShipListUIGameObject != null && StarSysData.ShipListUIParent != null)
+            //    shipController.ShipListUIGameObject.transform.SetParent(StarSysData.ShipListUIParent.transform, false);
         }
 
         // New: add ship to this star system (gameplay object + model + UI)
@@ -899,7 +900,7 @@ namespace Assets.Core
             if (shipController == null) return;
 
             // Reparent gameplay ship under this star system in the scene
-            shipController.transform.SetParent(this.transform, worldPositionStays: true);
+            shipController.transform.SetParent(transform, worldPositionStays: true);
 
             // Add to model list
             if (!StarSysData.ShipsList.Contains(shipController))

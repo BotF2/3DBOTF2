@@ -290,7 +290,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
         if (ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
         {
-            ShipDeployMenuUIController.Instance.DeployShips();
+            ShipDeployMenuUIController.Instance.DeployShipsUIGOToNewFleetOrSystem();
             CloseMenu(Menu.ShipDeployMenu);
         }
         HideShipDeployMenu();
@@ -529,6 +529,8 @@ public class GalaxyMenuUIController : MonoBehaviour
             case Menu.ShipDeployMenu:
                 MoveBackShipUIGO();
                 shipDeployMenuUIController.HideShipDeployMenuView();
+                starSysMenuUIController.MoveBackAnyaSysUIGO();
+                fleetMenuUIController.MoveBackAnyaFleetUIGO();
                 openMenuWas = shipDeployMenuUIController.gameObject;
                 break;
             case Menu.DiplomacyMenu:

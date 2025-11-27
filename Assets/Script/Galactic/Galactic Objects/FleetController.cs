@@ -398,7 +398,7 @@ namespace Assets.Core
 
             // Reparent gameplay ship under this fleet so scene hierarchy and transform stay correct.
             // Keep world position so the ship doesn't jump unexpectedly.
-            shipController.transform.SetParent(this.transform, worldPositionStays: true);
+            shipController.transform.SetParent(transform, worldPositionStays: true);
 
             // Add to FleetData (model). FleetData.AddToShipList should guard duplicates but check anyway.
             if (!FleetData.ShipsList.Contains(shipController))
@@ -413,28 +413,30 @@ namespace Assets.Core
             // Update controller state (max warp etc.)
             UpdateMaxWarp();
         }
+
         public void RemoveFromShipList(ShipController shipController)
         {
             if (shipController == null) return;
 
             // Remove from model list
             if (FleetData.ShipsList.Contains(shipController))
-                FleetData.RemoveFromShipList(shipController);
+                FleetData.RemoveFromShipList(shipController);// ship controllers go are children of a fleet controller go, not to confuse with the ship UI go we see on drag drop
 
             // Update controller state
             UpdateMaxWarp();
 
-            // If the ship was parented to this fleet in the scene hierarchy, unparent it to scene root.
-            if (shipController.transform.IsChildOf(this.transform))
+            // If the ship controller was parented to this fleet controller go under GalaxyCenter in the scene hierarchy, unparent it to scene root.
+            if (shipController.transform.IsChildOf(transform))
                 shipController.transform.SetParent(null, worldPositionStays: true);
 
-            // Optionally move UI item to a neutral parent if the fleet UI parent still exists.
-            // Keep it in the UI so the ShipListUIGameObject can be reused by other owners.
-            if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
-            {
-                shipController.ShipListUIGameObject.transform.SetParent(FleetData.ShipListUIParent.transform, false);
-            }
+            // Optionally move ship UI GO item to a neutral parent if the fleet UI parent still exists.
+
+            //if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
+            //{
+            //    shipController.ShipListUIGameObject.transform.SetParent(FleetData.ShipListUIParent.transform, false);
+            //}
         }
+
         public void UpdateMaxWarp()
         {
             float maxWarp = 10f;
@@ -516,10 +518,6 @@ namespace Assets.Core
             GalaxyMenuUIController.Instance.CloseMenu(Menu.AFleetMenu); // The single fleet UI
             GalaxyMenuUIController.Instance.CloseMenu(Menu.FleetMenu);
         }
-        //private string GetDebuggerDisplay()
-        //{
-        //    return ToString();
-        //}
 
         internal void RemoveShipFromFleet(ShipController shipController)
         {

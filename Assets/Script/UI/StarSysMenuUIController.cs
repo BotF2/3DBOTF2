@@ -71,7 +71,7 @@ public class StarSysMenuUIController : MonoBehaviour
                 }
             }
         }
-        // Initially hide fleet menu views
+        // Initially hide views
         if (SystemsMenuView != null)
             SystemsMenuView.SetActive(false);
         if (ASystemMenuView != null)
@@ -380,7 +380,7 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-public void MoveBackAnyaSysUIGO()
+    public void MoveBackAnyaSysUIGO()
     {
         ASystemMenuView.SetActive(true);
         for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
@@ -600,12 +600,12 @@ public void MoveBackAnyaSysUIGO()
         fleetData.CivShortName = thisCivData.CivShortName;
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
-        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
         galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
         galaxyMenuUICon.FleetLookingForShipDeploy = null;
         ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
-        fleetManager.InstantiateFleet(sysController, fleetData, position, true);
-        //Call this in InstantiateFleet: galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleetCon);
+        var newFleet = fleetManager.InstantiateFleet(sysController, fleetData, position, true);
+        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
+        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
 
     }
     private void ClickCancelFleetButton()

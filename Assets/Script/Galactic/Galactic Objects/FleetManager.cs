@@ -48,7 +48,7 @@ namespace Assets.Core
         private Dictionary<CivEnum, List<int>> fleetNumsInUse = new Dictionary<CivEnum, List<int>>();
         public List<FleetController> FleetControllersInGame = new List<FleetController>();
         [SerializeField]
-        private GameObject fleetUIGOContentParent;
+        private GameObject fleetUIGOContentParent; // in Hierarchy at MainMenuScene/CanvasGalaxy/FleetMenuScroll View/Viewport/ContentFleetUIGO.
         [SerializeField]
         private GameObject fleetShipsContentFolderParent;
         private List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
@@ -170,12 +170,8 @@ namespace Assets.Core
                 newFleetSpacer = newFleetSpacer + 2f;
             }
             fleetData.Position = fleetController.transform.position;
-            ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
-            //}
-            //else // it is in the system shipyard so 'hidden' on the galaxy map inside the system
-            //{
-            //    fleetController.transform.SetParent(systCon.gameObject.transform, false);
-            //}
+            if (!newFleet)
+                ShipManager.Instance.BuildShipsOfFirstFleet(fleetController);
             fleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             fleetController.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
@@ -250,23 +246,20 @@ namespace Assets.Core
             fleetController.gameObject.SetActive(true);
 
             fleetController.UpdateMaxWarp();
-            InstantiateFleetUIGameObject(fleetController);
+            InstantiateFleetUIGameObject(fleetController, newFleet);
             if (newFleet)
             {
-                fleetController.FleetUIGameObject.SetActive(true);
-
+                //fleetController.FleetUIGameObject.SetActive(true);
+                //fleetController.FleetData.ShipsList.Clear();
                 var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-                //galaxyMenuUICon.ResetClickMode();
                 galaxyMenuUICon.FleetConSelectedForShipDeploy = fleetController;
-                //galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
-                //galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
-                //galaxyMenuUICon.FleetLookingForShipDeploy = null;
                 galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, fleetController);
                 ShipDeployMenuUIController.Instance.BottomFleet = fleetController;
             }
+
             return fleetController;
         }
-        private void InstantiateFleetUIGameObject(FleetController fleetCon)
+        private void InstantiateFleetUIGameObject(FleetController fleetCon, bool newFleet)
         {
             if (fleetCon.FleetData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
             {
@@ -309,6 +302,8 @@ namespace Assets.Core
                             return;
                         }
                     }
+                    if (newFleet)
+                        FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                 }
             }
             ShipManager.Instance?.ProcessPendingShipUIs();

@@ -25,7 +25,7 @@ public class ShipManager : MonoBehaviour
     int shipIndex = 0;
 
     // Pending UI items that couldn't be properly parented when created
-    private readonly List<ShipController> pendingShipUI = new List<ShipController>();
+    private readonly List<ShipController> shipConPendingShipUI = new List<ShipController>();
 
     private void Awake()
     {
@@ -223,7 +223,7 @@ public class ShipManager : MonoBehaviour
                         if (canvas != null)
                             shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
 
-                        pendingShipUI.Add(shipCon);
+                        shipConPendingShipUI.Add(shipCon);
                         Debug.LogWarning($"Ship UI created before system ShipListUIParent for {sysCon.name}; queued for reparenting.");
                     }
                 }
@@ -241,7 +241,7 @@ public class ShipManager : MonoBehaviour
                         if (canvas != null)
                             shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
 
-                        pendingShipUI.Add(shipCon);
+                        shipConPendingShipUI.Add(shipCon);
                         Debug.LogWarning($"Ship UI created before fleet ShipListUIParent for {fleetCon.gameObject.name}; queued for reparenting.");
                     }
                 }
@@ -252,21 +252,21 @@ public class ShipManager : MonoBehaviour
     // Call this after you instantiate system/fleet UI so any pending ship UI gets reparented correctly.
     public void ProcessPendingShipUIs()
     {
-        if (pendingShipUI.Count == 0) return;
+        if (shipConPendingShipUI.Count == 0) return;
 
-        for (int i = pendingShipUI.Count - 1; i >= 0; i--)
+        for (int i = shipConPendingShipUI.Count - 1; i >= 0; i--)
         {
-            var shipCon = pendingShipUI[i];
+            var shipCon = shipConPendingShipUI[i];
             if (shipCon == null || shipCon.ShipListUIGameObject == null)
             {
-                pendingShipUI.RemoveAt(i);
+                shipConPendingShipUI.RemoveAt(i);
                 continue;
             }
 
             var uiItem = shipCon.ShipListUIGameObject.GetComponent<ShipListUI_Item>();
             if (uiItem == null)
             {
-                pendingShipUI.RemoveAt(i);
+                shipConPendingShipUI.RemoveAt(i);
                 continue;
             }
 
@@ -293,7 +293,7 @@ public class ShipManager : MonoBehaviour
 
             if (reparented)
             {
-                pendingShipUI.RemoveAt(i);
+                shipConPendingShipUI.RemoveAt(i);
             }
         }
     }
