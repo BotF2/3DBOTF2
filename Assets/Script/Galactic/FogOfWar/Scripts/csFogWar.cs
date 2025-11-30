@@ -177,9 +177,12 @@ namespace FischlWorks_FogWar
             {
                 float xCam = camTransform.position.x;
                 float zCam = camTransform.position.z;
+                //if (currentLevelCoordinates != null)
+                //{
                 currentLevelCoordinates = new Vector2Int(
-                fogWar.GetUnitX(revealerTransform.position.x), // - (camTransform.transform.position.x / 5)), // adjust for camera position moving the fog layer, move the revealer too
-                fogWar.GetUnitY(revealerTransform.position.z));
+            fogWar.GetUnitX(revealerTransform.position.x), // - (camTransform.transform.position.x / 5)), // adjust for camera position moving the fog layer, move the revealer too
+            fogWar.GetUnitY(revealerTransform.position.z));
+                //}
 
                 return currentLevelCoordinates;
             }
@@ -453,9 +456,15 @@ namespace FischlWorks_FogWar
 
             foreach (FogRevealer fogRevealer in fogRevealers)
             {
+                //if (fogRevealer != null)
+                //{
                 if (fogRevealer._UpdateOnlyOnMove == false)
                 {
                     break;
+                }
+                if (fogRevealer._RevealerTransform == null)
+                {
+                    continue;
                 }
 
                 Vector2Int currentLevelCoordinates = fogRevealer.GetCurrentLevelCoordinates(this);
@@ -469,6 +478,7 @@ namespace FischlWorks_FogWar
                 {
                     return;
                 }
+                //}
             }
 
             UpdateFogField();
@@ -527,7 +537,7 @@ namespace FischlWorks_FogWar
 
         private void ScanLevel()
         {
-           // Debug.LogFormat("There is no level data file assigned, scanning level...");
+            // Debug.LogFormat("There is no level data file assigned, scanning level...");
 
             // These operations have no real computational meaning, but it will bring consistency to the data
             levelData.levelDimensionX = levelDimensionX;
@@ -623,11 +633,23 @@ namespace FischlWorks_FogWar
 
             return fogRevealers.Count - 1;
         }
-
+        public int RemoveFogRevealer(FogRevealer fogRevealer)
+        {
+            int index = fogRevealers.IndexOf(fogRevealer);
+            if (index != -1)
+            {
+                fogRevealers.RemoveAt(index);
+            }
+            else
+            {
+                Debug.LogFormat("Given FogRevealer instance not found in the revealers' container");
+            }
+            return index;
+        }
 
 
         /// Removes a FogRevealer Instance from the list with index
-        public void RemoveFogRevealer(int revealerIndex)
+        public void RemoveFogRevealerByIndex(int revealerIndex)
         {
             if (fogRevealers.Count > revealerIndex && revealerIndex > -1)
             {

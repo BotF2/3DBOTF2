@@ -348,6 +348,17 @@ namespace Assets.Core
                 {
                     localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
                 }
+                //if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
+                //{
+                //    //Transform[] childTransforms = starSysCon.gameObject.GetComponentsInChildren<Transform>(true);
+                //    //for (int j = 0; j < childTransforms.Length; j++)
+                //    //{
+                //    //    if (childTransforms[j].gameObject.GetComponent<HoverUI3D>() != null)
+                //    //    {
+                //    //        childTransforms[j].gameObject.GetComponent<HoverUI3D>().gameObject.SetActive(false);
+                //    //    }
+                //    //}
+                //}
             }
 
             GameObject[] allGO = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];

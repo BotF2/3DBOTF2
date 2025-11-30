@@ -41,14 +41,17 @@ namespace FischlWorks_FogWar
                 Transform randomTransform = Instantiate(exampleRevealer, randomPoint, Quaternion.identity).GetComponent<Transform>();
 
                 // Utilizing the constructor, setting updateOnlyOnMove to true will not update the fog texture immediately
-                int index = fogWar.AddFogRevealer(new csFogWar.FogRevealer(randomTransform, 15, false));
+                if (randomTransform != null)
+                {
+                    int index = fogWar.AddFogRevealer(new csFogWar.FogRevealer(randomTransform, 15, false));
+                }
             }
 
             if (Input.GetKeyDown(KeyCode.C))
             {
                 if (fogWar._FogRevealers.Count > 2)
                 {
-                    fogWar.RemoveFogRevealer(fogWar._FogRevealers.Count - 1);
+                    fogWar.RemoveFogRevealerByIndex(fogWar._FogRevealers.Count - 1);
                 }
             }
         }

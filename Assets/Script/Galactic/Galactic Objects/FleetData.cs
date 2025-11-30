@@ -76,6 +76,10 @@ public class FleetData
     {
         return description;
     }
+    public Vector3 GetPosition()
+    {
+        return Position;
+    }
 
     public string GetFleetName() { return this.Name; }
 

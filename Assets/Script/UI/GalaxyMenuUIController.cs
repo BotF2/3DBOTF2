@@ -290,6 +290,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
         if (ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
         {
+            StarSysMenuUIController.Instance.ClickCancelShipManageButton();
+            FleetMenuUIController.Instance.ClickCancelShipManageButton();
             ShipDeployMenuUIController.Instance.DeployShipsUIGOToNewFleetOrSystem();
             CloseMenu(Menu.ShipDeployMenu);
         }

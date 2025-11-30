@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +14,7 @@ namespace Assets.Core
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
         public GameObject FleetUIGameObject; //The instantiated fleet UI for this fleet. a prefab clone, not a class but a game object
+        public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
         private float warpFudgeFactor = 10f;
@@ -42,8 +42,6 @@ namespace Assets.Core
         private TextMeshProUGUI warpSliderText;
         [SerializeField]
         private float maxSliderValue = 10f;
-        [SerializeField]
-        private List<ShipData> shipList;
         private TMP_Dropdown shipDropdown;
         [SerializeField]
         public GameObject ShipDropDownGO;
@@ -78,9 +76,10 @@ namespace Assets.Core
             rb = GetComponent<Rigidbody>();
             rb.isKinematic = true;
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
-            var CanvasGO = GameObject.Find("CanvasGalaxy");
-            FleetUICanvas = CanvasGO.GetComponent<Canvas>();
-            FleetUICanvas.worldCamera = galaxyEventCamera;
+            if (GalaxyCanvasGo != null)
+                FleetUICanvas = GalaxyCanvasGo.GetComponent<Canvas>();
+            if (FleetUICanvas != null)
+                FleetUICanvas.worldCamera = galaxyEventCamera;
             if (FleetData != null && FleetData.ShipsList != null)
             {
                 for (int i = 0; i < FleetData.ShipsList.Count; i++)
@@ -453,7 +452,7 @@ namespace Assets.Core
         }
         public void DestroyFleet(FleetData fleetData, GameObject fleetGO)
         {
-            FleetManager.Instance.RemoveFleetInt(fleetData.CivEnum, fleetData.FleetInt);
+            FleetManager.Instance.RemoveFleetNumInUse(fleetData.CivEnum, fleetData.FleetInt);
             if (FleetManager.Instance.FleetControllerList.Contains(this))
             {
                 FleetManager.Instance.FleetControllerList.Remove(this);
@@ -525,7 +524,7 @@ namespace Assets.Core
             if (this.FleetData.ShipsList.Count == 0)
             {
                 // no ships left, remove fleet
-                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                FleetManager.Instance.RemoveFleetNumInUse(this.FleetData.CivEnum, this.FleetData.FleetInt);
                 FleetData.ShipsList.Remove(shipController);
                 //Destroy(this.gameObject);
             }
@@ -546,7 +545,7 @@ namespace Assets.Core
             //StopAllCoroutines();
             if (this.FleetData != null)
             {
-                FleetManager.Instance.RemoveFleetInt(this.FleetData.CivEnum, this.FleetData.FleetInt);
+                FleetManager.Instance.RemoveFleetNumInUse(this.FleetData.CivEnum, this.FleetData.FleetInt);
                 if (FleetManager.Instance.FleetControllerList.Contains(this))
                 {
                     FleetManager.Instance.FleetControllerList.Remove(this);

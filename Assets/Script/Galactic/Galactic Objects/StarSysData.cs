@@ -37,7 +37,7 @@ public class StarSysData
     public List<GameObject> OrbitalBatteries;
     public GameObject buildSlotItemImage;
     public List<GameObject> buildQueueImageList;
-    public int TotalSysPowerOutput =0;
+    public int TotalSysPowerOutput = 0;
     public int TotalSysPowerLoad = 0;
     public PowerPlantData PowerPlantData;
     public FactoryData FactoryData;

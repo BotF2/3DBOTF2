@@ -1,3 +1,5 @@
+// Ignore Spelling: Anya
+
 using Assets.Core;
 using System.Collections.Generic;
 using TMPro;
@@ -30,12 +32,13 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject cancelShipManagerButtonGO;
     [SerializeField] private GameObject warpButtonUpGO;
     [SerializeField] private GameObject warpButtonDownGO;
+    [SerializeField] private GameObject mergeFleetButtonGO;
     [SerializeField] private GameObject closeFleetUIButtonGO;
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
     public FleetController ActiveFleetController;
-
+    private FleetController tempFleetController;
 
     private void Awake()
     {
@@ -142,7 +145,6 @@ public class FleetMenuUIController : MonoBehaviour
             }
         }
     }
-
     public void MoveBackAnyaFleetUIGO()
     {
         AFleetMenuView.SetActive(true);
@@ -168,6 +170,14 @@ public class FleetMenuUIController : MonoBehaviour
             newFleetUIGO.SetActive(true);
             fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
             listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
+            var fleetAndStarSys = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
+            if (fleetAndStarSys != null)
+            {
+                if (fleetAndStarSys.OriginalParentTransform == null)
+                {
+                    fleetAndStarSys.OriginalParentTransform = FleetListContainer.transform;
+                }
+            }
 
             RectTransform[] rectTransforms = newFleetUIGO.GetComponentsInChildren<RectTransform>(true);
             for (int i = 0; i < rectTransforms.Length; i++)
@@ -206,16 +216,23 @@ public class FleetMenuUIController : MonoBehaviour
                         rectTransforms[i].gameObject.SetActive(true);
                         warpButtonDownGO = rectTransforms[i].gameObject;
                         break;
-                    case "ButtonCloseFleetUI":
+                    //case "ButtonCloseFleetUI":
+                    //    rectTransforms[i].gameObject.SetActive(true);
+                    //    closeFleetUIButtonGO = rectTransforms[i].gameObject;
+                    //    break;
+                    case "NewFleetButton":
                         rectTransforms[i].gameObject.SetActive(true);
-                        closeFleetUIButtonGO = rectTransforms[i].gameObject;
                         break;
-                    case "SelectShipManagerCursorButton":
+                    case "MergeFleetButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        mergeFleetButtonGO = rectTransforms[i].gameObject;
+                        break;
+                    case "ShipDeployButton":
                         rectTransforms[i].gameObject.SetActive(true);
                         selectShipManagerCursorButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "CancelShipManagerButton":
-                        rectTransforms[i].gameObject.SetActive(true);
+                        rectTransforms[i].gameObject.SetActive(false);
                         cancelShipManagerButtonGO = rectTransforms[i].gameObject;
                         break;
                 }
@@ -286,13 +303,21 @@ public class FleetMenuUIController : MonoBehaviour
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI(fleetCon));
                         break;
-                    case "SelectShipManagerCursorButton":
+                    case "NewFleetButton":
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => SelectedShipManageCursor(fleetCon));
+                        listButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
+                        break;
+                    case "MergeFleetButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => ClickMergeFleetButton());
+                        break;
+                    case "ShipDeployButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => ClickShipDeployCursor(fleetCon));
                         break;
                     case "CancelShipManagerButton":
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => ClickCancelShipManageButton(fleetCon));
+                        listButton.onClick.AddListener(() => ClickCancelShipManageButton());
                         break;
                     default:
                         break;
@@ -320,21 +345,61 @@ public class FleetMenuUIController : MonoBehaviour
         }
     }
 
-    private void SelectedShipManageCursor(FleetController fleetCon)
+    private void ClickMergeFleetButton()
+    {
+        // Merge fleet code here;
+    }
+
+    private void ClickNewFleetButton(FleetController oldFleetCon)
+    {
+        if (oldFleetCon.FleetData.ShipsList.Count < 2) return;
+        MousePointerChanger.Instance.ResetCursor();
+        var fleetManager = FleetManager.Instance;
+        FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)oldFleetCon.FleetData.CivEnum);
+        var position = oldFleetCon.FleetData.GetPosition();
+
+        CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
+        FleetData fleetData = new FleetData(fleetSO);
+        fleetData.CurrentWarpFactor = 3f;
+        fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
+        fleetData.CivShortName = thisCivData.CivShortName;
+        var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+        galaxyMenuUICon.ResetClickMode();
+        galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
+        galaxyMenuUICon.StarSystLookingForShipDeploy = null;
+        ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
+        var emptyStarSysCon = StarSysManager.Instance.InstantiatEmptyStarSysController();
+        var newFleet = fleetManager.InstantiateFleet(oldFleetCon, emptyStarSysCon, fleetData, position, true);
+        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
+        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        tempFleetController = newFleet;
+    }
+
+    private void ClickShipDeployCursor(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
         galaxyUI.WhatFleetIsLookingForShipDeploy(fleetCon);
         galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
         MousePointerChanger.Instance.SetShipExchangeCursor(fleetCon);
     }
-    public void ClickCancelShipManageButton(FleetController fleetCon)
+    public void ClickCancelShipManageButton()
     {
+        if (tempFleetController == null) return;
+        if (tempFleetController.FleetData.ShipsList.Count == 0)
+        {
+            if (FleetManager.Instance.TempFogRevealerFleet != null)
+                FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
+            FleetManager.Instance.TempFogRevealerFleet = null;
+
+            FleetManager.Instance.DestroyFleetController(tempFleetController);
+            tempFleetController = null;
+        }
         var galaxyUI = GalaxyMenuUIController.Instance;
+        MousePointerChanger.Instance.ResetCursor();
+        cancelShipManagerButtonGO?.SetActive(false);
         galaxyUI.ClickCancelShipDeployButton();
         galaxyUI.ResetClickMode();
         galaxyUI.CompleteShipExchange();
-        ClickCancelShipManagerButton(fleetCon);
-        MousePointerChanger.Instance.ResetCursor();
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {

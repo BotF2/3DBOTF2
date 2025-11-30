@@ -1,8 +1,5 @@
 using Mirror;
-using Mirror.BouncyCastle.Bcpg;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -28,7 +25,7 @@ namespace Assets.Core
         [SerializeField]
         private GameObject mainMenuCanvas;
         //
-        public GameObject GalaxyMenuGO;     
+        public GameObject GalaxyMenuGO;
         [SerializeField]
         private GameObject TipCanvas;
         [SerializeField]
@@ -67,7 +64,7 @@ namespace Assets.Core
         [SerializeField]
         private TMP_Text playerFed, playerRom, playerKling, playerCard, playerDom, playerBorg, playerTerran;
         private readonly string player = "You", computer = "Computer", notInGame = "Absent";
-        private Toggle activeLocalPlayerToggle; 
+        private Toggle activeLocalPlayerToggle;
         private CivEnum localPlayerCiv = CivEnum.FED;
         private List<CivEnum> majorCivsInGameList = new List<CivEnum>
         {
@@ -149,7 +146,7 @@ namespace Assets.Core
             TechLevelToggleGroup.RegisterToggle(DevelopedToggle);
             TechLevelToggleGroup.RegisterToggle(AdvancedToggle);
             TechLevelToggleGroup.RegisterToggle(SupremeToggle);
-        
+
 
             // Pending Multiplayer lobby if needed
             //MultiplayerCivilizationGroup.enabled = true;
@@ -405,7 +402,7 @@ namespace Assets.Core
                     }
                 }
             }
-        SetCivMajorCivsInGame(majorCivsInGameList);    
+            SetCivMajorCivsInGame(majorCivsInGameList);
         }
 
         private void ActivePlayerToggle()
@@ -417,7 +414,7 @@ namespace Assets.Core
                     FedOnOff.OnSelect(null);
                     FedLocalPalyerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active FedLocalPalyerToggle.");
-                    SetLocalCivilization(0); 
+                    SetLocalCivilization(0);
                     PlaceTheYouInPlayerList(0);
                     break;
                 case "TOGGLELOCAL_ROM":
@@ -621,7 +618,7 @@ namespace Assets.Core
             if (!IsSinglePlayer && NetworkServer.active)
                 PlayerManager.Instance.SetMajorCivsInGameForMultiPlayer(majorCivsInGameList, localPlayerCiv);
             else if (IsSinglePlayer) { }
-               // PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
+            // PlayerManager.Instance.SetMajorCivsInGameForSinglePlayer(majorCivsInGameList, localPlayerCiv);
         }
         public void SetMultiPlayer()
         {
@@ -814,16 +811,6 @@ namespace Assets.Core
             }
 
         }
-
-        //private void SetLocalPlayer(CivEnum civEnum)
-        //{
-        //    if (NetworkServer.active && PlayerManager.Instance.LocalPlayerController != null && PlayerManager.Instance.LocalPlayerController.PlayerCiv != civEnum)
-        //    {
-        //        PlayerManager.Instance.ResetPlayerList();
-        //        PlayerManager.Instance.SetLocalPlayer(civEnum);
-        //    }
-        //    else GameController.Instance.GameData.LocalPlayerCivEnum = civEnum;
-        //}
     }
 }
 

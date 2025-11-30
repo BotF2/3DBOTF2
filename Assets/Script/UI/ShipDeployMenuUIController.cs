@@ -11,10 +11,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
     public GameObject BottomSlot;
     [SerializeField]
     private Button updateShipsLists;
-    private FleetController topFleet;
+    public FleetController TopFleet;
     public FleetController BottomFleet;
     public StarSysController TopStarSyst;
-    private StarSysController bottomStarSyst;
+    public StarSysController bottomStarSyst;
 
     private void Awake()
     {
@@ -77,7 +77,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
             {
                 shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
             }
-            topFleet = galaxyUI.FleetLookingForShipDeploy;
+            TopFleet = galaxyUI.FleetLookingForShipDeploy;
             TopStarSyst = null;
         }
         else if (galaxyUI.StarSystLookingForShipDeploy != null)
@@ -88,7 +88,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
             }
             TopStarSyst = galaxyUI.StarSystLookingForShipDeploy;
-            topFleet = null;
+            TopFleet = null;
         }
     }
     public GameObject[] GetTopSlotShipListUIGOs()
@@ -112,13 +112,13 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
     internal void DeployShipsUIGOToNewFleetOrSystem()
     {
-        if (topFleet != null && BottomFleet != null)
+        if (TopFleet != null && BottomFleet != null)
         {
-            DeployShipUIgoBetweenFleets(topFleet, BottomFleet);
+            DeployShipUIgoBetweenFleets(TopFleet, BottomFleet);
         }
-        else if (topFleet != null && bottomStarSyst != null)
+        else if (TopFleet != null && bottomStarSyst != null)
         {
-            DeployShipUIgoFromFleetToStarSys(topFleet, bottomStarSyst);
+            DeployShipUIgoFromFleetToStarSys(TopFleet, bottomStarSyst);
         }
         else if (TopStarSyst != null && BottomFleet != null)
         {
@@ -226,7 +226,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         var fleetsToClear = new HashSet<FleetController>();
         var starSysToClear = new HashSet<StarSysController>();
 
-        if (topFleet != null) fleetsToClear.Add(topFleet);
+        if (TopFleet != null) fleetsToClear.Add(TopFleet);
         if (BottomFleet != null) fleetsToClear.Add(BottomFleet);
         if (TopStarSyst != null) starSysToClear.Add(TopStarSyst);
         if (bottomStarSyst != null) starSysToClear.Add(bottomStarSyst);
@@ -247,8 +247,8 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
         // Also rebuild any ShipListUIParent containers we used as final parents:
         // topFleet / bottomFleet parents may also contain children depending on Deploy* paths
-        if (topFleet != null && topFleet.FleetData.ShipListUIParent != null)
-            RebuildFromUIParent(topFleet.FleetData.ShipListUIParent.transform);
+        if (TopFleet != null && TopFleet.FleetData.ShipListUIParent != null)
+            RebuildFromUIParent(TopFleet.FleetData.ShipListUIParent.transform);
         if (BottomFleet != null && BottomFleet.FleetData.ShipListUIParent != null)
             RebuildFromUIParent(BottomFleet.FleetData.ShipListUIParent.transform);
         if (TopStarSyst != null && TopStarSyst.StarSysData.ShipListUIParent != null)

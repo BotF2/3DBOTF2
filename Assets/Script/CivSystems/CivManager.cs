@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Assets.Core
@@ -36,7 +35,7 @@ namespace Assets.Core
 
         public bool isSinglePlayer;
         public List<CivEnum> InGamePlayableCivs;
-        public CivController LocalPlayerCivContoller; 
+        public CivController LocalPlayerCivContoller;
 
         //public bool nowCivsCanJoinTheFederation = true; // for use with testing a muliple star system Federation
         private int HoldCivSize = 0;// used in testing of a multiStarSystem civilization/faction
@@ -113,7 +112,7 @@ namespace Assets.Core
                         if (galaxySize == 2)
                             _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
                         //if (galaxySize >= 3)
-                          //_SOsInGame.Add(randomMinorsInGame[i]);
+                        //_SOsInGame.Add(randomMinorsInGame[i]);
                     }
                 }
                 SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
@@ -180,7 +179,7 @@ namespace Assets.Core
         }
         public void CivDataFromSO(List<CivSO> civSOList, int localPayerCivInt)
         {
-            for (int i = 0; i < civSOList.Count; i++) 
+            for (int i = 0; i < civSOList.Count; i++)
             {
                 CivData civData = new CivData(); // CivData is not MonoBehavior so new is OK
                 civData.CivInt = civSOList[i].CivInt;
@@ -236,17 +235,17 @@ namespace Assets.Core
         }
         void CreateCivEnumList(List<CivSO> listOfCivSO)
         {
-            for (int i = 0; i < listOfCivSO.Count; i++) 
+            for (int i = 0; i < listOfCivSO.Count; i++)
             {
                 CivEnumsInGame.Add(listOfCivSO[i].CivEnum);
             }
             FleetManager.Instance.CleanUpDictionaryForFleetNums();
-            }
+        }
         public CivData GetCivDataByName(string shortName)
         {
 
             CivData result = null;
-            for (int i = 0;i < CivDataInGameList.Count;i++)
+            for (int i = 0; i < CivDataInGameList.Count; i++)
             {
                 if (CivDataInGameList[i].CivShortName.Equals(shortName))
                 {
@@ -259,7 +258,7 @@ namespace Assets.Core
         public CivData GetCivDataByCivEnum(CivEnum civEnum)
         {
             CivData result = null;
-            for(int i = 0; i<CivDataInGameList.Count;i++)
+            for (int i = 0; i < CivDataInGameList.Count; i++)
             {
 
                 if (CivDataInGameList[i].CivEnum.Equals(civEnum))
