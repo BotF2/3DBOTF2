@@ -373,6 +373,9 @@ public class FleetMenuUIController : MonoBehaviour
         galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
         galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
         tempFleetController = newFleet;
+        ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+        ShipDeployMenuUIController.Instance.SetUpBottomShipLists(newFleet);
+        ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
     }
 
     private void ClickShipDeployCursor(FleetController fleetCon)

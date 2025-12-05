@@ -264,7 +264,7 @@ namespace Assets.Core
         private void HandleShipDeploySelection(FleetController clickedFleetCon) //this
         {
             if (clickedFleetCon != this) return;
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatFleetIsSelectedForShipDiploy(this);
@@ -284,6 +284,7 @@ namespace Assets.Core
             }
             ShipDeployMenuUIController.Instance.SetUpTopShipLists();
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
 
         private Vector3 GetMouseWorldPosition()
@@ -441,7 +442,7 @@ namespace Assets.Core
             float maxWarp = 10f;
             for (int i = 0; i < fleetData.ShipsList.Count; i++)
             { // find the slowest ship
-                if (fleetData.ShipsList[i].ShipData.maxWarpFactor < maxWarp)
+                if (fleetData.ShipsList[i] != null && fleetData.ShipsList[i].ShipData.maxWarpFactor < maxWarp)
                 {
                     maxWarp = fleetData.ShipsList[i].ShipData.maxWarpFactor;
                 }

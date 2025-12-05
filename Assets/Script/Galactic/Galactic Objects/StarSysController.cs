@@ -508,7 +508,7 @@ namespace Assets.Core
         private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
@@ -531,6 +531,7 @@ namespace Assets.Core
             }
             ShipDeployMenuUIController.Instance.SetUpTopShipLists();
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
 
         private void HandleNormalClick(StarSysController clickedSystemCon)

@@ -168,11 +168,9 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         if (shipDeployMenuUIController == null) return;
         MousePointerChanger.Instance.ResetCursor();
-        shipDeployMenuUIController.ShowShipDeployMenuView();
-        shipDeployMenuUIController.gameObject.SetActive(true);
 
         // move the fleet UI under the active AFleet/A_System view if appropriate
-        var fleetLooking = FleetLookingForShipDeploy;
+        var fleetLooking = fleet;// FleetLookingForShipDeploy;
         var starSysLooking = StarSystLookingForShipDeploy;
         if (fleetLooking != null)
         {
@@ -194,6 +192,9 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
         shipDeployMenuUIController.SetUpBottomShipLists(fleet);
         SetClickMode(GalaxyClickMode.SelectForShipExchange);
+
+        shipDeployMenuUIController.gameObject.SetActive(true);
+        shipDeployMenuUIController.ShowShipDeployMenuView();
     }
 
     public void ShowShipDeployForSystemNewFleet(StarSysController starSystCon, FleetController newFleet)
@@ -204,7 +205,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
 
-        //var fleetLooking = FleetLookingForShipDeploy;
+        var fleetLooking = FleetLookingForShipDeploy;
         var starsLooking = StarSystLookingForShipDeploy;
 
         if (starsLooking != null)

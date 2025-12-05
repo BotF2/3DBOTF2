@@ -107,7 +107,8 @@ public class ShipManager : MonoBehaviour
                 InstantiateShipListUIGameObject(shipCon, parentGO);
 
                 // Put gameplay ship under parent in scene
-                shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu 
+                shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu
+                shipConList.Add(shipCon);
             }
         }
         return shipConList;
@@ -316,6 +317,15 @@ public class ShipManager : MonoBehaviour
                     shipCon.ShipData.CurrentFleetController = fleetCon;
                     fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
                     ShipControllerList.Add(shipCon);
+                }
+                List<ShipController> ourListOfShip = new List<ShipController>();
+                ourListOfShip = fleetCon.FleetData.ShipsList;
+                for (int i = 0; i < ourListOfShip.Count; i++)
+                {
+                    if (fleetCon.FleetData.ShipsList[i] == null)
+                    {
+                        fleetCon.FleetData.ShipsList.Remove(fleetCon.FleetData.ShipsList[i]);
+                    }
                 }
             }
         }
