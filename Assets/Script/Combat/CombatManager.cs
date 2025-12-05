@@ -1,32 +1,29 @@
 using Assets.Core;
-using Mirror.BouncyCastle.Asn1.Crmf;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class CombatManager : MonoBehaviour
 {
     public static CombatManager Instance { get; private set; }
 
     public GameObject CombatUICanvasGO;
+    [SerializeField]
     private Canvas Cambat3DCamvas;
     public GameObject HealthbarPrefab;
     [SerializeField]
-    private CombatController combatConPrefab;  
+    private CombatController combatConPrefab;
     private CombatData _combatData;
     public List<CombatController> CombatControllers = new List<CombatController>();
     public List<IPlayerController> participants;
     //public List<Animator> animators; // Assign in Inspector or dynamically
-    [SerializeField] GameObject sideOneAnima1;
-    [SerializeField] GameObject sideOneAnima2;
-    [SerializeField] GameObject sideOneAnima3;
-    [SerializeField] GameObject sideTwoAnima1;
-    [SerializeField] GameObject sideTwoAnima2;
-    [SerializeField] GameObject sideTwoAnima3;
+    //[SerializeField] GameObject sideOneAnima1;
+    //[SerializeField] GameObject sideOneAnima2;
+    //[SerializeField] GameObject sideOneAnima3;
+    //[SerializeField] GameObject sideTwoAnima1;
+    //[SerializeField] GameObject sideTwoAnima2;
+    //[SerializeField] GameObject sideTwoAnima3;
     [SerializeField] private Animator _sideOneA1Animator;
     public Animator sideOneA1Animator
     {
@@ -91,7 +88,7 @@ public class CombatManager : MonoBehaviour
     public List<GameObject> TorpedoPrefabs;
     public List<GameObject> BeamPrefabs;
 
-    
+
     public CombatController CurrentCombatController
     {
         get
@@ -155,7 +152,7 @@ public class CombatManager : MonoBehaviour
     }
 
     public void InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
-     {
+    {
         {
             CombatData combatData = new CombatData();
 
@@ -193,7 +190,7 @@ public class CombatManager : MonoBehaviour
             aCombatController.sideTwoA2Animator = sideTwoA2Animator;
             aCombatController.animators.Add(aCombatController.sideTwoA2Animator);
             aCombatController.sideTwoA3Animator = sideTwoA3Animator;
-            aCombatController.animators.Add(aCombatController.sideTwoA3Animator);    
+            aCombatController.animators.Add(aCombatController.sideTwoA3Animator);
             aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
             aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
             aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);
@@ -208,7 +205,7 @@ public class CombatManager : MonoBehaviour
 
     private GameObject GetTorpedoPrefabs(CombatController aCombatController, CivEnum civEnum)
     {
-        GameObject torbedoPrefab = TorpedoPrefabs[TorpedoPrefabs.Count -1]; // default to minor civ prefab
+        GameObject torbedoPrefab = TorpedoPrefabs[TorpedoPrefabs.Count - 1]; // default to minor civ prefab
 
         for (int i = 0; i < TorpedoPrefabs.Count; i++)
         {
@@ -220,11 +217,9 @@ public class CombatManager : MonoBehaviour
         }
         return torbedoPrefab; // Return the default prefab if no match found
     }
-
-    
     private GameObject GetBeamPrefabs(CombatController aCombatController, CivEnum civEnum)
     {
-        GameObject beamPrefab = BeamPrefabs[BeamPrefabs.Count -1];
+        GameObject beamPrefab = BeamPrefabs[BeamPrefabs.Count - 1];
         for (int i = 0; i < BeamPrefabs.Count; i++)
         {
             if (i == (int)civEnum)
@@ -254,7 +249,7 @@ public class CombatManager : MonoBehaviour
         {
             combatUiController.CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
             combatUiController.OpenCombatUI(thisCombatUIGameObject);
-            
+
         }
         else
         {
@@ -273,7 +268,7 @@ public class CombatManager : MonoBehaviour
                     CombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
                     Scene combatScene = SceneManager.GetSceneByName("CombatScene");
                     combatScene.GetRootGameObjects().ToList().ForEach(go => Destroy(go));
-                    ShipCombatCameraController.Instance.WarpingInOver = false; // also turns off autoroation of camera
+                    ShipCombatCameraController.Instance.WarpingInOver = false; // also turns off auto-rotation of camera
                     break;
                 }
             }

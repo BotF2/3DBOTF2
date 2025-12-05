@@ -121,7 +121,8 @@ namespace Assets.Core
             fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
             fleetData.CivShortName = thisCivData.CivShortName;
             var emptyFleet = InsatiateEmptyFleetController();
-            FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);
+            FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);// false, these fleets are created as game loads so not "new fleet"
+            //Destroy(emptyFleet);
         }
         public FleetController InsatiateEmptyFleetController()
         {
@@ -131,7 +132,8 @@ namespace Assets.Core
         }
 
         public FleetController InstantiateFleet(FleetController originalFleetCon, StarSysController systCon, FleetData newFleetData, Vector3 position, bool newFleet)
-        {
+        { // from a fleet spawning a new fleet, newFleet(true), or a star system creating a new fleet, newFleet(true) vs a fleet created when the game loads and newfleet(false)
+            newFleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
             IEnumerable<StarSysController> ourCivSysCons =
             from x in StarSysManager.Instance.StarSysControllerList
@@ -153,12 +155,15 @@ namespace Assets.Core
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.gameObject.transform;
-            if (systCon != null)
-                newTrans = systCon.transform;
+            if (systCon != null && !newFleet)
+            {
+                newTrans = systCon.transform; // first fleets near home systems
+                Destroy(originalFleetCon.gameObject); // destroy the original fleet controller used as template empty
+            }
             else if (originalFleetCon != null)
                 newTrans = originalFleetCon.transform;
 
-            newFleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, it is not in a star system
+            newFleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, but world position stays as is
 
             if (newTrans != null)
             {

@@ -1,13 +1,9 @@
 ﻿using Assets.Core;
 using Mirror;
-using Mirror.BouncyCastle.Bcpg;
-using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -93,7 +89,7 @@ public class CombatController : MonoBehaviour
                 float step = currentSpeed * Time.deltaTime;
                 for (int i = 0; i < animators.Count; i++)
                 {
-                    var numChildren = animators[i].transform.childCount; 
+                    var numChildren = animators[i].transform.childCount;
                     for (int j = 0; j < numChildren; j++)
                     {
                         animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * step, Space.Self);
@@ -113,7 +109,7 @@ public class CombatController : MonoBehaviour
             {
                 isClosing = true;
                 CombatUIController.Instance.RunCombatOverPanel();
-                StartCoroutine(DelayedActionHalfSec());
+                StartCoroutine(DelayedActionSomeSec());
             }
         }
 
@@ -133,11 +129,11 @@ public class CombatController : MonoBehaviour
             {
                 dir = Vector3.zero;
             }
-        
+
             moveDirections.Add(dir.normalized); // cache direction
         }
 
-        deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance ); // 2f would be stop at the distance.
+        deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance); // 2f would be stop at the distance.
         currentSpeed = initialSpeed;
         isMoving = true;
     }
@@ -150,7 +146,7 @@ public class CombatController : MonoBehaviour
             for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
             {
                 CombatData.SideOneShipCons[i].SetShipOrder(order); // Set the combat order for each ship in Side One
-            } 
+            }
         }
         else if (CombatData.CivEnumSideTwo == civEnum)
         {
@@ -167,7 +163,7 @@ public class CombatController : MonoBehaviour
     }
     public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
     {
-        List<ShipController> shipCons = null; 
+        List<ShipController> shipCons = null;
         // Determine which list of ships to use based on the civOfOrder  
         if (civOfOrder == CombatData.CivEnumSideOne)
         {
@@ -243,10 +239,10 @@ public class CombatController : MonoBehaviour
         }
     }
     private void PopulateShipGOAndAnimation(List<ShipController> shipConList, int side1negSide2pos)
-    {     
+    {
         if (ShipCombatCanvas == null)
         {
-            ShipCombatCanvas = FindAnyObjectByType<Canvas>(); 
+            ShipCombatCanvas = FindAnyObjectByType<Canvas>();
         }
         ShipCombatCanvas.worldCamera = SceneController.Instance.ShipCombatCameraGO.GetComponent<Camera>();
         int currentTransportIndex1 = -1;
@@ -278,13 +274,13 @@ public class CombatController : MonoBehaviour
             shipConList[i].name = shipConList[i].ShipData.ShipName;
             shipConList[i].gameObject.SetActive(true);
             //********** Healthbar code here for now *************
-            GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab, 
+            GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab,
                 shipConList[i].transform.position, Quaternion.identity, ShipCombatCanvas.transform);
             healthbarGO.SetActive(true);
             healthbarGO.transform.SetParent(shipConList[i].transform, false);
             healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0); // below ship model and closer to camcera
             healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // scale down to fit ship model
-            healthbarGO.transform.localRotation = Quaternion.Euler(0,-90 * side1negSide2pos, 0); // face off the side of the ship model
+            healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0); // face off the side of the ship model
             Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
             for (int j = 0; j < healthbarImages.Length; j++)
             {
@@ -335,14 +331,14 @@ public class CombatController : MonoBehaviour
                     if (side1negSide2pos < 0)
                     {
                         currentOtherShipIndex1++;
-                        if (currentOtherShipIndex1 <= (_spiralPositionsOtherShipsSide1.Count -1))
+                        if (currentOtherShipIndex1 <= (_spiralPositionsOtherShipsSide1.Count - 1))
                         {
                             if (flipAnimation1 < 0)
                             {
                                 sideOneA1Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-                
+
                                 flipAnimation1 = 1;
                             }
                             else
@@ -350,7 +346,7 @@ public class CombatController : MonoBehaviour
                                 sideOneA2Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-        
+
                                 flipAnimation1 = -1;
                             }
                         }
@@ -359,14 +355,14 @@ public class CombatController : MonoBehaviour
                     else if (side1negSide2pos > 0)
                     {
                         currentOtherShipIndex2++;
-                        if (currentOtherShipIndex2 <= (_spiralPositionsOtherShipsSide2.Count -1))
+                        if (currentOtherShipIndex2 <= (_spiralPositionsOtherShipsSide2.Count - 1))
                         {
                             if (flipAnimation2 < 0)
                             {
                                 sideTwoA1Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-                        
+
                                 flipAnimation2 = 1;
                             }
                             else
@@ -374,7 +370,7 @@ public class CombatController : MonoBehaviour
                                 sideTwoA2Animator.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
                                 SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-                      
+
                                 flipAnimation2 = -1;
                             }
                         }
@@ -395,7 +391,7 @@ public class CombatController : MonoBehaviour
             float width = 1f;
             GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipConList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
             if (mesheGO == null)
-            {  
+            {
                 mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
             }
             GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
@@ -419,7 +415,7 @@ public class CombatController : MonoBehaviour
 
     private void SetLocalTransportPosition(GameObject shipGameOb, int indexTrans, List<Vector2Int> spiralPositions)
     {
-        shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexTrans].x *100, spiralPositions[indexTrans].y *100);
+        shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexTrans].x * 100, spiralPositions[indexTrans].y * 100);
     }
     private void SetLocalOtherShipPosition(GameObject shipGameOb, int indexOther, List<Vector2Int> spiralPositions)
     {
@@ -456,7 +452,7 @@ public class CombatController : MonoBehaviour
                 Vector3 dir = (targetPos - origin).normalized;
                 Vector3 safeOrigin = origin + dir * 10f;
                 float dist = Vector3.Distance(origin, targetPos);
-      
+
                 float distSqr = (shipListFiring[i].transform.position - shipListTargets[j].transform.position).sqrMagnitude;
                 if (distSqr < shortestDist)
                 {
@@ -514,7 +510,7 @@ public class CombatController : MonoBehaviour
             }
         }
     }
-    
+
     IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)
     {
         yield return new WaitForSecondsRealtime(delayInSeconds);
@@ -523,7 +519,7 @@ public class CombatController : MonoBehaviour
     public void RunAnimation()
     {
         // combat warpin animation runs when ship prefab is instantiated, Start() function of animator script is called
-        
+
         WarpingIn = true;
         WarpingAnimationOver = false;
         List<GameObject> shipGameObjects = new List<GameObject>();
@@ -585,9 +581,9 @@ public class CombatController : MonoBehaviour
         }
         return spiralPositions.ToList();
     }
-    IEnumerator DelayedActionHalfSec()
+    IEnumerator DelayedActionSomeSec()
     {
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(2f);
         // Action to perform after the delay
         EndCombat();
     }

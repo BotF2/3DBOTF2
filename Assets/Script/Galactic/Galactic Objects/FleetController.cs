@@ -80,14 +80,6 @@ namespace Assets.Core
                 FleetUICanvas = GalaxyCanvasGo.GetComponent<Canvas>();
             if (FleetUICanvas != null)
                 FleetUICanvas.worldCamera = galaxyEventCamera;
-            if (FleetData != null && FleetData.ShipsList != null)
-            {
-                for (int i = 0; i < FleetData.ShipsList.Count; i++)
-                {
-                    if (FleetData.ShipsList[i].ShipData.maxWarpFactor < this.FleetData.MaxWarpFactor)
-                    { this.FleetData.MaxWarpFactor = FleetData.ShipsList[i].ShipData.maxWarpFactor; }
-                }
-            }
             DestinationLine = this.GetComponentInChildren<MapLineMovable>();
             DestinationLine.GetLineRenderer();
             DestinationLine.transform.SetParent(transform, false);

@@ -2,7 +2,6 @@ using Assets.Core;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Localization.SmartFormat.Utilities;
 
 public enum DiplomacyStatusEnum // between two civs held in the DiplomacyData
 {
@@ -99,7 +98,7 @@ public class DiplomacyManager : MonoBehaviour
     }
     public void Start()
     {
-       // galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
+        // galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
 
     }
 
@@ -112,7 +111,7 @@ public class DiplomacyManager : MonoBehaviour
                     Quaternion.identity).GetComponent<DiplomacyController>();
         diplomacyCon.enabled = true;
         diplomacyCon.DiplomacyData = diplomacyData;
-     
+
         if (!DiplomacyControllers.Contains(diplomacyCon))
             DiplomacyControllers.Add(diplomacyCon);
         diplomacyCon.gameObject.SetActive(true);
@@ -129,11 +128,13 @@ public class DiplomacyManager : MonoBehaviour
             {
                 if (fleetSideTwo.FleetData != null)
                 {
+                    fleetSideTwo.FleetData.ShipsList.RemoveAll(item => item == null);
                     shipsToSeeInLocalPayerDiploUI = fleetSideTwo.FleetData.ShipsList;
                     diplomacyData.FleetContollerCivTwo = fleetSideTwo;
                 }
                 else if (sysCon.StarSysData != null)
                 {
+                    sysCon.StarSysData.ShipsList.RemoveAll(item => item == null);
                     shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
                     diplomacyData.StarSysController = sysCon;
                 }
@@ -141,14 +142,20 @@ public class DiplomacyManager : MonoBehaviour
             else
             {
                 if (fleetSideOne.FleetData != null)
+                {
+                    fleetSideOne.FleetData.ShipsList.RemoveAll(item => item == null);
                     shipsToSeeInLocalPayerDiploUI = fleetSideOne.FleetData.ShipsList;
+                }
                 else
+                {
+                    sysCon.StarSysData.ShipsList.RemoveAll(item => item == null);
                     shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
+                }
             }
             diplomacyData.FleetControllerCivOne = fleetSideOne;
             diplomacyData.firstContact = true;
             diplomacyData.EncounterType = EncounterType.FirstContact;
-            
+
         }
         else if (sysCon.StarSysData.SystemType >= GalaxyObjectType.BlackHole) // resolve a non conventional encounter
         {
@@ -231,7 +238,7 @@ public class DiplomacyManager : MonoBehaviour
                 ourDiplomacyController.DiplomacyData.CivEnumSideOne = civPartyTwo.CivData.CivEnum; // local player civ
                 ourDiplomacyController.DiplomacyData.CivEnumSideTwo = civPartyOne.CivData.CivEnum;
             }
-            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject, 
+            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject,
                 ourDiplomacyController.gameObject, shipList);
         }
     }
@@ -252,7 +259,7 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
         if (civPartyOne.CivData.PlayedByAI)
             ourDiplomacyController.DoAIDiplomacy();
-        else if ( civPartyTwo.CivData.PlayedByAI)
+        else if (civPartyTwo.CivData.PlayedByAI)
         {
             ourDiplomacyController.DoAIDiplomacy();
         }
@@ -285,7 +292,7 @@ public class DiplomacyManager : MonoBehaviour
         DiplomacyController diplomacyController = null;
         for (int i = 0; i < DiplomacyControllers.Count; i++)
         {
-            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyOne.CivData.CivEnum && 
+            if (DiplomacyControllers[i] != null && ((DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyOne.CivData.CivEnum &&
                 DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyTwo.CivData.CivEnum)
                 || (DiplomacyControllers[i].DiplomacyData.CivEnumSideOne == civPartyTwo.CivData.CivEnum && DiplomacyControllers[i].DiplomacyData.CivEnumSideTwo == civPartyOne.CivData.CivEnum)))
             {
@@ -343,6 +350,8 @@ public class DiplomacyManager : MonoBehaviour
 
     public void FleetControllerVsOtherCivFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
     { // already not one of our fleets
+        reportingPlayerFleet.FleetData.ShipsList.RemoveAll(item => item == null);
+        otherFleet.FleetData.ShipsList.RemoveAll(item => item == null);
         StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
         if (reportingPlayerFleet != null)
         {
@@ -368,7 +377,7 @@ public class DiplomacyManager : MonoBehaviour
             {
                 DiplomacyController newDiplomacyCon = DiplomacyManager.Instance.InstantiateDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                 if (!DiplomacyControllers.Contains(newDiplomacyCon))
-                         DiplomacyControllers.Add(newDiplomacyCon);
+                    DiplomacyControllers.Add(newDiplomacyCon);
                 IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                 FirstContactFleetVsFleet(reportingPlayerFleet, otherFleet); // and add new diplomacy controller
                 Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
@@ -476,7 +485,6 @@ public class DiplomacyManager : MonoBehaviour
                     if (!DiplomacyControllers.Contains(newDiplomacyCon))
                         DiplomacyControllers.Add(newDiplomacyCon);
                     IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                    Destroy(fleetConEmpty.gameObject); 
                 }
                 else
                 { // not first contact
@@ -500,6 +508,7 @@ public class DiplomacyManager : MonoBehaviour
                 }
             }
         }
+        Destroy(fleetConEmpty.gameObject);
     }
 
     private void FeetsUninhabitedSysEncounter(FleetController reportingPlayerfleet, StarSysController uninhabitedSysCon)
@@ -568,7 +577,7 @@ public class DiplomacyManager : MonoBehaviour
 
     internal void ResolveDiplomacyForClickSystemWeKnow(CivController localPlayerCivContoller, StarSysController starSysController)
     {
-       //already not one of our fleets
+        //already not one of our fleets
         CivController civPartyOne;
         CivController civPartyTwo;
 

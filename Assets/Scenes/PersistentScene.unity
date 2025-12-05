@@ -5588,15 +5588,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CombatUICanvasGO: {fileID: 321848122}
+  Cambat3DCamvas: {fileID: 321848132}
   HealthbarPrefab: {fileID: 4270739184393270735, guid: 18a5a57508ae71b43a72e2f3f5632ef6, type: 3}
   combatConPrefab: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
   CombatControllers: []
-  sideOneAnima1: {fileID: 0}
-  sideOneAnima2: {fileID: 0}
-  sideOneAnima3: {fileID: 0}
-  sideTwoAnima1: {fileID: 0}
-  sideTwoAnima2: {fileID: 0}
-  sideTwoAnima3: {fileID: 0}
   _sideOneA1Animator: {fileID: 688541187}
   _sideOneA2Animator: {fileID: 1814486033}
   _sideOneA3Animator: {fileID: 451964741}

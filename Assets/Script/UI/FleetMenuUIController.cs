@@ -376,6 +376,7 @@ public class FleetMenuUIController : MonoBehaviour
         ShipDeployMenuUIController.Instance.SetUpTopShipLists();
         ShipDeployMenuUIController.Instance.SetUpBottomShipLists(newFleet);
         ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        Destroy(emptyStarSysCon.gameObject);
     }
 
     private void ClickShipDeployCursor(FleetController fleetCon)

@@ -159,7 +159,7 @@ public class ShipManager : MonoBehaviour
         }
         return ourShipSO;
     }
-    public void BuildShipInSystem(ShipType shipType, StarSysController sysCon)
+    public void BuildShipInSystem(ShipType shipType, StarSysController sysCon) // a destroyer for warp capable systems on game loading and shipyard during game
     {
         ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
         List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
@@ -315,17 +315,7 @@ public class ShipManager : MonoBehaviour
                 {
                     shipCon.transform.SetParent(fleetCon.transform);
                     shipCon.ShipData.CurrentFleetController = fleetCon;
-                    fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                    ShipControllerList.Add(shipCon);
-                }
-                List<ShipController> ourListOfShip = new List<ShipController>();
-                ourListOfShip = fleetCon.FleetData.ShipsList;
-                for (int i = 0; i < ourListOfShip.Count; i++)
-                {
-                    if (fleetCon.FleetData.ShipsList[i] == null)
-                    {
-                        fleetCon.FleetData.ShipsList.Remove(fleetCon.FleetData.ShipsList[i]);
-                    }
+                    // already added to ShipsList in InstantiateShipControllersWithDataFromSO and to ShipControllerList
                 }
             }
         }

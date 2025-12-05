@@ -654,6 +654,7 @@ public class StarSysMenuUIController : MonoBehaviour
         galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
         galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
         tempFleetController = newFleet;
+        Destroy(emptyFleetCon.gameObject);
     }
     public void ClickCancelShipManageButton()
     {

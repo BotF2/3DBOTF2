@@ -4,7 +4,7 @@ namespace Assets.Core
 {
     public class Billboard : MonoBehaviour
     {
-
+        // [SerializeField]
         private Camera theCam;
 
         void LateUpdate()

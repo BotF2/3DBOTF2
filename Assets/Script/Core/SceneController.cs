@@ -1,7 +1,5 @@
 using Assets.Core;
-using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Scene = UnityEngine.SceneManagement.Scene;
@@ -35,7 +33,7 @@ public class SceneController : MonoBehaviour
         else
         {
             CleanUPAndDistroy();
-           //Destroy(gameObject);
+            //Destroy(gameObject);
         }
         galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
     }
@@ -59,7 +57,7 @@ public class SceneController : MonoBehaviour
 
             if (persistentObjects[i] != null)
             {
-                DontDestroyOnLoad(persistentObjects[i]); 
+                DontDestroyOnLoad(persistentObjects[i]);
             }
         }
     }
@@ -96,8 +94,8 @@ public class SceneController : MonoBehaviour
                     persistentObjects[i].SetActive(false); // Hide the FogPlaneParent object
                 }
             }
-            previousSceneName = "MainMenuScene";//SceneManager.GetActiveScene().name; 
-                                                // TimeManager.Instance.PauseTime(); does not work
+            previousSceneName = "MainMenuGalaxyScene";//SceneManager.GetActiveScene().name; 
+                                                      // TimeManager.Instance.PauseTime(); does not work
             SceneManager.LoadSceneAsync("CombatScene", LoadSceneMode.Additive);
 
             HideScene(previousSceneName);
@@ -149,7 +147,7 @@ public class SceneController : MonoBehaviour
         {
             if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
             {
-                persistentObjects[i].SetActive(true); 
+                persistentObjects[i].SetActive(true);
             }
         }
         HideScene("CombatScene");

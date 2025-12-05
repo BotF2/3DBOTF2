@@ -29578,6 +29578,11 @@ MonoBehaviour:
   FleetControllersInGame: []
   fleetUIGOContentParent: {fileID: 1850390553}
   fleetShipsContentFolderParent: {fileID: 0}
+  TempFogRevealerFleet:
+    revealerTransform: {fileID: 0}
+    sightRange: 0
+    updateOnlyOnMove: 0
+    lastSeenAt: {x: 0, y: 0}
 --- !u!4 &1362581733
 Transform:
   m_ObjectHideFlags: 0
@@ -36931,8 +36936,10 @@ MonoBehaviour:
   TopSlot: {fileID: 1297411287}
   BottomSlot: {fileID: 1838351553}
   updateShipsLists: {fileID: 0}
+  TopFleet: {fileID: 0}
   BottomFleet: {fileID: 0}
   TopStarSyst: {fileID: 0}
+  bottomStarSyst: {fileID: 0}
 --- !u!224 &1761479392
 RectTransform:
   m_ObjectHideFlags: 0
@@ -40313,6 +40320,7 @@ MonoBehaviour:
   cancelShipManagerButtonGO: {fileID: 0}
   warpButtonUpGO: {fileID: 0}
   warpButtonDownGO: {fileID: 0}
+  mergeFleetButtonGO: {fileID: 0}
   closeFleetUIButtonGO: {fileID: 0}
   listOfFleetUiGos: []
   ActiveFleetController: {fileID: 0}
@@ -45306,6 +45314,8 @@ MonoBehaviour:
   fleetMenuUIController: {fileID: 1887217962}
   listOfStarSysUiGos: []
   listOfSysShipUiGos: []
+  cancelShipManagerButtonGO: {fileID: 0}
+  tempFleetController: {fileID: 0}
   powerOverload: {fileID: 0}
 --- !u!1 &2132105861
 GameObject:
