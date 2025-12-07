@@ -4258,6 +4258,7 @@ GameObject:
   - component: {fileID: 4455922535332096929}
   - component: {fileID: 1983484062716704186}
   - component: {fileID: 8561472960594032276}
+  - component: {fileID: 8916648548158031723}
   m_Layer: 5
   m_Name: QueueHoldingBuildableShips
   m_TagString: ShipBuildSlot
@@ -4346,6 +4347,18 @@ MonoBehaviour:
   m_Spacing: {x: 4, y: 0}
   m_Constraint: 0
   m_ConstraintCount: 2
+--- !u!114 &8916648548158031723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5283000840161438567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14409adc4b0cd2947a420436b1304f50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Core.ShipQueueWatcher
 --- !u!1 &5339234138898857140
 GameObject:
   m_ObjectHideFlags: 0
@@ -5469,6 +5482,7 @@ GameObject:
   - component: {fileID: 1003396326738799218}
   - component: {fileID: 4021792639008368624}
   - component: {fileID: 2586694256522004364}
+  - component: {fileID: 3258999159437775670}
   m_Layer: 5
   m_Name: QueueHoldingBuildables
   m_TagString: FactoryBuildSlot
@@ -5557,6 +5571,18 @@ MonoBehaviour:
   m_Spacing: {x: 4, y: 0}
   m_Constraint: 0
   m_ConstraintCount: 2
+--- !u!114 &3258999159437775670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6057974538865559372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 957ca4db3406bec45bf0778464a1661d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Core.BuildQueueWatcher
 --- !u!1 &6127319130354873259
 GameObject:
   m_ObjectHideFlags: 0

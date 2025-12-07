@@ -134,6 +134,8 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
     private void DeployShipUIgoBetweenStarSys(StarSysController topStarSyst, StarSysController bottomStarSyst)
     {
+        var topShipControllerList = topStarSyst.StarSysData.ShipsList;
+        List<ShipController> newTopShipControllerList = new List<ShipController>();
         for (int i = 0; GetTopSlotShipListUIGOs().Length > i; i++)
         {
             var shipUIGOTop = GetTopSlotShipListUIGOs()[i];
@@ -141,7 +143,18 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentStarSyst = topStarSyst;
             shipListUI_Item.CurrentFleet = null;
             shipUIGOTop.transform.SetParent(topStarSyst.StarSysData.ShipListUIParent.transform, false);
+            for (int j = 0; j < topShipControllerList.Count; j++)
+            {
+                if (topShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newTopShipControllerList.Add(topShipControllerList[j]);
+                }
+            }
         }
+        topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
+
+        var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
+        List<ShipController> newBottomShipControllerList = new List<ShipController>();
         for (int i = 0; i < GetBottomSlotShipListUIGOs().Length; i++)
         {
             var shipUIGOBottom = GetBottomSlotShipListUIGOs()[i];
@@ -149,11 +162,21 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentStarSyst = bottomStarSyst;
             shipListUI_Item.CurrentFleet = null;
             shipUIGOBottom.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
+            for (int j = 0; j < bottomShipControllerList.Count; j++)
+            {
+                if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newBottomShipControllerList.Add(bottomShipControllerList[j]);
+                }
+            }
         }
+        bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
     }
 
     private void DeployShipUIgoFromStarSysToFleet(StarSysController topStarSyst, FleetController bottomFleet)
     {
+        var topShipControllerList = topStarSyst.StarSysData.ShipsList;
+        List<ShipController> newTopShipControllerList = new List<ShipController>();
         for (int i = 0; GetTopSlotShipListUIGOs().Length > i; i++)
         {
             var shipUIGOTop = GetTopSlotShipListUIGOs()[i];
@@ -161,7 +184,18 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentStarSyst = topStarSyst;
             shipListUI_Item.CurrentFleet = null;
             shipUIGOTop.transform.SetParent(topStarSyst.StarSysData.ShipListUIParent.transform, false);
+            for (int j = 0; j < topShipControllerList.Count; j++)
+            {
+                if (topShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newTopShipControllerList.Add(topShipControllerList[j]);
+                }
+            }
         }
+        topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
+
+        var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
+        List<ShipController> newBottomShipControllerList = new List<ShipController>();
         for (int i = 0; i < GetBottomSlotShipListUIGOs().Length; i++)
         {
             var shipUIGOBottom = GetBottomSlotShipListUIGOs()[i];
@@ -169,35 +203,21 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentFleet = bottomFleet;
             shipListUI_Item.CurrentStarSyst = null;
             shipUIGOBottom.transform.SetParent(bottomFleet.FleetData.ShipListUIParent.transform, false);
+            for (int j = 0; j < bottomShipControllerList.Count; j++)
+            {
+                if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newBottomShipControllerList.Add(bottomShipControllerList[j]);
+                }
+            }
         }
+        bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
     }
 
     private void DeployShipUIgoFromFleetToStarSys(FleetController topFleet, StarSysController bottomStarSyst)
     {
-        // Cache both arrays ONCE
-        GameObject[] shipUIGOsTop = GetTopSlotShipListUIGOs();
-        GameObject[] shipUIGOsBottom = GetBottomSlotShipListUIGOs();
-
-        // local cached array, not affected by reparenting
-        for (int i = 0; i < shipUIGOsTop.Length; i++)
-        {
-            ShipListUI_Item item = shipUIGOsTop[i].GetComponent<ShipListUI_Item>();
-            item.CurrentFleet = topFleet;
-            item.CurrentStarSyst = null;
-            item.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
-        }
-
-        for (int i = 0; i < shipUIGOsBottom.Length; i++)
-        {
-            ShipListUI_Item item = shipUIGOsBottom[i].GetComponent<ShipListUI_Item>();
-            item.CurrentStarSyst = bottomStarSyst;
-            item.CurrentFleet = null;
-            item.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
-        }
-    }
-
-    private void DeployShipUIgoBetweenFleets(FleetController topFleet, FleetController bottomFleet)
-    {
+        var topShipControllerList = topFleet.FleetData.ShipsList;
+        List<ShipController> newTopShipControllerList = new List<ShipController>();
         for (int i = 0; i < GetTopSlotShipListUIGOs().Length; i++)
         {
             var shipUIGOtop = GetTopSlotShipListUIGOs()[i];
@@ -205,7 +225,59 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentFleet = topFleet;
             shipListUI_Item.CurrentStarSyst = null;
             shipUIGOtop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+            for (int j = 0; j < topShipControllerList.Count; j++)
+            {
+                if (topShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newTopShipControllerList.Add(topShipControllerList[j]);
+                }
+            }
         }
+        topFleet.FleetData.ShipsList = newTopShipControllerList;
+
+        var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
+        List<ShipController> newBottomShipControllerList = new List<ShipController>();
+        for (int i = 0; i < GetBottomSlotShipListUIGOs().Length; i++)
+        {
+            var shipUIGOBottom = GetBottomSlotShipListUIGOs()[i];
+            var shipListUI_Item = shipUIGOBottom.GetComponent<ShipListUI_Item>();
+            shipListUI_Item.CurrentStarSyst = bottomStarSyst;
+            shipListUI_Item.CurrentFleet = null;
+            shipUIGOBottom.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
+            for (int j = 0; j < bottomShipControllerList.Count; j++)
+            {
+                if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newBottomShipControllerList.Add(bottomShipControllerList[j]);
+                }
+            }
+        }
+        bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
+    }
+
+    private void DeployShipUIgoBetweenFleets(FleetController topFleet, FleetController bottomFleet)
+    {
+        var topShipControllerList = topFleet.FleetData.ShipsList;
+        List<ShipController> newTopShipControllerList = new List<ShipController>();
+        for (int i = 0; i < GetTopSlotShipListUIGOs().Length; i++)
+        {
+            var shipUIGOtop = GetTopSlotShipListUIGOs()[i];
+            var shipListUI_Item = shipUIGOtop.GetComponent<ShipListUI_Item>();
+            shipListUI_Item.CurrentFleet = topFleet;
+            shipListUI_Item.CurrentStarSyst = null;
+            shipUIGOtop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+            for (int j = 0; j < topShipControllerList.Count; j++)
+            {
+                if (topShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newTopShipControllerList.Add(topShipControllerList[j]);
+                }
+            }
+        }
+        topFleet.FleetData.ShipsList = newTopShipControllerList;
+
+        var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
+        List<ShipController> newBottomShipControllerList = new List<ShipController>();
         for (int i = 0; i < GetBottomSlotShipListUIGOs().Length; i++)
         {
             var shipUIGOBottom = GetBottomSlotShipListUIGOs()[i];
@@ -213,7 +285,15 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentFleet = bottomFleet;
             shipListUI_Item.CurrentStarSyst = null;
             shipUIGOBottom.transform.SetParent(bottomFleet.FleetData.ShipListUIParent.transform, false);
+            for (int j = 0; j < bottomShipControllerList.Count; j++)
+            {
+                if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
+                {
+                    newBottomShipControllerList.Add(bottomShipControllerList[j]);
+                }
+            }
         }
+        bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
     }
 
     // synchronize model ownership to match UI after drag/drop ----

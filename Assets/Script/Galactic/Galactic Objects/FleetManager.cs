@@ -155,20 +155,22 @@ namespace Assets.Core
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.gameObject.transform;
-            if (systCon != null && !newFleet)
+            if (systCon.StarSysData != null && !newFleet)
             {
                 newTrans = systCon.transform; // first fleets near home systems
                 Destroy(originalFleetCon.gameObject); // destroy the original fleet controller used as template empty
             }
-            else if (originalFleetCon != null)
+            else if (originalFleetCon.FleetData != null && newFleet)
                 newTrans = originalFleetCon.transform;
+            else if (systCon.StarSysData != null && newFleet)
+                newTrans = systCon.transform;
 
-            newFleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, but world position stays as is
+            newFleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, but world position set below
 
             if (newTrans != null)
             {
                 if (!newFleet)
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 20f, newTrans.position.y + 20f, newTrans.position.z));
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));
                 else
                 {
                     if (newFleetSpacer > 8f)
@@ -422,7 +424,6 @@ namespace Assets.Core
                     if (!ourFleetNumsInUse.Contains(numToReturn))
                     {
                         numToReturn = i;
-                        break;
                     }
                     else
                     {
@@ -497,15 +498,15 @@ namespace Assets.Core
             }
         }
 
-        internal void DestroyFleetController(FleetController tempFleetController)
+        internal void DestroyFleetController(FleetController fleetController)
         {
-            RemoveFleetNumInUse(tempFleetController.FleetData.CivEnum, tempFleetController.FleetData.FleetInt);
-            if (FleetControllersInGame.Contains(tempFleetController))
-                FleetControllersInGame.Remove(tempFleetController);
-            RemoveFleetNumInUse(tempFleetController.FleetData.CivEnum, tempFleetController.FleetData.FleetInt);
-            Destroy(tempFleetController.FleetUIGameObject);
-            Destroy(tempFleetController.DropLine.gameObject);
-            Destroy(tempFleetController.gameObject);
+            RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
+            if (FleetControllersInGame.Contains(fleetController))
+                FleetControllersInGame.Remove(fleetController);
+            RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
+            Destroy(fleetController.FleetUIGameObject);
+            Destroy(fleetController.DropLine.gameObject);
+            Destroy(fleetController.gameObject);
         }
 
         internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)

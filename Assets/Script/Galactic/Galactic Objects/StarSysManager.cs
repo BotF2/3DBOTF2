@@ -1,7 +1,7 @@
 using FischlWorks_FogWar;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,10 +10,7 @@ namespace Assets.Core
 {
     /// <summary>
     /// Instantiates the star system (a StarSysController and a StarSysData) using StarSysSO.
-    /// This is a type of galactic object that is a 'StarSystem' class (Manager/Controller/Data and can have a habitable 'planet') 
-    /// with a real star or a nebula or a complex as in the Borg Uni-complex)
-    /// Other galactic objects not described by StarSys (will have their own classes (ToDo: Managers/Controllers/Data) for stations (one class),
-    /// and black-holes/wormholes (one class.) 
+    /// Manages Star Systems, their initialization, facilities, and UI.
     /// </summary>
     public class StarSysManager : MonoBehaviour
     {
@@ -230,7 +227,10 @@ namespace Assets.Core
             {
                 StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-                starSysCon.Init(this); starSysCon.StarSysData = sysData;
+                //starSysCon.Init(this); 
+                StarSysBuildManager buildManager = new StarSysBuildManager(starSysCon);
+                buildManager.RegisterStarSysController(starSysCon);
+                starSysCon.StarSysData = sysData;
                 starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
                 starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
                     sysData.GetPosition().y, sysData.GetPosition().z));
@@ -842,8 +842,6 @@ namespace Assets.Core
                     sysController.StarSysUIGameObject = thisStarSysUIGameObject;
                     sysController.StarSysUIGameObject.SetActive(true);
 
-                    thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
-
                     // Find the UI container that will hold ship UI items (include inactive children)
                     var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
                                                    .FirstOrDefault(t => t.name == "ShipContent");
@@ -867,6 +865,7 @@ namespace Assets.Core
                             return;
                         }
                     }
+                    thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
                 }
             }
         }
@@ -875,6 +874,16 @@ namespace Assets.Core
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
                 Quaternion.identity);
+            // Initialize watchers explicitly
+            foreach (var watcher in sysBuildListInstance.GetComponentsInChildren<BuildQueueWatcher>(true))
+            {
+                watcher.Initialize(sysCon);
+            }
+
+            foreach (var watcher in sysBuildListInstance.GetComponentsInChildren<ShipQueueWatcher>(true))
+            {
+                watcher.Initialize(sysCon);
+            }
             GalaxyMenuUIController.Instance.SetActiveBuildMenu(sysBuildListInstance);
             sysBuildListInstance.layer = 5; //UI layer
 
@@ -919,12 +928,12 @@ namespace Assets.Core
                 theGrids[k].enabled = true;
                 if (theGrids[k].name == "QueueHoldingBuildables")
                 {
-                    sysCon.buildListGridLayoutGroup = theGrids[k];
+                    sysCon.BuildListGridLayoutGroup = theGrids[k];
                     sysCon.GridFactoryQueueUpdate();
                 }
                 else if (theGrids[k].name == "QueueHoldingBuildableShips")
                 {
-                    sysCon.shipListGridLayoutGroup = theGrids[k];
+                    sysCon.ShipListGridLayoutGroup = theGrids[k];
                     sysCon.GridShipQueueUpdate();
                     break;
                 }
@@ -1017,8 +1026,8 @@ namespace Assets.Core
                         }
                     case "FactoryProgressBar":
                         {
-                            sysCon.SliderBuildProgress = theSlots[l].gameObject.GetComponent<Slider>();
-                            sysCon.SliderBuildProgress.gameObject.transform.SetParent(theSlots[l]);
+                            StarSysMenuUIController.Instance.SliderBuildProgress = theSlots[l].gameObject.GetComponent<Slider>();
+                            StarSysMenuUIController.Instance.gameObject.transform.SetParent(theSlots[l]);
                             break;
                         }
                     case "Cruiser (TMP)":
@@ -1166,7 +1175,7 @@ namespace Assets.Core
             GameObject shipSliderGO = (GameObject)Instantiate(shipBuildSliderPrefab, new Vector3(0, 0, 0),
                 Quaternion.identity);// ship building progress bar as prefab
             shipSliderGO.transform.SetParent(sysBuildListInstance.transform);
-            sysCon.ShipSliderBuildProgress = shipSliderGO.GetComponentInChildren<Slider>();
+            StarSysMenuUIController.Instance.ShipSliderBuildProgress = shipSliderGO.GetComponentInChildren<Slider>();
             shipSliderGO.layer = 5; //UI layer
 
         }
@@ -1316,6 +1325,16 @@ namespace Assets.Core
                 shipCon.ShipData.CurrentFleetController = null;
             }
 
+        }
+
+        internal void StartNextFacilityBuildIfAny()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void StartNextShipBuildIfAny()
+        {
+            throw new NotImplementedException();
         }
     }
 }

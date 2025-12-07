@@ -28,6 +28,8 @@ public class StarSysMenuUIController : MonoBehaviour
     [SerializeField] private FleetController tempFleetController;
     [Header("Power overload visuals")]
     [SerializeField] private GameObject powerOverload;
+    public Slider ShipSliderBuildProgress;
+    public Slider SliderBuildProgress;
 
     private void Awake()
     {
@@ -320,6 +322,20 @@ public class StarSysMenuUIController : MonoBehaviour
                             break;
                         default:
                             break;
+                    }
+                }
+                Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
+                for (int i = 0; i < sliders.Length; i++)
+                {
+                    if (sliders[i].name == "BuildProgressSlider")
+                    {
+                        SliderBuildProgress = sliders[i];
+                        SliderBuildProgress.value = 0f;
+                    }
+                    if (sliders[i].name == "ShipBuildProgressSlider")
+                    {
+                        ShipSliderBuildProgress = sliders[i];
+                        ShipSliderBuildProgress.value = 0f;
                     }
                 }
 
@@ -674,5 +690,15 @@ public class StarSysMenuUIController : MonoBehaviour
         MousePointerChanger.Instance.ResetCursor();
         cancelShipManagerButtonGO?.SetActive(false);
 
+    }
+
+    internal void SetBuildProgress(float buildingProgress)
+    {
+        SliderBuildProgress.value = buildingProgress;
+    }
+
+    internal void SetShipBuildProgress(float shipProgress)
+    {
+        ShipSliderBuildProgress.value = shipProgress;
     }
 }
