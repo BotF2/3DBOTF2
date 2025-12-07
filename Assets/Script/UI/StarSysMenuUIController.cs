@@ -585,7 +585,81 @@ public class StarSysMenuUIController : MonoBehaviour
         if (powerOverload == null) return;
         StartCoroutine(FlashRoutine());
     }
+    internal void AddSysFacility(StarSysController controller, GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
+    {
+        if (GameController.Instance.AreWeLocalPlayer(controller.StarSysData.CurrentOwnerCivEnum))
+        {
+            int newFacilityLoad = 0;
+            List<GameObject> facilities = new List<GameObject>();
+            switch (facilityType)
+            {
+                case StarSysFacilities.Factory:
+                    newFacilityLoad = controller.StarSysData.FactoryData.PowerLoad;
+                    controller.StarSysData.Factories.Add(faciltyGO);
+                    facilities = controller.StarSysData.Factories;
+                    break;
+                case StarSysFacilities.Shipyard:
+                    newFacilityLoad = controller.StarSysData.ShipyardData.PowerLoad;
+                    controller.StarSysData.Shipyards.Add(faciltyGO);
+                    facilities = controller.StarSysData.Shipyards;
+                    break;
+                case StarSysFacilities.ShieldGenerator:
+                    newFacilityLoad = controller.StarSysData.ShieldGeneratorData.PowerLoad;
+                    controller.StarSysData.ShieldGenerators.Add(faciltyGO);
+                    facilities = controller.StarSysData.ShieldGenerators;
+                    break;
+                case StarSysFacilities.OrbitalBattery:
+                    newFacilityLoad = controller.StarSysData.OrbitalBatteryData.PowerLoad;
+                    controller.StarSysData.OrbitalBatteries.Add(faciltyGO);
+                    facilities = controller.StarSysData.OrbitalBatteries;
+                    break;
+                case StarSysFacilities.ResearchCenter:
+                    newFacilityLoad = controller.StarSysData.ResearchCenterData.PowerLoad;
+                    controller.StarSysData.ResearchCenters.Add(faciltyGO);
+                    facilities = controller.StarSysData.ResearchCenters;
+                    break;
+                default:
+                    break;
+            }
 
+            if (controller.StarSysUIGameObject != null)
+            {
+                TextMeshProUGUI[] theTextItems = controller.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+                bool allDone = false;
+                for (int j = 0; j < theTextItems.Length; j++)
+                {
+                    theTextItems[j].enabled = true;
+                    int load = 0;
+                    if (theTextItems[j].name == loadName)
+                    {
+                        for (int k = 0; k < facilities.Count; k++)
+                        {
+                            if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
+                            {
+                                load += newFacilityLoad;
+                            }
+                        }
+                        theTextItems[j].text = load.ToString();
+                    }
+                    else if (theTextItems[j].name == ratioName)
+                    {
+                        int numOn = 0;
+                        for (int i = 0; i < facilities.Count; i++)
+                        {
+                            TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
+                            if (TheText.text == "1") // 1 = on and 0 = off
+                                numOn++;
+                        }
+                        theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                        allDone = true;
+                    }
+                    else if (allDone)
+                        break;
+                }
+            }
+            StarSysMenuUIController.Instance.UpdateSystemPowerLoad(controller);
+        }
+    }
     IEnumerator FlashRoutine()
     {
         for (int i = 0; i < 3; i++)

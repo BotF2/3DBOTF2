@@ -83,7 +83,7 @@ public class StarSysBuildManager
                         controller.StarSysData,
                         0
                     )[0];
-                controller.AddSysFacility(factory, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
+                StarSysMenuUIController.Instance.AddSysFacility(controller, factory, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
                 break;
                 // (shipyard, shield, OB, research...)
         }

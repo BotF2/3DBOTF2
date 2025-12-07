@@ -146,81 +146,7 @@ namespace Assets.Core
             }
         }
 
-        internal void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
-        {
-            if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-            {
-                int newFacilityLoad = 0;
-                List<GameObject> facilities = new List<GameObject>();
-                switch (facilityType)
-                {
-                    case StarSysFacilities.Factory:
-                        newFacilityLoad = StarSysData.FactoryData.PowerLoad;
-                        this.StarSysData.Factories.Add(faciltyGO);
-                        facilities = this.StarSysData.Factories;
-                        break;
-                    case StarSysFacilities.Shipyard:
-                        newFacilityLoad = StarSysData.ShipyardData.PowerLoad;
-                        this.StarSysData.Shipyards.Add(faciltyGO);
-                        facilities = this.StarSysData.Shipyards;
-                        break;
-                    case StarSysFacilities.ShieldGenerator:
-                        newFacilityLoad = StarSysData.ShieldGeneratorData.PowerLoad;
-                        this.StarSysData.ShieldGenerators.Add(faciltyGO);
-                        facilities = StarSysData.ShieldGenerators;
-                        break;
-                    case StarSysFacilities.OrbitalBattery:
-                        newFacilityLoad = StarSysData.OrbitalBatteryData.PowerLoad;
-                        this.StarSysData.OrbitalBatteries.Add(faciltyGO);
-                        facilities = StarSysData.OrbitalBatteries;
-                        break;
-                    case StarSysFacilities.ResearchCenter:
-                        newFacilityLoad = StarSysData.ResearchCenterData.PowerLoad;
-                        this.StarSysData.ResearchCenters.Add(faciltyGO);
-                        facilities = StarSysData.ResearchCenters;
-                        break;
-                    default:
-                        break;
-                }
 
-                if (starSysUIGameObject != null)
-                {
-                    TextMeshProUGUI[] theTextItems = starSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-                    bool allDone = false;
-                    for (int j = 0; j < theTextItems.Length; j++)
-                    {
-                        theTextItems[j].enabled = true;
-                        int load = 0;
-                        if (theTextItems[j].name == loadName)
-                        {
-                            for (int k = 0; k < facilities.Count; k++)
-                            {
-                                if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    load += newFacilityLoad;
-                                }
-                            }
-                            theTextItems[j].text = load.ToString();
-                        }
-                        else if (theTextItems[j].name == ratioName)
-                        {
-                            int numOn = 0;
-                            for (int i = 0; i < facilities.Count; i++)
-                            {
-                                TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1") // 1 = on and 0 = off
-                                    numOn++;
-                            }
-                            theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                            allDone = true;
-                        }
-                        else if (allDone)
-                            break;
-                    }
-                }
-                StarSysMenuUIController.Instance.UpdateSystemPowerLoad(this);
-            }
-        }
 
         public void DoHabitalbeSystemUI(CivController discoveringCiv)
         {
@@ -646,7 +572,81 @@ namespace Assets.Core
             if (shipController.transform.IsChildOf(transform))
                 shipController.transform.SetParent(null, worldPositionStays: true);
         }
+        //internal void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
+        //{
+        //    if (GameController.Instance.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
+        //    {
+        //        int newFacilityLoad = 0;
+        //        List<GameObject> facilities = new List<GameObject>();
+        //        switch (facilityType)
+        //        {
+        //            case StarSysFacilities.Factory:
+        //                newFacilityLoad = StarSysData.FactoryData.PowerLoad;
+        //                this.StarSysData.Factories.Add(faciltyGO);
+        //                facilities = this.StarSysData.Factories;
+        //                break;
+        //            case StarSysFacilities.Shipyard:
+        //                newFacilityLoad = StarSysData.ShipyardData.PowerLoad;
+        //                this.StarSysData.Shipyards.Add(faciltyGO);
+        //                facilities = this.StarSysData.Shipyards;
+        //                break;
+        //            case StarSysFacilities.ShieldGenerator:
+        //                newFacilityLoad = StarSysData.ShieldGeneratorData.PowerLoad;
+        //                this.StarSysData.ShieldGenerators.Add(faciltyGO);
+        //                facilities = StarSysData.ShieldGenerators;
+        //                break;
+        //            case StarSysFacilities.OrbitalBattery:
+        //                newFacilityLoad = StarSysData.OrbitalBatteryData.PowerLoad;
+        //                this.StarSysData.OrbitalBatteries.Add(faciltyGO);
+        //                facilities = StarSysData.OrbitalBatteries;
+        //                break;
+        //            case StarSysFacilities.ResearchCenter:
+        //                newFacilityLoad = StarSysData.ResearchCenterData.PowerLoad;
+        //                this.StarSysData.ResearchCenters.Add(faciltyGO);
+        //                facilities = StarSysData.ResearchCenters;
+        //                break;
+        //            default:
+        //                break;
+        //        }
 
+        //        if (starSysUIGameObject != null)
+        //        {
+        //            TextMeshProUGUI[] theTextItems = starSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+        //            bool allDone = false;
+        //            for (int j = 0; j < theTextItems.Length; j++)
+        //            {
+        //                theTextItems[j].enabled = true;
+        //                int load = 0;
+        //                if (theTextItems[j].name == loadName)
+        //                {
+        //                    for (int k = 0; k < facilities.Count; k++)
+        //                    {
+        //                        if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
+        //                        {
+        //                            load += newFacilityLoad;
+        //                        }
+        //                    }
+        //                    theTextItems[j].text = load.ToString();
+        //                }
+        //                else if (theTextItems[j].name == ratioName)
+        //                {
+        //                    int numOn = 0;
+        //                    for (int i = 0; i < facilities.Count; i++)
+        //                    {
+        //                        TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
+        //                        if (TheText.text == "1") // 1 = on and 0 = off
+        //                            numOn++;
+        //                    }
+        //                    theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
+        //                    allDone = true;
+        //                }
+        //                else if (allDone)
+        //                    break;
+        //            }
+        //        }
+        //        StarSysMenuUIController.Instance.UpdateSystemPowerLoad(this);
+        //    }
+        //}
         // New: add ship to this star system (gameplay object + model + UI)
         public void AddToShipList(ShipController shipController)
         {
