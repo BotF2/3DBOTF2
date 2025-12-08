@@ -300,6 +300,7 @@ namespace Assets.Core
         /// The galactic objects black-holes and wormholes will have their own class with fields and/properties
         /// The Target Destination is user defined location in deep space.
         /// </summary>
+        None = 0,
         BlueStar,
         WhiteStar,
         YellowStar,
@@ -312,9 +313,11 @@ namespace Assets.Core
         Station,
         TargetDestination,
         UnknownFleet,
+        Fleet,
         BlackHole,
         WormHole,
         SomeBadAssGalacticObject,
+
 
 
     }

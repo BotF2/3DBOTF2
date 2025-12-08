@@ -602,6 +602,34 @@ public class DiplomacyManager : MonoBehaviour
             // maybe some data if you are high tech level?
         }
     }
+
+    internal void ResolveDiplomacyForClickFleetWeKnow(CivController localPlayerCivContoller, FleetController fleetController)
+    {
+        //already not one of our fleets
+        CivController civPartyOne;
+        CivController civPartyTwo;
+
+        if ((int)localPlayerCivContoller.CivData.CivEnum < (int)fleetController.FleetData.CivController.CivData.CivEnum)
+        {
+            civPartyOne = localPlayerCivContoller;
+            civPartyTwo = fleetController.FleetData.CivController;
+        }
+        else // other civ is side one
+        {
+            civPartyOne = fleetController.FleetData.CivController;
+            civPartyTwo = localPlayerCivContoller;
+        }
+        //have we met before?
+        if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
+        {   // not First Contact, just by clicking on the system
+            DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, fleetController.FleetData.ShipsList);
+        }
+        else
+        {
+            // no first contact just on clicking on the system
+            // maybe some data if you are high tech level?
+        }
+    }
 }
 
 
