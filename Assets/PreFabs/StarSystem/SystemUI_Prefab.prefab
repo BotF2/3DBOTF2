@@ -2940,6 +2940,7 @@ GameObject:
   - component: {fileID: 4945801355725590264}
   - component: {fileID: 4945801355725590270}
   - component: {fileID: 4945801355725590265}
+  - component: {fileID: 6564828303673672003}
   m_Layer: 5
   m_Name: OrbitalBatteriesImage
   m_TagString: Untagged
@@ -3004,6 +3005,66 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &6564828303673672003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801355725590267}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801355736749082
 GameObject:
   m_ObjectHideFlags: 0
@@ -3898,6 +3959,7 @@ GameObject:
   - component: {fileID: 4945801356632812173}
   - component: {fileID: 4945801356632812172}
   - component: {fileID: 5277114972390966085}
+  - component: {fileID: 855995560914706271}
   m_Layer: 5
   m_Name: SystemUI_Prefab
   m_TagString: Untagged
@@ -3994,6 +4056,66 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FleetAndSystemChildController
   OriginalParentTransform: {fileID: 0}
+--- !u!114 &855995560914706271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801355922885453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 4945801356985295004}
+  shipButton: {fileID: 4945801356483526705}
+  factoryButtonOn: {fileID: 4945801356593481036}
+  factoryButtonOff: {fileID: 4945801357655294685}
+  yardButtonOn: {fileID: 4945801356349257477}
+  yardButtonOff: {fileID: 4945801356113059973}
+  shieldButtonOn: {fileID: 4945801356391152301}
+  shieldButtonOff: {fileID: 4945801356642525207}
+  oBButtonOn: {fileID: 4945801357577137574}
+  oBButtonOff: {fileID: 4945801356299958160}
+  researchButtonOn: {fileID: 4945801356621298206}
+  researchButtonOff: {fileID: 4945801356644369606}
+  newFleetButton: {fileID: 7610041836720482072}
+  mergeFleetButton: {fileID: 8568686513056910035}
+  shipDeployButton: {fileID: 8558494702674228579}
+  cancelShipManagerButton: {fileID: 2638313195996588369}
+  sysName: {fileID: 7132288012290773030}
+  headerPowerUnitText: {fileID: 4945801357465359513}
+  numPUnits: {fileID: 4945801356616817425}
+  numTotalEOut: {fileID: 4945801355902179642}
+  numPLoad: {fileID: 8269275569014894448}
+  nameFactory: {fileID: 4945801357003114911}
+  numFactoryRatio: {fileID: 4945801357469446850}
+  factoryLoad: {fileID: 4945801357484871223}
+  shipyardName: {fileID: 4945801355973760036}
+  numYardsOnRatio: {fileID: 4945801357080630357}
+  yardLoad: {fileID: 4945801356822363015}
+  shieldName: {fileID: 4945801356240350539}
+  numShieldsRatio: {fileID: 4945801357613259359}
+  shieldLoad: {fileID: 4945801356901144110}
+  oBName: {fileID: 4945801355664507003}
+  numOBRatio: {fileID: 4945801357315874162}
+  oBLoad: {fileID: 4945801355937844074}
+  researchName: {fileID: 4945801357490288101}
+  numResearchRatio: {fileID: 4945801357538781786}
+  researchLoad: {fileID: 4945801356155772612}
+  powerOvarload: {fileID: 553143019139655919}
+  powerUnitImage: {fileID: 4945801357317038391}
+  factoryImage: {fileID: 4945801357443104328}
+  shipyardImage: {fileID: 4945801357691225635}
+  shieldPlantImage: {fileID: 4945801357651037251}
+  orbitalBatteriesImage: {fileID: 4945801355725590265}
+  researchImage: {fileID: 4945801356811591286}
+  powerOverLoad: {fileID: 5070935721863454872}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 4945801356618348881}
+  shipContent: {fileID: 1432379251446014923}
 --- !u!1 &4945801355937844068
 GameObject:
   m_ObjectHideFlags: 0
@@ -4005,6 +4127,7 @@ GameObject:
   - component: {fileID: 4945801355937844069}
   - component: {fileID: 4945801355937844075}
   - component: {fileID: 4945801355937844074}
+  - component: {fileID: 6023740645480230060}
   m_Layer: 5
   m_Name: OBLoad
   m_TagString: Untagged
@@ -4132,6 +4255,66 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &6023740645480230060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801355937844068}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801355973760038
 GameObject:
   m_ObjectHideFlags: 0
@@ -4420,7 +4603,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000025139165}
+  m_AnchoredPosition: {x: 0, y: 0.000005589166}
   m_SizeDelta: {x: 0, y: 200}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4945801356080388009
@@ -7768,6 +7951,7 @@ GameObject:
   - component: {fileID: 4945801356811591281}
   - component: {fileID: 4945801356811591287}
   - component: {fileID: 4945801356811591286}
+  - component: {fileID: 2400351059252750363}
   m_Layer: 5
   m_Name: ResearchImage
   m_TagString: Untagged
@@ -7832,6 +8016,66 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2400351059252750363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801356811591280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801356822363009
 GameObject:
   m_ObjectHideFlags: 0
@@ -9968,6 +10212,7 @@ GameObject:
   - component: {fileID: 4945801357315874157}
   - component: {fileID: 4945801357315874163}
   - component: {fileID: 4945801357315874162}
+  - component: {fileID: 9061142415443556743}
   m_Layer: 5
   m_Name: NumOBRatio
   m_TagString: Untagged
@@ -10094,6 +10339,66 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &9061142415443556743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801357315874156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801357317038385
 GameObject:
   m_ObjectHideFlags: 0
@@ -10105,6 +10410,7 @@ GameObject:
   - component: {fileID: 4945801357317038390}
   - component: {fileID: 4945801357317038388}
   - component: {fileID: 4945801357317038391}
+  - component: {fileID: 5406974654284053549}
   m_Layer: 5
   m_Name: PowerUnitImage
   m_TagString: Untagged
@@ -10169,6 +10475,66 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5406974654284053549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801357317038385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801357329821165
 GameObject:
   m_ObjectHideFlags: 0
@@ -10966,6 +11332,7 @@ GameObject:
   - component: {fileID: 4945801357465359512}
   - component: {fileID: 4945801357465359518}
   - component: {fileID: 4945801357465359513}
+  - component: {fileID: 5191265926620470116}
   m_Layer: 5
   m_Name: HeaderPowerUnitText
   m_TagString: Untagged
@@ -11097,6 +11464,66 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &5191265926620470116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801357465359515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801357467425340
 GameObject:
   m_ObjectHideFlags: 0
@@ -12310,6 +12737,7 @@ GameObject:
   - component: {fileID: 4945801357651037250}
   - component: {fileID: 4945801357651037248}
   - component: {fileID: 4945801357651037251}
+  - component: {fileID: 7745942921276527520}
   m_Layer: 5
   m_Name: ShieldsPlanetImage
   m_TagString: Untagged
@@ -12374,6 +12802,66 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7745942921276527520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801357651037309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  sysName: {fileID: 0}
+  headerPowerUnitText: {fileID: 0}
+  numPUnits: {fileID: 0}
+  numTotalEOut: {fileID: 0}
+  numPLoad: {fileID: 0}
+  nameFactory: {fileID: 0}
+  numFactoryRatio: {fileID: 0}
+  factoryLoad: {fileID: 0}
+  shipyardName: {fileID: 0}
+  numYardsOnRatio: {fileID: 0}
+  yardLoad: {fileID: 0}
+  shieldName: {fileID: 0}
+  numShieldsRatio: {fileID: 0}
+  shieldLoad: {fileID: 0}
+  oBName: {fileID: 0}
+  numOBRatio: {fileID: 0}
+  oBLoad: {fileID: 0}
+  researchName: {fileID: 0}
+  numResearchRatio: {fileID: 0}
+  researchLoad: {fileID: 0}
+  powerOvarload: {fileID: 0}
+  powerUnitImage: {fileID: 0}
+  factoryImage: {fileID: 0}
+  shipyardImage: {fileID: 0}
+  shieldPlantImage: {fileID: 0}
+  orbitalBatteriesImage: {fileID: 0}
+  researchImage: {fileID: 0}
+  powerOverLoad: {fileID: 0}
+  buildProgressSlider: {fileID: 0}
+  shipBuildProgressSlider: {fileID: 0}
+  redDot: {fileID: 0}
+  shipContent: {fileID: 0}
 --- !u!1 &4945801357655294687
 GameObject:
   m_ObjectHideFlags: 0

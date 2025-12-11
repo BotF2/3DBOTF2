@@ -1,7 +1,5 @@
 using Assets.Core;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -9,7 +7,17 @@ public class OnOffSysFacilityEvents : MonoBehaviour
 {
     public static OnOffSysFacilityEvents current;
 
-    public Action<StarSysController,string> FacilityOnClick; 
+    public Action<StarSysController> FactoryButtonOnClicked;
+    public Action<StarSysController> FactoryButtonOffClicked;
+    public Action<StarSysController> ShipyardButtonOnClicked;
+    public Action<StarSysController> ShipyardButtonOffClicked;
+    public Action<StarSysController> ShieldButtonOnClicked;
+    public Action<StarSysController> ShieldButtonOffClicked;
+    public Action<StarSysController> OBButtonOnClicked;
+    public Action<StarSysController> OBButtonOffClicked;
+    public Action<StarSysController> ResearchButtonOnClicked;
+    public Action<StarSysController> ResearchButtonOffClicked;
+
 
     private void Awake()
     {
@@ -22,13 +30,28 @@ public class OnOffSysFacilityEvents : MonoBehaviour
     }
     private void Start()
     {
-        FacilityOnClick += DoFacilityOn;
+        FactoryButtonOnClicked += DoFactoryOn;
+        FactoryButtonOffClicked += DoFactoryOff;
+        ShipyardButtonOnClicked += DoShipyardOn;
     }
-    public void DoFacilityOn(StarSysController sysCon, string name)
+
+    private void DoShipyardOn(StarSysController controller)
     {
-        if (FacilityOnClick != null)
+        if (ShipyardButtonOnClicked != null)
+            ShipyardButtonOnClicked?.Invoke(controller);
+    }
+
+    private void DoFactoryOff(StarSysController controller)
+    {
+        if (FactoryButtonOffClicked != null)
+            FactoryButtonOffClicked?.Invoke(controller);
+    }
+
+    public void DoFactoryOn(StarSysController sysCon) //, string name)
+    {
+        if (FactoryButtonOnClicked != null)
         {
-            FacilityOnClick?.Invoke(sysCon,name);
+            FactoryButtonOnClicked?.Invoke(sysCon); //,name);
         }
     }
 }

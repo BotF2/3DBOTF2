@@ -118,13 +118,13 @@ public class StarSysMenuUIController : MonoBehaviour
                 RectTransform[] transforArrayInStarSysUI = sysController.StarSysUIGameObject.GetComponentsInChildren<RectTransform>();
                 for (int i = 0; i < transforArrayInStarSysUI.Length; i++)
                 {
-                    if (transforArrayInStarSysUI[i].name == "RedDot")
-                    {
-                        float x = sysController.StarSysData.GetPosition().x * 0.12f;
-                        float y = 0f;
-                        float z = sysController.StarSysData.GetPosition().z * 0.12f;
-                        transforArrayInStarSysUI[i].Translate(new Vector3(x, z, y), Space.Self);
-                    }
+                    //if (transforArrayInStarSysUI[i].name == "RedDot")
+                    //{
+                    //    float x = sysController.StarSysData.GetPosition().x * 0.12f;
+                    //    float y = 0f;
+                    //    float z = sysController.StarSysData.GetPosition().z * 0.12f;
+                    //    transforArrayInStarSysUI[i].Translate(new Vector3(x, z, y), Space.Self);
+                    //}
                     var name = transforArrayInStarSysUI[i].name;
                     switch (name)
                     {
@@ -177,167 +177,104 @@ public class StarSysMenuUIController : MonoBehaviour
                     }
                 }
 
+
+
+                var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUIElement>();
+                // Retranform bindings
+
+                tmpElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
+                    sysController.StarSysData.GetPosition().z * 0.12f);
                 // Text bindings
-                TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-                for (int i = 0; i < OneTMP.Length; i++)
+                tmpElement.sysName.text = sysController.StarSysData.SysName;
+                tmpElement.headerPowerUnitText.text = sysController.StarSysData.PowerPlantData.Name;
+                tmpElement.numPUnits.text = sysController.StarSysData.PowerPlants.Count.ToString();
+                sysController.StarSysData.TotalSysPowerOutput = sysController.StarSysData.PowerPlants.Count * sysController.StarSysData.PowerPlantData.PowerOutput;
+                tmpElement.numTotalEOut.text = (sysController.StarSysData.TotalSysPowerOutput).ToString();
+                tmpElement.numPLoad.text = (sysController.StarSysData.TotalSysPowerLoad).ToString();
+                tmpElement.nameFactory.text = sysController.StarSysData.FactoryData.Name;
+                int count = 0;
+                foreach (var item in sysController.StarSysData.Factories)
                 {
-                    OneTMP[i].enabled = true;
-                    var name = OneTMP[i].name;
+                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                    if (TheText.text == "1")
+                        count++;
+                }
+                tmpElement.numFactoryRatio.text = count.ToString() + "/" + (sysController.StarSysData.Factories.Count).ToString();
+                tmpElement.factoryLoad.text = (sysController.StarSysData.FactoryData.PowerLoad * sysController.StarSysData.Factories.Count).ToString();
+                tmpElement.shipyardName.text = sysController.StarSysData.ShipyardData.Name;
+                int count1 = 0;
+                foreach (var item in sysController.StarSysData.Shipyards)
+                {
+                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                    if (TheText.text == "1")
+                        count1++;
+                }
+                tmpElement.numYardsOnRatio.text = count1.ToString() + "/" + (sysController.StarSysData.Shipyards.Count).ToString();
+                tmpElement.yardLoad.text = (sysController.StarSysData.ShipyardData.PowerLoad * sysController.StarSysData.Shipyards.Count).ToString();
+                tmpElement.shieldName.text = sysController.StarSysData.ShieldGeneratorData.Name;
+                int count2 = 0;
+                foreach (var item in sysController.StarSysData.ShieldGenerators)
+                {
+                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                    if (TheText.text == "1")
+                        count2++;
+                }
+                tmpElement.numShieldsRatio.text = count2.ToString() + "/" + (sysController.StarSysData.ShieldGenerators.Count).ToString();
+                tmpElement.shieldLoad.text = (sysController.StarSysData.ShieldGeneratorData.PowerLoad * sysController.StarSysData.ShieldGenerators.Count).ToString();
+                tmpElement.oBName.text = sysController.StarSysData.OrbitalBatteryData.Name;
+                int count3 = 0;
+                foreach (var item in sysController.StarSysData.OrbitalBatteries)
+                {
+                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                    if (TheText.text == "1")
+                        count3++;
+                }
+                tmpElement.numOBRatio.text = count3.ToString() + "/" + (sysController.StarSysData.OrbitalBatteries.Count).ToString();
+                tmpElement.oBLoad.text = (sysController.StarSysData.OrbitalBatteryData.PowerLoad * sysController.StarSysData.OrbitalBatteries.Count).ToString();
+                tmpElement.researchName.text = sysController.StarSysData.ResearchCenterData.Name;
+                int count4 = 0;
+                foreach (var item in sysController.StarSysData.ResearchCenters)
+                {
+                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                    if (TheText.text == "1")
+                        count4++;
+                }
+                tmpElement.numResearchRatio.text = count4.ToString() + "/" + (sysController.StarSysData.ResearchCenters.Count).ToString();
+                tmpElement.powerOvarload.gameObject.SetActive(false);
+                powerOverload = tmpElement.powerOvarload.gameObject;
+                // image binding
+                tmpElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
+                tmpElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
+                tmpElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                tmpElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                tmpElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
+                tmpElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
+                // button binding
+                tmpElement.buildButton.onClick.RemoveAllListeners();
+                tmpElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
+                tmpElement.shipButton.onClick.RemoveAllListeners();
+                tmpElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
+                tmpElement.factoryButtonOn.onClick.RemoveAllListeners();
+                tmpElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
+                tmpElement.factoryButtonOff.onClick.RemoveAllListeners();
+                tmpElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                tmpElement.yardButtonOn.onClick.RemoveAllListeners();
+                tmpElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                tmpElement.yardButtonOff.onClick.RemoveAllListeners();
+                tmpElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                tmpElement.shieldButtonOn.onClick.RemoveAllListeners();
+                tmpElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                tmpElement.shieldButtonOff.onClick.RemoveAllListeners();
+                tmpElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                tmpElement.oBButtonOn.onClick.RemoveAllListeners();
+                tmpElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                tmpElement.oBButtonOff.onClick.RemoveAllListeners();
+                tmpElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
+                tmpElement.researchButtonOn.onClick.RemoveAllListeners();
+                tmpElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
+                tmpElement.researchButtonOff.onClick.RemoveAllListeners();
+                tmpElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
 
-                    switch (name)
-                    {
-                        case "SysName":
-                            OneTMP[i].text = sysController.StarSysData.SysName;
-                            break;
-                        case "HeaderPowerUnitText":
-                            OneTMP[i].text = sysController.StarSysData.PowerPlantData.Name;
-                            break;
-                        case "NumPUnits":
-                            OneTMP[i].text = (sysController.StarSysData.PowerPlants.Count).ToString();
-                            break;
-                        case "NumTotalEOut":
-                            sysController.StarSysData.TotalSysPowerOutput = sysController.StarSysData.PowerPlants.Count * sysController.StarSysData.PowerPlantData.PowerOutput;
-                            OneTMP[i].text = (sysController.StarSysData.TotalSysPowerOutput).ToString();
-                            break;
-                        case "NumP Load":
-                            OneTMP[i].text = (sysController.StarSysData.TotalSysPowerLoad).ToString();
-                            break;
-                        case "NameFactory":
-                            OneTMP[i].text = sysController.StarSysData.FactoryData.Name;
-                            break;
-                        case "NumFactoryRatio":
-                            int count = 0;
-                            foreach (var item in sysController.StarSysData.Factories)
-                            {
-                                TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1")
-                                    count++;
-                            }
-                            OneTMP[i].text = count.ToString() + "/" + (sysController.StarSysData.Factories.Count).ToString();
-                            break;
-                        case "FactoryLoad":
-                            OneTMP[i].text = (sysController.StarSysData.FactoryData.PowerLoad * sysController.StarSysData.Factories.Count).ToString();
-                            break;
-                        case "ShipyardName":
-                            OneTMP[i].text = sysController.StarSysData.ShipyardData.Name;
-                            break;
-                        case "NumYardsOnRatio":
-                            int count1 = 0;
-                            foreach (var item in sysController.StarSysData.Shipyards)
-                            {
-                                TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1")
-                                    count1++;
-                            }
-                            OneTMP[i].text = count1.ToString() + "/" + (sysController.StarSysData.Shipyards.Count).ToString();
-                            break;
-                        case "YardLoad":
-                            OneTMP[i].text = (sysController.StarSysData.ShipyardData.PowerLoad * sysController.StarSysData.Shipyards.Count).ToString();
-                            break;
-                        case "ShieldName":
-                            OneTMP[i].text = sysController.StarSysData.ShieldGeneratorData.Name;
-                            break;
-                        case "NumShieldRatio":
-                            int count2 = 0;
-                            foreach (var item in sysController.StarSysData.ShieldGenerators)
-                            {
-                                TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1")
-                                    count2++;
-                            }
-                            OneTMP[i].text = count2.ToString() + "/" + (sysController.StarSysData.ShieldGenerators.Count).ToString();
-                            break;
-                        case "ShieldLoad":
-                            OneTMP[i].text = (sysController.StarSysData.ShieldGeneratorData.PowerLoad * sysController.StarSysData.ShieldGenerators.Count).ToString();
-                            break;
-                        case "OBName":
-                            OneTMP[i].text = sysController.StarSysData.OrbitalBatteryData.Name;
-                            break;
-                        case "NumOBRatio":
-                            int count3 = 0;
-                            foreach (var item in sysController.StarSysData.OrbitalBatteries)
-                            {
-                                TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1")
-                                    count3++;
-                            }
-                            OneTMP[i].text = count3.ToString() + "/" + (sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                            break;
-                        case "OBLoad":
-                            OneTMP[i].text = (sysController.StarSysData.OrbitalBatteryData.PowerLoad * sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                            break;
-                        case "ResearchName":
-                            OneTMP[i].text = sysController.StarSysData.ResearchCenterData.Name;
-                            break;
-                        case "NumResearchRatio":
-                            int count4 = 0;
-                            foreach (var item in sysController.StarSysData.ResearchCenters)
-                            {
-                                TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                                if (TheText.text == "1")
-                                    count4++;
-                            }
-                            OneTMP[i].text = count4.ToString() + "/" + (sysController.StarSysData.ResearchCenters.Count).ToString();
-                            break;
-                        case "ResearchLoad":
-                            OneTMP[i].text = (sysController.StarSysData.ResearchCenterData.PowerLoad * sysController.StarSysData.ResearchCenters.Count).ToString();
-                            break;
-                        case "PowerOverload":
-                            OneTMP[i].gameObject.SetActive(false);
-                            powerOverload = OneTMP[i].gameObject;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                Image[] listOfImages = sysController.StarSysUIGameObject.GetComponentsInChildren<Image>();
-                for (int i = 0; i < listOfImages.Length; i++)
-                {
-                    listOfImages[i].enabled = true;
-                    var name = listOfImages[i].name.ToString();
-                    switch (name)
-                    {
-                        case "PowerUnitImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
-                            break;
-                        case "FactoryImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
-                            break;
-                        case "shipyardImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
-                            break;
-                        case "ShieldPlantImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
-                            break;
-                        case "OrbitalBatteriesImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
-                            break;
-                        case "ResearchImage":
-                            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
-                            break;
-                        case "PowerOverload":
-                            powerOverload = listOfImages[i].gameObject;
-                            listOfImages[i].gameObject.SetActive(false);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
-                for (int i = 0; i < sliders.Length; i++)
-                {
-                    if (sliders[i].name == "BuildProgressSlider")
-                    {
-                        SliderBuildProgress = sliders[i];
-                        SliderBuildProgress.value = 0f;
-                    }
-                    if (sliders[i].name == "ShipBuildProgressSlider")
-                    {
-                        ShipSliderBuildProgress = sliders[i];
-                        ShipSliderBuildProgress.value = 0f;
-                    }
-                }
 
                 // Buttons wiring
                 Button[] listButtons = sysController.StarSysUIGameObject.GetComponentsInChildren<Button>();
@@ -386,6 +323,169 @@ public class StarSysMenuUIController : MonoBehaviour
                             break;
                     }
                 }
+                //Image[] listOfImages = sysController.StarSysUIGameObject.GetComponentsInChildren<Image>();
+                //for (int i = 0; i < listOfImages.Length; i++)
+                //{
+                //    listOfImages[i].enabled = true;
+                //    var name = listOfImages[i].name.ToString();
+                //    switch (name)
+                //    {
+                //        case "PowerUnitImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
+                //            break;
+                //        case "FactoryImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
+                //            break;
+                //        case "shipyardImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                //            break;
+                //        case "ShieldPlantImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                //            break;
+                //        case "OrbitalBatteriesImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
+                //            break;
+                //        case "ResearchImage":
+                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
+                //            break;
+                //        case "PowerOverload":
+                //            powerOverload = listOfImages[i].gameObject;
+                //            listOfImages[i].gameObject.SetActive(false);
+                //            break;
+                //        default:
+                //            break;
+                //    }
+                //}
+                //TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+                //for (int i = 0; i < OneTMP.Length; i++)
+                //{
+                //    OneTMP[i].enabled = true;
+                //    var name = OneTMP[i].name;
+
+                //    switch (name)
+                //    {
+                //        //case "SysName":
+                //        //    OneTMP[i].text = sysController.StarSysData.SysName;
+                //        //    break;
+                //        //case "HeaderPowerUnitText":
+                //        //    OneTMP[i].text = sysController.StarSysData.PowerPlantData.Name;
+                //        //    break;
+                //        //case "NumPUnits":
+                //        //    OneTMP[i].text = (sysController.StarSysData.PowerPlants.Count).ToString();
+                //        //    break;
+                //        //case "NumTotalEOut":
+                //        //    sysController.StarSysData.TotalSysPowerOutput = sysController.StarSysData.PowerPlants.Count * sysController.StarSysData.PowerPlantData.PowerOutput;
+                //        //    OneTMP[i].text = (sysController.StarSysData.TotalSysPowerOutput).ToString();
+                //        //    break;
+                //        //case "NumP Load":
+                //        //    OneTMP[i].text = (sysController.StarSysData.TotalSysPowerLoad).ToString();
+                //        //    break;
+                //        //case "NameFactory":
+                //        //    OneTMP[i].text = sysController.StarSysData.
+                //        //    break;
+                //        //case "NumFactoryRatio":
+                //        //    int count = 0;
+                //        //    foreach (var item in sysController.StarSysData.Factories)
+                //        //    {
+                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                //        //        if (TheText.text == "1")
+                //        //            count++;
+                //        //    }
+                //        //    OneTMP[i].text = count.ToString() + "/" + (sysController.StarSysData.Factories.Count).ToString();
+                //        //    break;
+                //        //case "FactoryLoad":
+                //        //    OneTMP[i].text = (sysController.StarSysData.FactoryData.PowerLoad * sysController.StarSysData.Factories.Count).ToString();
+                //        ////    break;
+                //        //case "ShipyardName":
+                //        //    OneTMP[i].text = 
+                //        //    break;
+                //        //case "NumYardsOnRatio":
+                //        //    int count1 = 0;
+                //        //    foreach (var item in sysController.StarSysData.Shipyards)
+                //        //    {
+                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                //        //        if (TheText.text == "1")
+                //        //            count1++;
+                //        //    }
+                //        //    OneTMP[i].text = count1.ToString() + "/" + (sysController.StarSysData.Shipyards.Count).ToString();
+                //        //    break;
+                //        //case "YardLoad":
+                //        //    OneTMP[i].text = (sysController.StarSysData.ShipyardData.PowerLoad * sysController.StarSysData.Shipyards.Count).ToString();
+                //        //    break;
+                //        //case "ShieldName":
+                //        //    OneTMP[i].text = sysController.StarSysData.ShieldGeneratorData.Name;
+                //        //    break;
+                //        //case "NumShieldRatio":
+                //        //    int count2 = 0;
+                //        //    foreach (var item in sysController.StarSysData.ShieldGenerators)
+                //        //    {
+                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                //        //        if (TheText.text == "1")
+                //        //            count2++;
+                //        //    }
+                //        //    OneTMP[i].text = count2.ToString() + "/" + (sysController.StarSysData.ShieldGenerators.Count).ToString();
+                //        //    break;
+                //        //case "ShieldLoad":
+                //        //    OneTMP[i].text = 
+                //        //    break;
+                //        //case "OBName":
+                //        //    OneTMP[i].text = sysController.StarSysData.OrbitalBatteryData.Name;
+                //        //    break;
+                //        //case "NumOBRatio":
+                //        //    int count3 = 0;
+                //        //    foreach (var item in sysController.StarSysData.OrbitalBatteries)
+                //        //    {
+                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                //        //        if (TheText.text == "1")
+                //        //            count3++;
+                //        //    }
+                //        //    OneTMP[i].text = count3.ToString() + "/" + (sysController.StarSysData.OrbitalBatteries.Count).ToString();
+                //        //    break;
+                //        //case "OBLoad":
+                //        //    OneTMP[i].text = (sysController.StarSysData.OrbitalBatteryData.PowerLoad * sysController.StarSysData.OrbitalBatteries.Count).ToString();
+                //        //    break;
+                //        //case "ResearchName":
+                //        //    OneTMP[i].text = sysController.StarSysData.ResearchCenterData.Name;
+                //        //    break;
+                //        //case "NumResearchRatio":
+                //        //    int count4 = 0;
+                //        //    foreach (var item in sysController.StarSysData.ResearchCenters)
+                //        //    {
+                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
+                //        //        if (TheText.text == "1")
+                //        //            count4++;
+                //        //    }
+                //        //    OneTMP[i].text = count4.ToString() + "/" + (sysController.StarSysData.ResearchCenters.Count).ToString();
+                //        //    break;
+                //        //case "ResearchLoad":
+                //        //    OneTMP[i].text = (sysController.StarSysData.ResearchCenterData.PowerLoad * sysController.StarSysData.ResearchCenters.Count).ToString();
+                //        //    break;
+                //        case "PowerOverload":
+                //            OneTMP[i].gameObject.SetActive(false);
+                //            powerOverload = OneTMP[i].gameObject;
+                //            break;
+                //        default:
+                //            break;
+                //    }
+                //}
+
+
+                Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
+                for (int i = 0; i < sliders.Length; i++)
+                {
+                    if (sliders[i].name == "BuildProgressSlider")
+                    {
+                        SliderBuildProgress = sliders[i];
+                        SliderBuildProgress.value = 0f;
+                    }
+                    if (sliders[i].name == "ShipBuildProgressSlider")
+                    {
+                        ShipSliderBuildProgress = sliders[i];
+                        ShipSliderBuildProgress.value = 0f;
+                    }
+                }
+
+
 
                 // Attach system ships UI if any
                 for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
