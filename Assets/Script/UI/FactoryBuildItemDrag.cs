@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+using Assets.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Assets.Core;
 
 
 public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
@@ -10,7 +8,6 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     public Transform originalParent;
-    
     public StarSysController StarSysController;
     public StarSysFacilities FacilityType;
     public Sprite ShipSprite;
@@ -28,7 +25,7 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
         {
             case "ItemPowerPlant":
                 theDragedScript.FacilityType = StarSysFacilities.PowerPlanet;
-                    break;
+                break;
             case "ItemFactory":
                 theDragedScript.FacilityType = StarSysFacilities.Factory;
                 break;
