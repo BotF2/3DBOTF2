@@ -92,7 +92,7 @@ namespace Assets.Core
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
             canvasToolTip.worldCamera = galaxyEventCamera;
-            OnOffSysFacilityEvents.current.FacilityOnClick += FactoryButtonOnClicked;// subscribe method to the event += () => Debug.Log("Action Invoked!");
+            //OnOffSysFacilityEvents.current.FacilityOnClick += FactoryButtonOnClicked;// subscribe method to the event += () => Debug.Log("Action Invoked!");
         }
         private void OnTransformChildrenChanged() //Unity automatically invokes when the transform hierarchy of the Controller GameObject changes.
         {  // This UI Queue is in the SysBuildUIListPanel prefab and not a child of StarSysController, BuildQueueWatcher helps call OnTransformChildrenChanged()
