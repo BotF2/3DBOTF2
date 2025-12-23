@@ -59,7 +59,7 @@ public class StarSysBuildManager
         if (buildItem == null) return;
 
         var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
-        if (buildDrag == null) return;
+       // if (buildDrag == null) return;
         switch (buildDrag.FacilityType)
         {
             case StarSysFacilities.PowerPlanet:
