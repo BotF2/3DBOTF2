@@ -130,7 +130,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         case "ShipContent":
                             sysShipListContainer = transforArrayInStarSysUI[i].gameObject;
                             break;
-
                     }
                 }
 
@@ -733,7 +732,6 @@ public class StarSysMenuUIController : MonoBehaviour
         galaxyUI.ResetClickMode();
         MousePointerChanger.Instance.ResetCursor();
         cancelShipManagerButtonGO?.SetActive(false);
-
     }
 
     internal void SetBuildProgress(float buildingProgress)
