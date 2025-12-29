@@ -60,7 +60,7 @@ public class PowerPlantSOImporter : EditorWindow
                     ////StarSysInt	,	powerPlantSO Enum	,	powerPlantSO Short TextComponent	,	powerPlantSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	powerPlantSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     powerPlantSO.CivInt = int.Parse(fields[0]);
                     powerPlantSO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    powerPlantSO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    powerPlantSO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     powerPlantSO.Name = (fields[3]);
                     powerPlantSO.StartStarDate = int.Parse(fields[5]);
                     powerPlantSO.BuildDuration = int.Parse(fields[6]);

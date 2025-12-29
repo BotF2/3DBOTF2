@@ -20,4 +20,4 @@ MonoBehaviour:
   BuildDuration: 4
   PowerLoad: 1
   ResearchCenterSprite: {fileID: 21300000, guid: ce8c2536b4f642f4488292d2bf4faad3, type: 3}
-  Description: Klingon shields are robust and designed for combat.
+  Description: Description Here

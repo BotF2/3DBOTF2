@@ -60,17 +60,6 @@ namespace Assets.Core
         }
 
         private GameController gameController;
-
-        private void Awake()
-        {
-            gameController = GameController.Instance;
-            if (sysBuildQueueList == null)
-                sysBuildQueueList = new List<Transform>();
-
-            if (shipBuildQueueList == null)
-                shipBuildQueueList = new List<Transform>();
-        }
-
         public GameObject ShipListUIParent
         {
             get => StarSysData?.ShipListUIParent;
@@ -81,7 +70,18 @@ namespace Assets.Core
                 ShipManager.Instance?.ProcessPendingShipUIs();
             }
         }
-        //ToDo, next steps:
+        private void Awake()
+        {
+            gameController = GameController.Instance;
+            if (sysBuildQueueList == null)
+                sysBuildQueueList = new List<Transform>();
+
+            if (shipBuildQueueList == null)
+                shipBuildQueueList = new List<Transform>();
+        }
+
+
+        //************ToDo, next steps:***********
         //Pause / resume building
         //Speed modifiers(tech, civ traits)
         //Save/load coroutine state
@@ -148,7 +148,6 @@ namespace Assets.Core
                 SysBuildManager.StartNextFacilityBuildIfAny();
             }
         }
-
         public void GridShipQueueUpdate()
         {
             if (ShipListGridLayoutGroup == null)
@@ -171,9 +170,6 @@ namespace Assets.Core
                 SysBuildManager.StartNextShipBuildIfAny();
             }
         }
-
-
-
         public void DoHabitalbeSystemUI(CivController discoveringCiv)
         {
             if (discoveringCiv != null)
@@ -254,13 +250,14 @@ namespace Assets.Core
                 if (gameController.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
                     StarSysUI.SetActiveSetParentUIGO(this);
-                    StarSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
-                    StarSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
-                    StarSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
-                    StarSysUI.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
-                    StarSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
-                    StarSysUI.UpdateSystemPowerLoad(this);
+                    StarSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
+                    StarSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
+                    StarSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
+                    StarSysUI.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
+                    StarSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
+                    //StarSysUI.UpdateSystemPowerBalance(this);
                     GalaxyUI.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
+                    //StarSysMenuUIController.Instance.lastStarSysController = this;
                 }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
                 { // this is a system local player does not own but we know them
@@ -349,8 +346,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    StarSysUI.FlashPowerOverload();
-
+                    CoroutineRunner.Instance.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.Factories.Count; i++)
                 {
@@ -361,12 +357,12 @@ namespace Assets.Core
                         {
                             this.StarSysData.TotalSysPowerLoad += StarSysData.FactoryData.PowerLoad;
                             StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "1";
-                            StarSysUI.UpdateFacilityUI(this, 1, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
+                            StarSysUI.UpdateFacilityUI(this, 1, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
                             break;
                         }
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void FactoryButtonOffClicked(StarSysController starSysCon)
@@ -379,11 +375,11 @@ namespace Assets.Core
                     {
                         StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.FactoryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
+                        StarSysUI.UpdateFacilityUI(this, -1, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
                         break;
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void YardButtonOnClicked(StarSysController starSysCon)
@@ -393,7 +389,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    StarSysUI.FlashPowerOverload();
+                    CoroutineRunner.Instance.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
                 {
@@ -404,12 +400,12 @@ namespace Assets.Core
                         {
                             StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ShipyardData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
+                            StarSysUI.UpdateFacilityUI(this, 1, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
                             break;
                         }
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void YardButtonOffClicked(StarSysController starSysCon)
@@ -422,11 +418,11 @@ namespace Assets.Core
                     {
                         StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ShipyardData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
+                        StarSysUI.UpdateFacilityUI(this, -1, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
                         break;
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void ShieldButtonOnClicked(StarSysController starSysCon)
@@ -436,7 +432,8 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    StarSysUI.FlashPowerOverload();
+                    CoroutineRunner.Instance.FlashPowerOverload();
+
                 }
                 for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
                 {
@@ -447,12 +444,12 @@ namespace Assets.Core
                         {
                             StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ShieldGeneratorData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
+                            StarSysUI.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
                             break;
                         }
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void ShieldButtonOffClicked(StarSysController starSysCon)
@@ -465,11 +462,11 @@ namespace Assets.Core
                     {
                         StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ShieldGeneratorData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
+                        StarSysUI.UpdateFacilityUI(this, -1, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
                         break;
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void OBButtonOnClicked(StarSysController starSysCon)
@@ -478,7 +475,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad >
                             this.StarSysData.TotalSysPowerOutput)
                 {
-                    StarSysUI.FlashPowerOverload();
+                    CoroutineRunner.Instance.FlashPowerOverload();
                 }
             for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
             {
@@ -489,12 +486,12 @@ namespace Assets.Core
                     {
                         StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "1";
                         this.StarSysData.TotalSysPowerLoad += StarSysData.OrbitalBatteryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, 1, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
+                        StarSysUI.UpdateFacilityUI(this, 1, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
                         break;
                     }
                 }
             }
-            StarSysUI.UpdateSystemPowerLoad(this);
+            StarSysUI.UpdateSystemPowerBalance(this);
         }
         public void OBButtonOffClicked(StarSysController starSysCon)
         {
@@ -506,11 +503,11 @@ namespace Assets.Core
                     {
                         StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.OrbitalBatteryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
+                        StarSysUI.UpdateFacilityUI(this, -1, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
                         break;
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
         public void ResearchButtonOnClicked(StarSysController starSysCon)
@@ -520,7 +517,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad >
                          this.StarSysData.TotalSysPowerOutput)
                 {
-                    StarSysUI.FlashPowerOverload();
+                    CoroutineRunner.Instance.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
                 {
@@ -531,15 +528,15 @@ namespace Assets.Core
                         {
                             StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ResearchCenterData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
+                            StarSysUI.UpdateFacilityUI(this, 1, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
                             break;
                         }
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
-        public void ReserchButtonOffClicked(StarSysController starSysCon)
+        public void ResearchButtonOffClicked(StarSysController starSysCon)
         {
             if (starSysCon != null && this == starSysCon)
             {
@@ -549,231 +546,18 @@ namespace Assets.Core
                     {
                         StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ResearchCenterData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
+                        StarSysUI.UpdateFacilityUI(this, -1, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
                         break;
                     }
                 }
-                StarSysUI.UpdateSystemPowerLoad(this);
+                StarSysUI.UpdateSystemPowerBalance(this);
             }
         }
-        public void FacilityOnClick(StarSysController sysCon)
-        {
-            if (this == sysCon)
-            {
-                switch (name)
-                {
-                    case "FactoryButtonOn":
-                        {
-                            // Do we have enough power to turn a factory on?
-                            if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad >
-                                    this.StarSysData.TotalSysPowerOutput)
-                            {
-                                StarSysUI.FlashPowerOverload();
-                                break;
-                            }
-                            for (int i = 0; i < this.StarSysData.Factories.Count; i++)
-                            {
-                                if (StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "0")
-                                {
-                                    if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad <=
-                                        this.StarSysData.TotalSysPowerOutput)
-                                    {
-                                        this.StarSysData.TotalSysPowerLoad += StarSysData.FactoryData.PowerLoad;
-                                        StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "1";
-                                        StarSysUI.UpdateFacilityUI(this, 1, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
-                                        break;
-                                    }
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "FactoryButtonOff":
-                        {
-                            for (int i = 0; i < this.StarSysData.Factories.Count; i++)
-                            {
-                                if (StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "0";
-                                    this.StarSysData.TotalSysPowerLoad -= StarSysData.FactoryData.PowerLoad;
-                                    StarSysUI.UpdateFacilityUI(this, -1, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
-                                    break;
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "YardButtonOn":
-                        {
-                            if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad >
-                                    this.StarSysData.TotalSysPowerOutput)
-                            {
-                                StarSysUI.FlashPowerOverload();
-                                break;
-                            }
-                            for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
-                            {
-                                if (StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "0")
-                                {
-                                    if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad <=
-                                        this.StarSysData.TotalSysPowerOutput)
-                                    {
-                                        StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "1";
-                                        this.StarSysData.TotalSysPowerLoad += StarSysData.ShipyardData.PowerLoad;
-                                        StarSysUI.UpdateFacilityUI(this, 1, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
-                                        break;
-                                    }
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "YardButtonOff":
-                        {
 
-                            for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
-                            {
-                                if (StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "0";
-                                    this.StarSysData.TotalSysPowerLoad -= StarSysData.ShipyardData.PowerLoad;
-                                    StarSysUI.UpdateFacilityUI(this, -1, "YardLoad", "NumYardsOnRatio", StarSysFacilities.Shipyard);
-                                    break;
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "ShieldButtonOn":
-                        {
-                            if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad >
-                                    this.StarSysData.TotalSysPowerOutput)
-                            {
-                                StarSysUI.FlashPowerOverload();
-                                break;
-                            }
-                            for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
-                            {
-                                if (StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "0")
-                                {
-                                    if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad <=
-                                        this.StarSysData.TotalSysPowerOutput)
-                                    {
-                                        StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "1";
-                                        this.StarSysData.TotalSysPowerLoad += StarSysData.ShieldGeneratorData.PowerLoad;
-                                        StarSysUI.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
-                                        break;
-                                    }
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "ShieldButtonOff":
-                        {
-                            for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
-                            {
-                                if (StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "0";
-                                    this.StarSysData.TotalSysPowerLoad -= StarSysData.ShieldGeneratorData.PowerLoad;
-                                    StarSysUI.UpdateFacilityUI(this, -1, "ShieldLoad", "NumShieldRatio", StarSysFacilities.ShieldGenerator);
-                                    break;
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "OBButtonOn":
-                        {
-                            if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad >
-                                       this.StarSysData.TotalSysPowerOutput)
-                            {
-                                StarSysUI.FlashPowerOverload();
-                                break;
-                            }
-                            for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
-                            {
-                                if (StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "0")
-                                {
-                                    if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad <=
-                                        this.StarSysData.TotalSysPowerOutput)
-                                    {
-                                        StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "1";
-                                        this.StarSysData.TotalSysPowerLoad += StarSysData.OrbitalBatteryData.PowerLoad;
-                                        StarSysUI.UpdateFacilityUI(this, 1, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
-                                        break;
-                                    }
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "OBButtonOff":
-                        {
-                            for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
-                            {
-                                if (StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "0";
-                                    this.StarSysData.TotalSysPowerLoad -= StarSysData.OrbitalBatteryData.PowerLoad;
-                                    StarSysUI.UpdateFacilityUI(this, -1, "OBLoad", "NumOBRatio", StarSysFacilities.OrbitalBattery);
-                                    break;
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "ResearchButtonOn":
-                        {
-                            if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad >
-                                     this.StarSysData.TotalSysPowerOutput)
-                            {
-                                StarSysUI.FlashPowerOverload();
-                                break;
-                            }
-                            for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
-                            {
-                                if (StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "0")
-                                {
-                                    if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad <=
-                                        this.StarSysData.TotalSysPowerOutput)
-                                    {
-                                        StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "1";
-                                        this.StarSysData.TotalSysPowerLoad += StarSysData.ResearchCenterData.PowerLoad;
-                                        StarSysUI.UpdateFacilityUI(this, 1, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
-                                        break;
-                                    }
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-                    case "ResearchButtonOff":
-                        {
-                            for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
-                            {
-                                if (StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
-                                {
-                                    StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "0";
-                                    this.StarSysData.TotalSysPowerLoad -= StarSysData.ResearchCenterData.PowerLoad;
-                                    StarSysUI.UpdateFacilityUI(this, -1, "ResearchLoad", "NumResearchRatio", StarSysFacilities.ResearchCenter);
-                                    break;
-                                }
-                            }
-                            StarSysUI.UpdateSystemPowerLoad(this);
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        }
         private void OnDestroy()
         {
             TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
-            OnOffSysFacilityEvents.current.FacilityOnClick -= FacilityOnClick;
+            // OnOffSysFacilityEvents.current.FacilityOnClick -= FacilityOnClick;
         }
         public void CleanupStarSysUIs()
         {

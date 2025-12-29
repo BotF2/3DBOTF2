@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+using Assets.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Assets.Core;
 
 
 public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
@@ -10,9 +8,9 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     public Transform originalParent;
-    
+
     public StarSysController StarSysController;
-    public StarSysFacilities FacilityType;
+    public StarSysFacilityType FacilityType;
     public Sprite ShipSprite;
     public int BuildDuration;
 
@@ -27,22 +25,22 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
         switch (eventData.pointerDrag.name)
         {
             case "ItemPowerPlant":
-                theDragedScript.FacilityType = StarSysFacilities.PowerPlanet;
-                    break;
+                theDragedScript.FacilityType = StarSysFacilityType.PowerPlanet;
+                break;
             case "ItemFactory":
-                theDragedScript.FacilityType = StarSysFacilities.Factory;
+                theDragedScript.FacilityType = StarSysFacilityType.Factory;
                 break;
             case "ItemShipyard":
-                theDragedScript.FacilityType = StarSysFacilities.Shipyard;
+                theDragedScript.FacilityType = StarSysFacilityType.Shipyard;
                 break;
             case "ItemShieldGenerator":
-                theDragedScript.FacilityType = StarSysFacilities.ShieldGenerator;
+                theDragedScript.FacilityType = StarSysFacilityType.ShieldGenerator;
                 break;
             case "ItemOrbitalBattery":
-                theDragedScript.FacilityType = StarSysFacilities.OrbitalBattery;
+                theDragedScript.FacilityType = StarSysFacilityType.OrbitalBattery;
                 break;
             case "ItemResearchCenter":
-                theDragedScript.FacilityType = StarSysFacilities.ResearchCenter;
+                theDragedScript.FacilityType = StarSysFacilityType.ResearchCenter;
                 break;
             default:
                 break;
@@ -68,54 +66,26 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
         {
             transform.SetParent(eventData.pointerEnter.transform);
             var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
-            switch (eventData.pointerDrag.name)
-            {
-                case "ItemPowerPlant":
-                case "ItemPowerPlant Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.PowerPlanet;
-                    break;
-                case "ItemFactory":
-                case "ItemFactory Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.Factory;
-                    break;
-                case "ItemShipyard":
-                case "ItemShipyard Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.Shipyard;
-                    break;
-                case "ItemShieldGenerator":
-                case "ItemShieldGenerator Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.ShieldGenerator;
-                    break;
-                case "ItemOrbitalBattery":
-                case "ItemOrbitalBattery Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.OrbitalBattery;
-                    break;
-                case "ItemResearchCenter":
-                case "ItemResearchCenter Variant(Clone)":
-                    theDragedScript.FacilityType = StarSysFacilities.ResearchCenter;
-                    break;
-                default:
-                    break;
-            }
+
             switch (theDragedScript.FacilityType)
             {
-                case StarSysFacilities.PowerPlanet:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.PowerPlantPrefab, this.StarSysController);
+                case StarSysFacilityType.PowerPlanet:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
-                case StarSysFacilities.Factory:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.FactoryPrefab, this.StarSysController);
+                case StarSysFacilityType.Factory:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
-                case StarSysFacilities.Shipyard:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ShipyardPrefab, this.StarSysController);
+                case StarSysFacilityType.Shipyard:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
-                case StarSysFacilities.ShieldGenerator:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ShieldGeneratorPrefab, this.StarSysController);
+                case StarSysFacilityType.ShieldGenerator:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
-                case StarSysFacilities.OrbitalBattery:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.OrbitalBatteryPrefab, this.StarSysController);
+                case StarSysFacilityType.OrbitalBattery:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
-                case StarSysFacilities.ResearchCenter:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(StarSysManager.Instance.ResearchCenterPrefab, this.StarSysController);
+                case StarSysFacilityType.ResearchCenter:
+                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 default:
                     break;

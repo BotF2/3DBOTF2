@@ -163,7 +163,6 @@ public class CombatController : MonoBehaviour
     }
     public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
     {
-        List<ShipController> shipCons = null;
         // Determine which list of ships to use based on the civOfOrder  
         if (civOfOrder == CombatData.CivEnumSideOne)
         {

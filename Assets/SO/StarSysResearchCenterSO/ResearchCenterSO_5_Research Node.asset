@@ -20,5 +20,4 @@ MonoBehaviour:
   BuildDuration: 4
   PowerLoad: 1
   ResearchCenterSprite: {fileID: 21300000, guid: 8b7bb6f780e13784894e48c9e10be39e, type: 3}
-  Description: Adaptive shields capable of resisting most conventional weapons after
-    brief exposure.
+  Description: Description Here

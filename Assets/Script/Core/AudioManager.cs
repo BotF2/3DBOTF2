@@ -1,7 +1,5 @@
-using UnityEngine.Audio;
-using UnityEngine;
-using System.Collections;
 using System;
+using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
@@ -36,12 +34,12 @@ public class AudioManager : MonoBehaviour
 
     public void Play(string name)
     {
-         Sound sound = Array.Find(sounds, sound => sound.name == name);
+        Sound sound = Array.Find(sounds, sound => sound.name == name);
         if (
             sound == null)
-            {
-                Debug.LogWarning("Sound: " + name + " not found!");
-                return;
+        {
+            Debug.LogWarning("We need a main them music, Sound: " + name + " not found!");
+            return;
         }
         sound.source.Play();
     }

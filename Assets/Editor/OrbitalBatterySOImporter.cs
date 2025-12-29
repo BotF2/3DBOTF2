@@ -62,7 +62,7 @@ public class OrbitalBatterySOImporter : EditorWindow
                     ////StarSysInt	,	OrbitalBatterySO Enum	,	OrbitalBatterySO Short TextComponent	,	OrbitalBatterySO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	OrbitalBatterySO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     OrbitalBatterySO.CivInt = int.Parse(fields[0]);
                     OrbitalBatterySO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    OrbitalBatterySO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    OrbitalBatterySO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     OrbitalBatterySO.Name = (fields[3]);
                     OrbitalBatterySO.StartStarDate = int.Parse(fields[5]);
                     OrbitalBatterySO.BuildDuration = int.Parse(fields[6]);

@@ -63,7 +63,7 @@ public class ResearchCenterSOImporter : EditorWindow
                     ////StarSysInt	,	ResearchCenterSO Enum	,	ResearchCenterSO Short TextComponent	,	ResearchCenterSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	ResearchCenterSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     ResearchCenterSO.CivInt = int.Parse(fields[0]);
                     ResearchCenterSO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    ResearchCenterSO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    ResearchCenterSO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     ResearchCenterSO.Name = (fields[3]);
                     ResearchCenterSO.StartStarDate = int.Parse(fields[5]);
                     ResearchCenterSO.BuildDuration = int.Parse(fields[6]);

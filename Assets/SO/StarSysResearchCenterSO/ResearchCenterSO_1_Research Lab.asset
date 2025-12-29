@@ -20,5 +20,4 @@ MonoBehaviour:
   BuildDuration: 4
   PowerLoad: 1
   ResearchCenterSprite: {fileID: 21300000, guid: 2b904c438dd69c244b126ecf6e60bf8b, type: 3}
-  Description: While the Romulan's advanced shields are integrated with cloaking
-    devices, allowing seamless stealth and defense but they cannot hild a planet.
+  Description: Description Here

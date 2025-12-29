@@ -1,5 +1,5 @@
 using Assets.Core;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -28,6 +28,8 @@ public class StarSysMenuUIController : MonoBehaviour
     [SerializeField] private FleetController tempFleetController;
     [Header("Power overload visuals")]
     [SerializeField] private GameObject powerOverload;
+    public GameObject PowerOverloadImage;
+    [SerializeField] private CoroutineRunner coroutineRunner;
     public Slider ShipSliderBuildProgress;
     public Slider SliderBuildProgress;
 
@@ -80,7 +82,7 @@ public class StarSysMenuUIController : MonoBehaviour
         if (ASystemMenuView != null)
             ASystemMenuView.SetActive(false);
         //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-        //parentCanvas.worldCamera = galaxyEventCamera;
+        //parentCanvas.worldCamera = galaxyEventCamera
     }
     public void ShowSystemMenuView()
     {
@@ -118,13 +120,6 @@ public class StarSysMenuUIController : MonoBehaviour
                 RectTransform[] transforArrayInStarSysUI = sysController.StarSysUIGameObject.GetComponentsInChildren<RectTransform>();
                 for (int i = 0; i < transforArrayInStarSysUI.Length; i++)
                 {
-                    //if (transforArrayInStarSysUI[i].name == "RedDot")
-                    //{
-                    //    float x = sysController.StarSysData.GetPosition().x * 0.12f;
-                    //    float y = 0f;
-                    //    float z = sysController.StarSysData.GetPosition().z * 0.12f;
-                    //    transforArrayInStarSysUI[i].Translate(new Vector3(x, z, y), Space.Self);
-                    //}
                     var name = transforArrayInStarSysUI[i].name;
                     switch (name)
                     {
@@ -135,341 +130,100 @@ public class StarSysMenuUIController : MonoBehaviour
                         case "ShipContent":
                             sysShipListContainer = transforArrayInStarSysUI[i].gameObject;
                             break;
-                            //case "DestinationDragTarget Button":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    dragDestinationTargetButtonGO = rectTransforms[i].gameObject;
-                            //    break;
-                            //case "Cancel Destination Button":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    cancelDestinationButtonGO = rectTransforms[i].gameObject;
-                            //    break;
-                            //case "SelectDestinationCursorButton":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    selectDestinationCursorButtonGO = rectTransforms[i].gameObject;
-                            //    break;
-                            //case "WarpSlider":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    break;
-                            //case "ButtonWarpUp":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    warpButtonUpGO = rectTransforms[i].gameObject;
-                            //    break;
-                            //case "ButtonWarpDown":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    warpButtonDownGO = rectTransforms[i].gameObject;
-                            //    break;
-                            ////case "ButtonCloseFleetUI":
-                            ////    rectTransforms[i].gameObject.SetActive(true);
-                            ////    closeFleetUIButtonGO = rectTransforms[i].gameObject;
-                            ////    break;
-                            //case "NewFleetButton":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    break;
-                            //case "MergeFleetButton":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    mergeFleetButtonGO = rectTransforms[i].gameObject;
-                            //    break;
-                            //case "ShipDeployButton":
-                            //    rectTransforms[i].gameObject.SetActive(true);
-                            //    selectShipManagerCursorButtonGO = rectTransforms[i].gameObject;
-                            //    break;
 
                     }
                 }
 
-
-
                 var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUIElement>();
-                // Retranform bindings
+                if (tmpElement == null)
+                {
+                    Debug.LogWarning($"SetupSystemUIData: StarSysUIElement missing on UI prefab for {sysController.name}");
+                    continue;
+                }
 
+                // Basic transform bindings that are independent of textual content
                 tmpElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
                     sysController.StarSysData.GetPosition().z * 0.12f);
-                // Text bindings
-                tmpElement.sysName.text = sysController.StarSysData.SysName;
-                tmpElement.headerPowerUnitText.text = sysController.StarSysData.PowerPlantData.Name;
-                tmpElement.numPUnits.text = sysController.StarSysData.PowerPlants.Count.ToString();
-                sysController.StarSysData.TotalSysPowerOutput = sysController.StarSysData.PowerPlants.Count * sysController.StarSysData.PowerPlantData.PowerOutput;
-                tmpElement.numTotalEOut.text = (sysController.StarSysData.TotalSysPowerOutput).ToString();
-                tmpElement.numPLoad.text = (sysController.StarSysData.TotalSysPowerLoad).ToString();
-                tmpElement.nameFactory.text = sysController.StarSysData.FactoryData.Name;
-                int count = 0;
-                foreach (var item in sysController.StarSysData.Factories)
-                {
-                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        count++;
-                }
-                tmpElement.numFactoryRatio.text = count.ToString() + "/" + (sysController.StarSysData.Factories.Count).ToString();
-                tmpElement.factoryLoad.text = (sysController.StarSysData.FactoryData.PowerLoad * sysController.StarSysData.Factories.Count).ToString();
-                tmpElement.shipyardName.text = sysController.StarSysData.ShipyardData.Name;
-                int count1 = 0;
-                foreach (var item in sysController.StarSysData.Shipyards)
-                {
-                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        count1++;
-                }
-                tmpElement.numYardsOnRatio.text = count1.ToString() + "/" + (sysController.StarSysData.Shipyards.Count).ToString();
-                tmpElement.yardLoad.text = (sysController.StarSysData.ShipyardData.PowerLoad * sysController.StarSysData.Shipyards.Count).ToString();
-                tmpElement.shieldName.text = sysController.StarSysData.ShieldGeneratorData.Name;
-                int count2 = 0;
-                foreach (var item in sysController.StarSysData.ShieldGenerators)
-                {
-                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        count2++;
-                }
-                tmpElement.numShieldsRatio.text = count2.ToString() + "/" + (sysController.StarSysData.ShieldGenerators.Count).ToString();
-                tmpElement.shieldLoad.text = (sysController.StarSysData.ShieldGeneratorData.PowerLoad * sysController.StarSysData.ShieldGenerators.Count).ToString();
-                tmpElement.oBName.text = sysController.StarSysData.OrbitalBatteryData.Name;
-                int count3 = 0;
-                foreach (var item in sysController.StarSysData.OrbitalBatteries)
-                {
-                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        count3++;
-                }
-                tmpElement.numOBRatio.text = count3.ToString() + "/" + (sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                tmpElement.oBLoad.text = (sysController.StarSysData.OrbitalBatteryData.PowerLoad * sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                tmpElement.researchName.text = sysController.StarSysData.ResearchCenterData.Name;
-                int count4 = 0;
-                foreach (var item in sysController.StarSysData.ResearchCenters)
-                {
-                    TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        count4++;
-                }
-                tmpElement.numResearchRatio.text = count4.ToString() + "/" + (sysController.StarSysData.ResearchCenters.Count).ToString();
-                tmpElement.powerOvarload.gameObject.SetActive(false);
-                powerOverload = tmpElement.powerOvarload.gameObject;
-                // image binding
-                tmpElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
-                tmpElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
-                tmpElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
-                tmpElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
-                tmpElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
-                tmpElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
-                // button binding
+
+                // Bind button handlers and images (keep existing wiring; textual content will be initialized centrally)
                 tmpElement.buildButton.onClick.RemoveAllListeners();
                 tmpElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
                 tmpElement.shipButton.onClick.RemoveAllListeners();
                 tmpElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
-                tmpElement.factoryButtonOn.onClick.RemoveAllListeners();
-                tmpElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
-                tmpElement.factoryButtonOff.onClick.RemoveAllListeners();
-                tmpElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
-                tmpElement.yardButtonOn.onClick.RemoveAllListeners();
-                tmpElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
-                tmpElement.yardButtonOff.onClick.RemoveAllListeners();
-                tmpElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
-                tmpElement.shieldButtonOn.onClick.RemoveAllListeners();
-                tmpElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
-                tmpElement.shieldButtonOff.onClick.RemoveAllListeners();
-                tmpElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
-                tmpElement.oBButtonOn.onClick.RemoveAllListeners();
-                tmpElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
-                tmpElement.oBButtonOff.onClick.RemoveAllListeners();
-                tmpElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
-                tmpElement.researchButtonOn.onClick.RemoveAllListeners();
-                tmpElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
-                tmpElement.researchButtonOff.onClick.RemoveAllListeners();
-                tmpElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
 
-
-                // Buttons wiring
-                Button[] listButtons = sysController.StarSysUIGameObject.GetComponentsInChildren<Button>();
-                foreach (var listButton in listButtons)
+                // Ensure SysButtonOnOff components exist and assign types, then wire click handlers
+                if (tmpElement.factoryButtonOn != null)
                 {
-                    switch (listButton.name)
-                    {
-                        case "BuildButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => sysController.BuildClick(sysController));
-                            break;
-                        case "ShipButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => sysController.ShipClick(sysController));
-                            break;
-                        case "FactoryButtonOn":
-                        case "FactoryButtonOff":
-                        case "YardButtonOn":
-                        case "YardButtonOff":
-                        case "ShieldButtonOn":
-                        case "ShieldButtonOff":
-                        case "OBButtonOn":
-                        case "OBButtonOff":
-                        case "ResearchButtonOn":
-                        case "ResearchButtonOff":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => sysController.FacilityOnClick(sysController, listButton.name));
-                            break;
-                        case "NewFleetButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => ClickNewFleetButton(sysController));
-                            break;
-                        case "MergeFleetButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => ClickMergeFleetButton());
-                            break;
-                        case "ShipDeployButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => ClickShipDeployCursor(sysController));
-                            break;
-                        case "CancelShipManagerButton":
-                            listButton.onClick.RemoveAllListeners();
-                            listButton.onClick.AddListener(() => ClickCancelShipManageButton());
-                            break;
-                        default:
-                            break;
-                    }
+                    var comp = tmpElement.factoryButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.factoryButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.FactoryOnButton;
+                    tmpElement.factoryButtonOn.onClick.RemoveAllListeners();
+                    tmpElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
                 }
-                //Image[] listOfImages = sysController.StarSysUIGameObject.GetComponentsInChildren<Image>();
-                //for (int i = 0; i < listOfImages.Length; i++)
-                //{
-                //    listOfImages[i].enabled = true;
-                //    var name = listOfImages[i].name.ToString();
-                //    switch (name)
-                //    {
-                //        case "PowerUnitImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
-                //            break;
-                //        case "FactoryImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
-                //            break;
-                //        case "shipyardImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
-                //            break;
-                //        case "ShieldPlantImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
-                //            break;
-                //        case "OrbitalBatteriesImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
-                //            break;
-                //        case "ResearchImage":
-                //            listOfImages[i].sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
-                //            break;
-                //        case "PowerOverload":
-                //            powerOverload = listOfImages[i].gameObject;
-                //            listOfImages[i].gameObject.SetActive(false);
-                //            break;
-                //        default:
-                //            break;
-                //    }
-                //}
-                //TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-                //for (int i = 0; i < OneTMP.Length; i++)
-                //{
-                //    OneTMP[i].enabled = true;
-                //    var name = OneTMP[i].name;
+                if (tmpElement.factoryButtonOff != null)
+                {
+                    var comp = tmpElement.factoryButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.factoryButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.FactoryOffButton;
+                    tmpElement.factoryButtonOff.onClick.RemoveAllListeners();
+                    tmpElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                }
+                if (tmpElement.yardButtonOn != null)
+                {
+                    var comp = tmpElement.yardButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.yardButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ShipyardOnButton;
+                    tmpElement.yardButtonOn.onClick.RemoveAllListeners();
+                    tmpElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                }
+                if (tmpElement.yardButtonOff != null)
+                {
+                    var comp = tmpElement.yardButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.yardButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                    tmpElement.yardButtonOff.onClick.RemoveAllListeners();
+                    tmpElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                }
+                if (tmpElement.shieldButtonOn != null)
+                {
+                    var comp = tmpElement.shieldButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.shieldButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                    tmpElement.shieldButtonOn.onClick.RemoveAllListeners();
+                    tmpElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                }
+                if (tmpElement.shieldButtonOff != null)
+                {
+                    var comp = tmpElement.shieldButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.shieldButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                    tmpElement.shieldButtonOff.onClick.RemoveAllListeners();
+                    tmpElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                }
+                if (tmpElement.oBButtonOn != null)
+                {
+                    var comp = tmpElement.oBButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.oBButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                    tmpElement.oBButtonOn.onClick.RemoveAllListeners();
+                    tmpElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                }
+                if (tmpElement.oBButtonOff != null)
+                {
+                    var comp = tmpElement.oBButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.oBButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
+                    tmpElement.oBButtonOff.onClick.RemoveAllListeners();
+                    tmpElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
+                }
+                if (tmpElement.researchButtonOn != null)
+                {
+                    var comp = tmpElement.researchButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.researchButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ResearchCenterOnButton;
+                    tmpElement.researchButtonOn.onClick.RemoveAllListeners();
+                    tmpElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
+                }
+                if (tmpElement.researchButtonOff != null)
+                {
+                    var comp = tmpElement.researchButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.researchButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    comp.button = SystemOnOffButtons.ResearchCenterOffButton;
+                    tmpElement.researchButtonOff.onClick.RemoveAllListeners();
+                    tmpElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
+                }
 
-                //    switch (name)
-                //    {
-                //        //case "SysName":
-                //        //    OneTMP[i].text = sysController.StarSysData.SysName;
-                //        //    break;
-                //        //case "HeaderPowerUnitText":
-                //        //    OneTMP[i].text = sysController.StarSysData.PowerPlantData.Name;
-                //        //    break;
-                //        //case "NumPUnits":
-                //        //    OneTMP[i].text = (sysController.StarSysData.PowerPlants.Count).ToString();
-                //        //    break;
-                //        //case "NumTotalEOut":
-                //        //    sysController.StarSysData.TotalSysPowerOutput = sysController.StarSysData.PowerPlants.Count * sysController.StarSysData.PowerPlantData.PowerOutput;
-                //        //    OneTMP[i].text = (sysController.StarSysData.TotalSysPowerOutput).ToString();
-                //        //    break;
-                //        //case "NumP Load":
-                //        //    OneTMP[i].text = (sysController.StarSysData.TotalSysPowerLoad).ToString();
-                //        //    break;
-                //        //case "NameFactory":
-                //        //    OneTMP[i].text = sysController.StarSysData.
-                //        //    break;
-                //        //case "NumFactoryRatio":
-                //        //    int count = 0;
-                //        //    foreach (var item in sysController.StarSysData.Factories)
-                //        //    {
-                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                //        //        if (TheText.text == "1")
-                //        //            count++;
-                //        //    }
-                //        //    OneTMP[i].text = count.ToString() + "/" + (sysController.StarSysData.Factories.Count).ToString();
-                //        //    break;
-                //        //case "FactoryLoad":
-                //        //    OneTMP[i].text = (sysController.StarSysData.FactoryData.PowerLoad * sysController.StarSysData.Factories.Count).ToString();
-                //        ////    break;
-                //        //case "ShipyardName":
-                //        //    OneTMP[i].text = 
-                //        //    break;
-                //        //case "NumYardsOnRatio":
-                //        //    int count1 = 0;
-                //        //    foreach (var item in sysController.StarSysData.Shipyards)
-                //        //    {
-                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                //        //        if (TheText.text == "1")
-                //        //            count1++;
-                //        //    }
-                //        //    OneTMP[i].text = count1.ToString() + "/" + (sysController.StarSysData.Shipyards.Count).ToString();
-                //        //    break;
-                //        //case "YardLoad":
-                //        //    OneTMP[i].text = (sysController.StarSysData.ShipyardData.PowerLoad * sysController.StarSysData.Shipyards.Count).ToString();
-                //        //    break;
-                //        //case "ShieldName":
-                //        //    OneTMP[i].text = sysController.StarSysData.ShieldGeneratorData.Name;
-                //        //    break;
-                //        //case "NumShieldRatio":
-                //        //    int count2 = 0;
-                //        //    foreach (var item in sysController.StarSysData.ShieldGenerators)
-                //        //    {
-                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                //        //        if (TheText.text == "1")
-                //        //            count2++;
-                //        //    }
-                //        //    OneTMP[i].text = count2.ToString() + "/" + (sysController.StarSysData.ShieldGenerators.Count).ToString();
-                //        //    break;
-                //        //case "ShieldLoad":
-                //        //    OneTMP[i].text = 
-                //        //    break;
-                //        //case "OBName":
-                //        //    OneTMP[i].text = sysController.StarSysData.OrbitalBatteryData.Name;
-                //        //    break;
-                //        //case "NumOBRatio":
-                //        //    int count3 = 0;
-                //        //    foreach (var item in sysController.StarSysData.OrbitalBatteries)
-                //        //    {
-                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                //        //        if (TheText.text == "1")
-                //        //            count3++;
-                //        //    }
-                //        //    OneTMP[i].text = count3.ToString() + "/" + (sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                //        //    break;
-                //        //case "OBLoad":
-                //        //    OneTMP[i].text = (sysController.StarSysData.OrbitalBatteryData.PowerLoad * sysController.StarSysData.OrbitalBatteries.Count).ToString();
-                //        //    break;
-                //        //case "ResearchName":
-                //        //    OneTMP[i].text = sysController.StarSysData.ResearchCenterData.Name;
-                //        //    break;
-                //        //case "NumResearchRatio":
-                //        //    int count4 = 0;
-                //        //    foreach (var item in sysController.StarSysData.ResearchCenters)
-                //        //    {
-                //        //        TextMeshProUGUI TheText = item.GetComponent<TextMeshProUGUI>();
-                //        //        if (TheText.text == "1")
-                //        //            count4++;
-                //        //    }
-                //        //    OneTMP[i].text = count4.ToString() + "/" + (sysController.StarSysData.ResearchCenters.Count).ToString();
-                //        //    break;
-                //        //case "ResearchLoad":
-                //        //    OneTMP[i].text = (sysController.StarSysData.ResearchCenterData.PowerLoad * sysController.StarSysData.ResearchCenters.Count).ToString();
-                //        //    break;
-                //        case "PowerOverload":
-                //            OneTMP[i].gameObject.SetActive(false);
-                //            powerOverload = OneTMP[i].gameObject;
-                //            break;
-                //        default:
-                //            break;
-                //    }
-                //}
-
-
+                // Slider bindings
                 Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
                 for (int i = 0; i < sliders.Length; i++)
                 {
@@ -485,22 +239,34 @@ public class StarSysMenuUIController : MonoBehaviour
                     }
                 }
 
+                // image binding (these are generic icons from theme; InitializeFromStarSysData will set facility icons/names/ratios)
+                tmpElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
+                tmpElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
+                tmpElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                tmpElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                tmpElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
+                tmpElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
 
+                // CENTRALIZED UI UPDATE - authoritative: read StarSysData lists and update UI
+                try
+                {
+                    tmpElement.InitializeFromStarSysData(sysController.StarSysData);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysController.name}: {ex.Message}");
+                }
+
+                // Persist references used by menu controller
+                powerOverload = tmpElement.powerOvarload != null ? tmpElement.powerOvarload.gameObject : tmpElement.PowerOverload;
+                PowerOverloadImage = tmpElement.powerOverloadImage != null ? tmpElement.powerOverloadImage.gameObject : tmpElement.PowerOverload?.gameObject;
+                coroutineRunner = tmpElement.coroutineRunner;
 
                 // Attach system ships UI if any
                 for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
                 {
                     if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
                     {
-                        //var transforms = sysController.StarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
-                        //for (int j = 0; j < transforms.Length; j++)
-                        //{
-                        //    if (transforms[j].gameObject.name == "aSystemShipContent")
-                        //    {
-                        //        aSystemShipListContainer = transforms[j].gameObject;
-                        //        break;
-                        //    }
-                        //}
                         if (aSystemShipListContainer != null)
                             sysController.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(aSystemShipListContainer.transform, false);
                     }
@@ -587,7 +353,7 @@ public class StarSysMenuUIController : MonoBehaviour
         return listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject);
     }
 
-    public void UpdateFacilityUI(StarSysController sysController, int plusMinus, string loadName, string ratioName, StarSysFacilities facilityType)
+    public void UpdateFacilityUI(StarSysController sysController, int plusMinus, string loadName, string ratioName, StarSysFacilityType facilityType)
     {
         if (!GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum)) return;
 
@@ -595,23 +361,23 @@ public class StarSysMenuUIController : MonoBehaviour
         List<GameObject> facilities = new List<GameObject>();
         switch (facilityType)
         {
-            case StarSysFacilities.Factory:
+            case StarSysFacilityType.Factory:
                 newFacilityLoad = sysController.StarSysData.FactoryData.PowerLoad;
                 facilities = sysController.StarSysData.Factories;
                 break;
-            case StarSysFacilities.Shipyard:
+            case StarSysFacilityType.Shipyard:
                 newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
                 facilities = sysController.StarSysData.Shipyards;
                 break;
-            case StarSysFacilities.ShieldGenerator:
+            case StarSysFacilityType.ShieldGenerator:
                 newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
                 facilities = sysController.StarSysData.ShieldGenerators;
                 break;
-            case StarSysFacilities.OrbitalBattery:
+            case StarSysFacilityType.OrbitalBattery:
                 newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
                 facilities = sysController.StarSysData.OrbitalBatteries;
                 break;
-            case StarSysFacilities.ResearchCenter:
+            case StarSysFacilityType.ResearchCenter:
                 newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
                 facilities = sysController.StarSysData.ResearchCenters;
                 break;
@@ -646,10 +412,13 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    public void UpdateSystemPowerLoad(StarSysController sysCon)
+    public void UpdateSystemPowerBalance(StarSysController sysCon)
     {
         if (sysCon == null) return;
         int load = 0;
+        int output = 0;
+        for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
+            output += sysCon.StarSysData.PowerPlantData.PowerOutput;
         for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
             if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
                 load += sysCon.StarSysData.FactoryData.PowerLoad;
@@ -671,57 +440,159 @@ public class StarSysMenuUIController : MonoBehaviour
                 load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
         sysCon.StarSysData.TotalSysPowerLoad = load;
+        sysCon.StarSysData.TotalSysPowerOutput = output;
         TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
         for (int i = 0; i < OneTMP.Length; i++)
         {
             OneTMP[i].enabled = true;
             if ("NumP Load" == OneTMP[i].name)
                 OneTMP[i].text = load.ToString();
+            if ("NumTotal EOut" == OneTMP[i].name)
+                OneTMP[i].text = output.ToString();
         }
     }
 
-    public void FlashPowerOverload()
+    internal void AddSysFacility(StarSysController controller, GameObject faciltyGO, string loadName, string ratioName, StarSysFacilityType facilityType)
     {
-        if (powerOverload == null) return;
-        StartCoroutine(FlashRoutine());
-    }
-    internal void AddSysFacility(StarSysController controller, GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
-    {
+        // Ensure StarSysData exists
+        var data = controller.StarSysData;
+        if (data == null)
+        {
+            Debug.LogWarning($"AddSysFacility: StarSysData is null for controller {controller.name}.");
+            return;
+        }
         if (GameController.Instance.AreWeLocalPlayer(controller.StarSysData.CurrentOwnerCivEnum))
         {
+            // Resolve list and per-facility load
             int newFacilityLoad = 0;
-            List<GameObject> facilities = new List<GameObject>();
+            List<GameObject> facilities = null;
             switch (facilityType)
             {
-                case StarSysFacilities.Factory:
-                    newFacilityLoad = controller.StarSysData.FactoryData.PowerLoad;
-                    controller.StarSysData.Factories.Add(faciltyGO);
-                    facilities = controller.StarSysData.Factories;
+                case StarSysFacilityType.Factory:
+                    newFacilityLoad = data.FactoryData?.PowerLoad ?? 0;
+                    facilities = data.Factories;
                     break;
-                case StarSysFacilities.Shipyard:
-                    newFacilityLoad = controller.StarSysData.ShipyardData.PowerLoad;
-                    controller.StarSysData.Shipyards.Add(faciltyGO);
-                    facilities = controller.StarSysData.Shipyards;
+                case StarSysFacilityType.Shipyard:
+                    newFacilityLoad = data.ShipyardData?.PowerLoad ?? 0;
+                    facilities = data.Shipyards;
                     break;
-                case StarSysFacilities.ShieldGenerator:
-                    newFacilityLoad = controller.StarSysData.ShieldGeneratorData.PowerLoad;
-                    controller.StarSysData.ShieldGenerators.Add(faciltyGO);
-                    facilities = controller.StarSysData.ShieldGenerators;
+                case StarSysFacilityType.ShieldGenerator:
+                    newFacilityLoad = data.ShieldGeneratorData?.PowerLoad ?? 0;
+                    facilities = data.ShieldGenerators;
                     break;
-                case StarSysFacilities.OrbitalBattery:
-                    newFacilityLoad = controller.StarSysData.OrbitalBatteryData.PowerLoad;
-                    controller.StarSysData.OrbitalBatteries.Add(faciltyGO);
-                    facilities = controller.StarSysData.OrbitalBatteries;
+                case StarSysFacilityType.OrbitalBattery:
+                    newFacilityLoad = data.OrbitalBatteryData?.PowerLoad ?? 0;
+                    facilities = data.OrbitalBatteries;
                     break;
-                case StarSysFacilities.ResearchCenter:
-                    newFacilityLoad = controller.StarSysData.ResearchCenterData.PowerLoad;
-                    controller.StarSysData.ResearchCenters.Add(faciltyGO);
-                    facilities = controller.StarSysData.ResearchCenters;
+                case StarSysFacilityType.ResearchCenter:
+                    newFacilityLoad = data.ResearchCenterData?.PowerLoad ?? 0;
+                    facilities = data.ResearchCenters;
+                    break;
+                case StarSysFacilityType.PowerPlanet:
+                    newFacilityLoad = data.PowerPlantData?.PowerOutput ?? 0; // power plants contribute output not load
+                    facilities = data.PowerPlants;
                     break;
                 default:
+                    Debug.LogWarning($"AddSysFacility: unsupported facilityType {facilityType}.");
                     break;
             }
 
+            // Defensive: ensure list exists
+            if (facilities == null)
+            {
+                Debug.LogWarning($"AddSysFacility: facilities list for {facilityType} is null on system {controller.name}. Creating new list.");
+                facilities = new List<GameObject>();
+                switch (facilityType)
+                {
+                    case StarSysFacilityType.Factory: data.Factories = facilities; break;
+                    case StarSysFacilityType.Shipyard: data.Shipyards = facilities; break;
+                    case StarSysFacilityType.ShieldGenerator: data.ShieldGenerators = facilities; break;
+                    case StarSysFacilityType.OrbitalBattery: data.OrbitalBatteries = facilities; break;
+                    case StarSysFacilityType.ResearchCenter: data.ResearchCenters = facilities; break;
+                    case StarSysFacilityType.PowerPlanet: data.PowerPlants = facilities; break;
+                }
+            }
+
+            // Add the facility GameObject to the list if not already present
+            if (faciltyGO != null && !facilities.Contains(faciltyGO))
+                facilities.Add(faciltyGO);
+
+            // Try to update typed UI first
+            var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUIElement>();
+            if (uiElement == null)
+            {
+                Debug.LogWarning($"AddSysFacility: StarSysUIElement not found for system {controller.name}. Falling back to string-based updates.");
+            }
+            else
+            {
+                StarSysUIElement.FacilityUI facUI = null;
+                try
+                {
+                    facUI = uiElement.GetFacility(facilityType);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUIElement for {controller.name}. Exception: {ex.Message}");
+                    facUI = null;
+                }
+
+                if (facUI != null)
+                {
+                    // Set icon & name from StarSysData where possible
+                    switch (facilityType)
+                    {
+                        case StarSysFacilityType.Factory:
+                            if (facUI.icon != null) facUI.icon.sprite = data.FactoryData?.FactorySprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.FactoryData?.Name ?? string.Empty;
+                            break;
+                        case StarSysFacilityType.Shipyard:
+                            if (facUI.icon != null) facUI.icon.sprite = data.ShipyardData?.ShipyardSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.ShipyardData?.Name ?? string.Empty;
+                            break;
+                        case StarSysFacilityType.ShieldGenerator:
+                            if (facUI.icon != null) facUI.icon.sprite = data.ShieldGeneratorData?.ShieldGeneratorSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.ShieldGeneratorData?.Name ?? string.Empty;
+                            break;
+                        case StarSysFacilityType.OrbitalBattery:
+                            if (facUI.icon != null) facUI.icon.sprite = data.OrbitalBatteryData?.OrbitalBatterySprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.OrbitalBatteryData?.Name ?? string.Empty;
+                            break;
+                        case StarSysFacilityType.ResearchCenter:
+                            if (facUI.icon != null) facUI.icon.sprite = data.ResearchCenterData?.ResearchCenterSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.ResearchCenterData?.Name ?? string.Empty;
+                            break;
+                        case StarSysFacilityType.PowerPlanet:
+                            if (facUI.icon != null) facUI.icon.sprite = data.PowerPlantData?.PowerPlantSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = data.PowerPlantData?.Name ?? string.Empty;
+                            break;
+                    }
+
+                    // Compute ratio and load using the canonical facilities list
+                    int numOn = 0;
+                    int load = 0;
+                    for (int i = 0; i < facilities.Count; i++)
+                    {
+                        var txt = facilities[i]?.GetComponent<TextMeshProUGUI>()?.text;
+                        if (txt == "1")
+                        {
+                            numOn++;
+                            load += newFacilityLoad;
+                        }
+                    }
+
+                    if (facUI.ratioText != null)
+                        facUI.ratioText.text = $"{numOn}/{facilities.Count}";
+
+                    if (facUI.loadText != null)
+                        facUI.loadText.text = load.ToString();
+
+                    // We've updated the typed UI; ensure menu-level power load is recomputed
+                    StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(controller);
+                    return;
+                }
+            }
+
+            // Fallback: original string-based behavior (keeps backwards compatibility)
             if (controller.StarSysUIGameObject != null)
             {
                 TextMeshProUGUI[] theTextItems = controller.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
@@ -729,9 +600,9 @@ public class StarSysMenuUIController : MonoBehaviour
                 for (int j = 0; j < theTextItems.Length; j++)
                 {
                     theTextItems[j].enabled = true;
-                    int load = 0;
                     if (theTextItems[j].name == loadName)
                     {
+                        int load = 0;
                         for (int k = 0; k < facilities.Count; k++)
                         {
                             if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
@@ -756,19 +627,18 @@ public class StarSysMenuUIController : MonoBehaviour
                     else if (allDone)
                         break;
                 }
+                StarSysMenuUIController.Instance.UpdateSystemPowerBalance(controller);
             }
-            StarSysMenuUIController.Instance.UpdateSystemPowerLoad(controller);
+            else
+            {
+                Debug.LogWarning($"AddSysFacility fallback: StarSysUIGameObject is null for {controller.name} and typed UI update failed.");
+            }
         }
     }
-    IEnumerator FlashRoutine()
+
+    private void UpdateSystemPowerLoad(StarSysController controller)
     {
-        for (int i = 0; i < 3; i++)
-        {
-            powerOverload.SetActive(true);
-            yield return new WaitForSeconds(0.5f);
-            powerOverload.SetActive(false);
-            yield return new WaitForSeconds(0.5f);
-        }
+        throw new NotImplementedException();
     }
 
     internal void UpdateSystemShipList(StarSysController sysCon)
@@ -875,4 +745,9 @@ public class StarSysMenuUIController : MonoBehaviour
     {
         ShipSliderBuildProgress.value = shipProgress;
     }
+
+    //internal static void SetActive(bool v)
+    //{
+    //    throw new NotImplementedException();
+    //}
 }

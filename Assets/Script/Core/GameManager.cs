@@ -317,10 +317,24 @@ namespace Assets.Core
         BlackHole,
         WormHole,
         SomeBadAssGalacticObject,
-
-
+    }
+    public enum SystemOnOffButtons
+    {
+        FactoryOnButton,
+        FactoryOffButton,
+        PowerPlantOnButton,
+        PowerPlantOffButton,
+        ShipyardOnButton,
+        ShipyardOffbutton,
+        ShieldGeneratorOnButton,
+        ShieldGeneratorOffbutton,
+        OrbitalBatteryOnButton,
+        OrbitalBatteryOffButton,
+        ResearchCenterOnButton,
+        ResearchCenterOffButton,
 
     }
+
     public enum PlanetType
     {
         H_uninhabitable,
@@ -340,7 +354,7 @@ namespace Assets.Core
         TargetTransports,
         None,
     }
-    public enum StarSysFacilities
+    public enum StarSysFacilityType
     {
         PowerPlanet,
         Factory,
@@ -358,10 +372,6 @@ namespace Assets.Core
         [SerializeField]
         private MainMenuUIController mainMenuUIController;
         public GameController GameController;
-        public bool _weAreFriend = false;
-        public bool _warpingInIsOver = false; // WarpingInCompleted() called from E_Animator3 sets true and set false again in CombatCompleted state in BeginState
-
-
 
 
         private void Awake()
@@ -388,103 +398,6 @@ namespace Assets.Core
                 mainMenuUIController = GameObject.Find("MainMenuUIController").GetComponent<MainMenuUIController>();
                 mainMenuUIController.LoadDefault();
                 this.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
-            }
-        }
-        //  MARC CODE
-
-
-        public void SetCameraTargets() // ToDo: re-implement in combat
-        {
-            //List<GameObject> _cameraTargets = new List<GameObject>() { Friend_0, Enemy_0}; // dummies
-
-            //List<GameObject> multiTargets = instantiateCombatShips.GetCameraTargets(); // get list - array for CameraMultiTarget
-            //List<GameObject> survivingTargets = new List<GameObject>();
-            //if (multiTargets.Count() > 0)
-            //{
-            //    for (int i = 0; i < multiTargets.Count; i++)
-            //    {
-            //        if (multiTargets[i] != null)
-            //        {
-            //            survivingTargets.Add(multiTargets[i]);
-            //        }
-            //    }
-
-            //    _cameraTargets.AddRange(survivingTargets);
-            //}
-
-            //cameraMultiTarget.SetTargets(_cameraTargets.ToArray()); // start multiCamera - main camers before warp in of ships
-        }
-        //public void ProvideFriendCombatShips(int numIndex, GameObject daObject)
-        //{
-        //    FriendShips.Add(daObject); // geting friend combat ship dictionary for combat
-        //}
-        //public void ProvideEnemyCombatShips(int numIndex, GameObject daObject)
-        //{
-        //    EnemyShips.Add(daObject);
-        //}
-        public void WarpingInCompleted() // ToDo: re-implement in combat
-        {
-            _warpingInIsOver = true;
-        }
-        public void SetShipLayer() // ToDo: re-implement in combat
-        {
-            //List<GameObject> allDaShipObjectInCombat = new List<GameObject>();
-            //allDaShipObjectInCombat = FriendShips;
-            //for (int i = 0; i < EnemyShips.Count; i++)
-            //{
-            //    allDaShipObjectInCombat.Add(EnemyShips[i]);
-            //}
-
-            //foreach (var shipGameObject in allDaShipObjectInCombat)
-            //{
-            //    var arrayOfName = shipGameObject.name.ToUpper().Split('_');
-            //    shipGameObject.layer = SetShipLayer(arrayOfName[0]);
-
-            //} 
-        }
-
-        public int SetShipLayer(string civ)
-        {
-            switch (civ)
-            {
-                case "FED":
-                    {
-                        return 10;
-
-                    }
-                case "TER":
-                    {
-                        return 11;
-
-                    }
-                case "ROM":
-                    {
-                        return 12;
-
-                    }
-                case "KLING":
-                    {
-                        return 13;
-
-                    }
-                case "CARD":
-                    {
-                        return 14;
-
-                    }
-                case "DOM":
-                    {
-                        return 15;
-
-                    }
-                case "BORG":
-                    {
-                        return 16;
-
-                    }
-                default:
-                    return 10;
-
             }
         }
     }

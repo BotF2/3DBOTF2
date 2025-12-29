@@ -60,7 +60,7 @@ public class ShipyardSOImporter : EditorWindow
                     ////StarSysInt	,	ShipyardSO Enum	,	ShipyardSO Short TextComponent	,	ShipyardSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	ShipyardSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     ShipyardSO.CivInt = int.Parse(fields[0]);
                     ShipyardSO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    ShipyardSO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    ShipyardSO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     ShipyardSO.Name = (fields[3]);
                     ShipyardSO.StartStarDate = int.Parse(fields[5]);
                     ShipyardSO.BuildDuration = int.Parse(fields[6]);

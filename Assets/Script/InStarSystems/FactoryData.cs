@@ -1,7 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.Core;
+using UnityEngine;
 
 /// <summary>
 /// This is a type of star system asset/object that can be built in the factory queue.
@@ -9,9 +7,9 @@ using Assets.Core;
 [System.Serializable]
 public class FactoryData // uses StarSysController and StarSysManager
 {
-    public int CivInt;
+    public CivEnum CivEnum;
     public TechLevel TechLevel;
-    public StarSysFacilities FacilitiesEnumType; // what type are we
+    public StarSysFacilityType FacilitiesEnumType; // what type are we
     public string Name;
     public int StartStarDate; //start to build this factory in an existing factory queue
     public int BuildDuration;// duration to build can be reduced by number and output of factories

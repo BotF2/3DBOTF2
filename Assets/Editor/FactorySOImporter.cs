@@ -62,7 +62,7 @@ public class FactorySOImporter : EditorWindow
                     ////StarSysInt	,	factorySO Enum	,	factorySO Short TextComponent	,	factorySO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	factorySO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     factorySO.CivInt = int.Parse(fields[0]);
                     factorySO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    factorySO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    factorySO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     factorySO.Name = (fields[3]);
                     factorySO.StartStarDate = int.Parse(fields[5]);
                     factorySO.BuildDuration = int.Parse(fields[6]);

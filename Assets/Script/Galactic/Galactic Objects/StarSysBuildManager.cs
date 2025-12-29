@@ -59,42 +59,96 @@ public class StarSysBuildManager
         if (buildItem == null) return;
 
         var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
-       // if (buildDrag == null) return;
-        switch (buildDrag.FacilityType)
+        if (buildDrag == null)
         {
-            case StarSysFacilities.PowerPlanet:
-                controller.StarSysData.PowerPlants.Add(
-                    StarSysManager.Instance.AddSystemFacilities(
-                        1,
-                        StarSysManager.Instance.PowerPlantPrefab,
-                        (int)controller.StarSysData.CurrentOwnerCivEnum,
-                        controller.StarSysData,
-                        0
-                    )[0]
-                );
-                break;
-
-            case StarSysFacilities.Factory:
-                var factory =
-                    StarSysManager.Instance.AddSystemFacilities(
-                        1,
-                        StarSysManager.Instance.FactoryPrefab,
-                        (int)controller.StarSysData.CurrentOwnerCivEnum,
-                        controller.StarSysData,
-                        0
-                    )[0];
-                StarSysMenuUIController.Instance.AddSysFacility(controller, factory, "FactoryLoad", "NumFactoryRatio", StarSysFacilities.Factory);
-                break;
-                // (shipyard, shield, OB, research...)
+            Debug.LogWarning("CompleteFacilityBuild: FactoryBuildItemDrag missing on buildItem.");
+            return;
         }
 
-        // Remove UI element
+        int civInt = (int)controller.StarSysData.CurrentOwnerCivEnum;
+        GameObject newFacilityGO = null;
+
+        switch (buildDrag.FacilityType)
+        {
+            case StarSysFacilityType.PowerPlanet:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.PowerPlants = controller.StarSysData.PowerPlants ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.PowerPlants.Add(newFacilityGO);
+                break;
+
+            case StarSysFacilityType.Factory:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.FactoryPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.Factories = controller.StarSysData.Factories ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.Factories.Add(newFacilityGO);
+                break;
+
+            case StarSysFacilityType.Shipyard:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ShipyardPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.Shipyards = controller.StarSysData.Shipyards ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.Shipyards.Add(newFacilityGO);
+                break;
+
+            case StarSysFacilityType.ShieldGenerator:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ShieldGeneratorPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.ShieldGenerators = controller.StarSysData.ShieldGenerators ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.ShieldGenerators.Add(newFacilityGO);
+                break;
+
+            case StarSysFacilityType.OrbitalBattery:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.OrbitalBatteryPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.OrbitalBatteries = controller.StarSysData.OrbitalBatteries ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.OrbitalBatteries.Add(newFacilityGO);
+                break;
+
+            case StarSysFacilityType.ResearchCenter:
+                newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ResearchCenterPrefab, civInt, 0, controller)[0];
+                controller.StarSysData.ResearchCenters = controller.StarSysData.ResearchCenters ?? new System.Collections.Generic.List<GameObject>();
+                controller.StarSysData.ResearchCenters.Add(newFacilityGO);
+                break;
+
+            default:
+                Debug.LogWarning($"CompleteFacilityBuild: Unknown facility type {buildDrag.FacilityType}");
+                break;
+        }
+
+        // Parent it under the star system so transforms/hierarchy are correct
+        if (newFacilityGO != null)
+            newFacilityGO.transform.SetParent(controller.gameObject.transform, false);
+
+        // Remove/cleanup temp build UI item used to represent the building process
         buildItem.SetParent(buildDrag.originalParent, false);
         UnityEngine.Object.Destroy(buildItem.gameObject);
 
-        controller.sysBuildQueueList.Remove(buildItem);
+        // --- UI update: prefer typed UI that reads from StarSysData lists ---
+        var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUIElement>();
+        if (uiElement != null)
+        {
+            // InitializeFromStarSysData reads the lists and updates counts/icons/loads
+            uiElement.InitializeFromStarSysData(controller.StarSysData);
+        }
+        else
+        {
+            // Fallback for older string-based menu: attempt to update via menu controller (keeps backwards compatibility)
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.AddSysFacility(
+                    controller,
+                    newFacilityGO,
+                    "ResearchCenterLoad",       // loadName (legacy)
+                    "NumResearchCenterRatio",   // ratioName (legacy)
+                    buildDrag.FacilityType
+                );
+            }
+            else
+            {
+                Debug.LogWarning($"CompleteFacilityBuild: No UI available to update for system {controller.name}.");
+            }
+        }
 
-        StarSysMenuUIController.Instance.UpdateSystemPowerLoad(controller);
+        // Recompute power load in menu/controller UI (defensive)
+        StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(controller);
+
+        // Mark coroutine done and start next queued build
         buildCoroutine = null;
         StartNextFacilityBuildIfAny();
     }
@@ -153,28 +207,28 @@ public class StarSysBuildManager
             BuildShipCoroutine(controller.shipBuildQueueList[0])
         );
     }
-    public int GetBuildTimeDuration(StarSysFacilities starSysFacilities)
+    public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
     {
         int timeDuration = 1;
         TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.TechLevel;
         switch (starSysFacilities)
         {
-            case StarSysFacilities.PowerPlanet:
+            case StarSysFacilityType.PowerPlanet:
                 timeDuration = controller.StarSysData.PowerPlantData.BuildDuration;
                 break;
-            case StarSysFacilities.Factory:
+            case StarSysFacilityType.Factory:
                 timeDuration = controller.StarSysData.FactoryData.BuildDuration;
                 break;
-            case StarSysFacilities.Shipyard:
+            case StarSysFacilityType.Shipyard:
                 timeDuration = controller.StarSysData.ShipyardData.BuildDuration;
                 break;
-            case StarSysFacilities.ShieldGenerator:
+            case StarSysFacilityType.ShieldGenerator:
                 timeDuration = controller.StarSysData.ShieldGeneratorData.BuildDuration;
                 break;
-            case StarSysFacilities.OrbitalBattery:
+            case StarSysFacilityType.OrbitalBattery:
                 timeDuration = controller.StarSysData.OrbitalBatteryData.BuildDuration;
                 break;
-            case StarSysFacilities.ResearchCenter:
+            case StarSysFacilityType.ResearchCenter:
                 timeDuration = controller.StarSysData.ResearchCenterData.BuildDuration;
                 break;
             default:

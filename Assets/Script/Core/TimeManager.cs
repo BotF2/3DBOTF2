@@ -1,4 +1,3 @@
-using Assets.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +6,7 @@ using UnityEngine;
 public class TimeManager : MonoBehaviour
 {
     public static TimeManager Instance;
-    
+
     public event Action<TrekRandomEventSO> onRandomSpecialEvent; // 
     public Action<TrekRandomEventSO> OnRandomSpecialEvent; // current of the delegate Action 
     public event Action<TrekStardateEventSO> onStardateSpecialEvent; // 
@@ -113,7 +112,7 @@ public class TimeManager : MonoBehaviour
         SetTimeSpeedMultiplier(timeSpeedup);
         timeCoroutine = StartCoroutine(TimeProgression());
         if (this != null && timeCoroutine != null)
-        { 
+        {
             timeRunning = true;
             timeCoroutine = StartCoroutine(TimeProgression());
         }

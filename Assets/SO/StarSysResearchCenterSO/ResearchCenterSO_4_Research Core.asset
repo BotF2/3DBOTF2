@@ -20,4 +20,4 @@ MonoBehaviour:
   BuildDuration: 4
   PowerLoad: 1
   ResearchCenterSprite: {fileID: 21300000, guid: 8055434919d69e44985a2a60c46ef8ea, type: 3}
-  Description: The Dominion has High-capacity, fast-regenerating shields for durability.
+  Description: Description Here

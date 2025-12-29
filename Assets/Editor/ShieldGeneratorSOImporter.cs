@@ -60,7 +60,7 @@ public class ShieldGeneratorSOImporter : EditorWindow
                     ////StarSysInt	,	ShieldGeneratorSO Enum	,	ShieldGeneratorSO Short TextComponent	,	ShieldGeneratorSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	ShieldGeneratorSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
                     ShieldGeneratorSO.CivInt = int.Parse(fields[0]);
                     ShieldGeneratorSO.TechLevel = (TechLevel)int.Parse(fields[1]);
-                    ShieldGeneratorSO.FacilitiesEnumType = (StarSysFacilities)int.Parse(fields[2]);
+                    ShieldGeneratorSO.FacilitiesEnumType = (StarSysFacilityType)int.Parse(fields[2]);
                     ShieldGeneratorSO.Name = (fields[3]);
                     ShieldGeneratorSO.StartStarDate = int.Parse(fields[5]);
                     ShieldGeneratorSO.BuildDuration = int.Parse(fields[6]);
