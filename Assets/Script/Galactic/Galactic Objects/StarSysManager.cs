@@ -394,7 +394,6 @@ namespace Assets.Core
             List<GameObject> returnList = new List<GameObject>();
             TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
             var civ = (CivEnum)civInt;
-            ;
             int startingStarDate = TimeManager.Instance.StaringStardate;
 
             // Use prefab reference comparisons for switch
