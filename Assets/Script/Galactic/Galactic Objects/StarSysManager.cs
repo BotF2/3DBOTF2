@@ -394,6 +394,7 @@ namespace Assets.Core
             List<GameObject> returnList = new List<GameObject>();
             TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
             var civ = (CivEnum)civInt;
+            ;
             int startingStarDate = TimeManager.Instance.StaringStardate;
 
             // Use prefab reference comparisons for switch
@@ -885,7 +886,7 @@ namespace Assets.Core
             }
 
             // Prefer the explicit prefab helper component
-            var buildUI = sysBuildListInstance.GetComponent<BuildUISliders>();
+            var buildUI = sysBuildListInstance.GetComponent<BuildUIFields>();
             if (buildUI != null)
             {
                 // text

@@ -67,6 +67,16 @@ providers = {
 		priority = 100
 		defaultAction = null
 	}
+	presets_provider = {
+		active = false
+		priority = -10
+		defaultAction = null
+	}
+	profilermarkers = {
+		active = false
+		priority = 100
+		defaultAction = null
+	}
 }
 objectSelectors = {
 }

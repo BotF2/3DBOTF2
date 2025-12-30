@@ -729,9 +729,4 @@ public class StarSysMenuUIController : MonoBehaviour
     {
         ShipSliderBuildProgress.value = shipProgress;
     }
-
-    //internal static void SetActive(bool v)
-    //{
-    //    throw new NotImplementedException();
-    //}
 }
