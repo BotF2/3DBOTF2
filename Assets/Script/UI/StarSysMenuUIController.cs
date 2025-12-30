@@ -117,21 +117,6 @@ public class StarSysMenuUIController : MonoBehaviour
                 listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
                 if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
                     sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
-                RectTransform[] transforArrayInStarSysUI = sysController.StarSysUIGameObject.GetComponentsInChildren<RectTransform>();
-                for (int i = 0; i < transforArrayInStarSysUI.Length; i++)
-                {
-                    var name = transforArrayInStarSysUI[i].name;
-                    switch (name)
-                    {
-                        case "CancelShipManagerButton":
-                            transforArrayInStarSysUI[i].gameObject.SetActive(false);
-                            cancelShipManagerButtonGO = transforArrayInStarSysUI[i].gameObject;
-                            break;
-                        case "ShipContent":
-                            sysShipListContainer = transforArrayInStarSysUI[i].gameObject;
-                            break;
-                    }
-                }
 
                 var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUIElement>();
                 if (tmpElement == null)
@@ -143,6 +128,7 @@ public class StarSysMenuUIController : MonoBehaviour
                 // Basic transform bindings that are independent of textual content
                 tmpElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
                     sysController.StarSysData.GetPosition().z * 0.12f);
+                tmpElement.cancelShipManagerButton.gameObject.SetActive(false);
 
                 // Bind button handlers and images (keep existing wiring; textual content will be initialized centrally)
                 tmpElement.buildButton.onClick.RemoveAllListeners();

@@ -851,6 +851,8 @@ namespace Assets.Core
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
                 Quaternion.identity);
+            sysBuildListInstance.layer = 5; // UI layer
+
             // Initialize watchers explicitly
             foreach (var watcher in sysBuildListInstance.GetComponentsInChildren<BuildQueueWatcher>(true))
             {
@@ -861,34 +863,184 @@ namespace Assets.Core
             {
                 watcher.Initialize(sysCon);
             }
+
             GalaxyMenuUIController.Instance.SetActiveBuildMenu(sysBuildListInstance);
-            sysBuildListInstance.layer = 5; //UI layer
 
             canvasBuildList.SetActive(true);
 
-            // getting the FactoryBuildableItems code, set StarSysController/Data for them so they can send image endDrags back.
+            // Parent under canvas
             sysBuildListInstance.transform.SetParent(canvasBuildList.transform, false);
+
+            // set StarSysController reference on buildable items
             FactoryBuildItemDrag[] buildable = sysBuildListInstance.GetComponentsInChildren<FactoryBuildItemDrag>();
-
-
             for (int m = 0; m < buildable.Length; m++)
             {
                 buildable[m].StarSysController = sysCon;
-                if (buildable[m].name == "ItemPowerPlant")
-                {
-                    buildable[m].FacilityType = StarSysFacilityType.PowerPlanet;
-                }
-                else if (buildable[m].name == "ItemFactory")
-                    buildable[m].FacilityType = StarSysFacilityType.Factory;
-                else if (buildable[m].name == "ItemShipyard")
-                    buildable[m].FacilityType = StarSysFacilityType.Shipyard;
-                else if (buildable[m].name == "ItemShieldGenerator")
-                    buildable[m].FacilityType = StarSysFacilityType.ShieldGenerator;
-                else if (buildable[m].name == "ItemOrbitalBattery")
-                    buildable[m].FacilityType = StarSysFacilityType.OrbitalBattery;
-                else if (buildable[m].name == "ItemResearchCenter")
-                    buildable[m].FacilityType = StarSysFacilityType.ResearchCenter;
+                if (buildable[m].name == "ItemPowerPlant") buildable[m].FacilityType = StarSysFacilityType.PowerPlanet;
+                else if (buildable[m].name == "ItemFactory") buildable[m].FacilityType = StarSysFacilityType.Factory;
+                else if (buildable[m].name == "ItemShipyard") buildable[m].FacilityType = StarSysFacilityType.Shipyard;
+                else if (buildable[m].name == "ItemShieldGenerator") buildable[m].FacilityType = StarSysFacilityType.ShieldGenerator;
+                else if (buildable[m].name == "ItemOrbitalBattery") buildable[m].FacilityType = StarSysFacilityType.OrbitalBattery;
+                else if (buildable[m].name == "ItemResearchCenter") buildable[m].FacilityType = StarSysFacilityType.ResearchCenter;
             }
+
+            // Prefer the explicit prefab helper component
+            var buildUI = sysBuildListInstance.GetComponent<BuildUISliders>();
+            if (buildUI != null)
+            {
+                // text
+                if (buildUI.systemNameTMP != null)
+                    buildUI.systemNameTMP.text = sysCon.StarSysData.SysName;
+
+                // grid layouts -> assign to controller and refresh its queues
+                if (buildUI.queueHoldingBuildables != null)
+                {
+                    sysCon.BuildListGridLayoutGroup = buildUI.queueHoldingBuildables;
+                    sysCon.GridFactoryQueueUpdate();
+                }
+                if (buildUI.queueHoldingBuildableShips != null)
+                {
+                    sysCon.ShipListGridLayoutGroup = buildUI.queueHoldingBuildableShips;
+                    sysCon.GridShipQueueUpdate();
+                }
+
+                // sliders -> menu controller
+                if (buildUI.factoryBuildProgress != null)
+                {
+                    StarSysMenuUIController.Instance.SliderBuildProgress = buildUI.factoryBuildProgress;
+                    StarSysMenuUIController.Instance.SliderBuildProgress.value = 0f;
+                }
+                if (buildUI.shipBuildProgress != null)
+                {
+                    StarSysMenuUIController.Instance.ShipSliderBuildProgress = buildUI.shipBuildProgress;
+                    StarSysMenuUIController.Instance.ShipSliderBuildProgress.value = 0f;
+                }
+
+                // inventory slot parents for later use
+                powerPlantInventorySlot = buildUI.powerPlantInventorySlot ?? powerPlantInventorySlot;
+                factoryInventorySlot = buildUI.factoryInventorySlot ?? factoryInventorySlot;
+                shipyardInventorySlot = buildUI.shipyardInventorySlot ?? shipyardInventorySlot;
+                shieldGenInventorySlot = buildUI.shieldGenInventorySlot ?? shieldGenInventorySlot;
+                orbitalBatteryInventorySlot = buildUI.orbitalBatteryInventorySlot ?? orbitalBatteryInventorySlot;
+                researchCenterInventory_slot = buildUI.researchCenterInventorySlot ?? researchCenterInventory_slot;
+
+                scoutInventorySlot = buildUI.scoutInventorySlot ?? scoutInventorySlot;
+                destroyerInventorySlot = buildUI.destroyerInventorySlot ?? destroyerInventorySlot;
+                cruiserInventorySlot = buildUI.cruiserInventorySlot ?? cruiserInventorySlot;
+                ltCruiserInventorySlot = buildUI.ltCruiserInventorySlot ?? ltCruiserInventorySlot;
+                hvyCruiserInventorySlot = buildUI.hvyCruiserInventorySlot ?? hvyCruiserInventorySlot;
+                transportInventorySlot = buildUI.transportInventorySlot ?? transportInventorySlot;
+                var sysUIElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUIElement>();
+                // populate images from StarSysData into known image fields (if present)
+                if (sysUIElement.powerUnitImage != null && sysCon.StarSysData.PowerPlantData != null)
+                    sysUIElement.powerUnitImage.sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
+                if (sysUIElement.factoryImage != null && sysCon.StarSysData.FactoryData != null)
+                    sysUIElement.factoryImage.sprite = sysCon.StarSysData.FactoryData.FactorySprite;
+                if (sysUIElement.shipyardImage != null && sysCon.StarSysData.ShipyardData != null)
+                    sysUIElement.shipyardImage.sprite = sysCon.StarSysData.ShipyardData.ShipyardSprite;
+                if (sysUIElement.shieldPlantImage != null && sysCon.StarSysData.ShieldGeneratorData != null)
+                    sysUIElement.shieldPlantImage.sprite = sysCon.StarSysData.ShieldGeneratorData.ShieldGeneratorSprite;
+                if (sysUIElement.orbitalBatteriesImage != null && sysCon.StarSysData.OrbitalBatteryData != null)
+                    sysUIElement.orbitalBatteriesImage.sprite = sysCon.StarSysData.OrbitalBatteryData.OrbitalBatterySprite;
+                if (sysUIElement.researchImage != null && sysCon.StarSysData.ResearchCenterData != null)
+                    sysUIElement.researchImage.sprite = sysCon.StarSysData.ResearchCenterData.ResearchCenterSprite;
+
+                // wire action buttons (if present)
+                if (sysUIElement.buildButton != null)
+                {
+                    sysUIElement.buildButton.onClick.RemoveAllListeners();
+                    sysUIElement.buildButton.onClick.AddListener(() => sysCon.BuildClick(sysCon));
+                }
+                if (sysUIElement.shipButton != null)
+                {
+                    sysUIElement.shipButton.onClick.RemoveAllListeners();
+                    sysUIElement.shipButton.onClick.AddListener(() => sysCon.ShipClick(sysCon));
+                }
+
+                // wire facility on/off buttons to StarSysController's handlers if present
+                if (sysUIElement.factoryButtonOn != null)
+                {
+                    sysUIElement.factoryButtonOn.onClick.RemoveAllListeners();
+                    sysUIElement.factoryButtonOn.onClick.AddListener(() => sysCon.FactoryButtonOnClicked(sysCon));
+                }
+                if (sysUIElement.factoryButtonOff != null)
+                {
+                    sysUIElement.factoryButtonOff.onClick.RemoveAllListeners();
+                    sysUIElement.factoryButtonOff.onClick.AddListener(() => sysCon.FactoryButtonOffClicked(sysCon));
+                }
+                if (sysUIElement.yardButtonOn != null)
+                {
+                    sysUIElement.yardButtonOn.onClick.RemoveAllListeners();
+                    sysUIElement.yardButtonOn.onClick.AddListener(() => sysCon.YardButtonOnClicked(sysCon));
+                }
+                if (sysUIElement.yardButtonOff != null)
+                {
+                    sysUIElement.yardButtonOff.onClick.RemoveAllListeners();
+                    sysUIElement.yardButtonOff.onClick.AddListener(() => sysCon.YardButtonOffClicked(sysCon));
+                }
+                if (sysUIElement.shieldButtonOn != null)
+                {
+                    sysUIElement.shieldButtonOn.onClick.RemoveAllListeners();
+                    sysUIElement.shieldButtonOn.onClick.AddListener(() => sysCon.ShieldButtonOnClicked(sysCon));
+                }
+                if (sysUIElement.shieldButtonOff != null)
+                {
+                    sysUIElement.shieldButtonOff.onClick.RemoveAllListeners();
+                    sysUIElement.shieldButtonOff.onClick.AddListener(() => sysCon.ShieldButtonOffClicked(sysCon));
+                }
+                if (sysUIElement.oBButtonOn != null)
+                {
+                    sysUIElement.oBButtonOn.onClick.RemoveAllListeners();
+                    sysUIElement.oBButtonOn.onClick.AddListener(() => sysCon.OBButtonOnClicked(sysCon));
+                }
+                if (sysUIElement.oBButtonOff != null)
+                {
+                    sysUIElement.oBButtonOff.onClick.RemoveAllListeners();
+                    sysUIElement.oBButtonOff.onClick.AddListener(() => sysCon.OBButtonOffClicked(sysCon));
+                }
+                if (sysUIElement.researchButtonOn != null)
+                {
+                    sysUIElement.researchButtonOn.onClick.RemoveAllListeners();
+                    sysUIElement.researchButtonOn.onClick.AddListener(() => sysCon.ResearchButtonOnClicked(sysCon));
+                }
+                if (sysUIElement.researchButtonOff != null)
+                {
+                    sysUIElement.researchButtonOff.onClick.RemoveAllListeners();
+                    sysUIElement.researchButtonOff.onClick.AddListener(() => sysCon.ResearchButtonOffClicked(sysCon));
+                }
+
+                // wire close buttons array
+                if (buildUI.closeButtons != null)
+                {
+                    foreach (var btn in buildUI.closeButtons)
+                    {
+                        if (btn == null) continue;
+                        btn.gameObject.SetActive(true);
+                        btn.onClick.RemoveAllListeners();
+                        btn.onClick.AddListener(() => StarSysMenuUIController.Instance.CloseBuildingQueues());
+                    }
+                }
+
+                // ensure inventory slot images inside assigned parents are correct
+                if (powerPlantInventorySlot != null && sysCon.StarSysData.PowerPlantData != null)
+                {
+                    foreach (var img in powerPlantInventorySlot.GetComponentsInChildren<Image>(true))
+                        if (img.name == "ItemPowerPlant" || img.name == "ImagePowerBackground")
+                            img.sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
+                }
+
+                // ship inventory images
+                if (scoutInventorySlot != null && scoutBluePrintPrefab != null)
+                {
+                    foreach (var img in scoutInventorySlot.GetComponentsInChildren<Image>(true))
+                        if (img.name == "ItemScout" || img.name == "ImageScoutBackground")
+                            img.sprite = scoutBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
+                }
+
+                return;
+            }
+
+            // Fallback: existing legacy traversal (keeps compatibility for prefabs missing BuildUISliders)
             TextMeshProUGUI[] theTextItems = sysBuildListInstance.GetComponentsInChildren<TextMeshProUGUI>();
             for (int j = 0; j < theTextItems.Length; j++)
             {
@@ -916,6 +1068,7 @@ namespace Assets.Core
                 }
             }
 
+            // Original per-slot traversal preserved below (unchanged)
             Transform[] theSlots = sysBuildListInstance.GetComponentsInChildren<Transform>();
             for (int l = 0; (l < theSlots.Length); l++)
             {

@@ -493,6 +493,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -629,6 +630,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1069,6 +1071,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1281,6 +1284,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1874,6 +1878,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -2313,6 +2318,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -2524,6 +2530,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -2735,6 +2742,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -2871,6 +2879,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -3234,6 +3243,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -3370,6 +3380,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -3413,6 +3424,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8842128110312170451}
   - component: {fileID: 9081010710240092795}
+  - component: {fileID: 43475613350146011}
   m_Layer: 5
   m_Name: SysBuildUIListPanel
   m_TagString: Untagged
@@ -3459,6 +3471,61 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3868390008097759204}
   m_CullTransparentMesh: 0
+--- !u!114 &43475613350146011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3868390008097759204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eba72f45a7f80244c8507c728558be2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildUISliders
+  shipBuildProgress: {fileID: 0}
+  factoryBuildProgress: {fileID: 4473434223754465203}
+  systemNameTMP: {fileID: 167007795926102802}
+  queueHoldingBuildables: {fileID: 3766606600586410325}
+  queueHoldingBuildableShips: {fileID: 8561472960594032276}
+  powerPlantInventorySlot: {fileID: 2089840521739205955}
+  factoryInventorySlot: {fileID: 8497237199223002627}
+  shipyardInventorySlot: {fileID: 1274924610591901239}
+  shieldGenInventorySlot: {fileID: 1900789752107082475}
+  orbitalBatteryInventorySlot: {fileID: 4078361611548389480}
+  researchCenterInventorySlot: {fileID: 4578074079542485462}
+  scoutInventorySlot: {fileID: 6967667297239447455}
+  destroyerInventorySlot: {fileID: 2361562775913577409}
+  cruiserInventorySlot: {fileID: 4432902273393988358}
+  ltCruiserInventorySlot: {fileID: 3570556780050302143}
+  hvyCruiserInventorySlot: {fileID: 5402236679439048859}
+  transportInventorySlot: {fileID: 9143765405934530326}
+  factoryButtonOn: {fileID: 0}
+  factoryButtonOff: {fileID: 0}
+  yardButtonOn: {fileID: 0}
+  yardButtonOff: {fileID: 0}
+  shieldButtonOn: {fileID: 0}
+  shieldButtonOff: {fileID: 0}
+  oBButtonOn: {fileID: 0}
+  oBButtonOff: {fileID: 0}
+  researchButtonOn: {fileID: 0}
+  researchButtonOff: {fileID: 0}
+  buildButton: {fileID: 0}
+  shipButton: {fileID: 0}
+  newFleetButton: {fileID: 0}
+  mergeFleetButton: {fileID: 0}
+  shipDeployButton: {fileID: 0}
+  cancelShipManagerButton: {fileID: 0}
+  powerUnitImage: {fileID: 6901096440846563389}
+  factoryImage: {fileID: 1424816781931299163}
+  shipyardImage: {fileID: 5274559679145799325}
+  shieldPlantImage: {fileID: 7179657326842575041}
+  orbitalBatteriesImage: {fileID: 8481733787538020890}
+  researchImage: {fileID: 7578343270774421587}
+  powerOverloadImage: {fileID: 0}
+  closeButtons:
+  - {fileID: 3346982464672356557}
+  slots: []
 --- !u!1 &4078361611548389480
 GameObject:
   m_ObjectHideFlags: 0
@@ -3902,6 +3969,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -4757,6 +4825,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -4893,6 +4962,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -5029,6 +5099,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -5165,6 +5236,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -5301,6 +5373,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -5437,6 +5510,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -5977,6 +6051,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6113,6 +6188,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6249,6 +6325,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6387,6 +6464,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6523,6 +6601,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6811,6 +6890,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -6947,6 +7027,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -7083,6 +7164,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -7448,6 +7530,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -7780,6 +7863,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -8069,6 +8153,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -8207,6 +8292,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -8616,6 +8702,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -9424,6 +9511,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 5373250282860476609, guid: 9cb646e9c872b8542958609d19fbe52c, type: 3}
   m_PrefabInstance: {fileID: 4549960916645159641}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8481733787538020890 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5373250282860476611, guid: 9cb646e9c872b8542958609d19fbe52c, type: 3}
+  m_PrefabInstance: {fileID: 4549960916645159641}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &4933056614508131807
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9632,6 +9730,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6321614478493960931, guid: dc7a7fe4f7eb1134885bd4d8871b0078, type: 3}
   m_PrefabInstance: {fileID: 4935687423106386874}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1424816781931299163 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6321614478493960929, guid: dc7a7fe4f7eb1134885bd4d8871b0078, type: 3}
+  m_PrefabInstance: {fileID: 4935687423106386874}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &4949140913843915301
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9729,6 +9838,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bc3360cde5131474db530918a84db4d2, type: 3}
+--- !u!114 &5274559679145799325 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 981188120279098552, guid: bc3360cde5131474db530918a84db4d2, type: 3}
+  m_PrefabInstance: {fileID: 4949140913843915301}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &5274559679145799327 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 981188120279098554, guid: bc3360cde5131474db530918a84db4d2, type: 3}
@@ -9831,6 +9951,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb5eafa1d2e2f4941b3909489aa55010, type: 3}
+--- !u!114 &7179657326842575041 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3495803306671581477, guid: cb5eafa1d2e2f4941b3909489aa55010, type: 3}
+  m_PrefabInstance: {fileID: 5990019335558582756}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &7179657326842575043 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3495803306671581479, guid: cb5eafa1d2e2f4941b3909489aa55010, type: 3}
@@ -9938,6 +10069,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 981188120279098554, guid: 27d52b6bb5c04fe448f83b694838951b, type: 3}
   m_PrefabInstance: {fileID: 7257074058262125803}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7578343270774421587 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 981188120279098552, guid: 27d52b6bb5c04fe448f83b694838951b, type: 3}
+  m_PrefabInstance: {fileID: 7257074058262125803}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &7834950582993370140
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10035,6 +10177,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6f8c8e27fd696e8409a487e73f3357bb, type: 3}
+--- !u!114 &6901096440846563389 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3710623788376785953, guid: 6f8c8e27fd696e8409a487e73f3357bb, type: 3}
+  m_PrefabInstance: {fileID: 7834950582993370140}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &6901096440846563391 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3710623788376785955, guid: 6f8c8e27fd696e8409a487e73f3357bb, type: 3}
