@@ -36,35 +36,6 @@ public class BuildUIFields : MonoBehaviour
     public GameObject hvyCruiserInventorySlot;
     public GameObject transportInventorySlot;
 
-    //[Header("Facility Buttons")]
-    //public Button factoryButtonOn;
-    //public Button factoryButtonOff;
-    //public Button yardButtonOn;
-    //public Button yardButtonOff;
-    //public Button shieldButtonOn;
-    //public Button shieldButtonOff;
-    //public Button oBButtonOn;
-    //public Button oBButtonOff;
-    //public Button researchButtonOn;
-    //public Button researchButtonOff;
-
-    //[Header("System Action Buttons")]
-    //public Button buildButton;
-    //public Button shipButton;
-    //public Button newFleetButton;
-    //public Button mergeFleetButton;
-    //public Button shipDeployButton;
-    //public Button cancelShipManagerButton;
-
-    //[Header("Images")]
-    //public Image powerUnitImage;
-    //public Image factoryImage;
-    //public Image shipyardImage;
-    //public Image shieldPlantImage;
-    //public Image orbitalBatteriesImage;
-    //public Image researchImage;
-    //public Image powerOverloadImage;
-
     [Header("Close / Misc Buttons")]
     public Button[] closeButtons;
 

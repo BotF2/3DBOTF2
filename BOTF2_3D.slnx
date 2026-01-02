@@ -1,7 +1,6 @@
 ﻿<Solution>
   <Project Path="Unity.Multiplayer.Tools.NetStats.csproj" />
   <Project Path="Unity.VisualEffectGraph.Editor.csproj" />
-  <Project Path="UnityEngine.Advertisements.Editor.csproj" />
   <Project Path="Unity.PlasticSCM.Editor.csproj" />
   <Project Path="Unity.Services.Authentication.PlayerAccounts.csproj" />
   <Project Path="Unity.Services.Core.Internal.csproj" />
@@ -36,7 +35,6 @@
   <Project Path="Unity.ResourceManager.csproj" />
   <Project Path="Unity.Multiplayer.Tools.MetricTypes.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Adapters.csproj" />
-  <Project Path="UnityEngine.Purchasing.Stores.csproj" />
   <Project Path="Unity.Services.Wire.Internal.csproj" />
   <Project Path="Unity.VisualScripting.Core.csproj" />
   <Project Path="Unity.Services.Core.Environments.Editor.csproj" />
@@ -53,14 +51,12 @@
   <Project Path="Unity.Services.Multiplayer.Editor.Shared.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
   <Project Path="UnityEngine.TestRunner.csproj" />
-  <Project Path="Unity.2D.Tilemap.Editor.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
   <Project Path="Unity.Netcode.Runtime.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Implementation.csproj" />
   <Project Path="Unity.TextMeshPro.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Runtime.csproj" />
   <Project Path="Unity.VisualEffectGraph.Runtime.csproj" />
-  <Project Path="UnityEditor.Purchasing.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Component.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="Unity.RenderPipelines.GPUDriven.Runtime.csproj" />
@@ -70,7 +66,6 @@
   <Project Path="SimpleWebTransport.csproj" />
   <Project Path="Unity.AI.Navigation.Updater.csproj" />
   <Project Path="Unity.VisualScripting.State.Editor.csproj" />
-  <Project Path="UnityEngine.Purchasing.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.2D.Runtime.csproj" />
   <Project Path="Unity.Collections.csproj" />
   <Project Path="Unity.Burst.Editor.csproj" />
@@ -90,7 +85,6 @@
   <Project Path="Unity.Multiplayer.Tools.NetworkProfiler.Editor.csproj" />
   <Project Path="Unity.Services.Core.Editor.csproj" />
   <Project Path="Unity.Timeline.csproj" />
-  <Project Path="UnityEngine.Advertisements.DevX.Editor.csproj" />
   <Project Path="UnityEditor.UI.csproj" />
   <Project Path="Unity.Multiplayer.Center.Common.csproj" />
   <Project Path="Unity.UnifiedRayTracing.Runtime.csproj" />
@@ -99,10 +93,7 @@
   <Project Path="Unity.Multiplayer.Tools.NetworkSimulator.Editor.csproj" />
   <Project Path="Unity.Services.Deployment.csproj" />
   <Project Path="Unity.2D.Sprite.Editor.csproj" />
-  <Project Path="UnityEngine.Advertisements.csproj" />
-  <Project Path="UnityEngine.Purchasing.SecurityCore.csproj" />
   <Project Path="Unity.Collections.CodeGen.csproj" />
-  <Project Path="UnityEngine.Purchasing.Codeless.csproj" />
   <Project Path="Unity.Services.Core.Components.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetVis.Configuration.csproj" />
@@ -131,30 +122,23 @@
   <Project Path="Unity.Netcode.Editor.csproj" />
   <Project Path="Unity.AI.Navigation.csproj" />
   <Project Path="Unity.Localization.Samples.Preloading.csproj" />
-  <Project Path="UnityEngine.Purchasing.AppleCore.csproj" />
-  <Project Path="UnityEngine.Purchasing.SecurityStub.csproj" />
   <Project Path="Unity.Mathematics.Editor.csproj" />
   <Project Path="Unity.Services.Core.csproj" />
   <Project Path="UnityEditor.XR.LegacyInputHelpers.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Common.csproj" />
-  <Project Path="IAPResolver.csproj" />
   <Project Path="Unity.Netcode.Editor.CodeGen.csproj" />
   <Project Path="Unity.Multiplayer.Widgets.Editor.csproj" />
   <Project Path="Unity.Services.DeploymentApi.csproj" />
   <Project Path="Unity.Multiplayer.Widgets.Vivox.csproj" />
   <Project Path="Unity.Multiplayer.Widgets.Core.csproj" />
   <Project Path="Unity.Multiplayer.Widgets.Session.csproj" />
-  <Project Path="UnityEngine.Purchasing.WinRTStub.csproj" />
-  <Project Path="UnityEngine.Purchasing.AppleStub.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="Unity.Services.Core.Registration.csproj" />
-  <Project Path="UnityEngine.Purchasing.WinRTCore.csproj" />
   <Project Path="UnityEngine.XR.LegacyInputHelpers.csproj" />
   <Project Path="Unity.Multiplayer.Tools.MetricEvents.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Editor.csproj" />
-  <Project Path="Purchasing.Common.csproj" />
   <Project Path="Unity.Services.Core.Device.csproj" />
   <Project Path="Unity.Services.Core.Configuration.Editor.csproj" />
   <Project Path="Unity.Services.Analytics.Editor.csproj" />
@@ -181,7 +165,6 @@
   <Project Path="Unity.ScriptableBuildPipeline.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.013.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Initialization.csproj" />
-  <Project Path="UnityEngine.Purchasing.AppleMacosStub.csproj" />
   <Project Path="Unity.Analytics.DataPrivacy.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
   <Project Path="Unity.Services.Core.Environments.Internal.csproj" />

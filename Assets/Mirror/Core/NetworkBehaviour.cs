@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using UnityEngine;
-using Mirror;
 
 namespace Mirror
 {
@@ -171,7 +170,7 @@ namespace Mirror
             }
 #elif UNITY_2020_3_OR_NEWER // 2020 only has GetComponentsInParent(bool includeInactive = false), we can use this too
             NetworkIdentity[] parentsIds = GetComponentsInParent<NetworkIdentity>(true);
-            int parentIdsCount = parentsIds != null ? parentsIds.Length : 0;
+            int parentIdsCount = parentsIds?.Length ?? 0;
             if (GetComponent<NetworkIdentity>() == null && parentIdsCount == 0)
             {
                 Debug.LogError($"{GetType()} on {name} requires a NetworkIdentity. Please add a NetworkIdentity component to {name} or its parents.", this);
@@ -1078,7 +1077,7 @@ namespace Mirror
             {
                 return null;
             }
-            
+
             // ensure componentIndex is in range.
             // show explicit errors if something went wrong, instead of IndexOutOfRangeException.
             // removing components at runtime isn't allowed, yet this happened in a project so we need to check for it.
@@ -1356,28 +1355,28 @@ namespace Mirror
         }
 
         /// <summary>Like Start(), but only called on server and host.</summary>
-        public virtual void OnStartServer() {}
+        public virtual void OnStartServer() { }
 
         /// <summary>Stop event, only called on server and host.</summary>
-        public virtual void OnStopServer() {}
+        public virtual void OnStopServer() { }
 
         /// <summary>Like Start(), but only called on client and host.</summary>
-        public virtual void OnStartClient() {}
+        public virtual void OnStartClient() { }
 
         /// <summary>Stop event, only called on client and host.</summary>
-        public virtual void OnStopClient() {}
+        public virtual void OnStopClient() { }
 
         /// <summary>Like Start(), but only called on client and host for the local player object.</summary>
-        public virtual void OnStartLocalPlayer() {}
+        public virtual void OnStartLocalPlayer() { }
 
         /// <summary>Stop event, but only called on client and host for the local player object.</summary>
-        public virtual void OnStopLocalPlayer() {}
+        public virtual void OnStopLocalPlayer() { }
 
         /// <summary>Like Start(), but only called for objects the client has authority over.</summary>
-        public virtual void OnStartAuthority() {}
+        public virtual void OnStartAuthority() { }
 
         /// <summary>Stop event, only called for objects the client has authority over.</summary>
-        public virtual void OnStopAuthority() {}
+        public virtual void OnStopAuthority() { }
 
         // Weaver injects this into inheriting classes to return true.
         // allows runtime & tests to check if a type was weaved.

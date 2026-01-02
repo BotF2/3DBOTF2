@@ -46,9 +46,9 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
                 break;
         }
         originalParent = transform.parent;
-        canvasGroup.blocksRaycasts = false; // allow drag
-        transform.SetParent(transform.root); // down list to top layer to be seen
-        transform.SetAsLastSibling();
+        canvasGroup.blocksRaycasts = false; // allow click to hit for drag
+        transform.SetParent(transform.root);// parent to canvas, root parent
+        transform.SetAsLastSibling();// down list to top layer to be seen
         Debug.Log("onBeginDrag");
     }
 

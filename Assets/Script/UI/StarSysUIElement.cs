@@ -44,7 +44,7 @@ public class StarSysUIElement : MonoBehaviour
     public GameObject PowerOverload;
     public CoroutineRunner CoroutineRunner;
 
-    private Dictionary<StarSysFacilityType, FacilityUI> lookup;
+    private Dictionary<StarSysFacilityType, FacilityUI> facilityUIDictionary;
 
     // fields below for dictionary reference
     public RectTransform shipContent;
@@ -97,15 +97,16 @@ public class StarSysUIElement : MonoBehaviour
     internal CoroutineRunner coroutineRunner;
     private void Awake()
     {
-        lookup = new();
+        facilityUIDictionary = new();
         foreach (var f in facilities)
-            lookup[f.type] = f;
+            facilityUIDictionary[f.type] = f;
         //if (powerOverload != null)
         //powerOverload.SetActive(false);
+        coroutineRunner = CoroutineRunner.Instance;
     }
 
     public FacilityUI GetFacility(StarSysFacilityType type)
-        => lookup[type];
+        => facilityUIDictionary[type]; // get facilty UI by type as a StarSysFacilityType enum called in StarSysMenuUIController
 
     /// <summary>
     /// Populate UI fields from StarSysData. Safe, null-checked and idempotent.

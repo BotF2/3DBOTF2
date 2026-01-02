@@ -377,11 +377,12 @@ public class StarSysMenuUIController : MonoBehaviour
             OneTMP[i].enabled = true;
             if (loadName == OneTMP[i].name)
             {
-                if (int.TryParse(OneTMP[i].text, out int load))
-                {
-                    load += plusMinus * newFacilityLoad;
-                    OneTMP[i].text = load.ToString();
-                }
+                OneTMP[i].text = (newFacilityLoad * facilities.Count).ToString();
+                //if (int.TryParse(OneTMP[i].text, out int load))
+                //{
+                //    load += plusMinus * newFacilityLoad;
+                //    OneTMP[i].text = load.ToString();
+                //}
             }
             if (ratioName == OneTMP[i].name)
             {
@@ -440,8 +441,8 @@ public class StarSysMenuUIController : MonoBehaviour
     internal void AddSysFacility(StarSysController controller, GameObject faciltyGO, string loadName, string ratioName, StarSysFacilityType facilityType)
     {
         // Ensure StarSysData exists
-        var data = controller.StarSysData;
-        if (data == null)
+        var starSysData = controller.StarSysData;
+        if (starSysData == null)
         {
             Debug.LogWarning($"AddSysFacility: StarSysData is null for controller {controller.name}.");
             return;
@@ -454,28 +455,28 @@ public class StarSysMenuUIController : MonoBehaviour
             switch (facilityType)
             {
                 case StarSysFacilityType.Factory:
-                    newFacilityLoad = data.FactoryData?.PowerLoad ?? 0;
-                    facilities = data.Factories;
+                    newFacilityLoad = starSysData.FactoryData?.PowerLoad ?? 0;
+                    facilities = starSysData.Factories;
                     break;
                 case StarSysFacilityType.Shipyard:
-                    newFacilityLoad = data.ShipyardData?.PowerLoad ?? 0;
-                    facilities = data.Shipyards;
+                    newFacilityLoad = starSysData.ShipyardData?.PowerLoad ?? 0;
+                    facilities = starSysData.Shipyards;
                     break;
                 case StarSysFacilityType.ShieldGenerator:
-                    newFacilityLoad = data.ShieldGeneratorData?.PowerLoad ?? 0;
-                    facilities = data.ShieldGenerators;
+                    newFacilityLoad = starSysData.ShieldGeneratorData?.PowerLoad ?? 0;
+                    facilities = starSysData.ShieldGenerators;
                     break;
                 case StarSysFacilityType.OrbitalBattery:
-                    newFacilityLoad = data.OrbitalBatteryData?.PowerLoad ?? 0;
-                    facilities = data.OrbitalBatteries;
+                    newFacilityLoad = starSysData.OrbitalBatteryData?.PowerLoad ?? 0;
+                    facilities = starSysData.OrbitalBatteries;
                     break;
                 case StarSysFacilityType.ResearchCenter:
-                    newFacilityLoad = data.ResearchCenterData?.PowerLoad ?? 0;
-                    facilities = data.ResearchCenters;
+                    newFacilityLoad = starSysData.ResearchCenterData?.PowerLoad ?? 0;
+                    facilities = starSysData.ResearchCenters;
                     break;
                 case StarSysFacilityType.PowerPlanet:
-                    newFacilityLoad = data.PowerPlantData?.PowerOutput ?? 0; // power plants contribute output not load
-                    facilities = data.PowerPlants;
+                    newFacilityLoad = starSysData.PowerPlantData?.PowerOutput ?? 0; // power plants contribute output not load
+                    facilities = starSysData.PowerPlants;
                     break;
                 default:
                     Debug.LogWarning($"AddSysFacility: unsupported facilityType {facilityType}.");
@@ -489,12 +490,12 @@ public class StarSysMenuUIController : MonoBehaviour
                 facilities = new List<GameObject>();
                 switch (facilityType)
                 {
-                    case StarSysFacilityType.Factory: data.Factories = facilities; break;
-                    case StarSysFacilityType.Shipyard: data.Shipyards = facilities; break;
-                    case StarSysFacilityType.ShieldGenerator: data.ShieldGenerators = facilities; break;
-                    case StarSysFacilityType.OrbitalBattery: data.OrbitalBatteries = facilities; break;
-                    case StarSysFacilityType.ResearchCenter: data.ResearchCenters = facilities; break;
-                    case StarSysFacilityType.PowerPlanet: data.PowerPlants = facilities; break;
+                    case StarSysFacilityType.Factory: starSysData.Factories = facilities; break;
+                    case StarSysFacilityType.Shipyard: starSysData.Shipyards = facilities; break;
+                    case StarSysFacilityType.ShieldGenerator: starSysData.ShieldGenerators = facilities; break;
+                    case StarSysFacilityType.OrbitalBattery: starSysData.OrbitalBatteries = facilities; break;
+                    case StarSysFacilityType.ResearchCenter: starSysData.ResearchCenters = facilities; break;
+                    case StarSysFacilityType.PowerPlanet: starSysData.PowerPlants = facilities; break;
                 }
             }
 
@@ -527,28 +528,28 @@ public class StarSysMenuUIController : MonoBehaviour
                     switch (facilityType)
                     {
                         case StarSysFacilityType.Factory:
-                            if (facUI.icon != null) facUI.icon.sprite = data.FactoryData?.FactorySprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.FactoryData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.FactoryData?.FactorySprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.FactoryData?.Name ?? string.Empty;
                             break;
                         case StarSysFacilityType.Shipyard:
-                            if (facUI.icon != null) facUI.icon.sprite = data.ShipyardData?.ShipyardSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.ShipyardData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ShipyardData?.ShipyardSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ShipyardData?.Name ?? string.Empty;
                             break;
                         case StarSysFacilityType.ShieldGenerator:
-                            if (facUI.icon != null) facUI.icon.sprite = data.ShieldGeneratorData?.ShieldGeneratorSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.ShieldGeneratorData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ShieldGeneratorData?.ShieldGeneratorSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ShieldGeneratorData?.Name ?? string.Empty;
                             break;
                         case StarSysFacilityType.OrbitalBattery:
-                            if (facUI.icon != null) facUI.icon.sprite = data.OrbitalBatteryData?.OrbitalBatterySprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.OrbitalBatteryData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.OrbitalBatteryData?.OrbitalBatterySprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.OrbitalBatteryData?.Name ?? string.Empty;
                             break;
                         case StarSysFacilityType.ResearchCenter:
-                            if (facUI.icon != null) facUI.icon.sprite = data.ResearchCenterData?.ResearchCenterSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.ResearchCenterData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ResearchCenterData?.ResearchCenterSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ResearchCenterData?.Name ?? string.Empty;
                             break;
                         case StarSysFacilityType.PowerPlanet:
-                            if (facUI.icon != null) facUI.icon.sprite = data.PowerPlantData?.PowerPlantSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = data.PowerPlantData?.Name ?? string.Empty;
+                            if (facUI.icon != null) facUI.icon.sprite = starSysData.PowerPlantData?.PowerPlantSprite;
+                            if (facUI.nameText != null) facUI.nameText.text = starSysData.PowerPlantData?.Name ?? string.Empty;
                             break;
                     }
 

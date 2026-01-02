@@ -1038,7 +1038,7 @@ namespace Assets.Core
                             img.sprite = scoutBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
                 }
 
-                return;
+                //return;
             }
 
             // Fallback: existing legacy traversal (keeps compatibility for prefabs missing BuildUISliders)
@@ -1161,6 +1161,24 @@ namespace Assets.Core
                             StarSysMenuUIController.Instance.gameObject.transform.SetParent(theSlots[l]);
                             break;
                         }
+                    case "Scout (TMP)":
+                        {
+                            // always available
+                            theSlots[l].gameObject.SetActive(true);
+                            break;
+                        }
+                    case "Destroyer (TMP)":
+                        {
+                            // always available
+                            theSlots[l].gameObject.SetActive(true);
+                            break;
+                        }
+                    case "Transport (TMP)":
+                        {
+                            // always available
+                            theSlots[l].gameObject.SetActive(true);
+                            break;
+                        }
                     case "Cruiser (TMP)":
                         {
                             if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY ||
@@ -1213,7 +1231,8 @@ namespace Assets.Core
                         }
                     case "ItemSlotCruiser":
                         {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY || sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
+                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY ||
+                                sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
                             {
                                 theSlots[l].gameObject.SetActive(false);
                                 break;
