@@ -45,9 +45,9 @@ public class StarSysUI_Fields : MonoBehaviour
     public CoroutineRunner CoroutineRunner;
 
     private Dictionary<StarSysFacilityType, FacilityUI> facilityUIDictionary;
-
     // fields below for dictionary reference
     public RectTransform shipContent;
+
     [Header("Buttons")]
     public Button buildButton;
     public Button shipButton;

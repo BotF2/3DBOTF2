@@ -45,13 +45,14 @@ namespace Assets.Core
         private GameObject canvasShipManager;
         [SerializeField]
         private List<int> destinationIntsInUse = new List<int>() { 0 };
-        private Dictionary<CivEnum, List<int>> fleetNumsInUse = new Dictionary<CivEnum, List<int>>();
-        public List<FleetController> FleetControllersInGame = new List<FleetController>();
+        private readonly Dictionary<CivEnum, List<int>> fleetNumsInUse = new Dictionary<CivEnum, List<int>>();
+        private static readonly List<FleetController> FleetControllers = new List<FleetController>();
+        public List<FleetController> FleetControllersInGame = FleetControllers;
         [SerializeField]
         private GameObject fleetUIGOContentParent; // in Hierarchy at MainMenuScene/CanvasGalaxy/FleetMenuScroll View/Viewport/ContentFleetUIGO.
         [SerializeField]
         private GameObject fleetShipsContentFolderParent;
-        private List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
+        private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
         public csFogWar.FogRevealer TempFogRevealerFleet;
         private float newFleetSpacer = 0f;
@@ -299,7 +300,11 @@ namespace Assets.Core
                         FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                 }
             }
-            ShipManager.Instance?.ProcessPendingShipUIs();
+            var shipManager = ShipManager.Instance;
+            if (shipManager != null)
+            {
+                shipManager.ProcessPendingShipUIs();
+            }
         }
 
         void RemoveFleetConrollerFromAllControllers(FleetController fleetController)
@@ -342,16 +347,7 @@ namespace Assets.Core
             return result;
 
         }
-        public static GameObject FindGameObjectInChildrenWithTag(GameObject parent, string tag)
-        {
-            Transform t = parent.transform;
-            for (int i = 0; i < t.childCount; i++)
-            {
-                if (t.GetChild(i).gameObject.tag == tag)
-                    return t.GetChild(i).gameObject;
-            }
-            return null;
-        }
+
         private int GetUniqueIntAsDestination(int destinationInt)
         {
             if (destinationIntsInUse.Contains(destinationInt))

@@ -221,13 +221,12 @@ namespace Assets.Core
             }
             else if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RING)
             {
-                // do something in a ring with system and fleetData.position
+                // ?do something in a ring with system and fleetData.position
             }
             else
             {
                 StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
-                //starSysCon.Init(this); 
                 StarSysBuildManager buildManager = new StarSysBuildManager(starSysCon);
                 buildManager.RegisterStarSysController(starSysCon);
                 starSysCon.StarSysData = sysData;
@@ -245,61 +244,39 @@ namespace Assets.Core
                 starSysCon.StarSysData.ShipsList.Clear();
                 sysData.SysGameObject = starSysCon.gameObject;
 
-                TextMeshProUGUI[] TheText = starSysCon.GetComponentsInChildren<TextMeshProUGUI>();
-                for (int i = 0; i < TheText.Length; i++)
+                StarSysChildFields starSysFields = starSysCon.GetComponent<StarSysChildFields>();
+                if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
                 {
-                    TheText[i].enabled = true;
-                    if (TheText[i] != null && TheText[i].name == "SysName")
-                    {
-                        if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) // != CivManager.current.LocalPlayerCivEnum)
-                        {
-                            TheText[i].text = "UNKNOWN";
-                        }
-                        else
-                        {
-                            TheText[i].text = sysData.GetSysName();
-                            //var sysThingy = fleetData
-                        }
-                    }
-                    else if (TheText[i] != null && TheText[i].name == "SysDescription (TMP)")
-                        TheText[i].text = sysData.Description;
-
+                    starSysFields.SysName.text = "UNKNOWN";
                 }
-
+                else
+                {
+                    starSysFields.SysName.text = sysData.GetSysName();
+                    //var sysThingy = fleetData
+                }
+                // starSysFields.SysDescription.text = sysData.Description;// null just now but available for a hover tooltip later      
                 MapLineFixed ourDropLine = starSysCon.GetComponentInChildren<MapLineFixed>();
 
                 ourDropLine.GetLineRenderer();
-
                 Vector3 galaxyPlanePoint = new Vector3(starSysCon.transform.position.x,
-                    galaxyImage.transform.position.y, starSysCon.transform.position.z);
+                            galaxyImage.transform.position.y, starSysCon.transform.position.z);
                 Vector3[] points = { starSysCon.transform.position, galaxyPlanePoint };
                 ourDropLine.SetUpLine(points);
-
-                var Renderers = starSysCon.GetComponentsInChildren<SpriteRenderer>();
-                for (int i = 0; i < Renderers.Length; i++)
+                StarSysChildFields starSysField = starSysCon.GetComponent<StarSysChildFields>();
+                SpriteRenderer srInsignia = starSysField.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
+                srInsignia.sprite = civSO.Insignia;
+                if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
                 {
-                    if (Renderers[i] != null)
-                    {
-                        if (Renderers[i].name == "OwnerInsignia")
-                        {
-                            Renderers[i].sprite = civSO.Insignia;
-                            Renderers[i].gameObject.transform.position =
-                                new Vector3(starSysCon.transform.position.x, galaxyPlanePoint.y + 1f, starSysCon.transform.position.z);
-                            Renderers[i].gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
-                            if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
-                            {
-                                Renderers[i].sortingOrder = 0;
-                                Renderers[i].enabled = false;
-                            }
-
-                        } // ToDo: random map with random sprites on nebula, wormholes
-                        else if (Renderers[i].name == "StarSprite")
-                        {
-                            Renderers[i].sprite = sysData.StarSprit;
-                            Renderers[i].sortingOrder = 1;
-                        }
-                    }
+                    srInsignia.sortingOrder = 0;
+                    srInsignia.enabled = false; // hide the insignia if not our system and no known systems yet
                 }
+                srInsignia.gameObject.transform.position =
+                    new Vector3(starSysCon.transform.position.x, galaxyPlanePoint.y + 1f, starSysCon.transform.position.z);
+                srInsignia.gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
+
+                SpriteRenderer srStar = starSysField.StarSpriteGO.GetComponent<SpriteRenderer>();
+                srStar.sprite = sysData.StarSprit;
+                srStar.sortingOrder = 1;
                 starSysCon.name = sysData.GetSysName();
                 starSysCon.StarSysData = sysData;
                 CivController[] controllers = CivManager.Instance.CivControllersInGame.ToArray();
@@ -320,7 +297,7 @@ namespace Assets.Core
 
                 List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
                 CivManager.Instance.AddSystemToOwnSystemListAndHomeSys(listStarSysCon);
-                var canvases = starSysCon.GetComponentsInChildren<Canvas>();
+                //var canvases = starSysCon.GetComponentsInChildren<Canvas>();
                 starSystemCounter++;
                 if (starSystemCounter == CivManager.Instance.CivControllersInGame.Count)
                 {
@@ -346,7 +323,10 @@ namespace Assets.Core
                     if (starSysCon.StarSysUIGameObject != null)
                     {
                         var uiElement = starSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-                        uiElement?.InitializeFromStarSysData(sysData);
+                        if (uiElement != null)
+                        {
+                            uiElement.InitializeFromStarSysData(sysData);
+                        }
                     }
                 }
                 if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
@@ -390,7 +370,6 @@ namespace Assets.Core
                 go.transform.SetParent(parent.transform, false);
             }
         }
-
         public List<GameObject> AddSystemFacilities(int numOf, GameObject prefab, int civInt, int onOff, StarSysController sysController)
         {
             List<GameObject> returnList = new List<GameObject>();
@@ -566,7 +545,6 @@ namespace Assets.Core
                     sysController.StarSysData.TotalSysPowerLoad += researchData.PowerLoad;
                 }
             }
-
             return returnList;
         }
 
@@ -824,7 +802,7 @@ namespace Assets.Core
 
                     // Find the UI container that will hold ship UI items (include inactive children)
                     var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
-                                                   .FirstOrDefault(t => t.name == "ShipContent");
+                                                    .FirstOrDefault(t => t.name == "ShipContent");
                     if (shipContent != null)
                     {
                         sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
@@ -841,7 +819,11 @@ namespace Assets.Core
                         if (transforms[j].gameObject.name == "ShipContent")
                         {
                             sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
-                            ShipManager.Instance?.ProcessPendingShipUIs();
+                            var shipManager = ShipManager.Instance;
+                            if (shipManager != null)
+                            {
+                                shipManager.ProcessPendingShipUIs();
+                            }
                             return;
                         }
                     }
@@ -920,19 +902,21 @@ namespace Assets.Core
                 }
 
                 // inventory slot parents for later use
-                powerPlantInventorySlot = buildUI.powerPlantInventorySlot ?? powerPlantInventorySlot;
-                factoryInventorySlot = buildUI.factoryInventorySlot ?? factoryInventorySlot;
-                shipyardInventorySlot = buildUI.shipyardInventorySlot ?? shipyardInventorySlot;
-                shieldGenInventorySlot = buildUI.shieldGenInventorySlot ?? shieldGenInventorySlot;
-                orbitalBatteryInventorySlot = buildUI.orbitalBatteryInventorySlot ?? orbitalBatteryInventorySlot;
-                researchCenterInventory_slot = buildUI.researchCenterInventorySlot ?? researchCenterInventory_slot;
-
-                scoutInventorySlot = buildUI.scoutInventorySlot ?? scoutInventorySlot;
-                destroyerInventorySlot = buildUI.destroyerInventorySlot ?? destroyerInventorySlot;
-                cruiserInventorySlot = buildUI.cruiserInventorySlot ?? cruiserInventorySlot;
-                ltCruiserInventorySlot = buildUI.ltCruiserInventorySlot ?? ltCruiserInventorySlot;
-                hvyCruiserInventorySlot = buildUI.hvyCruiserInventorySlot ?? hvyCruiserInventorySlot;
-                transportInventorySlot = buildUI.transportInventorySlot ?? transportInventorySlot;
+                powerPlantInventorySlot =
+                    buildUI.powerPlantInventorySlot != null
+                        ? buildUI.powerPlantInventorySlot
+                        : powerPlantInventorySlot;
+                factoryInventorySlot = buildUI.factoryInventorySlot != null ? buildUI.factoryInventorySlot : factoryInventorySlot;
+                shipyardInventorySlot = buildUI.shipyardInventorySlot != null ? buildUI.shipyardInventorySlot : shipyardInventorySlot;
+                shieldGenInventorySlot = buildUI.shieldGenInventorySlot != null ? buildUI.shieldGenInventorySlot : shieldGenInventorySlot;
+                orbitalBatteryInventorySlot = buildUI.orbitalBatteryInventorySlot != null ? buildUI.orbitalBatteryInventorySlot : orbitalBatteryInventorySlot;
+                researchCenterInventory_slot = buildUI.researchCenterInventorySlot != null ? researchCenterInventory_slot : researchCenterInventory_slot;
+                scoutInventorySlot = buildUI.scoutInventorySlot != null ? buildUI.scoutInventorySlot : scoutInventorySlot;
+                destroyerInventorySlot = buildUI.destroyerInventorySlot != null ? buildUI.destroyerInventorySlot : destroyerInventorySlot;
+                cruiserInventorySlot = buildUI.cruiserInventorySlot != null ? buildUI.cruiserInventorySlot : cruiserInventorySlot;
+                ltCruiserInventorySlot = buildUI.ltCruiserInventorySlot != null ? buildUI.ltCruiserInventorySlot : ltCruiserInventorySlot;
+                hvyCruiserInventorySlot = buildUI.hvyCruiserInventorySlot != null ? buildUI.hvyCruiserInventorySlot : hvyCruiserInventorySlot;
+                transportInventorySlot = buildUI.transportInventorySlot != null ? buildUI.transportInventorySlot : transportInventorySlot;
                 var sysUIElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 // populate images from StarSysData into known image fields (if present)
                 if (sysUIElement.powerUnitImage != null && sysCon.StarSysData.PowerPlantData != null)
@@ -1394,7 +1378,7 @@ namespace Assets.Core
                     break;
                 case ShipType.Destroyer:
                     GameObject ItemDGO = (GameObject)Instantiate(destroyerBluePrintPrefab, new Vector3(0, 0, 0),
-                       Quaternion.identity);
+                        Quaternion.identity);
                     ItemDGO.transform.SetParent(destroyerInventorySlot.transform, false);
                     break;
                 case ShipType.Cruiser:
@@ -1477,16 +1461,6 @@ namespace Assets.Core
             }
 
         }
-
-        //internal void StartNextFacility BuildIfAny()
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //internal void StartNextShip BuildIfAny()
-        //{
-        //    throw new NotImplementedException();
-        //}
     }
 }
 

@@ -1,4 +1,6 @@
-﻿using Assets.Core;
+﻿// Ignore Spelling: Sys
+
+using Assets.Core;
 using System.Collections;
 using UnityEngine;
 
@@ -10,8 +12,7 @@ public class StarSysBuildManager
     private readonly StarSysController controller;
     private Coroutine buildCoroutine;
     private Coroutine shipBuildCoroutine;
-    private Transform buildingItem;
-    private Transform shipBuildingItem;
+
     public bool IsBuildingFacility
     {
         get { return buildCoroutine != null; }
@@ -120,7 +121,7 @@ public class StarSysBuildManager
         UnityEngine.Object.Destroy(buildItem.gameObject);
 
         // --- UI update: prefer typed UI that reads from StarSysData lists ---
-        var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+        var uiElement = controller.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
         if (uiElement != null)
         {
             // InitializeFromStarSysData reads the lists and updates counts/icons/loads
@@ -146,8 +147,11 @@ public class StarSysBuildManager
         }
 
         // Recompute power load in menu/controller UI (defensive)
-        StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(controller);
-
+        var uiContoller = StarSysMenuUIController.Instance;
+        if (uiContoller != null)
+        {
+            uiContoller.UpdateSystemPowerBalance(controller);
+        }
         // Mark coroutine done and start next queued build
         buildCoroutine = null;
         StartNextFacilityBuildIfAny();
@@ -211,6 +215,7 @@ public class StarSysBuildManager
     {
         int timeDuration = 1;
         TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.TechLevel;
+        // ToD use tech level to set features of system production, defense....q
         switch (starSysFacilities)
         {
             case StarSysFacilityType.PowerPlanet:

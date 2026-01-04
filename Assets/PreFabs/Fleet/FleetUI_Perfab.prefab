@@ -1992,7 +1992,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FleetUI_Fields
   FleetShipContentGO: {fileID: 2798687545206068891}
-  ShipContentGO: {fileID: 0}
+  RedDot: {fileID: 8040068382762320281}
+  SelectDestinationCursor: {fileID: 264143171332909984}
+  DestinationDragTarget: {fileID: 973899215664937889}
+  CancelDestination: {fileID: 4735081313634927068}
+  SelectDestination: {fileID: 0}
+  WarpUp: {fileID: 2744344094808259375}
+  WarpDown: {fileID: 7727658423673179221}
+  CloseFleetUI: {fileID: 0}
+  NewFleet: {fileID: 5268492104771004283}
+  MergeFleets: {fileID: 8418405362152716527}
+  ShipDelply: {fileID: 4662769428100017442}
+  CancelShipManager: {fileID: 2594416329160765631}
+  WarpSlider: {fileID: 3286991006498620572}
+  FleetNameText: {fileID: 3141070610917059016}
+  DestinationName: {fileID: 6222109267844049625}
+  DestinationCoordinates: {fileID: 4529573589828459386}
+  WarpValueText: {fileID: 1336364828457817580}
 --- !u!1 &3149927222220872153
 GameObject:
   m_ObjectHideFlags: 0

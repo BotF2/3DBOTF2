@@ -240,7 +240,10 @@ namespace Assets.Core
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
-
+        public void LoadAStarSystem()
+        {
+            HandleNormalClick(this);
+        }
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
             GalaxyUI.CloseButtonPressed();

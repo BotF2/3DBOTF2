@@ -689,6 +689,7 @@ GameObject:
   - component: {fileID: 1468030459745782525}
   - component: {fileID: 5590338429916291659}
   - component: {fileID: 1344623282000112472}
+  - component: {fileID: 2859228348446070198}
   m_Layer: 4
   m_Name: SysPrefab
   m_TagString: Untagged
@@ -782,6 +783,22 @@ MonoBehaviour:
   ShipListGridLayoutGroup: {fileID: 0}
   sysBuildQueueList: []
   shipBuildQueueList: []
+--- !u!114 &2859228348446070198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6000483729355016117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3356a826fa6b244bb5297fcf4786d15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysChildFields
+  SysName: {fileID: 3233669402281765565}
+  SysDescription: {fileID: 0}
+  OwnerInsigniaGO: {fileID: 1935606922367803229}
+  StarSpriteGO: {fileID: 5710607628615256866}
 --- !u!1 &8311483342550982191
 GameObject:
   m_ObjectHideFlags: 0

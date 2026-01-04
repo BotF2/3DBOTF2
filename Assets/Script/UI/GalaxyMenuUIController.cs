@@ -123,12 +123,12 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject combatButtonGO;
     [SerializeField]
     private GameObject closeDiplomacyButtonGO;
-    int _scouts;
-    int _destroyers;
-    int _cruisters;
-    int _ltCruisers;
-    int _hvyCruisers;
-    int _transports;
+    private readonly int _scouts;
+    private readonly int _destroyers;
+    private readonly int _cruisters;
+    private readonly int _ltCruisers;
+    private readonly int _hvyCruisers;
+    private readonly int _transports;
 
 
     private void Awake()

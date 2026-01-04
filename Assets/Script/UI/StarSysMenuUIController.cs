@@ -13,6 +13,7 @@ public class StarSysMenuUIController : MonoBehaviour
     //private Camera galaxyEventCamera;
     //[SerializeField]
     //private Canvas parentCanvas;
+    private StarSysController lastSysCon;
     [Header("References (assign in Inspector)")]
     public GameObject SystemsMenuView;
     public GameObject ASystemMenuView;
@@ -271,6 +272,7 @@ public class StarSysMenuUIController : MonoBehaviour
         if (theSysCon == null) return;
         theSysCon.StarSysUIGameObject.SetActive(true);
         theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
+        lastSysCon = theSysCon;
     }
     public void MoveTheSysUIGO(GameObject sysConGO)
     {
@@ -322,6 +324,8 @@ public class StarSysMenuUIController : MonoBehaviour
     public void CloseBuildingQueues()
     {
         GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
+        GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
+        lastSysCon.LoadAStarSystem();
     }
     public void RemoveSystem(StarSysController sysController)
     {
