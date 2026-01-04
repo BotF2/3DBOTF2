@@ -1,4 +1,4 @@
-// Ignore Spelling: Nums
+// Ignore Spelling: Nums Revealer
 
 using FischlWorks_FogWar;
 using System.Collections.Generic;
@@ -41,8 +41,6 @@ namespace Assets.Core
         private GameObject galaxyImage;
         public GameObject GalaxyCenter;
         public List<FleetController> FleetControllerList { get; private set; } = new List<FleetController>();
-        [SerializeField]
-        private Sprite unknownfleet;
         [SerializeField]
         private GameObject canvasShipManager;
         [SerializeField]
@@ -151,7 +149,6 @@ namespace Assets.Core
             newFleetController.gameObject.layer = 6; // galaxy layer
             newFleetController.BackgroundGalaxyImage = galaxyImage;
             newFleetController.FleetData = newFleetData;
-            //newFleetController.FleetData.ShipsList.Clear();
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.gameObject.transform;
@@ -196,49 +193,33 @@ namespace Assets.Core
                 TheText.text = newFleetController.gameObject.name;
                 newFleetData.Name = TheText.text;
             }
+            FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>();
+            SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
+            srInsignia.sprite = newFleetController.FleetData.Insignia;
+            SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
             if (GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
             {
+                srInsigniaUnknown.enabled = false;
+                srInsignia.enabled = true;
                 var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 200, true);
                 fogWar.AddFogRevealer(ourFogRevealerFleet);
                 TempFogRevealerFleet = ourFogRevealerFleet;
-                // var fields = newFleetController.GetComponentInChildren(FleetChildFields);
             }
             else
             {
-                newFleetController.gameObject.AddComponent<csFogVisibilityAgent>();
-                var ourFogVisibilityAgent = newFleetController.gameObject.GetComponent<csFogVisibilityAgent>();
+                // Attach a fog visibility agent so fog system can hide/show sprite renderers of this fleet
+                fleetChildFields.FleetNameGO.SetActive(false);
+                srInsignia.enabled = false;
+                srInsigniaUnknown.enabled = true;
+                var ourFogVisibilityAgent = newFleetController.gameObject.AddComponent<csFogVisibilityAgent>();
                 ourFogVisibilityAgent.FogWar = fogWar;
-                ourFogVisibilityAgent.enabled = true;
             }
 
-            //var Renderers = newFleetController.gameObject.GetComponentsInChildren<SpriteRenderer>();
-            //for (int i = 0; i < Renderers.Length; i++)
-            //{
-            //    if (Renderers[i] != null)
-            //    {
-            //        if (Renderers[i].name == "InsigniaSprite")
-            //        {
-            //            Renderers[i].sprite = newFleetController.FleetData.Insignia;
-            FleetChildFields childFields = newFleetController.GetComponent<FleetChildFields>();
-            childFields.Insignia.sprite = newFleetController.FleetData.Insignia;
-            if (!GameController.Instance.AreWeLocalPlayer(newFleetController.FleetData.CivEnum)) //&& !localPlayerCanSeeMyInsigniaList.Contains(newFleetData.CivEnum))
-            {
-                childFields.InsigniaUnknown.enabled = true;
-            }
-            else childFields.Insignia.enabled = true;
-            //Renderers[i].gameObject.SetActive(true);
-            //        }
-            //        if (Renderers[i].name == "InsigniaUnknown" && (GameController.Instance.AreWeLocalPlayer(newFleetController.FleetData.CivEnum) || localPlayerCanSeeMyInsigniaList.Contains(newFleetData.CivEnum)))
-            //        {
-            //            Renderers[i].gameObject.SetActive(false);
-            //        }
-            //    }
-            //}
             // The line from Fleet to underlying galaxy image and to destination
             MapLineMovable[] ourLineToGalaxyImageScript = newFleetController.gameObject.GetComponentsInChildren<MapLineMovable>();
             for (int i = 0; i < ourLineToGalaxyImageScript.Length; i++)
             {
-                if (ourLineToGalaxyImageScript[i].name == "DropLine")
+                if (ourLineToGalaxyImageScript[i].gameObject == fleetChildFields.DropLine)
                 {
                     ourLineToGalaxyImageScript[i].GetLineRenderer();
                     ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
@@ -304,36 +285,16 @@ namespace Assets.Core
                     fleetCon.FleetUIGameObject = thisFleetUIGameObject;
                     fleetCon.FleetUIGameObject.SetActive(true);
                     thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
-                    //var transforms = thisFleetUIGameObject.GetComponentsInChildren<Transform>();
-                    //for (int i = 0; i < transforms.Length; i++)
-                    //{
-                    //    if (transforms[i].name == "FleetShipContent")
-                    //    {
-                    //        fleetCon.FleetData.ShipListUIParent = transforms[i].gameObject;
-                    //        return;
-                    //    }
-                    //}
-                    var shipContent = thisFleetUIGameObject.GetComponentsInChildren<Transform>(true)
-                               .FirstOrDefault(t => t.name == "FleetShipContent");
-                    if (shipContent != null)
+                    FleetUI_Fields fleetUI_Fields = thisFleetUIGameObject.GetComponent<FleetUI_Fields>();
+                    if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
                     {
-                        fleetCon.FleetData.ShipListUIParent = shipContent.gameObject;
+                        fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
                     }
                     else
                     {
                         Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
                     }
 
-                    // existing code to wire other UI child references...
-                    var transforms = thisFleetUIGameObject.transform.GetComponentsInChildren<Transform>();
-                    for (int j = 0; j < transforms.Length; j++)
-                    {
-                        if (transforms[j].gameObject.name == "ShipContent")
-                        {
-                            fleetCon.FleetData.ShipListUIParent = transforms[j].gameObject;
-                            return;
-                        }
-                    }
                     if (newFleet)
                         FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                 }
@@ -452,34 +413,9 @@ namespace Assets.Core
                 if (fleetController.FleetData.CivEnum == civEnum)
                 {
                     FleetChildFields fleetChildFields = fleetController.GetComponent<FleetChildFields>();
-                    fleetChildFields.InsigniaHolder.gameObject.SetActive(true);
-                    //foreach (Transform t in fleetChildFields)
-                    //{
-                    //    if (t.name == "InsigniaHolder")
-                    //    {
-                    //        t.GetChild(0).gameObject.SetActive(true);// activate the child of holder so the sprite renderer can be found
-                    //        break;
-                    //    }
-                    //}
-                    fleetChildFields.InsigniaUnknown.enabled = false;
-                    fleetChildFields.Insignia.enabled = true;
-
-                    //var Renderers = fleetController.gameObject.GetComponentsInChildren<SpriteRenderer>();
-                    //for (int i = 0; i < Renderers.Length; i++)
-                    //{
-                    //    if (Renderers[i] != null)
-                    //    {
-                    //        if (Renderers[i].name == "InsigniaSprite")
-                    //        {
-                    //            Renderers[i].gameObject.SetActive(true);
-                    //            var fog = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
-                    //            if (fog != null)
-                    //                fog.spriteRenderers.Add(Renderers[i]);
-                    //        }
-                    //        else if (Renderers[i].name == "InsigniaUnknown")
-                    //            Renderers[i].gameObject.SetActive(false);
-                    //    }
-                    //}
+                    fleetChildFields.InsigniaUnknownGO.SetActive(false);
+                    //SpriteRenderer sr2 = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
+                    //sr2.enabled = true;
                 }
             }
         }

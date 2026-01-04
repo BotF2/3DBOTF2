@@ -1,3 +1,5 @@
+// Ignore Spelling: shiptype Sys hvy
+
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
@@ -115,7 +117,7 @@ namespace Assets.Core
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
         }
-        public void SetShipBuildPerfabs(CivEnum localCiv)
+        public void SetShipBuildPrefabs(CivEnum localCiv)
         {
 
             TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;// to do GameDate to know staring tech level
@@ -205,7 +207,7 @@ namespace Assets.Core
             }
             starSysDatas.Remove(starSysDatas[0]); // pull out the null
         }
-        public StarSysController InstantiatEmptyStarSysController()
+        public StarSysController InstantiateEmptyStarSysController()
         {
             StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
               Quaternion.identity);
@@ -343,7 +345,7 @@ namespace Assets.Core
                     // initialize/star-wire the system UI from StarSysData (new helper on StarSysUIElement)
                     if (starSysCon.StarSysUIGameObject != null)
                     {
-                        var uiElement = starSysCon.StarSysUIGameObject.GetComponent<StarSysUIElement>();
+                        var uiElement = starSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                         uiElement?.InitializeFromStarSysData(sysData);
                     }
                 }
@@ -931,7 +933,7 @@ namespace Assets.Core
                 ltCruiserInventorySlot = buildUI.ltCruiserInventorySlot ?? ltCruiserInventorySlot;
                 hvyCruiserInventorySlot = buildUI.hvyCruiserInventorySlot ?? hvyCruiserInventorySlot;
                 transportInventorySlot = buildUI.transportInventorySlot ?? transportInventorySlot;
-                var sysUIElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUIElement>();
+                var sysUIElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 // populate images from StarSysData into known image fields (if present)
                 if (sysUIElement.powerUnitImage != null && sysCon.StarSysData.PowerPlantData != null)
                     sysUIElement.powerUnitImage.sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
@@ -1329,7 +1331,7 @@ namespace Assets.Core
             shipSliderGO.layer = 5; //UI layer
         }
 
-        public void NewImageInEmptyBuildableInventory(StarSysFacilityType type, StarSysController sysCon)
+        public void NewImageInEmptyBuildAbleInventory(StarSysFacilityType type, StarSysController sysCon)
         {
             //prefab.GetComponent<>
             //    sysCon = currentActiveSysCon;

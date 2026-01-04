@@ -352,7 +352,7 @@ public class DiplomacyManager : MonoBehaviour
     { // already not one of our fleets
         reportingPlayerFleet.FleetData.ShipsList.RemoveAll(item => item == null);
         otherFleet.FleetData.ShipsList.RemoveAll(item => item == null);
-        StarSysController sysConEmpty = StarSysManager.Instance.InstantiatEmptyStarSysController();
+        StarSysController sysConEmpty = StarSysManager.Instance.InstantiateEmptyStarSysController();
         if (reportingPlayerFleet != null)
         {
             CivController civSideOne;

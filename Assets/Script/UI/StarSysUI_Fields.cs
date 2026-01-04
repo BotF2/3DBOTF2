@@ -5,14 +5,14 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 /// <summary>
-/// Represents the collection of UI elements for a star system UI panel, providing references to buttons, text fields,
+/// Represents the collection of class fields for elements in a star system UI panel, providing references to buttons, text fields,
 /// images, and sliders used to display and interact with star system data in the game interface.
 /// It is attached to the StarSysUI_Prefab instantiated GameObject.
 /// <remarks>This class exposes public fields for Unity UI components, allowing other scripts to access and
 /// manipulate the star system's user interface. All fields should be assigned via the Unity Editor. This type is
 /// intended for use as a component on a Unity GameObject representing a star system UI panel.</remarks>
 /// </summary>
-public class StarSysUIElement : MonoBehaviour
+public class StarSysUI_Fields : MonoBehaviour
 {
     [Serializable]
     public class FacilityUI

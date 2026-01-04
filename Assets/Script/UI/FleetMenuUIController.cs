@@ -368,7 +368,7 @@ public class FleetMenuUIController : MonoBehaviour
         galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
         galaxyMenuUICon.StarSystLookingForShipDeploy = null;
         ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
-        var emptyStarSysCon = StarSysManager.Instance.InstantiatEmptyStarSysController();
+        var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
         var newFleet = fleetManager.InstantiateFleet(oldFleetCon, emptyStarSysCon, fleetData, position, true);
         galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
         galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;

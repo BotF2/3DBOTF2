@@ -369,6 +369,7 @@ RectTransform:
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!212 &4755293876127904256
 SpriteRenderer:
+  serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -414,6 +415,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 640bf7d36229bee49b35ff8fef77b1e8, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -423,7 +425,6 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!1 &2497271698024831042
 GameObject:
@@ -513,63 +514,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d4ab63fa3e8ed64d95d6f81c3b153cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TextComponent: {fileID: 0}
-  hoverScaleMultiplier: 1.15
-  scaleSpeed: 10
-  glowOutline: {fileID: 0}
-  glowColor: {r: 0, g: 1, b: 1, a: 1}
-  hoverSound: {fileID: 0}
-  toolTipMessage: 
-  toolTipOffset: {x: 0, y: 80, z: 0}
---- !u!1 &2925003583102638923
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4704350067720728301}
-  - component: {fileID: 2921859509572487271}
-  m_Layer: 4
-  m_Name: ShowSystem
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!224 &4704350067720728301
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2925003583102638923}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8311497286495101820}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2921859509572487271
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2925003583102638923}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4125db910ed07d408a32cf4b3290d8c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  solarSystemView: {fileID: 0}
 --- !u!1 &4942334795299522690
 GameObject:
   m_ObjectHideFlags: 0
@@ -664,6 +608,7 @@ CanvasRenderer:
   m_CullTransparentMesh: 1
 --- !u!212 &7399741297211749873
 SpriteRenderer:
+  serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -709,6 +654,7 @@ SpriteRenderer:
   m_SortingLayerID: 919144659
   m_SortingLayer: 1
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -718,7 +664,6 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &5701368572679431816
 MonoBehaviour:
@@ -833,14 +778,10 @@ MonoBehaviour:
   starSysUIGameObject: {fileID: 0}
   SettingUpNewFleet: 0
   canvasToolTip: {fileID: 4392431061251062606}
-  buildListGridLayoutGroup: {fileID: 0}
-  shipListGridLayoutGroup: {fileID: 0}
+  BuildListGridLayoutGroup: {fileID: 0}
+  ShipListGridLayoutGroup: {fileID: 0}
   sysBuildQueueList: []
-  SliderBuildProgress: {fileID: 0}
-  TimeToBuild: 0
   shipBuildQueueList: []
-  ShipSliderBuildProgress: {fileID: 0}
-  ShipTimeToBuild: 0
 --- !u!1 &8311483342550982191
 GameObject:
   m_ObjectHideFlags: 0
@@ -872,7 +813,6 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4704350067720728301}
   - {fileID: 2288487821784046947}
   - {fileID: 1516217761400269032}
   m_Father: {fileID: 7722906831640458837}
@@ -892,7 +832,7 @@ CanvasRenderer:
   m_CullTransparentMesh: 1
 --- !u!120 &3615819229537881940
 LineRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -938,6 +878,7 @@ LineRenderer:
   m_SortingLayerID: 919144659
   m_SortingLayer: 1
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Positions:
   - {x: 0, y: 0, z: 0}
   - {x: 0, y: -10, z: 0}
@@ -996,7 +937,6 @@ LineRenderer:
     textureScale: {x: 1, y: 1}
     shadowBias: 0.5
     generateLightingData: 0
-  m_MaskInteraction: 0
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 0
@@ -1217,6 +1157,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

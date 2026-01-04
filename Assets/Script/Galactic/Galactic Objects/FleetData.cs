@@ -27,6 +27,7 @@ public class FleetData
     public Button FleetButtonDown;
     public Button FleetButtonUIClose;
     public bool WarpButtonPressed = false;
+    private SpriteRenderer[] spriteRenderers;
 
     public FleetData(FleetSO fleetSO)
     {
@@ -86,6 +87,11 @@ public class FleetData
     internal void PopulateShipsList()
     {
         //throw new NotImplementedException();
+    }
+    public void SetVisible(bool visible)
+    {
+        foreach (var sr in spriteRenderers)
+            sr.enabled = visible;
     }
 }
 

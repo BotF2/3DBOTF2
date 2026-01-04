@@ -1,27 +1,21 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+//using UnityEngine.UI;
 
 namespace Assets.Core
 {
 
     public class FleetChildFields : MonoBehaviour
     {
-        [Header("GOs")]
-        public GameObject DestinationLine;
+        [Header("GameObjects")]
         public GameObject DropLine;
         public GameObject FleetNameGO;
-        public RectTransform InsigniaHolder;
+        public GameObject InsigniaGO;
+        public GameObject InsigniaUnknownGO;
 
         [Header("Text")]
         public TextMeshProUGUI FleetName;
-        public TextMeshProUGUI text;
-        public TextMeshProUGUI motext;
-        public TextMeshProUGUI evenmotext;
-
-        [Header("Image")]
-        public Image Insignia;
-        public Image InsigniaUnknown;
+        public TextMeshProUGUI text; // pre and pending a need.
     }
 
 }

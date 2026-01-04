@@ -221,7 +221,7 @@ namespace Assets.Core
             if (localPlayerCivInt == civController.CivData.CivInt)
             {
                 LocalPlayerCivContoller = civController;
-                StarSysManager.Instance.SetShipBuildPerfabs(civController.CivData.CivEnum);
+                StarSysManager.Instance.SetShipBuildPrefabs(civController.CivData.CivEnum);
             }
 
         }

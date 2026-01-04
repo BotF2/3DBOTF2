@@ -70,22 +70,22 @@ public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHa
             switch (theDragedScript.FacilityType)
             {
                 case StarSysFacilityType.PowerPlanet:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 case StarSysFacilityType.Factory:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 case StarSysFacilityType.Shipyard:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 case StarSysFacilityType.ShieldGenerator:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 case StarSysFacilityType.OrbitalBattery:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 case StarSysFacilityType.ResearchCenter:
-                    StarSysManager.Instance.NewImageInEmptyBuildableInventory(theDragedScript.FacilityType, this.StarSysController);
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                     break;
                 default:
                     break;

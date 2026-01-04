@@ -120,7 +120,7 @@ public class StarSysBuildManager
         UnityEngine.Object.Destroy(buildItem.gameObject);
 
         // --- UI update: prefer typed UI that reads from StarSysData lists ---
-        var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUIElement>();
+        var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
         if (uiElement != null)
         {
             // InitializeFromStarSysData reads the lists and updates counts/icons/loads

@@ -118,10 +118,10 @@ public class StarSysMenuUIController : MonoBehaviour
                 if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
                     sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
 
-                var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUIElement>();
+                var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (tmpElement == null)
                 {
-                    Debug.LogWarning($"SetupSystemUIData: StarSysUIElement missing on UI prefab for {sysController.name}");
+                    Debug.LogWarning($"SetupSystemUIData: StarSysUI_Fields missing on UI prefab for {sysController.name}");
                     continue;
                 }
 
@@ -504,21 +504,21 @@ public class StarSysMenuUIController : MonoBehaviour
                 facilities.Add(faciltyGO);
 
             // Try to update typed UI first
-            var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUIElement>();
+            var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
             if (uiElement == null)
             {
-                Debug.LogWarning($"AddSysFacility: StarSysUIElement not found for system {controller.name}. Falling back to string-based updates.");
+                Debug.LogWarning($"AddSysFacility: StarSysUI_Fields not found for system {controller.name}. Falling back to string-based updates.");
             }
             else
             {
-                StarSysUIElement.FacilityUI facUI = null;
+                StarSysUI_Fields.FacilityUI facUI = null;
                 try
                 {
                     facUI = uiElement.GetFacility(facilityType);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUIElement for {controller.name}. Exception: {ex.Message}");
+                    Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUI_Fields for {controller.name}. Exception: {ex.Message}");
                     facUI = null;
                 }
 
