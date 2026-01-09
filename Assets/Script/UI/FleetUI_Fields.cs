@@ -20,7 +20,7 @@ public class FleetUI_Fields : MonoBehaviour
     public Button CloseFleetUI;
     public Button NewFleet;
     public Button MergeFleets;
-    public Button ShipDelply;
+    public Button ShipDeploy;
     public Button CancelShipManager;
 
     [Header("Sliders")]

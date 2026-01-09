@@ -794,7 +794,7 @@ namespace Assets.Core
             mainMenuCanvas.SetActive(false);
             //uiCameraGO.SetActive(false);
             galaxyCenter.SetActive(true);
-            SceneManager.LoadScene("GalaxyScene", LoadSceneMode.Additive);
+            SceneManager.LoadScene("GalaxyHelper", LoadSceneMode.Additive);
             CivManager.Instance.OnNewGameButtonClicked((int)MainMenuData.SelectedGalaxySize, (int)MainMenuData.SelectedTechLevel, (int)MainMenuData.SelectedGalaxyType,
                 (int)GameManager.Instance.GameController.GameData.LocalPlayerCivEnum, IsSinglePlayer);
             GalaxyMenuGO.SetActive(true);
