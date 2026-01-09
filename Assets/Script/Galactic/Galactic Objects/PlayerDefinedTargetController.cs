@@ -1,6 +1,5 @@
 
 using Assets.Core;
-using TMPro;
 using UnityEngine;
 
 
@@ -43,13 +42,13 @@ public class PlayerDefinedTargetController : MonoBehaviour
                 {
                     PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(true, this);
                     GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(true);
-                }             
+                }
             }
         }
     }
     private void OnMouseUp()
     {
-        PlayerTargetData.FleetController.PlayerTargetAsNewDestination(this.gameObject); 
+        PlayerTargetData.FleetController.PlayerTargetAsNewDestination(this.gameObject);
         PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(false, this);
         GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(false);
     }
