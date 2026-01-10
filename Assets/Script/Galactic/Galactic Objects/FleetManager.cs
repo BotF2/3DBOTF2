@@ -171,10 +171,10 @@ namespace Assets.Core
                     newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));
                 else
                 {
-                    if (newFleetSpacer > 10f)
+                    if (newFleetSpacer > 8f)
                         newFleetSpacer = 0;
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
-                    newFleetSpacer = newFleetSpacer + 5f;
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y - 15f - newFleetSpacer, newTrans.position.z));
+                    newFleetSpacer = newFleetSpacer + 2f;
                 }
             }
             newFleetData.Position = newFleetController.transform.position;
