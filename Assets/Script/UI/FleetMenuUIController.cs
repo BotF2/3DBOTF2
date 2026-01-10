@@ -215,10 +215,10 @@ public class FleetMenuUIController : MonoBehaviour
             uiFields.MergeFleets.onClick.RemoveAllListeners();
             uiFields.MergeFleets.onClick.AddListener(() => ClickMergeFleetButton());
             mergeFleetButtonGO = uiFields.MergeFleets.gameObject;
-            uiFields.ShipDeploy.gameObject.SetActive(true);
-            uiFields.ShipDeploy.onClick.RemoveAllListeners();
-            uiFields.ShipDeploy.onClick.AddListener(() => ClickShipDeployCursor(fleetCon));
-            selectShipManagerCursorButtonGO = uiFields.ShipDeploy.gameObject;
+            uiFields.ShipDelply.gameObject.SetActive(true);
+            uiFields.ShipDelply.onClick.RemoveAllListeners();
+            uiFields.ShipDelply.onClick.AddListener(() => ClickShipDeployCursor(fleetCon));
+            selectShipManagerCursorButtonGO = uiFields.ShipDelply.gameObject;
             uiFields.CancelShipManager.gameObject.SetActive(false);
             uiFields.CancelShipManager.onClick.RemoveAllListeners();
             uiFields.CancelShipManager.onClick.AddListener(() => ClickCancelShipManageButton());

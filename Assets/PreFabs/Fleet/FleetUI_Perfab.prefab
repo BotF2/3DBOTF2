@@ -1996,13 +1996,13 @@ MonoBehaviour:
   SelectDestinationCursor: {fileID: 264143171332909984}
   DestinationDragTarget: {fileID: 973899215664937889}
   CancelDestination: {fileID: 4735081313634927068}
-  SelectDestination: {fileID: 264143171332909984}
+  SelectDestination: {fileID: 0}
   WarpUp: {fileID: 2744344094808259375}
   WarpDown: {fileID: 7727658423673179221}
-  CloseFleetUI: {fileID: 1006010032630364630}
+  CloseFleetUI: {fileID: 0}
   NewFleet: {fileID: 5268492104771004283}
   MergeFleets: {fileID: 8418405362152716527}
-  ShipDeploy: {fileID: 4662769428100017442}
+  ShipDelply: {fileID: 4662769428100017442}
   CancelShipManager: {fileID: 2594416329160765631}
   WarpSlider: {fileID: 3286991006498620572}
   FleetNameText: {fileID: 3141070610917059016}
