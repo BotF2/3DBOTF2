@@ -290,14 +290,15 @@ namespace Assets.Core
                     if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
                     {
                         fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
+                        FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                     }
                     else
                     {
                         Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
                     }
 
-                    if (newFleet)
-                        FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
+                    //if (newFleet)
+
                 }
             }
             var shipManager = ShipManager.Instance;

@@ -148,7 +148,6 @@ namespace Assets.Core
             else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SetDestination && clickedFleetCon == this)
             {
                 HandleDestinationClick(this);
-
             }
             else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
             {
@@ -264,7 +263,7 @@ namespace Assets.Core
         }
         private void HandleDestinationClick(FleetController clickedFleetCon)
         {
-            FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;//MousePointerChanger.Instance.fleetConBehindGalaxyMapDestinationCursor;
+            FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
             if (theFleetConLookingForDestination == null) return;
             theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
@@ -593,7 +592,7 @@ namespace Assets.Core
         {
 
             fleetData.Destination = hitObject;
-            GalaxyObjectType destinationType = GalaxyObjectType.None;
+            GalaxyObjectType destinationType = GalaxyObjectType.None;// start with a blank
             // galaxy object type Enum SystemType if =>1, None =0
             string destinationNameText = "";
 

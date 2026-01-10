@@ -8357,14 +8357,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d4ab63fa3e8ed64d95d6f81c3b153cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TextComponent: {fileID: 0}
-  hoverScaleMultiplier: 1.15
-  scaleSpeed: 10
-  glowOutline: {fileID: 0}
-  glowColor: {r: 0, g: 1, b: 1, a: 1}
-  hoverSound: {fileID: 0}
-  toolTipMessage: 
-  toolTipOffset: {x: 0, y: 80, z: 0}
 --- !u!114 &385741474
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18031,6 +18023,7 @@ RectTransform:
   - {fileID: 1377999098}
   - {fileID: 1965346450}
   - {fileID: 1362581733}
+  - {fileID: 2000694527}
   - {fileID: 1936528632}
   - {fileID: 176182447}
   m_Father: {fileID: 0}
@@ -18919,7 +18912,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   parentCanvas: {fileID: 966764658}
-  fleetMenuUIController: {fileID: 1887217962}
+  fleetMenuUIController: {fileID: 2000694528}
   starSysMenuUIController: {fileID: 2128377793}
   diplomacyMenuUIController: {fileID: 2053568952}
   shipDeployMenuUIController: {fileID: 1758320817}
@@ -29653,7 +29646,6 @@ MonoBehaviour:
   shipManagerMenuPrefab: {fileID: 8637087807823003284, guid: 7997ef2e58d487c48bdbe97951aa4adc, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
   GalaxyCenter: {fileID: 564492290}
-  unknownfleet: {fileID: 21300000, guid: 4d704142da734fb46b88fe56645880c0, type: 3}
   canvasShipManager: {fileID: 0}
   destinationIntsInUse: 00000000
   FleetControllersInGame: []
@@ -43195,6 +43187,72 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 25f01ffccd8b21a49a6e636dd6ad32c1, type: 3}
+--- !u!1 &2000694526
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2000694527}
+  - component: {fileID: 2000694528}
+  m_Layer: 5
+  m_Name: FleetMenuUIContoller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2000694527
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000694526}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 843799568}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 6}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2000694528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000694526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16b991c8ab6b83d43895f34547a21075, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FleetMenuUIController
+  FleetMenuView: {fileID: 1039005432}
+  AFleetMenuView: {fileID: 1169095161}
+  FleetListContainer: {fileID: 1850390553}
+  aFleetShipContainer: {fileID: 0}
+  fleetName: {fileID: 0}
+  destinationName: {fileID: 0}
+  destinationCoordinates: {fileID: 0}
+  selectDestinationCursorButtonGO: {fileID: 0}
+  cancelDestinationButtonGO: {fileID: 0}
+  dragDestinationTargetButtonGO: {fileID: 0}
+  selectShipManagerCursorButtonGO: {fileID: 0}
+  cancelShipManagerButtonGO: {fileID: 0}
+  warpButtonUpGO: {fileID: 0}
+  warpButtonDownGO: {fileID: 0}
+  mergeFleetButtonGO: {fileID: 0}
+  closeFleetUIButtonGO: {fileID: 0}
+  listOfFleetUiGos: []
+  ActiveFleetController: {fileID: 0}
 --- !u!1 &2001908143
 GameObject:
   m_ObjectHideFlags: 0

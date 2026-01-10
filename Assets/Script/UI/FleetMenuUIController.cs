@@ -225,7 +225,9 @@ public class FleetMenuUIController : MonoBehaviour
             cancelDestinationButtonGO = uiFields.CancelShipManager.gameObject;
             // Text bindings
             uiFields.FleetNameText.text = fleetCon.FleetData.Name;
+            destinationName = uiFields.DestinationName;
             uiFields.DestinationName.text = "No Destination";
+            destinationCoordinates = uiFields.DestinationCoordinates;
             uiFields.DestinationCoordinates.text = "";
             uiFields.WarpValueText.text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
             // Slider wiring
@@ -503,8 +505,10 @@ public class FleetMenuUIController : MonoBehaviour
     {
         if (destinationName != null) destinationName.text = nameDestination;
         if (destinationCoordinates != null) destinationCoordinates.text = newCoordinates;
-        cancelDestinationButtonGO?.SetActive(true);
-        dragDestinationTargetButtonGO?.SetActive(false);
+        if (cancelDestinationButtonGO != null)
+            cancelDestinationButtonGO.SetActive(true);
+        if (dragDestinationTargetButtonGO != null)
+            dragDestinationTargetButtonGO.SetActive(false);
         MousePointerChanger.Instance.ResetCursor();
     }
 
