@@ -1,3 +1,5 @@
+// Ignore Spelling: Sys
+
 using Assets.Core;
 using UnityEngine;
 

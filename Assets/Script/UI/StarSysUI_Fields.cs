@@ -1,3 +1,5 @@
+// Ignore Spelling: Sys
+
 using Assets.Core;
 using System;
 using System.Collections.Generic;
@@ -42,7 +44,7 @@ public class StarSysUI_Fields : MonoBehaviour
 
     [Header("Alerts")]
     public GameObject PowerOverload;
-    public CoroutineRunner CoroutineRunner;
+    //public CoroutineRunner CoroutineRunner;
 
     private Dictionary<StarSysFacilityType, FacilityUI> facilityUIDictionary;
     // fields below for dictionary reference
@@ -83,7 +85,7 @@ public class StarSysUI_Fields : MonoBehaviour
     public TextMeshProUGUI researchName;
     public TextMeshProUGUI numResearchRatio;
     public TextMeshProUGUI researchLoad;
-    public TextMeshProUGUI powerOvarload;
+    public TextMeshProUGUI powerOverload;
 
     [Header("Images")]
     public Image powerUnitImage;
@@ -92,9 +94,9 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image shieldPlantImage;
     public Image orbitalBatteriesImage;
     public Image researchImage;
-    public Image powerOverLoad;
+    //public Image powerOverLoad;
     public Image powerOverloadImage;
-    internal CoroutineRunner coroutineRunner;
+    //internal CoroutineRunner coroutineRunner;
     private void Awake()
     {
         facilityUIDictionary = new();
@@ -102,7 +104,7 @@ public class StarSysUI_Fields : MonoBehaviour
             facilityUIDictionary[f.type] = f;
         //if (powerOverload != null)
         //powerOverload.SetActive(false);
-        coroutineRunner = CoroutineRunner.Instance;
+        //coroutineRunner = CoroutineRunner.Instance;
     }
 
     public FacilityUI GetFacility(StarSysFacilityType type)

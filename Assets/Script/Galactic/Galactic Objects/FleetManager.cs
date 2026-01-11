@@ -173,7 +173,7 @@ namespace Assets.Core
                 {
                     if (newFleetSpacer > 8f)
                         newFleetSpacer = 0;
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y - 15f - newFleetSpacer, newTrans.position.z));
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
                     newFleetSpacer = newFleetSpacer + 2f;
                 }
             }

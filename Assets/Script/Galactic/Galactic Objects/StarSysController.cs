@@ -253,11 +253,11 @@ namespace Assets.Core
                 if (gameController.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
                     StarSysUI.SetActiveSetParentUIGO(this);
-                    StarSysUI.UpdateFacilityUI(this, 0, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
-                    StarSysUI.UpdateFacilityUI(this, 0, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
-                    StarSysUI.UpdateFacilityUI(this, 0, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
-                    StarSysUI.UpdateFacilityUI(this, 0, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
-                    StarSysUI.UpdateFacilityUI(this, 0, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
+                    StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
+                    StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
+                    StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
+                    StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
+                    StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
                     //StarSysUI.UpdateSystemPowerBalance(this);
                     GalaxyUI.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
                     //StarSysMenuUIController.Instance.lastStarSysController = this;
@@ -349,7 +349,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.Instance.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.Factories.Count; i++)
                 {
@@ -360,7 +360,7 @@ namespace Assets.Core
                         {
                             this.StarSysData.TotalSysPowerLoad += StarSysData.FactoryData.PowerLoad;
                             StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "1";
-                            StarSysUI.UpdateFacilityUI(this, 1, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
+                            StarSysUI.UpdateFacilityUI(this, 1, StarSysFacilityType.Factory);
                             break;
                         }
                     }
@@ -378,7 +378,7 @@ namespace Assets.Core
                     {
                         StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.FactoryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "FactoryLoad", "NumFactoryRatio", StarSysFacilityType.Factory);
+                        StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.Factory);
                         break;
                     }
                 }
@@ -392,7 +392,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.Instance.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
                 {
@@ -403,7 +403,7 @@ namespace Assets.Core
                         {
                             StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ShipyardData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
+                            StarSysUI.UpdateFacilityUI(this, 1, StarSysFacilityType.Shipyard);
                             break;
                         }
                     }
@@ -421,7 +421,7 @@ namespace Assets.Core
                     {
                         StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ShipyardData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "YardLoad", "NumYardsOnRatio", StarSysFacilityType.Shipyard);
+                        StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.Shipyard);
                         break;
                     }
                 }
@@ -435,7 +435,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.Instance.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload();
 
                 }
                 for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
@@ -447,7 +447,7 @@ namespace Assets.Core
                         {
                             StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ShieldGeneratorData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
+                            StarSysUI.UpdateFacilityUI(this, 1, StarSysFacilityType.ShieldGenerator);
                             break;
                         }
                     }
@@ -465,7 +465,7 @@ namespace Assets.Core
                     {
                         StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ShieldGeneratorData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "ShieldLoad", "NumShieldRatio", StarSysFacilityType.ShieldGenerator);
+                        StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.ShieldGenerator);
                         break;
                     }
                 }
@@ -478,7 +478,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad >
                             this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.Instance.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload();
                 }
             for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
             {
@@ -489,7 +489,7 @@ namespace Assets.Core
                     {
                         StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "1";
                         this.StarSysData.TotalSysPowerLoad += StarSysData.OrbitalBatteryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, 1, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
+                        StarSysUI.UpdateFacilityUI(this, 1, StarSysFacilityType.OrbitalBattery);
                         break;
                     }
                 }
@@ -506,7 +506,7 @@ namespace Assets.Core
                     {
                         StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.OrbitalBatteryData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "OBLoad", "NumOBRatio", StarSysFacilityType.OrbitalBattery);
+                        StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.OrbitalBattery);
                         break;
                     }
                 }
@@ -520,7 +520,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad >
                          this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.Instance.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload();
                 }
                 for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
                 {
@@ -531,7 +531,7 @@ namespace Assets.Core
                         {
                             StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "1";
                             this.StarSysData.TotalSysPowerLoad += StarSysData.ResearchCenterData.PowerLoad;
-                            StarSysUI.UpdateFacilityUI(this, 1, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
+                            StarSysUI.UpdateFacilityUI(this, 1, StarSysFacilityType.ResearchCenter);
                             break;
                         }
                     }
@@ -549,7 +549,7 @@ namespace Assets.Core
                     {
                         StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text = "0";
                         this.StarSysData.TotalSysPowerLoad -= StarSysData.ResearchCenterData.PowerLoad;
-                        StarSysUI.UpdateFacilityUI(this, -1, "ResearchLoad", "NumResearchRatio", StarSysFacilityType.ResearchCenter);
+                        StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.ResearchCenter);
                         break;
                     }
                 }

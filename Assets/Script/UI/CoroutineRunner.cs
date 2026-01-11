@@ -1,13 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// Small singleton MonoBehaviour that can run coroutines even when other controllers/gameobjects are inactive.
-/// Created on first access and marked DontDestroyOnLoad.
-/// </summary>
+[DisallowMultipleComponent]
 public class CoroutineRunner : MonoBehaviour
 {
     private static CoroutineRunner instance;
+
     public static CoroutineRunner Instance
     {
         get
@@ -15,18 +13,41 @@ public class CoroutineRunner : MonoBehaviour
             if (instance == null)
             {
                 var go = new GameObject("CoroutineRunner");
-                DontDestroyOnLoad(go);
                 instance = go.AddComponent<CoroutineRunner>();
             }
             return instance;
         }
     }
-    public void FlashPowerOverload()
+
+    private void Awake()
     {
-        if (StarSysMenuUIController.Instance.PowerOverloadImage == null) return;
-        StartCoroutine(FlashRoutine());
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        instance = this;
+        DontDestroyOnLoad(gameObject);
     }
-    IEnumerator FlashRoutine()
+
+    // ✅ STATIC API — safest usage
+    public static void FlashPowerOverload()
+    {
+        Instance.StartCoroutine(Instance.WaitAndFlash());
+    }
+
+    private IEnumerator WaitAndFlash()
+    {
+        yield return new WaitUntil(() =>
+            StarSysMenuUIController.Instance != null &&
+            StarSysMenuUIController.Instance.PowerOverloadImage != null);
+
+        yield return FlashRoutine();
+    }
+
+
+    private IEnumerator FlashRoutine()
     {
         for (int i = 0; i < 3; i++)
         {
@@ -36,7 +57,8 @@ public class CoroutineRunner : MonoBehaviour
             yield return new WaitForSeconds(0.5f);
         }
     }
-    public Coroutine RunCoroutine(IEnumerator routine)
+
+    public static Coroutine RunCoroutine(IEnumerator routine)
     {
         if (routine == null) return null;
         return Instance.StartCoroutine(routine);

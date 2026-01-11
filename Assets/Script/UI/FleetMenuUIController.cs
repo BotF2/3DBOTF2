@@ -235,104 +235,9 @@ public class FleetMenuUIController : MonoBehaviour
             uiFields.WarpSlider.value = fleetCon.FleetData.CurrentWarpFactor;
             uiFields.WarpSlider.maxValue = fleetCon.FleetData.MaxWarpFactor;
             uiFields.WarpSlider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
-            //see ship list UIs below todo
+            //see ship list UIs below ToDo
         }
     }
-
-    //TextMeshProUGUI[] ourTMPs = fleetCon.FleetUIGameObject.GetComponentsInChildren<TextMeshProUGUI>(true);
-    //for (int i = 0; i < ourTMPs.Length; i++)
-    //{
-    //    var name = ourTMPs[i].name;
-    //    switch (name)
-    //    {
-    //        case "Text FleetName (TMP)":
-    //            fleetName = ourTMPs[i];
-    //            ourTMPs[i].text = fleetCon.FleetData.Name;
-    //            break;
-    //        case "Destination Name Text":
-    //            destinationName = ourTMPs[i];
-    //            ourTMPs[i].text = "No Destination";
-    //            break;
-    //        case "Destination Coordinates":
-    //            destinationCoordinates = ourTMPs[i];
-    //            ourTMPs[i].text = "";
-    //            break;
-    //        case "Warp Value Text (TMP)":
-    //            ourTMPs[i].text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
-    //            break;
-    //    }
-    //}
-
-    // Buttons wiring
-    //Button[] listButtons = fleetCon.FleetUIGameObject.GetComponentsInChildren<Button>(true);
-    //foreach (var listButton in listButtons)
-    //{
-    //    switch (listButton.name)
-    //    {
-    //        case "SelectDestinationCursorButton":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
-    //            break;
-    //        case "Cancel Destination Button":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
-    //            break;
-    //        case "ButtonWarpUp":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => fleetCon.FleetOnWarpUpClick(fleetCon));
-    //            break;
-    //        case "ButtonWarpDown":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
-    //            break;
-    //        case "DestinationDragTarget Button":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
-    //            break;
-    //        case "ButtonCloseFleetUI":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => fleetCon.CloseUnLoadFleetUI(fleetCon));
-    //            break;
-    //        case "NewFleetButton":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
-    //            break;
-    //        case "MergeFleetButton":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => ClickMergeFleetButton());
-    //            break;
-    //        case "ShipDeployButton":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => ClickShipDeployCursor(fleetCon));
-    //            break;
-    //        case "CancelShipManagerButton":
-    //            listButton.onClick.RemoveAllListeners();
-    //            listButton.onClick.AddListener(() => ClickCancelShipManageButton());
-    //            break;
-    //        default:
-    //            break;
-
-    //    }
-    //}
-    //************************************
-    // Attach existing ship list UIs (if present)
-    //for (int i = 0; i<fleetCon.FleetData.ShipsList.Count; i++)
-    //{
-    //    if (fleetCon.FleetData.ShipsList[i].ShipListUIGameObject != null)
-    //    {
-    //        var transforms = fleetCon.FleetUIGameObject.GetComponentsInChildren<Transform>(true);
-    //        for (int k = 0; k<transforms.Length; k++)
-    //        {
-    //            if (transforms[k].gameObject.name == "FleetShipContent")
-    //            {
-    //                fleetShipListContainer = transforms[k].gameObject;
-    //                break;
-    //            }
-    //        }
-    //        fleetCon.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(fleetShipListContainer.transform, false);
-    //    }
-    //}
-    //}
 
     private void ClickMergeFleetButton()
     {
@@ -367,7 +272,6 @@ public class FleetMenuUIController : MonoBehaviour
         ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         Destroy(emptyStarSysCon.gameObject);
     }
-
     private void ClickShipDeployCursor(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;

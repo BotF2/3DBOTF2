@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 namespace Assets.Core
 {
+    [RequireComponent(typeof(Rigidbody))]
     /// <summary>
     /// Controlling fleet movement and interactions while the matching FeetData class
     /// holds key info on status and for save game
@@ -17,19 +18,19 @@ namespace Assets.Core
         public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
-        private float warpFudgeFactor = 10f;
+        private readonly float warpFudgeFactor = 10f;
         private Rigidbody rb;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
         [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
-        private GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
+        private readonly GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
         public Canvas FleetUICanvas { get; private set; }
         //public Canvas CanvasToolTip; // not used for now, see start method and in instantiation of fleetController in FleetManager.cs
         public PlayerDefinedTargetController TargetController;
         private Vector3 vectorOffset;
-        private float ourZCoordinate;
+        private readonly float ourZCoordinate;
         [SerializeField]
         private GameObject warpUpButtonGO;
         [SerializeField]
@@ -42,8 +43,8 @@ namespace Assets.Core
         private TextMeshProUGUI warpSliderText;
         [SerializeField]
         private float maxSliderValue = 10f;
-        private TMP_Dropdown shipDropdown;
-        [SerializeField]
+        private readonly TMP_Dropdown shipDropdown;
+
         public GameObject ShipDropDownGO;
         [SerializeField]
         private TMP_Text dropdownShipText;
@@ -77,6 +78,7 @@ namespace Assets.Core
             }
         }
         private GameController gameController;
+        private float distanceToDestination;
 
         private void Awake()
         {
@@ -114,7 +116,7 @@ namespace Assets.Core
             {
                 if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
                 {
-                    MoveToDesitinationGO();
+                    MoveToDesitinationGO(GetDirection(), distanceToDestination);
                     DrawDestinationLine(FleetData.Destination.transform.position);
                 }
             }
@@ -127,7 +129,8 @@ namespace Assets.Core
                 if (FleetData != null)
                     FleetData.ShipListUIParent = value;
                 // Process any pending ship UI items now that the parent is available.
-                ShipManager.Instance?.ProcessPendingShipUIs();
+                if (ShipManager.Instance != null)
+                    ShipManager.Instance.ProcessPendingShipUIs();
             }
         }
         public Rigidbody GetRigidBody() { return rb; }
@@ -239,7 +242,7 @@ namespace Assets.Core
                         // not our destination ignore for now
                     }
                 }
-                else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController freddy))
+                else if (collider.gameObject.TryGetComponent(component: out PlayerDefinedTargetController _))
                 {
                     if (isOurDestination)
                     {
@@ -279,13 +282,13 @@ namespace Assets.Core
             var starysLooking = GalaxyUI.StarSystLookingForShipDeploy;
             if (fleetLooking != null)
             {
-                var aFleetView = FleetUI.AFleetMenuView.gameObject;
+                var aFleetView = FleetUI.AFleetMenuView;
                 this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
             else if (starysLooking != null)
             {
-                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
                 this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
@@ -309,6 +312,11 @@ namespace Assets.Core
             if (destination == this.FleetData.Destination)
             {
                 // not implemented, looking for a good use case
+            }
+
+            if (destinationInt < 0)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(destinationInt), destinationInt, $"'{nameof(destinationInt)}' cannot be negative");
             }
         }
         private void NewDestination(GameObject hitObject) // here is a destination
@@ -347,10 +355,14 @@ namespace Assets.Core
             FleetManager.Instance.ExposeAllFleetInsigniaSprites(fleetData.CivEnum);
         }
 
-        void MoveToDesitinationGO()
+        private Vector3 GetDirection()
         {
-            Vector3 direction = (this.FleetData.Destination.transform.position - transform.position).normalized;
-            float distance = Vector3.Distance(transform.position, this.FleetData.Destination.transform.position);
+            return (this.FleetData.Destination.transform.position - transform.position).normalized;
+        }
+
+        void MoveToDesitinationGO(Vector3 direction, float distance)
+        {
+            float distanceToDestination = Vector3.Distance(transform.position, this.FleetData.Destination.transform.position);
             float howFast = this.FleetData.CurrentWarpFactor;
             if (howFast > this.FleetData.MaxWarpFactor)
             {

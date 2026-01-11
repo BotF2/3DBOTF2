@@ -30,7 +30,7 @@ public class StarSysMenuUIController : MonoBehaviour
     [Header("Power overload visuals")]
     [SerializeField] private GameObject powerOverload;
     public GameObject PowerOverloadImage;
-    [SerializeField] private CoroutineRunner coroutineRunner;
+    //[SerializeField] private CoroutineRunner coroutineRunner;
     public Slider ShipSliderBuildProgress;
     public Slider SliderBuildProgress;
 
@@ -49,6 +49,7 @@ public class StarSysMenuUIController : MonoBehaviour
 
     private void Start()
     {
+        CoroutineRunner.FlashPowerOverload();
         // Record the original parent of each StarSysUIGameObject as its current parent (or fall back to SysListContainer / ASystemMenuView).
         for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
         {
@@ -84,6 +85,7 @@ public class StarSysMenuUIController : MonoBehaviour
             ASystemMenuView.SetActive(false);
         //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
         //parentCanvas.worldCamera = galaxyEventCamera
+
     }
     public void ShowSystemMenuView()
     {
@@ -244,9 +246,9 @@ public class StarSysMenuUIController : MonoBehaviour
                 }
 
                 // Persist references used by menu controller
-                powerOverload = tmpElement.powerOvarload != null ? tmpElement.powerOvarload.gameObject : tmpElement.PowerOverload;
+                powerOverload = tmpElement.powerOverload != null ? tmpElement.powerOverload.gameObject : tmpElement.PowerOverload;
                 PowerOverloadImage = tmpElement.powerOverloadImage != null ? tmpElement.powerOverloadImage.gameObject : tmpElement.PowerOverload?.gameObject;
-                coroutineRunner = tmpElement.coroutineRunner;
+                //coroutineRunner = CoroutineRunner.Instance;
 
                 // Attach system ships UI if any
                 for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
@@ -342,64 +344,121 @@ public class StarSysMenuUIController : MonoBehaviour
         return listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject);
     }
 
-    public void UpdateFacilityUI(StarSysController sysController, int plusMinus, string loadName, string ratioName, StarSysFacilityType facilityType)
+    public void UpdateFacilityUI(StarSysController sysController, int plusMinus, StarSysFacilityType facilityType)
     {
         if (!GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum)) return;
-
+        sysController.StarSysUIGameObject.SetActive(true);
+        var fileds = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
         int newFacilityLoad = 0;
+        int numOn = 0;
         List<GameObject> facilities = new List<GameObject>();
         switch (facilityType)
         {
             case StarSysFacilityType.Factory:
                 newFacilityLoad = sysController.StarSysData.FactoryData.PowerLoad;
                 facilities = sysController.StarSysData.Factories;
+                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Factory, facilities);
+                fileds.numFactoryRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                fileds.factoryLoad.text = (newFacilityLoad * numOn).ToString();
                 break;
             case StarSysFacilityType.Shipyard:
                 newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
                 facilities = sysController.StarSysData.Shipyards;
+                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Shipyard, facilities);
+                fileds.numYardsOnRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                fileds.yardLoad.text = (newFacilityLoad * numOn).ToString();
                 break;
             case StarSysFacilityType.ShieldGenerator:
                 newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
                 facilities = sysController.StarSysData.ShieldGenerators;
+                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ShieldGenerator, facilities);
+                fileds.numShieldsRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                fileds.shieldLoad.text = (newFacilityLoad * numOn).ToString();
                 break;
             case StarSysFacilityType.OrbitalBattery:
                 newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
                 facilities = sysController.StarSysData.OrbitalBatteries;
+                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.OrbitalBattery, facilities);
+                fileds.numOBRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                fileds.oBLoad.text = (newFacilityLoad * numOn).ToString();
                 break;
             case StarSysFacilityType.ResearchCenter:
                 newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
                 facilities = sysController.StarSysData.ResearchCenters;
+                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ResearchCenter, facilities);
+                fileds.numResearchRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                fileds.researchLoad.text = (newFacilityLoad * numOn).ToString();
                 break;
             default:
                 break;
         }
+        //switch (facilityType)
+        //{
+        //    case StarSysFacilityType.Factory:
 
+        //        break;
+        //    case StarSysFacilityType.Shipyard:
+        //        newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
+        //        facilities = sysController.StarSysData.Shipyards;
+        //        break;
+        //    case StarSysFacilityType.ShieldGenerator:
+        //        newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
+        //        facilities = sysController.StarSysData.ShieldGenerators;
+        //        break;
+        //    case StarSysFacilityType.OrbitalBattery:
+        //        newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
+        //        facilities = sysController.StarSysData.OrbitalBatteries;
+        //        break;
+        //    case StarSysFacilityType.ResearchCenter:
+        //        newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
+        //        facilities = sysController.StarSysData.ResearchCenters;
+        //        break;
+        //    default:
+        //        break;
+        //}
+        //for (int j = 0; j < facilities.Count; j++)
+        //{
+        //    TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
+        //    if (TheText.text == "1")
+        //        numOn++;
+        //}
+        //OneTMP[i].text = numOn.ToString() + "/" + (facilities.Count).ToString();
+        //break;
+
+        //    }
+        //}
+        //switch (facilityType)
+        //{
+        //    case StarSysFacilityType.Factory:
+        //        // fileds.factoryLoad.text = (newFacilityLoad * numOn).ToString();
+        //        break;
+        //    case StarSysFacilityType.Shipyard:
+        //        fileds.yardLoad.text = (newFacilityLoad * numOn).ToString();
+        //        break;
+        //    case StarSysFacilityType.ShieldGenerator:
+        //        fileds.shieldLoad.text = (newFacilityLoad * numOn).ToString();
+        //        break;
+        //    case StarSysFacilityType.OrbitalBattery:
+        //        fileds.oBLoad.text = (newFacilityLoad * numOn).ToString();
+        //        break;
+        //    case StarSysFacilityType.ResearchCenter:
+        //        fileds.researchLoad.text = (newFacilityLoad * numOn).ToString();
+        //        break;
+        //    default:
+        //        break;
+        //}
+    }
+
+    private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fileds)
+    {
         int numOn = 0;
-        TextMeshProUGUI[] OneTMP = sysController.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        for (int i = 0; i < OneTMP.Length; i++)
+        for (int j = 0; j < facilities.Count; j++)
         {
-            OneTMP[i].enabled = true;
-            if (loadName == OneTMP[i].name)
-            {
-                OneTMP[i].text = (newFacilityLoad * facilities.Count).ToString();
-                //if (int.TryParse(OneTMP[i].text, out int load))
-                //{
-                //    load += plusMinus * newFacilityLoad;
-                //    OneTMP[i].text = load.ToString();
-                //}
-            }
-            if (ratioName == OneTMP[i].name)
-            {
-                for (int j = 0; j < facilities.Count; j++)
-                {
-                    TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
-                    if (TheText.text == "1")
-                        numOn++;
-                }
-                OneTMP[i].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                break;
-            }
+            TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
+            if (TheText.text == "1")
+                numOn++;
         }
+        return numOn;
     }
 
     public void UpdateSystemPowerBalance(StarSysController sysCon)
