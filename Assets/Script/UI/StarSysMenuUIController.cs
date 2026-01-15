@@ -114,6 +114,11 @@ public class StarSysMenuUIController : MonoBehaviour
             if (!listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject) &&
                 GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
             {
+
+                var galaxyMenu = GalaxyMenuUIController.Instance;
+                galaxyMenu.FleetLookingForShipDeploy = null;
+                galaxyMenu.FleetLookingForDestination = null;
+                galaxyMenu.StarSystLookingForShipDeploy = sysController;
                 // wire up individual star system UI
                 sysController.StarSysUIGameObject.SetActive(true);
                 sysController.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
@@ -392,61 +397,6 @@ public class StarSysMenuUIController : MonoBehaviour
             default:
                 break;
         }
-        //switch (facilityType)
-        //{
-        //    case StarSysFacilityType.Factory:
-
-        //        break;
-        //    case StarSysFacilityType.Shipyard:
-        //        newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
-        //        facilities = sysController.StarSysData.Shipyards;
-        //        break;
-        //    case StarSysFacilityType.ShieldGenerator:
-        //        newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
-        //        facilities = sysController.StarSysData.ShieldGenerators;
-        //        break;
-        //    case StarSysFacilityType.OrbitalBattery:
-        //        newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
-        //        facilities = sysController.StarSysData.OrbitalBatteries;
-        //        break;
-        //    case StarSysFacilityType.ResearchCenter:
-        //        newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
-        //        facilities = sysController.StarSysData.ResearchCenters;
-        //        break;
-        //    default:
-        //        break;
-        //}
-        //for (int j = 0; j < facilities.Count; j++)
-        //{
-        //    TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
-        //    if (TheText.text == "1")
-        //        numOn++;
-        //}
-        //OneTMP[i].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-        //break;
-
-        //    }
-        //}
-        //switch (facilityType)
-        //{
-        //    case StarSysFacilityType.Factory:
-        //        // fileds.factoryLoad.text = (newFacilityLoad * numOn).ToString();
-        //        break;
-        //    case StarSysFacilityType.Shipyard:
-        //        fileds.yardLoad.text = (newFacilityLoad * numOn).ToString();
-        //        break;
-        //    case StarSysFacilityType.ShieldGenerator:
-        //        fileds.shieldLoad.text = (newFacilityLoad * numOn).ToString();
-        //        break;
-        //    case StarSysFacilityType.OrbitalBattery:
-        //        fileds.oBLoad.text = (newFacilityLoad * numOn).ToString();
-        //        break;
-        //    case StarSysFacilityType.ResearchCenter:
-        //        fileds.researchLoad.text = (newFacilityLoad * numOn).ToString();
-        //        break;
-        //    default:
-        //        break;
-        //}
     }
 
     private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fileds)
@@ -726,14 +676,24 @@ public class StarSysMenuUIController : MonoBehaviour
         Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
-    internal void ClickShipDeployCursor(StarSysController starSysControllerWaitingToExchangeShips)
+    internal void ClickShipDeployCursor(StarSysController starSysCon)
     {
-        if (GameController.Instance.AreWeLocalPlayer(starSysControllerWaitingToExchangeShips.StarSysData.CurrentOwnerCivEnum))
+        if (GameController.Instance.AreWeLocalPlayer(starSysCon.StarSysData.CurrentOwnerCivEnum))
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSystIsLookingForShipDeploy(starSysControllerWaitingToExchangeShips);
-            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-            MousePointerChanger.Instance.SetShipExchangeCursor(starSysControllerWaitingToExchangeShips);
+            if (galaxyUI != null)
+            {
+                galaxyUI.WhatSystIsLookingForShipDeploy(starSysCon);
+                galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+                MousePointerChanger.Instance.SetShipExchangeCursor();
+                var position = starSysCon.StarSysData.GetPosition();
+
+                galaxyUI.FleetLookingForShipDeploy = null;
+                galaxyUI.StarSystLookingForShipDeploy = starSysCon;
+                ShipDeployMenuUIController.Instance.TopStarSyst = starSysCon;
+                //newFleetHeader.SetActive(false);
+            }
+
         }
     }
     private void ClickMergeFleetButton()
@@ -781,7 +741,9 @@ public class StarSysMenuUIController : MonoBehaviour
         galaxyUI.ClickCancelShipDeployButton();
         galaxyUI.ResetClickMode();
         MousePointerChanger.Instance.ResetCursor();
-        cancelShipManagerButtonGO?.SetActive(false);
+        if (cancelShipManagerButtonGO != null)
+            cancelShipManagerButtonGO.SetActive(false);
+        ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
     }
 
     internal void SetBuildProgress(float buildingProgress)

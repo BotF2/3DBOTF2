@@ -93,8 +93,8 @@ public class GalaxyMenuUIController : MonoBehaviour
     public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
     public FleetController FleetLookingForDestination { get; set; }
     public FleetController FleetLookingForShipDeploy { get; set; }
-    public StarSysController StarSystLookingForShipDeploy { get; set; }
     public FleetController FleetConSelectedForShipDeploy { get; set; }
+    public StarSysController StarSystLookingForShipDeploy { get; set; }
     public StarSysController StarSystConSelectedForShipDeploy { get; set; }
 
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level

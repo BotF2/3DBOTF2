@@ -18,10 +18,10 @@ public class FleetUI_Fields : MonoBehaviour
     public Button WarpUp;
     public Button WarpDown;
     public Button CloseFleetUI;
-    public Button NewFleet;
-    public Button MergeFleets;
-    public Button ShipDelply;
-    public Button CancelShipManager;
+    public Button NewFleetButton;
+    public Button MergeFleetsButton;
+    public Button ShipDelplyButton;
+    public Button CancelShipManagerButton;
 
     [Header("Sliders")]
     public Slider WarpSlider;

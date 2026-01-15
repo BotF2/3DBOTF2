@@ -40,16 +40,16 @@ public class MousePointerChanger : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
-    public void SetShipExchangeCursor(FleetController fleetCon)
-    {
-        ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
-        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
-    }
-    public void SetShipExchangeCursor(StarSysController sysCon)
-    {
-        ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
-        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
-    }
+    //public void SetShipExchangeCursor()
+    //{
+    //    ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
+    //    GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
+    //}
+    //public void SetShipExchangeCursor(StarSysController sysCon)
+    //{
+    //    ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
+    //    GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
+    //}
     public void SetShipExchangeCursor()
     {
         ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);

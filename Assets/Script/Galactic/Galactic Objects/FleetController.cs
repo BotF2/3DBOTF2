@@ -154,8 +154,7 @@ namespace Assets.Core
             }
             else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
             {
-                if (GameController.Instance.AreWeLocalPlayer(this.FleetData.CivEnum))
-                    HandleShipDeploySelection(this);
+                HandleShipDeploySelection(this);
             }
         }
 
@@ -184,35 +183,38 @@ namespace Assets.Core
 
                 if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
                 {
-                    if (isOurDestination)
+                    if (hitFleetCon == this && hitFleetCon == null) return; // ignore self
                     {
-                        ClickCancelDestinationButton();// we stop, cancel destination
-
-                        if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
+                        if (isOurDestination)
                         {
-                            OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                            FleetUI.MoveBackAnyaFleetUIGO(); // close our fleet UI
-                            DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
-                            //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
-                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
+                            ClickCancelDestinationButton();// we stop, cancel destination
 
-                            if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+                            if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
                             {
-                                ClickCancelDestinationButton(); // they stop
+                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                FleetUI.MoveBackAnyaFleetUIGO(); // close our fleet UI
+                                DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
+                                //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
+                                EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
 
-                                CloseUnLoadFleetUI(this); // need more code to handle this encounter 
+                                if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+                                {
+                                    ClickCancelDestinationButton(); // they stop
+
+                                    CloseUnLoadFleetUI(this); // need more code to handle this encounter 
+                                }
+
                             }
-
+                            else //our fleet
+                            {
+                                // do ships management?
+                                OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
+                            }
                         }
-                        else //our fleet
+                        else
                         {
-                            // do ships management?
-                            OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
+                            // not our destination ignore for now
                         }
-                    }
-                    else
-                    {
-                        // not our destination ignore for now
                     }
                 }
                 else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reports a collision for now, not the system
@@ -272,9 +274,9 @@ namespace Assets.Core
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
         }
 
-        private void HandleShipDeploySelection(FleetController clickedFleetCon) //this
+        private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
-            if (clickedFleetCon != this) return;
+            if (clickedFleetCon == this) return;
 
             MousePointerChanger.Instance.ResetCursor();
             GalaxyUI.WhatFleetIsSelectedForShipDiploy(this);
@@ -292,9 +294,9 @@ namespace Assets.Core
                 this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+            //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            //ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+            //ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
 
         private Vector3 GetMouseWorldPosition()
@@ -696,6 +698,11 @@ namespace Assets.Core
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
                 FleetUI.GetPlayerDefinedTargetDestination(this);
             }
+        }
+
+        internal void saveCloseShipDelplyButton(FleetController fleetCon)
+        {
+            // ToDo should this be in FleetMenuUIController?
         }
     }
 }
