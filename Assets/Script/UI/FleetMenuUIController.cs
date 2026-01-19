@@ -245,6 +245,7 @@ public class FleetMenuUIController : MonoBehaviour
         // Merge fleet code here;
     }
 
+
     private void ClickNewFleetButton(FleetController oldFleetCon)
     {
         if (oldFleetCon.FleetData.ShipsList.Count < 2) return;
@@ -306,7 +307,7 @@ public class FleetMenuUIController : MonoBehaviour
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {
-        if (fleetCon?.FleetUIGameObject == null) return;
+        if (fleetCon != null ? fleetCon.FleetUIGameObject : null == null) return;
 
 
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>(true);
@@ -334,7 +335,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     public void UpdateFleetMaxWarpUI(FleetController fleetCon, float theirMaxWarp)
     {
-        if (fleetCon?.FleetUIGameObject == null) return;
+        if (fleetCon != null ? fleetCon.FleetUIGameObject : null == null) return;
 
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>(true);
         if (slider != null)
