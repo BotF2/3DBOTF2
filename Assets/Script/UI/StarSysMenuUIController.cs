@@ -1,3 +1,5 @@
+// Ignore Spelling: Sys
+
 using Assets.Core;
 using System;
 using System.Collections.Generic;
@@ -126,154 +128,237 @@ public class StarSysMenuUIController : MonoBehaviour
                 if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
                     sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
 
-                var tmpElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-                if (tmpElement == null)
+                var sysUIFieldElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (sysUIFieldElement == null)
                 {
                     Debug.LogWarning($"SetupSystemUIData: StarSysUI_Fields missing on UI prefab for {sysController.name}");
                     continue;
                 }
 
                 // Basic transform bindings that are independent of textual content
-                tmpElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
+                sysUIFieldElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
                     sysController.StarSysData.GetPosition().z * 0.12f);
-                tmpElement.cancelShipManagerButton.gameObject.SetActive(false);
+                sysUIFieldElement.cancelShipManagerButton.gameObject.SetActive(false);
 
                 // Bind button handlers and images (keep existing wiring; textual content will be initialized centrally)
-                tmpElement.buildButton.onClick.RemoveAllListeners();
-                tmpElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
-                tmpElement.shipButton.onClick.RemoveAllListeners();
-                tmpElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
-
+                sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
+                sysUIFieldElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
+                sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
+                sysUIFieldElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
+                sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
+                sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickedShipDeployCursor(sysController));
+                sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
+                sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysController));
                 // Ensure SysButtonOnOff components exist and assign types, then wire click handlers
-                if (tmpElement.factoryButtonOn != null)
+                if (sysUIFieldElement.factoryButtonOn != null)
                 {
-                    var comp = tmpElement.factoryButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.factoryButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.FactoryOnButton;
-                    tmpElement.factoryButtonOn.onClick.RemoveAllListeners();
-                    tmpElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
-                }
-                if (tmpElement.factoryButtonOff != null)
-                {
-                    var comp = tmpElement.factoryButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.factoryButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.FactoryOffButton;
-                    tmpElement.factoryButtonOff.onClick.RemoveAllListeners();
-                    tmpElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
-                }
-                if (tmpElement.yardButtonOn != null)
-                {
-                    var comp = tmpElement.yardButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.yardButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ShipyardOnButton;
-                    tmpElement.yardButtonOn.onClick.RemoveAllListeners();
-                    tmpElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
-                }
-                if (tmpElement.yardButtonOff != null)
-                {
-                    var comp = tmpElement.yardButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.yardButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ShipyardOffbutton;
-                    tmpElement.yardButtonOff.onClick.RemoveAllListeners();
-                    tmpElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
-                }
-                if (tmpElement.shieldButtonOn != null)
-                {
-                    var comp = tmpElement.shieldButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.shieldButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
-                    tmpElement.shieldButtonOn.onClick.RemoveAllListeners();
-                    tmpElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
-                }
-                if (tmpElement.shieldButtonOff != null)
-                {
-                    var comp = tmpElement.shieldButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.shieldButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
-                    tmpElement.shieldButtonOff.onClick.RemoveAllListeners();
-                    tmpElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
-                }
-                if (tmpElement.oBButtonOn != null)
-                {
-                    var comp = tmpElement.oBButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.oBButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
-                    tmpElement.oBButtonOn.onClick.RemoveAllListeners();
-                    tmpElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
-                }
-                if (tmpElement.oBButtonOff != null)
-                {
-                    var comp = tmpElement.oBButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.oBButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
-                    tmpElement.oBButtonOff.onClick.RemoveAllListeners();
-                    tmpElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
-                }
-                if (tmpElement.researchButtonOn != null)
-                {
-                    var comp = tmpElement.researchButtonOn.GetComponent<SysButtonOnOff>() ?? tmpElement.researchButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ResearchCenterOnButton;
-                    tmpElement.researchButtonOn.onClick.RemoveAllListeners();
-                    tmpElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
-                }
-                if (tmpElement.researchButtonOff != null)
-                {
-                    var comp = tmpElement.researchButtonOff.GetComponent<SysButtonOnOff>() ?? tmpElement.researchButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    comp.button = SystemOnOffButtons.ResearchCenterOffButton;
-                    tmpElement.researchButtonOff.onClick.RemoveAllListeners();
-                    tmpElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
-                }
-
-                // Slider bindings
-                Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
-                for (int i = 0; i < sliders.Length; i++)
-                {
-                    if (sliders[i].name == "BuildProgressSlider")
+                    if (sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>() != null)
                     {
-                        SliderBuildProgress = sliders[i];
-                        SliderBuildProgress.value = 0f;
-                    }
-                    if (sliders[i].name == "ShipBuildProgressSlider")
-                    {
-                        ShipSliderBuildProgress = sliders[i];
-                        ShipSliderBuildProgress.value = 0f;
+                        var comp = sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.FactoryOnButton;
+                        sysUIFieldElement.factoryButtonOn.onClick.RemoveAllListeners();
+                        sysUIFieldElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
                     }
                 }
-
-                // image binding (these are generic icons from theme; InitializeFromStarSysData will set facility icons/names/ratios)
-                tmpElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
-                tmpElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
-                tmpElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
-                tmpElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
-                tmpElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
-                tmpElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
-
-                // CENTRALIZED UI UPDATE - authoritative: read StarSysData lists and update UI
-                try
+                if (sysUIFieldElement.factoryButtonOff != null)
                 {
-                    tmpElement.InitializeFromStarSysData(sysController.StarSysData);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysController.name}: {ex.Message}");
-                }
-
-                // Persist references used by menu controller
-                powerOverload = tmpElement.powerOverload != null ? tmpElement.powerOverload.gameObject : tmpElement.PowerOverload;
-                PowerOverloadImage = tmpElement.powerOverloadImage != null ? tmpElement.powerOverloadImage.gameObject : tmpElement.PowerOverload?.gameObject;
-                //coroutineRunner = CoroutineRunner.Instance;
-
-                // Attach system ships UI if any
-                for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
-                {
-                    if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
+                    if (sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>() != null)
                     {
-                        if (aSystemShipListContainer != null)
-                            sysController.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(aSystemShipListContainer.transform, false);
+                        var comp = sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.FactoryOffButton;
+                        sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
+                        sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                    }
+                    //var comp = sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.factoryButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    //comp.button = SystemOnOffButtons.FactoryOffButton;
+                    //sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
+                    //sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                }
+                if (sysUIFieldElement.yardButtonOn != null)
+                {
+                    if (sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>() != null)
+                    {
+                        var comp = sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.ShipyardOnButton;
+                        sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
+                        sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                    }
+                    //var comp = sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.yardButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    //comp.button = SystemOnOffButtons.ShipyardOnButton;
+                    //sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
+                    //sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                }
+                if (sysUIFieldElement.yardButtonOff != null)
+                {
+                    if (sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>() != null)
+                    {
+                        var comp = sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                        sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
+                        sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                    }
+                    //var comp = sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.yardButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    //comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                    //sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
+                    //sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                }
+                if (sysUIFieldElement.shieldButtonOn != null)
+                {
+                    if (sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>() != null)
+                    {
+                        var comp = sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                        sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
+                        sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                    }
+                    //var comp = sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.shieldButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                    //comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                    //sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
+                    //sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                }
+                if (sysUIFieldElement.shieldButtonOff != null)
+                {
+                    if (sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>() != null)
+                    {
+                        var comp = sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                        sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
+                        sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                    }
+                    //var comp = sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.shieldButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                    //comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                    //sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
+                    //sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                }
+                if (sysUIFieldElement.oBButtonOn != null)
+                {
+                    if (sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>() != null)
+                    {
+                        var comp = sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>();
+                        comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                        sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
+                        sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                        //}
+                        //var comp = sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.oBButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                        //comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                        //sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
+                        //sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                    }
+                    if (sysUIFieldElement.oBButtonOff != null)
+                    {
+                        if (sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
+                            sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
+                            sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
+                        }
+                        //var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.oBButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                        //comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
+                        //sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
+                        //sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
+                    }
+                    if (sysUIFieldElement.researchButtonOn != null)
+                    {
+                        if (sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ResearchCenterOnButton;
+                            sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
+                            sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
+                        }
+                        //var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.researchButtonOn.gameObject.AddComponent<SysButtonOnOff>();
+                        //comp.button = SystemOnOffButtons.ResearchCenterOnButton;
+                        //sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
+                        //sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
+                    }
+                    if (sysUIFieldElement.researchButtonOff != null)
+                    {
+                        if (sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ResearchCenterOffButton;
+                            sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
+                            sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
+                        }
+                        //var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.researchButtonOff.gameObject.AddComponent<SysButtonOnOff>();
+                        //comp.button = SystemOnOffButtons.ResearchCenterOffButton;
+                        //sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
+                        //sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
+                    }
+
+                    // Slider bindings
+                    Slider[] sliders = sysController.StarSysUIGameObject.GetComponentsInChildren<Slider>();
+                    for (int i = 0; i < sliders.Length; i++)
+                    {
+                        if (sliders[i].name == "BuildProgressSlider")
+                        {
+                            SliderBuildProgress = sliders[i];
+                            SliderBuildProgress.value = 0f;
+                        }
+                        if (sliders[i].name == "ShipBuildProgressSlider")
+                        {
+                            ShipSliderBuildProgress = sliders[i];
+                            ShipSliderBuildProgress.value = 0f;
+                        }
+                    }
+
+                    // image binding (these are generic icons from theme; InitializeFromStarSysData will set facility icons/names/ratios)
+                    sysUIFieldElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
+                    sysUIFieldElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
+                    sysUIFieldElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                    sysUIFieldElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                    sysUIFieldElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
+                    sysUIFieldElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
+
+                    // CENTRALIZED UI UPDATE - authoritative: read StarSysData lists and update UI
+                    try
+                    {
+                        sysUIFieldElement.InitializeFromStarSysData(sysController.StarSysData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysController.name}: {ex.Message}");
+                    }
+
+                    // Persist references used by menu controller
+                    powerOverload = sysUIFieldElement.powerOverload != null ? sysUIFieldElement.powerOverload.gameObject : sysUIFieldElement.PowerOverload;
+                    PowerOverloadImage = sysUIFieldElement.powerOverloadImage != null ? sysUIFieldElement.powerOverloadImage.gameObject : sysUIFieldElement.PowerOverload?.gameObject;
+                    //coroutineRunner = CoroutineRunner.Instance;
+
+                    // Attach system ships UI if any
+                    for (int i = 0; i < sysController.StarSysData.ShipsList.Count; i++)
+                    {
+                        if (sysController.StarSysData.ShipsList[i].ShipListUIGameObject != null)
+                        {
+                            if (aSystemShipListContainer != null)
+                                sysController.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(aSystemShipListContainer.transform, false);
+                        }
                     }
                 }
-            }
 
-            if (sysController.StarSysUIGameObject != null)
-            {
-                sysController.StarSysUIGameObject.SetActive(true);
-                sysController.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
+                if (sysController.StarSysUIGameObject != null)
+                {
+                    sysController.StarSysUIGameObject.SetActive(true);
+                    sysController.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
+                }
             }
         }
     }
+    public void StarSysClickedShipDeployCursor(StarSysController starSystCon)
+    {
+        var galaxyUI = GalaxyMenuUIController.Instance;
+        if (lastSysCon == null) return;
+        galaxyUI.WhatSystIsLookingForShipDeploy(lastSysCon);
+        galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        MousePointerChanger.Instance.SetShipExchangeCursor();
+        var position = starSystCon.StarSysData.GetPosition();
 
+        galaxyUI.FleetLookingForShipDeploy = null;
+        galaxyUI.StarSystLookingForShipDeploy = starSystCon;
+        ShipDeployMenuUIController.Instance.TopStarSyst = starSystCon;
+        //newFleetHeader.SetActive(false);
+    }
     public void SetActiveSetParentUIGO(StarSysController theSysCon)
     {
         if (theSysCon == null) return;
@@ -327,6 +412,7 @@ public class StarSysMenuUIController : MonoBehaviour
                     child.transform.SetParent(originalParent, false);
             }
         }
+        lastSysCon = null;
     }
     public void CloseBuildingQueues()
     {
@@ -635,11 +721,6 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    private void UpdateSystemPowerLoad(StarSysController controller)
-    {
-        throw new NotImplementedException();
-    }
-
     internal void UpdateSystemShipList(StarSysController sysCon)
     {
         // Placeholder for UI update logic specific to a system ship list.
@@ -702,7 +783,7 @@ public class StarSysMenuUIController : MonoBehaviour
     }
     private void ClickNewFleetButton(StarSysController sysController)
     {
-        if (sysController.StarSysData.ShipsList.Count < 2) return;
+        if (sysController.StarSysData.ShipsList.Count == 0) return;
         MousePointerChanger.Instance.ResetCursor();
         var fleetManager = FleetManager.Instance;
         FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
@@ -710,20 +791,45 @@ public class StarSysMenuUIController : MonoBehaviour
 
         CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
         FleetData fleetData = new FleetData(fleetSO);
-        fleetData.CurrentWarpFactor = 3f;
+        fleetData.CurrentWarpFactor = 0f;
         fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
         fleetData.CivShortName = thisCivData.CivShortName;
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
+        galaxyMenuUICon.FleetLookingForShipDeploy = null;
+        galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
+        ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
         galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
         galaxyMenuUICon.FleetLookingForShipDeploy = null;
-        ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
-        var emptyFleetCon = fleetManager.InsatiateEmptyFleetController();
-        var newFleet = fleetManager.InstantiateFleet(emptyFleetCon, sysController, fleetData, position, true);
-        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
-        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        var newFleet = fleetManager.InstantiateFleet(null, sysController, fleetData, position, true);
         tempFleetController = newFleet;
-        Destroy(emptyFleetCon.gameObject);
+        var shipDelployUICon = ShipDeployMenuUIController.Instance;
+        shipDelployUICon.SetUpTopShipLists();
+        shipDelployUICon.SetUpBottomShipLists(newFleet);
+        shipDelployUICon.ShowShipDeployMenuView();
+
+        //if (sysController.StarSysData.ShipsList.Count < 2) return;
+        //MousePointerChanger.Instance.ResetCursor();
+        //var fleetManager = FleetManager.Instance;
+        //FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
+        //var position = sysController.StarSysData.GetPosition();
+
+        //CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
+        //FleetData fleetData = new FleetData(fleetSO);
+        //fleetData.CurrentWarpFactor = 3f;
+        //fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
+        //fleetData.CivShortName = thisCivData.CivShortName;
+        //var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+        //galaxyMenuUICon.ResetClickMode();
+        //galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
+        //galaxyMenuUICon.FleetLookingForShipDeploy = null;
+        //ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
+        //var emptyFleetCon = fleetManager.InsatiateEmptyFleetController();
+        //var newFleet = fleetManager.InstantiateFleet(emptyFleetCon, sysController, fleetData, position, true);
+        //galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
+        //galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        //tempFleetController = newFleet;
+        //Destroy(emptyFleetCon.gameObject);
     }
     public void ClickCancelShipManageButton()
     {

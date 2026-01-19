@@ -205,22 +205,35 @@ public class GalaxyMenuUIController : MonoBehaviour
         shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
 
-        var fleetLooking = FleetLookingForShipDeploy;
-        var starsLooking = StarSystLookingForShipDeploy;
+        //var fleetLooking = FleetLookingForShipDeploy;
+        //var starsLooking = StarSystLookingForShipDeploy;
 
-        if (starsLooking != null)
+        shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList);
+        var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+        if (starSystCon.StarSysUIGameObject != null)// 
         {
-            var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-            if (starSystCon.StarSysUIGameObject != null)// 
-            {
-                starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
-            }
-            newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
+            starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+            starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
         }
-        shipDeployMenuUIController.SetUpTopShipLists();
+        newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
     }
+    internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
+    {
+        if (shipDeployMenuUIController == null) return;
+        MousePointerChanger.Instance.ResetCursor();
+        shipDeployMenuUIController.gameObject.SetActive(true);
+        shipDeployMenuUIController.ShowShipDeployMenuView();
+        //FleetMenuUIController.Instance.NewFleetHeader.SetActive(false);
 
+        shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList);
+        var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+        if (originalFleetCon.FleetUIGameObject != null)// 
+        {
+            originalFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+            originalFleetCon.transform.SetAsLastSibling();
+        }
+        newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+    }
     public void HideShipDeployMenu()
     {
         if (shipDeployMenuUIController == null) return;
@@ -381,7 +394,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 openMenuEnumWas = Menu.AFleetMenu;
                 break;
             case Menu.ShipDeployMenu:
-                HideShipDeployMenu();
+                //HideShipDeployMenu();
                 shipDeployMenuUIController.ShowShipDeployMenuView();
                 openMenuWas = shipDeployMenuUIController.gameObject;
                 openMenuEnumWas = Menu.ShipDeployMenu;
@@ -440,6 +453,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         FleetConSelectedForShipDeploy = fleetController;
         StarSystConSelectedForShipDeploy = null;
+
     }
     internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
     {
@@ -658,5 +672,6 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         GalaxyMenuUIController.Instance.ResetClickMode();
     }
+
 
 }

@@ -487,7 +487,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.122641504, g: 0.022445701, b: 0.022445701, a: 0.8235294}
+  m_Color: {r: 0.122641504, g: 0.022445701, b: 0.022445701, a: 0.20784314}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -932,15 +932,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30683f851ed86aa49a9c17c009b604ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FleetChildFields
-  DestinationLine: {fileID: 8954736760069204259}
   DropLine: {fileID: 1265230437340074653}
   FleetNameGO: {fileID: 8751740120061494374}
   InsigniaGO: {fileID: 3786190254261394686}
   InsigniaUnknownGO: {fileID: 3008163960987387980}
   FleetName: {fileID: 3476718599975112345}
   text: {fileID: 0}
-  motext: {fileID: 0}
-  evenmotext: {fileID: 0}
 --- !u!1 &8751740120061494374
 GameObject:
   m_ObjectHideFlags: 0
@@ -965,7 +962,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8751740120061494374}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.7}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.1, y: 0.1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1175,7 +1172,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1522052619731621048, guid: 8e57fa8d4bc5cfa4aa421ae1a8e48faf, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1522052619731621048, guid: 8e57fa8d4bc5cfa4aa421ae1a8e48faf, type: 3}
       propertyPath: m_LocalPosition.z

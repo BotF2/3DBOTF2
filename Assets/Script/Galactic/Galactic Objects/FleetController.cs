@@ -276,27 +276,31 @@ namespace Assets.Core
 
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
-            if (clickedFleetCon == this) return;
+            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum)) { return; }
 
             MousePointerChanger.Instance.ResetCursor();
             GalaxyUI.WhatFleetIsSelectedForShipDiploy(this);
             var fleetLooking = GalaxyUI.FleetLookingForShipDeploy;
-            var starysLooking = GalaxyUI.StarSystLookingForShipDeploy;
+            var starSysLooking = GalaxyUI.StarSystLookingForShipDeploy;
+            FleetUIGameObject = FleetMenuUIController.Instance.gameObject;
             if (fleetLooking != null)
             {
                 var aFleetView = FleetUI.AFleetMenuView;
-                this.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+
+                FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
-            else if (starysLooking != null)
+            else if (starSysLooking != null)
             {
                 var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
-                this.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+
+                FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
             //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            //ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
-            //ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
 
         private Vector3 GetMouseWorldPosition()

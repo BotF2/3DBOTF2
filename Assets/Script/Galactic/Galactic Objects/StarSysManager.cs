@@ -790,6 +790,7 @@ namespace Assets.Core
 
         public void InstantiateSysUIGameObject(StarSysController sysController)
         {
+            var shipManager = ShipManager.Instance;
             if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
             {
                 if (sysController.StarSysUIGameObject == null)
@@ -805,6 +806,7 @@ namespace Assets.Core
                                                     .FirstOrDefault(t => t.name == "ShipContent");
                     if (shipContent != null)
                     {
+                        EnsureSystemShipUIs(sysController);
                         sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
                     }
                     else
@@ -819,7 +821,7 @@ namespace Assets.Core
                         if (transforms[j].gameObject.name == "ShipContent")
                         {
                             sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
-                            var shipManager = ShipManager.Instance;
+                            //var shipManager = ShipManager.Instance;
                             if (shipManager != null)
                             {
                                 shipManager.ProcessPendingShipUIs();
@@ -830,8 +832,61 @@ namespace Assets.Core
                     thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
                 }
             }
-        }
+            if (shipManager != null)
+            {
+                // Process any pending ship UIs (created earlier before parent existed)
+                shipManager.ProcessPendingShipUIs();
 
+                // Ensure each ship in the StarSysData has a UI item and that the UI is parented correctly
+                EnsureSystemShipUIs(sysController);
+            }
+        }
+        private void EnsureSystemShipUIs(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData == null) return;
+
+            var shipManager = ShipManager.Instance;
+            if (shipManager == null) return;
+
+            // Preferred parent for ship UI items created by this fleet UI
+            GameObject shipListParent = sysCon.StarSysData.ShipListUIParent;
+
+            // If there's no parent yet, give ShipManager a chance to reparent pending UIs and return
+            if (shipListParent == null)
+            {
+                shipManager.ProcessPendingShipUIs();
+                return;
+            }
+
+            // Iterate fleet ship list and ensure UI exists and is parented to the fleet UI's ShipList container
+            var ships = sysCon.StarSysData.ShipsList;
+            if (ships == null || ships.Count == 0) return;
+
+            for (int i = 0; i < ships.Count; i++)
+            {
+                var shipCon = ships[i];
+                if (shipCon == null) continue;
+
+                // If UI doesn't exist yet, instantiate it (ShipManager handles queuing/reparenting)
+                if (shipCon.ShipListUIGameObject == null)
+                {
+                    shipManager.InstantiateShipListUIGameObject(shipCon, sysCon.gameObject);
+                }
+
+                // If UI exists but not parented correctly, set the correct parent
+                if (shipCon.ShipListUIGameObject != null)
+                {
+                    var currentParent = shipCon.ShipListUIGameObject.transform.parent;
+                    if (currentParent == null || currentParent.gameObject != shipListParent)
+                    {
+                        shipCon.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
+                    }
+                }
+            }
+
+            // Final pass to process any items that were queued by InstantiateShipListUIGameObject
+            shipManager.ProcessPendingShipUIs();
+        }
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
             GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),

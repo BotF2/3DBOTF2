@@ -21,7 +21,6 @@ public class FleetMenuUIController : MonoBehaviour
     public GameObject FleetListContainer;
     [Header("Private UI Elements")]
     [SerializeField] private GameObject shipDelployPanel;
-    [SerializeField] private GameObject newFleetHeader;
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
     //private GameObject fleetShipListContainer;
@@ -39,7 +38,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
-    public FleetController ActiveFleetController;
+    private FleetController activeFleetController;
     private FleetController tempFleetController;
 
     private void Awake()
@@ -134,7 +133,7 @@ public class FleetMenuUIController : MonoBehaviour
     {
         theFleetCon.FleetUIGameObject.SetActive(true);
         theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
-        ActiveFleetController = theFleetCon;
+        activeFleetController = theFleetCon;
     }
     public void MoveTheFleetUIGO(GameObject fleetConGO)
     {
@@ -162,21 +161,14 @@ public class FleetMenuUIController : MonoBehaviour
                 }
             }
         }
-        ActiveFleetController = null;
+        activeFleetController = null;
     }
     public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
     {
         if (fleetCon == null || newFleetUIGO == null) return;
         if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
         {
-            ActiveFleetController = fleetCon;
-            var galaxyMenu = GalaxyMenuUIController.Instance;
-            if (galaxyMenu != null)
-            {
-                galaxyMenu.FleetLookingForShipDeploy = fleetCon;
-                galaxyMenu.FleetLookingForDestination = fleetCon;
-                galaxyMenu.StarSystLookingForShipDeploy = null;
-            }
+
             newFleetUIGO.SetActive(true);
             fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
             listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
@@ -225,10 +217,10 @@ public class FleetMenuUIController : MonoBehaviour
             uiFields.MergeFleetsButton.onClick.RemoveAllListeners();
             uiFields.MergeFleetsButton.onClick.AddListener(() => ClickMergeFleetButton());
             mergeFleetButtonGO = uiFields.MergeFleetsButton.gameObject;
-            uiFields.ShipDelplyButton.gameObject.SetActive(true);
-            uiFields.ShipDelplyButton.onClick.RemoveAllListeners();
-            uiFields.ShipDelplyButton.onClick.AddListener(() => ClickShipDeployCursor());
-            selectShipManagerCursorButtonGO = uiFields.ShipDelplyButton.gameObject;
+            uiFields.ShipDeployButton.gameObject.SetActive(true);
+            uiFields.ShipDeployButton.onClick.RemoveAllListeners();
+            uiFields.ShipDeployButton.onClick.AddListener(() => FleetClickedShipDeployCursor(fleetCon));
+            selectShipManagerCursorButtonGO = uiFields.ShipDeployButton.gameObject;
             uiFields.CancelShipManagerButton.gameObject.SetActive(false);
             uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
             uiFields.CancelShipManagerButton.onClick.AddListener(() => ClickCancelShipManageButton());
@@ -245,7 +237,6 @@ public class FleetMenuUIController : MonoBehaviour
             uiFields.WarpSlider.value = fleetCon.FleetData.CurrentWarpFactor;
             uiFields.WarpSlider.maxValue = fleetCon.FleetData.MaxWarpFactor;
             uiFields.WarpSlider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
-            //see ship list UIs below ToDo
         }
     }
 
@@ -270,40 +261,17 @@ public class FleetMenuUIController : MonoBehaviour
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
         galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
+        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
         galaxyMenuUICon.StarSystLookingForShipDeploy = null;
         ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
-        var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
-        var newFleet = fleetManager.InstantiateFleet(oldFleetCon, emptyStarSysCon, fleetData, position, true);
-        galaxyMenuUICon.FleetConSelectedForShipDeploy = newFleet;
-        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        //var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
+        var newFleet = fleetManager.InstantiateFleet(oldFleetCon, null, fleetData, position, true);
+        newFleet.FleetData.ShipsList.Clear();
         tempFleetController = newFleet;
-        newFleetHeader.SetActive(true);
-        ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+        ShipDeployMenuUIController.Instance.SetUpTopShipLists(oldFleetCon.FleetData.ShipsList);
         ShipDeployMenuUIController.Instance.SetUpBottomShipLists(newFleet);
         ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
-        Destroy(emptyStarSysCon.gameObject);
     }
-    private void ClickShipDeployCursor()
-    {
-        if (ActiveFleetController != null)
-            FleetClickedShipDeployCursor(ActiveFleetController);
-        newFleetHeader.SetActive(false);
-    }
-
-    private void StarSysClickedShipDeployCursor(StarSysController starSystCon)
-    {
-        var galaxyUI = GalaxyMenuUIController.Instance;
-        galaxyUI.WhatSystIsLookingForShipDeploy(starSystCon);
-        galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
-        MousePointerChanger.Instance.SetShipExchangeCursor();
-        var position = starSystCon.StarSysData.GetPosition();
-
-        galaxyUI.FleetLookingForShipDeploy = null;
-        galaxyUI.StarSystLookingForShipDeploy = starSystCon;
-        ShipDeployMenuUIController.Instance.bottomStarSyst = starSystCon;
-        newFleetHeader.SetActive(false);
-    }
-
     private void FleetClickedShipDeployCursor(FleetController fleetCon)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
@@ -312,13 +280,8 @@ public class FleetMenuUIController : MonoBehaviour
             galaxyUI.WhatFleetIsLookingForShipDeploy(fleetCon);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipExchange);
             MousePointerChanger.Instance.SetShipExchangeCursor();
-            var position = fleetCon.FleetData.GetPosition();
-
-            galaxyUI.FleetLookingForShipDeploy = fleetCon;
-            galaxyUI.StarSystLookingForShipDeploy = null;
             ShipDeployMenuUIController.Instance.TopFleet = fleetCon;
         }
-        newFleetHeader.SetActive(false);
     }
     public void ClickCancelShipManageButton()
     {
@@ -340,7 +303,6 @@ public class FleetMenuUIController : MonoBehaviour
         galaxyUI.ClickCancelShipDeployButton();
         galaxyUI.ResetClickMode();
         galaxyUI.CompleteShipExchange();
-        newFleetHeader.SetActive(false);
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {
@@ -406,7 +368,8 @@ public class FleetMenuUIController : MonoBehaviour
         if (GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum))
         {
             dragDestinationTargetButtonGO?.SetActive(false);
-            cancelDestinationButtonGO?.SetActive(true);
+            if (cancelDestinationButtonGO != null)
+                cancelDestinationButtonGO.SetActive(true);
             selectDestinationCursorButtonGO?.SetActive(false);
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.BeginSetDestination(fleetConWaitingForDestination);

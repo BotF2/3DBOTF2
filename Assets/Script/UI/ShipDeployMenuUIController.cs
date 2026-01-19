@@ -14,7 +14,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
     public FleetController TopFleet;
     public FleetController BottomFleet;
     public StarSysController TopStarSyst;
-    public StarSysController bottomStarSyst;
+    public StarSysController BottomStarSyst;
 
     private void Awake()
     {
@@ -31,6 +31,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
     public void ShowShipDeployMenuView()
     {
         ShipDeployPanel.SetActive(true);
+
         transform.SetAsLastSibling();
     }
 
@@ -44,11 +45,13 @@ public class ShipDeployMenuUIController : MonoBehaviour
         for (int i = 0; chosenFleet.FleetData.ShipsList.Count > i; i++)
         {
             // UI item is a separate prefab instance - move the UI object into the slot
+            if (chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject == null)
+                ShipManager.Instance.InstantiateShipListUIGameObject(chosenFleet.FleetData.ShipsList[i], BottomSlot);
             chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
         }
         BottomFleet = chosenFleet;
-        bottomStarSyst = null;
-        SetUpTopShipLists();
+        BottomStarSyst = null;
+        //SetUpTopShipLists();
     }
     internal void SetUpBottomShipLists(StarSysController StarSysLooking)
     {
@@ -62,11 +65,20 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 galaxyMenu.StarSystConSelectedForShipDeploy.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
             }
         }
-        bottomStarSyst = StarSysLooking;
+        BottomStarSyst = StarSysLooking;
         BottomFleet = null;
         SetUpTopShipLists();
     }
-
+    public void SetUpTopShipLists(List<ShipController> shipList)
+    {
+        for (int i = 0; i < shipList.Count; i++)
+        {
+            if (shipList[i] != null)
+            {
+                shipList[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+            }
+        }
+    }
     internal void SetUpTopShipLists() // load top ship deployment view containers 
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
@@ -116,17 +128,17 @@ public class ShipDeployMenuUIController : MonoBehaviour
         {
             DeployShipUIgoBetweenFleets(TopFleet, BottomFleet);
         }
-        else if (TopFleet != null && bottomStarSyst != null)
+        else if (TopFleet != null && BottomStarSyst != null)
         {
-            DeployShipUIgoFromFleetToStarSys(TopFleet, bottomStarSyst);
+            DeployShipUIgoFromFleetToStarSys(TopFleet, BottomStarSyst);
         }
         else if (TopStarSyst != null && BottomFleet != null)
         {
             DeployShipUIgoFromStarSysToFleet(TopStarSyst, BottomFleet);
         }
-        else if (TopStarSyst != null && bottomStarSyst != null)
+        else if (TopStarSyst != null && BottomStarSyst != null)
         {
-            DeployShipUIgoBetweenStarSys(TopStarSyst, bottomStarSyst);
+            DeployShipUIgoBetweenStarSys(TopStarSyst, BottomStarSyst);
         }
         // The drag handler (ShipListItemDrag) performs authoritative Remove/Add on the model.
         // Keep this UI mover lightweight. If you need to reconcile programmatically, call UpdateOwnersFromUI().
@@ -309,7 +321,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         if (TopFleet != null) fleetsToClear.Add(TopFleet);
         if (BottomFleet != null) fleetsToClear.Add(BottomFleet);
         if (TopStarSyst != null) starSysToClear.Add(TopStarSyst);
-        if (bottomStarSyst != null) starSysToClear.Add(bottomStarSyst);
+        if (BottomStarSyst != null) starSysToClear.Add(BottomStarSyst);
 
         // Clear existing lists so we can rebuild
         foreach (var f in fleetsToClear)
@@ -333,8 +345,8 @@ public class ShipDeployMenuUIController : MonoBehaviour
             RebuildFromUIParent(BottomFleet.FleetData.ShipListUIParent.transform);
         if (TopStarSyst != null && TopStarSyst.StarSysData.ShipListUIParent != null)
             RebuildFromUIParent(TopStarSyst.StarSysData.ShipListUIParent.transform);
-        if (bottomStarSyst != null && bottomStarSyst.StarSysData.ShipListUIParent != null)
-            RebuildFromUIParent(bottomStarSyst.StarSysData.ShipListUIParent.transform);
+        if (BottomStarSyst != null && BottomStarSyst.StarSysData.ShipListUIParent != null)
+            RebuildFromUIParent(BottomStarSyst.StarSysData.ShipListUIParent.transform);
     }
 
     private void RebuildFromUIParent(Transform parent)

@@ -177,7 +177,7 @@ public class ShipManager : MonoBehaviour
         }
     }
 
-    private void InstantiateShipListUIGameObject(ShipController shipCon, GameObject parentGO)
+    public void InstantiateShipListUIGameObject(ShipController shipCon, GameObject parentGO)
     {
         if (shipCon.ShipData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
         {
