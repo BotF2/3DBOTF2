@@ -2002,7 +2002,7 @@ MonoBehaviour:
   CloseFleetUI: {fileID: 1006010032630364630}
   NewFleetButton: {fileID: 5268492104771004283}
   MergeFleetsButton: {fileID: 8418405362152716527}
-  ShipDelplyButton: {fileID: 4662769428100017442}
+  ShipDeployButton: {fileID: 4662769428100017442}
   CancelShipManagerButton: {fileID: 2594416329160765631}
   WarpSlider: {fileID: 3286991006498620572}
   FleetNameText: {fileID: 3141070610917059016}
