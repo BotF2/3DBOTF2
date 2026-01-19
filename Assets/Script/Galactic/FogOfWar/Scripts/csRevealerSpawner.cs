@@ -9,14 +9,11 @@
 
 
 
-using UnityEngine;          // Monobehaviour
-
-
+using UnityEngine;
+using UnityEngine.InputSystem; // InputSystem
 
 namespace FischlWorks_FogWar
 {
-
-
 
     public class csRevealerSpawner : MonoBehaviour
     {
@@ -26,28 +23,54 @@ namespace FischlWorks_FogWar
 
         [SerializeField]
         private GameObject exampleRevealer = null;
+        private InputAction spawnAction;
+        private InputAction removeAction;
+        private void Awake()
+        {
+            spawnAction = new InputAction(
+                name: "SpawnRevealer",
+                binding: "<Keyboard>/r"
+            );
 
+            removeAction = new InputAction(
+                name: "RemoveRevealer",
+                binding: "<Keyboard>/c"
+            );
+        }
+
+        private void OnEnable()
+        {
+            spawnAction.Enable();
+            removeAction.Enable();
+        }
+
+        private void OnDisable()
+        {
+            spawnAction.Disable();
+            removeAction.Disable();
+        }
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.R))
+            if (spawnAction.WasPressedThisFrame())
             {
                 Vector3 randomPoint = new Vector3(
                     Random.Range(-fogWar.levelData.levelDimensionX / 2.0f, fogWar.levelData.levelDimensionX / 2.0f),
                     fogWar._LevelMidPoint.position.y + 0.5f,
                     Random.Range(-fogWar.levelData.levelDimensionY / 2.0f, fogWar.levelData.levelDimensionY / 2.0f));
 
-                // Instantiating & fetching the revealer Transform
-                Transform randomTransform = Instantiate(exampleRevealer, randomPoint, Quaternion.identity).GetComponent<Transform>();
+                Transform randomTransform =
+                    Instantiate(exampleRevealer, randomPoint, Quaternion.identity).GetComponent<Transform>();
 
-                // Utilizing the constructor, setting updateOnlyOnMove to true will not update the fog texture immediately
                 if (randomTransform != null)
                 {
-                    int index = fogWar.AddFogRevealer(new csFogWar.FogRevealer(randomTransform, 15, false));
+                    fogWar.AddFogRevealer(
+                        new csFogWar.FogRevealer(randomTransform, 15, false)
+                    );
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.C))
+            if (removeAction.WasPressedThisFrame())
             {
                 if (fogWar._FogRevealers.Count > 2)
                 {
@@ -55,8 +78,6 @@ namespace FischlWorks_FogWar
                 }
             }
         }
+
     }
-
-
-
 }

@@ -10,6 +10,8 @@
 //
 // for safety reasons, let's keep this read-only.
 // at least until there's safe authentication.
+// Ignore Spelling: uptime
+
 using System;
 using System.IO;
 using UnityEngine;
@@ -20,17 +22,17 @@ namespace Mirror
     struct Stats
     {
         // general
-        public int    connections;
+        public int connections;
         public double uptime;
-        public int    configuredTickRate;
-        public int    actualTickRate;
+        public int configuredTickRate;
+        public int actualTickRate;
 
         // traffic
         public long sentBytesPerSecond;
         public long receiveBytesPerSecond;
 
         // cpu
-        public float  serverTickInterval;
+        public float serverTickInterval;
         public double fullUpdateAvg;
         public double serverEarlyAvg;
         public double serverLateAvg;
@@ -48,7 +50,7 @@ namespace Mirror
             long sentBytesPerSecond,
             long receiveBytesPerSecond,
             // cpu
-            float  serverTickInterval,
+            float serverTickInterval,
             double fullUpdateAvg,
             double serverEarlyAvg,
             double serverLateAvg,
@@ -57,10 +59,10 @@ namespace Mirror
         )
         {
             // general
-            this.connections        = connections;
-            this.uptime             = uptime;
+            this.connections = connections;
+            this.uptime = uptime;
             this.configuredTickRate = configuredTickRate;
-            this.actualTickRate     = actualTickRate;
+            this.actualTickRate = actualTickRate;
 
             // traffic
             this.sentBytesPerSecond = sentBytesPerSecond;
@@ -87,22 +89,22 @@ namespace Mirror
         // instead of sending multiple times per second via NB.OnSerialize.
         [Tooltip("Send stats every 'interval' seconds to client.")]
         public float sendInterval = 1;
-        double           lastSendTime;
+        double lastSendTime;
 
         [Header("GUI")]
         public bool showGui;
-        public KeyCode hotKey     = KeyCode.BackQuote;
-        Rect           windowRect = new Rect(0, 0, 400, 400);
+        public KeyCode hotKey = KeyCode.BackQuote;
+        Rect windowRect = new Rect(0, 0, 400, 400);
 
         // password can't be stored in code or in Unity project.
         // it would be available in clients otherwise.
         // this is not perfectly secure. that's why RemoteStatistics is read-only.
         [Header("Authentication")]
         public string passwordFile = "remote_statistics.txt";
-        protected bool         serverAuthenticated;   // client needs to authenticate
-        protected bool         clientAuthenticated;   // show GUI until authenticated
-        protected string       serverPassword = null; // null means not found, auth impossible
-        protected string       clientPassword = "";   // for GUI
+        protected bool serverAuthenticated;   // client needs to authenticate
+        protected bool clientAuthenticated;   // show GUI until authenticated
+        protected string serverPassword = null; // null means not found, auth impossible
+        protected string clientPassword = "";   // for GUI
 
         // statistics synced to client
         Stats stats;
@@ -153,7 +155,7 @@ namespace Mirror
         public override void OnStartLocalPlayer()
         {
             // center the window initially
-            windowRect.x = Screen.width  / 2 - windowRect.width  / 2;
+            windowRect.x = Screen.width / 2 - windowRect.width / 2;
             windowRect.y = Screen.height / 2 - windowRect.height / 2;
         }
 
@@ -219,7 +221,7 @@ namespace Mirror
 
         void Update()
         {
-            if (isServer)      UpdateServer();
+            if (isServer) UpdateServer();
             if (isLocalPlayer) UpdateClient();
         }
 
@@ -280,7 +282,7 @@ namespace Mirror
             // }
             // else
             // {
-                GUILayout.Label("<i>Connection is not encrypted. Use with care!</i>");
+            GUILayout.Label("<i>Connection is not encrypted. Use with care!</i>");
             // }
 
             // input
@@ -329,7 +331,7 @@ namespace Mirror
             GUILayout.BeginVertical("Box");
             GUILayout.Label("<b>Network</b>");
 
-            GUILayout_TextAndValue("Outgoing:", $"<b>{Utils.PrettyBytes(serverSentBytesPerSecond)    }/s</b>");
+            GUILayout_TextAndValue("Outgoing:", $"<b>{Utils.PrettyBytes(serverSentBytesPerSecond)}/s</b>");
             GUILayout_TextAndValue("Incoming:", $"<b>{Utils.PrettyBytes(serverReceivedBytesPerSecond)}/s</b>");
 
             GUILayout.EndVertical();

@@ -335,7 +335,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     public void UpdateFleetMaxWarpUI(FleetController fleetCon, float theirMaxWarp)
     {
-        if (fleetCon != null ? fleetCon.FleetUIGameObject : null == null) return;
+        if (fleetCon != null || fleetCon.FleetUIGameObject == null) return;
 
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>(true);
         if (slider != null)
