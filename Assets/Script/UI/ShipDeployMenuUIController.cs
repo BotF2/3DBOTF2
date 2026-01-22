@@ -59,10 +59,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
         else
         {
             var galaxyMenu = GalaxyMenuUIController.Instance;
-            for (int i = 0; galaxyMenu.StarSystConSelectedForShipDeploy.StarSysData.ShipsList.Count > i; i++)
+            for (int i = 0; galaxyMenu.StarSystSelectedForShipDeploy.StarSysData.ShipsList.Count > i; i++)
             {
                 //galaxyMenu.StarSystConSelectedForShipDeploy.StarSysData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
-                galaxyMenu.StarSystConSelectedForShipDeploy.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                galaxyMenu.StarSystSelectedForShipDeploy.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
             }
         }
         BottomStarSyst = StarSysLooking;

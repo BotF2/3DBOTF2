@@ -262,7 +262,8 @@ public class FleetMenuUIController : MonoBehaviour
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
         galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
-        galaxyMenuUICon.StarSystConSelectedForShipDeploy = null;
+        galaxyMenuUICon.StarSystSelectedForShipDeploy = null;
+        galaxyMenuUICon.FleetSelectedForShipDeploy = null;
         galaxyMenuUICon.StarSystLookingForShipDeploy = null;
         ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
         //var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
@@ -271,7 +272,8 @@ public class FleetMenuUIController : MonoBehaviour
         tempFleetController = newFleet;
         ShipDeployMenuUIController.Instance.SetUpTopShipLists(oldFleetCon.FleetData.ShipsList);
         ShipDeployMenuUIController.Instance.SetUpBottomShipLists(newFleet);
-        ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        //ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        //galaxyMenuUICon.ShowShipDeployForFleetNewFleet(oldFleetCon, newFleet);
     }
     private void FleetClickedShipDeployCursor(FleetController fleetCon)
     {

@@ -19055,6 +19055,7 @@ MonoBehaviour:
   encyclopediaMenuView: {fileID: 864062688}
   aNull: {fileID: 0}
   closeMenuButton: {fileID: 1211519212}
+  saveShipDelployButton: {fileID: 969103384}
   sysBackground: {fileID: 1584025020}
   fleetsBackground: {fileID: 1281619847}
   diplomacyBackground: {fileID: 2144520298}
@@ -29536,12 +29537,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af897107989d2304baf7e9ac4bbf676e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  scoutBluePrintPrefab: {fileID: 0}
-  destroyerBluePrintPrefab: {fileID: 0}
-  cruiserBluePrintPrefab: {fileID: 0}
-  ltCruiserBluePrintPrefab: {fileID: 0}
-  heavyCruiserBluePrintPrefab: {fileID: 0}
-  transportBluePrintPrefab: {fileID: 0}
+  scoutBluePrintPrefab: {fileID: 6321614478493960930, guid: f0379e6abf6e2424c9c6ef2a2faec298, type: 3}
+  destroyerBluePrintPrefab: {fileID: 6321614478493960930, guid: 5581d5fd566eab24eb436aa8ae660008, type: 3}
+  cruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: dc1009bead97f4044afd09aebe1c62d4, type: 3}
+  ltCruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: c27ee956952bc6648ab44faa2c0ec959, type: 3}
+  heavyCruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: d240d6e2bb3fae14bba8add96f2d6ec6, type: 3}
+  transportBluePrintPrefab: {fileID: 6321614478493960930, guid: f0e53c286ebdb05478980cb0ccd1f460, type: 3}
   galaxyCanvasGO: {fileID: 966764655}
   parentCanavas: {fileID: 966764658}
   fogWar: {fileID: 1784209282}
@@ -29706,10 +29707,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 57f71a291c37e6344b1bc1986f8acc1f, type: 2}
   fleetPrefab: {fileID: 3939678481243734066, guid: ef3b3036010abf54e8925e887e9010ad, type: 3}
   fleetUIPrefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
-  shipManagerMenuPrefab: {fileID: 8637087807823003284, guid: 7997ef2e58d487c48bdbe97951aa4adc, type: 3}
+  shipManagerMenuPrefab: {fileID: 3021520769871365652, guid: 85b1a9967ae5e09478bd59f6d79da5e1, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
   GalaxyCenter: {fileID: 564492290}
-  canvasShipManager: {fileID: 0}
+  canvasShipManager: {fileID: 966764655}
   destinationIntsInUse: 00000000
   FleetControllersInGame: []
   fleetUIGOContentParent: {fileID: 1850390553}

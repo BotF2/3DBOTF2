@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum GalaxyClickMode
 {
@@ -56,6 +57,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     private GameObject aNull;
     [SerializeField]
     private GameObject closeMenuButton;
+    [SerializeField] private Button saveShipDelployButton;
     [SerializeField]
     private GameObject sysBackground;
     [SerializeField]
@@ -93,9 +95,9 @@ public class GalaxyMenuUIController : MonoBehaviour
     public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
     public FleetController FleetLookingForDestination { get; set; }
     public FleetController FleetLookingForShipDeploy { get; set; }
-    public FleetController FleetConSelectedForShipDeploy { get; set; }
+    public FleetController FleetSelectedForShipDeploy { get; set; }
     public StarSysController StarSystLookingForShipDeploy { get; set; }
-    public StarSysController StarSystConSelectedForShipDeploy { get; set; }
+    public StarSysController StarSystSelectedForShipDeploy { get; set; }
 
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
 
@@ -156,6 +158,9 @@ public class GalaxyMenuUIController : MonoBehaviour
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
         habitableSysMenu.SetActive(false);
+        saveShipDelployButton.gameObject.SetActive(true);
+        saveShipDelployButton.onClick.RemoveAllListeners();
+        saveShipDelployButton.onClick.AddListener(() => this.CloseButtonPressed());
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
         starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
@@ -451,14 +456,14 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     internal void WhatFleetIsSelectedForShipDiploy(FleetController fleetController)
     {
-        FleetConSelectedForShipDeploy = fleetController;
-        StarSystConSelectedForShipDeploy = null;
+        FleetSelectedForShipDeploy = fleetController;
+        StarSystSelectedForShipDeploy = null;
 
     }
     internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
     {
-        StarSystConSelectedForShipDeploy = starSysController;
-        FleetConSelectedForShipDeploy = null;
+        StarSystSelectedForShipDeploy = starSysController;
+        FleetSelectedForShipDeploy = null;
     }
     private void MoveBackShipUIGO()
     {
@@ -485,18 +490,18 @@ public class GalaxyMenuUIController : MonoBehaviour
                 shipUIGOs[i].transform.SetParent(starSysShipListParentGO.transform, false);
             }
         }
-        if (FleetConSelectedForShipDeploy != null)
+        if (FleetSelectedForShipDeploy != null)
         {
-            GameObject fleetShipListParentGO = FleetConSelectedForShipDeploy.FleetData.ShipListUIParent;
+            GameObject fleetShipListParentGO = FleetSelectedForShipDeploy.FleetData.ShipListUIParent;
             var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListUIGOs().ToList();
             for (int i = 0; i < shipUIGOs.Count; i++)
             {
                 shipUIGOs[i].transform.SetParent(fleetShipListParentGO.transform, false);
             }
         }
-        else if (StarSystConSelectedForShipDeploy != null)
+        else if (StarSystSelectedForShipDeploy != null)
         {
-            GameObject starSysShipListParentGO = StarSystConSelectedForShipDeploy.StarSysData.ShipListUIParent;
+            GameObject starSysShipListParentGO = StarSystSelectedForShipDeploy.StarSysData.ShipListUIParent;
             var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListUIGOs().ToList();
             for (int i = 0; i < shipUIGOs.Count; i++)
             {
