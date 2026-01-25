@@ -8,9 +8,10 @@ public enum GalaxyClickMode
 {
     Normal,
     SetDestination,
-    SelectForShipExchange
+    SelectForShipDeploy,
+    SelectForShipMerge
     // Future extensions could include:
-    // Ping, AttackTarget, MergeFleet, etc.
+    // Ping, AttackTarget, etc.
 }
 public enum Menu
 {
@@ -96,8 +97,12 @@ public class GalaxyMenuUIController : MonoBehaviour
     public FleetController FleetLookingForDestination { get; set; }
     public FleetController FleetLookingForShipDeploy { get; set; }
     public FleetController FleetSelectedForShipDeploy { get; set; }
+    public FleetController FleetLookingForShipMerge { get; set; }
+    public FleetController FleetSelectedForShipMerge { get; set; }
     public StarSysController StarSystLookingForShipDeploy { get; set; }
     public StarSysController StarSystSelectedForShipDeploy { get; set; }
+    public StarSysController StarSystLookingForShipMerge { get; set; }
+    public StarSysController StarSystSelectedForShipMerge { get; set; }
 
     [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
 
@@ -164,7 +169,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
         starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
-        fleetMenuUIController.SetupFleetUIData();//get our fleet ui game objects to match your fleet controllers
         // Not For DiplomacyMenuUIController here/now, we do that with each new first contact of civs / fleets
     }
 
@@ -196,7 +200,7 @@ public class GalaxyMenuUIController : MonoBehaviour
             }
         }
         shipDeployMenuUIController.SetUpBottomShipLists(fleet);
-        SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        SetClickMode(GalaxyClickMode.SelectForShipDeploy);
 
         shipDeployMenuUIController.gameObject.SetActive(true);
         shipDeployMenuUIController.ShowShipDeployMenuView();
@@ -205,13 +209,9 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void ShowShipDeployForSystemNewFleet(StarSysController starSystCon, FleetController newFleet)
     {
         if (shipDeployMenuUIController == null) return;
-        //HideShipDeployMenu();
         MousePointerChanger.Instance.ResetCursor();
         shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
-
-        //var fleetLooking = FleetLookingForShipDeploy;
-        //var starsLooking = StarSystLookingForShipDeploy;
 
         shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList);
         var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
@@ -225,18 +225,22 @@ public class GalaxyMenuUIController : MonoBehaviour
     internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
     {
         if (shipDeployMenuUIController == null) return;
+
+        Debug.Log($"ShowShipDeployForFleetNewFleet: opening deploy UI for original='{originalFleetCon?.name}' new='{newFleetController?.name}'");
+
         MousePointerChanger.Instance.ResetCursor();
         shipDeployMenuUIController.gameObject.SetActive(true);
         shipDeployMenuUIController.ShowShipDeployMenuView();
-        //FleetMenuUIController.Instance.NewFleetHeader.SetActive(false);
 
         shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList);
+
         var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-        if (originalFleetCon.FleetUIGameObject != null)// 
+        if (originalFleetCon.FleetUIGameObject != null)
         {
             originalFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
             originalFleetCon.transform.SetAsLastSibling();
         }
+
         newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
     }
     public void HideShipDeployMenu()
@@ -305,15 +309,23 @@ public class GalaxyMenuUIController : MonoBehaviour
     // jump to Home System is in GalaxyCameraDragMoveZoom.cs
     public void CloseButtonPressed()
     {
-        FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
-        StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
-        if (ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
+        if (ShipDeployMenuUIController.Instance != null && ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
         {
+            // Commit the slot state while the slots are still active
+            ShipDeployMenuUIController.Instance.CommitShipDeployAndClose();
+
+            // After commit, proceed with the normal close flow (UI move/hide)
             StarSysMenuUIController.Instance.ClickCancelShipManageButton();
             FleetMenuUIController.Instance.ClickCancelShipManageButton();
-            ShipDeployMenuUIController.Instance.DeployShipsUIGOToNewFleetOrSystem();
             CloseMenu(Menu.ShipDeployMenu);
         }
+        else
+        {
+            // No ship-deploy active — normal flow: move UIs back to their original parents.
+            FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+            StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
+        }
+
         HideShipDeployMenu();
         GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
         if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
@@ -458,12 +470,21 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         FleetSelectedForShipDeploy = fleetController;
         StarSystSelectedForShipDeploy = null;
-
+    }
+    internal void WhatFleetIsSelectedForShipMerge(FleetController fleetController)
+    {
+        FleetSelectedForShipMerge = fleetController;
+        StarSystSelectedForShipMerge = null;
     }
     internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
     {
         StarSystSelectedForShipDeploy = starSysController;
         FleetSelectedForShipDeploy = null;
+    }
+    internal void WhatSystemIsSelectedForShipMerge(StarSysController starSysController)
+    {
+        StarSystSelectedForShipMerge = starSysController;
+        FleetSelectedForShipMerge = null;
     }
     private void MoveBackShipUIGO()
     {
@@ -630,7 +651,7 @@ public class GalaxyMenuUIController : MonoBehaviour
                 MousePointerChanger.Instance.SetDestinationCursor();
                 break;
 
-            case GalaxyClickMode.SelectForShipExchange:
+            case GalaxyClickMode.SelectForShipDeploy:
                 MousePointerChanger.Instance.SetShipExchangeCursor();
                 break;
         }
@@ -642,18 +663,29 @@ public class GalaxyMenuUIController : MonoBehaviour
         CurrentClickMode = GalaxyClickMode.Normal;
         // sele.SetActive(true);
     }
-
+    public void WhatFleetIsLookingForMerge(FleetController fleetConLooking)
+    {
+        FleetLookingForShipMerge = fleetConLooking;
+        StarSystLookingForShipMerge = null;
+        SetClickMode(GalaxyClickMode.SelectForShipMerge);
+    }
     public void WhatFleetIsLookingForShipDeploy(FleetController fleetConLooking)
     {
         FleetLookingForShipDeploy = fleetConLooking;
         StarSystLookingForShipDeploy = null;
-        SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        SetClickMode(GalaxyClickMode.SelectForShipDeploy);
+    }
+    public void WhatSystIsLookingForMerge(StarSysController starSystConLooking)
+    {
+        StarSystLookingForShipMerge = starSystConLooking;
+        FleetLookingForShipMerge = null;
+        SetClickMode(GalaxyClickMode.SelectForShipMerge);
     }
     public void WhatSystIsLookingForShipDeploy(StarSysController starSystConLooking)
     {
         StarSystLookingForShipDeploy = starSystConLooking;
         FleetLookingForShipDeploy = null;
-        SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        SetClickMode(GalaxyClickMode.SelectForShipDeploy);
     }
     public void CompleteShipExchange()
     {
@@ -663,7 +695,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void BeginSetDestination(FleetController fleetLooking)
     {
         FleetLookingForDestination = fleetLooking;
-        SetClickMode(GalaxyClickMode.SelectForShipExchange);
+        SetClickMode(GalaxyClickMode.SelectForShipDeploy);
     }
 
     public void CompleteSetDestination()

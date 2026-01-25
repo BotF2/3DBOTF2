@@ -82,7 +82,6 @@ namespace Assets.Core
 
         private void Awake()
         {
-            //fleetUI = FleetMenuUIController.Instance;
             gameController = GameController.Instance;
         }
 
@@ -108,10 +107,6 @@ namespace Assets.Core
             // Destroying Fleets with no ships is problematic
             // The FleetController FeetData is still running in script
             // and if the player clicks on or OnTrigerEntere.... it causes errors
-            //if (FleetData != null && FleetData.ShipsList.Count == 0)
-            //{
-            //    OnDestroy();
-            //}   
             if (FleetData != null && FleetData.Destination != null)
             {
                 if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
@@ -134,29 +129,6 @@ namespace Assets.Core
             }
         }
         public Rigidbody GetRigidBody() { return rb; }
-
-
-        private void OnMouseDown()
-        {
-            var clickedFleetCon = GetComponentInParent<FleetController>();
-            if (clickedFleetCon == null) return;
-            if (GalaxyUI.CurrentClickMode != GalaxyClickMode.SetDestination && galaxyUI.CurrentClickMode != GalaxyClickMode.SelectForShipExchange)
-            {
-                //if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
-                //{
-                GalaxyUI.CloseButtonPressed();
-                HandleNormalClick(clickedFleetCon);
-                //}
-            }
-            else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SetDestination && clickedFleetCon == this)
-            {
-                HandleDestinationClick(this);
-            }
-            else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
-            {
-                HandleShipDeploySelection(this);
-            }
-        }
 
         private void OnMouseDrag()
         {
@@ -255,6 +227,32 @@ namespace Assets.Core
             }
 
         }
+        private void OnMouseDown()
+        {
+            var clickedFleetCon = GetComponentInParent<FleetController>();
+
+            if (clickedFleetCon == null) return;
+
+            switch (GalaxyUI.CurrentClickMode)
+            {
+                case GalaxyClickMode.Normal:
+                    GalaxyMenuUIController.Instance.CloseButtonPressed();
+                    HandleNormalClick(clickedFleetCon);
+                    break;
+                case GalaxyClickMode.SetDestination:
+                    HandleDestinationClick(clickedFleetCon);
+                    break;
+                case GalaxyClickMode.SelectForShipDeploy:
+                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        HandleShipDeploySelection(clickedFleetCon);
+                    break;
+                case GalaxyClickMode.SelectForShipMerge:
+                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        HandleShipMegerSelection(clickedFleetCon);
+                    break;
+            }
+        }
+
         private void HandleNormalClick(FleetController clickedFleetCon)
         {
             if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
@@ -276,33 +274,60 @@ namespace Assets.Core
 
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
-            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum)) { return; }
+            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum) || clickedFleetCon != this) { return; }
 
             MousePointerChanger.Instance.ResetCursor();
-            GalaxyUI.WhatFleetIsSelectedForShipDiploy(this);
-            var fleetLooking = GalaxyUI.FleetLookingForShipDeploy;
-            var starSysLooking = GalaxyUI.StarSystLookingForShipDeploy;
-            FleetUIGameObject = FleetMenuUIController.Instance.gameObject;
-            if (fleetLooking != null)
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatFleetIsSelectedForShipDiploy(clickedFleetCon);
+            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+            var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
+            if (fleetLooking == null)
             {
-                var aFleetView = FleetUI.AFleetMenuView;
-
-                FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
-            else if (starSysLooking != null)
+            else if (starSysLooking == null)
             {
-                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
-
-                FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+                var aFleetView = FleetUI.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
             }
-            //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
+        private void HandleShipMegerSelection(FleetController clickedFleetCon)
+        {
+            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum) ||
+                clickedFleetCon != this) { return; }
 
+            MousePointerChanger.Instance.ResetCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatFleetIsSelectedForShipMerge(clickedFleetCon);
+            var fleetLooking = GalaxyUI.FleetLookingForShipMerge;
+            var starSysLooking = GalaxyUI.StarSystLookingForShipMerge;
+            if (fleetLooking == null)
+            {
+                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
+                aStarSysView.gameObject.SetActive(true);
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+                FleetUIGameObject.transform.SetAsLastSibling();
+            }
+            else if (starSysLooking == null)
+            {
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                FleetUIGameObject.transform.SetAsLastSibling();
+            }
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        }
         private Vector3 GetMouseWorldPosition()
         {
             // pixel coordinates (x,y)

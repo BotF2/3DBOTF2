@@ -70,6 +70,7 @@ namespace Assets.Core
                 ShipManager.Instance?.ProcessPendingShipUIs();
             }
         }
+        private bool deployNotMerge = true; // true=deploy, false=merge
         private void Awake()
         {
             gameController = GameController.Instance;
@@ -185,23 +186,85 @@ namespace Assets.Core
         private void OnMouseDown()
         {
             var clickedStarSysCon = GetComponentInParent<StarSysController>();
+
             if (clickedStarSysCon == null) return;
 
             switch (GalaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
+                    GalaxyMenuUIController.Instance.CloseButtonPressed();
                     HandleNormalClick(clickedStarSysCon);
                     break;
                 case GalaxyClickMode.SetDestination:
                     HandleDestinationClick(clickedStarSysCon);
                     break;
-                case GalaxyClickMode.SelectForShipExchange:
+                case GalaxyClickMode.SelectForShipDeploy:
+                    if (gameController.AreWeLocalPlayer(clickedStarSysCon.StarSysData.CurrentOwnerCivEnum))
+                        HandleShipDeploySelection(clickedStarSysCon);
+                    break;
+                case GalaxyClickMode.SelectForShipMerge:
                     if (gameController.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-                        HandleShipExchangeSelection(this);
+                        HandleShipMergeSelection(clickedStarSysCon);
                     break;
             }
         }
 
+        private void HandleShipMergeSelection(StarSysController clickedStarSysCon)
+        {
+            if (!gameController.AreWeLocalPlayer(clickedStarSysCon.StarSysData.CurrentOwnerCivEnum) ||
+                clickedStarSysCon != this) return;
+            deployNotMerge = false;
+            MousePointerChanger.Instance.ResetCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatSystemIsSelectedForShipMerge(clickedStarSysCon);
+            var fleetLooking = galaxyUI.FleetLookingForShipMerge;
+            var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
+            if (fleetLooking == null)
+            {
+                var aSysView = StarSysUI.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
+                clickedStarSysCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                StarSysUIGameObject.transform.SetAsLastSibling();
+            }
+            else if (starSysLooking == null)
+            {
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.SetActive(true);
+                clickedStarSysCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                starSysUIGameObject.transform.SetAsLastSibling();
+            }
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedStarSysCon, deployNotMerge);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        }
+        private void HandleShipDeploySelection(StarSysController clickedSystemCon)
+        {
+            if (clickedSystemCon != this) return;
+            deployNotMerge = true;
+            MousePointerChanger.Instance.ResetCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatSystemIsSelectedForShipDeploy(clickedSystemCon);
+            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+            var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
+            if (fleetLooking == null)
+            {
+                var aSysView = StarSysUI.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                StarSysUIGameObject.transform.SetAsLastSibling();
+            }
+            else if (starSysLooking == null)
+            {
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.SetActive(true);
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                starSysUIGameObject.transform.SetAsLastSibling();
+
+            }
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedSystemCon, deployNotMerge);
+            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+        }
         private void HandleDestinationClick(StarSysController clickedSystemCon)
         {
             var fleetLookingForDestination = GalaxyUI.FleetLookingForDestination.GetComponent<FleetController>();
@@ -212,34 +275,7 @@ namespace Assets.Core
             }
         }
 
-        private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
-        {
-            if (clickedSystemCon != this) return;
 
-            MousePointerChanger.Instance.ResetCursor();
-            var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
-            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
-            var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
-            if (fleetLooking == null)
-            {
-                var aSysView = StarSysUI.ASystemMenuView.gameObject;
-                aSysView.SetActive(true);
-                this.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                StarSysUIGameObject.transform.SetAsLastSibling();
-            }
-            else if (starSysLooking == null)
-            {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.SetActive(true);
-                this.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                starSysUIGameObject.transform.SetAsLastSibling();
-
-            }
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
-        }
         public void LoadAStarSystem()
         {
             HandleNormalClick(this);
@@ -259,7 +295,7 @@ namespace Assets.Core
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
                     //StarSysUI.UpdateSystemPowerBalance(this);
-                    GalaxyUI.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
+                    GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject); // set the system UI to this system
                     //StarSysMenuUIController.Instance.lastStarSysController = this;
                 }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
@@ -591,82 +627,7 @@ namespace Assets.Core
             if (shipController.transform.IsChildOf(transform))
                 shipController.transform.SetParent(null, worldPositionStays: true);
         }
-        //internal void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
-        //{
-        //    if (gameController,.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)
-        //    {
-        //        int newFacilityLoad = 0;
-        //        List<GameObject> facilities = new List<GameObject>();
-        //        switch (facilityType)
-        //        {
-        //            case StarSysFacilities.Factory:
-        //                newFacilityLoad = StarSysData.FactoryData.PowerLoad;
-        //                this.StarSysData.Factories.Add(faciltyGO);
-        //                facilities = this.StarSysData.Factories;
-        //                break;
-        //            case StarSysFacilities.Shipyard:
-        //                newFacilityLoad = StarSysData.ShipyardData.PowerLoad;
-        //                this.StarSysData.Shipyards.Add(faciltyGO);
-        //                facilities = this.StarSysData.Shipyards;
-        //                break;
-        //            case StarSysFacilities.ShieldGenerator:
-        //                newFacilityLoad = StarSysData.ShieldGeneratorData.PowerLoad;
-        //                this.StarSysData.ShieldGenerators.Add(faciltyGO);
-        //                facilities = StarSysData.ShieldGenerators;
-        //                break;
-        //            case StarSysFacilities.OrbitalBattery:
-        //                newFacilityLoad = StarSysData.OrbitalBatteryData.PowerLoad;
-        //                this.StarSysData.OrbitalBatteries.Add(faciltyGO);
-        //                facilities = StarSysData.OrbitalBatteries;
-        //                break;
-        //            case StarSysFacilities.ResearchCenter:
-        //                newFacilityLoad = StarSysData.ResearchCenterData.PowerLoad;
-        //                this.StarSysData.ResearchCenters.Add(faciltyGO);
-        //                facilities = StarSysData.ResearchCenters;
-        //                break;
-        //            default:
-        //                break;
-        //        }
 
-        //        if (StarSysUIGameObject != null)
-        //        {
-        //            TextMeshProUGUI[] theTextItems = StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        //            bool allDone = false;
-        //            for (int j = 0; j < theTextItems.Length; j++)
-        //            {
-        //                theTextItems[j].enabled = true;
-        //                int load = 0;
-        //                if (theTextItems[j].name == loadName)
-        //                {
-        //                    for (int k = 0; k < facilities.Count; k++)
-        //                    {
-        //                        if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
-        //                        {
-        //                            load += newFacilityLoad;
-        //                        }
-        //                    }
-        //                    theTextItems[j].text = load.ToString();
-        //                }
-        //                else if (theTextItems[j].name == ratioName)
-        //                {
-        //                    int numOn = 0;
-        //                    for (int i = 0; i < facilities.Count; i++)
-        //                    {
-        //                        TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
-        //                        if (TheText.text == "1") // 1 = on and 0 = off
-        //                            numOn++;
-        //                    }
-        //                    theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-        //                    allDone = true;
-        //                }
-        //                else if (allDone)
-        //                    break;
-        //            }
-        //        }
-        //        StarSysUI.UpdateSystemPowerLoad(this);
-        //    }
-        //}
-        // New: add ship to this star system (gameplay object + model + UI)
         public void AddToShipList(ShipController shipController)
         {
             if (shipController == null) return;

@@ -53,7 +53,7 @@ public class MousePointerChanger : MonoBehaviour
     public void SetShipExchangeCursor()
     {
         ChangeCursor(galaxyMapCursorShipHandGrab, hotSpot, cursorMode, true);
-        GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipExchange;
+        //GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SelectForShipDeploy;
 
     }
     public void ChangeToCivSpecificGalaxyMapCursor()

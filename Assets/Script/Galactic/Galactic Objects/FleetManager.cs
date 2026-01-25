@@ -1,12 +1,12 @@
 // Ignore Spelling: Nums Revealer
 
-using Assets.Core.Utils; // for PrefabPool      
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+
 
 namespace Assets.Core
 {
@@ -45,8 +45,7 @@ namespace Assets.Core
         private GameObject canvasShipManager;
         [SerializeField]
         private List<int> destinationIntsInUse = new List<int>() { 0 };
-        // switched from List<int> to HashSet<int> for O(1) contains/add/remove
-        private readonly Dictionary<CivEnum, HashSet<int>> fleetNumsInUse = new Dictionary<CivEnum, HashSet<int>>();
+        private readonly Dictionary<CivEnum, List<int>> fleetNumsInUse = new Dictionary<CivEnum, List<int>>();
         private static readonly List<FleetController> FleetControllers = new List<FleetController>();
         public List<FleetController> FleetControllersInGame = FleetControllers;
         [SerializeField]
@@ -57,10 +56,6 @@ namespace Assets.Core
         internal GameObject fleetShipUIGOContentParent;
         public csFogWar.FogRevealer TempFogRevealerFleet;
         private float newFleetSpacer = 0f;
-
-        // Prefab pools
-        private PrefabPool<FleetController> _fleetControllerPool;
-        private PrefabPool<FleetUI_Fields> _fleetUIPool;
 
         private void Awake()
         {
@@ -76,12 +71,9 @@ namespace Assets.Core
         }
         public void Start()
         {
-            _fleetControllerPool = new PrefabPool<FleetController>(fleetPrefab);
-            _fleetUIPool = new PrefabPool<FleetUI_Fields>(fleetUIPrefab.GetComponent<FleetUI_Fields>());
-
             for (int i = 0; i < CivManager.Instance.CivSOListAllPossible.Count; i++)
             {
-                fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new HashSet<int>());
+                fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new List<int>());
             }
             galaxyImage = GameController.Instance.GalaxyImage;
         }
@@ -99,7 +91,7 @@ namespace Assets.Core
             }
         }
 
-        public void BuildFleetsNearSyst(StarSysController systCon)
+        public void BuildFirstFleetsNearSyst(StarSysController systCon)
         {
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
             FleetSO fleetSO = GetFleetSO_byInt((int)systCon.StarSysData.CurrentOwnerCivEnum);
@@ -128,80 +120,85 @@ namespace Assets.Core
             fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
             fleetData.CivShortName = thisCivData.CivShortName;
             var emptyFleet = InsatiateEmptyFleetController();
-            FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);// false, these fleets are created as game loads so not "new fleet"
+            FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);// false, new means, built in system or split off an existing fleet
             //Destroy(emptyFleet);
         }
         public FleetController InsatiateEmptyFleetController()
         {
-            FleetController fleetController = _fleetControllerPool.Get();
+            FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
             return fleetController;
         }
 
-        public FleetController InstantiateFleet(FleetController originalFleetCon, StarSysController systCon, FleetData fleetData, Vector3 position, bool boolNewFleet)
-        { // new fleet button = a fleet spawning a new fleet, newFleet(true), or a star system creating a new fleet, newFleet(true) vs a fleet created when the game loads and newfleet(false)
-            fleetData.ShipsList.RemoveAll(item => item == null);
+        public FleetController InstantiateFleet(FleetController originalFleetCon, StarSysController systCon, FleetData newFleetData, Vector3 position, bool newFleet)
+        { // from a fleet spawning a new fleet, newFleet(true), or a star system creating a new fleet, newFleet(true) vs a fleet created when the game loads and newfleet(false)
+            newFleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
             IEnumerable<StarSysController> ourCivSysCons =
             from x in StarSysManager.Instance.StarSysControllerList
-            where (x.StarSysData.CurrentOwnerCivEnum == fleetData.CivEnum)
+            where (x.StarSysData.CurrentOwnerCivEnum == newFleetData.CivEnum)
             select x;
             var ourSysCons = ourCivSysCons.ToList();
 
-            FleetController newFleetController = _fleetControllerPool.Get();
-
+            FleetController newFleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
+                    Quaternion.identity);
+            if (newFleet)
+            {
+                GalaxyMenuUIController.Instance.FleetSelectedForShipDeploy = newFleetController;
+            }
             FleetControllerList.Add(newFleetController); // add to list of all fleet controllers
             newFleetController.gameObject.layer = 6; // galaxy layer
             newFleetController.BackgroundGalaxyImage = galaxyImage;
-            newFleetController.FleetData = fleetData;
+            newFleetController.FleetData = newFleetData;
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.gameObject.transform;
-            if (systCon != null && !boolNewFleet)
+            if (systCon.StarSysData != null && !newFleet)
             {
                 newTrans = systCon.transform; // first fleets near home systems
                 Destroy(originalFleetCon.gameObject); // destroy the original fleet controller used as template empty
             }
-            else if (originalFleetCon.FleetData != null && boolNewFleet)
+            else if (originalFleetCon.FleetData != null && newFleet)
                 newTrans = originalFleetCon.transform;
-            else if (systCon.StarSysData != null && boolNewFleet)
+            else if (systCon.StarSysData != null && newFleet)
                 newTrans = systCon.transform;
 
             newFleetController.transform.SetParent(transGalaxyCenter, true); // parent is galaxy center, but world position set below
 
             if (newTrans != null)
             {
-                if (!boolNewFleet)
+                if (!newFleet)
                     newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));
                 else
                 {
-                    if (newFleetSpacer > 8f)
+                    if (newFleetSpacer > 10f)
                         newFleetSpacer = 0;
                     newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
-                    newFleetSpacer = newFleetSpacer + 2f;
+                    newFleetSpacer = newFleetSpacer + 5f;
                 }
             }
-            fleetData.Position = newFleetController.transform.position;
-            if (!boolNewFleet)
+            newFleetData.Position = newFleetController.transform.position;
+            if (!newFleet)
                 ShipManager.Instance.BuildShipsOfFirstFleet(newFleetController);
             newFleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
-            int fleetInt = GetNewFleetInt(fleetData.CivEnum);
-            newFleetController.gameObject.name = fleetData.CivShortName.ToString() + " " + fleetInt.ToString(); // name game object
-            fleetData.Name = newFleetController.gameObject.name;
+            int fleetInt = GetNewFleetInt(newFleetData.CivEnum);
+            newFleetController.gameObject.name = newFleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
+            newFleetData.Name = newFleetController.gameObject.name;
             newFleetController.FleetData.FleetInt = fleetInt;
-            newFleetController.Name = fleetData.Name;
+            newFleetController.Name = newFleetData.Name;
             FleetControllersInGame.Add(newFleetController);
             newFleetController.FleetData.CurrentWarpFactor = 0f;
             TextMeshProUGUI TheText = newFleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
             if (TheText != null)
             {
                 TheText.text = newFleetController.gameObject.name;
-                fleetData.Name = TheText.text;
+                newFleetData.Name = TheText.text;
             }
             FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>();
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
             srInsignia.sprite = newFleetController.FleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
-            if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
+            if (GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
             {
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
@@ -235,30 +232,27 @@ namespace Assets.Core
                     ourLineToGalaxyImageScript[i].SetUpLine(points);
                     newFleetController.DropLine = ourLineToGalaxyImageScript[i];
                 }
+
             }
             newFleetController.FleetData.Destination = GalaxyCenter;
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
-                if (civCon.CivData.CivEnum == fleetData.CivEnum)
-                    fleetData.CivController = civCon;
+                if (civCon.CivData.CivEnum == newFleetData.CivEnum)
+                    newFleetData.CivController = civCon;
             }
             newFleetController.gameObject.SetActive(true);
 
             newFleetController.UpdateMaxWarp();
-            InstantiateFleetUIGameObject(newFleetController, boolNewFleet);
-            if (boolNewFleet) // new fleet button
+            InstantiateFleetUIGameObject(newFleetController, newFleet);
+            if (newFleet)
             {
-                //newFleetController.FleetData.ShipsList.Clear();
                 var galaxyMenuUICon = GalaxyMenuUIController.Instance;
                 galaxyMenuUICon.FleetSelectedForShipDeploy = newFleetController;
-                if (systCon != null) // no star system, its a fleet
+                if (systCon.StarSysData != null)
                     galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, newFleetController);
-                else if (galaxyMenuUICon.FleetLookingForShipDeploy != null)
-                {
-                    EnsureFleetShipUIs(galaxyMenuUICon.FleetSelectedForShipDeploy);
-                    galaxyMenuUICon.ShowShipDeployForFleetNewFleet(galaxyMenuUICon.FleetLookingForShipDeploy, newFleetController);
-                }
-                //ShipDeployMenuUIController.Instance.BottomFleet = newFleetController;
+                if (originalFleetCon.FleetData != null)
+                    galaxyMenuUICon.ShowShipDeployMenuForFleet(newFleetController);
+                ShipDeployMenuUIController.Instance.BottomFleet = newFleetController;
             }
             // hover ui 3d
             //if (!GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
@@ -285,7 +279,7 @@ namespace Assets.Core
             {
                 if (fleetCon.FleetUIGameObject == null)
                 {
-                    GameObject thisFleetUIGameObject = Instantiate(fleetUIPrefab, new Vector3(0, 0, 0),
+                    GameObject thisFleetUIGameObject = (GameObject)Instantiate(fleetUIPrefab, new Vector3(0, 0, 0),
                         Quaternion.identity);
                     thisFleetUIGameObject.SetActive(true);
                     thisFleetUIGameObject.layer = 5;
@@ -296,45 +290,46 @@ namespace Assets.Core
                     if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
                     {
                         fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
-                        EnsureFleetShipUIs(fleetCon);
                         FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                     }
                     else
                     {
                         Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
                     }
+
+                    //if (newFleet)
+
                 }
             }
             var shipManager = ShipManager.Instance;
             if (shipManager != null)
             {
-                // Process any pending ship UIs (created earlier before parent existed)
+                // Process any pending ship UIs that were created before fleet UI parent existed.
                 shipManager.ProcessPendingShipUIs();
 
-                // Ensure each ship in the FleetData has a UI item and that the UI is parented correctly
+                // Ensure each ship has a UI entry parented under the new fleet UI
                 EnsureFleetShipUIs(fleetCon);
             }
         }
 
-        private void EnsureFleetShipUIs(FleetController bottomSelectedFleet)
+        // Ensures that every ShipController in fleetCon.FleetData.ShipsList has a ShipListUIGameObject
+        // and that its UI object is parented to the fleet's ShipListUIParent (if available).
+        private void EnsureFleetShipUIs(FleetController fleetCon)
         {
-            if (bottomSelectedFleet == null || bottomSelectedFleet.FleetData == null) return;
+            if (fleetCon == null || fleetCon.FleetData == null) return;
 
             var shipManager = ShipManager.Instance;
             if (shipManager == null) return;
 
-            // Preferred parent for ship UI items created by this fleet UI
-            GameObject shipListParent = bottomSelectedFleet.FleetData.ShipListUIParent;
-
-            // If there's no parent yet, give ShipManager a chance to reparent pending UIs and return
+            GameObject shipListParent = fleetCon.FleetData.ShipListUIParent;
+            // If no parent yet, attempt to process pending UIs and return; ProcessPendingShipUIs will reparent queued items.
             if (shipListParent == null)
             {
                 shipManager.ProcessPendingShipUIs();
                 return;
             }
 
-            // Iterate fleet ship list and ensure UI exists and is parented to the fleet UI's ShipList container
-            var ships = bottomSelectedFleet.FleetData.ShipsList;
+            var ships = fleetCon.FleetData.ShipsList;
             if (ships == null || ships.Count == 0) return;
 
             for (int i = 0; i < ships.Count; i++)
@@ -342,13 +337,13 @@ namespace Assets.Core
                 var shipCon = ships[i];
                 if (shipCon == null) continue;
 
-                // If UI doesn't exist yet, instantiate it (ShipManager handles queuing/reparenting)
+                // Create UI item if missing
                 if (shipCon.ShipListUIGameObject == null)
                 {
-                    shipManager.InstantiateShipListUIGameObject(shipCon, bottomSelectedFleet.gameObject);
+                    shipManager.InstantiateShipListUIGameObject(shipCon, fleetCon.gameObject);
                 }
 
-                // If UI exists but not parented correctly, set the correct parent
+                // Ensure proper parent
                 if (shipCon.ShipListUIGameObject != null)
                 {
                     var currentParent = shipCon.ShipListUIGameObject.transform.parent;
@@ -359,7 +354,7 @@ namespace Assets.Core
                 }
             }
 
-            // Final pass to process any items that were queued by InstantiateShipListUIGameObject
+            // Final pass to process any items queued by InstantiateShipListUIGameObject
             shipManager.ProcessPendingShipUIs();
         }
 
@@ -428,29 +423,34 @@ namespace Assets.Core
         }
         public int GetNewFleetInt(CivEnum civEnum)
         {
-            // Use HashSet to quickly find the first unused positive integer.
-            if (!fleetNumsInUse.TryGetValue(civEnum, out var usedNums))
+            List<int> ourFleetNumsInUse = fleetNumsInUse[civEnum];
+            int numToReturn = 1;
+            if (ourFleetNumsInUse.Count == 0)
             {
-                // If entry does not exist (shouldn't happen if Start() ran), create it.
-                usedNums = new HashSet<int>();
-                fleetNumsInUse[civEnum] = usedNums;
+                ourFleetNumsInUse.Add(numToReturn);
+                return numToReturn;
             }
-
-            int candidate = 1;
-            while (usedNums.Contains(candidate))
+            else
             {
-                candidate++;
+                for (int i = 1; i < ourFleetNumsInUse.Count + 1; i++)
+                {
+                    if (!ourFleetNumsInUse.Contains(numToReturn))
+                    {
+                        numToReturn = i;
+                    }
+                    else
+                    {
+                        numToReturn = i + 1;
+                    }
+                }
+                ourFleetNumsInUse.Add(numToReturn);
+                ourFleetNumsInUse.Sort();
             }
-
-            usedNums.Add(candidate);
-            return candidate;
+            return numToReturn;
         }
         public void RemoveFleetNumInUse(CivEnum civEnum, int fleetInt)
         {
-            if (fleetNumsInUse.TryGetValue(civEnum, out var set))
-            {
-                set.Remove(fleetInt);
-            }
+            fleetNumsInUse[civEnum].Remove(fleetInt);
         }
         public void ExposeAllFleetInsigniaSprites(CivEnum civEnum)
         {

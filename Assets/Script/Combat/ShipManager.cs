@@ -169,8 +169,10 @@ public class ShipManager : MonoBehaviour
             if (shipCon != null)
             {
                 shipCon.transform.SetParent(sysCon.transform);
-                sysCon.StarSysData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                ShipControllerList.Add(shipCon);
+                // NOTE: InstantiateShipControllersWithDataFromSO already:
+                //  - adds the ShipController to ShipControllerList
+                //  - adds the ShipController to sysCon.StarSysData.ShipsList (when owner is a StarSysController)
+                // so we must not add them again to avoid duplicates.
                 shipCon.ShipData.CurrentStarSysController = sysCon;
                 shipCon.ShipData.CurrentFleetController = null;
             }
@@ -253,6 +255,7 @@ public class ShipManager : MonoBehaviour
     // Call this after you instantiate system/fleet UI so any pending ship UI gets reparented correctly.
     public void ProcessPendingShipUIs()
     {
+        Debug.Log($"ProcessPendingShipUIs: pending={shipConPendingShipUI.Count}");
         if (shipConPendingShipUI.Count == 0) return;
 
         for (int i = shipConPendingShipUI.Count - 1; i >= 0; i--)
@@ -297,6 +300,8 @@ public class ShipManager : MonoBehaviour
                 shipConPendingShipUI.RemoveAt(i);
             }
         }
+
+        Debug.Log($"ProcessPendingShipUIs: remaining_pending={shipConPendingShipUI.Count}");
     }
 
     public void BuildShipsOfFirstFleet(FleetController fleetCon)

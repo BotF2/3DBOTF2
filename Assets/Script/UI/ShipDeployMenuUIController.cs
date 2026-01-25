@@ -30,9 +30,20 @@ public class ShipDeployMenuUIController : MonoBehaviour
     }
     public void ShowShipDeployMenuView()
     {
-        ShipDeployPanel.SetActive(true);
+        if (ShipDeployPanel == null)
+        {
+            Debug.LogError("ShowShipDeployMenuView: ShipDeployPanel reference is null.");
+            return;
+        }
 
+        // Ensure any pending ship UI items are parented before we show the panel
+        ShipManager.Instance?.ProcessPendingShipUIs();
+
+        ShipDeployPanel.SetActive(true);
+        // Bring panel to front
         transform.SetAsLastSibling();
+
+        Debug.Log($"ShowShipDeployMenuView: opened. TopSlot children={TopSlot?.transform.childCount ?? 0}, BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
     }
 
     public void HideShipDeployMenuView()
@@ -42,32 +53,68 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
     internal void SetUpBottomShipLists(FleetController chosenFleet)
     {
-        for (int i = 0; chosenFleet.FleetData.ShipsList.Count > i; i++)
+        if (chosenFleet == null)
         {
-            // UI item is a separate prefab instance - move the UI object into the slot
-            if (chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject == null)
-                ShipManager.Instance.InstantiateShipListUIGameObject(chosenFleet.FleetData.ShipsList[i], BottomSlot);
-            chosenFleet.FleetData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+            Debug.LogWarning("SetUpBottomShipLists: chosenFleet is null.");
+            return;
         }
+
+        // Make sure any ship UI created earlier is reparented to its owners.
+        ShipManager.Instance?.ProcessPendingShipUIs();
+
+        var ships = chosenFleet.FleetData?.ShipsList;
+        if (ships == null || ships.Count == 0)
+        {
+            Debug.Log($"SetUpBottomShipLists: chosenFleet {chosenFleet?.name} has no ships.");
+        }
+        else
+        {
+            for (int i = 0; i < ships.Count; i++)
+            {
+                var ship = ships[i];
+                if (ship == null) continue;
+
+                // Ensure a ShipList UI exists for this ship
+                if (ship.ShipListUIGameObject == null)
+                {
+                    ShipManager.Instance?.InstantiateShipListUIGameObject(ship, chosenFleet.gameObject);
+                }
+
+                // Process pending reparenting so the UI exists and can be moved into slot
+                ShipManager.Instance?.ProcessPendingShipUIs();
+
+                if (ship.ShipListUIGameObject != null)
+                {
+                    ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                }
+                else
+                {
+                    Debug.LogWarning($"SetUpBottomShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                }
+            }
+        }
+
         BottomFleet = chosenFleet;
         BottomStarSyst = null;
-        //SetUpTopShipLists();
     }
-    internal void SetUpBottomShipLists(StarSysController StarSysLooking)
+    internal void SetUpBottomShipLists(StarSysController StarSysLooking, bool deployNotMerge)
     {
         if (StarSysLooking.SettingUpNewFleet) return; // new fleet has no ships yet
         else
         {
             var galaxyMenu = GalaxyMenuUIController.Instance;
-            for (int i = 0; galaxyMenu.StarSystSelectedForShipDeploy.StarSysData.ShipsList.Count > i; i++)
+            List<ShipController> shipConList;
+            if (deployNotMerge)
+                shipConList = galaxyMenu.StarSystSelectedForShipDeploy.StarSysData?.ShipsList;
+            else
+                shipConList = galaxyMenu.StarSystSelectedForShipMerge.StarSysData?.ShipsList;
+            for (int i = 0; shipConList.Count > i; i++)
             {
-                //galaxyMenu.StarSystConSelectedForShipDeploy.StarSysData.ShipsList[i].transform.SetParent(BottomSlot.transform, false);
-                galaxyMenu.StarSystSelectedForShipDeploy.StarSysData.ShipsList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                shipConList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
             }
         }
         BottomStarSyst = StarSysLooking;
         BottomFleet = null;
-        SetUpTopShipLists();
     }
     public void SetUpTopShipLists(List<ShipController> shipList)
     {
@@ -81,25 +128,152 @@ public class ShipDeployMenuUIController : MonoBehaviour
     }
     internal void SetUpTopShipLists() // load top ship deployment view containers 
     {
+        // Ensure any pending ship UI reparenting is attempted first
+        ShipManager.Instance?.ProcessPendingShipUIs();
+
         var galaxyUI = GalaxyMenuUIController.Instance;
+        if (galaxyUI == null)
+        {
+            Debug.LogError("SetUpTopShipLists: GalaxyMenuUIController.Instance is null.");
+            return;
+        }
+
         if (galaxyUI.FleetLookingForShipDeploy != null)
         {
-            var shipCon = galaxyUI.FleetLookingForShipDeploy.FleetData.ShipsList;
-            for (int i = 0; shipCon.Count > i; i++)
+            var shipConList = galaxyUI.FleetLookingForShipDeploy.FleetData?.ShipsList;
+            if (shipConList == null || shipConList.Count == 0)
             {
-                shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipDeploy.name} has no ships to show.");
             }
+            else
+            {
+                for (int i = 0; i < shipConList.Count; i++)
+                {
+                    var ship = shipConList[i];
+                    if (ship == null) continue;
+
+                    if (ship.ShipListUIGameObject == null)
+                    {
+                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipDeploy.gameObject);
+                    }
+
+                    ShipManager.Instance?.ProcessPendingShipUIs();
+
+                    if (ship.ShipListUIGameObject != null)
+                    {
+                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                    }
+                }
+            }
+
             TopFleet = galaxyUI.FleetLookingForShipDeploy;
             TopStarSyst = null;
         }
         else if (galaxyUI.StarSystLookingForShipDeploy != null)
         {
-            var shipCon = galaxyUI.StarSystLookingForShipDeploy.StarSysData.ShipsList;
-            for (int i = 0; shipCon.Count > i; i++)
+            var shipConList = galaxyUI.StarSystLookingForShipDeploy.StarSysData?.ShipsList;
+            if (shipConList == null || shipConList.Count == 0)
             {
-                shipCon[i].ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipDeploy.name} has no ships to show.");
             }
+            else
+            {
+                for (int i = 0; i < shipConList.Count; i++)
+                {
+                    var ship = shipConList[i];
+                    if (ship == null) continue;
+
+                    if (ship.ShipListUIGameObject == null)
+                    {
+                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipDeploy.gameObject);
+                    }
+
+                    ShipManager.Instance?.ProcessPendingShipUIs();
+
+                    if (ship.ShipListUIGameObject != null)
+                    {
+                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                    }
+                }
+            }
+
             TopStarSyst = galaxyUI.StarSystLookingForShipDeploy;
+            TopFleet = null;
+        }
+        if (galaxyUI.FleetLookingForShipMerge != null)
+        {
+            var shipConList = galaxyUI.FleetLookingForShipMerge.FleetData?.ShipsList;
+            if (shipConList == null || shipConList.Count == 0)
+            {
+                Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipMerge.name} has no ships to show.");
+            }
+            else
+            {
+                for (int i = 0; i < shipConList.Count; i++)
+                {
+                    var ship = shipConList[i];
+                    if (ship == null) continue;
+
+                    if (ship.ShipListUIGameObject == null)
+                    {
+                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipMerge.gameObject);
+                    }
+
+                    ShipManager.Instance?.ProcessPendingShipUIs();
+
+                    if (ship.ShipListUIGameObject != null)
+                    {
+                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                    }
+                }
+            }
+            TopFleet = galaxyUI.FleetLookingForShipMerge;
+            TopStarSyst = null;
+        }
+        else if (galaxyUI.StarSystLookingForShipMerge != null)
+        {
+            var shipConList = galaxyUI.StarSystLookingForShipMerge.StarSysData?.ShipsList;
+            if (shipConList == null || shipConList.Count == 0)
+            {
+                Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipMerge.name} has no ships to show.");
+            }
+            else
+            {
+                for (int i = 0; i < shipConList.Count; i++)
+                {
+                    var ship = shipConList[i];
+                    if (ship == null) continue;
+
+                    if (ship.ShipListUIGameObject == null)
+                    {
+                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipMerge.gameObject);
+                    }
+
+                    ShipManager.Instance?.ProcessPendingShipUIs();
+
+                    if (ship.ShipListUIGameObject != null)
+                    {
+                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                    }
+                }
+            }
+            TopStarSyst = galaxyUI.StarSystLookingForShipMerge;
             TopFleet = null;
         }
     }
@@ -140,8 +314,6 @@ public class ShipDeployMenuUIController : MonoBehaviour
         {
             DeployShipUIgoBetweenStarSys(TopStarSyst, BottomStarSyst);
         }
-        // The drag handler (ShipListItemDrag) performs authoritative Remove/Add on the model.
-        // Keep this UI mover lightweight. If you need to reconcile programmatically, call UpdateOwnersFromUI().
     }
 
     private void DeployShipUIgoBetweenStarSys(StarSysController topStarSyst, StarSysController bottomStarSyst)
@@ -163,6 +335,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation
+        ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topStarSyst.StarSysData?.ShipListUIParent?.transform);
+
         topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
 
         var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
@@ -182,6 +358,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for bottom
+        ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomStarSyst.StarSysData?.ShipListUIParent?.transform);
+
         bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
     }
 
@@ -204,6 +384,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for top star system
+        ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topStarSyst.StarSysData?.ShipListUIParent?.transform);
+
         topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
 
         var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
@@ -215,7 +399,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
             shipListUI_Item.CurrentFleet = bottomFleet;
             shipListUI_Item.CurrentStarSyst = null;
             shipUIGOBottom.transform.SetParent(bottomFleet.FleetData.ShipListUIParent.transform, false);
-            for (int j = 0; j < bottomShipControllerList.Count; j++)
+            for (int j = 0, jmax = bottomShipControllerList.Count; j < jmax; j++)
             {
                 if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
                 {
@@ -223,20 +407,25 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for bottom fleet
+        ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomFleet.FleetData?.ShipListUIParent?.transform);
+
         bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
     }
 
     private void DeployShipUIgoFromFleetToStarSys(FleetController topFleet, StarSysController bottomStarSyst)
     {
+
         var topShipControllerList = topFleet.FleetData.ShipsList;
         List<ShipController> newTopShipControllerList = new List<ShipController>();
-        for (int i = 0; i < GetTopSlotShipListUIGOs().Length; i++)
+        for (int i = 0; GetTopSlotShipListUIGOs().Length > i; i++)
         {
-            var shipUIGOtop = GetTopSlotShipListUIGOs()[i];
-            var shipListUI_Item = shipUIGOtop.GetComponent<ShipListUI_Item>();
+            var shipUIGOTop = GetTopSlotShipListUIGOs()[i];
+            var shipListUI_Item = shipUIGOTop.GetComponent<ShipListUI_Item>();
             shipListUI_Item.CurrentFleet = topFleet;
             shipListUI_Item.CurrentStarSyst = null;
-            shipUIGOtop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+            shipUIGOTop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
             for (int j = 0; j < topShipControllerList.Count; j++)
             {
                 if (topShipControllerList[j] == shipListUI_Item.ShipController)
@@ -245,6 +434,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for top fleet
+        ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topFleet.FleetData?.ShipListUIParent?.transform);
+
         topFleet.FleetData.ShipsList = newTopShipControllerList;
 
         var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
@@ -264,6 +457,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for bottom star system
+        ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomStarSyst.StarSysData?.ShipListUIParent?.transform);
+
         bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
     }
 
@@ -286,6 +483,10 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for top fleet
+        ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topFleet.FleetData?.ShipListUIParent?.transform);
+
         topFleet.FleetData.ShipsList = newTopShipControllerList;
 
         var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
@@ -305,7 +506,33 @@ public class ShipDeployMenuUIController : MonoBehaviour
                 }
             }
         }
+
+        // Defensive reconciliation for bottom fleet
+        ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomFleet.FleetData?.ShipListUIParent?.transform);
+
         bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
+    }
+
+    // Small helper: if any ships from the original owner list are missing from the rebuilt list,
+    // add them back and reparent their UI under the provided parent. This is a defensive safety net
+    // against transient UI state that could otherwise drop ships.
+    private void ReconcileMissingShips(List<ShipController> originalList, List<ShipController> rebuiltList, Transform ownerUIParent)
+    {
+        if (originalList == null || rebuiltList == null) return;
+        for (int i = 0; i < originalList.Count; i++)
+        {
+            var orig = originalList[i];
+            if (orig == null) continue;
+            if (!rebuiltList.Contains(orig))
+            {
+                rebuiltList.Add(orig);
+                if (orig.ShipListUIGameObject != null && ownerUIParent != null)
+                {
+                    orig.ShipListUIGameObject.transform.SetParent(ownerUIParent, false);
+                }
+                Debug.Log($"ReconcileMissingShips: restored missing ship '{orig.name}' to owner UI parent.");
+            }
+        }
     }
 
     // synchronize model ownership to match UI after drag/drop ----
@@ -314,39 +541,110 @@ public class ShipDeployMenuUIController : MonoBehaviour
     // as the single source of truth for ownership while allowing UI items to be transient and moved.
     private void UpdateOwnersFromUI() // only used if we need a check that slots for ships UIGO do match model data
     {
-        // Collect affected owners to clear lists first
-        var fleetsToClear = new HashSet<FleetController>();
-        var starSysToClear = new HashSet<StarSysController>();
+        Debug.Log($"UpdateOwnersFromUI: TopSlot children={TopSlot?.transform.childCount ?? 0}, BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
+        // Collect affected owners to consider
+        var fleetsToConsider = new HashSet<FleetController>();
+        var starSysToConsider = new HashSet<StarSysController>();
 
-        if (TopFleet != null) fleetsToClear.Add(TopFleet);
-        if (BottomFleet != null) fleetsToClear.Add(BottomFleet);
-        if (TopStarSyst != null) starSysToClear.Add(TopStarSyst);
-        if (BottomStarSyst != null) starSysToClear.Add(BottomStarSyst);
+        if (TopFleet != null) fleetsToConsider.Add(TopFleet);
+        if (BottomFleet != null) fleetsToConsider.Add(BottomFleet);
+        if (TopStarSyst != null) starSysToConsider.Add(TopStarSyst);
+        if (BottomStarSyst != null) starSysToConsider.Add(BottomStarSyst);
 
-        // Clear existing lists so we can rebuild
-        foreach (var f in fleetsToClear)
+        // Prepare temporary results (do not mutate authoritative lists until we have new data)
+        var newFleetLists = new Dictionary<FleetController, List<ShipController>>();
+        var newStarLists = new Dictionary<StarSysController, List<ShipController>>();
+
+        foreach (var f in fleetsToConsider) newFleetLists[f] = new List<ShipController>();
+        foreach (var s in starSysToConsider) newStarLists[s] = new List<ShipController>();
+
+        // Helper to collect from a UI parent container
+        void CollectFromParent(Transform parent)
         {
-            f.FleetData.ShipsList.Clear(); // clear ship 
+            if (parent == null) return;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i).gameObject;
+                var item = child.GetComponent<ShipListUI_Item>();
+                if (item == null || item.ShipController == null) continue;
+
+                if (item.CurrentFleet != null)
+                {
+                    if (!newFleetLists.TryGetValue(item.CurrentFleet, out var list))
+                    {
+                        list = new List<ShipController>();
+                        newFleetLists[item.CurrentFleet] = list;
+                    }
+                    if (!list.Contains(item.ShipController)) list.Add(item.ShipController);
+                }
+                else if (item.CurrentStarSyst != null)
+                {
+                    if (!newStarLists.TryGetValue(item.CurrentStarSyst, out var sList))
+                    {
+                        sList = new List<ShipController>();
+                        newStarLists[item.CurrentStarSyst] = sList;
+                    }
+                    if (!sList.Contains(item.ShipController)) sList.Add(item.ShipController);
+                }
+            }
         }
-        foreach (var s in starSysToClear)
+
+        // Collect from the active UI slots first (these represent the player's drag/drop view)
+        CollectFromParent(TopSlot?.transform);
+        CollectFromParent(BottomSlot?.transform);
+
+        // Also collect from the owner UI parents themselves (they might contain items if Deploy flow placed them there)
+        foreach (var f in fleetsToConsider)
+            CollectFromParent(f.FleetData?.ShipListUIParent?.transform);
+        foreach (var s in starSysToConsider)
+            CollectFromParent(s.StarSysData?.ShipListUIParent?.transform);
+
+        // Now we have the new ownership mapping in newFleetLists/newStarLists.
+        // Assign them to authoritative model structures.
+        foreach (var kv in newFleetLists)
         {
-            s.StarSysData.ShipsList.Clear();
+            var fleet = kv.Key;
+            var shipList = kv.Value ?? new List<ShipController>();
+            fleet.FleetData.ShipsList = shipList;
+            try { fleet.UpdateMaxWarp(); } catch { }
         }
 
-        // Rebuild based on UI parents that now hold the ship UI items.
-        RebuildFromUIParent(TopSlot.transform);
-        RebuildFromUIParent(BottomSlot.transform);
+        foreach (var kv in newStarLists)
+        {
+            var star = kv.Key;
+            var shipList = kv.Value ?? new List<ShipController>();
+            star.StarSysData.ShipsList = shipList;
+        }
 
-        // Also rebuild any ShipListUIParent containers we used as final parents:
-        // topFleet / bottomFleet parents may also contain children depending on Deploy* paths
-        if (TopFleet != null && TopFleet.FleetData.ShipListUIParent != null)
-            RebuildFromUIParent(TopFleet.FleetData.ShipListUIParent.transform);
-        if (BottomFleet != null && BottomFleet.FleetData.ShipListUIParent != null)
-            RebuildFromUIParent(BottomFleet.FleetData.ShipListUIParent.transform);
-        if (TopStarSyst != null && TopStarSyst.StarSysData.ShipListUIParent != null)
-            RebuildFromUIParent(TopStarSyst.StarSysData.ShipListUIParent.transform);
-        if (BottomStarSyst != null && BottomStarSyst.StarSysData.ShipListUIParent != null)
-            RebuildFromUIParent(BottomStarSyst.StarSysData.ShipListUIParent.transform);
+        // Ensure UI objects are parented to their owner containers
+        foreach (var kv in newFleetLists)
+        {
+            var fleet = kv.Key;
+            var parent = fleet.FleetData?.ShipListUIParent;
+            if (parent == null) continue;
+            foreach (var ship in kv.Value)
+            {
+                if (ship?.ShipListUIGameObject != null && ship.ShipListUIGameObject.transform.parent != parent.transform)
+                {
+                    ship.ShipListUIGameObject.transform.SetParent(parent.transform, false);
+                }
+            }
+        }
+        foreach (var kv in newStarLists)
+        {
+            var star = kv.Key;
+            var parent = star.StarSysData?.ShipListUIParent;
+            if (parent == null) continue;
+            foreach (var ship in kv.Value)
+            {
+                if (ship?.ShipListUIGameObject != null && ship.ShipListUIGameObject.transform.parent != parent.transform)
+                {
+                    ship.ShipListUIGameObject.transform.SetParent(parent.transform, false);
+                }
+            }
+        }
+
+        Debug.Log($"UpdateOwnersFromUI completed: fleets updated={newFleetLists.Count}, stars updated={newStarLists.Count}");
     }
 
     private void RebuildFromUIParent(Transform parent)
@@ -397,20 +695,88 @@ public class ShipDeployMenuUIController : MonoBehaviour
 
             // Optional: update the ShipController to know its current owner if it exposes such a property.
             // Use reflection or a known property name if necessary. Keep this optional and silent if not present.
-            try // not working, prop null !!!!
+            try // not working, prop null !!
             {
-                var shipCon = item.ShipController;
-                var shipType = shipCon.GetType();
-                var prop = shipType.GetProperty("CurrentFleetController");
-                if (prop != null && item.CurrentFleet != null)
-                {
-                    prop.SetValue(shipCon, item.CurrentFleet);
-                }
+
             }
-            catch
-            {
-                // ignore if property doesn't exist
-            }
+            catch { }
+        }
+    }
+    public void CommitShipDeployAndClose()
+    {
+        gameObject.SetActive(true);
+        // Run async to let drag/drop & layout events finish
+        StartCoroutine(CommitShipDeployCoroutine());
+    }
+
+    private System.Collections.IEnumerator CommitShipDeployCoroutine()
+    {
+        // 1) Ensure any pending ShipManager parenting is attempted first
+        ShipManager.Instance?.ProcessPendingShipUIs();
+
+        // 2) Force canvas/layout update so child counts are accurate
+        Canvas.ForceUpdateCanvases();
+        if (TopSlot != null)
+        {
+            var rt = TopSlot.GetComponent<RectTransform>();
+            if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+        }
+        if (BottomSlot != null)
+        {
+            var rt = BottomSlot.GetComponent<RectTransform>();
+            if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+        }
+
+        // 3) Wait one frame to allow EndDrag handlers and UI events to finish.
+        //    If you still see missing items, change to yield return null; yield return null; (two frames).
+        yield return null;
+
+        // 4) Diagnostic dump to see where UI items are right now
+        Debug.Log($"CommitShipDeployAndClose (pre): TopSlot children={TopSlot?.transform.childCount ?? 0} BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
+        DumpAllShipListUIs();
+
+        // 5) Assign ownership flags from the slot containers (and owner UI parents)
+        AssignOwnership(TopSlot?.transform, TopFleet, TopStarSyst);
+        AssignOwnership(BottomSlot?.transform, BottomFleet, BottomStarSyst);
+
+        if (TopFleet?.FleetData?.ShipListUIParent != null) AssignOwnership(TopFleet.FleetData.ShipListUIParent.transform, TopFleet, null);
+        if (BottomFleet?.FleetData?.ShipListUIParent != null) AssignOwnership(BottomFleet.FleetData.ShipListUIParent.transform, BottomFleet, null);
+        if (TopStarSyst?.StarSysData?.ShipListUIParent != null) AssignOwnership(TopStarSyst.StarSysData.ShipListUIParent.transform, null, TopStarSyst);
+        if (BottomStarSyst?.StarSysData?.ShipListUIParent != null) AssignOwnership(BottomStarSyst.StarSysData.ShipListUIParent.transform, null, BottomStarSyst);
+
+        // 6) Now call your deploy/reconciliation code (idempotent)
+        DeployShipsUIGOToNewFleetOrSystem();
+
+        // 7) Finish up and report
+        GalaxyMenuUIController.Instance?.CompleteShipExchange();
+        Debug.Log($"CommitShipDeployAndClose committed: TopSlot={TopSlot?.transform.childCount ?? 0} BottomSlot={BottomSlot?.transform.childCount ?? 0}");
+
+        yield break;
+    }
+
+    private void AssignOwnership(Transform parent, FleetController fleetOwner, StarSysController sysOwner)
+    {
+        if (parent == null) return;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var go = parent.GetChild(i).gameObject;
+            var item = go.GetComponent<ShipListUI_Item>();
+            if (item == null) continue;
+            item.CurrentFleet = fleetOwner;
+            item.CurrentStarSyst = sysOwner;
+        }
+    }
+
+    private void DumpAllShipListUIs()
+    {
+        // Find all ShipListUI_Item instances (active and inactive)
+        var all = UnityEngine.Object.FindObjectsByType<ShipListUI_Item>(UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+        Debug.Log($"DumpAllShipListUIs: found {all.Length} ShipListUI_Item instances");
+        for (int i = 0; i < all.Length; i++)
+        {
+            var item = all[i];
+            var parentName = item.gameObject.transform.parent != null ? item.gameObject.transform.parent.name : "<null>";
+            Debug.Log($"ShipUI '{item.gameObject.name}': parent='{parentName}', CurrentFleet='{item.CurrentFleet?.name}', CurrentStarSyst='{item.CurrentStarSyst?.name}', ShipController='{item.ShipController?.name}'");
         }
     }
 }
