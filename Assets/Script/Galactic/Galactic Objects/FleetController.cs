@@ -242,6 +242,7 @@ namespace Assets.Core
                 case GalaxyClickMode.SetDestination:
                     HandleDestinationClick(clickedFleetCon);
                     break;
+                // no case GalaxyClickMode.SelectForNewFleet. that is a new fleet button click not a fleet click
                 case GalaxyClickMode.SelectForShipDeploy:
                     if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
                         HandleShipDeploySelection(clickedFleetCon);
@@ -274,8 +275,7 @@ namespace Assets.Core
 
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
-            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum) || clickedFleetCon != this) { return; }
-
+            if (clickedFleetCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatFleetIsSelectedForShipDiploy(clickedFleetCon);
@@ -287,6 +287,7 @@ namespace Assets.Core
                 aSysView.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
             }
             else if (starSysLooking == null)
             {
@@ -294,17 +295,14 @@ namespace Assets.Core
                 aFleetView.gameObject.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
             }
-
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon);
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
         private void HandleShipMegerSelection(FleetController clickedFleetCon)
         {
-            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum) ||
-                clickedFleetCon != this) { return; }
-
+            if (clickedFleetCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatFleetIsSelectedForShipMerge(clickedFleetCon);
@@ -316,6 +314,7 @@ namespace Assets.Core
                 aStarSysView.gameObject.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
             }
             else if (starSysLooking == null)
             {
@@ -323,9 +322,10 @@ namespace Assets.Core
                 aFleetView.gameObject.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
             }
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon);
+
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, false);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
         private Vector3 GetMouseWorldPosition()

@@ -11,7 +11,7 @@ public enum GalaxyClickMode
     SelectForShipDeploy,
     SelectForShipMerge
     // Future extensions could include:
-    // Ping, AttackTarget, etc.
+    // Ping, AttackTarget, etc. New Fleet comes from a UI button, not click mode.
 }
 public enum Menu
 {
@@ -168,38 +168,38 @@ public class GalaxyMenuUIController : MonoBehaviour
         saveShipDelployButton.onClick.AddListener(() => this.CloseButtonPressed());
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
-        starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
+        //starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
         // Not For DiplomacyMenuUIController here/now, we do that with each new first contact of civs / fleets
     }
 
     // ShipDeploy menu life cycle helpers — central control point
-    public void ShowShipDeployMenuForFleet(FleetController fleet)
+    public void ShowShipDeployMenuForFleet(FleetController newFleet)
     {
         if (shipDeployMenuUIController == null) return;
         MousePointerChanger.Instance.ResetCursor();
 
         // move the fleet UI under the active AFleet/A_System view if appropriate
-        var fleetLooking = fleet;// FleetLookingForShipDeploy;
+        var fleetLooking = newFleet;
         var starSysLooking = StarSystLookingForShipDeploy;
         if (fleetLooking != null)
         {
             var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-            if (fleet.FleetUIGameObject != null)
+            if (newFleet.FleetUIGameObject != null)
             {
-                fleet.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                fleet.FleetUIGameObject.transform.SetAsLastSibling();
+                newFleet.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                newFleet.FleetUIGameObject.transform.SetAsLastSibling();
             }
         }
         else if (starSysLooking != null)
         {
             var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-            if (fleet.FleetUIGameObject != null)
+            if (newFleet.FleetUIGameObject != null)
             {
-                fleet.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
-                fleet.FleetUIGameObject.transform.SetAsLastSibling();
+                newFleet.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+                newFleet.FleetUIGameObject.transform.SetAsLastSibling();
             }
         }
-        shipDeployMenuUIController.SetUpBottomShipLists(fleet);
+        shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
         SetClickMode(GalaxyClickMode.SelectForShipDeploy);
 
         shipDeployMenuUIController.gameObject.SetActive(true);
@@ -209,6 +209,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     public void ShowShipDeployForSystemNewFleet(StarSysController starSystCon, FleetController newFleet)
     {
         if (shipDeployMenuUIController == null) return;
+        // no GalaxyClickMode. this is new fleet button click;
         MousePointerChanger.Instance.ResetCursor();
         shipDeployMenuUIController.ShowShipDeployMenuView();
         shipDeployMenuUIController.gameObject.SetActive(true);
@@ -225,7 +226,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
     {
         if (shipDeployMenuUIController == null) return;
-
+        // no GalaxyClickMode. this is new fleet button click;
         Debug.Log($"ShowShipDeployForFleetNewFleet: opening deploy UI for original='{originalFleetCon?.name}' new='{newFleetController?.name}'");
 
         MousePointerChanger.Instance.ResetCursor();

@@ -37,7 +37,11 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
 
         // Ensure any pending ship UI items are parented before we show the panel
-        ShipManager.Instance?.ProcessPendingShipUIs();
+        if (ShipManager.Instance != null)
+        {
+            ShipManager.Instance.ProcessPendingShipUIs();
+        }
+
 
         ShipDeployPanel.SetActive(true);
         // Bring panel to front
@@ -51,7 +55,7 @@ public class ShipDeployMenuUIController : MonoBehaviour
         ShipDeployPanel.SetActive(false);
     }
 
-    internal void SetUpBottomShipLists(FleetController chosenFleet)
+    internal void SetUpBottomShipLists(FleetController chosenFleet, bool deployNotMerge)
     {
         if (chosenFleet == null)
         {
@@ -60,54 +64,59 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
 
         // Make sure any ship UI created earlier is reparented to its owners.
-        ShipManager.Instance?.ProcessPendingShipUIs();
-
-        var ships = chosenFleet.FleetData?.ShipsList;
-        if (ships == null || ships.Count == 0)
+        if (ShipManager.Instance != null)
         {
-            Debug.Log($"SetUpBottomShipLists: chosenFleet {chosenFleet?.name} has no ships.");
-        }
-        else
-        {
-            for (int i = 0; i < ships.Count; i++)
+            ShipManager.Instance.ProcessPendingShipUIs();
+            if (chosenFleet.FleetData != null)
             {
-                var ship = ships[i];
-                if (ship == null) continue;
-
-                // Ensure a ShipList UI exists for this ship
-                if (ship.ShipListUIGameObject == null)
+                var ships = chosenFleet.FleetData.ShipsList;
+                if (ships.Count == 0)
                 {
-                    ShipManager.Instance?.InstantiateShipListUIGameObject(ship, chosenFleet.gameObject);
-                }
-
-                // Process pending reparenting so the UI exists and can be moved into slot
-                ShipManager.Instance?.ProcessPendingShipUIs();
-
-                if (ship.ShipListUIGameObject != null)
-                {
-                    ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                    Debug.Log($"SetUpBottomShipLists: chosenFleet {chosenFleet?.name} has no ships.");
                 }
                 else
                 {
-                    Debug.LogWarning($"SetUpBottomShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                    for (int i = 0; i < ships.Count; i++)
+                    {
+                        var ship = ships[i];
+                        if (ship == null) continue;
+
+                        // Ensure a ShipList UI exists for this ship
+                        if (ship.ShipListUIGameObject == null && ShipManager.Instance != null)
+                        {
+                            ShipManager.Instance.InstantiateShipListUIGameObject(ship, chosenFleet.gameObject);
+                        }
+
+                        // Process pending reparenting so the UI exists and can be moved into slot
+
+                        ShipManager.Instance.ProcessPendingShipUIs();
+
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SetUpBottomShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        }
+                    }
                 }
             }
         }
-
         BottomFleet = chosenFleet;
         BottomStarSyst = null;
     }
     internal void SetUpBottomShipLists(StarSysController StarSysLooking, bool deployNotMerge)
     {
+        var galaxyMenu = GalaxyMenuUIController.Instance;
         if (StarSysLooking.SettingUpNewFleet) return; // new fleet has no ships yet
-        else
+        else if (galaxyMenu.StarSystSelectedForShipDeploy.StarSysData != null)
         {
-            var galaxyMenu = GalaxyMenuUIController.Instance;
             List<ShipController> shipConList;
             if (deployNotMerge)
-                shipConList = galaxyMenu.StarSystSelectedForShipDeploy.StarSysData?.ShipsList;
+                shipConList = galaxyMenu.StarSystSelectedForShipDeploy.StarSysData.ShipsList;
             else
-                shipConList = galaxyMenu.StarSystSelectedForShipMerge.StarSysData?.ShipsList;
+                shipConList = galaxyMenu.StarSystSelectedForShipMerge.StarSysData.ShipsList;
             for (int i = 0; shipConList.Count > i; i++)
             {
                 shipConList[i].ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
@@ -129,152 +138,155 @@ public class ShipDeployMenuUIController : MonoBehaviour
     internal void SetUpTopShipLists() // load top ship deployment view containers 
     {
         // Ensure any pending ship UI reparenting is attempted first
-        ShipManager.Instance?.ProcessPendingShipUIs();
-
-        var galaxyUI = GalaxyMenuUIController.Instance;
-        if (galaxyUI == null)
+        if (ShipManager.Instance != null)
         {
-            Debug.LogError("SetUpTopShipLists: GalaxyMenuUIController.Instance is null.");
-            return;
-        }
+            ShipManager.Instance.ProcessPendingShipUIs();
 
-        if (galaxyUI.FleetLookingForShipDeploy != null)
-        {
-            var shipConList = galaxyUI.FleetLookingForShipDeploy.FleetData?.ShipsList;
-            if (shipConList == null || shipConList.Count == 0)
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI == null)
             {
-                Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipDeploy.name} has no ships to show.");
+                Debug.LogError("SetUpTopShipLists: GalaxyMenuUIController.Instance is null.");
+                return;
             }
-            else
+
+            if (galaxyUI.FleetLookingForShipDeploy != null)
             {
-                for (int i = 0; i < shipConList.Count; i++)
+                var shipConList = galaxyUI.FleetLookingForShipDeploy.FleetData.ShipsList;
+                if (shipConList == null || shipConList.Count == 0)
                 {
-                    var ship = shipConList[i];
-                    if (ship == null) continue;
-
-                    if (ship.ShipListUIGameObject == null)
+                    Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipDeploy.name} has no ships to show.");
+                }
+                else
+                {
+                    for (int i = 0; i < shipConList.Count; i++)
                     {
-                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipDeploy.gameObject);
-                    }
+                        var ship = shipConList[i];
+                        if (ship == null) continue;
 
-                    ShipManager.Instance?.ProcessPendingShipUIs();
+                        if (ship.ShipListUIGameObject == null)
+                        {
+                            ShipManager.Instance.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipDeploy.gameObject);
+                        }
 
-                    if (ship.ShipListUIGameObject != null)
-                    {
-                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        ShipManager.Instance.ProcessPendingShipUIs();
+
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        }
                     }
                 }
-            }
 
-            TopFleet = galaxyUI.FleetLookingForShipDeploy;
-            TopStarSyst = null;
-        }
-        else if (galaxyUI.StarSystLookingForShipDeploy != null)
-        {
-            var shipConList = galaxyUI.StarSystLookingForShipDeploy.StarSysData?.ShipsList;
-            if (shipConList == null || shipConList.Count == 0)
-            {
-                Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipDeploy.name} has no ships to show.");
+                TopFleet = galaxyUI.FleetLookingForShipDeploy;
+                TopStarSyst = null;
             }
-            else
+            else if (galaxyUI.StarSystLookingForShipDeploy != null)
             {
-                for (int i = 0; i < shipConList.Count; i++)
+                var shipConList = galaxyUI.StarSystLookingForShipDeploy.StarSysData.ShipsList;
+                if (shipConList == null || shipConList.Count == 0)
                 {
-                    var ship = shipConList[i];
-                    if (ship == null) continue;
-
-                    if (ship.ShipListUIGameObject == null)
+                    Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipDeploy.name} has no ships to show.");
+                }
+                else
+                {
+                    for (int i = 0; i < shipConList.Count; i++)
                     {
-                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipDeploy.gameObject);
-                    }
+                        var ship = shipConList[i];
+                        if (ship == null) continue;
 
-                    ShipManager.Instance?.ProcessPendingShipUIs();
+                        if (ship.ShipListUIGameObject == null)
+                        {
+                            ShipManager.Instance.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipDeploy.gameObject);
+                        }
 
-                    if (ship.ShipListUIGameObject != null)
-                    {
-                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        ShipManager.Instance.ProcessPendingShipUIs();
+
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        }
                     }
                 }
-            }
 
-            TopStarSyst = galaxyUI.StarSystLookingForShipDeploy;
-            TopFleet = null;
-        }
-        if (galaxyUI.FleetLookingForShipMerge != null)
-        {
-            var shipConList = galaxyUI.FleetLookingForShipMerge.FleetData?.ShipsList;
-            if (shipConList == null || shipConList.Count == 0)
-            {
-                Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipMerge.name} has no ships to show.");
+                TopStarSyst = galaxyUI.StarSystLookingForShipDeploy;
+                TopFleet = null;
             }
-            else
+            if (galaxyUI.FleetLookingForShipMerge != null)
             {
-                for (int i = 0; i < shipConList.Count; i++)
+                var shipConList = galaxyUI.FleetLookingForShipMerge.FleetData.ShipsList;
+                if (shipConList == null || shipConList.Count == 0)
                 {
-                    var ship = shipConList[i];
-                    if (ship == null) continue;
-
-                    if (ship.ShipListUIGameObject == null)
+                    Debug.Log($"SetUpTopShipLists: Fleet {galaxyUI.FleetLookingForShipMerge.name} has no ships to show.");
+                }
+                else
+                {
+                    for (int i = 0; i < shipConList.Count; i++)
                     {
-                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipMerge.gameObject);
-                    }
+                        var ship = shipConList[i];
+                        if (ship == null) continue;
 
-                    ShipManager.Instance?.ProcessPendingShipUIs();
+                        if (ship.ShipListUIGameObject == null)
+                        {
+                            ShipManager.Instance.InstantiateShipListUIGameObject(ship, galaxyUI.FleetLookingForShipMerge.gameObject);
+                        }
 
-                    if (ship.ShipListUIGameObject != null)
-                    {
-                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        ShipManager.Instance.ProcessPendingShipUIs();
+
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        }
                     }
                 }
+                TopFleet = galaxyUI.FleetLookingForShipMerge;
+                TopStarSyst = null;
             }
-            TopFleet = galaxyUI.FleetLookingForShipMerge;
-            TopStarSyst = null;
-        }
-        else if (galaxyUI.StarSystLookingForShipMerge != null)
-        {
-            var shipConList = galaxyUI.StarSystLookingForShipMerge.StarSysData?.ShipsList;
-            if (shipConList == null || shipConList.Count == 0)
+            else if (galaxyUI.StarSystLookingForShipMerge != null)
             {
-                Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipMerge.name} has no ships to show.");
-            }
-            else
-            {
-                for (int i = 0; i < shipConList.Count; i++)
+                var shipConList = galaxyUI.StarSystLookingForShipMerge.StarSysData?.ShipsList;
+                if (shipConList == null || shipConList.Count == 0)
                 {
-                    var ship = shipConList[i];
-                    if (ship == null) continue;
-
-                    if (ship.ShipListUIGameObject == null)
+                    Debug.Log($"SetUpTopShipLists: StarSys {galaxyUI.StarSystLookingForShipMerge.name} has no ships to show.");
+                }
+                else
+                {
+                    for (int i = 0; i < shipConList.Count; i++)
                     {
-                        ShipManager.Instance?.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipMerge.gameObject);
-                    }
+                        var ship = shipConList[i];
+                        if (ship == null) continue;
 
-                    ShipManager.Instance?.ProcessPendingShipUIs();
+                        if (ship.ShipListUIGameObject == null)
+                        {
+                            ShipManager.Instance.InstantiateShipListUIGameObject(ship, galaxyUI.StarSystLookingForShipMerge.gameObject);
+                        }
 
-                    if (ship.ShipListUIGameObject != null)
-                    {
-                        ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        ShipManager.Instance.ProcessPendingShipUIs();
+
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            ship.ShipListUIGameObject.transform.SetParent(TopSlot.transform, false);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SetUpTopShipLists: Ship UI missing for ship {ship?.name} after Instantiate/ProcessPending.");
+                        }
                     }
                 }
+                TopStarSyst = galaxyUI.StarSystLookingForShipMerge;
+                TopFleet = null;
             }
-            TopStarSyst = galaxyUI.StarSystLookingForShipMerge;
-            TopFleet = null;
         }
     }
     public GameObject[] GetTopSlotShipListUIGOs()

@@ -185,7 +185,7 @@ namespace Assets.Core
             newFleetController.gameObject.name = newFleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
             newFleetData.Name = newFleetController.gameObject.name;
             newFleetController.FleetData.FleetInt = fleetInt;
-            newFleetController.Name = newFleetData.Name;
+            //newFleetController.Name = newFleetData.Name;
             FleetControllersInGame.Add(newFleetController);
             newFleetController.FleetData.CurrentWarpFactor = 0f;
             TextMeshProUGUI TheText = newFleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
@@ -244,16 +244,21 @@ namespace Assets.Core
 
             newFleetController.UpdateMaxWarp();
             InstantiateFleetUIGameObject(newFleetController, newFleet);
-            if (newFleet)
-            {
-                var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-                galaxyMenuUICon.FleetSelectedForShipDeploy = newFleetController;
-                if (systCon.StarSysData != null)
-                    galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, newFleetController);
-                if (originalFleetCon.FleetData != null)
-                    galaxyMenuUICon.ShowShipDeployMenuForFleet(newFleetController);
-                ShipDeployMenuUIController.Instance.BottomFleet = newFleetController;
-            }
+            //if (newFleet)
+            //{
+            //    var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+            //    galaxyMenuUICon.FleetSelectedForShipDeploy = newFleetController;
+            //    if (systCon.StarSysData != null)
+            //        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, newFleetController);
+            //    if (originalFleetCon.FleetData != null)
+            //        galaxyMenuUICon.ShowShipDeployForFleetNewFleet(originalFleetCon, newFleetController);
+            //    ShipDeployMenuUIController.Instance.BottomFleet = newFleetController;
+            //}
+            //else
+            //{
+            //    GalaxyMenuUIController.Instance.FleetSelectedForShipDeploy = null;
+            //    GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
+            //}
             // hover ui 3d
             //if (!GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
             //{

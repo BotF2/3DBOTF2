@@ -283,11 +283,18 @@ public class FleetMenuUIController : MonoBehaviour
         fleetData.CurrentWarpFactor = 0f;
         fleetData.CivLongName = thisCivData.CivLongName;
         fleetData.CivShortName = thisCivData.CivShortName;
+        fleetData.CivEnum = thisCivData.CivEnum;
+        fleetData.PlayerId = thisCivData.PlayerId;
+        //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
+        //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
+        fleetData.Insignia = thisCivData.InsigniaSprite;
+        fleetData.ShipsList = new List<ShipController>();
+        //fleetData.Position = position;
 
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-        galaxyMenuUICon.ResetClickMode();
-        galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
-        galaxyMenuUICon.StarSystLookingForShipDeploy = null;
+
+        //galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
+        //galaxyMenuUICon.StarSystLookingForShipDeploy = null;
 
         // TopFleet (source) for deploy UI
         ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
@@ -299,8 +306,8 @@ public class FleetMenuUIController : MonoBehaviour
         var newFleet = fleetManager.InstantiateFleet(oldFleetCon, emptyStarSysCon, fleetData, position, true);
 
         // Register new fleet into Galaxy controller state
-        galaxyMenuUICon.FleetSelectedForShipDeploy = newFleet;
-        galaxyMenuUICon.StarSystSelectedForShipDeploy = null;
+        //galaxyMenuUICon.FleetSelectedForShipDeploy = newFleet;
+        //galaxyMenuUICon.StarSystSelectedForShipDeploy = null;
         tempFleetController = newFleet;
 
         // Use the central GalaxyMenuUIController method so it performs full UI life-cycle and parents correctly.

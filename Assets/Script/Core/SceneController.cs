@@ -141,7 +141,7 @@ public class SceneController : MonoBehaviour
     public void UnloadCombatScene()
     {
         previousSceneName = "CombatScene";
-        ExposeScene("MainMenuScene"); // Re-enable the previous scene
+        ExposeScene("MainMenuGalaxyScene"); // Re-enable the previous scene
         galaxyCameraDragNDrop.SetActive(true); // Show the Galaxy Camera Drag and Drop GameObject again
         for (int i = 0; i < persistentObjects.Count; i++)
         {

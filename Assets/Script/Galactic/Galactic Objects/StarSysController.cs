@@ -233,7 +233,7 @@ namespace Assets.Core
                 clickedStarSysCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
                 starSysUIGameObject.transform.SetAsLastSibling();
             }
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedStarSysCon, deployNotMerge);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }

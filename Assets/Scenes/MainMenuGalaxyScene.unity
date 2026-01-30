@@ -576,8 +576,8 @@ MonoBehaviour:
   m_TextViewport: {fileID: 1752624680}
   m_TextComponent: {fileID: 46619937}
   m_Placeholder: {fileID: 550007832}
-  m_VerticalScrollBar: {fileID: 0}
-  m_VerticalScrollBarEventHandler: {fileID: 0}
+  m_VerticalScrollbar: {fileID: 0}
+  m_VerticalScrollbarEventHandler: {fileID: 0}
   m_LayoutGroup: {fileID: 0}
   m_ScrollSensitivity: 1
   m_ContentType: 0
@@ -27293,8 +27293,8 @@ MonoBehaviour:
   m_TextViewport: {fileID: 1527718983}
   m_TextComponent: {fileID: 1141681083}
   m_Placeholder: {fileID: 378524703}
-  m_VerticalScrollBar: {fileID: 0}
-  m_VerticalScrollBarEventHandler: {fileID: 0}
+  m_VerticalScrollbar: {fileID: 0}
+  m_VerticalScrollbarEventHandler: {fileID: 0}
   m_LayoutGroup: {fileID: 0}
   m_ScrollSensitivity: 1
   m_ContentType: 0

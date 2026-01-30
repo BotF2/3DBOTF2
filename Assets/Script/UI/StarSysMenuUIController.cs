@@ -783,19 +783,28 @@ public class StarSysMenuUIController : MonoBehaviour
         fleetData.CurrentWarpFactor = 0f;
         fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
         fleetData.CivShortName = thisCivData.CivShortName;
+        fleetData.CivEnum = thisCivData.CivEnum;
+        fleetData.PlayerId = thisCivData.PlayerId;
+        fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
+        //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
+        fleetData.Insignia = thisCivData.InsigniaSprite;
+        fleetData.ShipsList = new List<ShipController>();
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
         galaxyMenuUICon.ResetClickMode();
-        galaxyMenuUICon.FleetLookingForShipDeploy = null;
-        galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
-        ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
-        galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
-        galaxyMenuUICon.FleetLookingForShipDeploy = null;
+
         var newFleet = fleetManager.InstantiateFleet(null, sysController, fleetData, position, true);
         tempFleetController = newFleet;
-        var shipDelployUICon = ShipDeployMenuUIController.Instance;
-        shipDelployUICon.SetUpTopShipLists();
-        shipDelployUICon.SetUpBottomShipLists(newFleet);
-        shipDelployUICon.ShowShipDeployMenuView();
+        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleet);
+
+        // The GalaxyMenuUIController.ShowShipDeployForFleetNewFleet handles showing the panel and setting up lists,
+        // so we do not call ShipDeployMenuUIController methods here again.
+
+        //galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
+        //galaxyMenuUICon.FleetLookingForShipDeploy = null;
+        //var shipDelployUICon = ShipDeployMenuUIController.Instance;
+        //shipDelployUICon.SetUpTopShipLists(sysController.StarSysData.ShipsList);
+        //shipDelployUICon.SetUpBottomShipLists(newFleet);
+        //shipDelployUICon.ShowShipDeployMenuView();
     }
     public void ClickCancelShipManageButton()
     {
