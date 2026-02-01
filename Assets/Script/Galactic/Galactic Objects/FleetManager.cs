@@ -178,14 +178,14 @@ namespace Assets.Core
             newFleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
             int fleetInt = GetNewFleetInt(newFleetData.CivEnum); // now we can set fleet int and name
             newFleetController.gameObject.name = newFleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
-            newFleetData.Name = newFleetController.gameObject.name;
+            newFleetData.Name = "Fleet " + fleetInt.ToString(); //newFleetController.gameObject.name;
             newFleetController.FleetData.FleetInt = fleetInt;
             FleetControllersInGame.Add(newFleetController);
             newFleetController.FleetData.CurrentWarpFactor = 0f;
             TextMeshProUGUI TheText = newFleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
             if (TheText != null)
             {
-                TheText.text = newFleetController.gameObject.name;
+                TheText.text = newFleetController.FleetData.Name;
                 newFleetData.Name = TheText.text;
             }
             FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>(); // FleetChildFields are om 3D map fleetGO prefab, not the fleetUI prefab

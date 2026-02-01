@@ -159,21 +159,21 @@ public class ShipManager : MonoBehaviour
         }
         return ourShipSO;
     }
-    public void BuildShipInSystem(ShipType shipType, StarSysController sysCon) // a destroyer for warp capable systems on game loading and shipyard during game
+    public void BuildShipInSystem(ShipType shipType, StarSysController systemCon) // a destroyer for warp capable systems on game loading and shipyard during game
     {
-        ShipSO ourShipSO = GetShipSO(shipType, sysCon.StarSysData.CurrentCivController.CivData.TechLevel, sysCon.StarSysData.CurrentOwnerCivEnum);
+        ShipSO ourShipSO = GetShipSO(shipType, systemCon.StarSysData.CurrentCivController.CivData.TechLevel, systemCon.StarSysData.CurrentOwnerCivEnum);
         List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
-        List<ShipController> shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList, sysCon.gameObject);
+        List<ShipController> shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList, systemCon.gameObject);
         foreach (ShipController shipCon in shipConListOfOne)
         {
             if (shipCon != null)
             {
-                shipCon.transform.SetParent(sysCon.transform);
+                shipCon.transform.SetParent(systemCon.transform);
                 // NOTE: InstantiateShipControllersWithDataFromSO already:
                 //  - adds the ShipController to ShipControllerList
                 //  - adds the ShipController to sysCon.StarSysData.ShipsList (when owner is a StarSysController)
                 // so we must not add them again to avoid duplicates.
-                shipCon.ShipData.CurrentStarSysController = sysCon;
+                shipCon.ShipData.CurrentStarSysController = systemCon;
                 shipCon.ShipData.CurrentFleetController = null;
             }
         }
@@ -309,7 +309,7 @@ public class ShipManager : MonoBehaviour
         // var shipCon = shipCon.GetComponent<FleetController>();
         CivEnum civEnum = fleetCon.FleetData.CivEnum;
         List<ShipSO> ships = new List<ShipSO>();
-        ships = FirstShipDateByTechlevel((int)CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
+        ships = FirstShipDateByTechLevel((int)CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
         List<ShipController> shipCons = new List<ShipController>();
         if (ships != null)
         {
@@ -326,7 +326,7 @@ public class ShipManager : MonoBehaviour
         }
         fleetCon.UpdateMaxWarp();
     }
-    public List<ShipSO> FirstShipDateByTechlevel(int techLevel, CivEnum civ)
+    public List<ShipSO> FirstShipDateByTechLevel(int techLevel, CivEnum civ)
     {
         List<ShipSO> listOfShipSOs = new List<ShipSO>();
         switch (techLevel)

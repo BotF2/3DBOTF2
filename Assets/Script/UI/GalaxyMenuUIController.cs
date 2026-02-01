@@ -36,6 +36,7 @@ public class GalaxyMenuUIController : MonoBehaviour
     private Camera galaxyEventCamera;
     [SerializeField]
     private Canvas parentCanvas;
+    //public GameObject ShipDeployPanelGO;
     [SerializeField]
     private FleetMenuUIController fleetMenuUIController;
     [SerializeField]
@@ -210,18 +211,45 @@ public class GalaxyMenuUIController : MonoBehaviour
     {
         if (shipDeployMenuUIController == null) return;
         // no GalaxyClickMode. this is new fleet button click;
-        MousePointerChanger.Instance.ResetCursor();
-        shipDeployMenuUIController.ShowShipDeployMenuView();
-        shipDeployMenuUIController.gameObject.SetActive(true);
+        Debug.Log($"ShowShipDeployForSystemNewFleet: opening deploy UI for system='{starSystCon?.name}' new fleet='{newFleet?.name}'");
 
+        MousePointerChanger.Instance.ResetCursor();
+
+        // CRITICAL FIX: Ensure star system has ShipListUIParent set up
+        if (starSystCon.StarSysData.ShipListUIParent == null)
+        {
+            Debug.LogWarning($"Star system '{starSystCon.name}' missing ShipListUIParent - setting it up now");
+
+            var uiFields = starSystCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+            if (uiFields != null && uiFields.shipContent != null)
+            {
+                starSystCon.StarSysData.ShipListUIParent = uiFields.shipContent.gameObject;
+                Debug.Log($"Set ShipListUIParent for system '{starSystCon.name}'");
+            }
+            else
+            {
+                Debug.LogError($"Cannot find shipContent for system '{starSystCon.name}'!");
+            }
+        }
+
+        shipDeployMenuUIController.gameObject.SetActive(true);
+        shipDeployMenuUIController.ShowShipDeployMenuView();
+
+        // Set up TopSlot with star system's ships
         shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList);
+
+        // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
+        shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
+
         var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-        if (starSystCon.StarSysUIGameObject != null)// 
+        if (starSystCon.StarSysUIGameObject != null)
         {
             starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
             starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
         }
         newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
+
+        Debug.Log($"ShowShipDeployForSystemNewFleet: TopStarSyst ShipListUIParent={(starSystCon.StarSysData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(shipDeployMenuUIController.BottomFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
     }
     internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
     {
@@ -230,6 +258,25 @@ public class GalaxyMenuUIController : MonoBehaviour
         Debug.Log($"ShowShipDeployForFleetNewFleet: opening deploy UI for original='{originalFleetCon?.name}' new='{newFleetController?.name}'");
 
         MousePointerChanger.Instance.ResetCursor();
+
+        // CRITICAL FIX: Ensure original fleet has ShipListUIParent set up
+        if (originalFleetCon.FleetData.ShipListUIParent == null)
+        {
+            Debug.LogWarning($"Original fleet '{originalFleetCon.name}' missing ShipListUIParent - setting it up now");
+
+            // Get the FleetUI_Fields from the fleet's UI GameObject
+            var uiFields = originalFleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (uiFields != null && uiFields.FleetShipContentGO != null)
+            {
+                originalFleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                Debug.Log($"Set ShipListUIParent for original fleet '{originalFleetCon.name}'");
+            }
+            else
+            {
+                Debug.LogError($"Cannot find FleetShipContentGO for fleet '{originalFleetCon.name}'!");
+            }
+        }
+
         shipDeployMenuUIController.gameObject.SetActive(true);
         shipDeployMenuUIController.ShowShipDeployMenuView();
 
@@ -248,7 +295,7 @@ public class GalaxyMenuUIController : MonoBehaviour
 
         newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
 
-        Debug.Log($"ShowShipDeployForFleetNewFleet: BottomFleet set to '{shipDeployMenuUIController.BottomFleet?.name}'");
+        Debug.Log($"ShowShipDeployForFleetNewFleet: TopFleet ShipListUIParent={(originalFleetCon.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(shipDeployMenuUIController.BottomFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
     }
     public void HideShipDeployMenu()
     {

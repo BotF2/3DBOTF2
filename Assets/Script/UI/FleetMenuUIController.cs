@@ -183,7 +183,10 @@ public class FleetMenuUIController : MonoBehaviour
             }
 
             FleetUI_Fields uiFields = newFleetUIGO.GetComponent<FleetUI_Fields>();
+            // UNCOMMENT THIS LINE:
             fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+
+            Debug.Log($"SetupFleetUIElements: Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
 
             float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
             float y = 0f;

@@ -1,4 +1,4 @@
-// Ignore Spelling: Sys
+// Ignore Spelling: Sys Anya
 
 using Assets.Core;
 using System;
@@ -709,7 +709,6 @@ public class StarSysMenuUIController : MonoBehaviour
         listOfStarSysUiGos.Clear();
     }
 
-    // Add this method to the StarSysMenuUIController class to fix CS0103
     private void StarSysClickShipDeployButton(StarSysController sysController)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
@@ -732,7 +731,6 @@ public class StarSysMenuUIController : MonoBehaviour
             ShipDeployMenuUIController.Instance.TopStarSyst = starSysController;
         }
     }
-
     private void ClickNewFleetButton(StarSysController sysController)
     {
         if (sysController.StarSysData.ShipsList.Count == 0) return;
@@ -748,7 +746,7 @@ public class StarSysMenuUIController : MonoBehaviour
         fleetData.CivShortName = thisCivData.CivShortName;
         fleetData.CivEnum = thisCivData.CivEnum;
         fleetData.PlayerId = thisCivData.PlayerId;
-        fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
+        //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
         //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
         fleetData.Insignia = thisCivData.InsigniaSprite;
         fleetData.ShipsList = new List<ShipController>();
@@ -759,21 +757,34 @@ public class StarSysMenuUIController : MonoBehaviour
         tempFleetController = newFleet;
         galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleet);
 
-        // The GalaxyMenuUIController.ShowShipDeployForFleetNewFleet handles showing the panel and setting up lists,
-        // so we do not call ShipDeployMenuUIController methods here again.
-
-        //galaxyMenuUICon.StarSystLookingForShipDeploy = sysController;
-        //galaxyMenuUICon.FleetLookingForShipDeploy = null;
-        //var shipDelployUICon = ShipDeployMenuUIController.Instance;
-        //shipDelployUICon.SetUpTopShipLists(sysController.StarSysData.ShipsList);
-        //shipDelployUICon.SetUpBottomShipLists(newFleet);
-        //shipDelployUICon.ShowShipDeployMenuView();
     }
     public void ClickCancelShipManageButton()
     {
+        // If the ShipDeploy panel is active, commit first and run the cleanup in the completion callback.
+        var sd = ShipDeployMenuUIController.Instance;
+        if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
+        {
+            // Use proper commit flow that waits for ships to be finalized
+            sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+            return;
+        }
+
+        // Normal path (panel not active) - just perform cleanup
+        CancelShipManageAfterCommit();
+    }
+
+    // New: run the cleanup logic *after* a commit has completed.
+    public void CancelShipManageAfterCommit()
+    {
         if (tempFleetController == null) return;
+
+        Debug.Log($"CancelShipManageAfterCommit (System): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
+
+        // Only destroy the fleet if it has NO ships
         if (tempFleetController.FleetData.ShipsList.Count == 0)
         {
+            Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
+
             if (FleetManager.Instance.TempFogRevealerFleet != null)
                 FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
             FleetManager.Instance.TempFogRevealerFleet = null;
@@ -781,15 +792,29 @@ public class StarSysMenuUIController : MonoBehaviour
             FleetManager.Instance.DestroyFleetController(tempFleetController);
             tempFleetController = null;
         }
+        else
+        {
+            Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
+            // Fleet has ships, so finalize it and keep it
+            tempFleetController = null; // Clear temp reference but don't destroy
+        }
+
         var galaxyUI = GalaxyMenuUIController.Instance;
-        galaxyUI.ClickCancelShipDeployButton();
-        galaxyUI.ResetClickMode();
         MousePointerChanger.Instance.ResetCursor();
         if (cancelShipManagerButtonGO != null)
             cancelShipManagerButtonGO.SetActive(false);
-        ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+        if (ShipDeployMenuUIController.Instance != null)
+            ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+        if (galaxyUI != null)
+        {
+            galaxyUI.ClickCancelShipDeployButton();
+            galaxyUI.ResetClickMode();
+            galaxyUI.CompleteShipExchange();
+        }
+
         HideA_SystemMenuView();
     }
+
     /// <summary>
     /// Sets the build progress slider for facility construction.
     /// </summary>
