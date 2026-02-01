@@ -233,7 +233,11 @@ public class GalaxyMenuUIController : MonoBehaviour
         shipDeployMenuUIController.gameObject.SetActive(true);
         shipDeployMenuUIController.ShowShipDeployMenuView();
 
+        // Set up TopSlot with original fleet's ships
         shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList);
+
+        // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
+        shipDeployMenuUIController.SetUpBottomShipLists(newFleetController, true);
 
         var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
         if (originalFleetCon.FleetUIGameObject != null)
@@ -243,6 +247,8 @@ public class GalaxyMenuUIController : MonoBehaviour
         }
 
         newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+
+        Debug.Log($"ShowShipDeployForFleetNewFleet: BottomFleet set to '{shipDeployMenuUIController.BottomFleet?.name}'");
     }
     public void HideShipDeployMenu()
     {

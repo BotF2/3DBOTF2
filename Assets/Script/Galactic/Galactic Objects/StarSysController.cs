@@ -23,7 +23,7 @@ namespace Assets.Core
         [SerializeField]
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
-        public bool SettingUpNewFleet = false;
+        // public bool SettingUpNewFleet = false;
         private Camera galaxyEventCamera;
         [SerializeField]
         private Canvas canvasToolTip;
@@ -211,8 +211,7 @@ namespace Assets.Core
 
         private void HandleShipMergeSelection(StarSysController clickedStarSysCon)
         {
-            if (!gameController.AreWeLocalPlayer(clickedStarSysCon.StarSysData.CurrentOwnerCivEnum) ||
-                clickedStarSysCon != this) return;
+            if (clickedStarSysCon != this) return;
             deployNotMerge = false;
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
@@ -240,6 +239,7 @@ namespace Assets.Core
         private void HandleShipDeploySelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
+            //SettingUpNewFleet = false;
             deployNotMerge = true;
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
@@ -267,6 +267,7 @@ namespace Assets.Core
         }
         private void HandleDestinationClick(StarSysController clickedSystemCon)
         {
+            //SettingUpNewFleet = false;
             var fleetLookingForDestination = GalaxyUI.FleetLookingForDestination.GetComponent<FleetController>();
             if (fleetLookingForDestination != null)
             {
@@ -282,6 +283,7 @@ namespace Assets.Core
         }
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
+            //SettingUpNewFleet = false;
             GalaxyUI.CloseButtonPressed();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
@@ -612,10 +614,6 @@ namespace Assets.Core
             }
         }
 
-        internal void InitNewFleet()
-        {
-            // ToDo: implement fleet creation in system
-        }
 
         internal void RemoveFromShipList(ShipController shipController)
         {

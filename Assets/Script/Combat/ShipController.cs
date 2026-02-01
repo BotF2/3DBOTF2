@@ -375,4 +375,19 @@ public class ShipController : MonoBehaviour
         WarpingInOver = true;
 
     }
+    /// <summary>
+    /// Ensures UI and data ownership are synchronized
+    /// </summary>
+    public void ValidateOwnership()
+    {
+        if (ShipListUIGameObject != null)
+        {
+            var uiItem = ShipListUIGameObject.GetComponent<ShipListUI_Item>();
+            if (uiItem != null)
+            {
+                uiItem.CurrentFleet = ShipData?.CurrentFleetController;
+                uiItem.CurrentStarSyst = ShipData?.CurrentStarSysController;
+            }
+        }
+    }
 }

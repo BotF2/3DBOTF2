@@ -32,7 +32,6 @@ public class StarSysMenuUIController : MonoBehaviour
     [Header("Power overload visuals")]
     [SerializeField] private GameObject powerOverload;
     public GameObject PowerOverloadImage;
-    //[SerializeField] private CoroutineRunner coroutineRunner;
     public Slider ShipSliderBuildProgress;
     public Slider SliderBuildProgress;
 
@@ -129,6 +128,8 @@ public class StarSysMenuUIController : MonoBehaviour
                     sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
 
                 var sysUIFieldElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                sysController.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
+
                 if (sysUIFieldElement == null)
                 {
                     Debug.LogWarning($"SetupSystemUIData: StarSysUI_Fields missing on UI prefab for {sysController.name}");
@@ -173,10 +174,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
                         sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
                     }
-                    //var comp = sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.factoryButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    //comp.button = SystemOnOffButtons.FactoryOffButton;
-                    //sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
-                    //sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
                 }
                 if (sysUIFieldElement.yardButtonOn != null)
                 {
@@ -187,10 +184,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
                         sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
                     }
-                    //var comp = sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.yardButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    //comp.button = SystemOnOffButtons.ShipyardOnButton;
-                    //sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
-                    //sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
                 }
                 if (sysUIFieldElement.yardButtonOff != null)
                 {
@@ -201,10 +194,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
                         sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
                     }
-                    //var comp = sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.yardButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    //comp.button = SystemOnOffButtons.ShipyardOffbutton;
-                    //sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
-                    //sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
                 }
                 if (sysUIFieldElement.shieldButtonOn != null)
                 {
@@ -215,10 +204,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
                         sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
                     }
-                    //var comp = sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.shieldButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                    //comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
-                    //sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
-                    //sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
                 }
                 if (sysUIFieldElement.shieldButtonOff != null)
                 {
@@ -229,10 +214,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
                         sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
                     }
-                    //var comp = sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.shieldButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                    //comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
-                    //sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
-                    //sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
                 }
                 if (sysUIFieldElement.oBButtonOn != null)
                 {
@@ -242,11 +223,6 @@ public class StarSysMenuUIController : MonoBehaviour
                         comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
                         sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
                         sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
-                        //}
-                        //var comp = sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.oBButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                        //comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
-                        //sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
-                        //sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
                     }
                     if (sysUIFieldElement.oBButtonOff != null)
                     {
@@ -257,10 +233,6 @@ public class StarSysMenuUIController : MonoBehaviour
                             sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
                             sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
                         }
-                        //var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.oBButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                        //comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
-                        //sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
-                        //sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
                     }
                     if (sysUIFieldElement.researchButtonOn != null)
                     {
@@ -271,10 +243,6 @@ public class StarSysMenuUIController : MonoBehaviour
                             sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
                             sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
                         }
-                        //var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.researchButtonOn.gameObject.AddComponent<SysButtonOnOff>();
-                        //comp.button = SystemOnOffButtons.ResearchCenterOnButton;
-                        //sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
-                        //sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
                     }
                     if (sysUIFieldElement.researchButtonOff != null)
                     {
@@ -285,10 +253,6 @@ public class StarSysMenuUIController : MonoBehaviour
                             sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
                             sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
                         }
-                        //var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>() ?? sysUIFieldElement.researchButtonOff.gameObject.AddComponent<SysButtonOnOff>();
-                        //comp.button = SystemOnOffButtons.ResearchCenterOffButton;
-                        //sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
-                        //sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
                     }
 
                     // Slider bindings
@@ -352,6 +316,7 @@ public class StarSysMenuUIController : MonoBehaviour
 
     public void SetActiveSetParentUIGO(StarSysController theSysCon)
     {
+        SetupSystemUIData();
         if (theSysCon == null) return;
         theSysCon.StarSysUIGameObject.SetActive(true);
         theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
@@ -386,8 +351,10 @@ public class StarSysMenuUIController : MonoBehaviour
         for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
         {
             var child = ASystemMenuView.transform.GetChild(i)?.gameObject;
-            if (child == null) continue;
-
+            if (child == null)
+            {
+                continue;
+            }
             var childCtrl = child.GetComponent<FleetAndSystemChildController>();
             if (childCtrl != null)
             {
@@ -395,6 +362,7 @@ public class StarSysMenuUIController : MonoBehaviour
                 // Fallback: if OriginalParentTransform is null or equals ASystemMenuView, use SysListContainer if available
                 if (originalParent == null || originalParent == ASystemMenuView.transform)
                 {
+                    lastSysCon = childCtrl.GetComponentInParent<StarSysController>();
                     if (SysListContainer != null)
                         originalParent = SysListContainer.transform;
                 }
@@ -403,13 +371,14 @@ public class StarSysMenuUIController : MonoBehaviour
                     child.transform.SetParent(originalParent, false);
             }
         }
-        lastSysCon = null;
+
     }
     public void CloseBuildingQueues()
     {
         GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
         GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
-        lastSysCon.LoadAStarSystem();
+        if (lastSysCon != null)
+            lastSysCon.LoadAStarSystem();
     }
     public void RemoveSystem(StarSysController sysController)
     {
@@ -476,7 +445,7 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fileds)
+    private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fields)
     {
         int numOn = 0;
         for (int j = 0; j < facilities.Count; j++)
@@ -528,7 +497,7 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    internal void AddSysFacility(StarSysController controller, GameObject faciltyGO, string loadName, string ratioName, StarSysFacilityType facilityType)
+    internal void AddSysFacility(StarSysController controller, GameObject facilityGO, string loadName, string ratioName, StarSysFacilityType facilityType)
     {
         // Ensure StarSysData exists
         var starSysData = controller.StarSysData;
@@ -590,8 +559,8 @@ public class StarSysMenuUIController : MonoBehaviour
             }
 
             // Add the facility GameObject to the list if not already present
-            if (faciltyGO != null && !facilities.Contains(faciltyGO))
-                facilities.Add(faciltyGO);
+            if (facilityGO != null && !facilities.Contains(facilityGO))
+                facilities.Add(facilityGO);
 
             // Try to update typed UI first
             var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
@@ -712,13 +681,6 @@ public class StarSysMenuUIController : MonoBehaviour
         }
     }
 
-    internal void UpdateSystemShipList(StarSysController sysCon)
-    {
-        // Placeholder for UI update logic specific to a system ship list.
-        // The original method threw NotImplementedException.
-        // Implement specific incremental updates here when you need them.
-    }
-
     private void OnDisable()
     {
         // When the UI menu closes (e.g., switching menus or hiding canvas)
@@ -728,16 +690,16 @@ public class StarSysMenuUIController : MonoBehaviour
     private void OnDestroy()
     {
         // When this controller is destroyed (e.g., scene unload)
-        ClearAllStarSysUIs();
+        ClearAllStarSysUiGos();
     }
 
-    public void CleanupDestroyedOrInactiveUIs()
+    private void CleanupDestroyedOrInactiveUIs()
     {
-        // Remove any destroyed or inactive GameObjects from the list
-        listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeInHierarchy);
-        Debug.Log("DiplomacyMenuUIController: Cleaned up destroyed or inactive diplomacy UIs.");
+        // Remove any StarSysUIGameObject references that are destroyed or inactive
+        listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeSelf);
     }
-    public void ClearAllStarSysUIs()
+
+    private void ClearAllStarSysUiGos()
     {
         foreach (var go in listOfStarSysUiGos)
         {
@@ -745,18 +707,18 @@ public class StarSysMenuUIController : MonoBehaviour
                 Destroy(go);
         }
         listOfStarSysUiGos.Clear();
-        Debug.Log("Cleared all diplomacy UI GameObjects.");
     }
 
-    internal void StarSysClickShipDeployButton(StarSysController starSysCon)
+    // Add this method to the StarSysMenuUIController class to fix CS0103
+    private void StarSysClickShipDeployButton(StarSysController sysController)
     {
         var galaxyUI = GalaxyMenuUIController.Instance;
         if (galaxyUI != null)
         {
-            galaxyUI.WhatSystIsLookingForShipDeploy(starSysCon);
+            galaxyUI.WhatSystIsLookingForShipDeploy(sysController);
             galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipDeploy);
             MousePointerChanger.Instance.SetShipExchangeCursor();
-            ShipDeployMenuUIController.Instance.TopStarSyst = starSysCon;
+            ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
         }
     }
     private void StarSysClickMergeShipsButton(StarSysController starSysController)
@@ -770,6 +732,7 @@ public class StarSysMenuUIController : MonoBehaviour
             ShipDeployMenuUIController.Instance.TopStarSyst = starSysController;
         }
     }
+
     private void ClickNewFleetButton(StarSysController sysController)
     {
         if (sysController.StarSysData.ShipsList.Count == 0) return;
@@ -825,15 +788,29 @@ public class StarSysMenuUIController : MonoBehaviour
         if (cancelShipManagerButtonGO != null)
             cancelShipManagerButtonGO.SetActive(false);
         ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+        HideA_SystemMenuView();
+    }
+    /// <summary>
+    /// Sets the build progress slider for facility construction.
+    /// </summary>
+    /// <param name="progress">Progress value between 0 and 1.</param>
+    public void SetBuildProgress(float progress)
+    {
+        if (SliderBuildProgress != null)
+        {
+            SliderBuildProgress.value = Mathf.Clamp01(progress);
+        }
     }
 
-    internal void SetBuildProgress(float buildingProgress)
+    /// <summary>
+    /// Sets the build progress slider for ship construction.
+    /// </summary>
+    /// <param name="progress">Progress value between 0 and 1.</param>
+    public void SetShipBuildProgress(float progress)
     {
-        SliderBuildProgress.value = buildingProgress;
-    }
-
-    internal void SetShipBuildProgress(float shipProgress)
-    {
-        ShipSliderBuildProgress.value = shipProgress;
+        if (ShipSliderBuildProgress != null)
+        {
+            ShipSliderBuildProgress.value = Mathf.Clamp01(progress);
+        }
     }
 }

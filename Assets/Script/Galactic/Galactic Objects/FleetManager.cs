@@ -2,7 +2,6 @@
 
 using FischlWorks_FogWar;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -131,14 +130,10 @@ namespace Assets.Core
         }
 
         public FleetController InstantiateFleet(FleetController originalFleetCon, StarSysController systCon, FleetData newFleetData, Vector3 position, bool newFleet)
-        { // from a fleet spawning a new fleet, newFleet(true), or a star system creating a new fleet, newFleet(true) vs a fleet created when the game loads and newfleet(false)
+        {
+            // from a fleet spawning a new fleet, newFleet(true), or a star system creating a new fleet, newFleet(true) vs a fleet created when the game loads and new fleet(false)
             newFleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
-            IEnumerable<StarSysController> ourCivSysCons =
-            from x in StarSysManager.Instance.StarSysControllerList
-            where (x.StarSysData.CurrentOwnerCivEnum == newFleetData.CivEnum)
-            select x;
-            var ourSysCons = ourCivSysCons.ToList();
 
             FleetController newFleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
@@ -153,12 +148,12 @@ namespace Assets.Core
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.gameObject.transform;
-            if (systCon.StarSysData != null && !newFleet)
+            if (systCon.StarSysData != null && !newFleet)// if the star system is real and not a current fleet creating a new fleet
             {
                 newTrans = systCon.transform; // first fleets near home systems
-                Destroy(originalFleetCon.gameObject); // destroy the original fleet controller used as template empty
+                Destroy(originalFleetCon.gameObject); // destroy the empty original fleet controller used as template empty
             }
-            else if (originalFleetCon.FleetData != null && newFleet)
+            else if (originalFleetCon != null && newFleet)// the original fleet is a real current fleet and making a new fleet
                 newTrans = originalFleetCon.transform;
             else if (systCon.StarSysData != null && newFleet)
                 newTrans = systCon.transform;
@@ -168,12 +163,12 @@ namespace Assets.Core
             if (newTrans != null)
             {
                 if (!newFleet)
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));// first fleets on load map, right and up from system
                 else
-                {
+                { // cycle location to fit in new fleets
                     if (newFleetSpacer > 10f)
                         newFleetSpacer = 0;
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z)); // start Left and up from fleet 
                     newFleetSpacer = newFleetSpacer + 5f;
                 }
             }
@@ -181,11 +176,10 @@ namespace Assets.Core
             if (!newFleet)
                 ShipManager.Instance.BuildShipsOfFirstFleet(newFleetController);
             newFleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1); // scale ship insignia here
-            int fleetInt = GetNewFleetInt(newFleetData.CivEnum);
+            int fleetInt = GetNewFleetInt(newFleetData.CivEnum); // now we can set fleet int and name
             newFleetController.gameObject.name = newFleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString(); // name game object
             newFleetData.Name = newFleetController.gameObject.name;
             newFleetController.FleetData.FleetInt = fleetInt;
-            //newFleetController.Name = newFleetData.Name;
             FleetControllersInGame.Add(newFleetController);
             newFleetController.FleetData.CurrentWarpFactor = 0f;
             TextMeshProUGUI TheText = newFleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
@@ -194,7 +188,7 @@ namespace Assets.Core
                 TheText.text = newFleetController.gameObject.name;
                 newFleetData.Name = TheText.text;
             }
-            FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>();
+            FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>(); // FleetChildFields are om 3D map fleetGO prefab, not the fleetUI prefab
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
             srInsignia.sprite = newFleetController.FleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
@@ -238,27 +232,16 @@ namespace Assets.Core
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
                 if (civCon.CivData.CivEnum == newFleetData.CivEnum)
+                {
                     newFleetData.CivController = civCon;
+                    break;
+                }
             }
             newFleetController.gameObject.SetActive(true);
 
             newFleetController.UpdateMaxWarp();
             InstantiateFleetUIGameObject(newFleetController, newFleet);
-            //if (newFleet)
-            //{
-            //    var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-            //    galaxyMenuUICon.FleetSelectedForShipDeploy = newFleetController;
-            //    if (systCon.StarSysData != null)
-            //        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(systCon, newFleetController);
-            //    if (originalFleetCon.FleetData != null)
-            //        galaxyMenuUICon.ShowShipDeployForFleetNewFleet(originalFleetCon, newFleetController);
-            //    ShipDeployMenuUIController.Instance.BottomFleet = newFleetController;
-            //}
-            //else
-            //{
-            //    GalaxyMenuUIController.Instance.FleetSelectedForShipDeploy = null;
-            //    GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
-            //}
+
             // hover ui 3d
             //if (!GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
             //{
@@ -301,9 +284,6 @@ namespace Assets.Core
                     {
                         Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
                     }
-
-                    //if (newFleet)
-
                 }
             }
             var shipManager = ShipManager.Instance;

@@ -5,9 +5,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-/// <summary>
-/// The UI controller owns hierarchy and presentation.
-/// </summary>
 
 public class FleetMenuUIController : MonoBehaviour
 {
@@ -170,7 +167,7 @@ public class FleetMenuUIController : MonoBehaviour
     public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
     {
         if (fleetCon == null || newFleetUIGO == null) return;
-        if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) && GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+        if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject))
         {
 
             newFleetUIGO.SetActive(true);
@@ -186,6 +183,8 @@ public class FleetMenuUIController : MonoBehaviour
             }
 
             FleetUI_Fields uiFields = newFleetUIGO.GetComponent<FleetUI_Fields>();
+            fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+
             float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
             float y = 0f;
             float z = fleetCon.FleetData.Position.z * 0.12f;
@@ -267,16 +266,15 @@ public class FleetMenuUIController : MonoBehaviour
     }
 
 
-    private void ClickNewFleetButton(FleetController oldFleetCon)
+    private void ClickNewFleetButton(FleetController currentFleetCon)
     {
-        if (oldFleetCon == null) return;
-        if (oldFleetCon.FleetData.ShipsList.Count < 2) return;
+        if (currentFleetCon == null || currentFleetCon.FleetData == null) return;
+        if (currentFleetCon.FleetData.ShipsList.Count < 2) return;
 
         MousePointerChanger.Instance.ResetCursor();
-
         var fleetManager = FleetManager.Instance;
-        FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)oldFleetCon.FleetData.CivEnum);
-        var position = oldFleetCon.FleetData.GetPosition();
+        FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)currentFleetCon.FleetData.CivEnum);
+        var position = currentFleetCon.FleetData.GetPosition();
 
         CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
         FleetData fleetData = new FleetData(fleetSO);
@@ -285,52 +283,68 @@ public class FleetMenuUIController : MonoBehaviour
         fleetData.CivShortName = thisCivData.CivShortName;
         fleetData.CivEnum = thisCivData.CivEnum;
         fleetData.PlayerId = thisCivData.PlayerId;
-        //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
-        //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
+        //Not fleetData.FleetInt, wait to get fleet num from instantiate fleet in = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
+        //Same goes for fleetData.Name = $"{thisCivData.CivLongName} Fleet {fleetData.FleetInt}";
         fleetData.Insignia = thisCivData.InsigniaSprite;
         fleetData.ShipsList = new List<ShipController>();
-        //fleetData.Position = position;
+        //Not fleetData.Position, wait for it = position;
 
         var galaxyMenuUICon = GalaxyMenuUIController.Instance;
 
-        //galaxyMenuUICon.FleetLookingForShipDeploy = oldFleetCon;
-        //galaxyMenuUICon.StarSystLookingForShipDeploy = null;
-
         // TopFleet (source) for deploy UI
-        ShipDeployMenuUIController.Instance.TopFleet = oldFleetCon;
+        ShipDeployMenuUIController.Instance.TopFleet = currentFleetCon;
 
         // Create an empty star system placeholder used by InstantiateFleet
         var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
 
-        // Create the new fleet (split off)
-        var newFleet = fleetManager.InstantiateFleet(oldFleetCon, emptyStarSysCon, fleetData, position, true);
+        // Create the new fleet (split off) in FleetManager
+        var newFleet = fleetManager.InstantiateFleet(currentFleetCon, emptyStarSysCon, fleetData, position, true);
 
-        // Register new fleet into Galaxy controller state
-        //galaxyMenuUICon.FleetSelectedForShipDeploy = newFleet;
-        //galaxyMenuUICon.StarSystSelectedForShipDeploy = null;
         tempFleetController = newFleet;
 
-        // Use the central GalaxyMenuUIController method so it performs full UI life-cycle and parents correctly.
-        Debug.Log($"ClickNewFleetButton: requesting ShipDeploy UI for new fleet '{newFleet?.name}' (from {oldFleetCon?.name})");
-        galaxyMenuUICon.ShowShipDeployForFleetNewFleet(oldFleetCon, newFleet);
+        // CRITICAL: Ensure the new fleet has its ShipListUIParent set up
+        if (newFleet.FleetData.ShipListUIParent == null)
+        {
+            Debug.LogWarning($"New fleet '{newFleet.name}' has no ShipListUIParent! Creating temporary container.");
+            // This should ideally be set up in InstantiateFleet or ShowShipDeployForFleetNewFleet
+        }
 
-        // The GalaxyMenuUIController.ShowShipDeployForFleetNewFleet handles showing the panel and setting up lists,
-        // so we do not call ShipDeployMenuUIController methods here again.
+        Debug.Log($"ClickNewFleetButton: New fleet '{newFleet?.name}' created with ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
+
+        // Use the central GalaxyMenuUIController method so it performs full UI life-cycle and parents correctly.
+        Debug.Log($"ClickNewFleetButton: requesting ShipDeploy UI for new fleet '{newFleet?.name}' (from {currentFleetCon?.name})");
+        galaxyMenuUICon.ShowShipDeployForFleetNewFleet(currentFleetCon, newFleet);
 
         Destroy(emptyStarSysCon.gameObject);
     }
 
     public void ClickCancelShipManageButton()
     {
-        // Ensure any open ship-deploy UI commits its slot state first
-        if (ShipDeployMenuUIController.Instance != null && ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
+        // If the ShipDeploy panel is active, commit first and run the cleanup in the completion callback.
+        var sd = ShipDeployMenuUIController.Instance;
+        if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
         {
-            ShipDeployMenuUIController.Instance.CommitShipDeployAndClose();
+            // Use proper commit flow that waits for ships to be finalized
+            sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+            return;
         }
 
+        // Normal path (panel not active) - just perform cleanup
+        CancelShipManageAfterCommit();
+    }
+
+    // New: run the cleanup logic *after* a commit has completed.
+    public void CancelShipManageAfterCommit()
+    {
         if (tempFleetController == null) return;
+
+        Debug.Log($"CancelShipManageAfterCommit (Fleet): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
+
+        // Only destroy the fleet if it has NO ships
         if (tempFleetController.FleetData.ShipsList.Count == 0)
         {
+            Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
+
             if (FleetManager.Instance.TempFogRevealerFleet != null)
                 FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
             FleetManager.Instance.TempFogRevealerFleet = null;
@@ -338,14 +352,25 @@ public class FleetMenuUIController : MonoBehaviour
             FleetManager.Instance.DestroyFleetController(tempFleetController);
             tempFleetController = null;
         }
+        else
+        {
+            Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
+            // Fleet has ships, so finalize it and keep it
+            tempFleetController = null; // Clear temp reference but don't destroy
+        }
+
         var galaxyUI = GalaxyMenuUIController.Instance;
         MousePointerChanger.Instance.ResetCursor();
         if (cancelShipManagerButtonGO != null)
             cancelShipManagerButtonGO.SetActive(false);
-        ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
-        galaxyUI.ClickCancelShipDeployButton();
-        galaxyUI.ResetClickMode();
-        galaxyUI.CompleteShipExchange();
+        if (ShipDeployMenuUIController.Instance != null)
+            ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+        if (galaxyUI != null)
+        {
+            galaxyUI.ClickCancelShipDeployButton();
+            galaxyUI.ResetClickMode();
+            galaxyUI.CompleteShipExchange();
+        }
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {
