@@ -1,6 +1,7 @@
 // Ignore Spelling: Sys
 
 using UnityEngine;
+using UnityEngine.UI;
 
 
 
@@ -375,6 +376,13 @@ namespace Assets.Core
         private MainMenuUIController mainMenuUIController;
         public GameController GameController;
 
+        [Header("Galaxy Reference")]
+        [SerializeField] private GameObject galaxyImageGO; // Assign in Inspector
+
+        // Cached bounds to avoid recalculating every frame
+        private float galaxyWidth = -1f;
+        private float galaxyHeight = -1f;
+
 
         private void Awake()
         {
@@ -401,6 +409,70 @@ namespace Assets.Core
                 mainMenuUIController.LoadDefault();
                 this.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
             }
+        }
+        public float GalaxyWidth
+        {
+            get
+            {
+                if (galaxyWidth < 0f)
+                    CalculateGalaxyBounds();
+                return galaxyWidth;
+            }
+        }
+
+        public float GalaxyHeight
+        {
+            get
+            {
+                if (galaxyHeight < 0f)
+                    CalculateGalaxyBounds();
+                return galaxyHeight;
+            }
+        }
+        private void CalculateGalaxyBounds()
+        {
+            if (galaxyImageGO == null)
+            {
+                Debug.LogWarning("GameManager: galaxyImageGO is null, using default galaxy bounds.");
+                galaxyWidth = 200f;
+                galaxyHeight = 200f;
+                return;
+            }
+
+            var spriteRenderer = galaxyImageGO.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                // SpriteRenderer.bounds gives world-space size after scale
+                galaxyWidth = spriteRenderer.bounds.size.x;
+                galaxyHeight = spriteRenderer.bounds.size.z; // or .y depending on your axis
+                Debug.Log($"GameManager: Galaxy bounds calculated: width={galaxyWidth}, height={galaxyHeight}");
+            }
+            else
+            {
+                // Fallback: if Image component (UI) instead of SpriteRenderer
+                var image = galaxyImageGO.GetComponent<Image>();
+                var rectTransform = galaxyImageGO.GetComponent<RectTransform>();
+                if (image != null && rectTransform != null)
+                {
+                    galaxyWidth = rectTransform.rect.width * rectTransform.lossyScale.x;
+                    galaxyHeight = rectTransform.rect.height * rectTransform.lossyScale.y;
+                    Debug.Log($"GameManager: Galaxy UI bounds calculated: width={galaxyWidth}, height={galaxyHeight}");
+                }
+                else
+                {
+                    Debug.LogWarning("GameManager: No SpriteRenderer or Image found on galaxyImageGO, using default bounds.");
+                    galaxyWidth = 200f;
+                    galaxyHeight = 200f;
+                }
+            }
+        }
+
+        // Optional: force recalculation if galaxy scale changes at runtime
+        public void RecalculateGalaxyBounds()
+        {
+            galaxyWidth = -1f;
+            galaxyHeight = -1f;
+            CalculateGalaxyBounds();
         }
     }
 }

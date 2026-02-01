@@ -20,9 +20,16 @@ namespace Assets.Core
         public int intName = 1;
         private readonly float warpFudgeFactor = 10f;
         private Rigidbody rb;
+        private float updateInterval = 0.1f; // ~10 updates/sec (adjust for smoothness vs performance)
+        private float lastUpdateTime;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
+        private float galaxyWidth = 1f;
+        private float galaxyHeight = 1f;
+        private float minimapWidth = 200f;
+        private float minimapHeight = 400f;
+        private bool gotMapSizeFromGameManager = false;
         [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
         private readonly GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
@@ -101,6 +108,9 @@ namespace Assets.Core
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
+            galaxyWidth = GameManager.Instance.GalaxyWidth;
+            galaxyHeight = GameManager.Instance.GalaxyHeight;
+
         }
         private void FixedUpdate()
         {
@@ -109,12 +119,43 @@ namespace Assets.Core
             // and if the player clicks on or OnTrigerEntere.... it causes errors
             if (FleetData != null && FleetData.Destination != null)
             {
-                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
+                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && FleetData.CurrentWarpFactor > 0f)
                 {
+                    // Always move the fleet (physics)
                     MoveToDesitinationGO(GetDirection(), distanceToDestination);
-                    DrawDestinationLine(FleetData.Destination.transform.position);
+                    if (!gotMapSizeFromGameManager)
+                        GetMapSise();
+                    // Throttle visual updates (line rendering, UI)
+                    if (Time.time - lastUpdateTime >= updateInterval)
+                    {
+                        DrawDestinationLine(FleetData.Destination.transform.position);
+                        UpdateMinimapPosition(); // Add this
+                        lastUpdateTime = Time.time;
+                    }
                 }
             }
+        }
+
+        private void GetMapSise()
+        {
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
+            RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
+            float minimapWidth = minimapRect.rect.width;
+            float minimapHeight = minimapRect.rect.height;
+            gotMapSizeFromGameManager = true;
+        }
+
+        private void UpdateMinimapPosition()
+        {
+            if (FleetUIGameObject == null) return;
+
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
+
+            // Convert world position to minimap coordinates
+            Vector2 minimapPos = WorldToMinimapPosition(transform.position);
+            fleetUIFields.MinimapRedDot.anchoredPosition = minimapPos;
         }
         public GameObject ShipListUIParent
         {
@@ -127,6 +168,22 @@ namespace Assets.Core
                 if (ShipManager.Instance != null)
                     ShipManager.Instance.ProcessPendingShipUIs();
             }
+        }
+        private Vector2 WorldToMinimapPosition(Vector3 worldPos)
+        {
+            // Assuming the minimap represents a specific area of the galaxy
+            //float galaxyWidth = 2f; // GameManager.Instance.GalaxyWidth;
+            //float galaxyHeight = 4f; // GameManager.Instance.GalaxyHeight;
+            // Get minimap RectTransform
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return Vector2.zero;
+            RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
+            float minimapWidth = minimapRect.rect.width;
+            float minimapHeight = minimapRect.rect.height;
+            // Convert world position to minimap coordinates
+            float x = (worldPos.x / galaxyWidth) * minimapWidth;
+            float y = (worldPos.z / galaxyHeight) * minimapHeight; // Assuming z is forward in world space
+            return new Vector2(x, y);
         }
         public Rigidbody GetRigidBody() { return rb; }
 

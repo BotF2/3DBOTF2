@@ -237,7 +237,7 @@ public class DiplomacyMenuUIController : MonoBehaviour
         {
             switch (rectTransforms[i].name)
             {
-                case "RedDot":
+                case "MinimapRedDot":
                     rectTransforms[i].gameObject.SetActive(true);
                     float x = homeSysController.StarSysData.GetPosition().x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
                     float y = 0f;

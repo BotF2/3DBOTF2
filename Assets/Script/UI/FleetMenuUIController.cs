@@ -191,7 +191,11 @@ public class FleetMenuUIController : MonoBehaviour
             float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
             float y = 0f;
             float z = fleetCon.FleetData.Position.z * 0.12f;
-            uiFields.RedDot.Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
+            RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
+
+            dot.anchoredPosition = new Vector2(x, z); // flip from z in 3D map to the y position to for UI mini map
+
+            //uiFields.RedDot.Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
             // Button bindings
             uiFields.DestinationDragTarget.gameObject.SetActive(true);
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
