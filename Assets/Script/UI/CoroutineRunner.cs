@@ -5,7 +5,7 @@ using UnityEngine;
 public class CoroutineRunner : MonoBehaviour
 {
     private static CoroutineRunner instance;
-
+    private GameObject goForFlash;
     public static CoroutineRunner Instance
     {
         get
@@ -32,16 +32,17 @@ public class CoroutineRunner : MonoBehaviour
     }
 
     // ✅ STATIC API — safest usage
-    public static void FlashPowerOverload()
+    public static void FlashPowerOverload(GameObject goToActivateForFlash)
     {
+        Instance.goForFlash = goToActivateForFlash;
         Instance.StartCoroutine(Instance.WaitAndFlash());
     }
 
     private IEnumerator WaitAndFlash()
     {
         yield return new WaitUntil(() =>
-            StarSysMenuUIController.Instance != null &&
-            StarSysMenuUIController.Instance.PowerOverloadImage != null);
+            StarSysMenuUIController.Instance != null); // &&
+                                                       //StarSysMenuUIController.Instance.PowerOverloadImage != null);
 
         yield return FlashRoutine();
     }
@@ -51,9 +52,11 @@ public class CoroutineRunner : MonoBehaviour
     {
         for (int i = 0; i < 3; i++)
         {
-            StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(true);
+            //StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(true);
+            goForFlash.SetActive(true);
             yield return new WaitForSeconds(0.5f);
-            StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(false);
+            //StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(false);
+            goForFlash.SetActive(false);
             yield return new WaitForSeconds(0.5f);
         }
     }

@@ -95,7 +95,7 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image orbitalBatteriesImage;
     public Image researchImage;
     //public Image powerOverLoad;
-    public Image powerOverloadImage;
+
     //internal CoroutineRunner coroutineRunner;
     private void Awake()
     {

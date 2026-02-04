@@ -23,7 +23,7 @@ namespace Assets.Core
         [SerializeField]
         private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
         public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
-        // public bool SettingUpNewFleet = false;
+        private GameObject goForPowerOverload;
         private Camera galaxyEventCamera;
         [SerializeField]
         private Canvas canvasToolTip;
@@ -93,7 +93,8 @@ namespace Assets.Core
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
             canvasToolTip.worldCamera = galaxyEventCamera;
-            //OnOffSysFacilityEvents.current.FacilityOnClick += FactoryButtonOnClicked;// subscribe method to the event += () => Debug.Log("Action Invoked!");
+            if (StarSysUI != null)
+                goForPowerOverload = StarSysUI.PowerOverloadImage;
         }
         private void OnTransformChildrenChanged() //Unity automatically invokes when the transform hierarchy of the Controller GameObject changes.
         {  // This UI Queue is in the SysBuildUIListPanel prefab and not a child of StarSysController, BuildQueueWatcher helps call OnTransformChildrenChanged()
@@ -192,7 +193,7 @@ namespace Assets.Core
             switch (GalaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    GalaxyMenuUIController.Instance.CloseButtonPressed();
+                    GalaxyMenuUIController.Instance.CloseShipDeploy();
                     HandleNormalClick(clickedStarSysCon);
                     break;
                 case GalaxyClickMode.SetDestination:
@@ -284,7 +285,7 @@ namespace Assets.Core
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
             //SettingUpNewFleet = false;
-            GalaxyUI.CloseButtonPressed();
+            GalaxyUI.CloseShipDeploy();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
             {
@@ -381,13 +382,18 @@ namespace Assets.Core
         }
         public void FactoryButtonOnClicked(StarSysController starSysCon)
         {
+
             if (starSysCon != null && this == starSysCon)
             {
+                if (starSysUI == null)
+                    starSysUI = StarSysMenuUIController.Instance;
+                if (goForPowerOverload == null)
+                    goForPowerOverload = starSysUI.PowerOverloadImage;
                 // Do we have enough power to turn a factory on?
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
                 for (int i = 0; i < this.StarSysData.Factories.Count; i++)
                 {
@@ -430,7 +436,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
                 for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
                 {
@@ -473,7 +479,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
 
                 }
                 for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
@@ -516,7 +522,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad >
                             this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
             for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
             {
@@ -558,7 +564,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad >
                          this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
                 for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
                 {

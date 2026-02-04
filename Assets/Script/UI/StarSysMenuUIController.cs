@@ -30,7 +30,6 @@ public class StarSysMenuUIController : MonoBehaviour
     [SerializeField] private GameObject cancelShipManagerButtonGO;
     [SerializeField] private FleetController tempFleetController;
     [Header("Power overload visuals")]
-    [SerializeField] private GameObject powerOverload;
     public GameObject PowerOverloadImage;
     public Slider ShipSliderBuildProgress;
     public Slider SliderBuildProgress;
@@ -50,7 +49,7 @@ public class StarSysMenuUIController : MonoBehaviour
 
     private void Start()
     {
-        CoroutineRunner.FlashPowerOverload();
+        //CoroutineRunner.FlashPowerOverload(PowerOverloadImage);
         // Record the original parent of each StarSysUIGameObject as its current parent (or fall back to SysListContainer / ASystemMenuView).
         for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
         {
@@ -288,10 +287,10 @@ public class StarSysMenuUIController : MonoBehaviour
                     {
                         Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysController.name}: {ex.Message}");
                     }
-
+                    PowerOverloadImage = sysUIFieldElement.PowerOverload;
                     // Persist references used by menu controller
-                    powerOverload = sysUIFieldElement.powerOverload != null ? sysUIFieldElement.powerOverload.gameObject : sysUIFieldElement.PowerOverload;
-                    PowerOverloadImage = sysUIFieldElement.powerOverloadImage != null ? sysUIFieldElement.powerOverloadImage.gameObject : sysUIFieldElement.PowerOverload?.gameObject;
+                    //powerOverload = sysUIFieldElement.powerOverload != null ? sysUIFieldElement.powerOverload.gameObject : sysUIFieldElement.PowerOverload;
+                    //PowerOverloadImage = sysUIFieldElement.powerOverloadImage != null ? sysUIFieldElement.powerOverloadImage.gameObject : sysUIFieldElement.PowerOverload?.gameObject;
                     //coroutineRunner = CoroutineRunner.Instance;
 
                     // Attach system ships UI if any
@@ -486,6 +485,8 @@ public class StarSysMenuUIController : MonoBehaviour
 
         sysCon.StarSysData.TotalSysPowerLoad = load;
         sysCon.StarSysData.TotalSysPowerOutput = output;
+        //if (load > output)
+        //    CoroutineRunner.FlashPowerOverload();
         TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
         for (int i = 0; i < OneTMP.Length; i++)
         {

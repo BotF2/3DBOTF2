@@ -166,7 +166,7 @@ public class GalaxyMenuUIController : MonoBehaviour
         habitableSysMenu.SetActive(false);
         saveShipDelployButton.gameObject.SetActive(true);
         saveShipDelployButton.onClick.RemoveAllListeners();
-        saveShipDelployButton.onClick.AddListener(() => this.CloseButtonPressed());
+        saveShipDelployButton.onClick.AddListener(() => this.CloseShipDeploy());
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
         //starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
@@ -322,23 +322,23 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void SystemButtonPressed()
     {
-        CloseButtonPressed();
+        CloseShipDeploy();
         OpenMenu(Menu.SystemsMenu, gameObject);
     }
 
     public void FleetButtonPressed() // The CanvasGalaxyMenuRibbon/MainGalaxyMenuPanel/FleetButton in the Hierarchy is set to this class.method
     {
-        CloseButtonPressed();
+        CloseShipDeploy();
         OpenMenu(Menu.FleetMenu, gameObject);
     }
     public void DiplomacyButtonPressed()
     {
-        CloseButtonPressed();
+        CloseShipDeploy();
         OpenMenu(Menu.DiplomacyMenu, gameObject);
     }
     public void IntelButtonPressed()
     {
-        CloseButtonPressed();
+        CloseShipDeploy();
         if (intelMenuView.activeSelf)
             CloseMenu(Menu.IntellMenu);
         else
@@ -350,18 +350,17 @@ public class GalaxyMenuUIController : MonoBehaviour
     }
     public void EncyclopediaButtonPressed()
     {
-        CloseButtonPressed();
+        CloseShipDeploy();
         if (encyclopediaMenuView.activeSelf)
             CloseMenu(Menu.EncyclopedianMenu);
         else
         {
             OpenMenu(Menu.EncyclopedianMenu, null);
         }
-
     }
 
     // jump to Home System is in GalaxyCameraDragMoveZoom.cs
-    public void CloseButtonPressed()
+    public void CloseShipDeploy()
     {
         if (ShipDeployMenuUIController.Instance != null && ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
         {

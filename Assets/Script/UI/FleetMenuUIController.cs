@@ -27,10 +27,12 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject cancelDestinationButtonGO;
     [SerializeField] private GameObject dragDestinationTargetButtonGO;
     [SerializeField] private GameObject selectShipManagerCursorButtonGO;
-    [SerializeField] private GameObject cancelShipManagerButtonGO;
+    [SerializeField] private GameObject cancelFleetUIButtonGO;
     [SerializeField] private GameObject warpButtonUpGO;
     [SerializeField] private GameObject warpButtonDownGO;
+    [SerializeField] private GameObject newFleetButtonGO;
     [SerializeField] private GameObject mergeFleetButtonGO;
+    [SerializeField] private GameObject shipDeployButtonGO;
     [SerializeField] private GameObject closeFleetUIButtonGO;
 
     [Header("Runtime lists")]
@@ -189,7 +191,7 @@ public class FleetMenuUIController : MonoBehaviour
             Debug.Log($"SetupFleetUIElements: Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
 
             float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
-            float y = 0f;
+            //float y = 0f;
             float z = fleetCon.FleetData.Position.z * 0.12f;
             RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
 
@@ -215,14 +217,18 @@ public class FleetMenuUIController : MonoBehaviour
             warpButtonUpGO = uiFields.WarpUp.gameObject;
             uiFields.WarpDown.gameObject.SetActive(true);
             uiFields.WarpDown.onClick.RemoveAllListeners();
-            uiFields.WarpUp.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
+            uiFields.WarpDown.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
             warpButtonDownGO = uiFields.WarpDown.gameObject;
-            saveCloseShipDeployButton.gameObject.SetActive(true);
-            saveCloseShipDeployButton.onClick.RemoveAllListeners();
-            saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.saveCloseShipDelplyButton(fleetCon));
+            //uiFields.CancelShipManagerButton.gameObject.SetActive(true);
+            //uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
+            //uiFields.CancelShipManagerButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton());
+            //saveCloseShipDeployButton.gameObject.SetActive(true);
+            //saveCloseShipDeployButton.onClick.RemoveAllListeners();
+            //saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.saveCloseShipDelplyButton(fleetCon));
             uiFields.NewFleetButton.gameObject.SetActive(true);
             uiFields.NewFleetButton.onClick.RemoveAllListeners();
             uiFields.NewFleetButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
+            newFleetButtonGO = uiFields.NewFleetButton.gameObject;
             uiFields.MergeFleetsButton.gameObject.SetActive(true);
             uiFields.MergeFleetsButton.onClick.RemoveAllListeners();
             uiFields.MergeFleetsButton.onClick.AddListener(() => ClickMergeFleetButton(fleetCon));
@@ -230,15 +236,17 @@ public class FleetMenuUIController : MonoBehaviour
             uiFields.ShipDeployButton.gameObject.SetActive(true);
             uiFields.ShipDeployButton.onClick.RemoveAllListeners();
             uiFields.ShipDeployButton.onClick.AddListener(() => FleetClickedShipDeployButton(fleetCon));
-            selectShipManagerCursorButtonGO = uiFields.ShipDeployButton.gameObject;
-            uiFields.CancelShipManagerButton.gameObject.SetActive(false);
+            shipDeployButtonGO = uiFields.ShipDeployButton.gameObject;
+            uiFields.CancelShipManagerButton.gameObject.SetActive(true);
             uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
-            uiFields.CancelShipManagerButton.onClick.AddListener(() => ClickCancelShipManageButton());
-            cancelDestinationButtonGO = uiFields.CancelShipManagerButton.gameObject;
+            uiFields.CancelShipManagerButton.onClick.AddListener(() => CancelFleetUIButton());
+            cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
             // Text bindings
             uiFields.FleetNameText.text = fleetCon.FleetData.Name;
+            uiFields.DestinationName.gameObject.SetActive(true);
             destinationName = uiFields.DestinationName;
-            uiFields.DestinationName.text = "No Destination";
+            uiFields.DestinationName.text = "";
+            uiFields.DestinationCoordinates.gameObject.SetActive(true);
             destinationCoordinates = uiFields.DestinationCoordinates;
             uiFields.DestinationCoordinates.text = "";
             uiFields.WarpValueText.text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
@@ -271,8 +279,6 @@ public class FleetMenuUIController : MonoBehaviour
             ShipDeployMenuUIController.Instance.TopFleet = fleetClickingMerge;
         }
     }
-
-
     private void ClickNewFleetButton(FleetController currentFleetCon)
     {
         if (currentFleetCon == null || currentFleetCon.FleetData == null) return;
@@ -324,7 +330,16 @@ public class FleetMenuUIController : MonoBehaviour
 
         Destroy(emptyStarSysCon.gameObject);
     }
-
+    private void CancelFleetUIButton()
+    {
+        var galaxyUI = GalaxyMenuUIController.Instance;
+        if (galaxyUI != null)
+        {
+            galaxyUI.CloseMenu(Menu.AFleetMenu);
+            galaxyUI.CloseMenu(Menu.FleetMenu);
+            MousePointerChanger.Instance.ResetCursor();
+        }
+    }
     public void ClickCancelShipManageButton()
     {
         // If the ShipDeploy panel is active, commit first and run the cleanup in the completion callback.
@@ -368,8 +383,9 @@ public class FleetMenuUIController : MonoBehaviour
 
         var galaxyUI = GalaxyMenuUIController.Instance;
         MousePointerChanger.Instance.ResetCursor();
-        if (cancelShipManagerButtonGO != null)
-            cancelShipManagerButtonGO.SetActive(false);
+        //if (cancelFleetUIButtonGO != null)
+        //    GalaxyMenuUIController.Instance.CloseButtonPressed();
+        //cancelFleetUIButtonGO.SetActive(false);
         if (ShipDeployMenuUIController.Instance != null)
             ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
         if (galaxyUI != null)
@@ -381,8 +397,7 @@ public class FleetMenuUIController : MonoBehaviour
     }
     public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
     {
-        if (fleetCon != null ? fleetCon.FleetUIGameObject : null == null) return;
-
+        if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
 
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>(true);
         if (slider != null)
@@ -409,7 +424,7 @@ public class FleetMenuUIController : MonoBehaviour
 
     public void UpdateFleetMaxWarpUI(FleetController fleetCon, float theirMaxWarp)
     {
-        if (fleetCon != null || fleetCon.FleetUIGameObject == null) return;
+        if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
 
         Slider slider = fleetCon.FleetUIGameObject.GetComponentInChildren<Slider>(true);
         if (slider != null)
@@ -501,6 +516,8 @@ public class FleetMenuUIController : MonoBehaviour
     public void CloseDestinationSelectionCursor()
     {
         MousePointerChanger.Instance.ResetCursor();
+        //cancelDestinationButtonGO?.SetActive(false);
+        dragDestinationTargetButtonGO?.SetActive(true);
     }
     public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
     {
@@ -543,6 +560,8 @@ public class FleetMenuUIController : MonoBehaviour
     {
         MousePointerChanger.Instance.ResetCursor();
         selectShipManagerCursorButtonGO?.SetActive(true);
+        dragDestinationTargetButtonGO.SetActive(false);
+        cancelDestinationButtonGO?.SetActive(true);
     }
 
     private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)

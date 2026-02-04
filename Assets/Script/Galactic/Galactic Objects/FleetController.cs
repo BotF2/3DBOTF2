@@ -206,6 +206,8 @@ namespace Assets.Core
                     isOurDestination = true;
                     if (weAreLocalPlayer)
                     {
+                        SliderOnValueChange(0f); // stop the fleet on arrival
+                        FleetMenuUIController.Instance.UpdateFleetWarpUI(this, 0f);
                         CloseUnLoadFleetUI(this); // we are there and have other things to do
                     }
                 }
@@ -293,7 +295,7 @@ namespace Assets.Core
             switch (GalaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    GalaxyMenuUIController.Instance.CloseButtonPressed();
+                    GalaxyMenuUIController.Instance.CloseShipDeploy();
                     HandleNormalClick(clickedFleetCon);
                     break;
                 case GalaxyClickMode.SetDestination:
