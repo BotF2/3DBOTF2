@@ -340,23 +340,33 @@ namespace Assets.Core
             galaxyUI.WhatFleetIsSelectedForShipDiploy(clickedFleetCon);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
             var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
-            if (fleetLooking == null)
+
+            if (fleetLooking != null) // We have a fleet looking for ship deploy
+            {
+                var aFleetView = FleetUI.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+
+                // Parent both fleet UIs
+                if (fleetLooking.FleetUIGameObject != null)
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                FleetUIGameObject.transform.SetAsLastSibling();
+
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
+                ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
+            }
+            else if (starSysLooking != null) // We have a star system looking for ship deploy
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
                 aSysView.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+
                 ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
+                ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
             }
-            else if (starSysLooking == null)
-            {
-                var aFleetView = FleetUI.AFleetMenuView.gameObject;
-                aFleetView.gameObject.SetActive(true);
-                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                FleetUIGameObject.transform.SetAsLastSibling();
-                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
-            }
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
+
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
         private void HandleShipMegerSelection(FleetController clickedFleetCon)
@@ -367,25 +377,47 @@ namespace Assets.Core
             galaxyUI.WhatFleetIsSelectedForShipMerge(clickedFleetCon);
             var fleetLooking = GalaxyUI.FleetLookingForShipMerge;
             var starSysLooking = GalaxyUI.StarSystLookingForShipMerge;
-            if (fleetLooking == null)
+
+            var shipDeployUI = ShipDeployMenuUIController.Instance;
+
+            if (fleetLooking != null) // Fleet-to-Fleet merge
             {
-                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
-                aStarSysView.gameObject.SetActive(true);
-                clickedFleetCon.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
-                FleetUIGameObject.transform.SetAsLastSibling();
-                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+
+                if (fleetLooking.FleetUIGameObject != null)
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
+                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
+
+                Debug.Log($"Merge Fleet-to-Fleet: {fleetLooking.FleetData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, fleetLooking, null, null);
             }
-            else if (starSysLooking == null)
+            else if (starSysLooking != null) // System-to-Fleet merge
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
                 aFleetView.gameObject.SetActive(true);
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
-                ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
+
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
+                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
+
+                Debug.Log($"Merge System-to-Fleet: {starSysLooking.StarSysData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, null, starSysLooking, null);
             }
 
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, false);
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+            shipDeployUI.ShowShipDeployMenuView();
         }
         private Vector3 GetMouseWorldPosition()
         {
@@ -698,7 +730,7 @@ namespace Assets.Core
             // galaxy object type Enum SystemType if =>1, None =0
             string destinationNameText = "";
 
-            string coordiantesText = "X " + (hitObject.transform.position.x).ToString()
+            string coordiatesText = "X " + (hitObject.transform.position.x).ToString()
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
             if (hitObject.GetComponent<StarSysController>() != null)
@@ -775,7 +807,7 @@ namespace Assets.Core
                     break;
 
             }
-            FleetUI.SetAsDestination(destinationNameText, coordiantesText);
+            FleetUI.SetAsDestination(destinationNameText, coordiatesText);
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)

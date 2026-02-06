@@ -186,56 +186,86 @@ namespace Assets.Core
         }
         private void OnMouseDown()
         {
-            var clickedStarSysCon = GetComponentInParent<StarSysController>();
+            var clickedSystemCon = GetComponentInParent<StarSysController>();
+            if (clickedSystemCon == null) return;
 
-            if (clickedStarSysCon == null) return;
+            var galaxyUI = GalaxyMenuUIController.Instance;
 
-            switch (GalaxyUI.CurrentClickMode)
+            switch (galaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    GalaxyMenuUIController.Instance.CloseShipDeploy();
-                    HandleNormalClick(clickedStarSysCon);
+                    galaxyUI.CloseShipDeploy();
+                    HandleNormalClick(clickedSystemCon);
                     break;
+
                 case GalaxyClickMode.SetDestination:
-                    HandleDestinationClick(clickedStarSysCon);
+                    HandleDestinationClick(clickedSystemCon);
                     break;
+
                 case GalaxyClickMode.SelectForShipDeploy:
-                    if (gameController.AreWeLocalPlayer(clickedStarSysCon.StarSysData.CurrentOwnerCivEnum))
-                        HandleShipDeploySelection(clickedStarSysCon);
+                    if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
+                        HandleShipDeploySelection(clickedSystemCon);
                     break;
+
                 case GalaxyClickMode.SelectForShipMerge:
-                    if (gameController.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-                        HandleShipMergeSelection(clickedStarSysCon);
+                    if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
+                        HandleMergeSelection(clickedSystemCon);
                     break;
             }
         }
 
-        private void HandleShipMergeSelection(StarSysController clickedStarSysCon)
+        private void HandleMergeSelection(StarSysController clickedSystemCon)
         {
-            if (clickedStarSysCon != this) return;
-            deployNotMerge = false;
+            if (clickedSystemCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSystemIsSelectedForShipMerge(clickedStarSysCon);
+
+            // This system was clicked - it's the target for the merge
+            galaxyUI.WhatSystemIsSelectedForShipMerge(clickedSystemCon);
+
             var fleetLooking = galaxyUI.FleetLookingForShipMerge;
             var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
-            if (fleetLooking == null)
+
+            var shipDeployUI = ShipDeployMenuUIController.Instance;
+
+            if (fleetLooking != null) // Fleet-to-System merge
             {
-                var aSysView = StarSysUI.ASystemMenuView.gameObject;
-                aSysView.SetActive(true);
-                clickedStarSysCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                StarSysUIGameObject.transform.SetAsLastSibling();
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.gameObject.SetActive(true);
+
+                // Parent system UI
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+
+                // Create combined ship list from fleet AND system
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
+                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
+
+                Debug.Log($"Merge Fleet-to-System: {fleetLooking.FleetData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                // For MERGE: TopSlot is empty, all ships go to BottomSlot
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, fleetLooking, null, clickedSystemCon);
             }
-            else if (starSysLooking == null)
+            else if (starSysLooking != null) // System-to-System merge
             {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.SetActive(true);
-                clickedStarSysCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                starSysUIGameObject.transform.SetAsLastSibling();
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.gameObject.SetActive(true);
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+
+                // Create combined ship list from both systems
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
+                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
+
+                Debug.Log($"Merge System-to-System: {starSysLooking.StarSysData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                // For MERGE: TopSlot is empty, all ships go to BottomSlot
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, null, starSysLooking, clickedSystemCon);
             }
-            //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedStarSysCon, deployNotMerge);
-            ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+
+            shipDeployUI.ShowShipDeployMenuView();
         }
         private void HandleShipDeploySelection(StarSysController clickedSystemCon)
         {

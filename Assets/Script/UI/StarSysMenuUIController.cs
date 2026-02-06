@@ -761,16 +761,28 @@ public class StarSysMenuUIController : MonoBehaviour
     }
     public void ClickCancelShipManageButton()
     {
-        // If the ShipDeploy panel is active, commit first and run the cleanup in the completion callback.
         var sd = ShipDeployMenuUIController.Instance;
+        var galaxyUI = GalaxyMenuUIController.Instance;
+
+        // Check if we're in merge mode
+        bool isMergeMode = (galaxyUI.FleetLookingForShipMerge != null || galaxyUI.StarSystLookingForShipMerge != null);
+
         if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
         {
-            // Use proper commit flow that waits for ships to be finalized
-            sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+            if (isMergeMode)
+            {
+                // Use merge commit for merge operations
+                sd.CommitMergeAndClose(CancelShipManageAfterCommit);
+            }
+            else
+            {
+                // Use proper commit flow for deploy/new fleet
+                sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+            }
             return;
         }
 
-        // Normal path (panel not active) - just perform cleanup
+        // Normal path
         CancelShipManageAfterCommit();
     }
 

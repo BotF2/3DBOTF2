@@ -404,6 +404,75 @@ public class ShipDeployMenuUIController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets up the bottom slot with a combined list of ships for merge operations.
+    /// All ships from both sources appear together in the BottomSlot.
+    /// </summary>
+    public void SetUpBottomShipListsForMerge(
+        List<ShipController> allShips,
+        FleetController targetFleet = null,
+        FleetController sourceFleet = null,
+        StarSysController sourceSystem = null,
+        StarSysController targetSystem = null)
+    {
+        if (BottomSlot == null)
+        {
+            Debug.LogError("SetUpBottomShipListsForMerge: BottomSlot is null!");
+            return;
+        }
+
+        // Clear any existing ships in the bottom slot
+        for (int i = BottomSlot.transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = BottomSlot.transform.GetChild(i);
+            Destroy(child.gameObject);
+        }
+
+        Debug.Log($"SetUpBottomShipListsForMerge: Adding {allShips.Count} ships to BottomSlot");
+
+        // Parent all ship UI GameObjects to the BottomSlot
+        foreach (var ship in allShips)
+        {
+            if (ship == null) continue;
+
+            if (ship.ShipListUIGameObject != null)
+            {
+                ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+                ship.ShipListUIGameObject.SetActive(true);
+
+                // Set the UI item to show it will belong to target
+                var shipUIItem = ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>();
+                if (shipUIItem != null)
+                {
+                    shipUIItem.CurrentFleet = targetFleet;
+                    shipUIItem.CurrentStarSyst = targetSystem;
+                    shipUIItem.IntendedSlotParent = BottomSlot.transform;
+                }
+
+                // Keep drag-drop ENABLED
+                var dragDrop = ship.ShipListUIGameObject.GetComponent<ShipDragDropItemSlot>();
+                if (dragDrop != null)
+                {
+                    dragDrop.enabled = true;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"SetUpBottomShipListsForMerge: Ship '{ship.name}' has no ShipListUIGameObject");
+            }
+        }
+
+        // Store merge context
+        BottomFleet = targetFleet;
+        BottomStarSyst = targetSystem;
+
+        // Store source for merge commit
+        TopFleet = sourceFleet;
+        TopStarSyst = sourceSystem;
+
+        Debug.Log($"Merge context: TopFleet={sourceFleet?.name}, TopSystem={sourceSystem?.name}, BottomFleet={targetFleet?.name}, BottomSystem={targetSystem?.name}");
+    }
+
     public GameObject[] GetTopSlotShipListUIGOs()
     {
         List<GameObject> shipListItems = new List<GameObject>();
@@ -748,6 +817,92 @@ public class ShipDeployMenuUIController : MonoBehaviour
         // Debug.Log($"=== COMMIT (Immediate) END ===");
 
         // Callback for after-commit cleanup
+        onCommitComplete?.Invoke();
+    }
+
+    /// <summary>
+    /// Commits merge operation - moves all ships from source to target and clears source.
+    /// </summary>
+    public void CommitMergeAndClose(Action onCommitComplete)
+    {
+        Debug.Log($"=== COMMIT MERGE START ===");
+        Debug.Log($"TopFleet={TopFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomFleet={BottomFleet?.name}, BottomStarSyst={BottomStarSyst?.name}");
+
+        // Get all ships currently in BottomSlot
+        List<ShipController> shipsToMerge = new List<ShipController>();
+        for (int i = 0; i < BottomSlot.transform.childCount; i++)
+        {
+            var shipUI = BottomSlot.transform.GetChild(i).gameObject;
+            var shipUIItem = shipUI.GetComponent<ShipListUI_Item>();
+            if (shipUIItem != null && shipUIItem.ShipController != null)
+            {
+                shipsToMerge.Add(shipUIItem.ShipController);
+            }
+        }
+
+        Debug.Log($"Found {shipsToMerge.Count} ships in BottomSlot to merge");
+
+        // Determine target (where ships will end up)
+        FleetController targetFleet = BottomFleet;
+        StarSysController targetSystem = BottomStarSyst;
+
+        // Move all ships to target
+        foreach (var ship in shipsToMerge)
+        {
+            if (ship == null) continue;
+
+            // Remove from current owner
+            if (ship.ShipData.CurrentFleetController != null && ship.ShipData.CurrentFleetController != targetFleet)
+            {
+                ship.ShipData.CurrentFleetController.RemoveFromShipList(ship);
+                Debug.Log($"Removed ship '{ship.ShipData.ShipName}' from fleet '{ship.ShipData.CurrentFleetController.name}'");
+            }
+            else if (ship.ShipData.CurrentStarSysController != null && ship.ShipData.CurrentStarSysController != targetSystem)
+            {
+                ship.ShipData.CurrentStarSysController.RemoveFromShipList(ship);
+                Debug.Log($"Removed ship '{ship.ShipData.ShipName}' from system '{ship.ShipData.CurrentStarSysController.name}'");
+            }
+
+            // Add to target
+            if (targetFleet != null)
+            {
+                targetFleet.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = targetFleet;
+                ship.ShipData.CurrentStarSysController = null;
+                Debug.Log($"Added ship '{ship.ShipData.ShipName}' to fleet '{targetFleet.name}'");
+            }
+            else if (targetSystem != null)
+            {
+                targetSystem.AddToShipList(ship);
+                ship.ShipData.CurrentStarSysController = targetSystem;
+                ship.ShipData.CurrentFleetController = null;
+                Debug.Log($"Added ship '{ship.ShipData.ShipName}' to system '{targetSystem.name}'");
+            }
+        }
+
+        // Update max warp for fleets
+        if (targetFleet != null)
+        {
+            targetFleet.UpdateMaxWarp();
+        }
+        if (TopFleet != null && TopFleet != targetFleet)
+        {
+            TopFleet.UpdateMaxWarp();
+        }
+
+        // Reparent UI elements to their final homes
+        ReparentUIFromShipControllerHierarchy(targetFleet);
+        ReparentUIFromShipControllerHierarchy(targetSystem);
+        ReparentUIFromShipControllerHierarchy(TopFleet);
+        ReparentUIFromShipControllerHierarchy(TopStarSyst);
+
+        // Hide the deploy menu
+        HideShipDeployMenuView();
+        gameObject.SetActive(false);
+
+        Debug.Log($"=== COMMIT MERGE END ===");
+
+        // Callback
         onCommitComplete?.Invoke();
     }
 
