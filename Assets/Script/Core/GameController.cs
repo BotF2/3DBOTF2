@@ -11,7 +11,6 @@ public class GameController : MonoBehaviour
     public static GameController Instance;
     private GameData gameData;
     public GameData GameData { get { return gameData; } set { gameData = value; } }
-    public GameObject GalaxyImage;
 
     public void Awake()
     {

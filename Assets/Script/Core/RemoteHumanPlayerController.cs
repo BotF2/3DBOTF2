@@ -1,13 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.Core;
 using Mirror;
-using System;
+using UnityEngine;
 
 public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
 {
-    public PlayerData PlayerData { get; set; }
+    public GamePlayerInfo PlayerInfo { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;

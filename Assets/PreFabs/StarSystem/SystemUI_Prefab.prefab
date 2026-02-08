@@ -3138,7 +3138,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801355736749082
 GameObject:
   m_ObjectHideFlags: 0
@@ -4193,7 +4192,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 4945801357651037251}
   orbitalBatteriesImage: {fileID: 4945801355725590265}
   researchImage: {fileID: 4945801356811591286}
-  powerOverloadImage: {fileID: 9046246967545470584}
 --- !u!1 &4945801355937844068
 GameObject:
   m_ObjectHideFlags: 0
@@ -4393,7 +4391,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801355973760038
 GameObject:
   m_ObjectHideFlags: 0
@@ -4683,7 +4680,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.0000010073429}
+  m_AnchoredPosition: {x: 0, y: -0.00002656631}
   m_SizeDelta: {x: 0, y: 200}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4945801356080388009
@@ -8163,7 +8160,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801356822363009
 GameObject:
   m_ObjectHideFlags: 0
@@ -10497,7 +10493,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357317038385
 GameObject:
   m_ObjectHideFlags: 0
@@ -10633,7 +10628,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357329821165
 GameObject:
   m_ObjectHideFlags: 0
@@ -11626,7 +11620,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357467425340
 GameObject:
   m_ObjectHideFlags: 0
@@ -12969,7 +12962,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357655294687
 GameObject:
   m_ObjectHideFlags: 0

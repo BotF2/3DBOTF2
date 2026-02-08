@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using UnityEngine;
 using Assets.Core;
-using System.Linq;
-using UnityEngine.UI;
+using UnityEngine;
 
-public class ShipData 
+public class ShipData
 {
     public string ShipName;
     public CivEnum CivEnum;
@@ -25,10 +22,15 @@ public class ShipData
     public FleetController CurrentFleetController;
     public StarSysController CurrentStarSysController;
     public bool Distroyed = false;
+    public Vector3 Position; // <-- Will we need to save a combat position?
 
     public ShipData(string name)
     {
         ShipName = name;
+    }
+    public ShipData(ShipSO shipSO)
+    {
+
     }
     public ShipData()
     {

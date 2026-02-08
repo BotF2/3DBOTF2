@@ -33,18 +33,18 @@ public enum Menu
 public class GalaxyMenuUIController : MonoBehaviour
 {
     public static GalaxyMenuUIController Instance;
+    [SerializeField]
     private Camera galaxyEventCamera;
     [SerializeField]
     private Canvas parentCanvas;
-    //public GameObject ShipDeployPanelGO;
     [SerializeField]
-    private FleetMenuUIController fleetMenuUIController;
-    [SerializeField]
-    private StarSysMenuUIController starSysMenuUIController;
-    [SerializeField]
-    private DiplomacyMenuUIController diplomacyMenuUIController;
-    [SerializeField]
-    private ShipDeployMenuUIController shipDeployMenuUIController;
+    Button homeSystemButton;
+    // REMOVE [SerializeField] - use Instance singletons instead
+    private FleetMenuUIController fleetMenuUIController => FleetMenuUIController.Instance;
+    private StarSysMenuUIController starSysMenuUIController => StarSysMenuUIController.Instance;
+    private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
+    private ShipDeployMenuUIController shipDeployMenuUIController => ShipDeployMenuUIController.Instance;
+
     [SerializeField]
     private GameObject aSystemShipContainer;
     [SerializeField]
@@ -149,28 +149,138 @@ public class GalaxyMenuUIController : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("GalaxyMenuUIController: Instance created");
         }
     }
+
     void Start()
     {
-        galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-        parentCanvas.worldCamera = galaxyEventCamera;
-        intelMenuView.SetActive(false);
-        encyclopediaMenuView.SetActive(false);
-        closeMenuButton.SetActive(true);
-        sysBackground.SetActive(false);
-        fleetsBackground.SetActive(false);
-        diplomacyBackground.SetActive(false);
-        intelBackground.SetActive(false);
-        encyclopediaBackground.SetActive(false);
-        habitableSysMenu.SetActive(false);
-        saveShipDelployButton.gameObject.SetActive(true);
-        saveShipDelployButton.onClick.RemoveAllListeners();
-        saveShipDelployButton.onClick.AddListener(() => this.CloseShipDeploy());
+        Debug.Log("GalaxyMenuUIController: Start called - deferring camera setup");
+
+        // Initialize UI states
+        if (intelMenuView != null) intelMenuView.SetActive(false);
+        if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(false);
+        if (closeMenuButton != null) closeMenuButton.SetActive(true);
+        if (sysBackground != null) sysBackground.SetActive(false);
+        if (fleetsBackground != null) fleetsBackground.SetActive(false);
+        if (diplomacyBackground != null) diplomacyBackground.SetActive(false);
+        if (intelBackground != null) intelBackground.SetActive(false);
+        if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
+        if (habitableSysMenu != null) habitableSysMenu.SetActive(false);
+
+        if (saveShipDelployButton != null)
+        {
+            saveShipDelployButton.gameObject.SetActive(true);
+            saveShipDelployButton.onClick.RemoveAllListeners();
+            saveShipDelployButton.onClick.AddListener(() => this.CloseShipDeploy());
+        }
+
         HideShipDeployMenu();
         diplomacyControllers = new List<DiplomacyController>();
-        //starSysMenuUIController.SetupSystemUIData();//get our system ui game objects to match your system controllers
-        // Not For DiplomacyMenuUIController here/now, we do that with each new first contact of civs / fleets
+
+        Debug.Log("GalaxyMenuUIController: Start complete");
+    }
+
+    // NEW: Call this from MainMenuUIController after CanvasGalaxy activates
+    public void InitializeGalaxyCamera()
+    {
+        if (galaxyEventCamera == null)
+        {
+            var mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+            if (mainCameraGO != null)
+            {
+                galaxyEventCamera = mainCameraGO.GetComponent<Camera>();
+                Debug.Log($"GalaxyMenuUIController: Found galaxy camera: {galaxyEventCamera?.name}");
+            }
+            else
+            {
+                Debug.LogWarning("GalaxyMenuUIController: MainCamera not found yet");
+            }
+        }
+
+        if (parentCanvas != null && galaxyEventCamera != null)
+        {
+            parentCanvas.worldCamera = galaxyEventCamera;
+            Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
+        }
+
+        // CRITICAL: Wire up the HomeSystemButton dynamically
+        WireHomeSystemButton();
+    }
+
+    //// NEW: Wire HomeSystemButton to the galaxy camera controller
+    private void WireHomeSystemButton()
+    {
+        // Wire it up to the galaxy camera controller
+        if (GalaxyCameraDragMoveZoom.Instance != null)
+        {
+            homeSystemButton.onClick.RemoveAllListeners();
+            homeSystemButton.onClick.AddListener(() => GalaxyCameraDragMoveZoom.Instance.SetCameraToLocalPlayerHome());
+            Debug.Log("✅ HomeSystemButton wired to GalaxyCameraDragMoveZoom");
+        }
+        else
+        {
+            Debug.LogWarning("WireHomeSystemButton: GalaxyCameraDragMoveZoom.Instance is null");
+        }
+    }
+
+    // Helper for recursive search (if not already present)
+    private GameObject FindInHierarchy(Transform parent, string name)
+    {
+        if (parent.name == name)
+            return parent.gameObject;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found = FindInHierarchy(parent.GetChild(i), name);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    public void SystemButtonPressed()
+    {
+        Debug.Log("=== SystemButtonPressed: Starting ===");
+        Debug.Log($"  Instance={Instance != null}, Camera={galaxyEventCamera != null}");
+
+        // Check if systems exist
+        if (StarSysManager.Instance != null)
+        {
+            int systemCount = StarSysManager.Instance.StarSysControllerList?.Count ?? 0;
+            Debug.Log($"  StarSysManager has {systemCount} systems");
+
+            if (systemCount == 0)
+            {
+                Debug.LogError("  ❌ NO SYSTEMS EXIST! Systems weren't created.");
+            }
+        }
+        else
+        {
+            Debug.LogError("  ❌ StarSysManager.Instance is NULL!");
+        }
+
+        // Check if StarSysMenuUIController exists
+        if (starSysMenuUIController != null)
+        {
+            Debug.Log($"  StarSysMenuUIController exists");
+        }
+        else
+        {
+            Debug.LogError("  ❌ starSysMenuUIController is NULL!");
+        }
+
+        // Ensure camera is initialized
+        if (galaxyEventCamera == null)
+        {
+            InitializeGalaxyCamera();
+        }
+
+        CloseShipDeploy();
+        OpenMenu(Menu.SystemsMenu, gameObject);
+
+        Debug.Log("=== SystemButtonPressed: Complete ===");
     }
 
     // ShipDeploy menu life cycle helpers — central control point
@@ -319,11 +429,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         diplomacyBackground.SetActive(false);
         intelBackground.SetActive(false);
         encyclopediaBackground.SetActive(false);
-    }
-    public void SystemButtonPressed()
-    {
-        CloseShipDeploy();
-        OpenMenu(Menu.SystemsMenu, gameObject);
     }
 
     public void FleetButtonPressed() // The CanvasGalaxyMenuRibbon/MainGalaxyMenuPanel/FleetButton in the Hierarchy is set to this class.method
@@ -589,7 +694,6 @@ public class GalaxyMenuUIController : MonoBehaviour
         if (callingMenu != null)
             callingMenu.SetActive(false);
     }
-
 
     public void CloseMenu(Menu enumMenu)
     {

@@ -153,7 +153,7 @@ namespace Assets.Core
             var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
 
-            // Convert world position to minimap coordinates
+            // Convert world position to mini-map coordinates
             Vector2 minimapPos = WorldToMinimapPosition(transform.position);
             fleetUIFields.MinimapRedDot.anchoredPosition = minimapPos;
         }
@@ -171,16 +171,16 @@ namespace Assets.Core
         }
         private Vector2 WorldToMinimapPosition(Vector3 worldPos)
         {
-            // Assuming the minimap represents a specific area of the galaxy
+            // Assuming the mini-map represents a specific area of the galaxy
             //float galaxyWidth = 2f; // GameManager.Instance.GalaxyWidth;
             //float galaxyHeight = 4f; // GameManager.Instance.GalaxyHeight;
-            // Get minimap RectTransform
+            // Get mini-map RectTransform
             var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return Vector2.zero;
             RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
             float minimapWidth = minimapRect.rect.width;
             float minimapHeight = minimapRect.rect.height;
-            // Convert world position to minimap coordinates
+            // Convert world position to mini-map coordinates
             float x = (worldPos.x / galaxyWidth) * minimapWidth;
             float y = (worldPos.z / galaxyHeight) * minimapHeight; // Assuming z is forward in world space
             return new Vector2(x, y);
@@ -319,9 +319,9 @@ namespace Assets.Core
             {
                 GalaxyUI.OpenMenu(Menu.AFleetMenu, this.gameObject);
             }
-            else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, clickedFleetCon.FleetData.CivController))
+            else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, clickedFleetCon.FleetData.CivController))
             { // this is a system local player does not own but we know them
-                DiplomacyManager.Instance.ResolveDiplomacyForClickFleetWeKnow(CivManager.Instance.LocalPlayerCivContoller, clickedFleetCon);
+                DiplomacyManager.Instance.ResolveDiplomacyForClickFleetWeKnow(CivManager.Instance.LocalPlayerCivController, clickedFleetCon);
             }
         }
         private void HandleDestinationClick(FleetController clickedFleetCon)
@@ -684,6 +684,13 @@ namespace Assets.Core
         }
         private void OnDestroy()
         {
+            // Remove fog revealer when fleet is destroyed
+            if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
+            {
+                FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
+            }
+
+            // Existing cleanup code...
             //StopAllCoroutines();
             if (this.FleetData != null)
             {
@@ -736,7 +743,7 @@ namespace Assets.Core
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
-                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, starSysController.StarSysData.CurrentCivController))
+                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, starSysController.StarSysData.CurrentCivController))
                 { // if it is our star system we do have a diplomacy controller
                     destinationType = 0;
                     destinationNameText += starSysController.StarSysData.SysName;
@@ -750,7 +757,7 @@ namespace Assets.Core
             {
                 FleetController fleetCon = hitObject.GetComponent<FleetController>();
 
-                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, fleetCon.FleetData.CivController))
+                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, fleetCon.FleetData.CivController))
                 {
                     destinationType = GalaxyObjectType.Fleet;
                     destinationNameText = fleetCon.FleetData.Name;

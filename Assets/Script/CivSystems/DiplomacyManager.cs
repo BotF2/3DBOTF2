@@ -124,7 +124,7 @@ public class DiplomacyManager : MonoBehaviour
             diplomacyData.CivOne = civSideOne;
             diplomacyData.CivEnumSideTwo = civSideTwo.CivData.CivEnum;
             diplomacyData.CivTwo = civSideTwo;
-            if (CivManager.Instance.LocalPlayerCivContoller == civSideOne)
+            if (CivManager.Instance.LocalPlayerCivController == civSideOne)
             {
                 if (fleetSideTwo.FleetData != null)
                 {

@@ -91,8 +91,18 @@ namespace Assets.Core
 
         private void Start()
         {
-            galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-            canvasToolTip.worldCamera = galaxyEventCamera;
+            // Only find camera if not already set by StarSysManager
+            if (galaxyEventCamera == null)
+            {
+                galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<Camera>();
+                Debug.LogWarning($"StarSysController {name}: Had to find camera in Start() - should be set by StarSysManager");
+            }
+
+            if (canvasToolTip != null && galaxyEventCamera != null)
+            {
+                canvasToolTip.worldCamera = galaxyEventCamera;
+            }
+
             if (StarSysUI != null)
                 goForPowerOverload = StarSysUI.PowerOverloadImage;
         }
@@ -331,9 +341,9 @@ namespace Assets.Core
                     GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject); // set the system UI to this system
                     //StarSysMenuUIController.Instance.lastStarSysController = this;
                 }
-                else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
+                else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, this.StarSysData.CurrentCivController))
                 { // this is a system local player does not own but we know them
-                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivContoller, this);
+                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivController, this);
                 }
             }
         }
@@ -633,8 +643,15 @@ namespace Assets.Core
 
         private void OnDestroy()
         {
-            TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
-            // OnOffSysFacilityEvents.current.FacilityOnClick -= FacilityOnClick;
+            // Remove fog revealer when system is destroyed
+            if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
+            {
+                FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
+            }
+
+            // Existing cleanup code...
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
         }
         public void CleanupStarSysUIs()
         {

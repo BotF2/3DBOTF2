@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/MainMenuGalaxyScene.unity
+    path: Assets/Scenes/MainMenuScene.unity
     guid: 2de2d41a61d9a5546820c52859ac0d7a
   - enabled: 1
     path: Assets/Scenes/GalaxyScene.unity

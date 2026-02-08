@@ -15,12 +15,12 @@ public class FleetMenuUIController : MonoBehaviour
     [Header("References (assign in Inspector)")]
     public GameObject FleetMenuView;
     public GameObject AFleetMenuView;
-    public GameObject FleetListContainer;
+    public GameObject FleetListContainer; // Will be found at runtime if not assigned
+
     [Header("Private UI Elements")]
     [SerializeField] private GameObject shipDelployPanel;
     [SerializeField] private GameObject aFleetShipContainer;
     [SerializeField] private TMP_Text fleetName;
-    //private GameObject fleetShipListContainer;
     [SerializeField] private TextMeshProUGUI destinationName;
     [SerializeField] private TextMeshProUGUI destinationCoordinates;
     [SerializeField] private GameObject selectDestinationCursorButtonGO;
@@ -33,7 +33,6 @@ public class FleetMenuUIController : MonoBehaviour
     [SerializeField] private GameObject newFleetButtonGO;
     [SerializeField] private GameObject mergeFleetButtonGO;
     [SerializeField] private GameObject shipDeployButtonGO;
-    [SerializeField] private GameObject closeFleetUIButtonGO;
 
     [Header("Runtime lists")]
     [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
@@ -52,8 +51,12 @@ public class FleetMenuUIController : MonoBehaviour
             DontDestroyOnLoad(gameObject);
         }
     }
+
     private void Start()
     {
+        // Find UI containers if not assigned
+        FindFleetUIContainers();
+
         for (int i = 0; i < FleetManager.Instance.FleetControllerList.Count; i++)
         {
             var fleetCon = FleetManager.Instance.FleetControllerList[i];
@@ -63,17 +66,14 @@ public class FleetMenuUIController : MonoBehaviour
                 var childController = child.GetComponent<FleetAndSystemChildController>();
                 if (childController != null && childController.OriginalParentTransform == null)
                 {
-                    // Prefer the current hierarchy parent first
                     if (child.transform.parent != null)
                     {
                         childController.OriginalParentTransform = child.transform.parent;
                     }
-                    // Next prefer the SysListContainer if available
                     else if (FleetListContainer != null)
                     {
                         childController.OriginalParentTransform = FleetListContainer.transform;
                     }
-                    // Last resort: ASystemMenuView (preserve existing behavior if nothing else)
                     else if (AFleetMenuView != null)
                     {
                         childController.OriginalParentTransform = AFleetMenuView.transform;
@@ -81,31 +81,75 @@ public class FleetMenuUIController : MonoBehaviour
                 }
             }
         }
-        // Initially hide fleet menu views
+
+        // Initially hide views
         if (FleetMenuView != null)
             FleetMenuView.SetActive(false);
         if (AFleetMenuView != null)
             AFleetMenuView.SetActive(false);
-        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-        //parentCanvas.worldCamera = galaxyEventCamera;
     }
-    public void ShowFleetMenuView()
-    {
-        FleetMenuView.SetActive(true);
-    }
-    public void ShowA_FleetMenuView()
-    {
-        AFleetMenuView.SetActive(true);
-    }
-    public void HideFleetMenuView()
-    {
-        FleetMenuView.SetActive(false);
-    }
-    public void HideA_FleetMenuView()
-    {
 
-        AFleetMenuView.SetActive(false);
+    // NEW: Find Fleet UI containers in CanvasGalaxy
+    public void FindFleetUIContainers()
+    {
+        if (FleetListContainer != null)
+        {
+            Debug.Log("FleetMenuUIController: FleetListContainer already assigned");
+            return; // Already found
+        }
+
+        var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+        if (canvasGalaxy == null)
+        {
+            Debug.LogWarning("FleetMenuUIController: CanvasGalaxy not found - cannot find FleetListContainer");
+            return;
+        }
+
+        FleetListContainer = FindInHierarchy(canvasGalaxy.transform, "FleetListContainer");
+
+        if (FleetListContainer == null)
+        {
+            FleetListContainer = FindInHierarchy(canvasGalaxy.transform, "ContentFleetUIGO");
+        }
+
+        if (FleetListContainer == null)
+        {
+            FleetListContainer = FindInHierarchy(canvasGalaxy.transform, "FleetContent");
+        }
+
+        Debug.Log($"FleetMenuUIController: Found FleetListContainer: {FleetListContainer != null}");
+
+        // Also find FleetMenuView if not assigned
+        if (FleetMenuView == null)
+        {
+            FleetMenuView = FindInHierarchy(canvasGalaxy.transform, "FleetMenuView");
+            Debug.Log($"FleetMenuUIController: Found FleetMenuView: {FleetMenuView != null}");
+        }
+
+        // Also find AFleetMenuView if not assigned
+        if (AFleetMenuView == null)
+        {
+            AFleetMenuView = FindInHierarchy(canvasGalaxy.transform, "AFleetMenuView");
+            Debug.Log($"FleetMenuUIController: Found AFleetMenuView: {AFleetMenuView != null}");
+        }
     }
+
+    // Helper method for recursive search
+    private GameObject FindInHierarchy(Transform parent, string name)
+    {
+        if (parent.name == name)
+            return parent.gameObject;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found = FindInHierarchy(parent.GetChild(i), name);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
     public void SetupFleetUIData()
     {
         if (FleetManager.Instance == null) return;
@@ -151,6 +195,13 @@ public class FleetMenuUIController : MonoBehaviour
     }
     public void MoveBackAnyaFleetUIGO()
     {
+        // SAFETY: Check if AFleetMenuView still exists
+        if (AFleetMenuView == null)
+        {
+            Debug.LogWarning("FleetMenuUIController.MoveBackAnyaFleetUIGO: AFleetMenuView is null, skipping");
+            return;
+        }
+
         AFleetMenuView.SetActive(true);
         for (int i = 0; i < AFleetMenuView.transform.childCount; i++)
         {
@@ -160,7 +211,11 @@ public class FleetMenuUIController : MonoBehaviour
                 if (child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
                 {
                     Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
-                    child.transform.SetParent(originalParent, false);
+
+                    if (originalParent != null)
+                    {
+                        child.transform.SetParent(originalParent, false);
+                    }
                 }
             }
         }
@@ -169,12 +224,25 @@ public class FleetMenuUIController : MonoBehaviour
     public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
     {
         if (fleetCon == null || newFleetUIGO == null) return;
+
+        // CRITICAL: Ensure FleetListContainer exists
+        if (FleetListContainer == null)
+        {
+            FindFleetUIContainers();
+
+            if (FleetListContainer == null)
+            {
+                Debug.LogError($"FleetMenuUIController.SetupFleetUIElements: FleetListContainer is NULL! Cannot setup fleet UI for {fleetCon.name}");
+                return;
+            }
+        }
+
         if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject))
         {
-
             newFleetUIGO.SetActive(true);
             fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
             listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
+
             var fleetAndStarSys = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
             if (fleetAndStarSys != null)
             {
@@ -185,19 +253,15 @@ public class FleetMenuUIController : MonoBehaviour
             }
 
             FleetUI_Fields uiFields = newFleetUIGO.GetComponent<FleetUI_Fields>();
-            // UNCOMMENT THIS LINE:
             fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
 
             Debug.Log($"SetupFleetUIElements: Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
 
-            float x = fleetCon.FleetData.Position.x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
-            //float y = 0f;
+            float x = fleetCon.FleetData.Position.x * 0.12f;
             float z = fleetCon.FleetData.Position.z * 0.12f;
             RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
+            dot.anchoredPosition = new Vector2(x, z);
 
-            dot.anchoredPosition = new Vector2(x, z); // flip from z in 3D map to the y position to for UI mini map
-
-            //uiFields.RedDot.Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
             // Button bindings
             uiFields.DestinationDragTarget.gameObject.SetActive(true);
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
@@ -579,5 +643,77 @@ public class FleetMenuUIController : MonoBehaviour
     private void MoveShipView(List<ShipController> upperShipsToMove, List<ShipController> lowerShipsToMove)
     {
         // drag and drop, Can we do this in MovingShipsView class?
+    }
+
+    public void ShowFleetMenuView()
+    {
+        Debug.Log("=== ShowFleetMenuView: Starting ===");
+
+        if (FleetManager.Instance != null)
+        {
+            var fleets = FleetManager.Instance.FleetControllerList;
+            Debug.Log($"  FleetManager has {fleets?.Count ?? 0} total fleets");
+
+            if (fleets != null && fleets.Count > 0)
+            {
+                int localPlayerFleets = 0;
+                foreach (var fleet in fleets)
+                {
+                    if (fleet != null && GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
+                    {
+                        localPlayerFleets++;
+                    }
+                }
+
+                Debug.Log($"  Local player owns {localPlayerFleets} fleets");
+            }
+        }
+        else
+        {
+            Debug.LogError("  FleetManager.Instance is NULL!");
+        }
+
+        // Show the menu
+        if (FleetMenuView != null)
+        {
+            FleetMenuView.SetActive(true);
+            Debug.Log("  FleetMenuView activated");
+
+            // CRITICAL: Populate the fleet list
+            SetupFleetUIData();
+        }
+        else
+        {
+            Debug.LogError("  FleetMenuView is NULL!");
+        }
+
+        Debug.Log("=== ShowFleetMenuView: Complete ===");
+    }
+
+    public void HideFleetMenuView()
+    {
+        if (FleetMenuView != null)
+        {
+            FleetMenuView.SetActive(false);
+            Debug.Log("FleetMenuView hidden");
+        }
+    }
+
+    public void ShowA_FleetMenuView()
+    {
+        if (AFleetMenuView != null)
+        {
+            AFleetMenuView.SetActive(true);
+            Debug.Log("AFleetMenuView shown");
+        }
+    }
+
+    public void HideA_FleetMenuView()
+    {
+        if (AFleetMenuView != null)
+        {
+            AFleetMenuView.SetActive(false);
+            Debug.Log("AFleetMenuView hidden");
+        }
     }
 }

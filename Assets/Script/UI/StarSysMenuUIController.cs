@@ -1,4 +1,4 @@
-// Ignore Spelling: Sys Anya
+﻿// Ignore Spelling: Sys Anya
 
 using Assets.Core;
 using System;
@@ -12,10 +12,8 @@ using UnityEngine.UI;
 public class StarSysMenuUIController : MonoBehaviour
 {
     public static StarSysMenuUIController Instance;
-    //private Camera galaxyEventCamera;
-    //[SerializeField]
-    //private Canvas parentCanvas;
     private StarSysController lastSysCon;
+    private StarSysController activeStarSysController;
     [Header("References (assign in Inspector)")]
     public GameObject SystemsMenuView;
     public GameObject ASystemMenuView;
@@ -49,62 +47,251 @@ public class StarSysMenuUIController : MonoBehaviour
 
     private void Start()
     {
-        //CoroutineRunner.FlashPowerOverload(PowerOverloadImage);
-        // Record the original parent of each StarSysUIGameObject as its current parent (or fall back to SysListContainer / ASystemMenuView).
-        for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
+        // DON'T call FindSysUIContainers() here - GalaxyScene doesn't exist yet!
+        // It will be called from MainMenuUIController after scene loads
+
+        // Record the original parent of each StarSysUIGameObject
+        // This might be empty initially - systems are created later
+        if (StarSysManager.Instance != null)
         {
-            var sysCon = StarSysManager.Instance.StarSysControllerList[i];
-            if (sysCon != null && sysCon.StarSysUIGameObject != null)
+            for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
             {
-                var child = sysCon.StarSysUIGameObject;
-                var childController = child.GetComponent<FleetAndSystemChildController>();
-                if (childController != null && childController.OriginalParentTransform == null)
+                var sysCon = StarSysManager.Instance.StarSysControllerList[i];
+                if (sysCon != null && sysCon.StarSysUIGameObject != null)
                 {
-                    // Prefer the current hierarchy parent first
-                    if (child.transform.parent != null)
+                    var child = sysCon.StarSysUIGameObject;
+                    var childController = child.GetComponent<FleetAndSystemChildController>();
+                    if (childController != null && childController.OriginalParentTransform == null)
                     {
-                        childController.OriginalParentTransform = child.transform.parent;
-                    }
-                    // Next prefer the SysListContainer if available
-                    else if (SysListContainer != null)
-                    {
-                        childController.OriginalParentTransform = SysListContainer.transform;
-                    }
-                    // Last resort: ASystemMenuView (preserve existing behavior if nothing else)
-                    else if (ASystemMenuView != null)
-                    {
-                        childController.OriginalParentTransform = ASystemMenuView.transform;
+                        if (child.transform.parent != null)
+                        {
+                            childController.OriginalParentTransform = child.transform.parent;
+                        }
+                        else if (SysListContainer != null)
+                        {
+                            childController.OriginalParentTransform = SysListContainer.transform;
+                        }
+                        else if (ASystemMenuView != null)
+                        {
+                            childController.OriginalParentTransform = ASystemMenuView.transform;
+                        }
                     }
                 }
             }
         }
-        // Initially hide views
+
+        // Initially hide views (they might not exist yet)
         if (SystemsMenuView != null)
             SystemsMenuView.SetActive(false);
         if (ASystemMenuView != null)
             ASystemMenuView.SetActive(false);
-        //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-        //parentCanvas.worldCamera = galaxyEventCamera
-
     }
     public void ShowSystemMenuView()
     {
+        Debug.Log("=== ShowSystemMenuView: Starting ===");
+
+        // CRITICAL: Find containers if they don't exist yet
+        if (SystemsMenuView == null || SysListContainer == null)
+        {
+            FindSysUIContainers();
+        }
+
+        if (StarSysManager.Instance != null)
+        {
+            var systems = StarSysManager.Instance.StarSysControllerList;
+            Debug.Log($"  StarSysManager has {systems?.Count ?? 0} total systems");
+
+            if (systems != null && systems.Count > 0)
+            {
+                int localPlayerSystems = 0;
+                foreach (var sys in systems)
+                {
+                    if (sys != null && GameController.Instance.AreWeLocalPlayer(sys.StarSysData.CurrentOwnerCivEnum))
+                    {
+                        localPlayerSystems++;
+                    }
+                }
+
+                Debug.Log($"  Local player owns {localPlayerSystems} systems");
+            }
+        }
+        else
+        {
+            Debug.LogError("  StarSysManager.Instance is NULL!");
+        }
+
+        // SAFETY: Check if SystemsMenuView exists after FindSysUIContainers
+        if (SystemsMenuView == null)
+        {
+            Debug.LogError("ShowSystemMenuView: SystemsMenuView is STILL null after FindSysUIContainers! Check CanvasGalaxy hierarchy.");
+            return;
+        }
+
         SystemsMenuView.SetActive(true);
+        Debug.Log("  SystemMenuView activated");
+
+        SetupSystemUIData();
+
+        Debug.Log("=== ShowSystemMenuView: Complete ===");
+    }
+
+    // NEW: Populate system list when menu opens
+    public void SetupSystemUIData()
+    {
+        Debug.Log("SetupSystemUIData: Populating system list");
+
+        if (StarSysManager.Instance == null)
+        {
+            Debug.LogError("  StarSysManager.Instance is null!");
+            return;
+        }
+
+        if (SysListContainer == null)
+        {
+            FindSysUIContainers();
+
+            if (SysListContainer == null)
+            {
+                Debug.LogError("  SysListContainer is null even after FindSysUIContainers! Cannot display systems.");
+                return;
+            }
+        }
+
+        var systems = StarSysManager.Instance.StarSysControllerList;
+        if (systems == null || systems.Count == 0)
+        {
+            Debug.LogWarning("  No systems in StarSysManager!");
+            return;
+        }
+
+        int visibleCount = 0;
+
+        foreach (var sysCon in systems)
+        {
+            if (sysCon == null) continue;
+
+            // Only show local player's systems
+            if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
+                continue;
+
+            // Ensure system has UI GameObject
+            if (sysCon.StarSysUIGameObject == null)
+            {
+                Debug.LogWarning($"  System '{sysCon.name}' has no UI GameObject - skipping");
+                continue;
+            }
+
+            // Get UI Fields component
+            var sysUIFieldElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (sysUIFieldElement == null)
+            {
+                Debug.LogWarning($"  System '{sysCon.name}' UI has no StarSysUI_Fields component - skipping");
+                continue;
+            }
+
+            // CRITICAL: Wire up buttons if not already in the list
+            if (!listOfStarSysUiGos.Contains(sysCon.StarSysUIGameObject))
+            {
+                // Set ShipListUIParent
+                if (sysUIFieldElement.shipContent != null)
+                {
+                    sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
+                }
+
+                // Wire BuildButton -> Opens build queue menu
+                if (sysUIFieldElement.buildButton != null)
+                {
+                    sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.buildButton.onClick.AddListener(() => sysCon.BuildClick(sysCon));
+                }
+
+                // Wire ShipButton -> Opens ship management panel
+                if (sysUIFieldElement.shipButton != null)
+                {
+                    sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.shipButton.onClick.AddListener(() => sysCon.ShipClick(sysCon));
+                }
+
+                // Wire ShipDeployButton -> Ship transfer mode
+                if (sysUIFieldElement.shipDeployButton != null)
+                {
+                    sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
+                }
+
+                // Wire NewFleetButton -> Create new fleet from system
+                if (sysUIFieldElement.newFleetButton != null)
+                {
+                    sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysCon));
+                }
+
+                // Wire MergeFleetButton -> Merge ships mode
+                if (sysUIFieldElement.mergeFleetButton != null)
+                {
+                    sysUIFieldElement.mergeFleetButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysCon));
+                }
+
+                // Add to tracked list
+                listOfStarSysUiGos.Add(sysCon.StarSysUIGameObject);
+            }
+
+            // Parent to the list container
+            if (sysCon.StarSysUIGameObject.transform.parent != SysListContainer.transform)
+            {
+                sysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
+            }
+
+            // Ensure it's active
+            if (!sysCon.StarSysUIGameObject.activeInHierarchy)
+            {
+                sysCon.StarSysUIGameObject.SetActive(true);
+            }
+
+            visibleCount++;
+        }
+
+        Debug.Log($"SetupSystemUIData: Displayed {visibleCount} systems with button wiring");
     }
     public void ShowA_SystemMenuView()
     {
+        // SAFETY: Check before calling SetActive
+        if (ASystemMenuView == null)
+        {
+            Debug.LogWarning("ShowA_SystemMenuView: ASystemMenuView is null, skipping");
+            return;
+        }
+
         ASystemMenuView.SetActive(true);
+        Debug.Log("ASystemMenuView shown");
     }
     public void HideSystemMenuView()
     {
+        // SAFETY: Check before calling SetActive
+        if (SystemsMenuView == null)
+        {
+            Debug.LogWarning("HideSystemMenuView: SystemsMenuView is null, skipping");
+            return;
+        }
+
         SystemsMenuView.SetActive(false);
+        Debug.Log("SystemMenuView hidden");
     }
     public void HideA_SystemMenuView()
     {
+        // SAFETY: Check before calling SetActive
+        if (ASystemMenuView == null)
+        {
+            Debug.LogWarning("HideA_SystemMenuView: ASystemMenuView is null, skipping");
+            return;
+        }
+
         ASystemMenuView.SetActive(false);
+        Debug.Log("ASystemMenuView hidden");
     }
     // Public API (moved logic)
-    public void SetupSystemUIData()
+    public void SetupSystemUIDataOld()
     {
         if (StarSysManager.Instance == null) return;
         foreach (var sysController in StarSysManager.Instance.StarSysControllerList)
@@ -315,8 +502,23 @@ public class StarSysMenuUIController : MonoBehaviour
 
     public void SetActiveSetParentUIGO(StarSysController theSysCon)
     {
+        // CRITICAL: Find containers if needed
+        if (SysListContainer == null || ASystemMenuView == null)
+        {
+            FindSysUIContainers();
+        }
+
         SetupSystemUIData();
+
         if (theSysCon == null) return;
+
+        // SAFETY: Check ASystemMenuView exists before parenting
+        if (ASystemMenuView == null)
+        {
+            Debug.LogError("SetActiveSetParentUIGO: ASystemMenuView is null after FindSysUIContainers!");
+            return;
+        }
+
         theSysCon.StarSysUIGameObject.SetActive(true);
         theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
         lastSysCon = theSysCon;
@@ -346,6 +548,13 @@ public class StarSysMenuUIController : MonoBehaviour
 
     public void MoveBackAnyaSysUIGO()
     {
+        // SAFETY: Check if ASystemMenuView still exists
+        if (ASystemMenuView == null)
+        {
+            Debug.LogWarning("StarSysMenuUIController.MoveBackAnyaSysUIGO: ASystemMenuView is null, skipping");
+            return;
+        }
+
         ASystemMenuView.SetActive(true);
         for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
         {
@@ -367,10 +576,12 @@ public class StarSysMenuUIController : MonoBehaviour
                 }
 
                 if (originalParent != null)
+                {
                     child.transform.SetParent(originalParent, false);
+                }
             }
         }
-
+        activeStarSysController = null;
     }
     public void CloseBuildingQueues()
     {
@@ -850,5 +1061,60 @@ public class StarSysMenuUIController : MonoBehaviour
         {
             ShipSliderBuildProgress.value = Mathf.Clamp01(progress);
         }
+    }
+
+    public void FindSysUIContainers()
+    {
+        if (SystemsMenuView != null && ASystemMenuView != null && SysListContainer != null)
+        {
+            Debug.Log("StarSysMenuUIController: All containers already assigned");
+            return;
+        }
+
+        var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+        if (canvasGalaxy == null)
+        {
+            Debug.LogWarning("StarSysMenuUIController: CanvasGalaxy not found");
+            return;
+        }
+
+        if (SystemsMenuView == null)
+        {
+            SystemsMenuView = FindInHierarchy(canvasGalaxy.transform, "SystemsMenuView");
+            Debug.Log($"StarSysMenuUIController: Found SystemsMenuView: {SystemsMenuView != null}");
+        }
+
+        if (ASystemMenuView == null)
+        {
+            ASystemMenuView = FindInHierarchy(canvasGalaxy.transform, "ASystemMenuView");
+            Debug.Log($"StarSysMenuUIController: Found ASystemMenuView: {ASystemMenuView != null}");
+        }
+
+        if (SysListContainer == null)
+        {
+            SysListContainer = FindInHierarchy(canvasGalaxy.transform, "SysListContainer");
+
+            if (SysListContainer == null)
+            {
+                SysListContainer = FindInHierarchy(canvasGalaxy.transform, "ContentSysUIGO");
+            }
+
+            Debug.Log($"StarSysMenuUIController: Found SysListContainer: {SysListContainer != null}");
+        }
+    }
+
+    private GameObject FindInHierarchy(Transform parent, string name)
+    {
+        if (parent.name == name)
+            return parent.gameObject;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found = FindInHierarchy(parent.GetChild(i), name);
+            if (found != null)
+                return found;
+        }
+
+        return null;
     }
 }

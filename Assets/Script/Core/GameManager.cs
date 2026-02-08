@@ -1,6 +1,7 @@
 // Ignore Spelling: Sys
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 
@@ -370,14 +371,15 @@ namespace Assets.Core
 
     public class GameManager : MonoBehaviour
     {
-        public static GameManager Instance { get; private set; } // a static singleton, no other script can instatniate a GameManager, must us the singleton
+        public static GameManager Instance { get; private set; } // a static singleton, no other script can instantiate a GameManager, must us the singleton
 
         [SerializeField]
         private MainMenuUIController mainMenuUIController;
         public GameController GameController;
 
         [Header("Galaxy Reference")]
-        [SerializeField] private GameObject galaxyImageGO; // Assign in Inspector
+        // Remove [SerializeField] - will be found at runtime
+        private GameObject galaxyImageGO;
 
         // Cached bounds to avoid recalculating every frame
         private float galaxyWidth = -1f;
@@ -401,15 +403,72 @@ namespace Assets.Core
         {
             GameController.Instance.GameData.GameMode = mode;
         }
-        public void InitializeGameManagerWithMainMenuUIController()
+        private void InitializeGameManagerWithMainMenuUIController()
         {
-            if (this.GameController != null)
+            // Don't use GameObject.Find - use the singleton Instance instead
+            if (MainMenuUIController.Instance != null)
             {
-                mainMenuUIController = GameObject.Find("MainMenuUIController").GetComponent<MainMenuUIController>();
-                mainMenuUIController.LoadDefault();
-                this.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
+                mainMenuUIController = MainMenuUIController.Instance;
+                Debug.Log("GameManager: Found MainMenuUIController via Instance");
+            }
+            else
+            {
+                Debug.LogWarning("GameManager: MainMenuUIController.Instance is null - will retry when MainMenu scene loads");
             }
         }
+        private void Start()
+        {
+            // Subscribe to scene loaded event
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Debug.Log($"GameManager: Scene loaded: {scene.name}");
+
+            // When MainMenu scene loads, find the controller
+            if (scene.name.Contains("MainMenu") && mainMenuUIController == null)
+            {
+                InitializeGameManagerWithMainMenuUIController();
+            }
+
+            // When GalaxyScene loads, find the galaxy image
+            if (scene.name == "GalaxyScene")
+            {
+                FindGalaxyImageReference();
+                CalculateGalaxyBounds();
+            }
+        }
+
+        private void FindGalaxyImageReference()
+        {
+            // Find by name (adjust name to match your hierarchy)
+            galaxyImageGO = GameObject.Find("GalaxyImage") ?? GameObject.Find("Galaxy");
+
+            if (galaxyImageGO != null)
+            {
+                Debug.Log($"GameManager: Found galaxyImageGO: {galaxyImageGO.name}");
+            }
+            else
+            {
+                // Try finding by tag if you have one
+                galaxyImageGO = GameObject.FindGameObjectWithTag("GalaxyImage");
+
+                if (galaxyImageGO != null)
+                {
+                    Debug.Log($"GameManager: Found galaxyImageGO by tag: {galaxyImageGO.name}");
+                }
+                else
+                {
+                    Debug.LogWarning("GameManager: Could not find GalaxyImage GameObject in scene!");
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
         public float GalaxyWidth
         {
             get
@@ -460,7 +519,7 @@ namespace Assets.Core
                 }
                 else
                 {
-                    Debug.LogWarning("GameManager: No SpriteRenderer or Image found on galaxyImageGO, using default bounds.");
+                    Debug.LogWarning("GameManager: No SpriteRenderer or Image found, using default bounds.");
                     galaxyWidth = 200f;
                     galaxyHeight = 200f;
                 }

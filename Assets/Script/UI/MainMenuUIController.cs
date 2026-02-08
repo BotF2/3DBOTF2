@@ -1,3 +1,5 @@
+﻿// Ignore Spelling: Kling
+
 using Mirror;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,17 +26,18 @@ namespace Assets.Core
         public MainMenuData MainMenuData = new MainMenuData();
         [SerializeField]
         private GameObject mainMenuCanvas;
-        //
-        public GameObject GalaxyMenuGO;
+        [SerializeField]
+        private Camera uiCamera;
+
+        // Remove [SerializeField] from these - they'll be found at runtime
+        private Camera galaxyCamera;
+        private GameObject galaxyCenter;
+        public GameObject GalaxyMenuGO { get; private set; }
+
         [SerializeField]
         private GameObject TipCanvas;
         [SerializeField]
         private GameObject mainMenuButton;
-        //[SerializeField]
-        //private GameObject uiCameraGO;
-        [SerializeField]
-        private GameObject galaxyCenter;
-
         //ToDo for multiplayer lobby
         //public CivEnum SelectedRemote0CivEnum;
         //public CivEnum SelectedRemote1CivEnum;
@@ -78,7 +81,7 @@ namespace Assets.Core
         //private Toggle _activeRemote4;
         //private Toggle _activeRemote5;
         //private Toggle _activeRemote6;
-        public Toggle FedLocalPalyerToggle, RomLocalPlayerToggle, KlingLocalPlayerToggle, CardLocalPlayerToggle,
+        public Toggle FedLocalPlayerToggle, RomLocalPlayerToggle, KlingLocalPlayerToggle, CardLocalPlayerToggle,
             DomLocalPlayerToggle, BorgLocalPlayerToggle, TerranLocalPlayerToggle;
 
         public ToggleGroup SinglePlayerCivilizationGroup;
@@ -113,9 +116,14 @@ namespace Assets.Core
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
+
+            // Only initialize UI camera here (same scene)
+            InitializeCameras();
+
+            // Rest of existing Awake code...
             SinglePlayerCivilizationGroup.enabled = true;
             SinglePlayerCivilizationGroup = singlePlayToggleGroup.GetComponent<ToggleGroup>();
-            SinglePlayerCivilizationGroup.RegisterToggle(FedLocalPalyerToggle);
+            SinglePlayerCivilizationGroup.RegisterToggle(FedLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(KlingLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(RomLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(CardLocalPlayerToggle);
@@ -162,13 +170,9 @@ namespace Assets.Core
         }
         private void Start()
         {
-            //this.MainMenuData = GameObject.Find("MainMenuUIController").GetComponentInChildren<MainMenuUIController>();
-            //GalaxySize = mainMenuUIController.SelectedGalaxySize;
-            //GalaxyType = mainMenuUIController.SelectedGalaxyType;
-            //TechLevelOnLoadGame = mainMenuUIController.SelectedTechLevel;
-            FedLocalPalyerToggle.isOn = true;
-            FedLocalPalyerToggle.Select();
-            FedLocalPalyerToggle.OnSelect(null); // turns background selected color on, go figure.
+            FedLocalPlayerToggle.isOn = true;
+            FedLocalPlayerToggle.Select();
+            FedLocalPlayerToggle.OnSelect(null); // turns background selected color on, go figure.
             KlingLocalPlayerToggle.isOn = false;
             RomLocalPlayerToggle.isOn = false;
             CardLocalPlayerToggle.isOn = false;
@@ -207,14 +211,378 @@ namespace Assets.Core
             AdvancedToggle.isOn = false;
             SupremeToggle.isOn = false;
         }
-        public void LoadDefault()
+        private void InitializeCameras()
         {
-            MainMenuData.SelectedGalaxySize = GalaxySize.SMALL;
-            MainMenuData.SelectedGalaxyType = GalaxyMapType.CANON;
-            MainMenuData.SelectedTechLevel = TechLevel.EARLY;
-            GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = CivEnum.FED;
-            localPlayerCiv = CivEnum.FED;
+            Debug.Log("InitializeCameras: Menu camera setup");
+
+            if (uiCamera != null)
+            {
+                uiCamera.enabled = true;
+                Debug.Log("  - UI Camera enabled");
+            }
+
+            // GalaxyCenter doesn't exist yet - will be found when GalaxyScene loads
+            SetupUICamera();
         }
+
+        private void SetupUICamera()
+        {
+            if (mainMenuCanvas != null)
+            {
+                Canvas canvas = mainMenuCanvas.GetComponent<Canvas>();
+                if (canvas != null && uiCamera != null)
+                {
+                    canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                    canvas.worldCamera = uiCamera;
+                    canvas.planeDistance = 10f;
+                    Debug.Log("  - MainMenu canvas set to Screen Space - Camera mode");
+                }
+            }
+        }
+
+        // Call this when transitioning to gameplay (from Panel-GameParametersWindow)
+        public void LoadGalaxyScene()
+        {
+            TimeManager.Instance.timeRunning = true;
+            TimeManager.Instance.StarTime();
+            UpdateMapSelection();
+            UpdateGalaxySizeSelection();
+            UpdateTechLevelSelection();
+            UpdateNotInGame();
+            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, this.MainMenuData.SelectedGalaxyType);
+
+            Debug.Log("LoadGalaxyScene: Starting clean scene transition");
+
+            // Store game settings before transition
+            GameController.Instance.GameData.GameMode = IsSinglePlayer ? GameMode.SINGLEPLAYER : GameMode.MULTIPLAYER;
+            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+
+            // Use coroutine for clean transition
+            StartCoroutine(LoadGalaxySceneCoroutine());
+        }
+
+        private System.Collections.IEnumerator LoadGalaxySceneCoroutine()
+        {
+            Debug.Log("LoadGalaxySceneCoroutine: Step 1 - Waiting for UI events to finish");
+
+            // Wait for UI to finish (per copilot-instructions.md: wait two frames)
+            yield return null;
+            yield return null;
+
+            Debug.Log("LoadGalaxySceneCoroutine: Step 2 - Checking for existing GalaxyScene");
+
+            // CRITICAL: Check if GalaxyScene is already loaded
+            Scene existingGalaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+            if (existingGalaxyScene.IsValid() && existingGalaxyScene.isLoaded)
+            {
+                Debug.LogWarning("  GalaxyScene already loaded! Unloading old instance first...");
+
+                // Clear fog revelers BEFORE unloading
+                if (FischlWorks_FogWar.csFogWar.Instance != null)
+                {
+                    FischlWorks_FogWar.csFogWar.Instance.ClearAllRevealers();
+                }
+
+                yield return SceneManager.UnloadSceneAsync(existingGalaxyScene);
+                Debug.Log("  Old GalaxyScene unloaded");
+
+                // Wait a frame after unload
+                yield return null;
+            }
+
+            Debug.Log("LoadGalaxySceneCoroutine: Step 3 - Loading GalaxyScene");
+
+            // Load galaxy scene additively
+            var asyncLoad = SceneManager.LoadSceneAsync("GalaxyScene", LoadSceneMode.Additive);
+
+            while (!asyncLoad.isDone)
+            {
+                yield return null;
+            }
+
+            Debug.Log("LoadGalaxySceneCoroutine: Step 4 - GalaxyScene loaded, finding and activating galaxy objects");
+
+            // CRITICAL: Clear any leftover fog revelers before activating new scene
+            if (FischlWorks_FogWar.csFogWar.Instance != null)
+            {
+                FischlWorks_FogWar.csFogWar.Instance.ClearAllRevealers();
+                Debug.Log("  Cleared fog revealers");
+            }
+
+            // Find and activate galaxy objects
+            FindAndActivateGalaxySceneReferences();
+
+            // Initialize game systems
+            CivManager.Instance.OnNewGameButtonClicked(
+                (int)MainMenuData.SelectedGalaxySize,
+                (int)MainMenuData.SelectedTechLevel,
+                (int)MainMenuData.SelectedGalaxyType,
+                (int)GameManager.Instance.GameController.GameData.LocalPlayerCivEnum,
+                IsSinglePlayer);
+
+            // Wait for initialization (per copilot-instructions.md: wait two frames)
+            yield return null;
+            yield return null;
+
+            Debug.Log("LoadGalaxySceneCoroutine: Step 5 - Hiding UI and unloading MainMenuScene");
+
+            // Disable UI camera
+            if (uiCamera != null)
+            {
+                uiCamera.enabled = false;
+            }
+
+            // Hide main menu canvas
+            if (mainMenuCanvas != null)
+            {
+                var canvasComponent = mainMenuCanvas.GetComponent<Canvas>();
+                if (canvasComponent != null)
+                {
+                    canvasComponent.enabled = false;
+                }
+            }
+
+            // Unload MainMenu scene
+            Scene mainMenuScene = SceneManager.GetSceneByName("MainMenuScene");
+            if (!mainMenuScene.IsValid())
+            {
+                mainMenuScene = SceneManager.GetSceneByName("MainMenuGalaxyScene");
+            }
+
+            if (mainMenuScene.IsValid() && mainMenuScene.isLoaded)
+            {
+                Debug.Log($"Unloading scene: {mainMenuScene.name}");
+                yield return SceneManager.UnloadSceneAsync(mainMenuScene);
+                Debug.Log("MainMenu scene unloaded successfully");
+            }
+
+            Debug.Log("LoadGalaxySceneCoroutine: Complete");
+        }
+
+        private void FindAndActivateGalaxySceneReferences()
+        {
+            Debug.Log("FindAndActivateGalaxySceneReferences: Searching in loaded scenes...");
+
+            // List all loaded scenes and their root objects
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                Debug.Log($"  Loaded scene {i}: {scene.name} (loaded: {scene.isLoaded})");
+
+                if (scene.isLoaded)
+                {
+                    var rootObjects = scene.GetRootGameObjects();
+                    Debug.Log($"    Root objects in {scene.name}: {rootObjects.Length}");
+                    foreach (var root in rootObjects)
+                    {
+                        Debug.Log($"      - {root.name}");
+                    }
+                }
+            }
+
+            // Find GalaxyCenter
+            if (galaxyCenter == null)
+            {
+                galaxyCenter = FindGameObjectRecursive("GalaxyCenter");
+            }
+
+            if (galaxyCenter != null)
+            {
+                galaxyCenter.SetActive(true);
+                Debug.Log($"  GalaxyCenter activated: {galaxyCenter.name}");
+
+                // Enable camera first
+                galaxyCamera = galaxyCenter.GetComponentInChildren<Camera>(includeInactive: true);
+                if (galaxyCamera != null)
+                {
+                    galaxyCamera.gameObject.SetActive(true);
+                    galaxyCamera.enabled = true;
+                    Debug.Log($"  Galaxy Camera enabled: {galaxyCamera.name}");
+
+                    var cameraController = galaxyCamera.GetComponent<GalaxyCameraDragMoveZoom>();
+                    if (cameraController != null)
+                    {
+                        cameraController.EnableCameraControl();
+                        Debug.Log("  Galaxy Camera controller enabled");
+                    }
+                    else
+                    {
+                        Debug.LogError("  GalaxyCameraDragMoveZoom component NOT FOUND on camera!");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("  Galaxy Camera not found in GalaxyCenter!");
+                }
+
+                // CRITICAL: Update FleetManager's references BEFORE creating fleets
+                if (FleetManager.Instance != null)
+                {
+                    FleetManager.Instance.FindGalaxyReferences();
+                    Debug.Log("  FleetManager galaxy references updated");
+                }
+
+                // CRITICAL: Update StarSysManager's references too
+                if (StarSysManager.Instance != null)
+                {
+                    StarSysManager.Instance.FindGalaxyReferences();
+                    Debug.Log("  StarSysManager galaxy references updated");
+                }
+            }
+            else
+            {
+                Debug.LogError("  GalaxyCenter NOT FOUND in any loaded scene!");
+            }
+
+            // Find and activate CanvasGalaxy
+            if (GalaxyMenuGO == null)
+            {
+                GalaxyMenuGO = FindGameObjectRecursive("CanvasGalaxy");
+            }
+
+            if (GalaxyMenuGO != null)
+            {
+                GalaxyMenuGO.SetActive(true);
+                Debug.Log($"  CanvasGalaxy activated");
+
+                // CRITICAL: Update all UI controllers AFTER CanvasGalaxy is activated
+                if (FleetManager.Instance != null)
+                {
+                    FleetManager.Instance.FindGalaxyReferences();
+                    Debug.Log("  FleetManager references updated");
+                }
+
+                if (StarSysManager.Instance != null)
+                {
+                    StarSysManager.Instance.FindGalaxyReferences();
+                    Debug.Log("  StarSysManager references updated");
+                }
+
+                if (FleetMenuUIController.Instance != null)
+                {
+                    FleetMenuUIController.Instance.FindFleetUIContainers();
+                    Debug.Log("  FleetMenuUIController references updated");
+                }
+
+                if (StarSysMenuUIController.Instance != null)
+                {
+                    StarSysMenuUIController.Instance.FindSysUIContainers();
+                    Debug.Log("  StarSysMenuUIController references updated");
+                }
+
+                if (GalaxyMenuUIController.Instance != null)
+                {
+                    GalaxyMenuUIController.Instance.InitializeGalaxyCamera();
+                    Debug.Log("  GalaxyMenuUIController camera initialized");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("  CanvasGalaxy not found");
+            }
+
+            // Activate other objects
+            ActivateGalaxyGameObjects();
+        }
+
+        // Improved recursive search
+        private GameObject FindGameObjectRecursive(string name)
+        {
+            // Search all loaded scenes
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                if (scene.isLoaded)
+                {
+                    foreach (GameObject rootObj in scene.GetRootGameObjects())
+                    {
+                        GameObject found = FindInHierarchy(rootObj.transform, name);
+                        if (found != null)
+                        {
+                            Debug.Log($"  Found '{name}' in scene '{scene.name}' under '{rootObj.name}'");
+                            return found;
+                        }
+                    }
+                }
+            }
+
+            Debug.LogError($"  ? '{name}' not found in any scene hierarchy");
+            return null;
+        }
+
+        // Recursive helper to search entire hierarchy
+        private GameObject FindInHierarchy(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent.gameObject;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                GameObject found = FindInHierarchy(parent.GetChild(i), name);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
+        private void ActivateGalaxyGameObjects()
+        {
+            // Activate GalaxyImage (might be child of GalaxyCenter)
+            var galaxyImage = FindGameObjectRecursive("GalaxyImage");
+            if (galaxyImage != null)
+            {
+                galaxyImage.SetActive(true);
+                Debug.Log($"  ? GalaxyImage activated");
+            }
+
+            // Activate BlackHoleSagA
+            var blackHole = FindGameObjectRecursive("BlackHoleSagA");
+            if (blackHole != null)
+            {
+                blackHole.SetActive(true);
+                Debug.Log($"  ? BlackHoleSagA activated");
+            }
+
+            // Activate FogPlaneParent
+            var fogPlane = FindGameObjectRecursive("FogPlaneParent");
+            if (fogPlane != null)
+            {
+                fogPlane.SetActive(true);
+                Debug.Log($"  ? FogPlaneParent activated");
+            }
+
+            // Activate PlayerDefinedTargetManager
+            var targetManager = FindGameObjectRecursive("PlayerDefinedTargetManager");
+            if (targetManager != null)
+            {
+                targetManager.SetActive(true);
+                Debug.Log($"  ? PlayerDefinedTargetManager activated");
+            }
+
+            Debug.Log("ActivateGalaxyGameObjects: Complete");
+        }
+
+
+        // This is now only called when returning from Galaxy to MainMenu (e.g., quit to menu)
+        public void ReturnToMainMenu()
+        {
+            Debug.Log("ReturnToMainMenu: Reloading MainMenu scene");
+
+            // Simply reload the MainMenu scene - it will unload Galaxy automatically
+            SceneManager.LoadScene("MainMenuGalaxyScene");
+
+            // Reset instance if this controller is destroyed
+            Instance = null;
+        }
+
+        // No longer needed - kept for reference
+        public void TransitionToGameplay()
+        {
+            // This method is now handled by LoadGalaxySceneCoroutine
+            Debug.Log("TransitionToGameplay: Scene transition handled by LoadGalaxySceneCoroutine");
+        }
+
         private void UpdatePlayers()
         {
             activeLocalPlayerToggle = SinglePlayerCivilizationGroup.ActiveToggles().ToArray().FirstOrDefault();
@@ -412,8 +780,8 @@ namespace Assets.Core
                 case "TOGGLELOCAL_FED":
                     FedOnOff.isOn = true;
                     FedOnOff.OnSelect(null);
-                    FedLocalPalyerToggle = activeLocalPlayerToggle;
-                    Debug.Log("Active FedLocalPalyerToggle.");
+                    FedLocalPlayerToggle = activeLocalPlayerToggle;
+                    Debug.Log("Active FedLocalPlayerToggle.");
                     SetLocalCivilization(0);
                     PlaceTheYouInPlayerList(0);
                     break;
@@ -648,7 +1016,7 @@ namespace Assets.Core
 
         private void FedOnOffToggleReset()
         {
-            if (FedLocalPalyerToggle.isOn == true)
+            if (FedLocalPlayerToggle.isOn == true)
                 FedOnOff.isOn = true;
         }
         private void RomOnOffToggleReset()
@@ -684,7 +1052,7 @@ namespace Assets.Core
 
         private void FedPlayToggleReset()
         {
-            if (FedOnOff.isOn == false && FedLocalPalyerToggle.isOn == true)
+            if (FedOnOff.isOn == false && FedLocalPlayerToggle.isOn == true)
                 RomLocalPlayerToggle.isOn = true;
         }
         private void RomPlayToggleReset()
@@ -715,7 +1083,7 @@ namespace Assets.Core
         private void TerranPlayerToggleReset()
         {
             if (TerranOnOff.isOn == false && TerranLocalPlayerToggle.isOn == true)
-                FedLocalPalyerToggle.isOn = true;
+                FedLocalPlayerToggle.isOn = true;
         }
         private void LoadSavedGame()
         {
@@ -781,35 +1149,6 @@ namespace Assets.Core
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
             ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
-        }
-        private void LoadGalaxyScene()
-        {
-            TimeManager.Instance.timeRunning = true;
-            TimeManager.Instance.StarTime();
-            UpdateMapSelection();
-            UpdateGalaxySizeSelection();
-            UpdateTechLevelSelection();
-            PlayableCivOffInGameList();
-            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, this.MainMenuData.SelectedGalaxyType);
-            mainMenuCanvas.SetActive(false);
-            //uiCameraGO.SetActive(false);
-            galaxyCenter.SetActive(true);
-            SceneManager.LoadScene("GalaxyScene", LoadSceneMode.Additive);
-            CivManager.Instance.OnNewGameButtonClicked((int)MainMenuData.SelectedGalaxySize, (int)MainMenuData.SelectedTechLevel, (int)MainMenuData.SelectedGalaxyType,
-                (int)GameManager.Instance.GameController.GameData.LocalPlayerCivEnum, IsSinglePlayer);
-            GalaxyMenuGO.SetActive(true);
-
-        }
-        private void PlayableCivOffInGameList()
-        {
-            for (int i = 0; i < OnOffToggles.Count; i++)
-            {
-                if (OnOffToggles[i].isOn == false)
-                {
-                    MainMenuData.InGamePlayableCivList[i] = CivEnum.ZZUNINHABITED1;
-                }
-            }
-
         }
     }
 }

@@ -40,7 +40,7 @@ namespace Assets.Core
                     case TrekStardateEvents.FederartionEst:
                         {
                             // ToDo: Do Disaster code for each disaster 
-                            Debug.Log("******** FedLocalPalyerToggle Established ***********"); ;
+                            Debug.Log("******** FedLocalPlayerToggle Established ***********"); ;
                             break;
                         }
                     case TrekStardateEvents.RomulanNeutralZoneEst:
