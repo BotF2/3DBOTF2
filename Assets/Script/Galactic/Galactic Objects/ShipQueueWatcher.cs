@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.Core
+namespace Assets.GamePlay
 {
     /// <summary>
     /// Watches the ship build queue UI grid for structural changes

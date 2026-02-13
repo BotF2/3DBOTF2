@@ -15322,7 +15322,9 @@ MonoBehaviour:
   ltCruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: c27ee956952bc6648ab44faa2c0ec959, type: 3}
   heavyCruiserBluePrintPrefab: {fileID: 6321614478493960930, guid: d240d6e2bb3fae14bba8add96f2d6ec6, type: 3}
   transportBluePrintPrefab: {fileID: 6321614478493960930, guid: f0e53c286ebdb05478980cb0ccd1f460, type: 3}
+  fleetListContainer: {fileID: 1850390553}
   galaxyCanvasGO: {fileID: 966764655}
+  galaxyImage: {fileID: 1013187645}
   parentCanavas: {fileID: 966764658}
   fogWar: {fileID: 1784209282}
   fleetSOList:
@@ -15488,7 +15490,6 @@ MonoBehaviour:
   fleetUIPrefab: {fileID: 3127805292150332128, guid: fc0b9c37cb292ce4cb4d38099c4f78c3, type: 3}
   shipManagerMenuPrefab: {fileID: 3021520769871365652, guid: 85b1a9967ae5e09478bd59f6d79da5e1, type: 3}
   fogPlaneMaterial: {fileID: 2100000, guid: 36b93ac6fcf129c449491654e397fe4a, type: 2}
-  galaxyImage: {fileID: 1013187645}
   canvasShipManager: {fileID: 966764655}
   destinationIntsInUse: 00000000
   FleetControllersInGame: []

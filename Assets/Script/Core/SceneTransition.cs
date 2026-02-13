@@ -27,6 +27,6 @@ public class SceneTransition : MonoBehaviour
     {
         Transition.SetTrigger("Start");
         yield return new WaitForSeconds(WaitForSeconds);
-        SceneManager.LoadScene("MainMenuGalaxyScene");
+        SceneManager.LoadScene("MainMenuScene");
     }
 }

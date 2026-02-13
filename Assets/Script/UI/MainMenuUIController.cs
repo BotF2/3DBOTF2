@@ -1,5 +1,5 @@
 ﻿// Ignore Spelling: Kling
-
+using Assets.Core;
 using Mirror;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 //using UnityEditor.UIElements;
 
-namespace Assets.Core
+namespace Assets.UI
 {
     public class MainMenuUIController : MonoBehaviour
     {
@@ -346,7 +346,7 @@ namespace Assets.Core
             Scene mainMenuScene = SceneManager.GetSceneByName("MainMenuScene");
             if (!mainMenuScene.IsValid())
             {
-                mainMenuScene = SceneManager.GetSceneByName("MainMenuGalaxyScene");
+                mainMenuScene = SceneManager.GetSceneByName("MainMenuScene");
             }
 
             if (mainMenuScene.IsValid() && mainMenuScene.isLoaded)
@@ -570,7 +570,7 @@ namespace Assets.Core
             Debug.Log("ReturnToMainMenu: Reloading MainMenu scene");
 
             // Simply reload the MainMenu scene - it will unload Galaxy automatically
-            SceneManager.LoadScene("MainMenuGalaxyScene");
+            SceneManager.LoadScene("MainMenuScene");
 
             // Reset instance if this controller is destroyed
             Instance = null;

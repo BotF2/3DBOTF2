@@ -1,24 +1,27 @@
-using Assets.Core;
+using Assets.GamePlay;
 using UnityEngine;
 
-public class PlayerDefinedTargetData
+namespace Assets.Core
 {
-    public Sprite Insignia;
-    public CivEnum CivOwnerEnum;
-    public FleetController FleetController;
-    public Vector3 Position;
-    public string CivShortName;
-    public GalaxyObjectType GalaxyObjectType = GalaxyObjectType.TargetDestination;
-    public string Name;
-    public string Description;
-
-    public PlayerDefinedTargetData(string name)
+    public class PlayerDefinedTargetData
     {
-        Name = name;
-    }
-    public PlayerDefinedTargetData()
-    {
+        public Sprite Insignia;
+        public CivEnum CivOwnerEnum;
+        public FleetController FleetController;
+        public Vector3 Position;
+        public string CivShortName;
+        public GalaxyObjectType GalaxyObjectType = GalaxyObjectType.TargetDestination;
+        public string Name;
+        public string Description;
 
+        public PlayerDefinedTargetData(string name)
+        {
+            Name = name;
+        }
+        public PlayerDefinedTargetData()
+        {
+
+        }
     }
 }
 

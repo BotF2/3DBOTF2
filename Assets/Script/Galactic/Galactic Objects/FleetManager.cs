@@ -1,5 +1,6 @@
 ﻿// Ignore Spelling: Nums Revealer
-
+using Assets.GamePlay;
+using Assets.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using TMPro;
@@ -20,8 +21,12 @@ namespace Assets.Core
         public GameObject ltCruiserBluePrintPrefab;
         public GameObject heavyCruiserBluePrintPrefab;
         public GameObject transportBluePrintPrefab;
-        [SerializeField]
-        private GameObject galaxyCanvasGO;
+
+        [Header("UI Container References")]
+        [SerializeField] private GameObject fleetListContainer;
+        [SerializeField] private GameObject galaxyCanvasGO;
+        [SerializeField] private GameObject galaxyImage;
+
         [SerializeField]
         private Canvas parentCanavas;
         [SerializeField]
@@ -36,8 +41,6 @@ namespace Assets.Core
         private GameObject shipManagerMenuPrefab;
         [SerializeField]
         private Material fogPlaneMaterial;
-        [SerializeField]
-        private GameObject galaxyImage;
 
         // Don't serialize - find at runtime since it's in GalaxyScene
         public GameObject GalaxyCenter { get; private set; }
@@ -82,20 +85,51 @@ namespace Assets.Core
             // Find GalaxyCenter at start
             FindGalaxyReferences();
         }
+        /// <summary>
+        /// Sets galaxy scene references needed by FleetManager.
+        /// Called by GalaxySceneInitializer when the galaxy scene loads.
+        /// </summary>
+        public void SetGalaxyReferences(GameObject galaxyCenter, GameObject galaxyImage, Canvas canvasGalaxy, GameObject fleetListContainer)
+        {
+            this.GalaxyCenter = galaxyCenter;
+            this.galaxyImage = galaxyImage;
+            this.parentCanavas = canvasGalaxy;
+            this.galaxyCanvasGO = canvasGalaxy.gameObject;
+            this.fleetListContainer = fleetListContainer;
 
+            Debug.Log("FleetManager: Galaxy references set successfully.");
+        }
         // NEW: Find galaxy references when needed
         public void FindGalaxyReferences()
         {
+            // ✅ CRITICAL: Find GalaxyCenter (it's in the scene, not Inspector)
             if (GalaxyCenter == null)
             {
                 GalaxyCenter = GameObject.Find("GalaxyCenter");
                 Debug.Log($"FleetManager: Found GalaxyCenter: {GalaxyCenter != null}");
             }
 
+            // Only find if null (fallback safety)
+            if (galaxyCanvasGO == null)
+            {
+                Debug.LogWarning("FleetManager: galaxyCanvasGO not assigned in Inspector! Using Find() as fallback.");
+                galaxyCanvasGO = GameObject.Find("CanvasGalaxy");
+            }
+
+            if (fleetListContainer == null && galaxyCanvasGO != null)
+            {
+                Debug.LogWarning("FleetManager: fleetListContainer not assigned! Using FindInHierarchy() as fallback.");
+                fleetListContainer = FindInHierarchy(galaxyCanvasGO.transform, "FleetListContainer");
+            }
+
+            fleetUIGOContentParent = fleetListContainer;
+
             if (galaxyImage == null)
             {
+                Debug.LogWarning("FleetManager: galaxyImage not assigned in Inspector! Using Find() as fallback.");
                 // Try finding as root object first
                 galaxyImage = GameObject.Find("GalaxyImage");
+
                 // Last resort: search all loaded scenes for inactive objects
                 if (galaxyImage == null)
                 {
@@ -127,22 +161,22 @@ namespace Assets.Core
                 Debug.Log($"FleetManager: Found FogWar: {fogWar != null}");
             }
 
-            // CRITICAL: Find fleetUIGOContentParent in CanvasGalaxy
-            if (fleetUIGOContentParent == null)
-            {
-                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
-                if (canvasGalaxy != null)
-                {
-                    fleetUIGOContentParent = FindInHierarchy(canvasGalaxy.transform, "FleetListContainer");
+            //// CRITICAL: Find fleetUIGOContentParent in CanvasGalaxy
+            //if (fleetUIGOContentParent == null)
+            //{
+            //    var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+            //    if (canvasGalaxy != null)
+            //    {
+            //        fleetUIGOContentParent = FindInHierarchy(canvasGalaxy.transform, "FleetListContainer");
 
-                    //if (fleetUIGOContentParent == null)
-                    //{
-                    //    fleetUIGOContentParent = FindInHierarchy(canvasGalaxy.transform, "Content");
-                    //}
+            //        //if (fleetUIGOContentParent == null)
+            //        //{
+            //        //    fleetUIGOContentParent = FindInHierarchy(canvasGalaxy.transform, "Content");
+            //        //}
 
-                    Debug.Log($"FleetManager: Found fleetUIGOContentParent: {fleetUIGOContentParent != null}");
-                }
-            }
+            //        Debug.Log($"FleetManager: Found fleetUIGOContentParent: {fleetUIGOContentParent != null}");
+            //    }
+            //}
 
             if (galaxyCanvasGO == null)
             {
@@ -295,25 +329,56 @@ namespace Assets.Core
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
-                // SAFETY: Only add fog revealer if fogWar exists
                 if (fogWar != null)
                 {
-                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 200, true);
+                    // ✅ Increase radius if galaxy is large (adjust based on your galaxy size)
+                    float revealRadius = 200f; // Try 400f or 600f if fleets are far apart
+
+                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 600, true);
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
                     TempFogRevealerFleet = ourFogRevealerFleet;
+
+                    Debug.Log($"✅ FogRevealer added to local fleet '{newFleetController.name}' with radius {revealRadius}");
                 }
             }
-            else
+            else // Non-local player fleet
             {
+                // ✅ Keep fleet name hidden until discovered
                 fleetChildFields.FleetNameGO.SetActive(false);
+
+                // ✅ Show unknown insignia, hide actual insignia
                 srInsignia.enabled = false;
                 srInsigniaUnknown.enabled = true;
+
+                // ✅ CRITICAL: Ensure the InsigniaUnknownGO itself is ACTIVE (not just SpriteRenderer.enabled)
+                if (fleetChildFields.InsigniaUnknownGO != null)
+                {
+                    fleetChildFields.InsigniaUnknownGO.SetActive(true);
+
+                    // ✅ Ensure it's on the correct layer
+                    fleetChildFields.InsigniaUnknownGO.layer = 6; // Galaxy layer
+
+                    Debug.Log($"✅ InsigniaUnknownGO active for non-local fleet '{newFleetController.name}' on layer {fleetChildFields.InsigniaUnknownGO.layer}");
+                }
+
+                // ✅ Ensure the entire fleet GameObject is visible
+                newFleetController.gameObject.SetActive(true);
 
                 // SAFETY: Only add fog visibility agent if fogWar exists
                 if (fogWar != null)
                 {
                     var ourFogVisibilityAgent = newFleetController.gameObject.AddComponent<csFogVisibilityAgent>();
                     ourFogVisibilityAgent.FogWar = fogWar;
+
+                    // ✅ CRITICAL: Configure the fog visibility agent
+                    //ourFogVisibilityAgent.IsVisible = false; // Start hidden by fog
+                    //ourFogVisibilityAgent.SetVisibilityDistance(600f); // Adjust based on your galaxy size
+
+                    Debug.Log($"✅ csFogVisibilityAgent added to non-local fleet '{newFleetController.name}'");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ FogWar is NULL! Non-local fleet '{newFleetController.name}' won't have fog visibility");
                 }
             }
 
@@ -630,6 +695,38 @@ namespace Assets.Core
         internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)
         {
             fogWar.RemoveFogRevealer(tempFogRevealerFleet);
+        }
+
+        // Add this method for debugging
+        private void OnGUI()
+        {
+            if (FleetControllerList == null) return;
+
+            GUILayout.BeginArea(new Rect(10, 300, 400, 400));
+            GUILayout.Label("=== Fleet Visibility Debug ===");
+
+            foreach (var fleet in FleetControllerList)
+            {
+                if (fleet == null) continue;
+
+                bool isLocal = GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum);
+                var fleetChildFields = fleet.GetComponent<FleetChildFields>();
+
+                string visibility = "UNKNOWN";
+                if (fleetChildFields != null)
+                {
+                    bool insigniaActive = fleetChildFields.InsigniaGO.activeSelf;
+                    bool unknownActive = fleetChildFields.InsigniaUnknownGO.activeSelf;
+                    visibility = $"Insignia:{insigniaActive}, Unknown:{unknownActive}";
+                }
+
+                var fogAgent = fleet.GetComponent<csFogVisibilityAgent>();
+                bool hasFog = fogAgent != null;
+
+                GUILayout.Label($"{fleet.name} | Local:{isLocal} | {visibility} | HasFogAgent:{hasFog}");
+            }
+
+            GUILayout.EndArea();
         }
     }
 }

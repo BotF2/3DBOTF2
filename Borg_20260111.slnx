@@ -7,7 +7,6 @@
   <Project Path="Unity.Localization.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Configuration.csproj" />
   <Project Path="Unity.ShaderGraph.Editor.csproj" />
-  <Project Path="MerryYellow.CodeAssist.Editor.csproj" />
   <Project Path="Unity.ScriptableBuildPipeline.Editor.csproj" />
   <Project Path="Unity.Services.Vivox.csproj" />
   <Project Path="Unity.Mathematics.csproj" />
@@ -38,6 +37,7 @@
   <Project Path="Unity.Services.Wire.Internal.csproj" />
   <Project Path="Unity.VisualScripting.Core.csproj" />
   <Project Path="Unity.Services.Core.Environments.Editor.csproj" />
+  <Project Path="Mirror.Examples.csproj" />
   <Project Path="UnityEditor.TestRunner.csproj" />
   <Project Path="Unity.Services.Deployment.Core.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.Runtime.csproj" />
@@ -127,11 +127,7 @@
   <Project Path="UnityEditor.XR.LegacyInputHelpers.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Common.csproj" />
   <Project Path="Unity.Netcode.Editor.CodeGen.csproj" />
-  <Project Path="Unity.Multiplayer.Widgets.Editor.csproj" />
   <Project Path="Unity.Services.DeploymentApi.csproj" />
-  <Project Path="Unity.Multiplayer.Widgets.Vivox.csproj" />
-  <Project Path="Unity.Multiplayer.Widgets.Core.csproj" />
-  <Project Path="Unity.Multiplayer.Widgets.Session.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="Unity.Services.Core.Registration.csproj" />
   <Project Path="UnityEngine.XR.LegacyInputHelpers.csproj" />

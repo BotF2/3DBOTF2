@@ -1,10 +1,8 @@
-using Mirror.BouncyCastle.Bcpg;
-using System;
+using Assets.GamePlay;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-//using UnityEngine.UIElements;
 
 namespace Assets.Core
 {
@@ -315,7 +313,7 @@ namespace Assets.Core
                     PanelCombat_Menu.SetActive(false);
                     PanelShipCombat.SetActive(true);
                     // send intrustions to remote PC to close PanelCombat_Menu 
-                }               
+                }
             }
             //for (int i = 0; i < AiPlayerControllers.Count; i++)
             //{
@@ -336,7 +334,7 @@ namespace Assets.Core
             {
                 shipControllers = SideOneShipControllers;
                 negIsSideOnePosIsSideTwo = -1;
-             }
+            }
             else
             {
                 shipControllers = SideTwoShipControllers;

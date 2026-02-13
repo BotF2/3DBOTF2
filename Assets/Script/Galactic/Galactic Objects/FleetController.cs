@@ -1,8 +1,10 @@
+using Assets.Core;
+using Assets.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace Assets.GamePlay
 {
     [RequireComponent(typeof(Rigidbody))]
     /// <summary>
@@ -207,7 +209,7 @@ namespace Assets.Core
                     if (weAreLocalPlayer)
                     {
                         SliderOnValueChange(0f); // stop the fleet on arrival
-                        FleetMenuUIController.Instance.UpdateFleetWarpUI(this, 0f);
+                        FleetUI.UpdateFleetWarpUI(this, 0f);
                         CloseUnLoadFleetUI(this); // we are there and have other things to do
                     }
                 }
@@ -341,7 +343,7 @@ namespace Assets.Core
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
             var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
 
-            if (fleetLooking != null) // We have a fleet looking for ship deploy
+            if (fleetLooking != null && fleetLooking != this) // We have a fleet looking for ship deploy
             {
                 var aFleetView = FleetUI.AFleetMenuView.gameObject;
                 aFleetView.gameObject.SetActive(true);
@@ -380,16 +382,38 @@ namespace Assets.Core
 
             var shipDeployUI = ShipDeployMenuUIController.Instance;
 
-            if (fleetLooking != null) // Fleet-to-Fleet merge
+            if (fleetLooking != null && fleetLooking != this) // Fleet-to-Fleet merge
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
                 aFleetView.gameObject.SetActive(true);
 
-                if (fleetLooking.FleetUIGameObject != null)
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                // ✅ Add VerticalLayoutGroup if not present
+                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f; // Space between fleet UIs
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                    layoutGroup.childControlHeight = false;
+                    layoutGroup.childControlWidth = false;
+                }
 
+                // Parent source fleet UI to container (TOP position)
+                if (fleetLooking.FleetUIGameObject != null)
+                {
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
+                    fleetLooking.FleetUIGameObject.SetActive(true);
+                    Debug.Log($"✅ Source fleet UI parented to AFleetMenuView (top)");
+                }
+
+                // Parent target fleet UI to container (BOTTOM position)
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
+                Debug.Log($"✅ Target fleet UI parented to AFleetMenuView (bottom)");
 
                 var combinedShipsList = new System.Collections.Generic.List<ShipController>();
                 combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
@@ -404,8 +428,45 @@ namespace Assets.Core
             {
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
                 aFleetView.gameObject.SetActive(true);
+
+                // ✅ Add VerticalLayoutGroup if not present
+                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f;
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                    layoutGroup.childControlHeight = false;
+                    layoutGroup.childControlWidth = false;
+                }
+
+                // Parent system UI to container (TOP position)
+                if (starSysLooking.StarSysUIGameObject != null)
+                {
+                    starSysLooking.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    starSysLooking.StarSysUIGameObject.transform.SetAsFirstSibling();
+                    starSysLooking.StarSysUIGameObject.SetActive(true);
+                    Debug.Log($"✅ System UI parented to AFleetMenuView (top)");
+
+                    // Update system facility UI
+                    var starSysUI = StarSysMenuUIController.Instance;
+                    if (starSysUI != null)
+                    {
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+                    }
+                }
+
+                // Parent fleet UI to container (BOTTOM position)
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                FleetUIGameObject.transform.SetAsLastSibling();
+                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
+                Debug.Log($"✅ Fleet UI parented to AFleetMenuView (bottom)");
 
                 var combinedShipsList = new System.Collections.Generic.List<ShipController>();
                 combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);

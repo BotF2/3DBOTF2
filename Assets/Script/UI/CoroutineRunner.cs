@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Assets.UI;
+using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -50,13 +51,25 @@ public class CoroutineRunner : MonoBehaviour
 
     private IEnumerator FlashRoutine()
     {
+        if (StarSysMenuUIController.Instance == null)
+        {
+            Debug.LogWarning("FlashRoutine: StarSysMenuUIController.Instance is null");
+            yield break;
+        }
+
+        var powerOverload = StarSysMenuUIController.Instance.PowerOverloadImage;
+
+        if (powerOverload == null)
+        {
+            Debug.LogWarning("FlashRoutine: PowerOverloadImage is null - cannot flash warning");
+            yield break;
+        }
+
         for (int i = 0; i < 3; i++)
         {
-            //StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(true);
-            goForFlash.SetActive(true);
+            powerOverload.SetActive(true);
             yield return new WaitForSeconds(0.5f);
-            //StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(false);
-            goForFlash.SetActive(false);
+            powerOverload.SetActive(false);
             yield return new WaitForSeconds(0.5f);
         }
     }

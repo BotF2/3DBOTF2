@@ -1,8 +1,9 @@
+using Assets.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
+
 namespace Assets.Core
 {
-
     public class CivData // has list of civsInGame, it's starSytems Data
     {
         public int CivInt;
@@ -11,7 +12,7 @@ namespace Assets.Core
         public string CivShortName;
         public string CivLongName;
         public string CivHomeSystemName;
-        public Vector3 HomeStarSystemPosition; 
+        public Vector3 HomeStarSystemPosition;
         public WarLikeEnum Warlike;// a enum scale from most work like 0 to neutral 3 and most peaceful 5
         public XenophobiaEnum Xenophbia; // XenophobiaEnum
         public RuthlessEnum Ruthelss; //XenophobiaEnum
@@ -19,7 +20,7 @@ namespace Assets.Core
         public Sprite CivRaceSprite;
         public Sprite InsigniaSprite;
         public int Population = 5;
-       // public int Credits = 100;
+        // public int Credits = 100;
         public int TechPoints = 10; // 10 for pre warp and playable get 90 more to be tech level early at 100; 
         public TechLevel TechLevel; // all cis have tech points and the tech level enum value sets a level threshold
         public bool Playable;

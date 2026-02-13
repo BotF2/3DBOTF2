@@ -1,5 +1,6 @@
 ﻿// Ignore Spelling: shiptype Sys hvy
-
+using Assets.GamePlay;
+using Assets.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
@@ -136,7 +137,14 @@ namespace Assets.Core
 
             Debug.Log("StarSysManager: Ready to create systems");
         }
+        public void SetGalaxyReferences(GameObject center, GameObject systemContainer)
+        {
+            galaxyCenter = center;
+            // Store systemContainer if there's a corresponding field
+            // Add any other initialization needed with these references
 
+            Debug.Log("StarSysManager: Galaxy references set.");
+        }
         public void FindGalaxyReferences()
         {
             // Find galaxyCenter if not assigned

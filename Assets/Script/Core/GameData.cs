@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 
+
 namespace Assets.Core
 {
     public class GameData

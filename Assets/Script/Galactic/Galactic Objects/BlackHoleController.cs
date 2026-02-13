@@ -1,14 +1,15 @@
 using UnityEngine;
 
-public class BlackHoleController : MonoBehaviour
+namespace Assets.GamePlay
 {
-    public Canvas CanvasToolTip;
-    public Camera galaxyEventCamera;
-
-    void Start()
+    public class BlackHoleController : MonoBehaviour
     {
-        CanvasToolTip.worldCamera = galaxyEventCamera;
+        public Canvas CanvasToolTip;
+        public Camera galaxyEventCamera;
+
+        void Start()
+        {
+            CanvasToolTip.worldCamera = galaxyEventCamera;
+        }
     }
-
-
 }

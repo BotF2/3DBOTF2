@@ -154,51 +154,71 @@ public class StarSysUI_Fields : MonoBehaviour
                 case StarSysFacilityType.Factory:
                     {
                         var fd = data.FactoryData;
-                        int factories = data.Factories?.Count ?? 0;
+                        var facilities = data.Factories;
+                        int total = facilities?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(facilities);
+                        int loadPerFacility = fd?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = fd?.FactorySprite;
                         if (f.nameText != null) f.nameText.text = fd?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = factories.ToString();
-                        if (f.loadText != null) f.loadText.text = (fd?.PowerLoad ?? 0).ToString();
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.Shipyard:
                     {
                         var sd = data.ShipyardData;
-                        int yards = data.Shipyards?.Count ?? 0;
+                        var yards = data.Shipyards;
+                        int total = yards?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(yards);
+                        int loadPerFacility = sd?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = sd?.ShipyardSprite;
                         if (f.nameText != null) f.nameText.text = sd?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = yards.ToString();
-                        if (f.loadText != null) f.loadText.text = (sd?.PowerLoad ?? 0).ToString();
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.ShieldGenerator:
                     {
                         var sh = data.ShieldGeneratorData;
-                        int shields = data.ShieldGenerators?.Count ?? 0;
+                        var shields = data.ShieldGenerators;
+                        int total = shields?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(shields);
+                        int loadPerFacility = sh?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = sh?.ShieldGeneratorSprite;
                         if (f.nameText != null) f.nameText.text = sh?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = shields.ToString();
-                        if (f.loadText != null) f.loadText.text = (sh?.PowerLoad ?? 0).ToString();
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.OrbitalBattery:
                     {
                         var ob = data.OrbitalBatteryData;
-                        int obs = data.OrbitalBatteries?.Count ?? 0;
+                        var obs = data.OrbitalBatteries;
+                        int total = obs?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(obs);
+                        int loadPerFacility = ob?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = ob?.OrbitalBatterySprite;
                         if (f.nameText != null) f.nameText.text = ob?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = obs.ToString();
-                        if (f.loadText != null) f.loadText.text = (ob?.PowerLoad ?? 0).ToString();
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.ResearchCenter:
                     {
                         var rc = data.ResearchCenterData;
-                        int rcs = data.ResearchCenters?.Count ?? 0;
+                        var rcs = data.ResearchCenters;
+                        int total = rcs?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(rcs);
+                        int loadPerFacility = rc?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = rc?.ResearchCenterSprite;
                         if (f.nameText != null) f.nameText.text = rc?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = rcs.ToString();
-                        if (f.loadText != null) f.loadText.text = (rc?.PowerLoad ?? 0).ToString();
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 default:
@@ -212,5 +232,24 @@ public class StarSysUI_Fields : MonoBehaviour
             bool overloaded = data.TotalSysPowerLoad > totalOutput;
             PowerOverload.SetActive(overloaded);
         }
+    }
+
+    /// <summary>
+    /// Counts how many facilities in the list are turned on (TextMeshProUGUI.text == "1")
+    /// </summary>
+    private int CountFacilitiesOn(List<GameObject> facilityList)
+    {
+        if (facilityList == null) return 0;
+
+        int count = 0;
+        foreach (var facilityGO in facilityList)
+        {
+            if (facilityGO == null) continue;
+
+            var tmp = facilityGO.GetComponent<TextMeshProUGUI>();
+            if (tmp != null && tmp.text == "1")
+                count++;
+        }
+        return count;
     }
 }

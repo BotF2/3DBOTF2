@@ -1,443 +1,662 @@
 ﻿// Ignore Spelling: Sys Anya
 
 using Assets.Core;
+using Assets.GamePlay;
 using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-/// <summary>
-/// The UI controller owns hierarchy and presentation.
-/// </summary>
-public class StarSysMenuUIController : MonoBehaviour
+
+namespace Assets.UI
 {
-    public static StarSysMenuUIController Instance;
-    private StarSysController lastSysCon;
-    private StarSysController activeStarSysController;
-    [Header("References (assign in Inspector)")]
-    public GameObject SystemsMenuView;
-    public GameObject ASystemMenuView;
-    public GameObject SysListContainer;
-    [Header("Private")]
-    [SerializeField] private GameObject sysShipListContainer;
-    [SerializeField] private GameObject aSystemShipListContainer;
-    [SerializeField] private FleetMenuUIController fleetMenuUIController; // used for parenting right-side ship UI
-    [Header("Runtime lists")]
-    [SerializeField] private List<GameObject> listOfStarSysUiGos = new List<GameObject>();
-    [SerializeField] private List<GameObject> listOfSysShipUiGos = new List<GameObject>();
-    [SerializeField] private GameObject cancelShipManagerButtonGO;
-    [SerializeField] private FleetController tempFleetController;
-    [Header("Power overload visuals")]
-    public GameObject PowerOverloadImage;
-    public Slider ShipSliderBuildProgress;
-    public Slider SliderBuildProgress;
-
-    private void Awake()
+    /// <summary>
+    /// The UI controller owns hierarchy and presentation.
+    /// </summary>
+    public class StarSysMenuUIController : MonoBehaviour
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-        }
-        else
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-    }
+        public static StarSysMenuUIController Instance;
+        private StarSysController lastSysCon;
+        private StarSysController activeStarSysController;
+        [Header("References (assign in Inspector)")]
+        public GameObject SystemsMenuView;
+        public GameObject ASystemMenuView;
+        public GameObject SysListContainer;
+        [Header("Private")]
+        [SerializeField] private GameObject sysShipListContainer;
+        [SerializeField] private GameObject aSystemShipListContainer;
+        [SerializeField] private FleetMenuUIController fleetMenuUIController; // used for parenting right-side ship UI
+        [Header("Runtime lists")]
+        [SerializeField] private List<GameObject> listOfStarSysUiGos = new List<GameObject>();
+        [SerializeField] private List<GameObject> listOfSysShipUiGos = new List<GameObject>();
+        [SerializeField] private GameObject cancelShipManagerButtonGO;
+        [SerializeField] private FleetController tempFleetController;
+        [Header("Power overload visuals")]
+        public GameObject PowerOverloadImage;
+        public Slider ShipSliderBuildProgress;
+        public Slider SliderBuildProgress;
 
-    private void Start()
-    {
-        // DON'T call FindSysUIContainers() here - GalaxyScene doesn't exist yet!
-        // It will be called from MainMenuUIController after scene loads
-
-        // Record the original parent of each StarSysUIGameObject
-        // This might be empty initially - systems are created later
-        if (StarSysManager.Instance != null)
+        private void Awake()
         {
-            for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
+            if (Instance != null)
             {
-                var sysCon = StarSysManager.Instance.StarSysControllerList[i];
-                if (sysCon != null && sysCon.StarSysUIGameObject != null)
+                Destroy(gameObject);
+            }
+            else
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+        }
+
+        private void Start()
+        {
+            // DON'T call FindSysUIContainers() here - GalaxyScene doesn't exist yet!
+            // It will be called from MainMenuUIController after scene loads
+
+            // Record the original parent of each StarSysUIGameObject
+            // This might be empty initially - systems are created later
+            if (StarSysManager.Instance != null)
+            {
+                for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
                 {
-                    var child = sysCon.StarSysUIGameObject;
-                    var childController = child.GetComponent<FleetAndSystemChildController>();
-                    if (childController != null && childController.OriginalParentTransform == null)
+                    var sysCon = StarSysManager.Instance.StarSysControllerList[i];
+                    if (sysCon != null && sysCon.StarSysUIGameObject != null)
                     {
-                        if (child.transform.parent != null)
+                        var child = sysCon.StarSysUIGameObject;
+                        var childController = child.GetComponent<FleetAndSystemChildController>();
+                        if (childController != null && childController.OriginalParentTransform == null)
                         {
-                            childController.OriginalParentTransform = child.transform.parent;
-                        }
-                        else if (SysListContainer != null)
-                        {
-                            childController.OriginalParentTransform = SysListContainer.transform;
-                        }
-                        else if (ASystemMenuView != null)
-                        {
-                            childController.OriginalParentTransform = ASystemMenuView.transform;
+                            if (child.transform.parent != null)
+                            {
+                                childController.OriginalParentTransform = child.transform.parent;
+                            }
+                            else if (SysListContainer != null)
+                            {
+                                childController.OriginalParentTransform = SysListContainer.transform;
+                            }
+                            else if (ASystemMenuView != null)
+                            {
+                                childController.OriginalParentTransform = ASystemMenuView.transform;
+                            }
                         }
                     }
                 }
             }
+
+            // Initially hide views (they might not exist yet)
+            if (SystemsMenuView != null)
+                SystemsMenuView.SetActive(false);
+            if (ASystemMenuView != null)
+                ASystemMenuView.SetActive(false);
         }
-
-        // Initially hide views (they might not exist yet)
-        if (SystemsMenuView != null)
-            SystemsMenuView.SetActive(false);
-        if (ASystemMenuView != null)
-            ASystemMenuView.SetActive(false);
-    }
-    public void ShowSystemMenuView()
-    {
-        Debug.Log("=== ShowSystemMenuView: Starting ===");
-
-        // CRITICAL: Find containers if they don't exist yet
-        if (SystemsMenuView == null || SysListContainer == null)
+        public void SetUIReferences(GameObject systemListContainer, GameObject canvasGalaxy)
         {
-            FindSysUIContainers();
+            this.SysListContainer = systemListContainer;
+            // Store canvasGalaxy reference if needed by the class
         }
-
-        if (StarSysManager.Instance != null)
+        public void ShowSystemMenuView()
         {
-            var systems = StarSysManager.Instance.StarSysControllerList;
-            Debug.Log($"  StarSysManager has {systems?.Count ?? 0} total systems");
+            Debug.Log("=== ShowSystemMenuView: Starting ===");
 
-            if (systems != null && systems.Count > 0)
+            // CRITICAL: Find containers if they don't exist yet
+            if (SystemsMenuView == null || SysListContainer == null)
             {
-                int localPlayerSystems = 0;
-                foreach (var sys in systems)
-                {
-                    if (sys != null && GameController.Instance.AreWeLocalPlayer(sys.StarSysData.CurrentOwnerCivEnum))
-                    {
-                        localPlayerSystems++;
-                    }
-                }
-
-                Debug.Log($"  Local player owns {localPlayerSystems} systems");
+                FindSysUIContainers();
             }
+
+            if (StarSysManager.Instance != null)
+            {
+                var systems = StarSysManager.Instance.StarSysControllerList;
+                Debug.Log($"  StarSysManager has {systems?.Count ?? 0} total systems");
+
+                if (systems != null && systems.Count > 0)
+                {
+                    int localPlayerSystems = 0;
+                    foreach (var sys in systems)
+                    {
+                        if (sys != null && GameController.Instance.AreWeLocalPlayer(sys.StarSysData.CurrentOwnerCivEnum))
+                        {
+                            localPlayerSystems++;
+                        }
+                    }
+
+                    Debug.Log($"  Local player owns {localPlayerSystems} systems");
+                }
+            }
+            else
+            {
+                Debug.LogError("  StarSysManager.Instance is NULL!");
+            }
+
+            // SAFETY: Check if SystemsMenuView exists after FindSysUIContainers
+            if (SystemsMenuView == null)
+            {
+                Debug.LogError("ShowSystemMenuView: SystemsMenuView is STILL null after FindSysUIContainers! Check CanvasGalaxy hierarchy.");
+                return;
+            }
+
+            SystemsMenuView.SetActive(true);
+            Debug.Log("  SystemMenuView activated");
+
+            SetupSystemUIData();
+
+            Debug.Log("=== ShowSystemMenuView: Complete ===");
         }
-        else
+
+        // NEW: Populate system list when menu opens
+        public void SetupSystemUIData()
         {
-            Debug.LogError("  StarSysManager.Instance is NULL!");
-        }
+            Debug.Log("SetupSystemUIData: Populating system list");
 
-        // SAFETY: Check if SystemsMenuView exists after FindSysUIContainers
-        if (SystemsMenuView == null)
-        {
-            Debug.LogError("ShowSystemMenuView: SystemsMenuView is STILL null after FindSysUIContainers! Check CanvasGalaxy hierarchy.");
-            return;
-        }
-
-        SystemsMenuView.SetActive(true);
-        Debug.Log("  SystemMenuView activated");
-
-        SetupSystemUIData();
-
-        Debug.Log("=== ShowSystemMenuView: Complete ===");
-    }
-
-    // NEW: Populate system list when menu opens
-    public void SetupSystemUIData()
-    {
-        Debug.Log("SetupSystemUIData: Populating system list");
-
-        if (StarSysManager.Instance == null)
-        {
-            Debug.LogError("  StarSysManager.Instance is null!");
-            return;
-        }
-
-        if (SysListContainer == null)
-        {
-            FindSysUIContainers();
+            if (StarSysManager.Instance == null)
+            {
+                Debug.LogError("  StarSysManager.Instance is null!");
+                return;
+            }
 
             if (SysListContainer == null)
             {
-                Debug.LogError("  SysListContainer is null even after FindSysUIContainers! Cannot display systems.");
+                FindSysUIContainers();
+
+                if (SysListContainer == null)
+                {
+                    Debug.LogError("  SysListContainer is null even after FindSysUIContainers! Cannot display systems.");
+                    return;
+                }
+            }
+
+            var systems = StarSysManager.Instance.StarSysControllerList;
+            if (systems == null || systems.Count == 0)
+            {
+                Debug.LogWarning("  No systems in StarSysManager!");
                 return;
             }
-        }
 
-        var systems = StarSysManager.Instance.StarSysControllerList;
-        if (systems == null || systems.Count == 0)
-        {
-            Debug.LogWarning("  No systems in StarSysManager!");
-            return;
-        }
+            int visibleCount = 0;
 
-        int visibleCount = 0;
-
-        foreach (var sysCon in systems)
-        {
-            if (sysCon == null) continue;
-
-            // Only show local player's systems
-            if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
-                continue;
-
-            // Ensure system has UI GameObject
-            if (sysCon.StarSysUIGameObject == null)
+            foreach (var sysCon in systems)
             {
-                Debug.LogWarning($"  System '{sysCon.name}' has no UI GameObject - skipping");
-                continue;
-            }
+                if (sysCon == null) continue;
 
-            // Get UI Fields component
-            var sysUIFieldElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-            if (sysUIFieldElement == null)
-            {
-                Debug.LogWarning($"  System '{sysCon.name}' UI has no StarSysUI_Fields component - skipping");
-                continue;
-            }
+                // Only show local player's systems
+                if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
+                    continue;
 
-            // CRITICAL: Wire up buttons if not already in the list
-            if (!listOfStarSysUiGos.Contains(sysCon.StarSysUIGameObject))
-            {
-                // Set ShipListUIParent
-                if (sysUIFieldElement.shipContent != null)
+                // Ensure system has UI GameObject
+                if (sysCon.StarSysUIGameObject == null)
                 {
-                    sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
-                }
-
-                // Wire BuildButton -> Opens build queue menu
-                if (sysUIFieldElement.buildButton != null)
-                {
-                    sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
-                    sysUIFieldElement.buildButton.onClick.AddListener(() => sysCon.BuildClick(sysCon));
-                }
-
-                // Wire ShipButton -> Opens ship management panel
-                if (sysUIFieldElement.shipButton != null)
-                {
-                    sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
-                    sysUIFieldElement.shipButton.onClick.AddListener(() => sysCon.ShipClick(sysCon));
-                }
-
-                // Wire ShipDeployButton -> Ship transfer mode
-                if (sysUIFieldElement.shipDeployButton != null)
-                {
-                    sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
-                    sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
-                }
-
-                // Wire NewFleetButton -> Create new fleet from system
-                if (sysUIFieldElement.newFleetButton != null)
-                {
-                    sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
-                    sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysCon));
-                }
-
-                // Wire MergeFleetButton -> Merge ships mode
-                if (sysUIFieldElement.mergeFleetButton != null)
-                {
-                    sysUIFieldElement.mergeFleetButton.onClick.RemoveAllListeners();
-                    sysUIFieldElement.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysCon));
-                }
-
-                // Add to tracked list
-                listOfStarSysUiGos.Add(sysCon.StarSysUIGameObject);
-            }
-
-            // Parent to the list container
-            if (sysCon.StarSysUIGameObject.transform.parent != SysListContainer.transform)
-            {
-                sysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
-            }
-
-            // Ensure it's active
-            if (!sysCon.StarSysUIGameObject.activeInHierarchy)
-            {
-                sysCon.StarSysUIGameObject.SetActive(true);
-            }
-
-            visibleCount++;
-        }
-
-        Debug.Log($"SetupSystemUIData: Displayed {visibleCount} systems with button wiring");
-    }
-    public void ShowA_SystemMenuView()
-    {
-        // SAFETY: Check before calling SetActive
-        if (ASystemMenuView == null)
-        {
-            Debug.LogWarning("ShowA_SystemMenuView: ASystemMenuView is null, skipping");
-            return;
-        }
-
-        ASystemMenuView.SetActive(true);
-        Debug.Log("ASystemMenuView shown");
-    }
-    public void HideSystemMenuView()
-    {
-        // SAFETY: Check before calling SetActive
-        if (SystemsMenuView == null)
-        {
-            Debug.LogWarning("HideSystemMenuView: SystemsMenuView is null, skipping");
-            return;
-        }
-
-        SystemsMenuView.SetActive(false);
-        Debug.Log("SystemMenuView hidden");
-    }
-    public void HideA_SystemMenuView()
-    {
-        // SAFETY: Check before calling SetActive
-        if (ASystemMenuView == null)
-        {
-            Debug.LogWarning("HideA_SystemMenuView: ASystemMenuView is null, skipping");
-            return;
-        }
-
-        ASystemMenuView.SetActive(false);
-        Debug.Log("ASystemMenuView hidden");
-    }
-    // Public API (moved logic)
-    public void SetupSystemUIDataOld()
-    {
-        if (StarSysManager.Instance == null) return;
-        foreach (var sysController in StarSysManager.Instance.StarSysControllerList)
-        {
-            if (sysController == null) continue;
-
-            if (!listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject) &&
-                GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
-            {
-
-                var galaxyMenu = GalaxyMenuUIController.Instance;
-                galaxyMenu.FleetLookingForShipDeploy = null;
-                galaxyMenu.FleetLookingForDestination = null;
-                galaxyMenu.StarSystLookingForShipDeploy = sysController;
-                // wire up individual star system UI
-                sysController.StarSysUIGameObject.SetActive(true);
-                sysController.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
-                listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
-                if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
-                    sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
-
-                var sysUIFieldElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-                sysController.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
-
-                if (sysUIFieldElement == null)
-                {
-                    Debug.LogWarning($"SetupSystemUIData: StarSysUI_Fields missing on UI prefab for {sysController.name}");
+                    Debug.LogWarning($"  System '{sysCon.name}' has no UI GameObject - skipping");
                     continue;
                 }
 
-                // Basic transform bindings that are independent of textual content
-                sysUIFieldElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
-                    sysController.StarSysData.GetPosition().z * 0.12f);
-                sysUIFieldElement.cancelShipManagerButton.gameObject.SetActive(false);
-
-                // Bind button handlers and images (keep existing wiring; textual content will be initialized centrally)
-                sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
-                sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
-                sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysController));
-                sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysController));
-                sysUIFieldElement.mergeFleetButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysController));
-                sysUIFieldElement.cancelShipManagerButton.onClick.RemoveAllListeners();
-                sysUIFieldElement.cancelShipManagerButton.onClick.AddListener(() => galaxyMenu.CloseMenu(Menu.FleetMenu));
-                // Ensure SysButtonOnOff components exist and assign types, then wire click handlers
-                if (sysUIFieldElement.factoryButtonOn != null)
+                // Get UI Fields component
+                var sysUIFieldElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (sysUIFieldElement == null)
                 {
-                    if (sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>() != null)
+                    Debug.LogWarning($"  System '{sysCon.name}' UI has no StarSysUI_Fields component - skipping");
+                    continue;
+                }
+
+                // ✅ CRITICAL: ALWAYS set ShipListUIParent for EVERY system, every time
+                // This was moved OUTSIDE the "new system" check so existing systems get it too
+                if (sysUIFieldElement.shipContent != null)
+                {
+                    if (sysCon.StarSysData.ShipListUIParent == null)
+                    {
+                        sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
+                        Debug.Log($"✅ Set ShipListUIParent for system '{sysCon.name}'");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ shipContent is NULL on {sysCon.name}'s UI!");
+                }
+
+                // CRITICAL: Wire up buttons if not already in the list (FIRST TIME ONLY)
+                if (!listOfStarSysUiGos.Contains(sysCon.StarSysUIGameObject))
+                {
+                    // ✅ 1. Set OriginalParentTransform (for moving back later)
+                    var childController = sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>();
+                    if (childController != null && childController.OriginalParentTransform == null)
+                    {
+                        childController.OriginalParentTransform = SysListContainer.transform;
+                    }
+
+                    // ✅ 2. Position red dot on mini-map
+                    if (sysUIFieldElement.redDot != null)
+                    {
+                        sysUIFieldElement.redDot.anchoredPosition = new Vector2(
+                            sysCon.StarSysData.GetPosition().x * 0.12f,
+                            sysCon.StarSysData.GetPosition().z * 0.12f);
+                    }
+
+                    // ✅ 3. Hide cancel ship manager button initially
+                    if (sysUIFieldElement.cancelShipManagerButton != null)
+                    {
+                        sysUIFieldElement.cancelShipManagerButton.gameObject.SetActive(false);
+                    }
+
+                    // Wire BuildButton -> Opens build queue menu
+                    if (sysUIFieldElement.buildButton != null)
+                    {
+                        sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
+                        sysUIFieldElement.buildButton.onClick.AddListener(() => sysCon.BuildClick(sysCon));
+                    }
+
+                    // Wire ShipButton -> Opens ship management panel
+                    if (sysUIFieldElement.shipButton != null)
+                    {
+                        sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
+                        sysUIFieldElement.shipButton.onClick.AddListener(() => sysCon.ShipClick(sysCon));
+                    }
+
+                    // Wire ShipDeployButton -> Ship transfer mode
+                    if (sysUIFieldElement.shipDeployButton != null)
+                    {
+                        sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
+                        sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
+                    }
+
+                    // Wire NewFleetButton -> Create new fleet from system
+                    if (sysUIFieldElement.newFleetButton != null)
+                    {
+                        sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
+                        sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysCon));
+                    }
+
+                    // Wire MergeFleetButton -> Merge ships mode
+                    if (sysUIFieldElement.mergeFleetButton != null)
+                    {
+                        sysUIFieldElement.mergeFleetButton.onClick.RemoveAllListeners();
+                        sysUIFieldElement.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysCon));
+                    }
+
+                    // ✅ 4. Wire up facility On/Off buttons WITH SysButtonOnOff component type assignment
+                    // Factory buttons
+                    if (sysUIFieldElement.factoryButtonOn != null)
                     {
                         var comp = sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.FactoryOnButton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.FactoryOnButton;
+                        }
                         sysUIFieldElement.factoryButtonOn.onClick.RemoveAllListeners();
-                        sysUIFieldElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
+                        sysUIFieldElement.factoryButtonOn.onClick.AddListener(() => sysCon.FactoryButtonOnClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.factoryButtonOff != null)
-                {
-                    if (sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>() != null)
+                    if (sysUIFieldElement.factoryButtonOff != null)
                     {
                         var comp = sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.FactoryOffButton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.FactoryOffButton;
+                        }
                         sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
-                        sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                        sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysCon.FactoryButtonOffClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.yardButtonOn != null)
-                {
-                    if (sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>() != null)
+
+                    // Shipyard buttons
+                    if (sysUIFieldElement.yardButtonOn != null)
                     {
                         var comp = sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.ShipyardOnButton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.ShipyardOnButton;
+                        }
                         sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
-                        sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                        sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysCon.YardButtonOnClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.yardButtonOff != null)
-                {
-                    if (sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>() != null)
+                    if (sysUIFieldElement.yardButtonOff != null)
                     {
                         var comp = sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                        }
                         sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
-                        sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                        sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysCon.YardButtonOffClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.shieldButtonOn != null)
-                {
-                    if (sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>() != null)
+
+                    // Shield Generator buttons
+                    if (sysUIFieldElement.shieldButtonOn != null)
                     {
                         var comp = sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                        }
                         sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
-                        sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                        sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysCon.ShieldButtonOnClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.shieldButtonOff != null)
-                {
-                    if (sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>() != null)
+                    if (sysUIFieldElement.shieldButtonOff != null)
                     {
                         var comp = sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                        }
                         sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
-                        sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                        sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysCon.ShieldButtonOffClicked(sysCon));
                     }
-                }
-                if (sysUIFieldElement.oBButtonOn != null)
-                {
-                    if (sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>() != null)
+
+                    // Orbital Battery buttons
+                    if (sysUIFieldElement.oBButtonOn != null)
                     {
                         var comp = sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>();
-                        comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                        if (comp != null)
+                        {
+                            comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                        }
                         sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
-                        sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                        sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysCon.OBButtonOnClicked(sysCon));
                     }
                     if (sysUIFieldElement.oBButtonOff != null)
                     {
-                        if (sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>();
+                        if (comp != null)
                         {
-                            var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>();
                             comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
-                            sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
-                            sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
                         }
+                        sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
+                        sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysCon.OBButtonOffClicked(sysCon));
                     }
+
+                    // Research Center buttons
                     if (sysUIFieldElement.researchButtonOn != null)
                     {
-                        if (sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>();
+                        if (comp != null)
                         {
-                            var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>();
                             comp.button = SystemOnOffButtons.ResearchCenterOnButton;
-                            sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
-                            sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
                         }
+                        sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
+                        sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysCon.ResearchButtonOnClicked(sysCon));
                     }
                     if (sysUIFieldElement.researchButtonOff != null)
                     {
-                        if (sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>();
+                        if (comp != null)
                         {
-                            var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>();
                             comp.button = SystemOnOffButtons.ResearchCenterOffButton;
-                            sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
-                            sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
+                        }
+                        sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
+                        sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysCon.ResearchButtonOffClicked(sysCon));
+                    }
+
+                    // ✅ 5. Bind build progress sliders
+                    Slider[] sliders = sysCon.StarSysUIGameObject.GetComponentsInChildren<Slider>();
+                    for (int i = 0; i < sliders.Length; i++)
+                    {
+                        if (sliders[i].name == "BuildProgressSlider")
+                        {
+                            SliderBuildProgress = sliders[i];
+                            SliderBuildProgress.value = 0f;
+                        }
+                        if (sliders[i].name == "ShipBuildProgressSlider")
+                        {
+                            ShipSliderBuildProgress = sliders[i];
+                            ShipSliderBuildProgress.value = 0f;
+                        }
+                    }
+
+                    // ✅ 6. Set theme-based facility images
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                    {
+                        if (sysUIFieldElement.powerUnitImage != null)
+                            sysUIFieldElement.powerUnitImage.sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
+                        if (sysUIFieldElement.factoryImage != null)
+                            sysUIFieldElement.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
+                        if (sysUIFieldElement.shipyardImage != null)
+                            sysUIFieldElement.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                        if (sysUIFieldElement.shieldPlantImage != null)
+                            sysUIFieldElement.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                        if (sysUIFieldElement.orbitalBatteriesImage != null)
+                            sysUIFieldElement.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
+                        if (sysUIFieldElement.researchImage != null)
+                            sysUIFieldElement.researchImage.sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
+                    }
+
+                    // ✅ Assign PowerOverloadImage from first system (fallback for singleton pattern)
+                    if (PowerOverloadImage == null && sysUIFieldElement.PowerOverload != null)
+                    {
+                        PowerOverloadImage = sysUIFieldElement.PowerOverload;
+                        Debug.Log($"Assigned PowerOverloadImage from system '{sysCon.name}'");
+                    }
+
+                    // Add to tracked list
+                    listOfStarSysUiGos.Add(sysCon.StarSysUIGameObject);
+                }
+
+                // ✅ NOW OUTSIDE THE "NEW SYSTEM" BLOCK - Process pending ship UIs
+                Debug.Log($"🚢 System '{sysCon.name}' has {sysCon.StarSysData.ShipsList.Count} ships");
+
+                if (ShipManager.Instance != null && sysCon.StarSysData.ShipListUIParent != null)
+                {
+                    ShipManager.Instance.ProcessPendingShipUIs(sysCon);
+                }
+
+                // ✅ CRITICAL FIX: ALWAYS initialize facility data (not just for new items!)
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.OrbitalBattery);
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ResearchCenter);
+
+                // Also call the new typed method to update typed fields
+                if (sysCon.StarSysData != null)
+                {
+                    try
+                    {
+                        sysUIFieldElement.InitializeFromStarSysData(sysCon.StarSysData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysCon.name}: {ex.Message}");
+                    }
+                }
+
+                // Parent to the list container
+                if (sysCon.StarSysUIGameObject.transform.parent != SysListContainer.transform)
+                {
+                    sysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
+                }
+
+                // Ensure it's active
+                if (!sysCon.StarSysUIGameObject.activeInHierarchy)
+                {
+                    sysCon.StarSysUIGameObject.SetActive(true);
+                }
+
+                visibleCount++;
+            }
+
+            Debug.Log($"SetupSystemUIData: Displayed {visibleCount} systems with data initialized");
+        }
+        public void ShowA_SystemMenuView()
+        {
+            // SAFETY: Check before calling SetActive
+            if (ASystemMenuView == null)
+            {
+                Debug.LogWarning("ShowA_SystemMenuView: ASystemMenuView is null, skipping");
+                return;
+            }
+
+            ASystemMenuView.SetActive(true);
+            Debug.Log("ASystemMenuView shown");
+        }
+        public void HideSystemMenuView()
+        {
+            // SAFETY: Check before calling SetActive
+            if (SystemsMenuView == null)
+            {
+                Debug.LogWarning("HideSystemMenuView: SystemsMenuView is null, skipping");
+                return;
+            }
+
+            SystemsMenuView.SetActive(false);
+            Debug.Log("SystemMenuView hidden");
+        }
+        public void HideA_SystemMenuView()
+        {
+            // SAFETY: Check before calling SetActive
+            if (ASystemMenuView == null)
+            {
+                Debug.LogWarning("HideA_SystemMenuView: ASystemMenuView is null, skipping");
+                return;
+            }
+
+            ASystemMenuView.SetActive(false);
+            Debug.Log("ASystemMenuView hidden");
+        }
+        // Public API (moved logic)
+        public void SetupSystemUIDataOld()
+        {
+            if (StarSysManager.Instance == null) return;
+            foreach (var sysController in StarSysManager.Instance.StarSysControllerList)
+            {
+                if (sysController == null) continue;
+
+                if (!listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject) &&
+                    GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum))
+                {
+
+                    var galaxyMenu = GalaxyMenuUIController.Instance;
+                    galaxyMenu.FleetLookingForShipDeploy = null;
+                    galaxyMenu.FleetLookingForDestination = null;
+                    galaxyMenu.StarSystLookingForShipDeploy = sysController;
+                    // wire up individual star system UI
+                    sysController.StarSysUIGameObject.SetActive(true);
+                    sysController.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
+                    listOfStarSysUiGos.Add(sysController.StarSysUIGameObject);
+                    if (sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
+                        sysController.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = SysListContainer.transform;
+
+                    var sysUIFieldElement = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                    sysController.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
+
+                    if (sysUIFieldElement == null)
+                    {
+                        Debug.LogWarning($"SetupSystemUIData: StarSysUI_Fields missing on UI prefab for {sysController.name}");
+                        continue;
+                    }
+
+                    // Basic transform bindings that are independent of textual content
+                    sysUIFieldElement.redDot.anchoredPosition = new Vector2(sysController.StarSysData.GetPosition().x * 0.12f,
+                        sysController.StarSysData.GetPosition().z * 0.12f);
+                    sysUIFieldElement.cancelShipManagerButton.gameObject.SetActive(false);
+
+                    // Bind button handlers and images (keep existing wiring; textual content will be initialized centrally)
+                    sysUIFieldElement.buildButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.buildButton.onClick.AddListener(() => sysController.BuildClick(sysController));
+                    sysUIFieldElement.shipButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.shipButton.onClick.AddListener(() => sysController.ShipClick(sysController));
+                    sysUIFieldElement.shipDeployButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysController));
+                    sysUIFieldElement.newFleetButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysController));
+                    sysUIFieldElement.mergeFleetButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysController));
+                    sysUIFieldElement.cancelShipManagerButton.onClick.RemoveAllListeners();
+                    sysUIFieldElement.cancelShipManagerButton.onClick.AddListener(() => galaxyMenu.CloseMenu(Menu.FleetMenu));
+                    // Ensure SysButtonOnOff components exist and assign types, then wire click handlers
+                    if (sysUIFieldElement.factoryButtonOn != null)
+                    {
+                        if (sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.factoryButtonOn.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.FactoryOnButton;
+                            sysUIFieldElement.factoryButtonOn.onClick.RemoveAllListeners();
+                            sysUIFieldElement.factoryButtonOn.onClick.AddListener(() => sysController.FactoryButtonOnClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.factoryButtonOff != null)
+                    {
+                        if (sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.factoryButtonOff.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.FactoryOffButton;
+                            sysUIFieldElement.factoryButtonOff.onClick.RemoveAllListeners();
+                            sysUIFieldElement.factoryButtonOff.onClick.AddListener(() => sysController.FactoryButtonOffClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.yardButtonOn != null)
+                    {
+                        if (sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.yardButtonOn.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ShipyardOnButton;
+                            sysUIFieldElement.yardButtonOn.onClick.RemoveAllListeners();
+                            sysUIFieldElement.yardButtonOn.onClick.AddListener(() => sysController.YardButtonOnClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.yardButtonOff != null)
+                    {
+                        if (sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.yardButtonOff.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ShipyardOffbutton;
+                            sysUIFieldElement.yardButtonOff.onClick.RemoveAllListeners();
+                            sysUIFieldElement.yardButtonOff.onClick.AddListener(() => sysController.YardButtonOffClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.shieldButtonOn != null)
+                    {
+                        if (sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.shieldButtonOn.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ShieldGeneratorOnButton;
+                            sysUIFieldElement.shieldButtonOn.onClick.RemoveAllListeners();
+                            sysUIFieldElement.shieldButtonOn.onClick.AddListener(() => sysController.ShieldButtonOnClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.shieldButtonOff != null)
+                    {
+                        if (sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.shieldButtonOff.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.ShieldGeneratorOffbutton;
+                            sysUIFieldElement.shieldButtonOff.onClick.RemoveAllListeners();
+                            sysUIFieldElement.shieldButtonOff.onClick.AddListener(() => sysController.ShieldButtonOffClicked(sysController));
+                        }
+                    }
+                    if (sysUIFieldElement.oBButtonOn != null)
+                    {
+                        if (sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>() != null)
+                        {
+                            var comp = sysUIFieldElement.oBButtonOn.GetComponent<SysButtonOnOff>();
+                            comp.button = SystemOnOffButtons.OrbitalBatteryOnButton;
+                            sysUIFieldElement.oBButtonOn.onClick.RemoveAllListeners();
+                            sysUIFieldElement.oBButtonOn.onClick.AddListener(() => sysController.OBButtonOnClicked(sysController));
+                        }
+                        if (sysUIFieldElement.oBButtonOff != null)
+                        {
+                            if (sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>() != null)
+                            {
+                                var comp = sysUIFieldElement.oBButtonOff.GetComponent<SysButtonOnOff>();
+                                comp.button = SystemOnOffButtons.OrbitalBatteryOffButton;
+                                sysUIFieldElement.oBButtonOff.onClick.RemoveAllListeners();
+                                sysUIFieldElement.oBButtonOff.onClick.AddListener(() => sysController.OBButtonOffClicked(sysController));
+                            }
+                        }
+                        if (sysUIFieldElement.researchButtonOn != null)
+                        {
+                            if (sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>() != null)
+                            {
+                                var comp = sysUIFieldElement.researchButtonOn.GetComponent<SysButtonOnOff>();
+                                comp.button = SystemOnOffButtons.ResearchCenterOnButton;
+                                sysUIFieldElement.researchButtonOn.onClick.RemoveAllListeners();
+                                sysUIFieldElement.researchButtonOn.onClick.AddListener(() => sysController.ResearchButtonOnClicked(sysController));
+                            }
+                        }
+                        if (sysUIFieldElement.researchButtonOff != null)
+                        {
+                            if (sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>() != null)
+                            {
+                                var comp = sysUIFieldElement.researchButtonOff.GetComponent<SysButtonOnOff>();
+                                comp.button = SystemOnOffButtons.ResearchCenterOffButton;
+                                sysUIFieldElement.researchButtonOff.onClick.RemoveAllListeners();
+                                sysUIFieldElement.researchButtonOff.onClick.AddListener(() => sysController.ResearchButtonOffClicked(sysController));
+                            }
                         }
                     }
 
@@ -498,623 +717,699 @@ public class StarSysMenuUIController : MonoBehaviour
                 }
             }
         }
-    }
 
-    public void SetActiveSetParentUIGO(StarSysController theSysCon)
-    {
-        // CRITICAL: Find containers if needed
-        if (SysListContainer == null || ASystemMenuView == null)
+        public void SetActiveSetParentUIGO(StarSysController theSysCon)
         {
-            FindSysUIContainers();
-        }
-
-        SetupSystemUIData();
-
-        if (theSysCon == null) return;
-
-        // SAFETY: Check ASystemMenuView exists before parenting
-        if (ASystemMenuView == null)
-        {
-            Debug.LogError("SetActiveSetParentUIGO: ASystemMenuView is null after FindSysUIContainers!");
-            return;
-        }
-
-        theSysCon.StarSysUIGameObject.SetActive(true);
-        theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
-        lastSysCon = theSysCon;
-    }
-    public void MoveTheSysUIGO(GameObject sysConGO)
-    {
-        int numFound = 0;
-        List<GameObject> foundGoList = new List<GameObject>();
-        for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
-        {
-            numFound = i;
-            if (i > 0)
-                foundGoList.Add(ASystemMenuView.transform.GetChild(i).gameObject);
-        }
-        if (numFound > 0)
-            for (int j = 0; j < numFound; j++)
-                Destroy(foundGoList[j]);
-
-        for (int i = 0; i < listOfStarSysUiGos.Count; i++)
-        {
-            if (listOfStarSysUiGos[i] == sysConGO)
+            // CRITICAL: Find containers if needed
+            if (SysListContainer == null || ASystemMenuView == null)
             {
-                listOfStarSysUiGos[i].transform.SetParent(ASystemMenuView.transform, false);
+                FindSysUIContainers();
+            }
+
+            SetupSystemUIData();
+
+            if (theSysCon == null) return;
+
+            // SAFETY: Check ASystemMenuView exists before parenting
+            if (ASystemMenuView == null)
+            {
+                Debug.LogError("SetActiveSetParentUIGO: ASystemMenuView is null after FindSysUIContainers!");
+                return;
+            }
+
+            theSysCon.StarSysUIGameObject.SetActive(true);
+            theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
+            lastSysCon = theSysCon;
+
+            // ✅ NEW: Update PowerOverloadImage to this system's power overload visual
+            var sysUIFieldElement = theSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (sysUIFieldElement != null && sysUIFieldElement.PowerOverload != null)
+            {
+                PowerOverloadImage = sysUIFieldElement.PowerOverload;
             }
         }
-    }
-
-    public void MoveBackAnyaSysUIGO()
-    {
-        // SAFETY: Check if ASystemMenuView still exists
-        if (ASystemMenuView == null)
+        public void MoveTheSysUIGO(GameObject sysConGO)
         {
-            Debug.LogWarning("StarSysMenuUIController.MoveBackAnyaSysUIGO: ASystemMenuView is null, skipping");
-            return;
-        }
-
-        ASystemMenuView.SetActive(true);
-        for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
-        {
-            var child = ASystemMenuView.transform.GetChild(i)?.gameObject;
-            if (child == null)
+            int numFound = 0;
+            List<GameObject> foundGoList = new List<GameObject>();
+            for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
             {
-                continue;
+                numFound = i;
+                if (i > 0)
+                    foundGoList.Add(ASystemMenuView.transform.GetChild(i).gameObject);
             }
-            var childCtrl = child.GetComponent<FleetAndSystemChildController>();
-            if (childCtrl != null)
-            {
-                Transform originalParent = childCtrl.OriginalParentTransform;
-                // Fallback: if OriginalParentTransform is null or equals ASystemMenuView, use SysListContainer if available
-                if (originalParent == null || originalParent == ASystemMenuView.transform)
-                {
-                    lastSysCon = childCtrl.GetComponentInParent<StarSysController>();
-                    if (SysListContainer != null)
-                        originalParent = SysListContainer.transform;
-                }
+            if (numFound > 0)
+                for (int j = 0; j < numFound; j++)
+                    Destroy(foundGoList[j]);
 
-                if (originalParent != null)
+            for (int i = 0; i < listOfStarSysUiGos.Count; i++)
+            {
+                if (listOfStarSysUiGos[i] == sysConGO)
                 {
-                    child.transform.SetParent(originalParent, false);
+                    listOfStarSysUiGos[i].transform.SetParent(ASystemMenuView.transform, false);
                 }
             }
         }
-        activeStarSysController = null;
-    }
-    public void CloseBuildingQueues()
-    {
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
-        GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
-        if (lastSysCon != null)
-            lastSysCon.LoadAStarSystem();
-    }
-    public void RemoveSystem(StarSysController sysController)
-    {
-        if (sysController == null) return;
-        if (SysControllersContains(sysController))
+
+        public void MoveBackAnyaSysUIGO()
         {
-            listOfStarSysUiGos.Remove(sysController.StarSysUIGameObject);
+            // SAFETY: Check if ASystemMenuView still exists
+            if (ASystemMenuView == null)
+            {
+                Debug.LogWarning("StarSysMenuUIController.MoveBackAnyaSysUIGO: ASystemMenuView is null, skipping");
+                return;
+            }
+
+            ASystemMenuView.SetActive(true);
+            for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
+            {
+                var child = ASystemMenuView.transform.GetChild(i)?.gameObject;
+                if (child == null)
+                {
+                    continue;
+                }
+                var childCtrl = child.GetComponent<FleetAndSystemChildController>();
+                if (childCtrl != null)
+                {
+                    Transform originalParent = childCtrl.OriginalParentTransform;
+                    // Fallback: if OriginalParentTransform is null or equals ASystemMenuView, use SysListContainer if available
+                    if (originalParent == null || originalParent == ASystemMenuView.transform)
+                    {
+                        lastSysCon = childCtrl.GetComponentInParent<StarSysController>();
+                        if (SysListContainer != null)
+                            originalParent = SysListContainer.transform;
+                    }
+
+                    if (originalParent != null)
+                    {
+                        child.transform.SetParent(originalParent, false);
+                    }
+                }
+            }
+            activeStarSysController = null;
         }
-    }
-
-    private bool SysControllersContains(StarSysController sysController)
-    {
-        // safe helper - originally GalaxyMenu had its own list; here keep list tracking by GameObject
-        return listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject);
-    }
-
-    public void UpdateFacilityUI(StarSysController sysController, int plusMinus, StarSysFacilityType facilityType)
-    {
-        if (!GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum)) return;
-        sysController.StarSysUIGameObject.SetActive(true);
-        var fileds = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-        int newFacilityLoad = 0;
-        int numOn = 0;
-        List<GameObject> facilities = new List<GameObject>();
-        switch (facilityType)
+        public void CloseBuildingQueues()
         {
-            case StarSysFacilityType.Factory:
-                newFacilityLoad = sysController.StarSysData.FactoryData.PowerLoad;
-                facilities = sysController.StarSysData.Factories;
-                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Factory, facilities);
-                fileds.numFactoryRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                fileds.factoryLoad.text = (newFacilityLoad * numOn).ToString();
-                break;
-            case StarSysFacilityType.Shipyard:
-                newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
-                facilities = sysController.StarSysData.Shipyards;
-                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Shipyard, facilities);
-                fileds.numYardsOnRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                fileds.yardLoad.text = (newFacilityLoad * numOn).ToString();
-                break;
-            case StarSysFacilityType.ShieldGenerator:
-                newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
-                facilities = sysController.StarSysData.ShieldGenerators;
-                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ShieldGenerator, facilities);
-                fileds.numShieldsRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                fileds.shieldLoad.text = (newFacilityLoad * numOn).ToString();
-                break;
-            case StarSysFacilityType.OrbitalBattery:
-                newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
-                facilities = sysController.StarSysData.OrbitalBatteries;
-                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.OrbitalBattery, facilities);
-                fileds.numOBRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                fileds.oBLoad.text = (newFacilityLoad * numOn).ToString();
-                break;
-            case StarSysFacilityType.ResearchCenter:
-                newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
-                facilities = sysController.StarSysData.ResearchCenters;
-                numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ResearchCenter, facilities);
-                fileds.numResearchRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                fileds.researchLoad.text = (newFacilityLoad * numOn).ToString();
-                break;
-            default:
-                break;
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
+            if (lastSysCon != null)
+                lastSysCon.LoadAStarSystem();
         }
-    }
-
-    private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fields)
-    {
-        int numOn = 0;
-        for (int j = 0; j < facilities.Count; j++)
+        public void RemoveSystem(StarSysController sysController)
         {
-            TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
-            if (TheText.text == "1")
-                numOn++;
+            if (sysController == null) return;
+            if (SysControllersContains(sysController))
+            {
+                listOfStarSysUiGos.Remove(sysController.StarSysUIGameObject);
+            }
         }
-        return numOn;
-    }
 
-    public void UpdateSystemPowerBalance(StarSysController sysCon)
-    {
-        if (sysCon == null) return;
-        int load = 0;
-        int output = 0;
-        for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
-            output += sysCon.StarSysData.PowerPlantData.PowerOutput;
-        for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
-            if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
-                load += sysCon.StarSysData.FactoryData.PowerLoad;
-
-        for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
-            if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
-                load += sysCon.StarSysData.ShipyardData.PowerLoad;
-
-        for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
-            if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
-                load += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
-
-        for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
-            if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
-                load += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
-
-        for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
-            if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
-                load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
-
-        sysCon.StarSysData.TotalSysPowerLoad = load;
-        sysCon.StarSysData.TotalSysPowerOutput = output;
-        //if (load > output)
-        //    CoroutineRunner.FlashPowerOverload();
-        TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        for (int i = 0; i < OneTMP.Length; i++)
+        private bool SysControllersContains(StarSysController sysController)
         {
-            OneTMP[i].enabled = true;
-            if ("NumP Load" == OneTMP[i].name)
-                OneTMP[i].text = load.ToString();
-            if ("NumTotal EOut" == OneTMP[i].name)
-                OneTMP[i].text = output.ToString();
+            // safe helper - originally GalaxyMenu had its own list; here keep list tracking by GameObject
+            return listOfStarSysUiGos.Contains(sysController.StarSysUIGameObject);
         }
-    }
 
-    internal void AddSysFacility(StarSysController controller, GameObject facilityGO, string loadName, string ratioName, StarSysFacilityType facilityType)
-    {
-        // Ensure StarSysData exists
-        var starSysData = controller.StarSysData;
-        if (starSysData == null)
+        public void UpdateFacilityUI(StarSysController sysController, int plusMinus, StarSysFacilityType facilityType)
         {
-            Debug.LogWarning($"AddSysFacility: StarSysData is null for controller {controller.name}.");
-            return;
-        }
-        if (GameController.Instance.AreWeLocalPlayer(controller.StarSysData.CurrentOwnerCivEnum))
-        {
-            // Resolve list and per-facility load
+            if (!GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum)) return;
+
+            sysController.StarSysUIGameObject.SetActive(true);
+            var fields = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+
+            if (fields == null)
+            {
+                Debug.LogWarning($"UpdateFacilityUI: StarSysUI_Fields not found on {sysController.name}");
+                return;
+            }
+
             int newFacilityLoad = 0;
-            List<GameObject> facilities = null;
+            int numOn = 0;
+            int numOff = 0;
+            List<GameObject> facilities = new List<GameObject>();
+
+            Button onButton = null;
+            Button offButton = null;
+
             switch (facilityType)
             {
                 case StarSysFacilityType.Factory:
-                    newFacilityLoad = starSysData.FactoryData?.PowerLoad ?? 0;
-                    facilities = starSysData.Factories;
+                    newFacilityLoad = sysController.StarSysData.FactoryData.PowerLoad;
+                    facilities = sysController.StarSysData.Factories;
+                    onButton = fields.factoryButtonOn;
+                    offButton = fields.factoryButtonOff;
+                    numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Factory, facilities);
+                    numOff = facilities.Count - numOn;
+                    fields.numFactoryRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                    fields.factoryLoad.text = (newFacilityLoad * numOn).ToString();
                     break;
                 case StarSysFacilityType.Shipyard:
-                    newFacilityLoad = starSysData.ShipyardData?.PowerLoad ?? 0;
-                    facilities = starSysData.Shipyards;
+                    newFacilityLoad = sysController.StarSysData.ShipyardData.PowerLoad;
+                    facilities = sysController.StarSysData.Shipyards;
+                    onButton = fields.yardButtonOn;
+                    offButton = fields.yardButtonOff;
+                    numOn = NumFacilitiesTurnedOn(StarSysFacilityType.Shipyard, facilities);
+                    numOff = facilities.Count - numOn;
+
+                    Debug.Log($"📊 UpdateFacilityUI: {facilityType} - Total: {facilities.Count}, On: {numOn}, Off: {numOff}");
+
+                    fields.numYardsOnRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                    fields.yardLoad.text = (newFacilityLoad * numOn).ToString();
+
+                    Debug.Log($"✏️ UpdateFacilityUI: Set ratio text to '{fields.numYardsOnRatio.text}'");
                     break;
                 case StarSysFacilityType.ShieldGenerator:
-                    newFacilityLoad = starSysData.ShieldGeneratorData?.PowerLoad ?? 0;
-                    facilities = starSysData.ShieldGenerators;
+                    newFacilityLoad = sysController.StarSysData.ShieldGeneratorData.PowerLoad;
+                    facilities = sysController.StarSysData.ShieldGenerators;
+                    onButton = fields.shieldButtonOn;
+                    offButton = fields.shieldButtonOff;
+                    numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ShieldGenerator, facilities);
+                    numOff = facilities.Count - numOn;
+                    fields.numShieldsRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                    fields.shieldLoad.text = (newFacilityLoad * numOn).ToString();
                     break;
                 case StarSysFacilityType.OrbitalBattery:
-                    newFacilityLoad = starSysData.OrbitalBatteryData?.PowerLoad ?? 0;
-                    facilities = starSysData.OrbitalBatteries;
+                    newFacilityLoad = sysController.StarSysData.OrbitalBatteryData.PowerLoad;
+                    facilities = sysController.StarSysData.OrbitalBatteries;
+                    onButton = fields.oBButtonOn;
+                    offButton = fields.oBButtonOff;
+                    numOn = NumFacilitiesTurnedOn(StarSysFacilityType.OrbitalBattery, facilities);
+                    numOff = facilities.Count - numOn;
+                    fields.numOBRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                    fields.oBLoad.text = (newFacilityLoad * numOn).ToString();
                     break;
                 case StarSysFacilityType.ResearchCenter:
-                    newFacilityLoad = starSysData.ResearchCenterData?.PowerLoad ?? 0;
-                    facilities = starSysData.ResearchCenters;
-                    break;
-                case StarSysFacilityType.PowerPlanet:
-                    newFacilityLoad = starSysData.PowerPlantData?.PowerOutput ?? 0; // power plants contribute output not load
-                    facilities = starSysData.PowerPlants;
+                    newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
+                    facilities = sysController.StarSysData.ResearchCenters;
+                    onButton = fields.researchButtonOn;
+                    offButton = fields.researchButtonOff;
+                    numOn = NumFacilitiesTurnedOn(StarSysFacilityType.ResearchCenter, facilities);
+                    numOff = facilities.Count - numOn;
+                    fields.numResearchRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                    fields.researchLoad.text = (newFacilityLoad * numOn).ToString();
                     break;
                 default:
-                    Debug.LogWarning($"AddSysFacility: unsupported facilityType {facilityType}.");
                     break;
             }
 
-            // Defensive: ensure list exists
-            if (facilities == null)
+            // ✅ NEW: Hide/Show On button based on whether there are facilities to turn on
+            if (onButton != null)
             {
-                Debug.LogWarning($"AddSysFacility: facilities list for {facilityType} is null on system {controller.name}. Creating new list.");
-                facilities = new List<GameObject>();
+                onButton.gameObject.SetActive(numOff > 0); // Show only if there are facilities that are OFF
+            }
+
+            // ✅ NEW: Hide/Show Off button based on whether there are facilities to turn off
+            if (offButton != null)
+            {
+                offButton.gameObject.SetActive(numOn > 0); // Show only if there are facilities that are ON
+            }
+        }
+
+        private int NumFacilitiesTurnedOn(StarSysFacilityType factory, List<GameObject> facilities) //, StarSysController sysController, ref int numOn, ref int newFacilityLoad, StarSysUI_Fields fields)
+        {
+            int numOn = 0;
+            for (int j = 0; j < facilities.Count; j++)
+            {
+                TextMeshProUGUI TheText = facilities[j].GetComponent<TextMeshProUGUI>();
+                if (TheText.text == "1")
+                    numOn++;
+            }
+            return numOn;
+        }
+
+        public void UpdateSystemPowerBalance(StarSysController sysCon)
+        {
+            if (sysCon == null) return;
+            int load = 0;
+            int output = 0;
+            for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
+                output += sysCon.StarSysData.PowerPlantData.PowerOutput;
+            for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
+                if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
+                    load += sysCon.StarSysData.FactoryData.PowerLoad;
+
+            for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
+                if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
+                    load += sysCon.StarSysData.ShipyardData.PowerLoad;
+
+            for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
+                if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
+                    load += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
+
+            for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
+                if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
+                    load += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
+
+            for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
+                if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
+                    load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
+
+            sysCon.StarSysData.TotalSysPowerLoad = load;
+            sysCon.StarSysData.TotalSysPowerOutput = output;
+            //if (load > output)
+            //    CoroutineRunner.FlashPowerOverload();
+            TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            for (int i = 0; i < OneTMP.Length; i++)
+            {
+                OneTMP[i].enabled = true;
+                if ("NumP Load" == OneTMP[i].name)
+                    OneTMP[i].text = load.ToString();
+                if ("NumTotal EOut" == OneTMP[i].name)
+                    OneTMP[i].text = output.ToString();
+            }
+        }
+
+        internal void AddSysFacility(StarSysController controller, GameObject facilityGO, string loadName, string ratioName, StarSysFacilityType facilityType)
+        {
+            Debug.Log($"🏗️ AddSysFacility CALLED: {facilityType} for system {controller?.name}");
+
+            // Ensure StarSysData exists
+            var starSysData = controller.StarSysData;
+            if (starSysData == null)
+            {
+                Debug.LogWarning($"AddSysFacility: StarSysData is null for controller {controller.name}.");
+                return;
+            }
+            if (GameController.Instance.AreWeLocalPlayer(controller.StarSysData.CurrentOwnerCivEnum))
+            {
+                // Resolve list and per-facility load
+                int newFacilityLoad = 0;
+                List<GameObject> facilities = null;
                 switch (facilityType)
                 {
-                    case StarSysFacilityType.Factory: starSysData.Factories = facilities; break;
-                    case StarSysFacilityType.Shipyard: starSysData.Shipyards = facilities; break;
-                    case StarSysFacilityType.ShieldGenerator: starSysData.ShieldGenerators = facilities; break;
-                    case StarSysFacilityType.OrbitalBattery: starSysData.OrbitalBatteries = facilities; break;
-                    case StarSysFacilityType.ResearchCenter: starSysData.ResearchCenters = facilities; break;
-                    case StarSysFacilityType.PowerPlanet: starSysData.PowerPlants = facilities; break;
-                }
-            }
-
-            // Add the facility GameObject to the list if not already present
-            if (facilityGO != null && !facilities.Contains(facilityGO))
-                facilities.Add(facilityGO);
-
-            // Try to update typed UI first
-            var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
-            if (uiElement == null)
-            {
-                Debug.LogWarning($"AddSysFacility: StarSysUI_Fields not found for system {controller.name}. Falling back to string-based updates.");
-            }
-            else
-            {
-                StarSysUI_Fields.FacilityUI facUI = null;
-                try
-                {
-                    facUI = uiElement.GetFacility(facilityType);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUI_Fields for {controller.name}. Exception: {ex.Message}");
-                    facUI = null;
+                    case StarSysFacilityType.Factory:
+                        newFacilityLoad = starSysData.FactoryData?.PowerLoad ?? 0;
+                        facilities = starSysData.Factories;
+                        break;
+                    case StarSysFacilityType.Shipyard:
+                        newFacilityLoad = starSysData.ShipyardData?.PowerLoad ?? 0;
+                        facilities = starSysData.Shipyards;
+                        break;
+                    case StarSysFacilityType.ShieldGenerator:
+                        newFacilityLoad = starSysData.ShieldGeneratorData?.PowerLoad ?? 0;
+                        facilities = starSysData.ShieldGenerators;
+                        break;
+                    case StarSysFacilityType.OrbitalBattery:
+                        newFacilityLoad = starSysData.OrbitalBatteryData?.PowerLoad ?? 0;
+                        facilities = starSysData.OrbitalBatteries;
+                        break;
+                    case StarSysFacilityType.ResearchCenter:
+                        newFacilityLoad = starSysData.ResearchCenterData?.PowerLoad ?? 0;
+                        facilities = starSysData.ResearchCenters;
+                        break;
+                    case StarSysFacilityType.PowerPlanet:
+                        newFacilityLoad = starSysData.PowerPlantData?.PowerOutput ?? 0;
+                        facilities = starSysData.PowerPlants;
+                        break;
+                    default:
+                        Debug.LogWarning($"AddSysFacility: unsupported facilityType {facilityType}.");
+                        break;
                 }
 
-                if (facUI != null)
+                // Defensive: ensure list exists
+                if (facilities == null)
                 {
-                    // Set icon & name from StarSysData where possible
+                    Debug.LogWarning($"AddSysFacility: facilities list for {facilityType} is null on system {controller.name}. Creating new list.");
+                    facilities = new List<GameObject>();
                     switch (facilityType)
                     {
-                        case StarSysFacilityType.Factory:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.FactoryData?.FactorySprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.FactoryData?.Name ?? string.Empty;
-                            break;
-                        case StarSysFacilityType.Shipyard:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ShipyardData?.ShipyardSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ShipyardData?.Name ?? string.Empty;
-                            break;
-                        case StarSysFacilityType.ShieldGenerator:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ShieldGeneratorData?.ShieldGeneratorSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ShieldGeneratorData?.Name ?? string.Empty;
-                            break;
-                        case StarSysFacilityType.OrbitalBattery:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.OrbitalBatteryData?.OrbitalBatterySprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.OrbitalBatteryData?.Name ?? string.Empty;
-                            break;
-                        case StarSysFacilityType.ResearchCenter:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.ResearchCenterData?.ResearchCenterSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.ResearchCenterData?.Name ?? string.Empty;
-                            break;
-                        case StarSysFacilityType.PowerPlanet:
-                            if (facUI.icon != null) facUI.icon.sprite = starSysData.PowerPlantData?.PowerPlantSprite;
-                            if (facUI.nameText != null) facUI.nameText.text = starSysData.PowerPlantData?.Name ?? string.Empty;
-                            break;
+                        case StarSysFacilityType.Factory: starSysData.Factories = facilities; break;
+                        case StarSysFacilityType.Shipyard: starSysData.Shipyards = facilities; break;
+                        case StarSysFacilityType.ShieldGenerator: starSysData.ShieldGenerators = facilities; break;
+                        case StarSysFacilityType.OrbitalBattery: starSysData.OrbitalBatteries = facilities; break;
+                        case StarSysFacilityType.ResearchCenter: starSysData.ResearchCenters = facilities; break;
+                        case StarSysFacilityType.PowerPlanet: starSysData.PowerPlants = facilities; break;
                     }
-
-                    // Compute ratio and load using the canonical facilities list
-                    int numOn = 0;
-                    int load = 0;
-                    for (int i = 0; i < facilities.Count; i++)
-                    {
-                        var txt = facilities[i]?.GetComponent<TextMeshProUGUI>()?.text;
-                        if (txt == "1")
-                        {
-                            numOn++;
-                            load += newFacilityLoad;
-                        }
-                    }
-
-                    if (facUI.ratioText != null)
-                        facUI.ratioText.text = $"{numOn}/{facilities.Count}";
-
-                    if (facUI.loadText != null)
-                        facUI.loadText.text = load.ToString();
-
-                    // We've updated the typed UI; ensure menu-level power load is recomputed
-                    StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(controller);
-                    return;
                 }
-            }
 
-            // Fallback: original string-based behavior (keeps backwards compatibility)
-            if (controller.StarSysUIGameObject != null)
-            {
-                TextMeshProUGUI[] theTextItems = controller.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-                bool allDone = false;
-                for (int j = 0; j < theTextItems.Length; j++)
+                // Add the facility GameObject to the list if not already present
+                if (facilityGO != null && !facilities.Contains(facilityGO))
                 {
-                    theTextItems[j].enabled = true;
-                    if (theTextItems[j].name == loadName)
+                    facilities.Add(facilityGO);
+                    Debug.Log($"✅ AddSysFacility: Added {facilityType} to {controller.name}. New count: {facilities.Count}");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ AddSysFacility: Facility already in list or null for {controller.name}");
+                }
+
+                // Try to update typed UI first
+                var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+                if (uiElement == null)
+                {
+                    Debug.LogWarning($"AddSysFacility: StarSysUI_Fields not found for system {controller.name}. Falling back to string-based updates.");
+                }
+                else
+                {
+                    StarSysUI_Fields.FacilityUI facUI = null;
+                    try
                     {
-                        int load = 0;
-                        for (int k = 0; k < facilities.Count; k++)
+                        facUI = uiElement.GetFacility(facilityType);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUI_Fields for {controller.name}. Exception: {ex.Message}");
+                        facUI = null;
+                    }
+
+                    if (facUI != null)
+                    {
+                        // Set icon & name from StarSysData where possible
+                        switch (facilityType)
                         {
-                            if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
+                            case StarSysFacilityType.Factory:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.FactoryData?.FactorySprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.FactoryData?.Name ?? string.Empty;
+                                break;
+                            case StarSysFacilityType.Shipyard:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.ShipyardData?.ShipyardSprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.ShipyardData?.Name ?? string.Empty;
+                                break;
+                            case StarSysFacilityType.ShieldGenerator:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.ShieldGeneratorData?.ShieldGeneratorSprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.ShieldGeneratorData?.Name ?? string.Empty;
+                                break;
+                            case StarSysFacilityType.OrbitalBattery:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.OrbitalBatteryData?.OrbitalBatterySprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.OrbitalBatteryData?.Name ?? string.Empty;
+                                break;
+                            case StarSysFacilityType.ResearchCenter:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.ResearchCenterData?.ResearchCenterSprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.ResearchCenterData?.Name ?? string.Empty;
+                                break;
+                            case StarSysFacilityType.PowerPlanet:
+                                if (facUI.icon != null) facUI.icon.sprite = starSysData.PowerPlantData?.PowerPlantSprite;
+                                if (facUI.nameText != null) facUI.nameText.text = starSysData.PowerPlantData?.Name ?? string.Empty;
+                                break;
+                        }
+
+                        // Compute ratio and load using the canonical facilities list
+                        int numOn = 0;
+                        int load = 0;
+                        for (int i = 0; i < facilities.Count; i++)
+                        {
+                            var txt = facilities[i]?.GetComponent<TextMeshProUGUI>()?.text;
+                            if (txt == "1")
                             {
+                                numOn++;
                                 load += newFacilityLoad;
                             }
                         }
-                        theTextItems[j].text = load.ToString();
+
+                        if (facUI.ratioText != null)
+                            facUI.ratioText.text = $"{numOn}/{facilities.Count}";
+
+                        if (facUI.loadText != null)
+                            facUI.loadText.text = load.ToString();
+
+                        // ✅ MOVED: Update system power balance and facility UI
+                        UpdateSystemPowerBalance(controller);
+                        UpdateFacilityUI(controller, 0, facilityType);
+                        return;
                     }
-                    else if (theTextItems[j].name == ratioName)
-                    {
-                        int numOn = 0;
-                        for (int i = 0; i < facilities.Count; i++)
-                        {
-                            TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
-                            if (TheText.text == "1") // 1 = on and 0 = off
-                                numOn++;
-                        }
-                        theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-                        allDone = true;
-                    }
-                    else if (allDone)
-                        break;
                 }
-                StarSysMenuUIController.Instance.UpdateSystemPowerBalance(controller);
+
+                // Fallback: original string-based behavior (keeps backwards compatibility)
+                if (controller.StarSysUIGameObject != null)
+                {
+                    TextMeshProUGUI[] theTextItems = controller.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+                    bool allDone = false;
+                    for (int j = 0; j < theTextItems.Length; j++)
+                    {
+                        theTextItems[j].enabled = true;
+                        if (theTextItems[j].name == loadName)
+                        {
+                            int load = 0;
+                            for (int k = 0; k < facilities.Count; k++)
+                            {
+                                if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
+                                {
+                                    load += newFacilityLoad;
+                                }
+                            }
+                            theTextItems[j].text = load.ToString();
+                        }
+                        else if (theTextItems[j].name == ratioName)
+                        {
+                            int numOn = 0;
+                            for (int i = 0; i < facilities.Count; i++)
+                            {
+                                TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
+                                if (TheText.text == "1") // 1 = on and 0 = off
+                                    numOn++;
+                            }
+                            theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
+                            allDone = true;
+                        }
+                        else if (allDone)
+                            break;
+                    }
+
+                    // ✅ Update both power balance and facility UI in fallback path too
+                    UpdateSystemPowerBalance(controller);
+                    UpdateFacilityUI(controller, 0, facilityType);
+                }
+                else
+                {
+                    Debug.LogWarning($"AddSysFacility fallback: StarSysUIGameObject is null for {controller.name} and typed UI update failed.");
+                }
+            }
+
+            // ✅ At the very end, force UI rebuild
+            UpdateSystemPowerBalance(controller);
+            UpdateFacilityUI(controller, 0, facilityType);
+
+            // Force layout rebuild
+            if (controller.StarSysUIGameObject != null)
+            {
+                UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
+                    controller.StarSysUIGameObject.GetComponent<RectTransform>());
+            }
+        }
+
+        private void OnDisable()
+        {
+            // When the UI menu closes (e.g., switching menus or hiding canvas)
+            CleanupDestroyedOrInactiveUIs();
+        }
+
+        private void OnDestroy()
+        {
+            // When this controller is destroyed (e.g., scene unload)
+            ClearAllStarSysUiGos();
+        }
+
+        private void CleanupDestroyedOrInactiveUIs()
+        {
+            // Remove any StarSysUIGameObject references that are destroyed or inactive
+            listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeSelf);
+        }
+
+        private void ClearAllStarSysUiGos()
+        {
+            foreach (var go in listOfStarSysUiGos)
+            {
+                if (go != null)
+                    Destroy(go);
+            }
+            listOfStarSysUiGos.Clear();
+        }
+
+        private void StarSysClickShipDeployButton(StarSysController sysController)
+        {
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+            {
+                galaxyUI.WhatSystIsLookingForShipDeploy(sysController);
+                galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipDeploy);
+                MousePointerChanger.Instance.SetShipExchangeCursor();
+                ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
+            }
+        }
+        private void StarSysClickMergeShipsButton(StarSysController starSysController)
+        {
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+            {
+                galaxyUI.WhatSystIsLookingForMerge(starSysController);
+                galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipMerge);
+                MousePointerChanger.Instance.SetShipExchangeCursor();
+                ShipDeployMenuUIController.Instance.TopStarSyst = starSysController;
+            }
+        }
+        private void ClickNewFleetButton(StarSysController sysController)
+        {
+            if (sysController.StarSysData.ShipsList.Count == 0) return;
+            MousePointerChanger.Instance.ResetCursor();
+            var fleetManager = FleetManager.Instance;
+            FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
+            var position = sysController.StarSysData.GetPosition();
+
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
+            //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
+            fleetData.Insignia = thisCivData.InsigniaSprite;
+            fleetData.ShipsList = new List<ShipController>();
+            var galaxyMenuUICon = GalaxyMenuUIController.Instance;
+            galaxyMenuUICon.ResetClickMode();
+
+            var newFleet = fleetManager.InstantiateFleet(null, sysController, fleetData, position, true);
+            tempFleetController = newFleet;
+            galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleet);
+
+        }
+        public void ClickCancelShipManageButton()
+        {
+            var sd = ShipDeployMenuUIController.Instance;
+            var galaxyUI = GalaxyMenuUIController.Instance;
+
+            // Check if we're in merge mode
+            bool isMergeMode = (galaxyUI.FleetLookingForShipMerge != null || galaxyUI.StarSystLookingForShipMerge != null);
+
+            if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
+            {
+                if (isMergeMode)
+                {
+                    // Use merge commit for merge operations
+                    sd.CommitMergeAndClose(CancelShipManageAfterCommit);
+                }
+                else
+                {
+                    // Use proper commit flow for deploy/new fleet
+                    sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+                }
+                return;
+            }
+
+            // Normal path
+            CancelShipManageAfterCommit();
+        }
+
+        // New: run the cleanup logic *after* a commit has completed.
+        public void CancelShipManageAfterCommit()
+        {
+            if (tempFleetController == null) return;
+
+            Debug.Log($"CancelShipManageAfterCommit (System): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
+
+            // Only destroy the fleet if it has NO ships
+            if (tempFleetController.FleetData.ShipsList.Count == 0)
+            {
+                Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
+
+                if (FleetManager.Instance.TempFogRevealerFleet != null)
+                    FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
+                FleetManager.Instance.TempFogRevealerFleet = null;
+
+                FleetManager.Instance.DestroyFleetController(tempFleetController);
+                tempFleetController = null;
             }
             else
             {
-                Debug.LogWarning($"AddSysFacility fallback: StarSysUIGameObject is null for {controller.name} and typed UI update failed.");
+                Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
+                // Fleet has ships, so finalize it and keep it
+                tempFleetController = null; // Clear temp reference but don't destroy
             }
-        }
-    }
 
-    private void OnDisable()
-    {
-        // When the UI menu closes (e.g., switching menus or hiding canvas)
-        CleanupDestroyedOrInactiveUIs();
-    }
-
-    private void OnDestroy()
-    {
-        // When this controller is destroyed (e.g., scene unload)
-        ClearAllStarSysUiGos();
-    }
-
-    private void CleanupDestroyedOrInactiveUIs()
-    {
-        // Remove any StarSysUIGameObject references that are destroyed or inactive
-        listOfStarSysUiGos.RemoveAll(go => go == null || !go.activeSelf);
-    }
-
-    private void ClearAllStarSysUiGos()
-    {
-        foreach (var go in listOfStarSysUiGos)
-        {
-            if (go != null)
-                Destroy(go);
-        }
-        listOfStarSysUiGos.Clear();
-    }
-
-    private void StarSysClickShipDeployButton(StarSysController sysController)
-    {
-        var galaxyUI = GalaxyMenuUIController.Instance;
-        if (galaxyUI != null)
-        {
-            galaxyUI.WhatSystIsLookingForShipDeploy(sysController);
-            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipDeploy);
-            MousePointerChanger.Instance.SetShipExchangeCursor();
-            ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
-        }
-    }
-    private void StarSysClickMergeShipsButton(StarSysController starSysController)
-    {
-        var galaxyUI = GalaxyMenuUIController.Instance;
-        if (galaxyUI != null)
-        {
-            galaxyUI.WhatSystIsLookingForMerge(starSysController);
-            galaxyUI.SetClickMode(GalaxyClickMode.SelectForShipMerge);
-            MousePointerChanger.Instance.SetShipExchangeCursor();
-            ShipDeployMenuUIController.Instance.TopStarSyst = starSysController;
-        }
-    }
-    private void ClickNewFleetButton(StarSysController sysController)
-    {
-        if (sysController.StarSysData.ShipsList.Count == 0) return;
-        MousePointerChanger.Instance.ResetCursor();
-        var fleetManager = FleetManager.Instance;
-        FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)sysController.StarSysData.CurrentOwnerCivEnum);
-        var position = sysController.StarSysData.GetPosition();
-
-        CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum); // new CivData();
-        FleetData fleetData = new FleetData(fleetSO);
-        fleetData.CurrentWarpFactor = 0f;
-        fleetData.CivLongName = thisCivData.CivLongName; //.CivLongName;
-        fleetData.CivShortName = thisCivData.CivShortName;
-        fleetData.CivEnum = thisCivData.CivEnum;
-        fleetData.PlayerId = thisCivData.PlayerId;
-        //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
-        //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
-        fleetData.Insignia = thisCivData.InsigniaSprite;
-        fleetData.ShipsList = new List<ShipController>();
-        var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-        galaxyMenuUICon.ResetClickMode();
-
-        var newFleet = fleetManager.InstantiateFleet(null, sysController, fleetData, position, true);
-        tempFleetController = newFleet;
-        galaxyMenuUICon.ShowShipDeployForSystemNewFleet(sysController, newFleet);
-
-    }
-    public void ClickCancelShipManageButton()
-    {
-        var sd = ShipDeployMenuUIController.Instance;
-        var galaxyUI = GalaxyMenuUIController.Instance;
-
-        // Check if we're in merge mode
-        bool isMergeMode = (galaxyUI.FleetLookingForShipMerge != null || galaxyUI.StarSystLookingForShipMerge != null);
-
-        if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
-        {
-            if (isMergeMode)
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            MousePointerChanger.Instance.ResetCursor();
+            if (cancelShipManagerButtonGO != null)
+                cancelShipManagerButtonGO.SetActive(false);
+            if (ShipDeployMenuUIController.Instance != null)
+                ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+            if (galaxyUI != null)
             {
-                // Use merge commit for merge operations
-                sd.CommitMergeAndClose(CancelShipManageAfterCommit);
+                galaxyUI.ClickCancelShipDeployButton();
+                galaxyUI.ResetClickMode();
+                galaxyUI.CompleteShipExchange();
             }
-            else
+
+            HideA_SystemMenuView();
+        }
+
+        /// <summary>
+        /// Sets the build progress slider for facility construction.
+        /// </summary>
+        /// <param name="progress">Progress value between 0 and 1.</param>
+        public void SetBuildProgress(float progress)
+        {
+            if (SliderBuildProgress != null)
             {
-                // Use proper commit flow for deploy/new fleet
-                sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+                SliderBuildProgress.value = Mathf.Clamp01(progress);
             }
-            return;
         }
 
-        // Normal path
-        CancelShipManageAfterCommit();
-    }
-
-    // New: run the cleanup logic *after* a commit has completed.
-    public void CancelShipManageAfterCommit()
-    {
-        if (tempFleetController == null) return;
-
-        Debug.Log($"CancelShipManageAfterCommit (System): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
-
-        // Only destroy the fleet if it has NO ships
-        if (tempFleetController.FleetData.ShipsList.Count == 0)
+        /// <summary>
+        /// Sets the build progress slider for ship construction.
+        /// </summary>
+        /// <param name="progress">Progress value between 0 and 1.</param>
+        public void SetShipBuildProgress(float progress)
         {
-            Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
-
-            if (FleetManager.Instance.TempFogRevealerFleet != null)
-                FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
-            FleetManager.Instance.TempFogRevealerFleet = null;
-
-            FleetManager.Instance.DestroyFleetController(tempFleetController);
-            tempFleetController = null;
-        }
-        else
-        {
-            Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
-            // Fleet has ships, so finalize it and keep it
-            tempFleetController = null; // Clear temp reference but don't destroy
+            if (ShipSliderBuildProgress != null)
+            {
+                ShipSliderBuildProgress.value = Mathf.Clamp01(progress);
+            }
         }
 
-        var galaxyUI = GalaxyMenuUIController.Instance;
-        MousePointerChanger.Instance.ResetCursor();
-        if (cancelShipManagerButtonGO != null)
-            cancelShipManagerButtonGO.SetActive(false);
-        if (ShipDeployMenuUIController.Instance != null)
-            ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
-        if (galaxyUI != null)
+        public void FindSysUIContainers()
         {
-            galaxyUI.ClickCancelShipDeployButton();
-            galaxyUI.ResetClickMode();
-            galaxyUI.CompleteShipExchange();
-        }
+            if (SystemsMenuView != null && ASystemMenuView != null && SysListContainer != null)
+            {
+                Debug.Log("StarSysMenuUIController: All containers already assigned");
+                return;
+            }
 
-        HideA_SystemMenuView();
-    }
+            var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+            if (canvasGalaxy == null)
+            {
+                Debug.LogWarning("StarSysMenuUIController: CanvasGalaxy not found");
+                return;
+            }
 
-    /// <summary>
-    /// Sets the build progress slider for facility construction.
-    /// </summary>
-    /// <param name="progress">Progress value between 0 and 1.</param>
-    public void SetBuildProgress(float progress)
-    {
-        if (SliderBuildProgress != null)
-        {
-            SliderBuildProgress.value = Mathf.Clamp01(progress);
-        }
-    }
+            if (SystemsMenuView == null)
+            {
+                SystemsMenuView = FindInHierarchy(canvasGalaxy.transform, "SystemsMenuView");
+                Debug.Log($"StarSysMenuUIController: Found SystemsMenuView: {SystemsMenuView != null}");
+            }
 
-    /// <summary>
-    /// Sets the build progress slider for ship construction.
-    /// </summary>
-    /// <param name="progress">Progress value between 0 and 1.</param>
-    public void SetShipBuildProgress(float progress)
-    {
-        if (ShipSliderBuildProgress != null)
-        {
-            ShipSliderBuildProgress.value = Mathf.Clamp01(progress);
-        }
-    }
-
-    public void FindSysUIContainers()
-    {
-        if (SystemsMenuView != null && ASystemMenuView != null && SysListContainer != null)
-        {
-            Debug.Log("StarSysMenuUIController: All containers already assigned");
-            return;
-        }
-
-        var canvasGalaxy = GameObject.Find("CanvasGalaxy");
-        if (canvasGalaxy == null)
-        {
-            Debug.LogWarning("StarSysMenuUIController: CanvasGalaxy not found");
-            return;
-        }
-
-        if (SystemsMenuView == null)
-        {
-            SystemsMenuView = FindInHierarchy(canvasGalaxy.transform, "SystemsMenuView");
-            Debug.Log($"StarSysMenuUIController: Found SystemsMenuView: {SystemsMenuView != null}");
-        }
-
-        if (ASystemMenuView == null)
-        {
-            ASystemMenuView = FindInHierarchy(canvasGalaxy.transform, "ASystemMenuView");
-            Debug.Log($"StarSysMenuUIController: Found ASystemMenuView: {ASystemMenuView != null}");
-        }
-
-        if (SysListContainer == null)
-        {
-            SysListContainer = FindInHierarchy(canvasGalaxy.transform, "SysListContainer");
+            if (ASystemMenuView == null)
+            {
+                ASystemMenuView = FindInHierarchy(canvasGalaxy.transform, "ASystemMenuView");
+                Debug.Log($"StarSysMenuUIController: Found ASystemMenuView: {ASystemMenuView != null}");
+            }
 
             if (SysListContainer == null)
             {
-                SysListContainer = FindInHierarchy(canvasGalaxy.transform, "ContentSysUIGO");
+                SysListContainer = FindInHierarchy(canvasGalaxy.transform, "SysListContainer");
+
+                if (SysListContainer == null)
+                {
+                    SysListContainer = FindInHierarchy(canvasGalaxy.transform, "ContentSysUIGO");
+                }
+
+                Debug.Log($"StarSysMenuUIController: Found SysListContainer: {SysListContainer != null}");
+            }
+        }
+
+        private GameObject FindInHierarchy(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent.gameObject;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                GameObject found = FindInHierarchy(parent.GetChild(i), name);
+                if (found != null)
+                    return found;
             }
 
-            Debug.Log($"StarSysMenuUIController: Found SysListContainer: {SysListContainer != null}");
+            return null;
         }
-    }
-
-    private GameObject FindInHierarchy(Transform parent, string name)
-    {
-        if (parent.name == name)
-            return parent.gameObject;
-
-        for (int i = 0; i < parent.childCount; i++)
-        {
-            GameObject found = FindInHierarchy(parent.GetChild(i), name);
-            if (found != null)
-                return found;
-        }
-
-        return null;
     }
 }

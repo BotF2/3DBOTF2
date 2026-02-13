@@ -1,7 +1,8 @@
+using Assets.Core;
 using System;
 using UnityEngine;
 
-namespace Assets.Core
+namespace Assets.GamePlay
 {
     /// <summary>
     /// Controlling a Civilization(faction) with the matching CivData class
