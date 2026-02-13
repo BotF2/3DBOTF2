@@ -452,9 +452,11 @@ namespace FischlWorks_FogWar
             fogPlane.name = "[RUNTIME] Fog_Plane";
             fogPlane.transform.SetParent(fogPlaneParent.transform, false); // LINE 414 - now safe
 
+            // Position fog plane at Y = -55 (same level as fog obstacles)
+            // This reduces perspective distortion between shadows and star systems
             fogPlane.transform.position = new Vector3(
                 levelMidPoint.position.x,
-                levelMidPoint.position.y + fogPlaneHeight,
+                -55f,  // CHANGED: Was levelMidPoint.position.y + fogPlaneHeight
                 levelMidPoint.position.z);
 
             fogPlane.transform.localScale = new Vector3(
@@ -496,6 +498,9 @@ namespace FischlWorks_FogWar
                 Debug.LogWarning($"csFogWar.UpdateFog: Removed {removedCount} destroyed revealer(s)");
             }
 
+            // CRITICAL: Track if ANY revealer moved
+            bool anyRevealerMoved = false;
+
             // Now iterate safely
             for (int i = 0; i < fogRevealers.Count; i++)
             {
@@ -512,7 +517,20 @@ namespace FischlWorks_FogWar
                 {
                     Vector2Int currentCoords = revealer.GetCurrentLevelCoordinates(this);
 
-                    // ... rest of existing UpdateFog logic ...
+                    // CRITICAL: Check if revealer moved to a different grid cell
+                    if (revealer._UpdateOnlyOnMove)
+                    {
+                        // Only update if moved to different grid cell
+                        if (currentCoords != revealer._LastSeenAt)
+                        {
+                            anyRevealerMoved = true;
+                        }
+                    }
+                    else
+                    {
+                        // Always update if updateOnlyOnMove is false
+                        anyRevealerMoved = true;
+                    }
                 }
                 catch (MissingReferenceException ex)
                 {
@@ -520,6 +538,13 @@ namespace FischlWorks_FogWar
                     fogRevealers.RemoveAt(i);
                     i--; // Adjust index after removal
                 }
+            }
+
+            // CRITICAL: Only recalculate fog if a revealer moved OR updateOnlyOnMove is false
+            if (anyRevealerMoved)
+            {
+                UpdateFogField();
+                UpdateFogPlaneTextureBuffer();
             }
         }
 
@@ -724,8 +749,6 @@ namespace FischlWorks_FogWar
 
             return result;
         }
-
-
 
         /// Checks if the given world coordinates are within level dimension range.
         public bool CheckWorldGridRange(Vector3 worldCoordinates)

@@ -777,7 +777,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PlayerID: 0
   starSysUIGameObject: {fileID: 0}
-  SettingUpNewFleet: 0
   canvasToolTip: {fileID: 4392431061251062606}
   BuildListGridLayoutGroup: {fileID: 0}
   ShipListGridLayoutGroup: {fileID: 0}

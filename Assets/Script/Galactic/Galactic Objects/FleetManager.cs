@@ -3,6 +3,7 @@ using Assets.GamePlay;
 using Assets.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -262,6 +263,10 @@ namespace Assets.Core
 
             FleetControllerList.Add(newFleetController);
             newFleetController.gameObject.layer = 6; // galaxy layer
+
+            // CRITICAL: Set layer for ALL children (recursively)
+            SetLayerRecursively(newFleetController.gameObject, 6);
+
             newFleetController.BackgroundGalaxyImage = galaxyImage;
             newFleetController.FleetData = newFleetData;
             newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
@@ -329,56 +334,78 @@ namespace Assets.Core
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
+                // SAFETY: Only add fog revealer if fogWar exists
                 if (fogWar != null)
                 {
-                    // ✅ Increase radius if galaxy is large (adjust based on your galaxy size)
-                    float revealRadius = 200f; // Try 400f or 600f if fleets are far apart
-
-                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 600, true);
+                    // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
+                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 200, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
                     TempFogRevealerFleet = ourFogRevealerFleet;
 
-                    Debug.Log($"✅ FogRevealer added to local fleet '{newFleetController.name}' with radius {revealRadius}");
+                    Debug.Log($"Added fog revealer to LOCAL fleet '{newFleetController.name}' with continuous updates");
                 }
             }
-            else // Non-local player fleet
+            else
             {
-                // ✅ Keep fleet name hidden until discovered
                 fleetChildFields.FleetNameGO.SetActive(false);
-
-                // ✅ Show unknown insignia, hide actual insignia
                 srInsignia.enabled = false;
+
+                // CRITICAL: Ensure InsigniaUnknownGO is ACTIVE (not just enabled)
+                fleetChildFields.InsigniaUnknownGO.SetActive(true);
                 srInsigniaUnknown.enabled = true;
 
-                // ✅ CRITICAL: Ensure the InsigniaUnknownGO itself is ACTIVE (not just SpriteRenderer.enabled)
-                if (fleetChildFields.InsigniaUnknownGO != null)
-                {
-                    fleetChildFields.InsigniaUnknownGO.SetActive(true);
-
-                    // ✅ Ensure it's on the correct layer
-                    fleetChildFields.InsigniaUnknownGO.layer = 6; // Galaxy layer
-
-                    Debug.Log($"✅ InsigniaUnknownGO active for non-local fleet '{newFleetController.name}' on layer {fleetChildFields.InsigniaUnknownGO.layer}");
-                }
-
-                // ✅ Ensure the entire fleet GameObject is visible
-                newFleetController.gameObject.SetActive(true);
-
-                // SAFETY: Only add fog visibility agent if fogWar exists
+                // CRITICAL FIX: Add visibility agent AFTER all children exist
                 if (fogWar != null)
                 {
                     var ourFogVisibilityAgent = newFleetController.gameObject.AddComponent<csFogVisibilityAgent>();
                     ourFogVisibilityAgent.FogWar = fogWar;
 
-                    // ✅ CRITICAL: Configure the fog visibility agent
-                    //ourFogVisibilityAgent.IsVisible = false; // Start hidden by fog
-                    //ourFogVisibilityAgent.SetVisibilityDistance(600f); // Adjust based on your galaxy size
+                    // IMPORTANT: Manually collect renderers (Start() hasn't run yet)
+                    var allRenderers = newFleetController.GetComponentsInChildren<SpriteRenderer>(true).ToList();
 
-                    Debug.Log($"✅ csFogVisibilityAgent added to non-local fleet '{newFleetController.name}'");
+                    // Filter out DropLine renderer if you don't want fog to control it
+                    if (fleetChildFields.DropLine != null)
+                    {
+                        var dropLineRenderer = fleetChildFields.DropLine.GetComponent<SpriteRenderer>();
+                        if (dropLineRenderer != null)
+                        {
+                            allRenderers.Remove(dropLineRenderer);
+                        }
+                    }
+
+                    ourFogVisibilityAgent.spriteRenderers = allRenderers;
+
+                    // SAFETY: Only check visibility if fog grid is initialized
+                    bool initialVisibility = false;
+
+                    // Check if fog is ready by testing if position is in valid grid range
+                    if (fogWar.CheckWorldGridRange(newFleetController.transform.position))
+                    {
+                        initialVisibility = fogWar.CheckVisibility(newFleetController.transform.position, 0);
+                        Debug.Log($"FleetManager: Fog grid ready - initial visibility: {initialVisibility}");
+                    }
+                    else
+                    {
+                        // Fog grid not ready yet - default to hidden, agent will update in its Update() loop
+                        initialVisibility = false;
+                        Debug.Log($"FleetManager: Fog grid NOT ready yet - defaulting visibility to false for '{newFleetController.name}'");
+                    }
+
+                    foreach (var sr in ourFogVisibilityAgent.spriteRenderers)
+                    {
+                        sr.enabled = initialVisibility;
+                    }
+
+                    Debug.Log($"FleetManager: Added FogVisibilityAgent to '{newFleetController.name}' " +
+                              $"with {ourFogVisibilityAgent.spriteRenderers.Count} renderers. " +
+                              $"Initial visibility: {initialVisibility}");
                 }
                 else
                 {
-                    Debug.LogWarning($"⚠️ FogWar is NULL! Non-local fleet '{newFleetController.name}' won't have fog visibility");
+                    Debug.LogWarning($"FleetManager: fogWar is NULL! Fleet '{newFleetController.name}' won't have fog visibility!");
+
+                    // Fallback: Keep renderers enabled if no fog system
+                    srInsigniaUnknown.enabled = true;
                 }
             }
 
@@ -697,10 +724,59 @@ namespace Assets.Core
             fogWar.RemoveFogRevealer(tempFogRevealerFleet);
         }
 
+        /// <summary>
+        /// Called AFTER fog grid is initialized - sets initial visibility for all non-local fleets
+        /// </summary>
+        public void InitializeFleetFogAgents()
+        {
+            if (fogWar == null)
+            {
+                Debug.LogWarning("InitializeFleetFogAgents: fogWar is null!");
+                return;
+            }
+
+            Debug.Log("=== InitializeFleetFogAgents: Fog grid ready, updating fleet visibility ===");
+
+            foreach (var fleet in FleetControllerList)
+            {
+                if (fleet == null) continue;
+
+                // Skip local player fleets - they have FogRevealers, not agents
+                if (GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
+                {
+                    Debug.Log($"  Skipping local fleet: {fleet.name}");
+                    continue;
+                }
+
+                var fogAgent = fleet.GetComponent<csFogVisibilityAgent>();
+                if (fogAgent != null && fogAgent.spriteRenderers != null && fogAgent.spriteRenderers.Count > 0)
+                {
+                    // NOW fog grid is ready - check visibility
+                    bool isVisible = fogWar.CheckVisibility(fleet.transform.position, 0);
+
+                    foreach (var sr in fogAgent.spriteRenderers)
+                    {
+                        sr.enabled = isVisible;
+                    }
+
+                    Debug.Log($"  Fleet '{fleet.name}' at {fleet.transform.position} visibility: {isVisible}");
+                }
+                else
+                {
+                    Debug.LogWarning($"  Fleet '{fleet.name}' missing fog agent or sprite renderers!");
+                }
+            }
+
+            Debug.Log("=== InitializeFleetFogAgents: Complete ===");
+        }
+
+        [Header("Debug Options")]
+        [SerializeField] private bool showFleetVisibilityDebug = false; // Toggle in Inspector
+
         // Add this method for debugging
         private void OnGUI()
         {
-            if (FleetControllerList == null) return;
+            if (!showFleetVisibilityDebug || FleetControllerList == null) return;
 
             GUILayout.BeginArea(new Rect(10, 300, 400, 400));
             GUILayout.Label("=== Fleet Visibility Debug ===");
@@ -727,6 +803,19 @@ namespace Assets.Core
             }
 
             GUILayout.EndArea();
+        }
+
+        // Helper method to set layer recursively
+        private void SetLayerRecursively(GameObject obj, int layer)
+        {
+            if (obj == null) return;
+
+            obj.layer = layer;
+
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
         }
     }
 }

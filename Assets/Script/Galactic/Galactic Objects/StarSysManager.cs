@@ -374,8 +374,9 @@ namespace Assets.Core
             }
             // starSysFields.SysDescription.text = sysData.Description;// null just now but available for a hover tooltip later      
             MapLineFixed ourDropLine = starSysCon.GetComponentInChildren<MapLineFixed>();
-
             ourDropLine.GetLineRenderer();
+
+            // Drop line now shorter (star at -40, galaxy at -60)
             Vector3 galaxyPlanePoint = new Vector3(starSysCon.transform.position.x,
                         galaxyImage.transform.position.y, starSysCon.transform.position.z);
             Vector3[] points = { starSysCon.transform.position, galaxyPlanePoint };

@@ -10383,17 +10383,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.25038, y: -0, z: -0, w: 0.9681477}
+  m_LocalRotation: {x: 0.38268343, y: 0, z: 0, w: 0.92387956}
   m_LocalPosition: {x: 0, y: 0, z: -110}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 889922730}
   m_Father: {fileID: 564492292}
-  m_LocalEulerAnglesHint: {x: 29, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 45, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 19.398132}
+  m_AnchoredPosition: {x: 0, y: 45}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &963194236
@@ -15500,6 +15500,7 @@ MonoBehaviour:
     sightRange: 0
     updateOnlyOnMove: 0
     lastSeenAt: {x: 0, y: 0}
+  showFleetVisibilityDebug: 0
 --- !u!4 &1362581733
 Transform:
   m_ObjectHideFlags: 0
@@ -15821,10 +15822,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerTargetPrefab: {fileID: 4399757868930601189, guid: fb17601b5e41ab542bdb43c91e95ab32, type: 3}
   galaxyImageGO: {fileID: 0}
-  GalaxyCenter: {fileID: 0}
+  galaxyEventCamera: {fileID: 0}
   nameDestination: 
   playerDefinedTargetSO: {fileID: 11400000, guid: c146b5fd7be784a4889415dea37a3b23, type: 2}
-  galaxyEventCamera: {fileID: 0}
 --- !u!4 &1377999098
 Transform:
   m_ObjectHideFlags: 0
