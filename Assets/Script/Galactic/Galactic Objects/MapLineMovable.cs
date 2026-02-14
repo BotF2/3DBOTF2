@@ -3,7 +3,7 @@ using UnityEngine;
 //using BOTF3D_Combat;
 //using Assets.Script;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class MapLineMovable : MonoBehaviour

@@ -1,4 +1,4 @@
-﻿using Assets.Core;
+﻿using BOTF3D.Core;
 using Mirror;
 using System;
 using System.Collections;
@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class CombatController : MonoBehaviour
     {

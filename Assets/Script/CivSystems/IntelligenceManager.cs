@@ -1,8 +1,8 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class IntelligenceManager : MonoBehaviour
     {

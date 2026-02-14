@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Starships
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Starships
 {
     //[Serializable]
     //public class WeaponHardPoints

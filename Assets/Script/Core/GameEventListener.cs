@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     [System.Serializable]
     public class CustomGameEvent : UnityEvent<Component, object>

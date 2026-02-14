@@ -3,7 +3,7 @@
 using TMPro;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class StarSysChildFields : MonoBehaviour
     {

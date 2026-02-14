@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Camera
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Camera
 {
     public class BehindCamera : MonoBehaviour
     {

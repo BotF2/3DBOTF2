@@ -1,4 +1,4 @@
-﻿namespace Assets.Core
+﻿namespace BOTF3D.Core
 {
     internal class Planet : OrbitalGalactic
     {

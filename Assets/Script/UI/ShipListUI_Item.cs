@@ -1,8 +1,8 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class ShipListUI_Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {

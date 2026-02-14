@@ -1,5 +1,5 @@
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -79,7 +79,7 @@ public enum GreedyEnum
     Idealistic = 2
 }
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class DiplomacyManager : MonoBehaviour
     {

@@ -1,6 +1,6 @@
-﻿using Assets.Plugins.YAFSM;
+﻿using BOTF3D.Plugins.YAFSM;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Starships.States
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Starships.States
 {
     //public class IdleState : State
     //{

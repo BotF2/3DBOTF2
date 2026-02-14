@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Assets.Core;
+using BOTF3D.Core;
 
 [CreateAssetMenu(menuName = "Galaxy/ShieldGeneratorSO")]
 public class ShieldGeneratorSO : ScriptableObject

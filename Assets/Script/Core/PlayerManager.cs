@@ -1,7 +1,7 @@
 ﻿// Ignore Spelling: Unregister
 
-using Assets.Core;
-using Assets.GamePlay;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using Mirror;
 using System.Collections.Generic;
 using UnityEngine;

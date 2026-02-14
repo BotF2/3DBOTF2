@@ -1,4 +1,4 @@
-﻿using Assets.Core;
+﻿using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -15,7 +15,7 @@ public class ThemeSOImporter : EditorWindow
         GetWindow<ThemeSOImporter>("ThemeSO CSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/Theme.csv";
+    private string filePath = $"BOTF3D/Resources/Data/Theme.csv";
 
     void OnGUI()
     {

@@ -1,10 +1,10 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// UI: When a local player selects an order, call GiveOrder on their controller.

@@ -1,12 +1,12 @@
 // Ignore Spelling: Sys
 
-using Assets.UI;
+using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     #region Enums
     public enum CivEnum

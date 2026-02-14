@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Plugins.YAFSM
+namespace BOTF3D.Plugins.YAFSM
 {
     public abstract class MachineBehaviour : MonoBehaviour, IMachineBehaviour
     {

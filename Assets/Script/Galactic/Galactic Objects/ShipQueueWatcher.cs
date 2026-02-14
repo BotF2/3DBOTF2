@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     /// <summary>
     /// Watches the ship build queue UI grid for structural changes

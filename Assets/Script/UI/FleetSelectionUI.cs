@@ -1,4 +1,4 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -6,7 +6,7 @@ using UnityEngine;
 /// This is inteneded as a UI to manage all your fleets in one location.
 /// ToDo: make it work
 /// </summary>
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class FleetSelectionUI : MonoBehaviour
     {

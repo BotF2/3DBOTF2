@@ -1,5 +1,5 @@
 ﻿// Ignore Spelling: Kling
-using Assets.Core;
+using BOTF3D.Core;
 using Mirror;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 //using UnityEditor.UIElements;
 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class MainMenuUIController : MonoBehaviour
     {

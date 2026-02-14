@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Core.Utils
+namespace BOTF3D.Core.Utils
 {
     /// <summary>
     /// Minimal prefab pool for Component prefabs. Keeps instances inactive under a pool parent when released.

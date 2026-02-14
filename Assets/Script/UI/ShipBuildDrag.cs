@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Assets.Core;
+using BOTF3D.Core;
 
 
 public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler

@@ -1,5 +1,5 @@
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,7 +14,7 @@ public enum EncounterType
     StrangeGalacticObject,
 }
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class DiplomacyController : MonoBehaviour
     {

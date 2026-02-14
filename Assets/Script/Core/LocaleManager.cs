@@ -6,7 +6,7 @@ using UnityEngine.Localization.Settings;
 /// </summary>
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class LocaleManager : MonoBehaviour
     {

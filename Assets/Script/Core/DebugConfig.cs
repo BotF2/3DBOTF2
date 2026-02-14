@@ -1,4 +1,4 @@
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public static class DebugConfig
     {

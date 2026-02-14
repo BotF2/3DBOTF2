@@ -1,12 +1,12 @@
-using Assets.Core;
-using Assets.GamePlay;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class ShipDeployMenuUIController : MonoBehaviour
     {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public enum PlayerType { Local, AI, Remote }
 

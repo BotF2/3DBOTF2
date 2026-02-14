@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class FleetAndSystemChildController : MonoBehaviour
     {

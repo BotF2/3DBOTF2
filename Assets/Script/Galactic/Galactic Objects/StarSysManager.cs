@@ -1,6 +1,6 @@
 ﻿// Ignore Spelling: shiptype Sys hvy
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Instantiates the star system (a StarSysController and a StarSysData) using StarSysSO.

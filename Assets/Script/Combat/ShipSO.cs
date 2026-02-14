@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "ShipSO", menuName = "ShipSO", order = 1)]

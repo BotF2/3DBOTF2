@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using UnityEngine;
 
 [System.Serializable]

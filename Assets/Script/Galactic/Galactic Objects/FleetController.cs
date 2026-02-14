@@ -1,10 +1,10 @@
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     [RequireComponent(typeof(Rigidbody))]
     /// <summary>

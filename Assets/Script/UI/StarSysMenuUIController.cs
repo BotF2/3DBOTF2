@@ -1,14 +1,14 @@
 ﻿// Ignore Spelling: Sys Anya
 
-using Assets.Core;
-using Assets.GamePlay;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     /// <summary>
     /// The UI controller owns hierarchy and presentation.

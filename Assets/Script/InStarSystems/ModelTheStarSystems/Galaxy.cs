@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Part of the solar system view code

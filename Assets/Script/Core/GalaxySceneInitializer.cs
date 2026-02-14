@@ -1,6 +1,6 @@
-using Assets.Core;
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using UnityEngine;
 
 public class GalaxySceneInitializer : MonoBehaviour

@@ -1,9 +1,9 @@
-﻿using Assets.SpaceCombat.AutoBattle.Scripts.Audio;
+﻿using BOTF3D.SpaceCombat.AutoBattle.Scripts.Audio;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Starships
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Starships
 {
     //public class WeaponsManager : MonoBehaviour
     //{

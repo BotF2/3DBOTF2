@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -342,7 +342,8 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                 if (listStarSystems[i].StarSysData.CurrentOwnerCivEnum == localCivEneum)
                 {
                     lastCameraPosition = transform.position;
-                    transform.position = new Vector3(listStarSystems[i].transform.position.x, listStarSystems[i].transform.position.y + 100f, listStarSystems[i].transform.position.z - 250f);
+                    transform.position = new Vector3(listStarSystems[i].transform.position.x,
+                        listStarSystems[i].transform.position.y + 100f, listStarSystems[i].transform.position.z - 200f);
                     homePosition = transform.position;
                     foundHomePosition = true;
                     atHomePosition = true;

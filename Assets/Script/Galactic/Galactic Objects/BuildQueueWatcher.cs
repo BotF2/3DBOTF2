@@ -1,7 +1,7 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Watches the facility build queue UI grid for structural changes

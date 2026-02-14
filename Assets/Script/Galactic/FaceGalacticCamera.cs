@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     internal class FaceGalacticCamera : MonoBehaviour
     {

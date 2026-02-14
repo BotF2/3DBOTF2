@@ -1,8 +1,8 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using UnityEngine;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     /// <summary>
     /// Controlling a Civilization(faction) with the matching CivData class

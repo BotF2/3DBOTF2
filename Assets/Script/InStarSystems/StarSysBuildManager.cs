@@ -1,11 +1,11 @@
 ﻿// Ignore Spelling: Sys
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using System.Collections;
 using UnityEngine;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class StarSysBuildManager

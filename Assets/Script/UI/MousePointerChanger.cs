@@ -1,10 +1,10 @@
 // Ignore Spelling: sys
 
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using UnityEngine;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class MousePointerChanger : MonoBehaviour
     {

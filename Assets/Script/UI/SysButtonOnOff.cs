@@ -1,6 +1,6 @@
 // Ignore Spelling: Sys
 
-using Assets.Core;
+using BOTF3D.Core;
 using UnityEngine;
 
 public class SysButtonOnOff : MonoBehaviour

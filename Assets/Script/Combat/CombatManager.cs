@@ -1,11 +1,11 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class CombatManager : MonoBehaviour
     {

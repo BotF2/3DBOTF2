@@ -1,7 +1,7 @@
 using UnityEngine;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class MapLineFixed : MonoBehaviour

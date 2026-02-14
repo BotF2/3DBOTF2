@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class UpDownFleetWarpEvents : MonoBehaviour
     {

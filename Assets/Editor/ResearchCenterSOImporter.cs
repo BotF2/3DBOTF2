@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -17,7 +17,7 @@ public class ResearchCenterSOImporter : EditorWindow
         GetWindow<ResearchCenterSOImporter>("ResearchCenterSO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysResearchCenter.tsv";
+    private string filePath = $"BOTF3D/Resources/Data/StarSysResearchCenter.tsv";
 
     void OnGUI()
     {
@@ -48,9 +48,9 @@ public class ResearchCenterSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imageString + ".png")
                     {
                         imageString = "Facilities/" + imageString;
                     }
@@ -70,7 +70,7 @@ public class ResearchCenterSOImporter : EditorWindow
                     ResearchCenterSO.PowerLoad = int.Parse(fields[7]);
                     ResearchCenterSO.ResearchCenterSprite = Resources.Load<Sprite>(imageString);
                     ResearchCenterSO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysResearchCenterSO/ResearchCenterSO_{ResearchCenterSO.CivInt}_{ResearchCenterSO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysResearchCenterSO/ResearchCenterSO_{ResearchCenterSO.CivInt}_{ResearchCenterSO.Name}.asset";
                     AssetDatabase.CreateAsset(ResearchCenterSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

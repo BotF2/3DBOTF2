@@ -1,12 +1,12 @@
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class ShipController : MonoBehaviour
     {

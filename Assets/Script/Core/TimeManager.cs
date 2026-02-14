@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class TimeManager : MonoBehaviour
     {

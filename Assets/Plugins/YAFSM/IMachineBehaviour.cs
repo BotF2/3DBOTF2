@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Assets.Plugins.YAFSM
+namespace BOTF3D.Plugins.YAFSM
 {
     public interface IMachineBehaviour
     {

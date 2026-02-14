@@ -16,7 +16,7 @@ using UnityEngine;
 /// </summary>
 public static class AnimationUsageScanner
 {
-    private static readonly string reportPath = "Assets/Editor/AnimationUsageReport.txt";
+    private static readonly string reportPath = "BOTF3D/Editor/AnimationUsageReport.txt";
 
     [MenuItem("Tools/Animation Usage Scanner/Run Scan")]
     public static void RunScanFromMenu()
@@ -187,7 +187,7 @@ public static class AnimationUsageScanner
             foreach (var s in codeReferencedStrings.OrderBy(x => x)) sw.WriteLine(s);
             sw.WriteLine();
 
-            sw.WriteLine("-- Assets matched to code strings (by filename/path):");
+            sw.WriteLine("-- BOTF3D matched to code strings (by filename/path):");
             foreach (var p in codeReferencedAssets) sw.WriteLine(p);
             sw.WriteLine();
 

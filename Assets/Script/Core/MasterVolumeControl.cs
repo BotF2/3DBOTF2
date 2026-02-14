@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class MasterVolumeControl : MonoBehaviour
     {

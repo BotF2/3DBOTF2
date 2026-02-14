@@ -1,5 +1,5 @@
 
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +10,7 @@ using UnityEngine.UI;
 /// and black-holes/wormholes (one class.)
 /// Star systems also hold ships just like fleets hold ships
 /// </summary>
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class StarSysData
     {

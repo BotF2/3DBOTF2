@@ -12,7 +12,7 @@ public enum ThemeEnum
     Terran
 }
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class ThemeManager : MonoBehaviour

@@ -1,11 +1,11 @@
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Scene = UnityEngine.SceneManagement.Scene;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class SceneController : MonoBehaviour
     {

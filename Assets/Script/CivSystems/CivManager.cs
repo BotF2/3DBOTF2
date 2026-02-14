@@ -1,11 +1,11 @@
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Instantiates the Civilizations(factions) (a CivController and a CivData) using CivSO

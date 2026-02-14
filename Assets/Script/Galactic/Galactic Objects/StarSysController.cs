@@ -1,6 +1,6 @@
 ﻿// Ignore Spelling: Sys Habitalbe Unregister
-using Assets.Core;
-using Assets.UI;
+using BOTF3D.Core;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     /// <summary>
     /// Controlling Star System interactions while the matching StarSystemData class

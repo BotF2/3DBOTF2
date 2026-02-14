@@ -1,6 +1,6 @@
 ﻿// Ignore Spelling: Nums Revealer
-using Assets.GamePlay;
-using Assets.UI;
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Instantiates the fleets (a FleetController and a FleetData) using FleetSO
@@ -293,7 +293,7 @@ namespace Assets.Core
             {
                 if (!newFleet)
                 {
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 15f, newTrans.position.z));
+                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 10f, newTrans.position.z + 10F));
                 }
                 else
                 {

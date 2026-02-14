@@ -1,5 +1,5 @@
-using Assets.Core;
-using Assets.GamePlay;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// The UI controller owns hierarchy and presentation.
 /// </summary>
 /// 
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class DiplomacyMenuUIController : MonoBehaviour
     {

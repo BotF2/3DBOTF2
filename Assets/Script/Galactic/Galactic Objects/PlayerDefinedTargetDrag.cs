@@ -1,7 +1,7 @@
-using Assets.Core;
+using BOTF3D.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
-namespace Assets.GamePlay
+namespace BOTF3D.GamePlay
 {
     public class PlayerDefinedTargetDrag : MonoBehaviour
     {

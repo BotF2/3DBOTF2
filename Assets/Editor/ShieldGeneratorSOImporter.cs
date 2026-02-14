@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -14,7 +14,7 @@ public class ShieldGeneratorSOImporter : EditorWindow
         GetWindow<ShieldGeneratorSOImporter>("ShieldGeneratorSO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysShieldGenerator.tsv";
+    private string filePath = $"BOTF3D/Resources/Data/StarSysShieldGenerator.tsv";
 
     void OnGUI()
     {
@@ -45,9 +45,9 @@ public class ShieldGeneratorSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imageString + ".png")
                     {
                         imageString = "Facilities/" + imageString;
                     }
@@ -67,7 +67,7 @@ public class ShieldGeneratorSOImporter : EditorWindow
                     ShieldGeneratorSO.PowerLoad = int.Parse(fields[7]);
                     ShieldGeneratorSO.ShieldGeneratorSprite = Resources.Load<Sprite>(imageString);
                     ShieldGeneratorSO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysShieldGeneratorSO/ShieldGeneratorSO_{ShieldGeneratorSO.CivInt}_{ShieldGeneratorSO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysShieldGeneratorSO/ShieldGeneratorSO_{ShieldGeneratorSO.CivInt}_{ShieldGeneratorSO.Name}.asset";
                     AssetDatabase.CreateAsset(ShieldGeneratorSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

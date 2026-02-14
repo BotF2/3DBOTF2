@@ -1,5 +1,5 @@
-﻿using Assets.Core;
-using Assets.GamePlay;
+﻿using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -34,7 +34,7 @@ public enum Menu
 //Assets.Core              → Managers, Data classes, Game systems
 //Assets.UI                → UI Controllers(menu, HUD, panels)
 //Assets.GamePlay          → Gameplay controllers(Fleet, Ship, System)
-namespace Assets.UI
+namespace BOTF3D.UI
 {
     public class GalaxyMenuUIController : MonoBehaviour
     {
@@ -352,7 +352,7 @@ namespace Assets.UI
             shipDeployMenuUIController.ShowShipDeployMenuView();
 
             // Set up TopSlot with star system's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<Assets.GamePlay.ShipController>().ToList());
+            shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<BOTF3D.GamePlay.ShipController>().ToList());
 
             // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
             shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
@@ -397,7 +397,7 @@ namespace Assets.UI
             shipDeployMenuUIController.ShowShipDeployMenuView();
 
             // Set up TopSlot with original fleet's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList.Cast<Assets.GamePlay.ShipController>().ToList());
+            shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList.Cast<BOTF3D.GamePlay.ShipController>().ToList());
 
             // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
             shipDeployMenuUIController.SetUpBottomShipLists(newFleetController, true);

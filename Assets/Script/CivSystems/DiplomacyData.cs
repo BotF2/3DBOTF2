@@ -1,6 +1,6 @@
-using Assets.GamePlay;
+using BOTF3D.GamePlay;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     public class DiplomacyData
     {

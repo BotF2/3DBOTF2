@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Audio
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Audio
 {
     public class AudioPlayer : MonoBehaviour
     {
