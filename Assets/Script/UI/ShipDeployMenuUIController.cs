@@ -1,4 +1,4 @@
-using BOTF3D.Core;
+﻿using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System;
 using System.Collections;
@@ -734,14 +734,14 @@ namespace BOTF3D.UI
             }
         }
 
-        public void CommitShipDeployAndClose()
+        public void CommitShipDeployAndClose(Action onComplete = null)
         {
             gameObject.SetActive(true);
             // Run async to let drag/drop & layout events finish
-            StartCoroutine(CommitShipDeployCoroutine());
+            StartCoroutine(CommitShipDeployCoroutine(onComplete));
         }
 
-        private IEnumerator CommitShipDeployCoroutine()
+        private IEnumerator CommitShipDeployCoroutine(Action onComplete = null)
         {
             // 1) Ensure any pending ShipManager parenting is attempted first
             ShipManager.Instance?.ProcessPendingShipUIs();
@@ -763,7 +763,6 @@ namespace BOTF3D.UI
             yield return null;
 
             // 4) Diagnostic dump to see where UI items are right now
-            //Debug.Log($"CommitShipDeployAndClose (pre): TopSlot children={TopSlot?.transform.childCount ?? 0} BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
             DumpAllShipListUIs();
 
             // 5) Assign ownership flags from the slot containers (and owner UI parents)
@@ -778,21 +777,94 @@ namespace BOTF3D.UI
             // 6) Now call your deploy/reconciliation code (idempotent)
             DeployShipsUIGOToNewFleetOrSystem();
 
-            // 7) Finish up and report
+            // ✅ 7) CRITICAL: Explicitly reparent ALL ship UIs from slots to their owner's ShipListUIParent
+            ReparentShipUIsToOwners();
+
+            // 8) Clean up and move fleet/system UIs back to their original parents
+            FleetMenuUIController.Instance?.MoveBackAnyaFleetUIGO();
+            StarSysMenuUIController.Instance?.MoveBackAnyStarSysUIGO();
+
+            // 9) Final diagnostic + callback
             GalaxyMenuUIController.Instance?.CompleteShipExchange();
-            //Debug.Log($"CommitShipDeployAndClose committed: TopSlot={TopSlot?.transform.childCount ?? 0} BottomSlot={BottomSlot?.transform.childCount ?? 0}");
+            Debug.Log($"CommitShipDeployAndClose: Ships reparented, closing panel");
+
+            if (onComplete != null)
+                onComplete.Invoke();
+
+            // Close the panel
+            HideShipDeployMenuView();
 
             yield break;
         }
 
         /// <summary>
-        /// Commits ship deploy changes for a new fleet scenario using ShipController hierarchy as source of truth.
-        /// No coroutines - runs immediately to avoid GameObject deactivation issues.
+        /// Ensures all ship UIs are moved from TopSlot/BottomSlot to their owner's ShipListUIParent
         /// </summary>
+        private void ReparentShipUIsToOwners()
+        {
+            // Process TopSlot ships
+            if (TopSlot != null && TopSlot.transform.childCount > 0)
+            {
+                for (int i = TopSlot.transform.childCount - 1; i >= 0; i--)
+                {
+                    var shipUI = TopSlot.transform.GetChild(i).gameObject;
+                    var shipUIItem = shipUI.GetComponent<ShipListUI_Item>();
+                    if (shipUIItem != null)
+                    {
+                        Transform targetParent = null;
+                        if (shipUIItem.CurrentFleet != null && shipUIItem.CurrentFleet.FleetData.ShipListUIParent != null)
+                        {
+                            targetParent = shipUIItem.CurrentFleet.FleetData.ShipListUIParent.transform;
+                        }
+                        else if (shipUIItem.CurrentStarSyst != null && shipUIItem.CurrentStarSyst.StarSysData.ShipListUIParent != null)
+                        {
+                            targetParent = shipUIItem.CurrentStarSyst.StarSysData.ShipListUIParent.transform;
+                        }
+
+                        if (targetParent != null)
+                        {
+                            shipUI.transform.SetParent(targetParent, false);
+                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from TopSlot to owner");
+                        }
+                    }
+                }
+            }
+
+            // Process BottomSlot ships
+            if (BottomSlot != null && BottomSlot.transform.childCount > 0)
+            {
+                for (int i = BottomSlot.transform.childCount - 1; i >= 0; i--)
+                {
+                    var shipUI = BottomSlot.transform.GetChild(i).gameObject;
+                    var shipUIItem = shipUI.GetComponent<ShipListUI_Item>();
+                    if (shipUIItem != null)
+                    {
+                        Transform targetParent = null;
+                        if (shipUIItem.CurrentFleet != null && shipUIItem.CurrentFleet.FleetData.ShipListUIParent != null)
+                        {
+                            targetParent = shipUIItem.CurrentFleet.FleetData.ShipListUIParent.transform;
+                        }
+                        else if (shipUIItem.CurrentStarSyst != null && shipUIItem.CurrentStarSyst.StarSysData.ShipListUIParent != null)
+                        {
+                            targetParent = shipUIItem.CurrentStarSyst.StarSysData.ShipListUIParent.transform;
+                        }
+
+                        if (targetParent != null)
+                        {
+                            shipUI.transform.SetParent(targetParent, false);
+                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from BottomSlot to owner");
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"ReparentShipUIsToOwners: TopSlot remaining={TopSlot?.transform.childCount ?? 0}, BottomSlot remaining={BottomSlot?.transform.childCount ?? 0}");
+        }
+
         public void CommitShipDeployForNewFleetAndClose(Action onCommitComplete)
         {
-            //Debug.Log($"=== COMMIT (Immediate) START ===");
-            //Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}");
+            Debug.Log($"=== COMMIT (Immediate) START ===");
+            Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}");
 
             // Since ShipControllers are already correctly parented (via drag/drop AddToFleet/AddToStarSystem),
             // we can rebuild UI parenting from the ShipController hierarchy
@@ -801,31 +873,33 @@ namespace BOTF3D.UI
             ReparentUIFromShipControllerHierarchy(TopStarSyst);
             ReparentUIFromShipControllerHierarchy(BottomStarSyst);
 
+            // ✅ Also ensure any ship UIs still in slots are moved to owners
+            ReparentShipUIsToOwners();
+
             // Update fleet max warp
             if (TopFleet != null)
             {
                 try { TopFleet.UpdateMaxWarp(); } catch { }
-                // Debug.Log($"After reparent: TopFleet '{TopFleet.name}' has {TopFleet.FleetData.ShipsList.Count} ships");
             }
             if (BottomFleet != null)
             {
                 try { BottomFleet.UpdateMaxWarp(); } catch { }
-                // Debug.Log($"After reparent: BottomFleet '{BottomFleet.name}' has {BottomFleet.FleetData.ShipsList.Count} ships");
             }
+
+            // Clean up UIs before hiding panel
+            FleetMenuUIController.Instance?.MoveBackAnyaFleetUIGO();
+            StarSysMenuUIController.Instance?.MoveBackAnyStarSysUIGO();
 
             // Hide the deploy menu
             HideShipDeployMenuView();
             gameObject.SetActive(false);
 
-            // Debug.Log($"=== COMMIT (Immediate) END ===");
+            Debug.Log($"=== COMMIT (Immediate) END ===");
 
             // Callback for after-commit cleanup
             onCommitComplete?.Invoke();
         }
 
-        /// <summary>
-        /// Commits merge operation - moves all ships from source to target and clears source.
-        /// </summary>
         public void CommitMergeAndClose(Action onCommitComplete)
         {
             Debug.Log($"=== COMMIT MERGE START ===");
@@ -899,6 +973,13 @@ namespace BOTF3D.UI
             ReparentUIFromShipControllerHierarchy(TopFleet);
             ReparentUIFromShipControllerHierarchy(TopStarSyst);
 
+            // ✅ Ensure any ship UIs still in slots are moved
+            ReparentShipUIsToOwners();
+
+            // Clean up UIs before hiding panel
+            FleetMenuUIController.Instance?.MoveBackAnyaFleetUIGO();
+            StarSysMenuUIController.Instance?.MoveBackAnyStarSysUIGO();
+
             // Hide the deploy menu
             HideShipDeployMenuView();
             gameObject.SetActive(false);
@@ -909,11 +990,6 @@ namespace BOTF3D.UI
             onCommitComplete?.Invoke();
         }
 
-        /// <summary>
-        /// Reparents ShipListUI elements based on where their ShipController is in the hierarchy.
-        /// ShipControllers are the source of truth - if a ShipController is a child of a fleet,
-        /// its UI should be parented to that fleet's ShipListUIParent.
-        /// </summary>
         private void ReparentUIFromShipControllerHierarchy(FleetController fleet)
         {
             if (fleet == null) return;

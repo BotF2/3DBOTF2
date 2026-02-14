@@ -281,8 +281,7 @@ namespace BOTF3D.GamePlay
                 {
                     if (isOurDestination)
                     {
-                        ClickCancelDestinationButton(); // we stop, cancel destination
-                        Destroy(collider.gameObject); // remove the player defined target
+                        ClickCancelDestinationButton(); // we stop, cancel destination & remove the player defined target
                     }
                 }
             }
@@ -330,8 +329,19 @@ namespace BOTF3D.GamePlay
         {
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
             if (theFleetConLookingForDestination == null) return;
+
+            // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
+            if (theFleetConLookingForDestination.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(theFleetConLookingForDestination);
+            }
+
             theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
+
+            // Reset mode and cursor
+            GalaxyUI.CompleteSetDestination();
+            MousePointerChanger.Instance?.ResetCursor();
         }
 
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
@@ -362,6 +372,34 @@ namespace BOTF3D.GamePlay
             {
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
                 aSysView.SetActive(true);
+
+                // ✅ Update star system UI with current values (minimap, facilities, etc.)
+                if (starSysLooking.StarSysUIGameObject != null)
+                {
+                    starSysLooking.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                    starSysLooking.StarSysUIGameObject.SetActive(true);
+
+                    // Update facility UI to show current load values
+                    var starSysUI = StarSysMenuUIController.Instance;
+                    if (starSysUI != null)
+                    {
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+
+                        // Update minimap position
+                        var sysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                        if (sysUIFields != null && sysUIFields.redDot != null)
+                        {
+                            sysUIFields.redDot.anchoredPosition = new Vector2(
+                                starSysLooking.StarSysData.GetPosition().x * 0.12f,
+                                starSysLooking.StarSysData.GetPosition().z * 0.12f);
+                        }
+                    }
+                }
+
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
 
@@ -778,8 +816,30 @@ namespace BOTF3D.GamePlay
                 }
             }
         }
+        public void CloseShipDeploy(FleetController fleetCon)
+        {
+            if (fleetCon == this)
+            {
+                if (fleetCon.TargetController != null)
+                {
+                    PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+                }
+                if (ShipDeployMenuUIController.Instance != null)
+                {
+                    ShipDeployMenuUIController.Instance.ShipDeployPanel.SetActive(false);
+                }
+                fleetCon.FleetUIGameObject.SetActive(false);
+
+                //ShipDeployMenuUIController.Instance.CloseShipDeployMenuView();
+            }
+        }
         public void ClickCancelDestinationButton()
         {
+            // Destroy player-defined target if it exists
+            if (TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
+            }
             DestinationLine.gameObject.SetActive(false);
             FleetData.LastDestination = FleetData.Destination;
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
@@ -886,11 +946,6 @@ namespace BOTF3D.GamePlay
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
                 FleetUI.GetPlayerDefinedTargetDestination(this);
             }
-        }
-
-        internal void saveCloseShipDelplyButton(FleetController fleetCon)
-        {
-            // ToDo should this be in FleetMenuUIController?
         }
     }
 }

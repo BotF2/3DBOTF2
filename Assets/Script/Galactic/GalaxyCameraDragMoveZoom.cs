@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
+
 public class GalaxyCameraDragMoveZoom : MonoBehaviour
 {
     public static GalaxyCameraDragMoveZoom Instance;
@@ -11,7 +12,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
     [SerializeField]
     private float panSpeed = 400f;
     [SerializeField]
-    private float zoomSpeed = 400f;
+    private float zoomSpeed = 300f;
     [SerializeField]
     private float minY = 123f;
     [SerializeField]
@@ -169,29 +170,31 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
             scrollValue = Input.GetAxis("Mouse ScrollWheel");
         }
 
-        galaxyCam.fieldOfView -= scrollValue * zoomSpeed;
+        // Normalize scroll value (typically ranges from -120 to 120)
+        float normalizedScroll = scrollValue / 120f; // Normalize to ~-1 to 1 range
+        galaxyCam.fieldOfView -= normalizedScroll * (zoomSpeed * 1f);
 
         var kb = Keyboard.current;
         if (kb != null)
         {
             if (kb.qKey.isPressed)
             {
-                galaxyCam.fieldOfView += 1f;
+                galaxyCam.fieldOfView += 0.5f;
             }
             if (kb.eKey.isPressed)
             {
-                galaxyCam.fieldOfView -= 1f;
+                galaxyCam.fieldOfView -= 0.5f;
             }
         }
         else
         {
             if (Input.GetKey("q"))
             {
-                galaxyCam.fieldOfView += 1f;
+                galaxyCam.fieldOfView += 0.5f;
             }
             if (Input.GetKey("e"))
             {
-                galaxyCam.fieldOfView -= 1f;
+                galaxyCam.fieldOfView -= 0.5f;
             }
         }
 
@@ -343,7 +346,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                 {
                     lastCameraPosition = transform.position;
                     transform.position = new Vector3(listStarSystems[i].transform.position.x,
-                        listStarSystems[i].transform.position.y + 100f, listStarSystems[i].transform.position.z - 200f);
+                        listStarSystems[i].transform.position.y + 150f, listStarSystems[i].transform.position.z - 300f);
                     homePosition = transform.position;
                     foundHomePosition = true;
                     atHomePosition = true;
@@ -363,4 +366,5 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
         }
     }
 }
+
 

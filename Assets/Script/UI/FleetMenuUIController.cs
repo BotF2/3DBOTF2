@@ -1,4 +1,4 @@
-// Ignore Spelling: Anya
+﻿// Ignore Spelling: Anya
 
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
@@ -198,7 +198,6 @@ namespace BOTF3D.UI
         }
         public void MoveBackAnyaFleetUIGO()
         {
-            // SAFETY: Check if AFleetMenuView still exists
             if (AFleetMenuView == null)
             {
                 Debug.LogWarning("FleetMenuUIController.MoveBackAnyaFleetUIGO: AFleetMenuView is null, skipping");
@@ -206,23 +205,26 @@ namespace BOTF3D.UI
             }
 
             AFleetMenuView.SetActive(true);
-            for (int i = 0; i < AFleetMenuView.transform.childCount; i++)
-            {
-                var child = AFleetMenuView.transform.GetChild(i)?.gameObject;
-                if (child != null)
-                {
-                    if (child.gameObject.GetComponent<FleetAndSystemChildController>() != null)
-                    {
-                        Transform originalParent = child.gameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform;
 
-                        if (originalParent != null)
-                        {
-                            child.transform.SetParent(originalParent, false);
-                        }
-                    }
+            // ✅ Move back BOTH fleet UIs AND star system UIs that might be in this container
+            for (int i = AFleetMenuView.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = AFleetMenuView.transform.GetChild(i);
+                if (child == null) continue;
+
+                var childController = child.GetComponent<FleetAndSystemChildController>();
+                if (childController != null && childController.OriginalParentTransform != null)
+                {
+                    child.SetParent(childController.OriginalParentTransform, false);
+                    Debug.Log($"FleetMenuUIController: Moved '{child.name}' back to '{childController.OriginalParentTransform.name}'");
                 }
             }
+
+            // Hide AFleetMenuView after moving children back
+            AFleetMenuView.SetActive(false);
             activeFleetController = null;
+
+            Debug.Log("FleetMenuUIController: Moved all UIs back and closed AFleetMenuView");
         }
         public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
         {
@@ -289,9 +291,9 @@ namespace BOTF3D.UI
                 //uiFields.CancelShipManagerButton.gameObject.SetActive(true);
                 //uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
                 //uiFields.CancelShipManagerButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton());
-                //saveCloseShipDeployButton.gameObject.SetActive(true);
-                //saveCloseShipDeployButton.onClick.RemoveAllListeners();
-                //saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.saveCloseShipDelplyButton(fleetCon));
+                saveCloseShipDeployButton.gameObject.SetActive(true);
+                saveCloseShipDeployButton.onClick.RemoveAllListeners();
+                saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.CloseShipDeploy(fleetCon));
                 uiFields.NewFleetButton.gameObject.SetActive(true);
                 uiFields.NewFleetButton.onClick.RemoveAllListeners();
                 uiFields.NewFleetButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
@@ -326,6 +328,12 @@ namespace BOTF3D.UI
         }
         private void FleetClickedShipDeployButton(FleetController fleetCon)
         {
+            // ✅ Destroy any existing player-defined target for this fleet
+            if (fleetCon != null && fleetCon.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+            }
+
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
@@ -337,6 +345,10 @@ namespace BOTF3D.UI
         }
         private void ClickMergeFleetButton(FleetController fleetClickingMerge)
         {
+            if (fleetClickingMerge.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetClickingMerge);
+            }
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
@@ -349,6 +361,10 @@ namespace BOTF3D.UI
         private void ClickNewFleetButton(FleetController currentFleetCon)
         {
             if (currentFleetCon == null || currentFleetCon.FleetData == null) return;
+            if (currentFleetCon.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(currentFleetCon);
+            }
             if (currentFleetCon.FleetData.ShipsList.Count < 2) return;
 
             MousePointerChanger.Instance.ResetCursor();
@@ -385,7 +401,7 @@ namespace BOTF3D.UI
             // CRITICAL: Ensure the new fleet has its ShipListUIParent set up
             if (newFleet.FleetData.ShipListUIParent == null)
             {
-                Debug.LogWarning($"New fleet '{newFleet.name}' has no ShipListUIParent! Creating temporary container.");
+                Debug.LogWarning($"New fleet '{newFleet?.name}' has no ShipListUIParent! Creating temporary container.");
                 // This should ideally be set up in InstantiateFleet or ShowShipDeployForFleetNewFleet
             }
 
@@ -534,32 +550,89 @@ namespace BOTF3D.UI
 
         public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
         {
+            if (fleetConWaitingForDestination == null) return;
+
+            if (fleetConWaitingForDestination.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
+            }
+
             if (GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum))
             {
-                dragDestinationTargetButtonGO?.SetActive(false);
-                if (cancelDestinationButtonGO != null)
-                    cancelDestinationButtonGO.SetActive(true);
-                selectDestinationCursorButtonGO?.SetActive(false);
+                // Get buttons from the active fleet UI instead of using stale references
+                var fields = fleetConWaitingForDestination.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                if (fields != null)
+                {
+                    if (fields.DestinationDragTarget != null)
+                        fields.DestinationDragTarget.gameObject.SetActive(false);
+                    if (fields.CancelDestination != null)
+                        fields.CancelDestination.gameObject.SetActive(true);
+                    if (fields.SelectDestination != null)
+                        fields.SelectDestination.gameObject.SetActive(false);
+                }
+
                 var galaxyUI = GalaxyMenuUIController.Instance;
-                galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
-                galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-                galaxyUI.FleetLookingForDestination = fleetConWaitingForDestination;
+                if (galaxyUI != null)
+                {
+                    galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
+                    galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
+                    galaxyUI.FleetLookingForDestination = fleetConWaitingForDestination;
+                }
                 MousePointerChanger.Instance.SetDestinationCursor();
             }
         }
+        public void ClickSelectDestinationButton(FleetController fleetCon)
+        {
+            if (fleetCon == null) return;
 
+            // Destroy any existing player-defined target for this fleet
+            if (fleetCon.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+            }
+
+            // Change to destination selection mode
+            GalaxyMenuUIController.Instance?.SetClickMode(GalaxyClickMode.SetDestination);
+            GalaxyMenuUIController.Instance.FleetLookingForDestination = fleetCon;
+
+            // Update cursor
+            MousePointerChanger.Instance?.SetDestinationCursor();
+
+            Debug.Log($"FleetMenuUIController: Select Destination mode for fleet '{fleetCon.name}'");
+        }
         public void ClickCancelDestinationButton(FleetController fleetCon)
         {
+            if (fleetCon == null) return;
+
+            // Destroy any existing player-defined target for this fleet
+            if (fleetCon.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+            }
+
             MousePointerChanger.Instance.ResetCursor();
-            destinationName.text = "No Destination";
-            destinationCoordinates.text = "";
-            selectDestinationCursorButtonGO?.SetActive(true);
-            dragDestinationTargetButtonGO?.SetActive(true);
-            cancelDestinationButtonGO?.SetActive(false);
+
+            // Get buttons from the specific fleet's UI
+            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                if (fields.DestinationName != null)
+                    fields.DestinationName.text = "No Destination";
+                if (fields.DestinationCoordinates != null)
+                    fields.DestinationCoordinates.text = "";
+                if (fields.SelectDestination != null)
+                    fields.SelectDestination.gameObject.SetActive(true);
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(true);
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(false);
+            }
 
             // Update the UI in the specific fleet list entry if present
             for (int i = 0; i < listOfFleetUiGos.Count; i++)
             {
+                if (listOfFleetUiGos[i] == null) continue; // Skip destroyed entries
+
                 if (listOfFleetUiGos[i].GetComponentInChildren<FleetController>() == fleetCon)
                 {
                     TextMeshProUGUI[] ourTMPs = listOfFleetUiGos[i].GetComponentsInChildren<TextMeshProUGUI>(true);
@@ -583,28 +656,61 @@ namespace BOTF3D.UI
 
         public void SetAsDestination(string nameDestination, string newCoordinates)
         {
-            if (destinationName != null) destinationName.text = nameDestination;
-            if (destinationCoordinates != null) destinationCoordinates.text = newCoordinates;
-            if (cancelDestinationButtonGO != null)
-                cancelDestinationButtonGO.SetActive(true);
-            if (dragDestinationTargetButtonGO != null)
-                dragDestinationTargetButtonGO.SetActive(false);
+            // Get text fields from the active fleet UI instead of cached references
+            var fields = GetActiveFleetUIFields();
+            if (fields != null)
+            {
+                if (fields.DestinationName != null)
+                    fields.DestinationName.text = nameDestination;
+                if (fields.DestinationCoordinates != null)
+                    fields.DestinationCoordinates.text = newCoordinates;
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
+            }
             MousePointerChanger.Instance.ResetCursor();
+        }
+
+        // Helper: get buttons from the currently active fleet UI
+        private FleetUI_Fields GetActiveFleetUIFields()
+        {
+            if (activeFleetController == null || activeFleetController.FleetUIGameObject == null)
+                return null;
+            return activeFleetController.FleetUIGameObject.GetComponent<FleetUI_Fields>();
         }
 
         public void CloseDestinationSelectionCursor()
         {
             MousePointerChanger.Instance.ResetCursor();
-            //cancelDestinationButtonGO?.SetActive(false);
-            dragDestinationTargetButtonGO?.SetActive(true);
+
+            var fields = GetActiveFleetUIFields();
+            if (fields != null)
+            {
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(false);
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(true);
+            }
         }
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
         {
-            dragDestinationTargetButtonGO.SetActive(false); // to see cancel destination button
-            cancelDestinationButtonGO.SetActive(true);
-            selectDestinationCursorButtonGO.SetActive(true);
+            if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
+
+            // Get buttons from the specific fleet's UI
+            var fields = fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.SelectDestination != null)
+                    fields.SelectDestination.gameObject.SetActive(true);
+            }
+
             GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
-            MousePointerChanger.Instance.SetDestinationCursor();//ChangeToGalaxyMapCursorForLocalPlayer(fleetCon);
+            MousePointerChanger.Instance.SetDestinationCursor();
         }
         private void OnDisable()
         {
@@ -637,6 +743,10 @@ namespace BOTF3D.UI
 
         internal void ClickCancelShipManagerButton(FleetController fleetCon)
         {
+            if (fleetCon.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+            }
             MousePointerChanger.Instance.ResetCursor();
             selectShipManagerCursorButtonGO?.SetActive(true);
             dragDestinationTargetButtonGO.SetActive(false);

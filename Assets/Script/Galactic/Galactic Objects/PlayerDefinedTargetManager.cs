@@ -232,5 +232,52 @@ namespace BOTF3D.Core
         {
             // ManagersPlayerTargetControllerList.Remove(playerTargetController);
         }
+
+        /// <summary>
+        /// Destroys the PlayerDefinedTarget associated with the given fleet.
+        /// </summary>
+        public void DestroyPlayerTarget(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.TargetController == null) return;
+
+            var targetController = fleetCon.TargetController;
+
+            // Remove from list
+            if (PlayerTargetConList.Contains(targetController))
+            {
+                PlayerTargetConList.Remove(targetController);
+            }
+
+            // Clear fleet reference
+            fleetCon.TargetController = null;
+
+            // Destroy the GameObject
+            if (targetController.gameObject != null)
+            {
+                Destroy(targetController.gameObject);
+                Debug.Log($"PlayerDefinedTargetManager: Destroyed player target for fleet '{fleetCon.name}'");
+            }
+        }
+
+        /// <summary>
+        /// Destroys all player targets for a given civilization.
+        /// </summary>
+        public void DestroyAllPlayerTargets(CivEnum civEnum)
+        {
+            for (int i = PlayerTargetConList.Count - 1; i >= 0; i--)
+            {
+                var targetController = PlayerTargetConList[i];
+                if (targetController != null && targetController.PlayerTargetData?.CivOwnerEnum == civEnum)
+                {
+                    if (targetController.PlayerTargetData?.FleetController != null)
+                    {
+                        targetController.PlayerTargetData.FleetController.TargetController = null;
+                    }
+                    Destroy(targetController.gameObject);
+                    PlayerTargetConList.RemoveAt(i);
+                }
+            }
+            Debug.Log($"PlayerDefinedTargetManager: Destroyed all targets for civ '{civEnum}'");
+        }
     }
 }

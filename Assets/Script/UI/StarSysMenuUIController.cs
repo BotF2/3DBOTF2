@@ -773,41 +773,72 @@ namespace BOTF3D.UI
 
         public void MoveBackAnyaSysUIGO()
         {
-            // SAFETY: Check if ASystemMenuView still exists
-            if (ASystemMenuView == null)
+            // Check ASystemMenuView first
+            if (ASystemMenuView != null && ASystemMenuView.activeSelf)
             {
-                Debug.LogWarning("StarSysMenuUIController.MoveBackAnyaSysUIGO: ASystemMenuView is null, skipping");
-                return;
-            }
-
-            ASystemMenuView.SetActive(true);
-            for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
-            {
-                var child = ASystemMenuView.transform.GetChild(i)?.gameObject;
-                if (child == null)
+                for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
                 {
-                    continue;
-                }
-                var childCtrl = child.GetComponent<FleetAndSystemChildController>();
-                if (childCtrl != null)
-                {
-                    Transform originalParent = childCtrl.OriginalParentTransform;
-                    // Fallback: if OriginalParentTransform is null or equals ASystemMenuView, use SysListContainer if available
-                    if (originalParent == null || originalParent == ASystemMenuView.transform)
-                    {
-                        lastSysCon = childCtrl.GetComponentInParent<StarSysController>();
-                        if (SysListContainer != null)
-                            originalParent = SysListContainer.transform;
-                    }
+                    var child = ASystemMenuView.transform.GetChild(i);
+                    if (child == null) continue;
 
-                    if (originalParent != null)
+                    var childController = child.GetComponent<FleetAndSystemChildController>();
+                    if (childController != null)
                     {
-                        child.transform.SetParent(originalParent, false);
+                        Transform originalParent = childController.OriginalParentTransform;
+
+                        if (originalParent != null)
+                        {
+                            child.SetParent(originalParent, false);
+                            Debug.Log($"StarSysMenuUIController: Moved '{child.name}' back from ASystemMenuView to '{originalParent.name}'");
+                        }
                     }
                 }
+
+                ASystemMenuView.SetActive(false);
             }
+
+            // ✅ ALSO check AFleetMenuView (for Fleet-to-System deploy scenario)
+            var aFleetView = FleetMenuUIController.Instance?.AFleetMenuView;
+            if (aFleetView != null && aFleetView.activeSelf)
+            {
+                for (int i = 0; i < aFleetView.transform.childCount; i++)
+                {
+                    var child = aFleetView.transform.GetChild(i);
+                    if (child == null) continue;
+
+                    // Check if this is a star system UI (not a fleet UI)
+                    var starSysCon = child.GetComponent<StarSysController>();
+                    if (starSysCon == null)
+                    {
+                        // Try getting from StarSysUIGameObject reference
+                        var childController = child.GetComponent<FleetAndSystemChildController>();
+                        //if (childController != null && childController.StarSysController != null)
+                        //{
+                        //    starSysCon = childController.StarSysController;
+                        //}
+                    }
+
+                    if (starSysCon != null)
+                    {
+                        var childController = child.GetComponent<FleetAndSystemChildController>();
+                        if (childController != null)
+                        {
+                            Transform originalParent = childController.OriginalParentTransform;
+
+                            if (originalParent != null)
+                            {
+                                child.SetParent(originalParent, false);
+                                Debug.Log($"StarSysMenuUIController: Moved star system '{child.name}' back from AFleetMenuView to '{originalParent.name}'");
+                            }
+                        }
+                    }
+                }
+            }
+
             activeStarSysController = null;
+            Debug.Log("StarSysMenuUIController: Moved all system UIs back and closed views");
         }
+
         public void CloseBuildingQueues()
         {
             GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
@@ -1410,6 +1441,39 @@ namespace BOTF3D.UI
             }
 
             return null;
+        }
+        public void MoveBackAnyStarSysUIGO()
+        {
+            // SAFETY: Check if ASystemMenuView still exists
+            if (ASystemMenuView == null)
+            {
+                Debug.LogWarning("StarSysMenuUIController.MoveBackAnyStarSysUIGO: ASystemMenuView is null, skipping");
+                return;
+            }
+
+            for (int i = 0; i < ASystemMenuView.transform.childCount; i++)
+            {
+                var child = ASystemMenuView.transform.GetChild(i);
+                if (child == null) continue;
+
+                var childController = child.GetComponent<FleetAndSystemChildController>();
+                if (childController != null)
+                {
+                    Transform originalParent = childController.OriginalParentTransform;
+
+                    if (originalParent != null)
+                    {
+                        child.SetParent(originalParent, false);
+                        Debug.Log($"StarSysMenuUIController: Moved '{child.name}' back to original parent '{originalParent.name}'");
+                    }
+                }
+            }
+
+            // Hide the ASystemMenuView
+            ASystemMenuView.SetActive(false);
+            activeStarSysController = null;
+
+            Debug.Log("StarSysMenuUIController: Moved all system UIs back and closed ASystemMenuView");
         }
     }
 }

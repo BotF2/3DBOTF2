@@ -187,7 +187,7 @@ namespace BOTF3D.UI
             Debug.Log("GalaxyMenuUIController: Start complete");
         }
 
-        // NEW: Call this from MainMenuUIController after CanvasGalaxy activates
+        // Call this from MainMenuUIController after CanvasGalaxy activates
         public void InitializeGalaxyCamera()
         {
             if (galaxyEventCamera == null)
@@ -210,11 +210,11 @@ namespace BOTF3D.UI
                 Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
             }
 
-            // CRITICAL: Wire up the HomeSystemButton dynamically
+            // Wire up the HomeSystemButton dynamically
             WireHomeSystemButton();
         }
 
-        //// NEW: Wire HomeSystemButton to the galaxy camera controller
+        //Wire HomeSystemButton to the galaxy camera controller
         private void WireHomeSystemButton()
         {
             // Wire it up to the galaxy camera controller
@@ -473,48 +473,19 @@ namespace BOTF3D.UI
         // jump to Home System is in GalaxyCameraDragMoveZoom.cs
         public void CloseShipDeploy()
         {
-            if (ShipDeployMenuUIController.Instance != null && ShipDeployMenuUIController.Instance.ShipDeployPanel.activeInHierarchy)
-            {
-                // Commit the slot state while the slots are still active
-                ShipDeployMenuUIController.Instance.CommitShipDeployAndClose();
+            // Move UIs back before closing
+            FleetMenuUIController.Instance?.MoveBackAnyaFleetUIGO();
+            StarSysMenuUIController.Instance?.MoveBackAnyStarSysUIGO(); // ✅ Add this
 
-                // After commit, proceed with the normal close flow (UI move/hide)
-                StarSysMenuUIController.Instance.ClickCancelShipManageButton();
-                FleetMenuUIController.Instance.ClickCancelShipManageButton();
-                CloseMenu(Menu.ShipDeployMenu);
-            }
-            else
+            if (ShipDeployMenuUIController.Instance != null)
             {
-                // No ship-deploy active — normal flow: move UIs back to their original parents.
-                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
-                StarSysMenuUIController.Instance.MoveBackAnyaSysUIGO();
+                ShipDeployMenuUIController.Instance.HideShipDeployMenuView();
             }
 
-            HideShipDeployMenu();
-            GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
-            if (diplomacyMenuUIController.IsVisibleA_DiplomacyMenuView || diplomacyMenuUIController.IsVisibleDiplomacyMenuView)
-                TimeManager.Instance.ResumeTime();
-            if (encyclopediaMenuView.activeSelf)
-                CloseMenu(Menu.EncyclopedianMenu);
-            if (intelMenuView.activeSelf)
-                CloseMenu(Menu.IntellMenu);
-            diplomacyMenuUIController.HideDiplomacyMenuView();
-            CloseMenu(Menu.DiplomacyMenu);
-            diplomacyNoContacts.SetActive(false);
-            diplomacyMenuUIController.HideA_DiplomacyMenuView();
-            CloseMenu(Menu.ADiplomacyMenu);
+            ResetClickMode();
+            MousePointerChanger.Instance?.ResetCursor();
 
-            fleetMenuUIController.HideFleetMenuView();
-            CloseMenu(Menu.FleetMenu);
-
-            fleetMenuUIController.HideA_FleetMenuView();
-            CloseMenu(Menu.AFleetMenu);
-
-            starSysMenuUIController.HideSystemMenuView();
-            CloseMenu(Menu.SystemsMenu);
-
-            starSysMenuUIController.HideA_SystemMenuView();
-            CloseMenu(Menu.ASystemMenu);
+            Debug.Log("GalaxyMenuUIController: Closed ShipDeploy and moved UIs back");
         }
 
         public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
@@ -886,6 +857,13 @@ namespace BOTF3D.UI
 
         public void BeginSetDestination(FleetController fleetLooking)
         {
+            if (fleetLooking == null) return;
+
+            // Destroy any existing player-defined target
+            if (fleetLooking.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetLooking);
+            }
             FleetLookingForDestination = fleetLooking;
             SetClickMode(GalaxyClickMode.SelectForShipDeploy);
         }

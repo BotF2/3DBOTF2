@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: shiptype Sys hvy
+﻿// Ignore Spelling: shiptype Sys hvy BOTF
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
@@ -439,7 +439,7 @@ namespace BOTF3D.Core
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 SetParentForFacilities(starSysCon.gameObject, sysData);
 
-                // initialize/star-wire the system UI from StarSysData (new helper on StarSysUIElement)
+                // initialize/wire the system UI from StarSysData (new helper on StarSysUIElement)
                 if (starSysCon.StarSysUIGameObject != null)
                 {
                     var uiElement = starSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
