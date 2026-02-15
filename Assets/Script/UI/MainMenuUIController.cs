@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 //using UnityEditor.UIElements;
@@ -16,7 +18,7 @@ namespace BOTF3D.UI
         /// <summary Multiplayer issues>
         /// ??? Unity ToggleGroup by default only allows one toggle to be active so:
         /// Will each remote player make a unique selection in their own Toggle group or
-        /// is it better to just have buttons, or toggles, not in a group for remotes to select?
+        /// is it better to just have buttons, or toggles not in a group for remotes to select?
         /// Need to sort out and define local player for the host and from each remote player PC in multiplayer lobby
         /// We can try using (Mirror; with GameObject LocalPlayerCivEnum = NetworkClient.LocalPlayerCivEnum.gameObject;)
         /// </summary>
@@ -105,6 +107,12 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject closeSettingsButton;
 
+        [Header("Localization")]
+        [SerializeField] private Button buttonEnglish;
+        [SerializeField] private Button buttonFrench;
+        [SerializeField] private Button buttonGerman;
+        [SerializeField] private LocaleManager localeManager = LocaleManager.Instance;
+
         private void Awake()
         {
             if (Instance != null)
@@ -117,24 +125,32 @@ namespace BOTF3D.UI
                 DontDestroyOnLoad(gameObject);
             }
 
-            // Only initialize UI camera here (same scene)
             InitializeCameras();
 
-            // Rest of existing Awake code...
+            // ✅ CRITICAL: Set up ToggleGroup FIRST
             SinglePlayerCivilizationGroup.enabled = true;
             SinglePlayerCivilizationGroup = singlePlayToggleGroup.GetComponent<ToggleGroup>();
+
+            // ✅ IMPORTANT: Set allowSwitchOff to false (ensures one is always selected)
+            SinglePlayerCivilizationGroup.allowSwitchOff = false;
+
+            // ✅ Register all toggles
             SinglePlayerCivilizationGroup.RegisterToggle(FedLocalPlayerToggle);
-            SinglePlayerCivilizationGroup.RegisterToggle(KlingLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(RomLocalPlayerToggle);
+            SinglePlayerCivilizationGroup.RegisterToggle(KlingLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(CardLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(DomLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(BorgLocalPlayerToggle);
             SinglePlayerCivilizationGroup.RegisterToggle(TerranLocalPlayerToggle);
+
+            // Other toggle groups...
             MapToggleGroup.enabled = true;
             MapToggleGroup = mapToggleGroup.GetComponent<ToggleGroup>();
             MapToggleGroup.RegisterToggle(CanonToggle);
             MapToggleGroup.RegisterToggle(RandomToggle);
             MapToggleGroup.RegisterToggle(RingToggle);
+
+            // On/Off toggles (these are NOT in a toggle group - they can all be on/off independently)
             FedOnOff.isOn = true;
             RomOnOff.isOn = true;
             KlingOnOff.isOn = true;
@@ -142,19 +158,19 @@ namespace BOTF3D.UI
             DomOnOff.isOn = true;
             BorgOnOff.isOn = true;
             TerranOnOff.isOn = false;
-            MapToggleGroup.enabled = true;
+
             GalaxySizeToggleGroup = galaxySizeToggleGroup.GetComponent<ToggleGroup>();
             GalaxySizeToggleGroup.RegisterToggle(SmallGalaxyToggle);
             GalaxySizeToggleGroup.RegisterToggle(MediumGalaxyToggle);
             GalaxySizeToggleGroup.RegisterToggle(LargeGalaxyToggle);
             GalaxySizeToggleGroup.RegisterToggle(PonderousGalaxyToggle);
+
             TechLevelToggleGroup.enabled = true;
             TechLevelToggleGroup = techLevelToggleGroup.GetComponent<ToggleGroup>();
             TechLevelToggleGroup.RegisterToggle(EarlyToggle);
             TechLevelToggleGroup.RegisterToggle(DevelopedToggle);
             TechLevelToggleGroup.RegisterToggle(AdvancedToggle);
             TechLevelToggleGroup.RegisterToggle(SupremeToggle);
-
 
             // Pending Multiplayer lobby if needed
             //MultiplayerCivilizationGroup.enabled = true;
@@ -167,7 +183,10 @@ namespace BOTF3D.UI
             //MultiplayerCivilizationGroup.RegisterToggle(BorgLocalPlayerToggle);
             //MultiplayerCivilizationGroup.RegisterToggle(TerranLocalPlayerToggle);
 
+            // ✅ Wire language buttons
+            SetupLanguageButtons();
         }
+
         private void Start()
         {
             FedLocalPlayerToggle.isOn = true;
@@ -179,6 +198,8 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle.isOn = false;
             BorgLocalPlayerToggle.isOn = false;
             TerranLocalPlayerToggle.isOn = false;
+
+            // Build OnOffToggles list
             OnOffToggles.Add(FedOnOff);
             OnOffToggles.Add(RomOnOff);
             OnOffToggles.Add(KlingOnOff);
@@ -186,6 +207,8 @@ namespace BOTF3D.UI
             OnOffToggles.Add(DomOnOff);
             OnOffToggles.Add(BorgOnOff);
             OnOffToggles.Add(TerranOnOff);
+
+            // Initialize civ list
             MainMenuData.InGamePlayableCivList.Add(CivEnum.FED);
             MainMenuData.InGamePlayableCivList.Add(CivEnum.ROM);
             MainMenuData.InGamePlayableCivList.Add(CivEnum.KLING);
@@ -193,20 +216,20 @@ namespace BOTF3D.UI
             MainMenuData.InGamePlayableCivList.Add(CivEnum.DOM);
             MainMenuData.InGamePlayableCivList.Add(CivEnum.BORG);
             MainMenuData.InGamePlayableCivList.Add(CivEnum.TERRAN);
+
+            // Map toggles
             CanonToggle.isOn = true;
-            CanonToggle.Select();
-            CanonToggle.OnSelect(null);
             RandomToggle.isOn = false;
             RingToggle.isOn = false;
+
+            // Galaxy size toggles
             SmallGalaxyToggle.isOn = true;
-            SmallGalaxyToggle.Select();
-            SmallGalaxyToggle.OnSelect(null);
             MediumGalaxyToggle.isOn = false;
             LargeGalaxyToggle.isOn = false;
             PonderousGalaxyToggle.isOn = false;
+
+            // Tech level toggles
             EarlyToggle.isOn = true;
-            EarlyToggle.Select();
-            EarlyToggle.OnSelect(null);
             DevelopedToggle.isOn = false;
             AdvancedToggle.isOn = false;
             SupremeToggle.isOn = false;
@@ -1149,6 +1172,92 @@ namespace BOTF3D.UI
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
             ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
+        }
+
+        private void SetupLanguageButtons()
+        {
+            if (localeManager == null)
+            {
+                localeManager = FindObjectOfType<LocaleManager>();
+                if (localeManager == null)
+                {
+                    Debug.LogWarning("MainMenuUIController: LocaleManager not found!");
+                    return;
+                }
+            }
+
+            // ✅ Wire English button
+            if (buttonEnglish != null)
+            {
+                buttonEnglish.onClick.RemoveAllListeners();
+                buttonEnglish.onClick.AddListener(() => ChangeToEnglish());
+                Debug.Log("✅ English button wired");
+            }
+
+            // ✅ Wire French button
+            if (buttonFrench != null)
+            {
+                buttonFrench.onClick.RemoveAllListeners();
+                buttonFrench.onClick.AddListener(() => ChangeToFrench());
+                Debug.Log("✅ French button wired");
+            }
+
+            // ✅ Wire German button
+            if (buttonGerman != null)
+            {
+                buttonGerman.onClick.RemoveAllListeners();
+                buttonGerman.onClick.AddListener(() => ChangeToGerman());
+                Debug.Log("✅ German button wired");
+            }
+        }
+
+        private void ChangeToEnglish()
+        {
+            var locale = GetLocaleByCode("en");
+            if (locale != null)
+            {
+                localeManager.ChangeLanguage(locale);
+                Debug.Log("Language changed to English");
+            }
+        }
+
+        private void ChangeToFrench()
+        {
+            var locale = GetLocaleByCode("fr");
+            if (locale != null)
+            {
+                localeManager.ChangeLanguage(locale);
+                Debug.Log("Language changed to French");
+            }
+        }
+
+        private void ChangeToGerman()
+        {
+            var locale = GetLocaleByCode("de");
+            if (locale != null)
+            {
+                localeManager.ChangeLanguage(locale);
+                Debug.Log("Language changed to German");
+            }
+        }
+
+        /// <summary>
+        /// Gets a Locale by language code (en, fr, de, etc.)
+        /// </summary>
+        private Locale GetLocaleByCode(string code)
+        {
+            var availableLocales = LocalizationSettings.AvailableLocales.Locales;
+
+            foreach (var locale in availableLocales)
+            {
+                if (locale.Identifier.Code == code)
+                {
+                    return locale;
+                }
+            }
+
+            Debug.LogWarning($"Locale with code '{code}' not found! Available locales: {string.Join(", ", availableLocales.Select(l => l.Identifier.Code))}");
+            return null;
         }
     }
 }

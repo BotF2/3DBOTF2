@@ -15,6 +15,18 @@ MonoBehaviour:
   m_GroupName: Localization-Assets-Shared
   m_GUID: 143d36da3bca09f4b9d467d64c839af6
   m_SerializeEntries:
+  - m_GUID: 1317265bd367bf24c8c9252ba14c8797
+    m_Address: Assets/Resources/Samples/Localization/1.3.2/Smart Strings - Persistent
+      Variables/String Table/Gender Sample Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 27153e20147c06c4c8d1304d28104a87
+    m_Address: Assets/Resources/Samples/Localization/1.3.2/Smart Strings - Persistent
+      Variables/String Table/Global Variables Sample Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 738d417422c4bb74eb4604665f33c588
     m_Address: Assets/LocalSettings/Tables/StringTable3 Shared Data.asset
     m_ReadOnly: 1
