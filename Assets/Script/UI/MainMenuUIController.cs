@@ -75,6 +75,13 @@ namespace BOTF3D.UI
         {
             CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
         };
+        [SerializeField] private GameObject fedImages;
+        [SerializeField] private GameObject romImages;
+        [SerializeField] private GameObject klingImages;
+        [SerializeField] private GameObject cardImages;
+        [SerializeField] private GameObject domImages;
+        [SerializeField] private GameObject borgImages;
+        [SerializeField] private GameObject terranImages;
         //ToDo for multiplayer lobby
         //private Toggle _activeRemote0;
         //private Toggle _activeRemote1;
@@ -185,13 +192,27 @@ namespace BOTF3D.UI
 
             // ✅ Wire language buttons
             SetupLanguageButtons();
+
+            // ✅ Wire toggle events to update images directly
+            FedLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.FED); });
+            RomLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.ROM); });
+            KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.KLING); });
+            CardLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.CARD); });
+            DomLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.DOM); });
+            BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.BORG); });
+            TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.TERRAN); });
         }
 
         private void Start()
         {
             FedLocalPlayerToggle.isOn = true;
             FedLocalPlayerToggle.Select();
-            FedLocalPlayerToggle.OnSelect(null); // turns background selected color on, go figure.
+            FedLocalPlayerToggle.OnSelect(null);
+
+            // ✅ Show Fed images since it's default
+            TurnOffAllImages();
+            fedImages.SetActive(true);
+
             KlingLocalPlayerToggle.isOn = false;
             RomLocalPlayerToggle.isOn = false;
             CardLocalPlayerToggle.isOn = false;
@@ -798,9 +819,13 @@ namespace BOTF3D.UI
 
         private void ActivePlayerToggle()
         {
+            // ✅ Turn off all images first
+            TurnOffAllImages();
+
             switch (activeLocalPlayerToggle.name.ToUpper())
             {
                 case "TOGGLELOCAL_FED":
+                    fedImages.SetActive(true);  // ✅ Show Fed images
                     FedOnOff.isOn = true;
                     FedOnOff.OnSelect(null);
                     FedLocalPlayerToggle = activeLocalPlayerToggle;
@@ -808,7 +833,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(0);
                     PlaceTheYouInPlayerList(0);
                     break;
+
                 case "TOGGLELOCAL_ROM":
+                    romImages.SetActive(true);  // ✅ Show Rom images
                     RomOnOff.isOn = true;
                     RomOnOff.OnSelect(null);
                     RomLocalPlayerToggle = activeLocalPlayerToggle;
@@ -816,7 +843,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(1);
                     PlaceTheYouInPlayerList(1);
                     break;
+
                 case "TOGGLELOCAL_KLING":
+                    klingImages.SetActive(true);  // ✅ Show Kling images
                     KlingOnOff.isOn = true;
                     KlingOnOff.OnSelect(null);
                     KlingLocalPlayerToggle = activeLocalPlayerToggle;
@@ -824,7 +853,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(2);
                     PlaceTheYouInPlayerList(2);
                     break;
+
                 case "TOGGLELOCAL_CARD":
+                    cardImages.SetActive(true);  // ✅ Show Card images
                     CardOnOff.isOn = true;
                     CardOnOff.OnSelect(null);
                     CardLocalPlayerToggle = activeLocalPlayerToggle;
@@ -832,7 +863,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(3);
                     PlaceTheYouInPlayerList(3);
                     break;
+
                 case "TOGGLELOCAL_DOM":
+                    domImages.SetActive(true);  // ✅ Show Dom images
                     DomOnOff.isOn = true;
                     DomOnOff.OnSelect(null);
                     DomLocalPlayerToggle = activeLocalPlayerToggle;
@@ -840,7 +873,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(4);
                     PlaceTheYouInPlayerList(4);
                     break;
+
                 case "TOGGLELOCAL_BORG":
+                    borgImages.SetActive(true);  // ✅ Show Borg images
                     BorgOnOff.isOn = true;
                     BorgOnOff.OnSelect(null);
                     BorgLocalPlayerToggle = activeLocalPlayerToggle;
@@ -848,7 +883,9 @@ namespace BOTF3D.UI
                     SetLocalCivilization(5);
                     PlaceTheYouInPlayerList(5);
                     break;
+
                 case "TOGGLELOCAL_TERRAN":
+                    terranImages.SetActive(true);  // ✅ Show Terran images
                     TerranOnOff.isOn = true;
                     TerranOnOff.OnDeselect(null);
                     TerranLocalPlayerToggle = activeLocalPlayerToggle;
@@ -856,9 +893,21 @@ namespace BOTF3D.UI
                     SetLocalCivilization(6);
                     PlaceTheYouInPlayerList(6);
                     break;
+
                 default:
+                    Debug.LogWarning($"ActivePlayerToggle: Unknown toggle name '{activeLocalPlayerToggle.name}'");
                     break;
             }
+        }
+        private void TurnOffAllImages()
+        {
+            fedImages.SetActive(false);
+            romImages.SetActive(false);
+            klingImages.SetActive(false);
+            cardImages.SetActive(false);
+            domImages.SetActive(false);
+            borgImages.SetActive(false);
+            terranImages.SetActive(false);
         }
         public void ActiveMapToggle()
         {
@@ -1108,10 +1157,7 @@ namespace BOTF3D.UI
             if (TerranOnOff.isOn == false && TerranLocalPlayerToggle.isOn == true)
                 FedLocalPlayerToggle.isOn = true;
         }
-        private void LoadSavedGame()
-        {
-            //ToDo
-        }
+
         private void CancelButton()
         {
             panelMuliplayer.SetActive(false);
@@ -1258,6 +1304,41 @@ namespace BOTF3D.UI
 
             Debug.LogWarning($"Locale with code '{code}' not found! Available locales: {string.Join(", ", availableLocales.Select(l => l.Identifier.Code))}");
             return null;
+        }
+
+        /// <summary>
+        /// Shows images for the specified civilization, hiding all others.
+        /// </summary>
+        private void ShowCivImages(CivEnum civEnum)
+        {
+            TurnOffAllImages();
+
+            switch (civEnum)
+            {
+                case CivEnum.FED:
+                    fedImages.SetActive(true);
+                    break;
+                case CivEnum.ROM:
+                    romImages.SetActive(true);
+                    break;
+                case CivEnum.KLING:
+                    klingImages.SetActive(true);
+                    break;
+                case CivEnum.CARD:
+                    cardImages.SetActive(true);
+                    break;
+                case CivEnum.DOM:
+                    domImages.SetActive(true);
+                    break;
+                case CivEnum.BORG:
+                    borgImages.SetActive(true);
+                    break;
+                case CivEnum.TERRAN:
+                    terranImages.SetActive(true);
+                    break;
+            }
+
+            Debug.Log($"ShowCivImages: Displaying {civEnum} images");
         }
     }
 }

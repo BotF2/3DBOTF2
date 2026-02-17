@@ -1872,6 +1872,13 @@ MonoBehaviour:
   playerDom: {fileID: 810422452}
   playerBorg: {fileID: 701802094}
   playerTerran: {fileID: 1725172053}
+  fedImages: {fileID: 745931791}
+  romImages: {fileID: 1899876143}
+  klingImages: {fileID: 228367662}
+  cardImages: {fileID: 1202995898}
+  domImages: {fileID: 1383115498}
+  borgImages: {fileID: 488127368}
+  terranImages: {fileID: 824033807}
   FedLocalPlayerToggle: {fileID: 328394470}
   RomLocalPlayerToggle: {fileID: 1236616005}
   KlingLocalPlayerToggle: {fileID: 1216783783}
@@ -4722,8 +4729,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 268.69995, y: 68.5}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 537, y: 57}
+  m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &455933486
 MonoBehaviour:
@@ -13634,7 +13641,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1202995899
 RectTransform:
   m_ObjectHideFlags: 0
@@ -16805,8 +16812,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 240, y: -37.5}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 309, y: -36}
+  m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1480624143
 MonoBehaviour:
@@ -21813,7 +21820,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -255, y: -140}
+  m_AnchoredPosition: {x: -255, y: -160}
   m_SizeDelta: {x: 160, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1926946905
