@@ -296,7 +296,13 @@ namespace BOTF3D.GamePlay
             switch (GalaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    GalaxyMenuUIController.Instance.CloseShipDeploy();
+                    // ✅ Only close ship deploy if it's actually open!
+                    if (ShipDeployMenuUIController.Instance != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
+                    {
+                        GalaxyMenuUIController.Instance.CloseShipDeploy();
+                    }
                     HandleNormalClick(clickedFleetCon);
                     break;
                 case GalaxyClickMode.SetDestination:
@@ -308,8 +314,7 @@ namespace BOTF3D.GamePlay
                         HandleShipDeploySelection(clickedFleetCon);
                     break;
                 case GalaxyClickMode.SelectForShipMerge:
-                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
-                        HandleShipMegerSelection(clickedFleetCon);
+                    // ... rest of cases
                     break;
             }
         }
@@ -852,26 +857,31 @@ namespace BOTF3D.GamePlay
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
+            Debug.Log($"=== SetAsDestinationInUI: Fleet '{name}' selecting destination ===");
 
             fleetData.Destination = hitObject;
-            GalaxyObjectType destinationType = GalaxyObjectType.None;// start with a blank
-            // galaxy object type Enum SystemType if =>1, None =0
+            GalaxyObjectType destinationType = GalaxyObjectType.None;
             string destinationNameText = "";
 
             string coordiatesText = "X " + (hitObject.transform.position.x).ToString()
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
+
+            Debug.Log($"  Coordinates: {coordiatesText}");
+
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
                 if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, starSysController.StarSysData.CurrentCivController))
-                { // if it is our star system we do have a diplomacy controller
+                {
                     destinationType = 0;
                     destinationNameText += starSysController.StarSysData.SysName;
+                    Debug.Log($"  Destination is known system: '{destinationNameText}'");
                 }
-                else // unknown system
+                else
                 {
                     destinationType = starSysController.StarSysData.SystemType;
+                    Debug.Log($"  Destination is unknown system type: {destinationType}");
                 }
             }
             else if (hitObject.GetComponent<FleetController>() != null)
@@ -882,12 +892,15 @@ namespace BOTF3D.GamePlay
                 {
                     destinationType = GalaxyObjectType.Fleet;
                     destinationNameText = fleetCon.FleetData.Name;
+                    Debug.Log($"  Destination is known fleet: '{destinationNameText}'");
                 }
-                else // unknown fleet
+                else
                 {
                     destinationType = GalaxyObjectType.UnknownFleet;
+                    Debug.Log($"  Destination is unknown fleet");
                 }
             }
+
             switch (destinationType)
             {
                 case GalaxyObjectType.None:
@@ -933,9 +946,21 @@ namespace BOTF3D.GamePlay
                 default:
                     destinationNameText = "";
                     break;
-
             }
-            FleetUI.SetAsDestination(destinationNameText, coordiatesText);
+
+            Debug.Log($"  Final destination name: '{destinationNameText}'");
+            Debug.Log($"  Calling FleetUI.SetAsDestination() - FleetUI is {(FleetUI != null ? "NOT NULL" : "NULL")}");
+
+            // ✅ CRITICAL FIX: Don't use cached FleetUI - use Instance directly!
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.SetAsDestination(destinationNameText, coordiatesText);
+                Debug.Log($"  ✅ Called FleetMenuUIController.Instance.SetAsDestination()");
+            }
+            else
+            {
+                Debug.LogError($"  ❌ FleetMenuUIController.Instance is NULL! Cannot update destination UI!");
+            }
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)

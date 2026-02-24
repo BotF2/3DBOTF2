@@ -102,7 +102,8 @@ namespace BOTF3D.Core
         private Sprite unknowSystem;
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
-        internal GameObject sysShipUIGOContentParent;
+        [SerializeField]
+        public GameObject StarSysUI_ListContainer;
 
         private void Awake()
         {
@@ -185,6 +186,40 @@ namespace BOTF3D.Core
                     Debug.LogWarning("StarSysManager: sysUIGOContentParent not found - assign in Inspector!");
                 }
             }
+
+            // ✅ NEW: Find your StarSysUI_ListContainer
+            if (StarSysUI_ListContainer == null)
+            {
+                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+                if (canvasGalaxy != null)
+                {
+                    StarSysUI_ListContainer = FindInHierarchy(canvasGalaxy.transform, "StarSysUI_ListContainer");
+
+                    if (StarSysUI_ListContainer != null)
+                    {
+                        Debug.Log($"StarSysManager: ✅ Found StarSysUI_ListContainer");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("StarSysManager: ⚠️ StarSysUI_ListContainer not found - create it in CanvasGalaxy!");
+                    }
+                }
+            }
+        }
+
+        private GameObject FindInHierarchy(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent.gameObject;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                GameObject found = FindInHierarchy(parent.GetChild(i), name);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
         }
 
         private void InitializeFogOfWar()
@@ -412,18 +447,21 @@ namespace BOTF3D.Core
 
             Debug.Log($"  ✅ System created: {starSysCon.name}, total systems: {StarSysControllerList.Count}");
 
-            // Ensure the system UI is instantiated early
-            InstantiateSysUIGameObject(starSysCon);
+            // ✅ CHANGED: Use the consolidated method
+            if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
+            {
+                InstantiateStarSysUI(starSysCon); // ✅ Single method call
+            }
 
             List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
             CivManager.Instance.AddSystemToOwnSystemListAndHomeSys(listStarSysCon);
-            //var canvases = starSysCon.GetComponentsInChildren<Canvas>();
+
             starSystemCounter++;
             if (starSystemCounter == CivManager.Instance.CivControllersInGame.Count)
             {
-                csFogWar.Instance.RunFogOfWar(); // star systems are in place so time to scan for the fog
-                                                 // instantiate and wire the system UI now (so ShipListUIParent is available
+                csFogWar.Instance.RunFogOfWar();
             }
+
             if (civSO.HasWarp)
             {
                 FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon); // fleet for first ships as game loads, not for ships instantiated by working shipyard in system
@@ -900,59 +938,59 @@ namespace BOTF3D.Core
             }
         }
 
-        public void InstantiateSysUIGameObject(StarSysController sysController)
-        {
-            var shipManager = ShipManager.Instance;
-            if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
-            {
-                if (sysController.StarSysUIGameObject == null)
-                {
-                    GameObject thisStarSysUIGameObject = (GameObject)Instantiate(sysUIPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
-                    thisStarSysUIGameObject.layer = 5;
-                    sysController.StarSysUIGameObject = thisStarSysUIGameObject;
-                    sysController.StarSysUIGameObject.SetActive(true);
+        //public void InstantiateSysUI(StarSysController sysController)
+        //{
+        //    var shipManager = ShipManager.Instance;
+        //    if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
+        //    {
+        //        if (sysController.StarSysUIGameObject == null)
+        //        {
+        //            GameObject thisStarSysUIGameObject = (GameObject)Instantiate(sysUIPrefab, new Vector3(0, 0, 0),
+        //                Quaternion.identity);
+        //            thisStarSysUIGameObject.layer = 5;
+        //            sysController.StarSysUIGameObject = thisStarSysUIGameObject;
+        //            sysController.StarSysUIGameObject.SetActive(true);
 
-                    // Find the UI container that will hold ship UI items (include inactive children)
-                    var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
-                                                    .FirstOrDefault(t => t.name == "ShipContent");
-                    if (shipContent != null)
-                    {
-                        EnsureSystemShipUIs(sysController);
-                        sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"InstantiateSysUIGameObject: ShipContent not found in UI prefab for system {sysController.name}");
-                    }
+        //            // Find the UI container that will hold ship UI items (include inactive children)
+        //            var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
+        //                                            .FirstOrDefault(t => t.name == "ShipContent");
+        //            if (shipContent != null)
+        //            {
+        //                EnsureSystemShipUIs(sysController);
+        //                sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
+        //            }
+        //            else
+        //            {
+        //                Debug.LogWarning($"InstantiateSysUI: ShipContent not found in UI prefab for system {sysController.name}");
+        //            }
 
-                    // existing code to wire other UI child references...
-                    var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
-                    for (int j = 0; j < transforms.Length; j++)
-                    {
-                        if (transforms[j].gameObject.name == "ShipContent")
-                        {
-                            sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
-                            //var shipManager = ShipManager.Instance;
-                            if (shipManager != null)
-                            {
-                                shipManager.ProcessPendingShipUIs();
-                            }
-                            return;
-                        }
-                    }
-                    thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
-                }
-            }
-            if (shipManager != null)
-            {
-                // Process any pending ship UIs (created earlier before parent existed)
-                shipManager.ProcessPendingShipUIs();
+        //            // existing code to wire other UI child references...
+        //            var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
+        //            for (int j = 0; j < transforms.Length; j++)
+        //            {
+        //                if (transforms[j].gameObject.name == "ShipContent")
+        //                {
+        //                    sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
+        //                    //var shipManager = ShipManager.Instance;
+        //                    if (shipManager != null)
+        //                    {
+        //                        shipManager.ProcessPendingShipUIs();
+        //                    }
+        //                    return;
+        //                }
+        //            }
+        //            thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
+        //        }
+        //    }
+        //    if (shipManager != null)
+        //    {
+        //        // Process any pending ship UIs (created earlier before parent existed)
+        //        shipManager.ProcessPendingShipUIs();
 
-                // Ensure each ship in the StarSysData has a UI item and that the UI is parented correctly
-                EnsureSystemShipUIs(sysController);
-            }
-        }
+        //        // Ensure each ship in the StarSysData has a UI item and that the UI is parented correctly
+        //        EnsureSystemShipUIs(sysController);
+        //    }
+        //}
         private void EnsureSystemShipUIs(StarSysController sysCon)
         {
             if (sysCon == null || sysCon.StarSysData == null) return;
@@ -1706,6 +1744,95 @@ namespace BOTF3D.Core
                 shipCon.ShipData.CurrentFleetController = null;
             }
 
+        }
+
+        [ContextMenu("Debug: List All Facility SO Names")]
+        private void DebugListFacilitySONames()
+        {
+            Debug.Log("=== Facility SO Names by Civilization ===");
+
+            for (int i = 0; i < 7; i++) // 7 civs (FED=0 to TERRAN=6)
+            {
+                CivEnum civ = (CivEnum)i;
+                Debug.Log($"\n--- {civ} (index {i}) ---");
+
+                if (i < powerPlantSOList.Count)
+                    Debug.Log($"  PowerPlant: {powerPlantSOList[i]?.Name ?? "NULL"}");
+
+                if (i < factorySOList.Count)
+                    Debug.Log($"  Factory: {factorySOList[i]?.Name ?? "NULL"}");
+
+                if (i < shipyardSOList.Count)
+                    Debug.Log($"  Shipyard: {shipyardSOList[i]?.Name ?? "NULL"}");
+
+                if (i < shieldGeneratorSOList.Count)
+                    Debug.Log($"  Shield: {shieldGeneratorSOList[i]?.Name ?? "NULL"}");
+
+                if (i < orbitalBatterySOList.Count)
+                    Debug.Log($"  Orbital Battery: {orbitalBatterySOList[i]?.Name ?? "NULL"}");
+
+                if (i < researchCenterSOList.Count)
+                    Debug.Log($"  Research: {researchCenterSOList[i]?.Name ?? "NULL"}");
+            }
+
+            Debug.Log("=== End Facility SO Names ===");
+        }
+
+        /// <summary>
+        /// Instantiates a star system UI and parents it to the scene's StarSysUI_ListContainer
+        /// </summary>
+        public GameObject InstantiateStarSysUI(StarSysController sysCon)
+        {
+            Debug.Log($"InstantiateStarSysUI: Creating UI for system '{sysCon.name}'");
+
+            // Create the UI from prefab
+            GameObject newUI = Instantiate(sysUIPrefab, Vector3.zero, Quaternion.identity);
+            newUI.layer = 5; // UI layer
+            newUI.name = $"SystemUI ({sysCon.StarSysData.SysName})";
+
+            // Store reference on the controller
+            sysCon.StarSysUIGameObject = newUI;
+
+            // ✅ CRITICAL: Parent to StarSysUI_ListContainer (home storage)
+            if (StarSysUI_ListContainer != null)
+            {
+                newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
+                Debug.Log($"  ✅ Parented to StarSysUI_ListContainer");
+            }
+            else
+            {
+                Debug.LogWarning("  ⚠️ StarSysUI_ListContainer is null! Trying to find it...");
+                FindGalaxyReferences();
+
+                if (StarSysUI_ListContainer != null)
+                {
+                    newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
+                }
+                else
+                {
+                    Debug.LogError("  ❌ Still can't find StarSysUI_ListContainer! UI will be orphaned!");
+                }
+            }
+
+            // ✅ Set up ShipContent for ship UIs
+            var uiFields = newUI.GetComponent<StarSysUI_Fields>();
+            if (uiFields != null && uiFields.shipContent != null)
+            {
+                sysCon.StarSysData.ShipListUIParent = uiFields.shipContent.gameObject;
+                Debug.Log($"  ✅ Set ShipListUIParent");
+            }
+
+            // ✅ Initially inactive - will be shown when menu opens
+            newUI.SetActive(false);
+
+            // ✅ Process any pending ship UIs
+            if (ShipManager.Instance != null)
+            {
+                ShipManager.Instance.ProcessPendingShipUIs(sysCon);
+            }
+
+            Debug.Log($"InstantiateStarSysUI: Complete for '{sysCon.name}'");
+            return newUI;
         }
     }
 }

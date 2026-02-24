@@ -21,9 +21,37 @@ namespace BOTF3D.GamePlay
         private StarSysData starSysData;
         public int PlayerID; // network player ID, not used in single player
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
-        [SerializeField]
-        private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
-        public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
+
+        [SerializeField] // Make backing field serializable for Inspector
+        private GameObject _starSysUIGameObject;
+
+        public GameObject StarSysUIGameObject
+        {
+            get => _starSysUIGameObject;
+            set
+            {
+                // ✅ Log BOTH setting to null AND any change
+                if (value != _starSysUIGameObject)
+                {
+                    if (value == null && _starSysUIGameObject != null)
+                    {
+                        Debug.LogError($"❌❌❌ System '{name}' UI BEING SET TO NULL!");
+                        Debug.LogError($"  Previous value: {_starSysUIGameObject?.name}");
+                        Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
+                    }
+                    else if (value != null && _starSysUIGameObject == null)
+                    {
+                        Debug.Log($"✅ System '{name}' UI being assigned: {value.name}");
+                    }
+                    else if (value != null && _starSysUIGameObject != null)
+                    {
+                        Debug.LogWarning($"⚠️ System '{name}' UI being CHANGED from '{_starSysUIGameObject.name}' to '{value.name}'");
+                    }
+                }
+                _starSysUIGameObject = value;
+            }
+        }
+
         private GameObject goForPowerOverload;
         private Camera galaxyEventCamera;
         [SerializeField]
@@ -205,7 +233,13 @@ namespace BOTF3D.GamePlay
             switch (galaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    galaxyUI.CloseShipDeploy();
+                    // ✅ Only close ship deploy if it's actually open!
+                    if (ShipDeployMenuUIController.Instance != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
+                    {
+                        galaxyUI.CloseShipDeploy();
+                    }
                     HandleNormalClick(clickedSystemCon);
                     break;
 
@@ -416,7 +450,7 @@ namespace BOTF3D.GamePlay
 
                 // Parent THIS system UI (bottom)
                 clickedSystemCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                starSysUIGameObject.transform.SetAsLastSibling();
+                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
                 clickedSystemCon.StarSysUIGameObject.SetActive(true);
 
                 // ✅ Update THIS system's UI values

@@ -20,10 +20,12 @@ namespace BOTF3D.GamePlay
         ///                     <--- [RemoteHumanPlayerController] (Network)
         ///                     <--- [AIPlayerController] (AI)
         /// </summary>
-
+        public static CombatController Instance;
         private CombatData combatData;
         public Canvas ShipCombatCanvas;
         public CombatData CombatData { get { return combatData; } set { combatData = value; } }
+
+
         public List<Vector2Int> spiralPositions = new List<Vector2Int>();
         public List<Animator> animators; // Assign in Inspector or dynamically
         public Animator sideOneA1Animator;
@@ -63,6 +65,21 @@ namespace BOTF3D.GamePlay
         public bool isMoving = false;
         public bool isClosing = false;
 
+        private void Awake()
+        {
+            if (Instance != null)
+            {
+                Debug.LogWarning($"Duplicate CombatController found! Destroying duplicate.");
+                Destroy(gameObject);
+            }
+            else
+            {
+                Instance = this;
+                // ❌ REMOVE: DontDestroyOnLoad(gameObject);
+                // ✅ Combat objects should live in CombatScene only!
+                Debug.Log("✅ CombatController: Instance assigned (scene-based)");
+            }
+        }
         private void Start()
         {
             minFirstShotDelay = 0.2f;
@@ -192,27 +209,118 @@ namespace BOTF3D.GamePlay
 
         }
 
-        public void EndCombat()
+        /// <summary>
+        /// Call this when combat ends - destroys fleets with no ships left
+        /// </summary>
+        public void EndCombat(FleetController winner = null)
         {
-            CombatUIController.Instance.CloseCombatOverPanel();
+            Debug.Log("=== EndCombat: Starting cleanup ===");
 
-            SceneController.Instance.UnloadCombatScene();
-            //CombatManager.Instance.Cambat3DCamvas.gameObject.SetActive(false);
-            DiplomacyController theDiplomacyCon = DiplomacyManager.Instance.ReturnADiplomacyController(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
-            theDiplomacyCon.DiplomacyData.CombatIntiated = false; // reset combat initiated flag
-            TimeManager.Instance.ResumeTime();
-            foreach (ShipController shipCon in CombatData.SideOneShipCons)
+            // Get all fleets involved in combat from CombatData
+            var allCombatFleets = new List<FleetController>();
+
+            if (CombatData != null)
             {
-                if (shipCon != null)
-                    Destroy(shipCon.gameObject); // Marks for destruction at end of frame
+                // Add all side one ships' fleets
+                if (CombatData.SideOneShipCons != null)
+                {
+                    foreach (var ship in CombatData.SideOneShipCons)
+                    {
+                        if (ship != null && ship.ShipData != null && ship.ShipData.CurrentFleetController != null)
+                        {
+                            if (!allCombatFleets.Contains(ship.ShipData.CurrentFleetController))
+                            {
+                                allCombatFleets.Add(ship.ShipData.CurrentFleetController);
+                            }
+                        }
+                    }
+                }
+
+                // Add all side two ships' fleets
+                if (CombatData.SideTwoShipCons != null)
+                {
+                    foreach (var ship in CombatData.SideTwoShipCons)
+                    {
+                        if (ship != null && ship.ShipData != null && ship.ShipData.CurrentFleetController != null)
+                        {
+                            if (!allCombatFleets.Contains(ship.ShipData.CurrentFleetController))
+                            {
+                                allCombatFleets.Add(ship.ShipData.CurrentFleetController);
+                            }
+                        }
+                    }
+                }
             }
-            foreach (ShipController shipCon in CombatData.SideTwoShipCons)
+
+            Debug.Log($"  Found {allCombatFleets.Count} unique fleets in combat");
+
+            // Check each fleet - destroy if no ships left
+            foreach (var fleet in allCombatFleets)
             {
-                if (shipCon != null)
-                    Destroy(shipCon.gameObject); // Marks for destruction at end of frame
+                if (fleet == null)
+                {
+                    Debug.Log("  Skipping null fleet reference");
+                    continue;
+                }
+
+                if (fleet.FleetData == null)
+                {
+                    Debug.LogWarning($"  Fleet '{fleet.name}' has null FleetData - destroying anyway");
+                    if (FleetManager.Instance != null)
+                    {
+                        FleetManager.Instance.DestroyFleetController(fleet);
+                    }
+                    continue;
+                }
+
+                int shipCount = fleet.FleetData.ShipsList?.Count ?? 0;
+                Debug.Log($"  Fleet '{fleet.name}': {shipCount} ships remaining");
+
+                if (shipCount == 0)
+                {
+                    Debug.Log($"  ✅ Destroying empty fleet '{fleet.name}'");
+
+                    if (FleetManager.Instance != null)
+                    {
+                        FleetManager.Instance.DestroyFleetController(fleet);
+                    }
+                }
+                else
+                {
+                    Debug.Log($"  ✅ Keeping fleet '{fleet.name}' with {shipCount} ships");
+                }
             }
-            ResetFriendAndEnemyLists();
-            Destroy(this.gameObject); // Destroy the CombatController instance
+
+            // ✅ Clear temp fog revealer (not per-fleet, just a temp reference)
+            if (FleetManager.Instance != null && FleetManager.Instance.TempFogRevealerFleet != null)
+            {
+                Debug.Log("  Clearing TempFogRevealerFleet reference");
+                FleetManager.Instance.TempFogRevealerFleet = null;
+            }
+
+            Debug.Log("=== EndCombat: Cleanup complete ===");
+
+            // ✅ Return to galaxy - unload combat scene
+            Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+            if (combatScene.isLoaded)
+            {
+                SceneManager.UnloadSceneAsync(combatScene);
+                Debug.Log("  Unloaded combat scene");
+            }
+
+            // Re-enable galaxy camera if it exists
+            if (GalaxyCameraDragMoveZoom.Instance != null)
+            {
+                GalaxyCameraDragMoveZoom.Instance.enabled = true;
+                Debug.Log("  Re-enabled galaxy camera");
+            }
+
+            // Resume time if paused
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.ResumeTime();
+                Debug.Log("  Resumed time");
+            }
         }
         public void ResetFriendAndEnemyLists()
         {
@@ -636,6 +744,141 @@ namespace BOTF3D.GamePlay
                 if (aiPlayer != null)
                     aiPlayer.GiveCombatOrder(order, this, aiPlayer.PlayerCiv);
             }
+        }
+
+        /// <summary>
+        /// Initialize combat with two fleets at a location
+        /// Called by SceneController after combat scene loads additively
+        /// </summary>
+        public void InitializeCombat(FleetController playerFleet, FleetController enemyFleet, StarSysController combatLocation)
+        {
+            Debug.Log($"=== InitializeCombat: Starting ===");
+            Debug.Log($"  Player fleet: {(playerFleet != null ? playerFleet.name : "NULL")}");
+            Debug.Log($"  Enemy fleet: {(enemyFleet != null ? enemyFleet.name : "NULL")}");
+            Debug.Log($"  Location: {(combatLocation != null ? combatLocation.name : "NULL")}");
+
+            if (playerFleet == null || enemyFleet == null)
+            {
+                Debug.LogError("InitializeCombat: One or both fleets are null! Cannot start combat.");
+                return;
+            }
+
+            // ✅ Initialize CombatData
+            if (CombatData == null)
+            {
+                CombatData = new CombatData();
+                Debug.Log("  Created new CombatData");
+            }
+
+            // ✅ Assign fleets to sides
+            CombatData.CivEnumSideOne = playerFleet.FleetData?.CivEnum ?? CivEnum.None;
+            CombatData.CivEnumSideTwo = enemyFleet.FleetData?.CivEnum ?? CivEnum.None;
+
+            Debug.Log($"  Side One Civ: {CombatData.CivEnumSideOne}");
+            Debug.Log($"  Side Two Civ: {CombatData.CivEnumSideTwo}");
+
+            CombatData.sideOneCiv = playerFleet.FleetData?.CivController;
+            CombatData.sideTwoCiv = enemyFleet.FleetData?.CivController;
+
+            // Clear previous ship lists
+            CombatData.SideOneShipCons.Clear();
+            CombatData.SideTwoShipCons.Clear();
+
+            // ✅ Add player fleet ships to side one
+            if (playerFleet.FleetData?.ShipsList != null)
+            {
+                Debug.Log($"  Player fleet has {playerFleet.FleetData.ShipsList.Count} ships");
+
+                foreach (var ship in playerFleet.FleetData.ShipsList)
+                {
+                    if (ship != null)
+                    {
+                        CombatData.SideOneShipCons.Add(ship);
+                        Debug.Log($"    Added player ship: {ship.name}");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError("  ❌ Player fleet has NO ShipsList!");
+            }
+
+            // ✅ Add enemy fleet ships to side two
+            if (enemyFleet.FleetData?.ShipsList != null)
+            {
+                Debug.Log($"  Enemy fleet has {enemyFleet.FleetData.ShipsList.Count} ships");
+
+                foreach (var ship in enemyFleet.FleetData.ShipsList)
+                {
+                    if (ship != null)
+                    {
+                        CombatData.SideTwoShipCons.Add(ship);
+                        Debug.Log($"    Added enemy ship: {ship.name}");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError("  ❌ Enemy fleet has NO ShipsList!");
+            }
+
+            Debug.Log($"  ✅ Side One: {CombatData.SideOneShipCons.Count} ships");
+            Debug.Log($"  ✅ Side Two: {CombatData.SideTwoShipCons.Count} ships");
+
+            // Set default orders
+            CombatData.OrderSideOne = CombatOrders.Engage;
+            CombatData.OrderSideTwo = CombatOrders.Engage;
+
+            // ✅ CRITICAL: Enable combat camera
+            if (ShipCombatCameraController.Instance != null)
+            {
+                var camera = ShipCombatCameraController.Instance.GetComponent<Camera>();
+                if (camera != null)
+                {
+                    camera.enabled = true;
+                    Debug.Log($"  ✅ Combat camera enabled: {camera.enabled}");
+                }
+                else
+                {
+                    Debug.LogError("  ❌ Combat camera component not found!");
+                }
+            }
+            else
+            {
+                Debug.LogError("  ❌ ShipCombatCameraController.Instance is NULL!");
+            }
+
+            // ✅ CRITICAL: Enable combat canvas
+            if (ShipCombatCanvas != null)
+            {
+                ShipCombatCanvas.gameObject.SetActive(true);
+                Debug.Log($"  ✅ Combat canvas activated");
+            }
+            else
+            {
+                Debug.LogError("  ❌ ShipCombatCanvas is NULL!");
+            }
+
+            // ✅ Show combat UI
+            if (CombatUIController.Instance != null)
+            {
+                // Assuming it has a Show/Initialize method
+                Debug.Log($"  ✅ CombatUIController found");
+            }
+            else
+            {
+                Debug.LogWarning("  ⚠️ CombatUIController.Instance is NULL - UI might not show");
+            }
+
+            // Populate ship data and UI
+            Debug.Log("  Calling PopulateShipData...");
+            PopulateShipData(this);
+
+            // Start combat animation
+            Debug.Log("  Calling RunAnimation...");
+            RunAnimation();
+
+            Debug.Log("=== InitializeCombat: Complete ===");
         }
     }
 }

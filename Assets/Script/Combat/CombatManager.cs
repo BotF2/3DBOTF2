@@ -106,14 +106,18 @@ namespace BOTF3D.Core
 
         private void Awake()
         {
-            // Prevent duplicates
-            if (Instance != null && Instance != this)
+            if (Instance != null)
             {
+                Debug.LogWarning("Duplicate CombatManager found! Destroying duplicate.");
                 Destroy(gameObject);
-                return;
             }
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            else
+            {
+                Instance = this;
+                // ❌ REMOVE: DontDestroyOnLoad(gameObject);
+                // ✅ CombatManager lives in CombatScene only!
+                Debug.Log("✅ CombatManager: Instance assigned (scene-based)");
+            }
         }
         internal void SetDiplomacyController(DiplomacyController diplomacyController)
         {

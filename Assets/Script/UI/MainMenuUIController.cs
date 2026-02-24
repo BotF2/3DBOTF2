@@ -9,7 +9,6 @@ using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-//using UnityEditor.UIElements;
 
 namespace BOTF3D.UI
 {
@@ -119,6 +118,7 @@ namespace BOTF3D.UI
         [SerializeField] private Button buttonFrench;
         [SerializeField] private Button buttonGerman;
         [SerializeField] private LocaleManager localeManager = LocaleManager.Instance;
+
 
         private void Awake()
         {
@@ -255,6 +255,7 @@ namespace BOTF3D.UI
             AdvancedToggle.isOn = false;
             SupremeToggle.isOn = false;
         }
+
         private void InitializeCameras()
         {
             Debug.Log("InitializeCameras: Menu camera setup");
@@ -1073,17 +1074,58 @@ namespace BOTF3D.UI
 
         public void SetSinglePlayer() // button in Canvas MainMenu / Panel-Lobby when first loaded 
         {
+            Debug.Log("=== SetSinglePlayer: Starting ===");
+
             IsSinglePlayer = true;
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);
             singlePlayToggleGroup.SetActive(true);
+
+            // ✅ CRITICAL FIX: Check if GameController exists
+            if (GameController.Instance == null)
+            {
+                Debug.LogError("SetSinglePlayer: GameController.Instance is NULL!");
+                Debug.LogError("  Is PersistentScene loaded? Is GameController GameObject active?");
+                return;
+            }
+
+            // ✅ Check if GameData exists
+            if (GameController.Instance.GameData == null)
+            {
+                Debug.LogError("SetSinglePlayer: GameController.Instance.GameData is NULL!");
+                Debug.LogError("  GameController needs to initialize GameData in Awake() or Start()");
+                return;
+            }
+
+            // ✅ Now safe to set
             GameController.Instance.GameData.GameMode = GameMode.SINGLEPLAYER;
             GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
-            CombatUIController.Instance.CivEnumLocalPlayer = localPlayerCiv;
-            NetworkManager.singleton.StartHost(); //Starts the server (StartServer), Starts the client(StartClient), Connects the client to the server, Calls OnServerAddPlayer once the connection is established.
-                                                  //Use StartHost(), not just StartServer(), Make sure your player prefab is set in the NetworkManager, Inside OnServerAddPlayer, call NetworkServer.AddPlayerForConnection.
 
+            Debug.Log($"  ✅ Set GameMode to SINGLEPLAYER");
+
+            // ✅ Check if CombatUIController exists
+            if (CombatUIController.Instance == null)
+            {
+                Debug.LogWarning("SetSinglePlayer: CombatUIController.Instance is NULL - combat UI won't be initialized yet");
+            }
+            else
+            {
+                CombatUIController.Instance.CivEnumLocalPlayer = localPlayerCiv;
+                Debug.Log($"  ✅ Set CombatUIController local player: {localPlayerCiv}");
+            }
+
+            // ✅ Check if NetworkManager exists
+            if (NetworkManager.singleton == null)
+            {
+                Debug.LogError("SetSinglePlayer: NetworkManager.singleton is NULL!");
+                return;
+            }
+
+            NetworkManager.singleton.StartHost();
+            Debug.Log("  ✅ Started host (network manager)");
+
+            Debug.Log("=== SetSinglePlayer: Complete ===");
         }
 
         private void FedOnOffToggleReset()
@@ -1342,4 +1384,5 @@ namespace BOTF3D.UI
         }
     }
 }
+
 

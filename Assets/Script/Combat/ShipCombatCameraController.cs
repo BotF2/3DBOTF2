@@ -69,14 +69,18 @@ namespace BOTF3D.GamePlay
         {
             _debugProjection = DebugProjection.ROTATED;
             _autoRotationTimer = 5f;
+
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("Duplicate ShipCombatCameraController found! Destroying duplicate.");
                 Destroy(gameObject);
                 return;
             }
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
 
+            Instance = this;
+            // ❌ REMOVE: DontDestroyOnLoad(gameObject);
+            // ✅ Camera should live in CombatScene only!
+            Debug.Log("✅ ShipCombatCameraController: Instance assigned (scene-based)");
         }
         private void Start()
         {

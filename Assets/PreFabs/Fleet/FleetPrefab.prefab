@@ -802,7 +802,6 @@ GameObject:
   - component: {fileID: 3551361942835502933}
   - component: {fileID: 5708389054477549145}
   - component: {fileID: 3939678481243734066}
-  - component: {fileID: 3017837512546761231}
   - component: {fileID: 4013342092320476168}
   m_Layer: 6
   m_Name: FleetPrefab
@@ -908,18 +907,6 @@ MonoBehaviour:
   destinationName: {fileID: 0}
   destinationCoordinates: {fileID: 0}
   selectDestinationBttonText: {fileID: 0}
---- !u!114 &3017837512546761231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8531124223347370568}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfd9330479ce7844995d6188ebcce402, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &4013342092320476168
 MonoBehaviour:
   m_ObjectHideFlags: 0

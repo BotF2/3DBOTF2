@@ -23,14 +23,25 @@ namespace BOTF3D.UI
 
         private void Awake()
         {
-            if (Instance != null)
-            {
-                Destroy(gameObject);
-            }
-            else
+            // ✅ Scene-based singleton
+            if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Debug.Log("✅ ShipDeployMenuUIController: Instance assigned");
+            }
+            else if (Instance != this)
+            {
+                Debug.LogWarning($"❌ Duplicate ShipDeployMenuUIController found! Destroying duplicate.");
+                Destroy(gameObject);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+                Debug.Log("ShipDeployMenuUIController: Instance cleared");
             }
         }
 

@@ -63,6 +63,9 @@ namespace BOTF3D.Core
         public csFogWar.FogRevealer TempFogRevealerFleet;
         private float newFleetSpacer = 0f;
 
+        // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
+        [SerializeField] public GameObject FleetUI_ListContainer;
+
         private void Awake()
         {
             if (Instance != null)
@@ -72,7 +75,8 @@ namespace BOTF3D.Core
             else
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Debug.Log("FleetManager: Instance created");
+                FindGalaxyReferences();
             }
         }
 
@@ -184,6 +188,25 @@ namespace BOTF3D.Core
                 galaxyCanvasGO = GameObject.Find("CanvasGalaxy");
                 Debug.Log($"FleetManager: Found galaxyCanvasGO: {galaxyCanvasGO != null}");
             }
+
+            // ✅ NEW: Find FleetUI_ListContainer
+            if (FleetUI_ListContainer == null)
+            {
+                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+                if (canvasGalaxy != null)
+                {
+                    FleetUI_ListContainer = FindInHierarchy(canvasGalaxy.transform, "FleetUI_ListContainer");
+
+                    if (FleetUI_ListContainer != null)
+                    {
+                        Debug.Log($"FleetManager: ✅ Found FleetUI_ListContainer");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("FleetManager: ⚠️ FleetUI_ListContainer not found - create it in CanvasGalaxy!");
+                    }
+                }
+            }
         }
 
         // Helper method for recursive search
@@ -237,7 +260,8 @@ namespace BOTF3D.Core
             return fleetController;
         }
 
-        public FleetController InstantiateFleet(FleetController originalFleetCon, StarSysController systCon, FleetData newFleetData, Vector3 position, bool newFleet)
+        public FleetController InstantiateFleet(FleetController existingFleetCon, StarSysController sysController,
+            FleetData fleetData, Vector3 position, bool isNewFleet)
         {
             // CRITICAL: Ensure GalaxyCenter exists before proceeding
             if (GalaxyCenter == null)
@@ -251,85 +275,85 @@ namespace BOTF3D.Core
                 }
             }
 
-            newFleetData.ShipsList.RemoveAll(item => item == null);
+            fleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
 
-            FleetController newFleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+            FleetController newFleet = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
 
-            if (newFleet)
+            if (isNewFleet)
             {
-                GalaxyMenuUIController.Instance.FleetSelectedForShipDeploy = newFleetController;
+                GalaxyMenuUIController.Instance.FleetSelectedForShipDeploy = newFleet;
             }
 
-            FleetControllerList.Add(newFleetController);
-            newFleetController.gameObject.layer = 6; // galaxy layer
+            FleetControllerList.Add(newFleet);
+            newFleet.gameObject.layer = 6; // galaxy layer
 
             // CRITICAL: Set layer for ALL children (recursively)
-            SetLayerRecursively(newFleetController.gameObject, 6);
+            SetLayerRecursively(newFleet.gameObject, 6);
 
-            newFleetController.BackgroundGalaxyImage = galaxyImage;
-            newFleetController.FleetData = newFleetData;
-            newFleetController.GalaxyCanvasGo = galaxyCanvasGO;
+            newFleet.BackgroundGalaxyImage = galaxyImage;
+            newFleet.FleetData = fleetData;
+            newFleet.GalaxyCanvasGo = galaxyCanvasGO;
 
             var transGalaxyCenter = GalaxyCenter.transform; // Safe now - we checked above
 
-            if (systCon.StarSysData != null && !newFleet)
+            if (sysController.StarSysData != null && !isNewFleet)
             {
-                newTrans = systCon.transform;
-                Destroy(originalFleetCon.gameObject); // destroy the empty original fleet controller
+                newTrans = sysController.transform;
+                Destroy(existingFleetCon.gameObject); // destroy the empty original fleet controller
             }
-            else if (originalFleetCon != null && newFleet)
+            else if (existingFleetCon != null && isNewFleet)
             {
-                newTrans = originalFleetCon.transform;
+                newTrans = existingFleetCon.transform;
             }
-            else if (systCon.StarSysData != null && newFleet)
+            else if (sysController.StarSysData != null && isNewFleet)
             {
-                newTrans = systCon.transform;
+                newTrans = sysController.transform;
             }
 
-            newFleetController.transform.SetParent(transGalaxyCenter, true);
+            newFleet.transform.SetParent(transGalaxyCenter, true);
 
             if (newTrans != null)
             {
-                if (!newFleet)
+                if (!isNewFleet)
                 {
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 10f, newTrans.position.z + 10F));
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 10f, newTrans.position.z + 10F));
                 }
                 else
                 {
                     if (newFleetSpacer > 10f)
                         newFleetSpacer = 0;
-                    newFleetController.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
                     newFleetSpacer = newFleetSpacer + 5f;
                 }
             }
 
-            newFleetData.Position = newFleetController.transform.position;
+            fleetData.Position = newFleet.transform.position;
 
-            if (!newFleet)
-                ShipManager.Instance.BuildShipsOfFirstFleet(newFleetController);
+            if (!isNewFleet)
+                ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
 
-            newFleetController.transform.localScale = new Vector3(0.7f, 0.7f, 1);
-            int fleetInt = GetNewFleetInt(newFleetData.CivEnum);
-            newFleetController.gameObject.name = newFleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
-            newFleetData.Name = "Fleet " + fleetInt.ToString();
-            newFleetController.FleetData.FleetInt = fleetInt;
-            FleetControllersInGame.Add(newFleetController);
-            newFleetController.FleetData.CurrentWarpFactor = 0f;
+            newFleet.transform.localScale = new Vector3(0.7f, 0.7f, 1);
+            int fleetInt = GetNewFleetInt(fleetData.CivEnum);
+            newFleet.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
+            fleetData.Name = "Fleet " + fleetInt.ToString();
+            newFleet.FleetData.FleetInt = fleetInt;
+            FleetControllersInGame.Add(newFleet);
+            newFleet.FleetData.CurrentWarpFactor = 0f;
 
-            TextMeshProUGUI TheText = newFleetController.gameObject.GetComponentInChildren<TextMeshProUGUI>();
+            TextMeshProUGUI TheText = newFleet.gameObject.GetComponentInChildren<TextMeshProUGUI>();
             if (TheText != null)
             {
-                TheText.text = newFleetController.FleetData.Name;
-                newFleetData.Name = TheText.text;
+                TheText.text = newFleet.FleetData.Name;
+                fleetData.Name = TheText.text;
             }
 
-            FleetChildFields fleetChildFields = newFleetController.GetComponent<FleetChildFields>();
+            FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
-            srInsignia.sprite = newFleetController.FleetData.Insignia;
+            srInsignia.sprite = newFleet.FleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
 
-            if (GameController.Instance.AreWeLocalPlayer(newFleetData.CivEnum))
+            if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
             {
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
@@ -338,11 +362,11 @@ namespace BOTF3D.Core
                 if (fogWar != null)
                 {
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
-                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleetController.transform, 200, false); // FALSE = always update
+                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, 200, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
                     TempFogRevealerFleet = ourFogRevealerFleet;
 
-                    Debug.Log($"Added fog revealer to LOCAL fleet '{newFleetController.name}' with continuous updates");
+                    Debug.Log($"Added fog revealer to LOCAL fleet '{newFleet.name}' with continuous updates");
                 }
             }
             else
@@ -357,11 +381,11 @@ namespace BOTF3D.Core
                 // CRITICAL FIX: Add visibility agent AFTER all children exist
                 if (fogWar != null)
                 {
-                    var ourFogVisibilityAgent = newFleetController.gameObject.AddComponent<csFogVisibilityAgent>();
+                    var ourFogVisibilityAgent = newFleet.gameObject.AddComponent<csFogVisibilityAgent>();
                     ourFogVisibilityAgent.FogWar = fogWar;
 
                     // IMPORTANT: Manually collect renderers (Start() hasn't run yet)
-                    var allRenderers = newFleetController.GetComponentsInChildren<SpriteRenderer>(true).ToList();
+                    var allRenderers = newFleet.GetComponentsInChildren<SpriteRenderer>(true).ToList();
 
                     // Filter out DropLine renderer if you don't want fog to control it
                     if (fleetChildFields.DropLine != null)
@@ -379,16 +403,16 @@ namespace BOTF3D.Core
                     bool initialVisibility = false;
 
                     // Check if fog is ready by testing if position is in valid grid range
-                    if (fogWar.CheckWorldGridRange(newFleetController.transform.position))
+                    if (fogWar.CheckWorldGridRange(newFleet.transform.position))
                     {
-                        initialVisibility = fogWar.CheckVisibility(newFleetController.transform.position, 0);
+                        initialVisibility = fogWar.CheckVisibility(newFleet.transform.position, 0);
                         Debug.Log($"FleetManager: Fog grid ready - initial visibility: {initialVisibility}");
                     }
                     else
                     {
                         // Fog grid not ready yet - default to hidden, agent will update in its Update() loop
                         initialVisibility = false;
-                        Debug.Log($"FleetManager: Fog grid NOT ready yet - defaulting visibility to false for '{newFleetController.name}'");
+                        Debug.Log($"FleetManager: Fog grid NOT ready yet - defaulting visibility to false for '{newFleet.name}'");
                     }
 
                     foreach (var sr in ourFogVisibilityAgent.spriteRenderers)
@@ -396,13 +420,13 @@ namespace BOTF3D.Core
                         sr.enabled = initialVisibility;
                     }
 
-                    Debug.Log($"FleetManager: Added FogVisibilityAgent to '{newFleetController.name}' " +
+                    Debug.Log($"FleetManager: Added FogVisibilityAgent to '{newFleet.name}' " +
                               $"with {ourFogVisibilityAgent.spriteRenderers.Count} renderers. " +
                               $"Initial visibility: {initialVisibility}");
                 }
                 else
                 {
-                    Debug.LogWarning($"FleetManager: fogWar is NULL! Fleet '{newFleetController.name}' won't have fog visibility!");
+                    Debug.LogWarning($"FleetManager: fogWar is NULL! Fleet '{newFleet.name}' won't have fog visibility!");
 
                     // Fallback: Keep renderers enabled if no fog system
                     srInsigniaUnknown.enabled = true;
@@ -410,13 +434,13 @@ namespace BOTF3D.Core
             }
 
             // The line from Fleet to underlying galaxy image
-            MapLineMovable[] ourLineToGalaxyImageScript = newFleetController.gameObject.GetComponentsInChildren<MapLineMovable>();
+            MapLineMovable[] ourLineToGalaxyImageScript = newFleet.gameObject.GetComponentsInChildren<MapLineMovable>();
 
             // VALIDATION: Check if MapLineMovable components exist
             if (ourLineToGalaxyImageScript == null || ourLineToGalaxyImageScript.Length == 0)
             {
                 Debug.LogError($"FleetManager.InstantiateFleet: No MapLineMovable found in FleetController prefab '{fleetPrefab.name}'! " +
-                               $"The DropLine cannot be created for fleet '{newFleetController.name}'. " +
+                               $"The DropLine cannot be created for fleet '{newFleet.name}'. " +
                                $"Add a MapLineMovable component to the FleetController prefab in the Inspector.");
             }
             else
@@ -429,7 +453,7 @@ namespace BOTF3D.Core
 
                     if (galaxyImage == null)
                     {
-                        Debug.LogError($"FleetManager.InstantiateFleet: galaxyImage is STILL null! Cannot set up DropLine for fleet '{newFleetController.name}'");
+                        Debug.LogError($"FleetManager.InstantiateFleet: galaxyImage is STILL null! Cannot set up DropLine for fleet '{newFleet.name}'");
                     }
                 }
 
@@ -442,7 +466,7 @@ namespace BOTF3D.Core
                         // SAFETY: Check fleetChildFields and DropLine exist
                         if (fleetChildFields == null || fleetChildFields.DropLine == null)
                         {
-                            Debug.LogWarning($"FleetManager.InstantiateFleet: fleetChildFields.DropLine is null for fleet '{newFleetController.name}'");
+                            Debug.LogWarning($"FleetManager.InstantiateFleet: fleetChildFields.DropLine is null for fleet '{newFleet.name}'");
                             continue;
                         }
 
@@ -451,22 +475,22 @@ namespace BOTF3D.Core
                             ourLineToGalaxyImageScript[i].GetLineRenderer();
                             ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
                             ourLineToGalaxyImageScript[i].lineRenderer.endColor = Color.red;
-                            ourLineToGalaxyImageScript[i].transform.SetParent(newFleetController.transform, false);
+                            ourLineToGalaxyImageScript[i].transform.SetParent(newFleet.transform, false);
 
-                            Vector3 galaxyPlanePoint = new Vector3(newFleetController.transform.position.x,
-                                galaxyImage.transform.position.y, newFleetController.transform.position.z);
-                            Vector3[] points = { newFleetController.transform.position, galaxyPlanePoint };
+                            Vector3 galaxyPlanePoint = new Vector3(newFleet.transform.position.x,
+                                galaxyImage.transform.position.y, newFleet.transform.position.z);
+                            Vector3[] points = { newFleet.transform.position, galaxyPlanePoint };
                             ourLineToGalaxyImageScript[i].SetUpLine(points);
-                            newFleetController.DropLine = ourLineToGalaxyImageScript[i];
+                            newFleet.DropLine = ourLineToGalaxyImageScript[i];
                             foundDropLine = true;
-                            Debug.Log($"✅ DropLine set up for fleet '{newFleetController.name}'");
+                            Debug.Log($"✅ DropLine set up for fleet '{newFleet.name}'");
                             break; // Found it, no need to continue
                         }
                     }
 
                     if (!foundDropLine)
                     {
-                        Debug.LogWarning($"FleetManager.InstantiateFleet: Found {ourLineToGalaxyImageScript.Length} MapLineMovable(s) but none matched fleetChildFields.DropLine for fleet '{newFleetController.name}'");
+                        Debug.LogWarning($"FleetManager.InstantiateFleet: Found {ourLineToGalaxyImageScript.Length} MapLineMovable(s) but none matched fleetChildFields.DropLine for fleet '{newFleet.name}'");
                     }
                 }
             }
@@ -474,23 +498,38 @@ namespace BOTF3D.Core
             // SAFETY: Check GalaxyCenter still exists
             if (GalaxyCenter != null)
             {
-                newFleetController.FleetData.Destination = GalaxyCenter;
+                newFleet.FleetData.Destination = GalaxyCenter;
             }
 
             foreach (var civCon in CivManager.Instance.CivControllersInGame)
             {
-                if (civCon.CivData.CivEnum == newFleetData.CivEnum)
+                if (civCon.CivData.CivEnum == fleetData.CivEnum)
                 {
-                    newFleetData.CivController = civCon;
+                    fleetData.CivController = civCon;
                     break;
                 }
             }
 
-            newFleetController.gameObject.SetActive(true);
-            newFleetController.UpdateMaxWarp();
-            InstantiateFleetUIGameObject(newFleetController, newFleet);
+            newFleet.gameObject.SetActive(true);
+            newFleet.UpdateMaxWarp();
+            InstantiateFleetUIGameObject(newFleet, isNewFleet);
 
-            return newFleetController;
+            // ✅ NEW: Immediately set up ShipListUIParent for new fleet
+            if (isNewFleet && newFleet.FleetUIGameObject != null)
+            {
+                var uiFields = newFleet.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+                if (uiFields != null && uiFields.FleetShipContentGO != null)
+                {
+                    newFleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                    Debug.Log($"✅ Set ShipListUIParent for new fleet '{newFleet.name}'");
+                }
+                else
+                {
+                    Debug.LogError($"❌ Cannot set ShipListUIParent for new fleet '{newFleet.name}' - FleetUI_Fields or FleetShipContentGO missing!");
+                }
+            }
+
+            return newFleet;
         }
         private void InstantiateFleetUIGameObject(FleetController fleetCon, bool newFleet)
         {

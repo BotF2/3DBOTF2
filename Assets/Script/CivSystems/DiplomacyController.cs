@@ -147,10 +147,15 @@ namespace BOTF3D.GamePlay
                 diplomacyController.DiplomacyData.CombatIntiated = true;
 
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-                SceneController.Instance.LoadCombatScene(diplomacyController);
+
+                // ✅ FIXED: Pass the three required parameters from DiplomacyData
+                SceneController.Instance.LoadCombatScene(
+                    diplomacyController.DiplomacyData.FleetControllerCivOne,
+                    diplomacyController.DiplomacyData.FleetContollerCivTwo, // Note: has typo in DiplomacyData
+                    diplomacyController.DiplomacyData.StarSysController
+                );
             }
             //*******load combat menu for local player and do AI civs
-
         }
 
         internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)

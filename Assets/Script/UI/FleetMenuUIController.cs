@@ -41,17 +41,20 @@ namespace BOTF3D.UI
         [SerializeField] private List<GameObject> listOfFleetUiGos = new List<GameObject>();
         private FleetController activeFleetController;
         private FleetController tempFleetController;
+        private FleetController lastFleetCon;
 
         private void Awake()
         {
-            if (Instance != null)
-            {
-                Destroy(gameObject);
-            }
-            else
+            // ✅ Scene-based singleton
+            if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Debug.Log("✅ FleetMenuUIController: Instance assigned");
+            }
+            else if (Instance != this)
+            {
+                Debug.LogWarning($"❌ Duplicate FleetMenuUIController found! Destroying duplicate.");
+                Destroy(gameObject);
             }
         }
 
@@ -175,15 +178,64 @@ namespace BOTF3D.UI
                 }
             }
         }
+        /// <summary>
+        /// Shows the detailed view of a single fleet
+        /// CALLED BY: FleetController.OnMouseDown() or GalaxyMenuUIController.OpenMenu(Menu.AFleetMenu)
+        /// </summary>
         public void SetActiveSetParentUIGO(FleetController theFleetCon)
         {
-            if (GameController.Instance.AreWeLocalPlayer(theFleetCon.FleetData.CivEnum))
+            if (theFleetCon == null)
             {
-                SetupFleetUIData();
-                theFleetCon.FleetUIGameObject.SetActive(true);
-                theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
-                activeFleetController = theFleetCon;
+                Debug.LogWarning("SetActiveSetParentUIGO: theFleetCon is null");
+                return;
             }
+
+            // CRITICAL: Find containers if needed
+            if (FleetListContainer == null || AFleetMenuView == null)
+            {
+                FindFleetUIContainers();
+            }
+
+            // ✅ Hide any open star system UIs first (mutual exclusion)
+            if (StarSysMenuUIController.Instance != null)
+            {
+                Debug.Log("  Hiding any open star system UIs before showing fleet UI");
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+            }
+
+            SetupFleetUIData();
+
+            if (theFleetCon.FleetUIGameObject == null)
+            {
+                Debug.LogError($"SetActiveSetParentUIGO: Fleet '{theFleetCon.name}' has no FleetUIGameObject!");
+                return;
+            }
+
+            // ✅ Ensure this is actually a FLEET UI
+            var fleetUIFields = theFleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            var starSysUIFields = theFleetCon.FleetUIGameObject.GetComponent<StarSysUI_Fields>();
+
+            if (fleetUIFields == null)
+            {
+                Debug.LogError($"SetActiveSetParentUIGO: Fleet UI has no FleetUI_Fields component!");
+                return;
+            }
+
+            if (starSysUIFields != null)
+            {
+                Debug.LogError($"SetActiveSetParentUIGO: This is a SYSTEM UI, not a fleet UI!");
+                return;
+            }
+
+            // ✅ Move to detail view and ACTIVATE
+            theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
+            theFleetCon.FleetUIGameObject.SetActive(true);
+
+            // ✅ CRITICAL FIX: Set activeFleetController so SetAsDestination() can find it!
+            activeFleetController = theFleetCon;
+            lastFleetCon = theFleetCon;
+
+            Debug.Log($"SetActiveSetParentUIGO: Set activeFleetController to '{theFleetCon.name}'");
         }
         public void MoveTheFleetUIGO(GameObject fleetConGO)
         {
@@ -198,33 +250,84 @@ namespace BOTF3D.UI
         }
         public void MoveBackAnyaFleetUIGO()
         {
-            if (AFleetMenuView == null)
+            Debug.Log("=== MoveBackAnyaFleetUIGO: Starting ===");
+
+            // ✅ Clean up destroyed references
+            listOfFleetUiGos.RemoveAll(go => go == null);
+            Debug.Log($"  Cleaned tracking list, now has {listOfFleetUiGos.Count} valid entries");
+
+            // ✅ Get home storage container from FleetManager
+            GameObject homeContainer = FleetManager.Instance?.FleetUI_ListContainer;
+
+            if (homeContainer == null)
             {
-                Debug.LogWarning("FleetMenuUIController.MoveBackAnyaFleetUIGO: AFleetMenuView is null, skipping");
+                Debug.LogWarning("  ⚠️ FleetUI_ListContainer not found! Using FleetListContainer fallback.");
+                homeContainer = FleetListContainer;
+            }
+
+            if (homeContainer == null)
+            {
+                Debug.LogWarning("  ⚠️ No valid container to move fleet UIs to!");
                 return;
             }
 
-            AFleetMenuView.SetActive(true);
-
-            // ✅ Move back BOTH fleet UIs AND star system UIs that might be in this container
-            for (int i = AFleetMenuView.transform.childCount - 1; i >= 0; i--)
+            // Move from AFleetMenuView (detail view)
+            if (AFleetMenuView != null)
             {
-                var child = AFleetMenuView.transform.GetChild(i);
-                if (child == null) continue;
+                Debug.Log($"  Checking AFleetMenuView ({AFleetMenuView.transform.childCount} children)");
 
-                var childController = child.GetComponent<FleetAndSystemChildController>();
-                if (childController != null && childController.OriginalParentTransform != null)
+                for (int i = AFleetMenuView.transform.childCount - 1; i >= 0; i--)
                 {
-                    child.SetParent(childController.OriginalParentTransform, false);
-                    Debug.Log($"FleetMenuUIController: Moved '{child.name}' back to '{childController.OriginalParentTransform.name}'");
+                    var child = AFleetMenuView.transform.GetChild(i);
+                    if (child == null) continue;
+
+                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
+                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
+
+                    if (fleetUIFields != null && starSysUIFields == null)
+                    {
+                        // This is a fleet UI - move to home and DEACTIVATE
+                        Debug.Log($"    Moving FLEET UI '{child.name}' to home storage");
+                        child.SetParent(homeContainer.transform, false);
+                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate when in storage!
+                    }
+                    else if (starSysUIFields != null)
+                    {
+                        Debug.LogError($"  ❌ SYSTEM UI '{child.name}' found in AFleetMenuView! Moving it back.");
+
+                        // Move system UI back to its home storage
+                        var sysHomeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
+                        if (sysHomeContainer != null)
+                        {
+                            child.SetParent(sysHomeContainer.transform, false);
+                            child.gameObject.SetActive(false); // ✅ Deactivate!
+                        }
+                        else if (StarSysMenuUIController.Instance?.SysListContainer != null)
+                        {
+                            child.SetParent(StarSysMenuUIController.Instance.SysListContainer.transform, false);
+                            child.gameObject.SetActive(false);
+                        }
+                    }
+                }
+
+                AFleetMenuView.SetActive(false);
+            }
+
+            // ✅ Clean up FleetManager's fleet list (remove destroyed fleets)
+            if (FleetManager.Instance != null)
+            {
+                int beforeCount = FleetManager.Instance.FleetControllerList.Count;
+                FleetManager.Instance.FleetControllerList.RemoveAll(f => f == null);
+                int afterCount = FleetManager.Instance.FleetControllerList.Count;
+
+                if (beforeCount != afterCount)
+                {
+                    Debug.Log($"  Removed {beforeCount - afterCount} destroyed fleet references from FleetManager");
                 }
             }
 
-            // Hide AFleetMenuView after moving children back
-            AFleetMenuView.SetActive(false);
             activeFleetController = null;
-
-            Debug.Log("FleetMenuUIController: Moved all UIs back and closed AFleetMenuView");
+            Debug.Log("=== MoveBackAnyaFleetUIGO: Complete - all fleet UIs moved and DEACTIVATED ===");
         }
         public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
         {
@@ -453,7 +556,11 @@ namespace BOTF3D.UI
         // New: run the cleanup logic *after* a commit has completed.
         public void CancelShipManageAfterCommit()
         {
-            if (tempFleetController == null) return;
+            if (tempFleetController == null)
+            {
+                Debug.Log("CancelShipManageAfterCommit (Fleet): No temp fleet to process");
+                return;
+            }
 
             Debug.Log($"CancelShipManageAfterCommit (Fleet): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
 
@@ -472,23 +579,36 @@ namespace BOTF3D.UI
             else
             {
                 Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
+
+                // ✅ NEW: Ensure the fleet has proper UI setup before keeping it
+                if (tempFleetController.FleetData.ShipListUIParent == null)
+                {
+                    var uiFields = tempFleetController.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                    if (uiFields != null && uiFields.FleetShipContentGO != null)
+                    {
+                        tempFleetController.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                        Debug.Log($"  Set ShipListUIParent for kept fleet '{tempFleetController.name}'");
+                    }
+                }
+
                 // Fleet has ships, so finalize it and keep it
                 tempFleetController = null; // Clear temp reference but don't destroy
             }
 
             var galaxyUI = GalaxyMenuUIController.Instance;
             MousePointerChanger.Instance.ResetCursor();
-            //if (cancelFleetUIButtonGO != null)
-            //    GalaxyMenuUIController.Instance.CloseButtonPressed();
-            //cancelFleetUIButtonGO.SetActive(false);
+
             if (ShipDeployMenuUIController.Instance != null)
                 ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
+
             if (galaxyUI != null)
             {
                 galaxyUI.ClickCancelShipDeployButton();
                 galaxyUI.ResetClickMode();
                 galaxyUI.CompleteShipExchange();
             }
+
+            HideA_FleetMenuView();
         }
         public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
         {
@@ -656,20 +776,88 @@ namespace BOTF3D.UI
 
         public void SetAsDestination(string nameDestination, string newCoordinates)
         {
-            // Get text fields from the active fleet UI instead of cached references
-            var fields = GetActiveFleetUIFields();
-            if (fields != null)
+            Debug.Log($"=== SetAsDestination CALLED ===");
+            Debug.Log($"  nameDestination: '{nameDestination}'");
+            Debug.Log($"  newCoordinates: '{newCoordinates}'");
+
+            // ✅ CRITICAL FIX: Get fields from LAST ACTIVE fleet, not activeFleetController
+            FleetUI_Fields fields = null;
+
+            // Try lastFleetCon first (most recent fleet UI shown)
+            if (lastFleetCon != null && lastFleetCon.FleetUIGameObject != null)
             {
-                if (fields.DestinationName != null)
-                    fields.DestinationName.text = nameDestination;
-                if (fields.DestinationCoordinates != null)
-                    fields.DestinationCoordinates.text = newCoordinates;
-                if (fields.CancelDestination != null)
-                    fields.CancelDestination.gameObject.SetActive(true);
-                if (fields.DestinationDragTarget != null)
-                    fields.DestinationDragTarget.gameObject.SetActive(false);
+                fields = lastFleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+                Debug.Log($"  Using lastFleetCon '{lastFleetCon.name}' UI fields: {(fields != null ? "FOUND" : "NOT FOUND")}");
             }
+
+            // Fallback to activeFleetController
+            if (fields == null && activeFleetController != null && activeFleetController.FleetUIGameObject != null)
+            {
+                fields = activeFleetController.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+                Debug.Log($"  Fallback to activeFleetController '{activeFleetController.name}' UI fields: {(fields != null ? "FOUND" : "NOT FOUND")}");
+            }
+
+            // Last resort: find the fleet UI in AFleetMenuView
+            if (fields == null && AFleetMenuView != null)
+            {
+                for (int i = 0; i < AFleetMenuView.transform.childCount; i++)
+                {
+                    var child = AFleetMenuView.transform.GetChild(i);
+                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
+                    if (fleetUIFields != null)
+                    {
+                        fields = fleetUIFields;
+                        Debug.Log($"  Found FleetUI_Fields in AFleetMenuView child '{child.name}'");
+                        break;
+                    }
+                }
+            }
+
+            if (fields == null)
+            {
+                Debug.LogError($"  ❌ NO FleetUI_Fields FOUND! Cannot update destination!");
+                Debug.LogError($"    lastFleetCon: {(lastFleetCon != null ? lastFleetCon.name : "NULL")}");
+                Debug.LogError($"    activeFleetController: {(activeFleetController != null ? activeFleetController.name : "NULL")}");
+                Debug.LogError($"    AFleetMenuView children: {(AFleetMenuView != null ? AFleetMenuView.transform.childCount : 0)}");
+                return;
+            }
+
+            // Update fields
+            if (fields.DestinationName != null)
+            {
+                fields.DestinationName.text = nameDestination;
+                Debug.Log($"  ✅ Set DestinationName to '{nameDestination}'");
+            }
+            else
+            {
+                Debug.LogError($"  ❌ fields.DestinationName is NULL!");
+            }
+
+            if (fields.DestinationCoordinates != null)
+            {
+                fields.DestinationCoordinates.text = newCoordinates;
+                Debug.Log($"  ✅ Set DestinationCoordinates to '{newCoordinates}'");
+            }
+            else
+            {
+                Debug.LogError($"  ❌ fields.DestinationCoordinates is NULL!");
+            }
+
+            if (fields.CancelDestination != null)
+            {
+                fields.CancelDestination.gameObject.SetActive(true);
+                Debug.Log($"  ✅ Activated CancelDestination button");
+            }
+
+            if (fields.DestinationDragTarget != null)
+            {
+                fields.DestinationDragTarget.gameObject.SetActive(false);
+                Debug.Log($"  ✅ Deactivated DestinationDragTarget button");
+            }
+
             MousePointerChanger.Instance.ResetCursor();
+
+            Debug.Log($"=== SetAsDestination: Complete ===");
         }
 
         // Helper: get buttons from the currently active fleet UI
@@ -720,8 +908,11 @@ namespace BOTF3D.UI
 
         private void OnDestroy()
         {
-            // When this controller is destroyed (e.g., scene unload)
-            ClearAllFleetUIs();
+            if (Instance == this)
+            {
+                Instance = null;
+                Debug.Log("FleetMenuUIController: Instance cleared");
+            }
         }
 
         public void CleanupDestroyedOrInactiveUIs()
@@ -762,54 +953,51 @@ namespace BOTF3D.UI
         {
             Debug.Log("=== ShowFleetMenuView: Starting ===");
 
+            if (FleetMenuView == null || FleetListContainer == null)
+            {
+                FindFleetUIContainers();
+            }
+
+            if (FleetMenuView == null)
+            {
+                Debug.LogError("ShowFleetMenuView: FleetMenuView is NULL!");
+                return;
+            }
+
+            // ✅ Move all local player's fleet UIs to the scrollable FleetListContainer
             if (FleetManager.Instance != null)
             {
-                var fleets = FleetManager.Instance.FleetControllerList;
-                Debug.Log($"  FleetManager has {fleets?.Count ?? 0} total fleets");
-
-                if (fleets != null && fleets.Count > 0)
+                foreach (var fleetCon in FleetManager.Instance.FleetControllerList)
                 {
-                    int localPlayerFleets = 0;
-                    foreach (var fleet in fleets)
-                    {
-                        if (fleet != null && GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
-                        {
-                            localPlayerFleets++;
-                        }
-                    }
+                    if (fleetCon == null || fleetCon.FleetUIGameObject == null) continue;
 
-                    Debug.Log($"  Local player owns {localPlayerFleets} fleets");
+                    // Only show local player's fleets
+                    if (!GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+                        continue;
+
+                    // ✅ Move to scrollable list container and activate
+                    fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
+                    fleetCon.FleetUIGameObject.SetActive(true);
                 }
             }
-            else
-            {
-                Debug.LogError("  FleetManager.Instance is NULL!");
-            }
 
-            // Show the menu
-            if (FleetMenuView != null)
-            {
-                FleetMenuView.SetActive(true);
-                Debug.Log("  FleetMenuView activated");
+            FleetMenuView.SetActive(true);
+            Debug.Log("  FleetMenuView activated with scrollable list");
 
-                // CRITICAL: Populate the fleet list
-                SetupFleetUIData();
-            }
-            else
-            {
-                Debug.LogError("  FleetMenuView is NULL!");
-            }
+            SetupFleetUIData(); // Wire buttons, update data
 
             Debug.Log("=== ShowFleetMenuView: Complete ===");
         }
 
         public void HideFleetMenuView()
         {
-            if (FleetMenuView != null)
-            {
-                FleetMenuView.SetActive(false);
-                Debug.Log("FleetMenuView hidden");
-            }
+            if (FleetMenuView == null) return;
+
+            // ✅ Move all fleet UIs back to home storage
+            MoveBackAnyaFleetUIGO();
+
+            FleetMenuView.SetActive(false);
+            Debug.Log("FleetMenuView hidden, UIs moved back to storage");
         }
 
         public void ShowA_FleetMenuView()

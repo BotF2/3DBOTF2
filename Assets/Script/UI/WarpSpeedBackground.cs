@@ -8,9 +8,9 @@ namespace BOTF3D.UI
         [SerializeField] private ParticleSystem warpParticles;
 
         [Header("Speed Settings")]
-        [SerializeField] private float baseSpeed = 30f;
-        [SerializeField] private float maxSpeed = 80f;
-        [SerializeField] private float acceleration = 5f;
+        [SerializeField] private float baseSpeed = 10f;        // ⬇️ Was 30
+        [SerializeField] private float maxSpeed = 25f;         // ⬇️ Was 80
+        [SerializeField] private float acceleration = 2f;      // ⬇️ Was 5
 
         private float currentSpeed;
 

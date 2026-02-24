@@ -1,5 +1,4 @@
-﻿
-using BOTF3D.GamePlay;
+﻿using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections.Generic;
 using System.Linq;
@@ -306,61 +305,100 @@ namespace BOTF3D.Core
         public List<ShipController> InstantiateShipControllersWithDataFromSO(List<ShipSO> shipSOList, GameObject parentGO)
         {
             List<ShipController> shipConList = new List<ShipController>();
+
+            Debug.Log($"InstantiateShipControllersWithDataFromSO: Creating {shipSOList?.Count ?? 0} ships for '{parentGO?.name ?? "NULL"}'");
+
+            if (parentGO == null)
+            {
+                Debug.LogError("InstantiateShipControllersWithDataFromSO: parentGO is NULL!");
+                return shipConList;
+            }
+
             for (int i = 0; i < shipSOList.Count; i++)
             {
-                if (shipSOList[i] != null)
+                if (shipSOList[i] == null)
                 {
-                    ShipController shipCon = Instantiate(shipConPrefab, new Vector3(0, 0, 0),
-                    Quaternion.identity, CombatManager.Instance.CombatUICanvasGO.transform);
-                    shipCon.Init(this);
-                    shipCon.ShipData = new ShipData();
-                    shipCon.ShipData.ShipName = shipSOList[i].ShipName;
-                    shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
-                    shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
-                    shipCon.ShipData.ShipType = shipSOList[i].ShipType;
-                    if (shipSOList[i].shipSprite != null)
-                        shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
-                    shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;
-                    shipCon.ShipData.currentWarpFactor = 0f;
-                    shipCon.ShipData.ShieldHealth = shipSOList[i].ShieldMaxHealth;
-                    shipCon.ShipData.HullHealth = shipSOList[i].HullMaxHealth;
-                    shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
-                    shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
-                    shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
-                    var targetGO = Instantiate(targetGOPrefab, shipCon.transform.position, Quaternion.identity); // where other ship weapons target 
-                    shipCon.ShipData.TargetOnThisShip = targetGO;
-                    targetGO.transform.SetParent(shipCon.transform, false); // set target GO as child of ship GO
-                    shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(shipCon.transform.position.x, shipCon.transform.position.y, shipCon.transform.position.z + 10); // move target location back along spine of ship
-                    shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
-                    shipCon.gameObject.name = shipCon.ShipData.ShipName;
-                    shipCon.Order = CombatOrders.None;
-                    shipCon.gameObject.layer = 9; // set to "ships" layer
-                    ShipControllerList.Add(shipCon);
-                    if (parentGO.GetComponentInChildren<FleetController>() == null)
-                    {
-                        var sysCon = parentGO.GetComponent<StarSysController>();
-                        shipCon.ShipData.CurrentStarSysController = sysCon;
-                        if (sysCon.StarSysData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
-                            sysCon.StarSysData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                        shipCon.ShipData.CurrentFleetController = null;
-                    }
-                    else if (parentGO.GetComponentInChildren<StarSysController>() == null)
-                    {
-                        var fleetCon = parentGO.GetComponent<FleetController>();
-                        shipCon.ShipData.CurrentFleetController = fleetCon;
-                        if (fleetCon.FleetData.ShipsList.Contains(shipCon.GetComponent<ShipController>()) == false)
-                            fleetCon.FleetData.ShipsList.Add(shipCon.GetComponent<ShipController>());
-                        shipCon.ShipData.CurrentStarSysController = null;
-                    }
-
-                    // Create the UI object and try to parent it to the owner's ShipListUIParent.
-                    InstantiateShipListUIGameObject(shipCon, parentGO);
-
-                    // Put gameplay ship under parent in scene
-                    shipCon.transform.SetParent(parentGO.transform, false); // load into List of ships in the galaxy menu
-                    shipConList.Add(shipCon);
+                    Debug.LogWarning($"  Ship SO at index {i} is null, skipping");
+                    continue;
                 }
+
+                // ✅ CRITICAL FIX: Use parentGO, NOT CombatManager!
+                ShipController shipCon = Instantiate(
+                    shipConPrefab,
+                    new Vector3(0, 0, 0),
+                    Quaternion.identity,
+                    parentGO.transform); // ✅ FIXED: Use parentGO (fleet/system in galaxy)
+
+                shipCon.Init(this);
+                shipCon.ShipData = new ShipData();
+                shipCon.ShipData.ShipName = shipSOList[i].ShipName;
+                shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
+                shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
+                shipCon.ShipData.ShipType = shipSOList[i].ShipType;
+
+                if (shipSOList[i].shipSprite != null)
+                    shipCon.ShipData.ShipSprite = shipSOList[i].shipSprite;
+
+                shipCon.ShipData.maxWarpFactor = shipSOList[i].maxWarpFactor;
+                shipCon.ShipData.currentWarpFactor = 0f;
+                shipCon.ShipData.ShieldHealth = shipSOList[i].ShieldMaxHealth;
+                shipCon.ShipData.HullHealth = shipSOList[i].HullMaxHealth;
+                shipCon.ShipData.TorpedoDamage = shipSOList[i].TorpedoDamage;
+                shipCon.ShipData.BeamDamage = shipSOList[i].BeamDamage;
+                shipCon.ShipData.BuildDuration = shipSOList[i].BuildDuration;
+
+                var targetGO = Instantiate(targetGOPrefab, shipCon.transform.position, Quaternion.identity);
+                shipCon.ShipData.TargetOnThisShip = targetGO;
+                targetGO.transform.SetParent(shipCon.transform, false);
+                shipCon.ShipData.TargetOnThisShip.gameObject.transform.Translate(
+                    shipCon.transform.position.x,
+                    shipCon.transform.position.y,
+                    shipCon.transform.position.z + 10);
+
+                shipCon.ShipData.ShipDescription = shipSOList[i].ShipDescription;
+                shipCon.gameObject.name = shipCon.ShipData.ShipName;
+                shipCon.Order = CombatOrders.None;
+                shipCon.gameObject.layer = 9;
+
+                ShipControllerList.Add(shipCon);
+
+                // Determine if parent is fleet or system
+                if (parentGO.GetComponent<FleetController>() != null)
+                {
+                    var fleetCon = parentGO.GetComponent<FleetController>();
+                    shipCon.ShipData.CurrentFleetController = fleetCon;
+
+                    if (!fleetCon.FleetData.ShipsList.Contains(shipCon))
+                        fleetCon.FleetData.ShipsList.Add(shipCon);
+
+                    shipCon.ShipData.CurrentStarSysController = null;
+                    Debug.Log($"  Ship '{shipCon.ShipData.ShipName}' added to fleet '{fleetCon.name}'");
+                }
+                else if (parentGO.GetComponent<StarSysController>() != null)
+                {
+                    var sysCon = parentGO.GetComponent<StarSysController>();
+                    shipCon.ShipData.CurrentStarSysController = sysCon;
+
+                    if (!sysCon.StarSysData.ShipsList.Contains(shipCon))
+                        sysCon.StarSysData.ShipsList.Add(shipCon);
+
+                    shipCon.ShipData.CurrentFleetController = null;
+                    Debug.Log($"  Ship '{shipCon.ShipData.ShipName}' added to system '{sysCon.name}'");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ Parent '{parentGO.name}' is neither fleet nor system!");
+                }
+
+                // Create UI
+                InstantiateShipListUIGameObject(shipCon, parentGO);
+
+                // Parent gameplay ship
+                shipCon.transform.SetParent(parentGO.transform, false);
+                shipConList.Add(shipCon);
             }
+
+            Debug.Log($"  Created {shipConList.Count} ships under '{parentGO.name}'");
             return shipConList;
         }
 
@@ -741,6 +779,100 @@ namespace BOTF3D.Core
                 if (toDestroy.ShipListUIGameObject != null) Destroy(toDestroy.ShipListUIGameObject);
                 if (toDestroy.gameObject != null) Destroy(toDestroy.gameObject);
             }
+        }
+
+        /// <summary>
+        /// Creates ships in GALAXY context (parented to fleet/system)
+        /// </summary>
+        public List<ShipController> CreateGalaxyShips(List<ShipSO> shipSOList, GameObject parentGO)
+        {
+            List<ShipController> shipConList = new List<ShipController>();
+
+            if (parentGO == null)
+            {
+                Debug.LogError("CreateGalaxyShips: parentGO is NULL! Cannot create ships.");
+                return shipConList;
+            }
+
+            Debug.Log($"CreateGalaxyShips: Creating {shipSOList.Count} ships for '{parentGO.name}'");
+
+            for (int i = 0; i < shipSOList.Count; i++)
+            {
+                if (shipSOList[i] == null) continue;
+
+                // ✅ Parent to fleet/system in galaxy
+                ShipController shipCon = Instantiate(
+                    shipConPrefab,
+                    parentGO.transform.position, // Use parent's position
+                    Quaternion.identity,
+                    parentGO.transform); // Parent to fleet or system
+
+                InitializeShipData(shipCon, shipSOList[i]);
+                shipConList.Add(shipCon);
+            }
+
+            Debug.Log($"  Created {shipConList.Count} galaxy ships");
+            return shipConList;
+        }
+
+        /// <summary>
+        /// Creates ships in COMBAT context (parented to combat canvas)
+        /// </summary>
+        public List<ShipController> CreateCombatShips(List<ShipSO> shipSOList)
+        {
+            List<ShipController> shipConList = new List<ShipController>();
+
+            if (CombatManager.Instance == null || CombatManager.Instance.CombatUICanvasGO == null)
+            {
+                Debug.LogError("CreateCombatShips: CombatManager or CombatUICanvas is NULL!");
+                return shipConList;
+            }
+
+            Debug.Log($"CreateCombatShips: Creating {shipSOList.Count} ships for combat");
+
+            for (int i = 0; i < shipSOList.Count; i++)
+            {
+                if (shipSOList[i] == null) continue;
+
+                // ✅ Parent to combat UI canvas
+                ShipController shipCon = Instantiate(
+                    shipConPrefab,
+                    Vector3.zero,
+                    Quaternion.identity,
+                    CombatManager.Instance.CombatUICanvasGO.transform);
+
+                InitializeShipData(shipCon, shipSOList[i]);
+                shipConList.Add(shipCon);
+            }
+
+            Debug.Log($"  Created {shipConList.Count} combat ships");
+            return shipConList;
+        }
+
+        /// <summary>
+        /// Shared initialization logic for ship data
+        /// </summary>
+        private void InitializeShipData(ShipController shipCon, ShipSO shipSO)
+        {
+            shipCon.Init(this);
+            shipCon.ShipData = new ShipData();
+            shipCon.ShipData.ShipName = shipSO.ShipName;
+            shipCon.ShipData.CivEnum = shipSO.CivEnum;
+            shipCon.ShipData.TechLevel = shipSO.TechLevel;
+            shipCon.ShipData.ShipType = shipSO.ShipType;
+
+            if (shipSO.shipSprite != null)
+                shipCon.ShipData.ShipSprite = shipSO.shipSprite;
+
+            shipCon.ShipData.maxWarpFactor = shipSO.maxWarpFactor;
+            shipCon.ShipData.currentWarpFactor = 0f;
+            shipCon.ShipData.ShieldHealth = shipSO.ShieldMaxHealth;
+            shipCon.ShipData.HullHealth = shipSO.HullMaxHealth;
+            shipCon.ShipData.TorpedoDamage = shipSO.TorpedoDamage;
+            shipCon.ShipData.BeamDamage = shipSO.BeamDamage;
+            shipCon.ShipData.BuildDuration = shipSO.BuildDuration;
+
+            // Add other initialization...
         }
     }
 }

@@ -99,14 +99,16 @@ namespace BOTF3D.UI
 
         private void Awake()
         {
-            if (Instance != null)
-            {
-                Destroy(gameObject);
-            }
-            else
+            // ? Scene-based singleton
+            if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Debug.Log("? DiplomacyMenuUIController: Instance assigned");
+            }
+            else if (Instance != this)
+            {
+                Debug.LogWarning($"? Duplicate DiplomacyMenuUIController found! Destroying duplicate.");
+                Destroy(gameObject);
             }
         }
 
@@ -509,8 +511,11 @@ namespace BOTF3D.UI
 
         private void OnDestroy()
         {
-            // When this controller is destroyed (e.g., scene unload)
-            ClearAllDiplomacyUIs();
+            if (Instance == this)
+            {
+                Instance = null;
+                Debug.Log("DiplomacyMenuUIController: Instance cleared");
+            }
         }
 
         public void CleanupDestroyedOrInactiveUIs()

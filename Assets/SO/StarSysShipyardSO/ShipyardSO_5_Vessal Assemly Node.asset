@@ -19,7 +19,7 @@ MonoBehaviour:
   StartStarDate: 0
   BuildDuration: 12
   PowerLoad: 4
-  ShipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
+  ShipyardSprite: {fileID: 21300000, guid: 1dfc6e22d45d82e428d809dbf5b4bd52, type: 3}
   Description: "Borg shipyards, aka Vessel Assemly Nodes, are more than just places
     to build and repair starships\u2014they represent the technological and industrial
     heart of spacefaring civilizations. They ensure readiness for exploration, defense,
