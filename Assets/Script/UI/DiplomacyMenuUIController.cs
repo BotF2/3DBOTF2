@@ -61,7 +61,7 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject[] UI_PanelGOs;
         [SerializeField]
-        private Image[] TabButtonMasks;
+        private Image[] tabButtonMasks;
         [SerializeField]
         private GameObject InteractionButtonGO;
         [SerializeField]

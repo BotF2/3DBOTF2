@@ -106,18 +106,18 @@ namespace BOTF3D.Core
 
         private void Awake()
         {
-            if (Instance != null)
+            if (Instance != null && Instance != this)
             {
                 Debug.LogWarning("Duplicate CombatManager found! Destroying duplicate.");
                 Destroy(gameObject);
+                return; // IMPORTANT: stop here
             }
-            else
-            {
-                Instance = this;
-                // ❌ REMOVE: DontDestroyOnLoad(gameObject);
-                // ✅ CombatManager lives in CombatScene only!
-                Debug.Log("✅ CombatManager: Instance assigned (scene-based)");
-            }
+
+            Instance = this;
+
+            //DontDestroyOnLoad(gameObject);
+
+            Debug.Log("✅ CombatManager persistent singleton initialized.");
         }
         internal void SetDiplomacyController(DiplomacyController diplomacyController)
         {
@@ -140,14 +140,14 @@ namespace BOTF3D.Core
                     if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo != null)
                     {
                         sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
-                        if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
-                            InstantiateCombatController(sideOneShips, sideTwoShips);
+                        //if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
+                        // InstantiateCombatController(sideOneShips, sideTwoShips);
                     }
                     else if (intelCon.IntelligenceData.LastSeenStarSysController != null)
                     {
                         sideTwoShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
-                        if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
-                            InstantiateCombatController(sideOneShips, sideTwoShips);
+                        //if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
+                        // InstantiateCombatController(sideOneShips, sideTwoShips);
                     }
                 }
                 else if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData != null)
@@ -158,7 +158,7 @@ namespace BOTF3D.Core
             }
         }
 
-        public void InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
+        public CombatController InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
         {
             {
                 CombatData combatData = new CombatData();
@@ -167,9 +167,9 @@ namespace BOTF3D.Core
                 combatData.SideTwoShipCons = sideTwoShipCons;
                 combatData.CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum;
                 combatData.CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum;
-                combatData.Name = "CombatData_" + CombatControllers.Count.ToString();
                 CombatController aCombatController = Instantiate(combatConPrefab, new Vector3(0, 0, 0),
                     Quaternion.identity);
+                combatData.CombatID = aCombatController.GetInstanceID();
                 aCombatController.isMoving = false;
                 aCombatController.isClosing = false;
                 aCombatController.WarpingIn = false;
@@ -184,7 +184,7 @@ namespace BOTF3D.Core
                 CombatUIController.Instance.sideTwoEnum = combatData.CivEnumSideTwo;
                 CombatUIController.Instance.SideOneShipControllers = combatData.SideOneShipCons;
                 CombatUIController.Instance.SideTwoShipControllers = combatData.SideTwoShipCons;
-                aCombatController.name = "CombatController_" + CombatControllers.Count.ToString();
+                aCombatController.name = aCombatController.GetInstanceID().ToString();
 
                 aCombatController.sideOneA1Animator = sideOneA1Animator;
                 aCombatController.animators.Add(aCombatController.sideOneA1Animator);
@@ -207,6 +207,8 @@ namespace BOTF3D.Core
                 aCombatController.TrySetPlayerOrders(combatData);
                 SetUpLocalPlayer();
                 TimeManager.Instance.PauseTime(); // Pause the game when combat UI is opened
+                CombatControllers.Add(aCombatController);
+                return aCombatController;
             }
         }
 

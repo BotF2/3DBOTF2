@@ -354,7 +354,7 @@ namespace BOTF3D.Core
         Engage, // default order
         Rush,
         Retreat,
-        Formation, // aka protrect transports
+        Formation, // aka protect transports
         TargetTransports,
         None,
     }
@@ -366,6 +366,13 @@ namespace BOTF3D.Core
         ShieldGenerator,
         OrbitalBattery,
         ResearchCenter
+    }
+    public enum CombatType
+    {
+        None,
+        DeepSpaceCombat,
+        StarSystemCombat,
+        StarSystemInvasion
     }
     #endregion
 

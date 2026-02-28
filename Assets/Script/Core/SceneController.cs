@@ -84,9 +84,8 @@ namespace BOTF3D.GamePlay
         /// <summary>
         /// Load combat scene additively, keeping galaxy scene loaded
         /// </summary>
-        public void LoadCombatScene(FleetController playerFleet, FleetController enemyFleet, StarSysController combatLocation)
+        public void LoadCombatScene(FleetController playerFleet, FleetController enemyFleet, StarSysController starSysCon)
         {
-            Debug.Log($"LoadCombatScene: Starting combat at {combatLocation?.name}");
 
             // ✅ 1. Pause galaxy time
             if (TimeManager.Instance != null)
@@ -105,7 +104,7 @@ namespace BOTF3D.GamePlay
             // ✅ 3. Disable galaxy camera
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
-                GalaxyCameraDragMoveZoom.Instance.enabled = false;
+                GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>().enabled = false;
                 Debug.Log("  Disabled galaxy camera");
             }
 
@@ -116,17 +115,41 @@ namespace BOTF3D.GamePlay
                 galaxyEventSystem.enabled = false;
                 Debug.Log($"  ✅ Disabled galaxy EventSystem: {galaxyEventSystem.gameObject.name}");
             }
+            List<ShipController> shipControllers1 = new List<ShipController>();
+            List<ShipController> shipControllers2 = new List<ShipController>();
+            CombatType combatType = CombatType.None;
+            if (playerFleet == null)
+            {
+                shipControllers1 = starSysCon.StarSysData.ShipsList;
+                shipControllers2 = enemyFleet.FleetData.ShipsList;
+                combatType = CombatType.StarSystemCombat;
+                Debug.Log($"  Player fleet null and '{starSysCon.name}' in combat with {enemyFleet.name}");
+            }
+            else if (starSysCon == null)
+            {
+                shipControllers1 = playerFleet.FleetData.ShipsList;
+                shipControllers2 = enemyFleet.FleetData.ShipsList;
+                combatType = CombatType.DeepSpaceCombat;
+                Debug.Log($"  Star system null and '{playerFleet.name}' in combat with '{playerFleet.name}' and enemy fleet '{enemyFleet.name}' ShipControllers");
+            }
+            else if (enemyFleet == null)
+            {
+                shipControllers1 = playerFleet.FleetData.ShipsList;
+                shipControllers2 = starSysCon.StarSysData.ShipsList;
+                combatType = CombatType.StarSystemCombat;
+                Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
+            }
 
             // ✅ 4. Store combat context
             CombatContext.PlayerFleet = playerFleet;
             CombatContext.EnemyFleet = enemyFleet;
-            CombatContext.CombatLocation = combatLocation;
+            CombatContext.StarSystem = starSysCon;
 
             // ✅ 5. Load combat scene
-            StartCoroutine(LoadCombatSceneAdditive());
+            StartCoroutine(LoadCombatSceneAdditive(shipControllers1, shipControllers2, combatType));
         }
 
-        private IEnumerator LoadCombatSceneAdditive()
+        private IEnumerator LoadCombatSceneAdditive(List<ShipController> shipControllers1, List<ShipController> shipControllers2, CombatType combatType)
         {
             Debug.Log("=== LoadCombatSceneAdditive: Starting async load ===");
 
@@ -137,7 +160,12 @@ namespace BOTF3D.GamePlay
                 Debug.Log($"  Loading combat scene: {asyncLoad.progress * 100:F1}%");
                 yield return null;
             }
+            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
 
+            foreach (GameObject go in galaxyScene.GetRootGameObjects())
+            {
+                go.SetActive(false);
+            }
             Debug.Log("✅ Combat scene loaded additively");
 
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
@@ -179,59 +207,47 @@ namespace BOTF3D.GamePlay
             yield return null;
             yield return null;
 
-            // ✅ CRITICAL DEBUG: Search for CombatController in scene
-            Debug.Log("=== Searching for CombatController ===");
-
-            var allCombatControllers = FindObjectsByType<CombatController>(FindObjectsSortMode.None);
-            Debug.Log($"  Found {allCombatControllers.Length} CombatController(s) in all scenes");
-
-            foreach (var cc in allCombatControllers)
-            {
-                Debug.Log($"    - CombatController on '{cc.gameObject.name}' in scene '{cc.gameObject.scene.name}' (active: {cc.gameObject.activeSelf}, enabled: {cc.enabled})");
-            }
-
-            // ✅ Check if Instance is set
-            if (CombatController.Instance != null)
-            {
-                Debug.Log($"  ✅ CombatController.Instance found: {CombatController.Instance.gameObject.name}");
-
-                CombatController.Instance.InitializeCombat(
-                    CombatContext.PlayerFleet,
-                    CombatContext.EnemyFleet,
-                    CombatContext.CombatLocation);
-            }
-            else
-            {
-                Debug.LogError("  ❌ CombatController.Instance is STILL NULL!");
-                Debug.LogError("  DIAGNOSIS:");
-                Debug.LogError("    1. Check if 'CombatController' GameObject exists in CombatScene");
-                Debug.LogError("    2. Check if CombatController script is attached to it");
-                Debug.LogError("    3. Check if Awake() has errors preventing Instance assignment");
-                Debug.LogError($"    4. Found {allCombatControllers.Length} CombatController components - check logs above");
-
-                // ✅ FALLBACK: Try to use any CombatController found
-                if (allCombatControllers.Length > 0)
-                {
-                    Debug.LogWarning($"  ⚠️ Using fallback CombatController: {allCombatControllers[0].gameObject.name}");
-
-                    allCombatControllers[0].InitializeCombat(
-                        CombatContext.PlayerFleet,
-                        CombatContext.EnemyFleet,
-                        CombatContext.CombatLocation);
-                }
-            }
-
             // ✅ Enable combat camera
             if (ShipCombatCameraController.Instance != null)
             {
-                var camera = ShipCombatCameraController.Instance.GetComponent<Camera>();
+                var camera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
                 if (camera != null)
                 {
                     camera.enabled = true;
                     Debug.Log($"  ✅ Combat camera enabled");
                 }
             }
+            var combatCon = CombatManager.Instance.InstantiateCombatController(shipControllers1, shipControllers2);
+            combatCon.CombatData.CombatType = combatType;
+            if (combatCon == null)
+            {
+                //Debug.Log($"  ✅ CombatController.Instance found: {CombatController.Instance.gameObject.name}");
 
+                CombatController.Instance.InitializeCombat(
+                    CombatContext.PlayerFleet,
+                    CombatContext.EnemyFleet,
+                    CombatContext.StarSystem);
+            }
+            //else
+            //{
+            //    //Debug.LogError("  ❌ CombatController.Instance is STILL NULL!");
+            //    //Debug.LogError("  DIAGNOSIS:");
+            //    //Debug.LogError("    1. Check if 'CombatController' GameObject exists in CombatScene");
+            //    //Debug.LogError("    2. Check if CombatController script is attached to it");
+            //    //Debug.LogError("    3. Check if Awake() has errors preventing Instance assignment");
+            //    //Debug.LogError($"    4. Found combatControllers.name CombatController components - check logs above");
+
+            //    //// ✅ FALLBACK: Try to use any CombatController found
+            //    //if (allCombatControllers.Length > 0)
+            //    //{
+            //    //    Debug.LogWarning($"  ⚠️ Using fallback CombatController: {allCombatControllers[0].gameObject.name}");
+
+            //    //    allCombatControllers[0].InitializeCombat(
+            //    //        CombatContext.PlayerFleet,
+            //    //        CombatContext.EnemyFleet,
+            //    //        CombatContext.StarSystem);
+            //    //}
+            //}
             Debug.Log("=== LoadCombatSceneAdditive: Complete ===");
         }
 
@@ -270,7 +286,10 @@ namespace BOTF3D.GamePlay
                 SceneManager.SetActiveScene(galaxyScene);
                 Debug.Log("  ✅ Galaxy scene set as active");
             }
-
+            foreach (GameObject go in galaxyScene.GetRootGameObjects())
+            {
+                go.SetActive(true);
+            }
             // ✅ NEW: Re-enable galaxy EventSystem
             var galaxyEventSystem = UnityEngine.EventSystems.EventSystem.current;
             if (galaxyEventSystem != null && !galaxyEventSystem.enabled)
@@ -349,7 +368,15 @@ namespace BOTF3D.GamePlay
         public void UnloadCombatScene()
         {
             Debug.Log("=== UnloadCombatScene: Starting ===");
+            Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+            SceneManager.UnloadSceneAsync(combatScene);
 
+            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+
+            foreach (GameObject go in galaxyScene.GetRootGameObjects())
+            {
+                go.SetActive(true);
+            }
             // ✅ 1. SHOW GALAXY SCENE
             if (!string.IsNullOrEmpty(previousSceneName))
             {
@@ -410,13 +437,13 @@ namespace BOTF3D.GamePlay
     {
         public static FleetController PlayerFleet { get; set; }
         public static FleetController EnemyFleet { get; set; }
-        public static StarSysController CombatLocation { get; set; }
+        public static StarSysController StarSystem { get; set; }
 
         public static void Clear()
         {
             PlayerFleet = null;
             EnemyFleet = null;
-            CombatLocation = null;
+            StarSystem = null;
         }
     }
 }

@@ -13,7 +13,8 @@ namespace BOTF3D.Core
         public CivEnum CivEnumSideTwo;
         public CivController sideOneCiv;
         public CivController sideTwoCiv;
-        public string Name;
+        public CombatType CombatType;
+        public int CombatID;
         public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
         public List<ShipController> SideTwoShipCons = new List<ShipController>();
 
@@ -51,11 +52,11 @@ namespace BOTF3D.Core
 
         public List<GameObject> combatShips; // for CameraMultiTarget to use for camera targets
 
-        //public GameObject Friend_0; // prefab empty gameobject to clone instantiat into the grids
+        //public GameObject Friend_0; // prefab empty game object to clone instantiate into the grids
         //public GameObject Enemy_0;
 
 
-        // ****** Use a running count of ships by type for shipGameOb starting locaitons, reset to zero on enterying first enemy
+        // ****** Use a running count of ships by type for shipGameOb starting locations, reset to zero on entering first enemy
         int _scoutShips = 0;
         int _destroyerShips = 0;
         int _capitalShips = 0;
@@ -77,7 +78,6 @@ namespace BOTF3D.Core
             sideTwoCiv = null;
             SideOneShipCons = new List<ShipController>();
             SideTwoShipCons = new List<ShipController>();
-            Name = "CombatData";
         }
     }
 }

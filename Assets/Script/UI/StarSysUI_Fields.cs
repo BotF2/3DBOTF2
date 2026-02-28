@@ -323,8 +323,8 @@ public class StarSysUI_Fields : MonoBehaviour
 
     private void OnDestroy()
     {
-        Debug.LogError($"❌❌❌ StarSysUI_Fields '{gameObject.name}' IS BEING DESTROYED!");
-        Debug.LogError($"  System name: {sysName?.text ?? "UNKNOWN"}");
-        Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
+        //Debug.LogError($"❌❌❌ StarSysUI_Fields '{gameObject.name}' IS BEING DESTROYED!");
+        //Debug.LogError($"  System name: {sysName?.text ?? "UNKNOWN"}");
+        //Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
     }
 }

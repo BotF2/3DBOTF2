@@ -142,20 +142,37 @@ namespace BOTF3D.GamePlay
         }
         public void Combat(DiplomacyController diplomacyController)
         {
-            if (diplomacyController.DiplomacyData.CombatIntiated != true)
+            // ToDo: include orbital batteries and shields in combat, see ValidCombatCheck()
+            if (diplomacyController.DiplomacyData.CombatIntiated != true && ValidCombatCheck(diplomacyController.DiplomacyData))
             {
+
                 diplomacyController.DiplomacyData.CombatIntiated = true;
 
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
 
-                // ✅ FIXED: Pass the three required parameters from DiplomacyData
                 SceneController.Instance.LoadCombatScene(
                     diplomacyController.DiplomacyData.FleetControllerCivOne,
-                    diplomacyController.DiplomacyData.FleetContollerCivTwo, // Note: has typo in DiplomacyData
+                    diplomacyController.DiplomacyData.FleetContollerCivTwo,
                     diplomacyController.DiplomacyData.StarSysController
                 );
             }
             //*******load combat menu for local player and do AI civs
+        }
+
+        private bool ValidCombatCheck(DiplomacyData diplomacyData)
+        {
+            bool _result = false;
+            if ((diplomacyData.FleetControllerCivOne != null && diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0) &&
+                (diplomacyData.FleetContollerCivTwo != null && diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0))
+                _result = true;
+            if ((diplomacyData.FleetControllerCivOne != null && diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0) &&
+                (diplomacyData.StarSysController != null && diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0))
+                _result = true;
+            if ((diplomacyData.FleetContollerCivTwo != null && diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0) &&
+                (diplomacyData.StarSysController != null && diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0))
+                _result = true;
+
+            return _result;
         }
 
         internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)

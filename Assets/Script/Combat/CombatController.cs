@@ -291,7 +291,7 @@ namespace BOTF3D.GamePlay
                 }
             }
 
-            // ✅ Clear temp fog revealer (not per-fleet, just a temp reference)
+            // ✅ Clear temp fog reveler (not per-fleet, just a temp reference)
             if (FleetManager.Instance != null && FleetManager.Instance.TempFogRevealerFleet != null)
             {
                 Debug.Log("  Clearing TempFogRevealerFleet reference");
@@ -353,7 +353,7 @@ namespace BOTF3D.GamePlay
             {
                 ShipCombatCanvas = FindAnyObjectByType<Canvas>();
             }
-            ShipCombatCanvas.worldCamera = SceneController.Instance.ShipCombatCameraGO.GetComponent<Camera>();
+            ShipCombatCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
             int currentTransportIndex1 = -1;
             int currentTransportIndex2 = -1;
             int currentOtherShipIndex1 = -1;
@@ -382,12 +382,12 @@ namespace BOTF3D.GamePlay
                 shipConList[i].transform.localScale = Vector3.one;
                 shipConList[i].name = shipConList[i].ShipData.ShipName;
                 shipConList[i].gameObject.SetActive(true);
-                //********** Healthbar code here for now *************
+                //********** Health bar code here for now *************
                 GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab,
                     shipConList[i].transform.position, Quaternion.identity, ShipCombatCanvas.transform);
                 healthbarGO.SetActive(true);
                 healthbarGO.transform.SetParent(shipConList[i].transform, false);
-                healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0); // below ship model and closer to camcera
+                healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0); // below ship model and closer to camera
                 healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // scale down to fit ship model
                 healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0); // face off the side of the ship model
                 Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
@@ -575,7 +575,7 @@ namespace BOTF3D.GamePlay
                                 closestB = shipListTargets[j];
                             }
                         }
-                        // ********** do not know why the raycast is not working, want to check with raycast for one of our ships getting in the way
+                        // ********** do not know why the ray cast is not working, want to check with ray cast for one of our ships getting in the way
                         //else if (Physics.Raycast(safeOrigin, dir, out RaycastHit realHit, dist, 9, QueryTriggerInteraction.Collide))
                         //{
 
@@ -627,7 +627,7 @@ namespace BOTF3D.GamePlay
 
         public void RunAnimation()
         {
-            // combat warpin animation runs when ship prefab is instantiated, Start() function of animator script is called
+            // combat warp-in animation runs when ship prefab is instantiated, Start() function of animator script is called
 
             WarpingIn = true;
             WarpingAnimationOver = false;
@@ -711,7 +711,7 @@ namespace BOTF3D.GamePlay
             BeginPhysicsLikeMovement();
             for (int i = 0; i < healthbarRenderers.Count; i++)
             {
-                healthbarRenderers[i].SetActive(true); // make sure healthbars are visible after warp in
+                healthbarRenderers[i].SetActive(true); // make sure health bars are visible after warp in
             }
             WarpingAnimationOver = true;
             WarpingIn = false;
