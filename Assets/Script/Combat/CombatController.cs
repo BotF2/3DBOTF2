@@ -1,4 +1,5 @@
 ﻿using BOTF3D.Core;
+using BOTF3D.UI;
 using Mirror;
 using System;
 using System.Collections;
@@ -24,7 +25,6 @@ namespace BOTF3D.GamePlay
         private CombatData combatData;
         public Canvas ShipCombatCanvas;
         public CombatData CombatData { get { return combatData; } set { combatData = value; } }
-
 
         public List<Vector2Int> spiralPositions = new List<Vector2Int>();
         public List<Animator> animators; // Assign in Inspector or dynamically
@@ -124,15 +124,31 @@ namespace BOTF3D.GamePlay
             }
             if (!isClosing)
             {
-                if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
+                if (CombatData != null &&
+                    CombatData.SideOneShipCons != null &&
+                    CombatData.SideTwoShipCons != null)
                 {
-                    isClosing = true;
-                    CombatUIController.Instance.RunCombatOverPanel();
-                    StartCoroutine(DelayedActionSomeSec());
+                    // Clean up null/destroyed ships from lists
+                    CombatData.SideOneShipCons.RemoveAll(s => s == null || s.gameObject == null);
+                    CombatData.SideTwoShipCons.RemoveAll(s => s == null || s.gameObject == null);
+
+                    if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
+                    {
+                        isClosing = true;
+                        Debug.Log($"Combat ending - Side 1: {CombatData.SideOneShipCons.Count}, Side 2: {CombatData.SideTwoShipCons.Count}");
+
+                        if (CombatUIController.Instance != null)
+                        {
+                            CombatUIController.Instance.RunCombatOverPanel();
+                        }
+
+                        StartCoroutine(DelayedActionSomeSec());
+                    }
                 }
             }
 
         }
+
         public void BeginPhysicsLikeMovement()
         {
             moveDirections.Clear();
@@ -212,16 +228,51 @@ namespace BOTF3D.GamePlay
         /// <summary>
         /// Call this when combat ends - destroys fleets with no ships left
         /// </summary>
-        public void EndCombat(FleetController winner = null)
+        public void EndCombat()
         {
             Debug.Log("=== EndCombat: Starting cleanup ===");
 
-            // Get all fleets involved in combat from CombatData
+            // ✅ CRITICAL: Hide/destroy combat ship visuals FIRST
+            if (CombatData != null)
+            {
+                // Hide all side one ships
+                if (CombatData.SideOneShipCons != null)
+                {
+                    foreach (var ship in CombatData.SideOneShipCons)
+                    {
+                        if (ship != null && ship.gameObject != null)
+                        {
+                            var boxCollider = ship.GetComponent<BoxCollider>();
+                            if (boxCollider != null) Destroy(boxCollider);
+
+                            ship.gameObject.SetActive(false);
+                            ship.transform.SetParent(null);
+                        }
+                    }
+                }
+
+                // Hide all side two ships
+                if (CombatData.SideTwoShipCons != null)
+                {
+                    foreach (var ship in CombatData.SideTwoShipCons)
+                    {
+                        if (ship != null && ship.gameObject != null)
+                        {
+                            var boxCollider = ship.GetComponent<BoxCollider>();
+                            if (boxCollider != null) Destroy(boxCollider);
+
+                            ship.gameObject.SetActive(false);
+                            ship.transform.SetParent(null);
+                        }
+                    }
+                }
+            }
+
+            // Get all fleets involved in combat
             var allCombatFleets = new List<FleetController>();
 
             if (CombatData != null)
             {
-                // Add all side one ships' fleets
                 if (CombatData.SideOneShipCons != null)
                 {
                     foreach (var ship in CombatData.SideOneShipCons)
@@ -236,7 +287,6 @@ namespace BOTF3D.GamePlay
                     }
                 }
 
-                // Add all side two ships' fleets
                 if (CombatData.SideTwoShipCons != null)
                 {
                     foreach (var ship in CombatData.SideTwoShipCons)
@@ -254,53 +304,47 @@ namespace BOTF3D.GamePlay
 
             Debug.Log($"  Found {allCombatFleets.Count} unique fleets in combat");
 
-            // Check each fleet - destroy if no ships left
+            // Destroy empty fleets
             foreach (var fleet in allCombatFleets)
             {
-                if (fleet == null)
-                {
-                    Debug.Log("  Skipping null fleet reference");
-                    continue;
-                }
+                if (fleet == null) continue;
 
-                if (fleet.FleetData == null)
-                {
-                    Debug.LogWarning($"  Fleet '{fleet.name}' has null FleetData - destroying anyway");
-                    if (FleetManager.Instance != null)
-                    {
-                        FleetManager.Instance.DestroyFleetController(fleet);
-                    }
-                    continue;
-                }
-
-                int shipCount = fleet.FleetData.ShipsList?.Count ?? 0;
+                int shipCount = fleet.FleetData?.ShipsList?.Count ?? 0;
                 Debug.Log($"  Fleet '{fleet.name}': {shipCount} ships remaining");
 
                 if (shipCount == 0)
                 {
                     Debug.Log($"  ✅ Destroying empty fleet '{fleet.name}'");
-
                     if (FleetManager.Instance != null)
                     {
                         FleetManager.Instance.DestroyFleetController(fleet);
                     }
                 }
-                else
-                {
-                    Debug.Log($"  ✅ Keeping fleet '{fleet.name}' with {shipCount} ships");
-                }
             }
 
-            // ✅ Clear temp fog reveler (not per-fleet, just a temp reference)
+            // ✅ Clear temp fog revealer
             if (FleetManager.Instance != null && FleetManager.Instance.TempFogRevealerFleet != null)
             {
-                Debug.Log("  Clearing TempFogRevealerFleet reference");
                 FleetManager.Instance.TempFogRevealerFleet = null;
             }
 
+            // ✅ Destroy CombatUICanvas
+            if (ShipCombatCanvas != null)
+            {
+                Destroy(ShipCombatCanvas.gameObject);
+                Debug.Log("  Destroyed CombatUICanvas");
+            }
+
+            // ✅ Destroy all health bars
+            foreach (var hb in healthbarRenderers)
+            {
+                if (hb != null) Destroy(hb);
+            }
+            healthbarRenderers.Clear();
+
             Debug.Log("=== EndCombat: Cleanup complete ===");
 
-            // ✅ Return to galaxy - unload combat scene
+            // ✅ Unload combat scene
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
             if (combatScene.isLoaded)
             {
@@ -308,14 +352,30 @@ namespace BOTF3D.GamePlay
                 Debug.Log("  Unloaded combat scene");
             }
 
-            // Re-enable galaxy camera if it exists
+            SceneController.Instance.UnloadCombatScene();
+            SceneController.Instance.ReturnToGalaxyFromCombat();
+
+            // ✅ Re-enable galaxy camera
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
-                GalaxyCameraDragMoveZoom.Instance.enabled = true;
-                Debug.Log("  Re-enabled galaxy camera");
+                var galaxyCam = GalaxyCameraDragMoveZoom.Instance.GetComponent<Camera>();
+                if (galaxyCam != null)
+                {
+                    galaxyCam.enabled = true;
+                    Debug.Log($"  Galaxy camera enabled: {galaxyCam.enabled}");
+                }
+                GalaxyCameraDragMoveZoom.Instance.EnableCameraControl();
             }
 
-            // Resume time if paused
+            // ✅ Hide star system UI when returning from combat
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO(); // ✅ This method exists!
+                StarSysMenuUIController.Instance.HideA_SystemMenuView(); // ✅ And this!
+                Debug.Log("  Closed star system UI");
+            }
+
+            // Resume time
             if (TimeManager.Instance != null)
             {
                 TimeManager.Instance.ResumeTime();
@@ -756,7 +816,8 @@ namespace BOTF3D.GamePlay
             Debug.Log($"  Player fleet: {(playerFleet != null ? playerFleet.name : "NULL")}");
             Debug.Log($"  Enemy fleet: {(enemyFleet != null ? enemyFleet.name : "NULL")}");
             Debug.Log($"  Location: {(combatLocation != null ? combatLocation.name : "NULL")}");
-
+            // Reset closing flag for new combat
+            isClosing = false;
             if (playerFleet == null || enemyFleet == null)
             {
                 Debug.LogError("InitializeCombat: One or both fleets are null! Cannot start combat.");

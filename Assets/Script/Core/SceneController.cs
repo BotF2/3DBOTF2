@@ -1,3 +1,5 @@
+// Ignore Spelling: BOTF
+
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
@@ -86,34 +88,14 @@ namespace BOTF3D.GamePlay
         /// </summary>
         public void LoadCombatScene(FleetController playerFleet, FleetController enemyFleet, StarSysController starSysCon)
         {
+            Debug.Log("=== SceneController: LoadCombatScene ===");
 
-            // ✅ 1. Pause galaxy time
-            if (TimeManager.Instance != null)
+            // ✅ Hide diplomacy UI before combat (use EXISTING method)
+            if (DiplomacyMenuUIController.Instance != null)
             {
-                TimeManager.Instance.PauseTime();
-                Debug.Log("  Paused galaxy time");
-            }
-
-            // ✅ 2. Hide all galaxy UIs
-            if (GalaxyMenuUIController.Instance != null)
-            {
-                GalaxyMenuUIController.Instance.CloseAllMenus();
-                Debug.Log("  Closed all galaxy menus");
-            }
-
-            // ✅ 3. Disable galaxy camera
-            if (GalaxyCameraDragMoveZoom.Instance != null)
-            {
-                GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>().enabled = false;
-                Debug.Log("  Disabled galaxy camera");
-            }
-
-            // ✅ NEW: Disable galaxy EventSystem to prevent conflicts
-            var galaxyEventSystem = UnityEngine.EventSystems.EventSystem.current;
-            if (galaxyEventSystem != null)
-            {
-                galaxyEventSystem.enabled = false;
-                Debug.Log($"  ✅ Disabled galaxy EventSystem: {galaxyEventSystem.gameObject.name}");
+                DiplomacyMenuUIController.Instance.HideA_DiplomacyMenuView(); // ✅ This exists!
+                DiplomacyMenuUIController.Instance.HideDiplomacyMenuView(); // ✅ And this!
+                Debug.Log("  Closed diplomacy UI");
             }
             List<ShipController> shipControllers1 = new List<ShipController>();
             List<ShipController> shipControllers2 = new List<ShipController>();
@@ -139,13 +121,7 @@ namespace BOTF3D.GamePlay
                 combatType = CombatType.StarSystemCombat;
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }
-
-            // ✅ 4. Store combat context
-            CombatContext.PlayerFleet = playerFleet;
-            CombatContext.EnemyFleet = enemyFleet;
-            CombatContext.StarSystem = starSysCon;
-
-            // ✅ 5. Load combat scene
+            // Start combat scene load coroutine
             StartCoroutine(LoadCombatSceneAdditive(shipControllers1, shipControllers2, combatType));
         }
 
@@ -228,26 +204,6 @@ namespace BOTF3D.GamePlay
                     CombatContext.EnemyFleet,
                     CombatContext.StarSystem);
             }
-            //else
-            //{
-            //    //Debug.LogError("  ❌ CombatController.Instance is STILL NULL!");
-            //    //Debug.LogError("  DIAGNOSIS:");
-            //    //Debug.LogError("    1. Check if 'CombatController' GameObject exists in CombatScene");
-            //    //Debug.LogError("    2. Check if CombatController script is attached to it");
-            //    //Debug.LogError("    3. Check if Awake() has errors preventing Instance assignment");
-            //    //Debug.LogError($"    4. Found combatControllers.name CombatController components - check logs above");
-
-            //    //// ✅ FALLBACK: Try to use any CombatController found
-            //    //if (allCombatControllers.Length > 0)
-            //    //{
-            //    //    Debug.LogWarning($"  ⚠️ Using fallback CombatController: {allCombatControllers[0].gameObject.name}");
-
-            //    //    allCombatControllers[0].InitializeCombat(
-            //    //        CombatContext.PlayerFleet,
-            //    //        CombatContext.EnemyFleet,
-            //    //        CombatContext.StarSystem);
-            //    //}
-            //}
             Debug.Log("=== LoadCombatSceneAdditive: Complete ===");
         }
 
@@ -368,6 +324,7 @@ namespace BOTF3D.GamePlay
         public void UnloadCombatScene()
         {
             Debug.Log("=== UnloadCombatScene: Starting ===");
+
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
             SceneManager.UnloadSceneAsync(combatScene);
 
@@ -385,10 +342,11 @@ namespace BOTF3D.GamePlay
             }
 
             // ✅ 2. SHOW GALAXY CAMERA
-            var galaxyCamera = GetGalaxyCameraDragNDrop();
-            if (galaxyCamera != null)
+            var galaxyCameraDandD = GetGalaxyCameraDragNDrop();
+            if (galaxyCameraDandD != null)
             {
-                galaxyCamera.SetActive(true);
+                galaxyCameraDandD.SetActive(true);
+                GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>().enabled = true;
                 Debug.Log("  ✅ Galaxy camera shown");
             }
 

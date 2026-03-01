@@ -444,7 +444,7 @@ namespace BOTF3D.UI
                 }
             }
 
-            // Move from SysListContainer (scrollable list view)
+            // Move from SysListContainer (scalable list view)
             if (SysListContainer != null && SysListContainer != homeContainer)
             {
                 for (int i = SysListContainer.transform.childCount - 1; i >= 0; i--)
@@ -543,14 +543,6 @@ namespace BOTF3D.UI
             {
                 PowerOverloadImage = sysUIFieldElement.PowerOverload;
             }
-        }
-
-        public void MoveBackToListContainer(StarSysController theSysCon)
-        {
-            if (theSysCon == null || theSysCon.StarSysUIGameObject == null) return;
-
-            // Move back to list - keep alive
-            theSysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
         }
 
         public void CloseBuildingQueues()
@@ -1253,7 +1245,7 @@ namespace BOTF3D.UI
                     }
                 }
 
-                ASystemMenuView.SetActive(false);
+                ASystemMenuView.SetActive(false); // ✅ Hide the view
             }
 
             // Move from SysListContainer (scrollable list view)
@@ -1272,6 +1264,26 @@ namespace BOTF3D.UI
                         Debug.Log($"    Moving SYSTEM UI '{child.name}' to home storage");
                         child.SetParent(homeContainer.transform, false);
                         child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate!
+                    }
+                }
+            }
+
+            // ✅ CRITICAL: Also check home storage itself and deactivate any active children
+            if (homeContainer != null)
+            {
+                Debug.Log($"  Checking home storage ({homeContainer.transform.childCount} children)");
+
+                for (int i = 0; i < homeContainer.transform.childCount; i++)
+                {
+                    var child = homeContainer.transform.GetChild(i);
+                    if (child != null && child.gameObject.activeSelf)
+                    {
+                        var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
+                        if (starSysUIFields != null)
+                        {
+                            Debug.Log($"    Deactivating SYSTEM UI '{child.name}' in home storage");
+                            child.gameObject.SetActive(false); // ✅ DEACTIVATE!
+                        }
                     }
                 }
             }
