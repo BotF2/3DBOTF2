@@ -1,4 +1,6 @@
-﻿using BOTF3D.Core;
+﻿// Ignore Spelling: BOTF
+
+using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System;
 using System.Collections;
@@ -835,7 +837,12 @@ namespace BOTF3D.UI
                         if (targetParent != null)
                         {
                             shipUI.transform.SetParent(targetParent, false);
-                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from TopSlot to owner");
+                            shipUI.SetActive(true); // ✅ CRITICAL: Ensure ship UI is active after reparenting
+                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from TopSlot to owner and activated");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"❌ Cannot reparent ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' - no target parent found! CurrentFleet={(shipUIItem.CurrentFleet?.name ?? "NULL")}, CurrentStarSyst={(shipUIItem.CurrentStarSyst?.name ?? "NULL")}");
                         }
                     }
                 }
@@ -863,7 +870,12 @@ namespace BOTF3D.UI
                         if (targetParent != null)
                         {
                             shipUI.transform.SetParent(targetParent, false);
-                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from BottomSlot to owner");
+                            shipUI.SetActive(true); // ✅ CRITICAL: Ensure ship UI is active after reparenting
+                            Debug.Log($"Reparented ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' from BottomSlot to owner and activated");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"❌ Cannot reparent ship UI '{shipUIItem.ShipController?.ShipData?.ShipName}' - no target parent found! CurrentFleet={(shipUIItem.CurrentFleet?.name ?? "NULL")}, CurrentStarSyst={(shipUIItem.CurrentStarSyst?.name ?? "NULL")}");
                         }
                     }
                 }

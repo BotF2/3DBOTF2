@@ -346,7 +346,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                 {
                     lastCameraPosition = transform.position;
                     transform.position = new Vector3(listStarSystems[i].transform.position.x,
-                        listStarSystems[i].transform.position.y + 150f, listStarSystems[i].transform.position.z - 300f);
+                        listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z - 350f);
                     homePosition = transform.position;
                     foundHomePosition = true;
                     atHomePosition = true;

@@ -423,7 +423,7 @@ namespace BOTF3D.UI
 
             MousePointerChanger.Instance.ResetCursor();
 
-            // CRITICAL FIX: Ensure star system has ShipListUIParent set up
+            // ✅ CRITICAL: Ensure star system has ShipListUIParent set up
             if (starSystCon.StarSysData.ShipListUIParent == null)
             {
                 Debug.LogWarning($"Star system '{starSystCon.name}' missing ShipListUIParent - setting it up now");
@@ -440,35 +440,41 @@ namespace BOTF3D.UI
                 }
             }
 
+            // ✅ CRITICAL: Ensure NEW fleet has ShipListUIParent set up BEFORE opening panel
+            if (newFleet.FleetData.ShipListUIParent == null)
+            {
+                Debug.LogWarning($"New fleet '{newFleet.name}' missing ShipListUIParent - setting it up now");
+
+                var uiFields = newFleet.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                if (uiFields != null && uiFields.FleetShipContentGO != null)
+                {
+                    newFleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                    Debug.Log($"✅ Set ShipListUIParent for new fleet '{newFleet.name}': {uiFields.FleetShipContentGO.name}");
+                }
+                else
+                {
+                    Debug.LogError($"❌ Cannot find FleetShipContentGO for new fleet '{newFleet.name}'! uiFields={(uiFields != null ? "EXISTS" : "NULL")}");
+                }
+            }
+
             shipDeployMenuUIController.gameObject.SetActive(true);
             shipDeployMenuUIController.ShowShipDeployMenuView();
 
             // Set up TopSlot with star system's ships - cast to resolve namespace issue
             shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<BOTF3D.GamePlay.ShipController>().ToList());
 
-            // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
+            // Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
             shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
 
-            // ✅ CRITICAL: Use ASystemMenuView since we're deploying FROM a system
             var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
             if (starSystCon.StarSysUIGameObject != null)
             {
                 starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
             }
-
-            // ✅ NEW: Mark the system UI so we know it should NOT be moved to fleet containers
-            var systemChildController = starSystCon.StarSysUIGameObject?.GetComponent<FleetAndSystemChildController>();
-            if (systemChildController != null)
-            {
-                // Store that this is a SYSTEM UI, not a fleet UI
-                systemChildController.OriginalParentTransform = StarSysMenuUIController.Instance.SysListContainer?.transform;
-            }
-
-            // Parent the NEW FLEET UI to the same container (ASystemMenuView)
             newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
 
-            Debug.Log($"ShowShipDeployForSystemNewFleet: TopStarSyst ShipListUIParent={(starSystCon.StarSysData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(shipDeployMenuUIController.BottomFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
+            Debug.Log($"ShowShipDeployForSystemNewFleet: TopStarSyst ShipListUIParent={(starSystCon.StarSysData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
         }
         internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
         {

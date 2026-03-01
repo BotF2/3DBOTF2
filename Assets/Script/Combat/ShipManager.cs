@@ -1,4 +1,6 @@
-﻿using BOTF3D.GamePlay;
+﻿// Ignore Spelling: BOTF
+
+using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections.Generic;
 using System.Linq;
