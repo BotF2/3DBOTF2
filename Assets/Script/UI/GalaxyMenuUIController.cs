@@ -51,8 +51,8 @@ namespace BOTF3D.UI
         private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
         private ShipDeployMenuUIController shipDeployMenuUIController => ShipDeployMenuUIController.Instance;
 
-        [SerializeField]
-        private GameObject aSystemShipContainer;
+        //[SerializeField]
+        //private GameObject aSystemShipContainer;
         [SerializeField]
         private GameObject sysBuildMenu;
         [SerializeField]
@@ -183,16 +183,6 @@ namespace BOTF3D.UI
             if (intelBackground != null) intelBackground.SetActive(false);
             if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
             if (habitableSysMenu != null) habitableSysMenu.SetActive(false);
-
-            // ✅ CHANGED: Wire the Ship Deploy panel's close button to CloseShipDeploy() 
-            // which now properly commits changes first
-            if (saveShipDelployButton != null)
-            {
-                saveShipDelployButton.gameObject.SetActive(true);
-                saveShipDelployButton.onClick.RemoveAllListeners();
-                saveShipDelployButton.onClick.AddListener(() => this.CloseShipDeploy());
-                Debug.Log("✅ Ship Deploy Close Button wired to CloseShipDeploy()");
-            }
 
             HideShipDeployMenu();
             diplomacyControllers = new List<DiplomacyController>();
@@ -375,7 +365,7 @@ namespace BOTF3D.UI
                 InitializeGalaxyCamera();
             }
 
-            CloseShipDeploy();
+            CloseShipDeployMenu();
             OpenMenu(Menu.SystemsMenu, gameObject);
 
             Debug.Log("=== SystemButtonPressed: Complete ===");
@@ -591,17 +581,17 @@ namespace BOTF3D.UI
 
         public void FleetButtonPressed() // The CanvasGalaxyMenuRibbon/MainGalaxyMenuPanel/FleetButton in the Hierarchy is set to this class.method
         {
-            CloseShipDeploy();
+            CloseShipDeployMenu();
             OpenMenu(Menu.FleetMenu, gameObject);
         }
         public void DiplomacyButtonPressed()
         {
-            CloseShipDeploy();
+            CloseShipDeployMenu();
             OpenMenu(Menu.DiplomacyMenu, gameObject);
         }
         public void IntelButtonPressed()
         {
-            CloseShipDeploy();
+            CloseShipDeployMenu();
             if (intelMenuView.activeSelf)
                 CloseMenu(Menu.IntellMenu);
             else
@@ -613,7 +603,7 @@ namespace BOTF3D.UI
         }
         public void EncyclopediaButtonPressed()
         {
-            CloseShipDeploy();
+            CloseShipDeployMenu();
             if (encyclopediaMenuView.activeSelf)
                 CloseMenu(Menu.EncyclopedianMenu);
             else
@@ -623,9 +613,9 @@ namespace BOTF3D.UI
         }
 
         // jump to Home System is in GalaxyCameraDragMoveZoom.cs
-        public void CloseShipDeploy()
+        public void CloseShipDeployMenu()
         {
-            Debug.Log("=== CloseShipDeploy: Starting ===");
+            Debug.Log("=== CloseShipDeployMenu: Starting ===");
 
             // ✅ CRITICAL: If ship deploy panel is open, COMMIT changes first!
             if (ShipDeployMenuUIController.Instance != null &&
@@ -649,10 +639,10 @@ namespace BOTF3D.UI
                         Debug.Log("  Mode: MERGE");
                         ShipDeployMenuUIController.Instance.CommitMergeAndClose(AfterCommitCleanup);
                     }
-                    else
+                    else  // ✅ UNCOMMENTED!
                     {
                         Debug.Log("  Mode: DEPLOY/NEW FLEET");
-                        ShipDeployMenuUIController.Instance.CommitShipDeployForNewFleetAndClose(AfterCommitCleanup);
+                        ShipDeployMenuUIController.Instance.CommitShipDeployAndClose(AfterCommitCleanup);
                     }
                 }
                 else
@@ -1367,17 +1357,15 @@ namespace BOTF3D.UI
             CloseTheBackgrounds();
 
             // Close ship deploy if open
-            CloseShipDeploy();
+            CloseShipDeployMenu();
 
             // Deactivate any open menu views
+
             if (sysBuildMenu != null && sysBuildMenu.activeSelf)
                 sysBuildMenu.SetActive(false);
 
             if (habitableSysMenu != null && habitableSysMenu.activeSelf)
                 habitableSysMenu.SetActive(false);
-
-            if (aSystemShipContainer != null && aSystemShipContainer.activeSelf)
-                aSystemShipContainer.SetActive(false);
 
             if (diplomacyNoContacts != null && diplomacyNoContacts.activeSelf)
                 diplomacyNoContacts.SetActive(false);
@@ -1429,7 +1417,7 @@ namespace BOTF3D.UI
                 case Menu.ShipDeployMenu:
                     // ✅ CHANGED: Don't call MoveBackShipUIGO here - it happens in CloseShipDeploy
                     // which already commits changes
-                    Debug.Log("CloseMenu(ShipDeployMenu): Skipping - should use CloseShipDeploy() instead");
+                    Debug.Log("CloseMenu(ShipDeployMenu): Skipping - should use CloseShipDeployMenu() instead");
                     openMenuWas = shipDeployMenuUIController?.gameObject;
                     break;
                 case Menu.DiplomacyMenu:

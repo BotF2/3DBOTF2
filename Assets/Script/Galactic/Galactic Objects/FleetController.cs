@@ -301,7 +301,7 @@ namespace BOTF3D.GamePlay
                         ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
                         ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
                     {
-                        GalaxyMenuUIController.Instance.CloseShipDeploy();
+                        GalaxyMenuUIController.Instance.CloseShipDeployMenu();
                     }
                     HandleNormalClick(clickedFleetCon);
                     break;

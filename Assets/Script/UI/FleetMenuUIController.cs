@@ -544,6 +544,7 @@ namespace BOTF3D.UI
                 else
                 {
                     // Use proper commit flow for deploy/new fleet
+                    //sd.CommitShipDeployAndClose(CancelShipManageAfterCommit);
                     sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
                 }
                 return;

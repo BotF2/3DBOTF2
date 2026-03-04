@@ -961,7 +961,6 @@ namespace BOTF3D.UI
         }
         private void CleanupDestroyedOrInactiveUIs()
         {
-            // ✅ CHANGED: Only remove destroyed references, NOT inactive ones
             // Inactive UIs are VALID - they're just in hidden containers
             listOfStarSysUiGos.RemoveAll(go => go == null);
 
@@ -1063,9 +1062,10 @@ namespace BOTF3D.UI
                 }
                 else
                 {
-                    // Use proper commit flow for deploy/new fleet
+                    // Use deploy commit for normal deploy operations
                     sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
                 }
+
                 return;
             }
 

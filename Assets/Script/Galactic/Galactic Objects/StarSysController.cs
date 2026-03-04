@@ -238,7 +238,7 @@ namespace BOTF3D.GamePlay
                         ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
                         ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
                     {
-                        galaxyUI.CloseShipDeploy();
+                        galaxyUI.CloseShipDeployMenu();
                     }
                     HandleNormalClick(clickedSystemCon);
                     break;
@@ -401,14 +401,14 @@ namespace BOTF3D.GamePlay
                     StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
                     StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
 
-                    // Update minimap position for LOOKING system
+                    // Update mini map position for LOOKING system
                     var lookingSysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                     if (lookingSysUIFields != null && lookingSysUIFields.redDot != null)
                     {
                         lookingSysUIFields.redDot.anchoredPosition = new Vector2(
                             starSysLooking.StarSysData.GetPosition().x * 0.12f,
                             starSysLooking.StarSysData.GetPosition().z * 0.12f);
-                        Debug.Log($"Updated minimap for LOOKING system '{starSysLooking.name}'");
+                        Debug.Log($"Updated mini map for LOOKING system '{starSysLooking.name}'");
                     }
                 }
 
@@ -424,14 +424,14 @@ namespace BOTF3D.GamePlay
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
 
-                // Update minimap position for THIS system
+                // Update mini map position for THIS system
                 var thisSysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (thisSysUIFields != null && thisSysUIFields.redDot != null)
                 {
                     thisSysUIFields.redDot.anchoredPosition = new Vector2(
                         this.StarSysData.GetPosition().x * 0.12f,
                         this.StarSysData.GetPosition().z * 0.12f);
-                    Debug.Log($"Updated minimap for clicked system '{this.name}'");
+                    Debug.Log($"Updated mini map for clicked system '{this.name}'");
                 }
             }
             else if (fleetLooking != null && starSysLooking == null)
@@ -460,14 +460,14 @@ namespace BOTF3D.GamePlay
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
 
-                // Update minimap position
+                // Update mini map position
                 var sysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (sysUIFields != null && sysUIFields.redDot != null)
                 {
                     sysUIFields.redDot.anchoredPosition = new Vector2(
                         this.StarSysData.GetPosition().x * 0.12f,
                         this.StarSysData.GetPosition().z * 0.12f);
-                    Debug.Log($"Updated minimap for system '{this.name}' in fleet-to-system deploy");
+                    Debug.Log($"Updated mini map for system '{this.name}' in fleet-to-system deploy");
                 }
             }
 
@@ -518,7 +518,7 @@ namespace BOTF3D.GamePlay
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
             //SettingUpNewFleet = false;
-            GalaxyUI.CloseShipDeploy();
+            GalaxyUI.CloseShipDeployMenu();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
             {
