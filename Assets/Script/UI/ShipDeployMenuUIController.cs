@@ -776,51 +776,10 @@ namespace BOTF3D.UI
             Debug.Log($"=== CommitShipDeployForNewFleetAndClose START ===");
             Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}, TopStarSyst={TopStarSyst?.name}");
 
+            // ✅ DON'T rebuild lists - drag/drop already moved ships correctly!
+            // DeployShipsUIGOToNewFleetOrSystem(); // ❌ REMOVED - this loses ships!
+
             // ✅ Just update max warp for affected fleets
-            gameObject.SetActive(true);
-            // ✅ Use coroutine to wait two frames as per copilot instructions
-            StartCoroutine(CommitShipDeployForNewFleetCoroutine(onCommitComplete));
-        }
-
-        private IEnumerator CommitShipDeployForNewFleetCoroutine(Action onCommitComplete)
-        {
-            Debug.Log($"=== COMMIT (New Fleet) START ===");
-            Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}");
-
-            // ✅ CRITICAL: Wait two frames before normalizing UI ownership and rebuilding lists
-            // (Per copilot-instructions.md: "When committing ship deploy, wait two frames")
-            yield return null; // Frame 1
-            yield return null; // Frame 2
-
-            Debug.Log($"=== COMMIT: After waiting two frames, now processing ===");
-
-            // Ensure any pending ShipManager parenting is attempted first
-            ShipManager.Instance?.ProcessPendingShipUIs();
-
-            // Force canvas/layout update
-            Canvas.ForceUpdateCanvases();
-            if (TopSlot != null)
-            {
-                var rt = TopSlot.GetComponent<RectTransform>();
-                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-            }
-            if (BottomSlot != null)
-            {
-                var rt = BottomSlot.GetComponent<RectTransform>();
-                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-            }
-
-            // Since ShipControllers are already correctly parented (via drag/drop AddToFleet/AddToStarSystem),
-            // we can rebuild UI parenting from the ShipController hierarchy
-            ReparentUIFromShipControllerHierarchy(TopFleet);
-            ReparentUIFromShipControllerHierarchy(BottomFleet);
-            ReparentUIFromShipControllerHierarchy(TopStarSyst);
-            ReparentUIFromShipControllerHierarchy(BottomStarSyst);
-
-            // ✅ Also ensure any ship UIs still in slots are moved to owners
-            ReparentShipUIsToOwners();
-
-            // Update fleet max warp
             if (TopFleet != null)
             {
                 try { TopFleet.UpdateMaxWarp(); } catch { }
@@ -832,20 +791,10 @@ namespace BOTF3D.UI
 
             Debug.Log($"=== CommitShipDeployForNewFleetAndClose COMPLETE - letting AfterCommitCleanup handle UI ===");
 
-<<<<<<< HEAD
             // ✅ Callback (AfterCommitCleanup) will:
             // - Move fleet/system UIs to storage
             // - Close all menu views
             // - Refresh ship UIs in containers
-=======
-            // Hide the deploy menu
-            HideShipDeployMenuView();
-            gameObject.SetActive(false);
-
-            Debug.Log($"=== COMMIT (New Fleet) END ===");
-
-            // Callback for after-commit cleanup
->>>>>>> 2d2118cc3135d2e60676394f695ea6ea7763d4e2
             onCommitComplete?.Invoke();
         }
 
@@ -854,60 +803,12 @@ namespace BOTF3D.UI
         /// </summary>
         public void CommitMergeAndClose(Action onCommitComplete)
         {
-<<<<<<< HEAD
             Debug.Log($"=== CommitMergeAndClose START ===");
             Debug.Log($"TopFleet={TopFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomFleet={BottomFleet?.name}, BottomStarSyst={BottomStarSyst?.name}");
 
-=======
-            gameObject.SetActive(true);
-            // ✅ Use coroutine to wait two frames as per copilot instructions
-            StartCoroutine(CommitMergeCoroutine(onCommitComplete));
-        }
+            // ✅ For merge, we DO need to move ships from BottomSlot to target
+            // (because all ships start in BottomSlot during merge setup)
 
-        private IEnumerator CommitMergeCoroutine(Action onCommitComplete)
-        {
-            Debug.Log($"=== COMMIT MERGE START ===");
-            Debug.Log($"TopFleet={TopFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomFleet={BottomFleet?.name}, BottomStarSyst={BottomStarSyst?.name}");
-
-            // ✅ CRITICAL: Wait two frames before normalizing UI ownership and rebuilding lists
-            // (Per copilot-instructions.md: "When committing ship deploy, wait two frames")
-            yield return null; // Frame 1
-            yield return null; // Frame 2
-
-            Debug.Log($"=== COMMIT MERGE: After waiting two frames, now processing ===");
-
-            // Ensure any pending ShipManager parenting is attempted first
-            ShipManager.Instance?.ProcessPendingShipUIs();
-
-            // Force canvas/layout update
-            Canvas.ForceUpdateCanvases();
-            if (TopSlot != null)
-            {
-                var rt = TopSlot.GetComponent<RectTransform>();
-                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-            }
-            if (BottomSlot != null)
-            {
-                var rt = BottomSlot.GetComponent<RectTransform>();
-                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
-            }
-
-            // Get all ships currently in BottomSlot
-            List<ShipController> shipsToMerge = new List<ShipController>();
-            for (int i = 0; i < BottomSlot.transform.childCount; i++)
-            {
-                var shipUI = BottomSlot.transform.GetChild(i).gameObject;
-                var shipUIItem = shipUI.GetComponent<ShipListUI_Item>();
-                if (shipUIItem != null && shipUIItem.ShipController != null)
-                {
-                    shipsToMerge.Add(shipUIItem.ShipController);
-                }
-            }
-
-            Debug.Log($"Found {shipsToMerge.Count} ships in BottomSlot to merge");
-
-            // Determine target (where ships will end up)
->>>>>>> 2d2118cc3135d2e60676394f695ea6ea7763d4e2
             FleetController targetFleet = BottomFleet;
             StarSysController targetSystem = BottomStarSyst;
 
