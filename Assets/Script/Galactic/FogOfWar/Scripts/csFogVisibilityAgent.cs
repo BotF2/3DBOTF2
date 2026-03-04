@@ -47,7 +47,6 @@ namespace FischlWorks_FogWar
 
         private void Start()
         {
-
             spriteRenderers = GetComponentsInChildren<SpriteRenderer>().ToList();
             lineRenderers = GetComponentsInChildren<LineRenderer>().ToList();
             //meshRenderers = GetComponentsInChildren<MeshRenderer>().ToList();
@@ -123,7 +122,4 @@ namespace FischlWorks_FogWar
         }
 #endif
     }
-
-
-
 }
