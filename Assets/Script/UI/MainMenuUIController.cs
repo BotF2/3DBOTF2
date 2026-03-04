@@ -22,7 +22,7 @@ namespace BOTF3D.UI
         /// We can try using (Mirror; with GameObject LocalPlayerCivEnum = NetworkClient.LocalPlayerCivEnum.gameObject;)
         /// </summary>
         /// </summary>
-        public static MainMenuUIController Instance;
+        public static MainMenuUIController Instance { get; private set; }
 
         public MainMenuData MainMenuData = new MainMenuData();
         [SerializeField]
@@ -131,7 +131,12 @@ namespace BOTF3D.UI
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
+            Instance = this;
 
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.RegisterMainMenu(this);
+            }
             InitializeCameras();
 
             // ✅ CRITICAL: Set up ToggleGroup FIRST

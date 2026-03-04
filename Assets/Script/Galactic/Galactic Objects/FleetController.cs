@@ -110,8 +110,8 @@ namespace BOTF3D.GamePlay
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
-            galaxyWidth = GameManager.Instance.GalaxyWidth;
-            galaxyHeight = GameManager.Instance.GalaxyHeight;
+            galaxyWidth = GalaxyView.Instance.GalaxyWidth;
+            galaxyHeight = GalaxyView.Instance.GalaxyHeight;
 
         }
         private void FixedUpdate()

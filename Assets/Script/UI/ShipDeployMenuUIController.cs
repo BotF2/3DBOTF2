@@ -886,8 +886,38 @@ namespace BOTF3D.UI
 
         public void CommitShipDeployForNewFleetAndClose(Action onCommitComplete)
         {
-            Debug.Log($"=== COMMIT (Immediate) START ===");
+            gameObject.SetActive(true);
+            // ✅ Use coroutine to wait two frames as per copilot instructions
+            StartCoroutine(CommitShipDeployForNewFleetCoroutine(onCommitComplete));
+        }
+
+        private IEnumerator CommitShipDeployForNewFleetCoroutine(Action onCommitComplete)
+        {
+            Debug.Log($"=== COMMIT (New Fleet) START ===");
             Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}");
+
+            // ✅ CRITICAL: Wait two frames before normalizing UI ownership and rebuilding lists
+            // (Per copilot-instructions.md: "When committing ship deploy, wait two frames")
+            yield return null; // Frame 1
+            yield return null; // Frame 2
+
+            Debug.Log($"=== COMMIT: After waiting two frames, now processing ===");
+
+            // Ensure any pending ShipManager parenting is attempted first
+            ShipManager.Instance?.ProcessPendingShipUIs();
+
+            // Force canvas/layout update
+            Canvas.ForceUpdateCanvases();
+            if (TopSlot != null)
+            {
+                var rt = TopSlot.GetComponent<RectTransform>();
+                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            }
+            if (BottomSlot != null)
+            {
+                var rt = BottomSlot.GetComponent<RectTransform>();
+                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            }
 
             // Since ShipControllers are already correctly parented (via drag/drop AddToFleet/AddToStarSystem),
             // we can rebuild UI parenting from the ShipController hierarchy
@@ -917,7 +947,7 @@ namespace BOTF3D.UI
             HideShipDeployMenuView();
             gameObject.SetActive(false);
 
-            Debug.Log($"=== COMMIT (Immediate) END ===");
+            Debug.Log($"=== COMMIT (New Fleet) END ===");
 
             // Callback for after-commit cleanup
             onCommitComplete?.Invoke();
@@ -925,8 +955,38 @@ namespace BOTF3D.UI
 
         public void CommitMergeAndClose(Action onCommitComplete)
         {
+            gameObject.SetActive(true);
+            // ✅ Use coroutine to wait two frames as per copilot instructions
+            StartCoroutine(CommitMergeCoroutine(onCommitComplete));
+        }
+
+        private IEnumerator CommitMergeCoroutine(Action onCommitComplete)
+        {
             Debug.Log($"=== COMMIT MERGE START ===");
             Debug.Log($"TopFleet={TopFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomFleet={BottomFleet?.name}, BottomStarSyst={BottomStarSyst?.name}");
+
+            // ✅ CRITICAL: Wait two frames before normalizing UI ownership and rebuilding lists
+            // (Per copilot-instructions.md: "When committing ship deploy, wait two frames")
+            yield return null; // Frame 1
+            yield return null; // Frame 2
+
+            Debug.Log($"=== COMMIT MERGE: After waiting two frames, now processing ===");
+
+            // Ensure any pending ShipManager parenting is attempted first
+            ShipManager.Instance?.ProcessPendingShipUIs();
+
+            // Force canvas/layout update
+            Canvas.ForceUpdateCanvases();
+            if (TopSlot != null)
+            {
+                var rt = TopSlot.GetComponent<RectTransform>();
+                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            }
+            if (BottomSlot != null)
+            {
+                var rt = BottomSlot.GetComponent<RectTransform>();
+                if (rt != null) UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            }
 
             // Get all ships currently in BottomSlot
             List<ShipController> shipsToMerge = new List<ShipController>();

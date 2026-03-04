@@ -35,7 +35,28 @@ namespace BOTF3D.GamePlay
                 return;
             }
         }
+        private void Start()
+        {
+            // Subscribe to scene loaded event
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Debug.Log($"GameManager: Scene loaded: {scene.name}");
 
+            // When MainMenu scene loads, find the controller
+            if (scene.name.Contains("MainMenu") && GameManager.Instance.mainMenuUIController == null)
+            {
+                GameManager.Instance.InitializeGameManagerWithMainMenuUIController();
+            }
+
+            // When GalaxyScene loads, find the galaxy image
+            if (scene.name == "GalaxyScene")
+            {
+                //RegisterGalaxy();
+                GalaxyView.Instance.CalculateGalaxyBounds();
+            }
+        }
         /// <summary>
         /// Lazy initialization - finds camera only when needed and if not already assigned.
         /// </summary>

@@ -167,7 +167,6 @@ namespace FischlWorks_FogWar
         {
             // DON'T initialize here - it causes the error!
             // Transform camTransform = csFogWar.Instance.galacticCamHolder.transform;
-
             // Lazy-initialized property instead
             private Transform camTransform;
             private Transform CamTransform
@@ -260,7 +259,7 @@ namespace FischlWorks_FogWar
         private Color fogColor = new Color32(5, 15, 25, 255);
         [SerializeField]
         [Range(0, 1)]
-        private float fogPlaneAlpha = 0.8f; // opaque
+        private float fogPlaneAlpha = 0.4f; // opaque
         [SerializeField]
         [Range(0, 5)]
         private float fogLerpSpeed = 2.5f;
