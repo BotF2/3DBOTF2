@@ -530,7 +530,7 @@ namespace BOTF3D.UI
             return shipListItems.ToArray();
         }
 
-        internal void DeployShipsUIGOToNewFleetOrSystem()
+        internal void DeployShipsUIGOForFleetsOrSystem()
         {
             if (TopFleet != null && BottomFleet != null)
             {
@@ -886,11 +886,13 @@ namespace BOTF3D.UI
         public void CommitShipDeployAndClose(Action onComplete = null)
         {
             Debug.Log($"=== CommitShipDeployAndClose START ===");
+            Debug.Log($"TopFleet={TopFleet?.name}, BottomFleet={BottomFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomStarSyst={BottomStarSyst?.name}");
 
-            // ✅ DON'T rebuild lists - drag/drop already moved ships correctly!
-            // DeployShipsUIGOToNewFleetOrSystem(); // ❌ REMOVED - this loses ships!
+            // ✅ CRITICAL: For regular deploy, we MUST reconcile ship lists based on where UIs ended up
+            // This method looks at TopSlot/BottomSlot contents and rebuilds ship lists accordingly
+            DeployShipsUIGOForFleetsOrSystem();
 
-            // ✅ Just update max warp for affected fleets
+            // ✅ Update max warp for affected fleets
             if (TopFleet != null)
             {
                 try { TopFleet.UpdateMaxWarp(); } catch { }
@@ -900,7 +902,7 @@ namespace BOTF3D.UI
                 try { BottomFleet.UpdateMaxWarp(); } catch { }
             }
 
-            Debug.Log($"=== CommitShipDeployAndClose COMPLETE - letting cleanup handle UI ===");
+            Debug.Log($"=== CommitShipDeployAndClose COMPLETE ===");
 
             // ✅ Callback does the cleanup
             onComplete?.Invoke();

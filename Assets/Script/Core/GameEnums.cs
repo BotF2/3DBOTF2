@@ -366,5 +366,31 @@ namespace BOTF3D.Core
         StarSystemCombat,
         StarSystemInvasion
     }
+    public enum GalaxyClickMode
+    {
+        Normal,
+        SetDestination,
+        SelectForShipDeploy,
+        SelectForShipMerge
+        // Future extensions could include:
+        // Ping, AttackTarget, etc. New Fleet comes from a UI button, not click mode.
+    }
+    public enum Menu
+    {
+        None,
+        SystemsMenu,
+        ASystemMenu,
+        BuildMenu,
+        FleetMenu,
+        AFleetMenu,
+        ShipDeployMenu,
+        DiplomacyMenu,
+        ADiplomacyMenu,
+        IntellMenu,
+        EncyclopedianMenu,
+        FirstContactMenu,
+        HabitableSysMenu,
+        Combat
+    }
     #endregion
 }

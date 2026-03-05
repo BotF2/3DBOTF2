@@ -302,6 +302,17 @@ namespace BOTF3D.GamePlay
                         ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
                     {
                         GalaxyMenuUIController.Instance.CloseShipDeployMenu();
+                        if (StarSysMenuUIController.Instance != null)
+                        {
+                            StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                            Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+                        }
+                        // ✅ NEW: Ensure all fleet UIs are moved back to storage after closing deploy menu
+                        if (FleetMenuUIController.Instance != null)
+                        {
+                            FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                            Debug.Log("OnMouseDown: Cleaned up fleet UIs after closing ship deploy menu");
+                        }
                     }
                     HandleNormalClick(clickedFleetCon);
                     break;
@@ -314,19 +325,31 @@ namespace BOTF3D.GamePlay
                         HandleShipDeploySelection(clickedFleetCon);
                     break;
                 case GalaxyClickMode.SelectForShipMerge:
-                    // ... rest of cases
+                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        HandleShipMergeSelection(clickedFleetCon);
                     break;
             }
         }
 
         private void HandleNormalClick(FleetController clickedFleetCon)
         {
+            // ✅ CRITICAL: Clean up any fleet UIs from previous operations before opening new UI
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
+            }
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+            }
             if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
             {
                 GalaxyUI.OpenMenu(Menu.AFleetMenu, this.gameObject);
             }
             else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, clickedFleetCon.FleetData.CivController))
-            { // this is a system local player does not own but we know them
+            { // this is a fleet local player does not own but we know them
                 DiplomacyManager.Instance.ResolveDiplomacyForClickFleetWeKnow(CivManager.Instance.LocalPlayerCivController, clickedFleetCon);
             }
         }
@@ -414,14 +437,14 @@ namespace BOTF3D.GamePlay
 
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
-        private void HandleShipMegerSelection(FleetController clickedFleetCon)
+        private void HandleShipMergeSelection(FleetController clickedFleetCon)
         {
             if (clickedFleetCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
             galaxyUI.WhatFleetIsSelectedForShipMerge(clickedFleetCon);
-            var fleetLooking = GalaxyUI.FleetLookingForShipMerge;
-            var starSysLooking = GalaxyUI.StarSystLookingForShipMerge;
+            var fleetLooking = galaxyUI.FleetLookingForShipMerge;
+            var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
 
             var shipDeployUI = ShipDeployMenuUIController.Instance;
 
@@ -489,7 +512,7 @@ namespace BOTF3D.GamePlay
                 if (starSysLooking.StarSysUIGameObject != null)
                 {
                     starSysLooking.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                    starSysLooking.StarSysUIGameObject.transform.SetAsFirstSibling();
+                    starSysLooking.StarSysUIGameObject.transform.SetAsLastSibling();
                     starSysLooking.StarSysUIGameObject.SetActive(true);
                     Debug.Log($"✅ System UI parented to AFleetMenuView (top)");
 

@@ -287,20 +287,20 @@ namespace BOTF3D.UI
                     if (fleetUIFields != null && starSysUIFields == null)
                     {
                         // This is a fleet UI - move to home and DEACTIVATE
-                        Debug.Log($"    Moving FLEET UI '{child.name}' to home storage");
+                        Debug.Log($"    Moving FLEET UI '{child.name}' from AFleetMenuView to home storage");
                         child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate when in storage!
+                        child.gameObject.SetActive(false);
                     }
                     else if (starSysUIFields != null)
                     {
-                        Debug.LogError($"  ❌ SYSTEM UI '{child.name}' found in AFleetMenuView! Moving it back.");
+                        Debug.Log($"    Moving SYSTEM UI '{child.name}' from AFleetMenuView back to system storage");
 
                         // Move system UI back to its home storage
                         var sysHomeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
                         if (sysHomeContainer != null)
                         {
                             child.SetParent(sysHomeContainer.transform, false);
-                            child.gameObject.SetActive(false); // ✅ Deactivate!
+                            child.gameObject.SetActive(false);
                         }
                         else if (StarSysMenuUIController.Instance?.SysListContainer != null)
                         {
@@ -311,6 +311,30 @@ namespace BOTF3D.UI
                 }
 
                 AFleetMenuView.SetActive(false);
+            }
+
+            // ✅ NEW: Also check ASystemMenuView for fleet UIs (from fleet-to-system merge operations)
+            if (StarSysMenuUIController.Instance != null && StarSysMenuUIController.Instance.ASystemMenuView != null)
+            {
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView;
+                Debug.Log($"  Checking ASystemMenuView ({aSysView.transform.childCount} children)");
+
+                for (int i = aSysView.transform.childCount - 1; i >= 0; i--)
+                {
+                    var child = aSysView.transform.GetChild(i);
+                    if (child == null) continue;
+
+                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
+                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
+
+                    // Only move FLEET UIs (not system UIs, those are handled by MoveBackAnyStarSysUIGO)
+                    if (fleetUIFields != null && starSysUIFields == null)
+                    {
+                        Debug.Log($"    Moving FLEET UI '{child.name}' from ASystemMenuView to home storage");
+                        child.SetParent(homeContainer.transform, false);
+                        child.gameObject.SetActive(false);
+                    }
+                }
             }
 
             // ✅ Clean up FleetManager's fleet list (remove destroyed fleets)
@@ -534,6 +558,9 @@ namespace BOTF3D.UI
             // Check if we're in merge mode
             bool isMergeMode = (galaxyUI.FleetLookingForShipMerge != null || galaxyUI.StarSystLookingForShipMerge != null);
 
+            // ✅ Check if we're in NEW FLEET mode (bottom fleet is the temp fleet we just created)
+            bool isNewFleetMode = (tempFleetController != null && sd.BottomFleet == tempFleetController);
+
             if (sd != null && sd.ShipDeployPanel != null && sd.ShipDeployPanel.activeInHierarchy)
             {
                 if (isMergeMode)
@@ -541,11 +568,15 @@ namespace BOTF3D.UI
                     // Use merge commit for merge operations
                     sd.CommitMergeAndClose(CancelShipManageAfterCommit);
                 }
+                else if (isNewFleetMode)
+                {
+                    // ✅ NEW FLEET: Ships are already correctly assigned via drag/drop
+                    sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+                }
                 else
                 {
-                    // Use proper commit flow for deploy/new fleet
-                    //sd.CommitShipDeployAndClose(CancelShipManageAfterCommit);
-                    sd.CommitShipDeployForNewFleetAndClose(CancelShipManageAfterCommit);
+                    // ✅ REGULAR DEPLOY: Need to reconcile ship lists from TopSlot/BottomSlot
+                    sd.CommitShipDeployAndClose(CancelShipManageAfterCommit);
                 }
                 return;
             }

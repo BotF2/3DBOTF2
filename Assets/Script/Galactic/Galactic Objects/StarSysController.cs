@@ -240,6 +240,18 @@ namespace BOTF3D.GamePlay
                     {
                         galaxyUI.CloseShipDeployMenu();
                     }
+
+                    // ✅ CRITICAL: Clean up BOTH star system UIs AND fleet UIs
+                    if (StarSysMenuUIController.Instance != null)
+                    {
+                        StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                    }
+                    if (FleetMenuUIController.Instance != null)
+                    {
+                        FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                        Debug.Log("OnMouseDown: Cleaned up fleet UIs before opening star system");
+                    }
+
                     HandleNormalClick(clickedSystemCon);
                     break;
 
@@ -517,7 +529,18 @@ namespace BOTF3D.GamePlay
         }
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
-            //SettingUpNewFleet = false;
+            // ✅ CRITICAL: Clean up BOTH star system UIs AND fleet UIs before opening new UI
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+            }
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
+            }
+
             GalaxyUI.CloseShipDeployMenu();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
@@ -530,12 +553,10 @@ namespace BOTF3D.GamePlay
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
-                    //StarSysUI.UpdateSystemPowerBalance(this);
-                    GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject); // set the system UI to this system
-                    //StarSysMenuUIController.Instance.lastStarSysController = this;
+                    GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject);
                 }
                 else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, this.StarSysData.CurrentCivController))
-                { // this is a system local player does not own but we know them
+                {
                     DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivController, this);
                 }
             }
