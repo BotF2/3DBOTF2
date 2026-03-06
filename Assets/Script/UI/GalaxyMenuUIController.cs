@@ -26,8 +26,6 @@ namespace BOTF3D.UI
         private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
         private ShipDeployMenuUIController shipDeployMenuUIController => ShipDeployMenuUIController.Instance;
 
-        //[SerializeField]
-        //private GameObject aSystemShipContainer;
         [SerializeField]
         private GameObject sysBuildMenu;
         [SerializeField]
@@ -168,12 +166,15 @@ namespace BOTF3D.UI
         // Call this from MainMenuUIController after CanvasGalaxy activates
         public void InitializeGalaxyCamera()
         {
+            var xAngle = GalaxyCameraDragMoveZoom.Instance.galaxyXRotation; // Set reference in camera controller as well
             if (galaxyEventCamera == null)
             {
                 var mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
                 if (mainCameraGO != null)
                 {
+
                     galaxyEventCamera = mainCameraGO.GetComponent<Camera>();
+                    galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
                     Debug.Log($"GalaxyMenuUIController: Found galaxy camera: {galaxyEventCamera?.name}");
                 }
                 else
@@ -185,6 +186,7 @@ namespace BOTF3D.UI
             if (parentCanvas != null && galaxyEventCamera != null)
             {
                 parentCanvas.worldCamera = galaxyEventCamera;
+                galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
                 Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
             }
 
@@ -362,6 +364,8 @@ namespace BOTF3D.UI
                 {
                     newFleet.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                     newFleet.FleetUIGameObject.transform.SetAsLastSibling();
+                    newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
+                    Debug.Log($"  Fleet UI '{newFleet.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
                 }
             }
             else if (starSysLooking != null)
@@ -371,8 +375,18 @@ namespace BOTF3D.UI
                 {
                     newFleet.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
                     newFleet.FleetUIGameObject.transform.SetAsLastSibling();
+                    newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
+                    Debug.Log($"  Fleet UI '{newFleet.FleetUIGameObject.name}' parented to ASystemMenuView and ACTIVATED");
+                }
+
+                // ✅ ALSO: Make sure ASystemMenuView itself is visible
+                if (!aStarSysView.activeSelf)
+                {
+                    aStarSysView.SetActive(true);
+                    Debug.Log($"  ASystemMenuView ACTIVATED");
                 }
             }
+
             shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
             SetClickMode(GalaxyClickMode.SelectForShipDeploy);
 
@@ -436,8 +450,11 @@ namespace BOTF3D.UI
             {
                 starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
+                starSystCon.StarSysUIGameObject.SetActive(true); // ✅ ACTIVATE!
             }
+
             newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
+            newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
 
             Debug.Log($"ShowShipDeployForSystemNewFleet: TopStarSyst ShipListUIParent={(starSystCon.StarSysData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
         }
@@ -475,16 +492,18 @@ namespace BOTF3D.UI
             {
                 originalFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 originalFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+                originalFleetCon.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
 
-                Debug.Log($"  Original fleet UI '{originalFleetCon.FleetUIGameObject.name}' parented to AFleetMenuView");
+                Debug.Log($"  Original fleet UI '{originalFleetCon.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
             }
 
             if (newFleetController.FleetUIGameObject != null)
             {
                 newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 newFleetController.FleetUIGameObject.transform.SetAsLastSibling();
+                newFleetController.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
 
-                Debug.Log($"  New fleet UI '{newFleetController.FleetUIGameObject.name}' parented to AFleetMenuView");
+                Debug.Log($"  New fleet UI '{newFleetController.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
             }
 
             Debug.Log($"ShowShipDeployForFleetNewFleet: TopFleet ShipListUIParent={(originalFleetCon.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(shipDeployMenuUIController.BottomFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
@@ -712,12 +731,10 @@ namespace BOTF3D.UI
 
             if (FleetManager.Instance != null)
             {
-                // ✅ NEW: Work on a copy since we might destroy fleets during iteration
                 var fleets = FleetManager.Instance.FleetControllerList.ToList();
 
                 foreach (var fleetCon in fleets)
                 {
-                    // ✅ CRITICAL: Check if fleet still exists
                     if (fleetCon == null)
                     {
                         Debug.Log("  Skipping null fleet reference");
@@ -730,7 +747,7 @@ namespace BOTF3D.UI
                         continue;
                     }
 
-                    // ✅ NEW: If fleet has no ships, mark for destruction
+                    // ✅ If fleet has no ships, mark for destruction
                     if (fleetCon.FleetData.ShipsList.Count == 0)
                     {
                         Debug.Log($"  Fleet '{fleetCon.name}' has no ships - will be destroyed");
@@ -745,26 +762,53 @@ namespace BOTF3D.UI
                         continue;
                     }
 
-                    Debug.Log($"  Fleet '{fleetCon.name}': {fleetCon.FleetData.ShipsList.Count} ships");
+                    Debug.Log($"  Fleet '{fleetCon.name}': {fleetCon.FleetData.ShipsList.Count} ships in data");
 
-                    foreach (var ship in fleetCon.FleetData.ShipsList)
+                    // ✅ CRITICAL: Use ShipController hierarchy as source of truth
+                    var shipsInGalaxy = fleetCon.GetComponentsInChildren<ShipController>(true);
+                    Debug.Log($"    Found {shipsInGalaxy.Length} ShipControllers in hierarchy");
+
+                    foreach (var ship in shipsInGalaxy)
                     {
-                        if (ship == null || ship.ShipListUIGameObject == null) continue;
+                        if (ship == null) continue;
 
-                        // Ensure ship UI is parented correctly
-                        if (ship.ShipListUIGameObject.transform.parent != shipListParent.transform)
+                        // ✅ Ensure ship is in the fleet's ShipsList
+                        if (!fleetCon.FleetData.ShipsList.Contains(ship))
                         {
-                            Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' to correct parent");
-                            ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
+                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' in hierarchy but NOT in ShipsList - adding!");
+                            fleetCon.FleetData.ShipsList.Add(ship);
                         }
 
-                        // Ensure ship UI is active and visible
-                        if (!ship.ShipListUIGameObject.activeSelf)
+                        // ✅ Ensure ship UI exists
+                        if (ship.ShipListUIGameObject == null)
                         {
-                            ship.ShipListUIGameObject.SetActive(true);
-                            Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
+                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' has no UI - creating!");
+                            ShipManager.Instance?.InstantiateShipListUIGameObject(ship, fleetCon.gameObject);
+                            ShipManager.Instance?.ProcessPendingShipUIs();
+                        }
+
+                        // ✅ Ensure ship UI is parented correctly
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            var currentParent = ship.ShipListUIGameObject.transform.parent;
+
+                            if (currentParent != shipListParent.transform)
+                            {
+                                Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' from '{currentParent?.name}' to correct parent '{shipListParent.name}'");
+                                ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
+                            }
+
+                            // ✅ Ensure ship UI is active and visible
+                            if (!ship.ShipListUIGameObject.activeSelf)
+                            {
+                                ship.ShipListUIGameObject.SetActive(true);
+                                Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
+                            }
                         }
                     }
+
+                    // ✅ Also check ShipsList and remove any null entries
+                    fleetCon.FleetData.ShipsList.RemoveAll(s => s == null);
                 }
             }
 
@@ -772,7 +816,6 @@ namespace BOTF3D.UI
             {
                 foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
                 {
-                    // ✅ Star systems should NEVER be null - log error if they are
                     if (sysCon == null)
                     {
                         Debug.LogError("  ❌ NULL STAR SYSTEM FOUND! This should never happen!");
@@ -788,26 +831,53 @@ namespace BOTF3D.UI
                     var shipListParent = sysCon.StarSysData.ShipListUIParent;
                     if (shipListParent == null) continue;
 
-                    Debug.Log($"  System '{sysCon.name}': {sysCon.StarSysData.ShipsList.Count} ships");
+                    Debug.Log($"  System '{sysCon.name}': {sysCon.StarSysData.ShipsList.Count} ships in data");
 
-                    foreach (var ship in sysCon.StarSysData.ShipsList)
+                    // ✅ CRITICAL: Use ShipController hierarchy as source of truth
+                    var shipsInGalaxy = sysCon.GetComponentsInChildren<ShipController>(true);
+                    Debug.Log($"    Found {shipsInGalaxy.Length} ShipControllers in hierarchy");
+
+                    foreach (var ship in shipsInGalaxy)
                     {
-                        if (ship == null || ship.ShipListUIGameObject == null) continue;
+                        if (ship == null) continue;
 
-                        // Ensure ship UI is parented correctly
-                        if (ship.ShipListUIGameObject.transform.parent != shipListParent.transform)
+                        // ✅ Ensure ship is in the system's ShipsList
+                        if (!sysCon.StarSysData.ShipsList.Contains(ship))
                         {
-                            Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' to correct parent");
-                            ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
+                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' in hierarchy but NOT in ShipsList - adding!");
+                            sysCon.StarSysData.ShipsList.Add(ship);
                         }
 
-                        // Ensure ship UI is active and visible
-                        if (!ship.ShipListUIGameObject.activeSelf)
+                        // ✅ Ensure ship UI exists
+                        if (ship.ShipListUIGameObject == null)
                         {
-                            ship.ShipListUIGameObject.SetActive(true);
-                            Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
+                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' has no UI - creating!");
+                            ShipManager.Instance?.InstantiateShipListUIGameObject(ship, sysCon.gameObject);
+                            ShipManager.Instance?.ProcessPendingShipUIs();
+                        }
+
+                        // ✅ Ensure ship UI is parented correctly
+                        if (ship.ShipListUIGameObject != null)
+                        {
+                            var currentParent = ship.ShipListUIGameObject.transform.parent;
+
+                            if (currentParent != shipListParent.transform)
+                            {
+                                Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' from '{currentParent?.name}' to correct parent '{shipListParent.name}'");
+                                ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
+                            }
+
+                            // ✅ Ensure ship UI is active and visible
+                            if (!ship.ShipListUIGameObject.activeSelf)
+                            {
+                                ship.ShipListUIGameObject.SetActive(true);
+                                Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
+                            }
                         }
                     }
+
+                    // ✅ Also check ShipsList and remove any null entries
+                    sysCon.StarSysData.ShipsList.RemoveAll(s => s == null);
                 }
             }
 

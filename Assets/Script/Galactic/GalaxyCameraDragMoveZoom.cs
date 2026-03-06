@@ -39,6 +39,9 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
     private bool foundHomePosition = false;
     [SerializeField]
     private bool atHomePosition = true;
+    [SerializeField]
+    private float homeXRotation = 31f;
+    public float galaxyXRotation = 21f;
 
     private UIControls uiControls;
     private bool isActive = false; // Track if this camera controller is active
@@ -347,6 +350,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                     lastCameraPosition = transform.position;
                     transform.position = new Vector3(listStarSystems[i].transform.position.x,
                         listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z - 350f);
+                    transform.rotation = Quaternion.Euler(homeXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
                     homePosition = transform.position;
                     foundHomePosition = true;
                     atHomePosition = true;
@@ -357,11 +361,13 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
         else if (atHomePosition)
         {
             transform.position = lastCameraPosition;
+            transform.rotation = Quaternion.Euler(galaxyXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
             atHomePosition = false;
         }
         else
         {
             transform.position = homePosition;
+            transform.rotation = Quaternion.Euler(homeXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
             atHomePosition = true;
         }
     }

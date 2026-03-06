@@ -806,13 +806,73 @@ namespace BOTF3D.UI
             Debug.Log($"=== CommitMergeAndClose START ===");
             Debug.Log($"TopFleet={TopFleet?.name}, TopStarSyst={TopStarSyst?.name}, BottomFleet={BottomFleet?.name}, BottomStarSyst={BottomStarSyst?.name}");
 
-            // ✅ For merge, we DO need to move ships from BottomSlot to target
-            // (because all ships start in BottomSlot during merge setup)
-
             FleetController targetFleet = BottomFleet;
             StarSysController targetSystem = BottomStarSyst;
 
-            // Get all ships currently in BottomSlot and move them to target
+            // ✅ CRITICAL: Process BOTH TopSlot AND BottomSlot
+            // TopSlot = ships staying with original owner
+            // BottomSlot = ships going to target
+
+            // 1️⃣ Process TopSlot (ships staying with original owner)
+            if (TopFleet != null || TopStarSyst != null)
+            {
+                Debug.Log($"  Processing TopSlot ({TopSlot.transform.childCount} ships) - staying with original owner");
+
+                for (int i = TopSlot.transform.childCount - 1; i >= 0; i--)
+                {
+                    var shipUI = TopSlot.transform.GetChild(i).gameObject;
+                    var shipUIItem = shipUI.GetComponent<ShipListUI_Item>();
+
+                    if (shipUIItem != null && shipUIItem.ShipController != null)
+                    {
+                        var ship = shipUIItem.ShipController;
+
+                        // Ensure ship stays with original owner
+                        if (TopFleet != null)
+                        {
+                            if (!TopFleet.FleetData.ShipsList.Contains(ship))
+                            {
+                                TopFleet.AddToShipList(ship);
+                            }
+                            ship.ShipData.CurrentFleetController = TopFleet;
+                            ship.ShipData.CurrentStarSysController = null;
+
+                            // Move UI to TopFleet's container
+                            if (TopFleet.FleetData.ShipListUIParent != null)
+                            {
+                                shipUI.transform.SetParent(TopFleet.FleetData.ShipListUIParent.transform, false);
+                                shipUI.SetActive(true);
+                                shipUIItem.CurrentFleet = TopFleet;
+                                shipUIItem.CurrentStarSyst = null;
+                                Debug.Log($"    Ship '{ship.ShipData.ShipName}' stays with TopFleet '{TopFleet.name}'");
+                            }
+                        }
+                        else if (TopStarSyst != null)
+                        {
+                            if (!TopStarSyst.StarSysData.ShipsList.Contains(ship))
+                            {
+                                TopStarSyst.AddToShipList(ship);
+                            }
+                            ship.ShipData.CurrentStarSysController = TopStarSyst;
+                            ship.ShipData.CurrentFleetController = null;
+
+                            // Move UI to TopStarSyst's container
+                            if (TopStarSyst.StarSysData.ShipListUIParent != null)
+                            {
+                                shipUI.transform.SetParent(TopStarSyst.StarSysData.ShipListUIParent.transform, false);
+                                shipUI.SetActive(true);
+                                shipUIItem.CurrentStarSyst = TopStarSyst;
+                                shipUIItem.CurrentFleet = null;
+                                Debug.Log($"    Ship '{ship.ShipData.ShipName}' stays with TopStarSyst '{TopStarSyst.name}'");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2️⃣ Process BottomSlot (ships going to target)
+            Debug.Log($"  Processing BottomSlot ({BottomSlot.transform.childCount} ships) - merging to target");
+
             for (int i = BottomSlot.transform.childCount - 1; i >= 0; i--)
             {
                 var shipUI = BottomSlot.transform.GetChild(i).gameObject;
@@ -822,22 +882,25 @@ namespace BOTF3D.UI
                 {
                     var ship = shipUIItem.ShipController;
 
-                    // Remove from old owner
+                    // Remove from old owner (if different from target)
                     if (ship.ShipData.CurrentFleetController != null && ship.ShipData.CurrentFleetController != targetFleet)
                     {
                         ship.ShipData.CurrentFleetController.RemoveFromShipList(ship);
-                        Debug.Log($"Removed ship '{ship.ShipData.ShipName}' from fleet '{ship.ShipData.CurrentFleetController.name}'");
+                        Debug.Log($"    Removed ship '{ship.ShipData.ShipName}' from old fleet '{ship.ShipData.CurrentFleetController.name}'");
                     }
                     else if (ship.ShipData.CurrentStarSysController != null && ship.ShipData.CurrentStarSysController != targetSystem)
                     {
                         ship.ShipData.CurrentStarSysController.RemoveFromShipList(ship);
-                        Debug.Log($"Removed ship '{ship.ShipData.ShipName}' from system '{ship.ShipData.CurrentStarSysController.name}'");
+                        Debug.Log($"    Removed ship '{ship.ShipData.ShipName}' from old system '{ship.ShipData.CurrentStarSysController.name}'");
                     }
 
                     // Add to target
                     if (targetFleet != null)
                     {
-                        targetFleet.AddToShipList(ship);
+                        if (!targetFleet.FleetData.ShipsList.Contains(ship))
+                        {
+                            targetFleet.AddToShipList(ship);
+                        }
                         ship.ShipData.CurrentFleetController = targetFleet;
                         ship.ShipData.CurrentStarSysController = null;
 
@@ -845,15 +908,19 @@ namespace BOTF3D.UI
                         if (targetFleet.FleetData.ShipListUIParent != null)
                         {
                             shipUI.transform.SetParent(targetFleet.FleetData.ShipListUIParent.transform, false);
+                            shipUI.SetActive(true);
                             shipUIItem.CurrentFleet = targetFleet;
                             shipUIItem.CurrentStarSyst = null;
                         }
 
-                        Debug.Log($"Added ship '{ship.ShipData.ShipName}' to fleet '{targetFleet.name}'");
+                        Debug.Log($"    Merged ship '{ship.ShipData.ShipName}' to target fleet '{targetFleet.name}'");
                     }
                     else if (targetSystem != null)
                     {
-                        targetSystem.AddToShipList(ship);
+                        if (!targetSystem.StarSysData.ShipsList.Contains(ship))
+                        {
+                            targetSystem.AddToShipList(ship);
+                        }
                         ship.ShipData.CurrentStarSysController = targetSystem;
                         ship.ShipData.CurrentFleetController = null;
 
@@ -861,20 +928,21 @@ namespace BOTF3D.UI
                         if (targetSystem.StarSysData.ShipListUIParent != null)
                         {
                             shipUI.transform.SetParent(targetSystem.StarSysData.ShipListUIParent.transform, false);
+                            shipUI.SetActive(true);
                             shipUIItem.CurrentStarSyst = targetSystem;
                             shipUIItem.CurrentFleet = null;
                         }
 
-                        Debug.Log($"Added ship '{ship.ShipData.ShipName}' to system '{targetSystem.name}'");
+                        Debug.Log($"    Merged ship '{ship.ShipData.ShipName}' to target system '{targetSystem.name}'");
                     }
                 }
             }
 
-            // Update max warp
+            // 3️⃣ Update max warp
             if (targetFleet != null) targetFleet.UpdateMaxWarp();
             if (TopFleet != null && TopFleet != targetFleet) TopFleet.UpdateMaxWarp();
 
-            Debug.Log($"=== CommitMergeAndClose COMPLETE - letting AfterCommitCleanup handle UI ===");
+            Debug.Log($"=== CommitMergeAndClose COMPLETE ===");
 
             // ✅ Callback does the cleanup (AfterCommitCleanup from GalaxyMenuUIController)
             onCommitComplete?.Invoke();
