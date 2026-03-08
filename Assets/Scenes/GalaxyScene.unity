@@ -9713,6 +9713,8 @@ MonoBehaviour:
   lastCameraPosition: {x: 0, y: 0, z: 0}
   foundHomePosition: 0
   atHomePosition: 1
+  homeXRotation: 31
+  galaxyXRotation: 21
 --- !u!1 &895974088
 GameObject:
   m_ObjectHideFlags: 0
@@ -10595,6 +10597,8 @@ MonoBehaviour:
   lastCameraPosition: {x: 0, y: 0, z: 0}
   foundHomePosition: 0
   atHomePosition: 1
+  homeXRotation: 31
+  galaxyXRotation: 21
 --- !u!1 &966764655
 GameObject:
   m_ObjectHideFlags: 0
@@ -22167,7 +22171,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ff6a5f49b26e72448ae0bc07e3f2a1ab, type: 2}
   - {fileID: 11400000, guid: cc87f47bdb5ebd048a0fc0b69afdcd76, type: 2}
   sysPrefab: {fileID: 1344623282000112472, guid: 06f0b4bc75ea46440939b026367c3da3, type: 3}
-  shipBuildSliderPrefab: {fileID: 3868390008097759204, guid: 897bffe8bfb3c714682af28e16f3d3dc, type: 3}
   sysUIPrefab: {fileID: 4945801355922885453, guid: 2019fad506023ad42a54b9e786bd3ff1, type: 3}
   shipBuildUIPrefab: {fileID: 3868390008097759204, guid: 7917bd9f1d340bd4e9ef58bcc2b8e3bd, type: 3}
   PowerPlantPrefab: {fileID: 3951996713806300590, guid: 53bf0f8c8773c994f8331ada5c7ee1a7, type: 3}
@@ -22195,7 +22198,7 @@ MonoBehaviour:
   galaxyImage: {fileID: 1013187645}
   canvasBuildList: {fileID: 315311927}
   unknowSystem: {fileID: 21300000, guid: 4d704142da734fb46b88fe56645880c0, type: 3}
-  StarSysUI_ListContainer: {fileID: 0}
+  StarSysUI_ListContainer: {fileID: 689609802}
 --- !u!224 &1965346450
 RectTransform:
   m_ObjectHideFlags: 0

@@ -178,7 +178,6 @@ namespace BOTF3D.UI
 
         /// <summary>
         /// Hides the single system detail view and moves UI back to home storage
-        /// CALLED BY: GalaxyMenuUIController.CloseMenu(Menu.ASystemMenu)
         /// </summary>
         public void HideA_SystemMenuView()
         {
@@ -195,6 +194,31 @@ namespace BOTF3D.UI
             Debug.Log("ASystemMenuView hidden (single system detail)");
         }
 
+        ///// <summary>
+        ///// Close the build queue UI and clean up references
+        ///// </summary>
+        //public void CloseBuildingQueues()
+        //{
+        //    Debug.Log("CloseBuildingQueues: Starting");
+
+        //    // ✅ CRITICAL: Destroy the build UI to prevent stale references
+        //    var buildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
+        //    if (buildUI != null)
+        //    {
+        //        Debug.Log("  Destroying build queue UI");
+        //        Destroy(buildUI);
+        //    }
+
+        //    GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
+        //    GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
+
+        //    if (lastSysCon != null)
+        //    {
+        //        lastSysCon.LoadAStarSystem();
+        //    }
+
+        //    Debug.Log("CloseBuildingQueues: Complete");
+        //}
         /// <summary>
         /// Wires buttons and updates UI data for all visible systems
         /// CALLED BY: ShowSystemMenuView() after systems are parented
@@ -547,10 +571,24 @@ namespace BOTF3D.UI
 
         public void CloseBuildingQueues()
         {
+            Debug.Log("CloseBuildingQueues: Starting");
+
+            // ✅ CRITICAL: Destroy the build UI to prevent stale references
+            var buildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
+            if (buildUI != null)
+            {
+                Debug.Log("  Destroying build queue UI");
+                Destroy(buildUI);
+            }
+
             GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
             GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
+
             if (lastSysCon != null)
+            {
                 lastSysCon.LoadAStarSystem();
+            }
+            Debug.Log("CloseBuildingQueues: Complete");
         }
         public void RemoveSystem(StarSysController sysController)
         {

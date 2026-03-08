@@ -6,13 +6,14 @@ namespace BOTF3D.GamePlay
     public class Torpedo : MonoBehaviour
     {
         public float Velocity = 100f; // the velocity used appears to be set in the prefab and not this value.
-        public float TurnRatio = 10f; // same, set in prefab, not this value. keep it for now, have options different torpedos by civ
+        public float TurnRatio = 10f; // same, set in prefab, not this value. keep it for now, have options different torpedoes by civ
         public Transform Target;
         public Rigidbody torpedoRigidbody;
         public CivEnum OwnerCivEnum;
         public CivEnum TargetCivEnum;
         public int TorpedoDamage;
         private AudioSource audioSource;
+        public SoundSO TorpedoSoundSO;
 
         private void Awake()
         {

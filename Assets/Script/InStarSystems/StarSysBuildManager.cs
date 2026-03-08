@@ -31,12 +31,20 @@ namespace BOTF3D.Core
         }
         private IEnumerator BuildFacilityCoroutine(Transform buildItem)
         {
+            Debug.Log($"=== BuildFacilityCoroutine: START ===");
+
             if (buildItem == null)
+            {
+                Debug.LogError("BuildFacilityCoroutine: buildItem is NULL!");
                 yield break;
+            }
 
             var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
             if (buildDrag == null)
+            {
+                Debug.LogError($"BuildFacilityCoroutine: No FactoryBuildItemDrag found on '{buildItem.name}'!");
                 yield break;
+            }
 
             int buildTime = GetBuildTimeDuration(buildDrag.FacilityType);
             if (buildTime <= 0) buildTime = 1;
@@ -44,20 +52,65 @@ namespace BOTF3D.Core
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
 
+            Debug.Log($"BuildFacilityCoroutine: Building {buildDrag.FacilityType}");
+            Debug.Log($"  Build time: {buildTime} stardates");
+            Debug.Log($"  Start date: {startDate}");
+            Debug.Log($"  End date: {endDate}");
+
+            // ✅ Reset slider to 0%
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetBuildProgress(0f);
+                Debug.Log("  Slider reset to 0%");
+            }
+            else
+            {
+                Debug.LogError("  ❌ StarSysMenuUIController.Instance is NULL!");
+            }
+
+            int loopCount = 0;
             while (TimeManager.Instance.CurrentStarDate() < endDate)
             {
-                float progress =
-                    (TimeManager.Instance.CurrentStarDate() - startDate) / (float)buildTime;
+                // ✅ Calculate progress based on STARDATE advancement
+                int currentDate = TimeManager.Instance.CurrentStarDate();
+                int elapsedStardates = currentDate - startDate;
+                float progress = Mathf.Clamp01((float)elapsedStardates / buildTime);
 
-                StarSysMenuUIController.Instance.SetBuildProgress(Mathf.Clamp01(progress));
+                // ✅ Log every 100 frames
+                if (loopCount % 100 == 0)
+                {
+                    Debug.Log($"  Progress: {progress:P0} ({elapsedStardates}/{buildTime} stardates, current={currentDate})");
+                }
 
+                // ✅ Update the slider
+                if (StarSysMenuUIController.Instance != null)
+                {
+                    StarSysMenuUIController.Instance.SetBuildProgress(progress);
+                }
+
+                loopCount++;
                 yield return null; // wait one frame
             }
+
+            // ✅ Complete - set slider to 100%
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetBuildProgress(1f);
+            }
+
+            Debug.Log($"BuildFacilityCoroutine: {buildDrag.FacilityType} COMPLETE at stardate {TimeManager.Instance.CurrentStarDate()}");
+            Debug.Log($"  Total frames: {loopCount}");
 
             // ✅ Build complete
             CompleteFacilityBuild(buildItem);
 
-            StarSysMenuUIController.Instance.SetBuildProgress(0f);
+            // ✅ Reset slider
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetBuildProgress(0f);
+            }
+
+            buildCoroutine = null;
         }
         internal void CompleteFacilityBuild(Transform buildItem)
         {
@@ -151,11 +204,27 @@ namespace BOTF3D.Core
         }
         public void StartNextFacilityBuildIfAny()
         {
-            if (buildCoroutine != null)
-                controller.StopCoroutine(buildCoroutine);
+            Debug.Log($"StartNextFacilityBuildIfAny: IsBuildingFacility={IsBuildingFacility}, Queue count={controller.sysBuildQueueList.Count}");
 
-            if (controller.sysBuildQueueList.Count == 0 || controller.sysBuildQueueList[0] == null)
+            if (buildCoroutine != null)
+            {
+                Debug.Log("  Stopping existing build coroutine");
+                controller.StopCoroutine(buildCoroutine);
+            }
+
+            if (controller.sysBuildQueueList.Count == 0)
+            {
+                Debug.Log("  ❌ Build queue is EMPTY - nothing to build");
                 return;
+            }
+
+            if (controller.sysBuildQueueList[0] == null)
+            {
+                Debug.LogError("  ❌ First item in queue is NULL!");
+                return;
+            }
+
+            Debug.Log($"  ✅ Starting build for item: {controller.sysBuildQueueList[0].name}");
 
             buildCoroutine = controller.StartCoroutine(
                 BuildFacilityCoroutine(controller.sysBuildQueueList[0])
@@ -175,22 +244,50 @@ namespace BOTF3D.Core
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
 
+            Debug.Log($"BuildShipCoroutine: Building {drag.ShipType} for {buildTime} stardates (start={startDate}, end={endDate})");
+
+            // ✅ Reset slider to 0%
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
+            }
+
             while (TimeManager.Instance.CurrentStarDate() < endDate)
             {
-                float progress =
-                    (TimeManager.Instance.CurrentStarDate() - startDate) / (float)buildTime;
-                StarSysMenuUIController.Instance.SetShipBuildProgress(Mathf.Clamp01(progress));
+                // ✅ Calculate progress based on STARDATE advancement
+                int currentDate = TimeManager.Instance.CurrentStarDate();
+                int elapsedStardates = currentDate - startDate;
+                float progress = Mathf.Clamp01((float)elapsedStardates / buildTime);
+
+                // ✅ Update the ship slider
+                if (StarSysMenuUIController.Instance != null)
+                {
+                    StarSysMenuUIController.Instance.SetShipBuildProgress(progress);
+                }
+
                 yield return null;
             }
+
+            // ✅ Complete - set slider to 100%
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetShipBuildProgress(1f);
+            }
+
+            Debug.Log($"BuildShipCoroutine: {drag.ShipType} complete at stardate {TimeManager.Instance.CurrentStarDate()}");
 
             ShipManager.Instance.BuildShipInSystem(drag.ShipType, controller);
 
             UnityEngine.Object.Destroy(shipBuildItem.gameObject);
             controller.shipBuildQueueList.Remove(shipBuildItem);
 
-            StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
+            // ✅ Reset slider
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
+            }
+
             shipBuildCoroutine = null;
-            StartNextShipBuildIfAny();
         }
         public void StartNextShipBuildIfAny()
         {

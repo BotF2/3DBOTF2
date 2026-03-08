@@ -196,7 +196,10 @@ namespace BOTF3D.GamePlay
             foreach (Transform child in ShipListGridLayoutGroup.transform)
             {
                 if (!shipBuildQueueList.Contains(child))
+                {
+                    child.gameObject.SetActive(true);
                     shipBuildQueueList.Add(child);
+                }
             }
 
             shipBuildQueueList.RemoveAll(t => t == null || t.parent != ShipListGridLayoutGroup.transform);

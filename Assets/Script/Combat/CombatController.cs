@@ -382,6 +382,20 @@ namespace BOTF3D.GamePlay
                 Debug.Log("  Resumed time");
             }
         }
+        public void PlayExplosionSound(Vector3 position)
+        {
+            AudioManager.Instance.PlaySFX3D("Explosion", position);
+        }
+
+        public void PlayLaserSound()
+        {
+            AudioManager.Instance.PlayRandomSFX("LaserShot"); // Plays random variation
+        }
+
+        public void PlayShieldHitSound()
+        {
+            AudioManager.Instance.PlaySFX("ShieldHit");
+        }
         public void ResetFriendAndEnemyLists()
         {
             CombatData.SideOneShipCons.Clear();

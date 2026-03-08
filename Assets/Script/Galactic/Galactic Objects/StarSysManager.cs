@@ -39,8 +39,6 @@ namespace BOTF3D.Core
         private List<ResearchCenterSO> researchCenterSOList; // get factorySO for civ by int
         [SerializeField]
         private StarSysController sysPrefab;
-        [SerializeField]
-        private GameObject shipBuildSliderPrefab;
 
         [SerializeField]
         private GameObject sysUIPrefab;
@@ -254,70 +252,41 @@ namespace BOTF3D.Core
         }
         public void SetShipBuildPrefabs(CivEnum localCiv)
         {
+            TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
 
-            TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;// to do GameDate to know staring tech level
-            List<ShipSO> shipSOList = new List<ShipSO>();
-            switch (techLevel)
+            // ✅ NEW: Use civ-specific list
+            List<ShipSO> shipSOList = ShipManager.Instance.GetShipSOsForCivAndTech(localCiv, techLevel);
+
+            Debug.Log($"SetShipBuildPrefabs: Found {shipSOList.Count} ships for {localCiv} at {techLevel}");
+
+            foreach (var shipSO in shipSOList)
             {
-                case TechLevel.EARLY:
-                    shipSOList = ShipManager.Instance.ShipSOListTech0.Where(x => x.CivEnum == localCiv && x.TechLevel == TechLevel.EARLY).ToList();
-                    break;
-                case TechLevel.DEVELOPED:
-                    shipSOList = ShipManager.Instance.ShipSOListTech1.Where(x => x.CivEnum == localCiv && x.TechLevel == TechLevel.DEVELOPED).ToList();
-                    break;
-                case TechLevel.ADVANCED:
-                    shipSOList = ShipManager.Instance.ShipSOListTech2.Where(x => x.CivEnum == localCiv && x.TechLevel == TechLevel.ADVANCED).ToList();
-                    break;
-                case TechLevel.SUPREME:
-                    shipSOList = ShipManager.Instance.ShipSOListTech3.Where(x => x.CivEnum == localCiv && x.TechLevel == TechLevel.SUPREME).ToList();
-                    break;
-                default:
-                    break;
+                GameObject prefab = GetShipPrefabByType(shipSO.ShipType);
+                if (prefab == null) continue;
+
+                var shipBuildScript = prefab.GetComponent<ShipBuildDrag>();
+                if (shipBuildScript != null)
+                {
+                    shipBuildScript.BuildDuration = shipSO.BuildDuration;
+                    shipBuildScript.ShipSprite = shipSO.shipSprite;
+                    prefab.GetComponent<Image>().sprite = shipSO.shipSprite;
+
+                    Debug.Log($"  ✅ Set prefab for {shipSO.ShipType}");
+                }
             }
-            for (int i = 0; i < shipSOList.Count; i++)
+        }
+
+        private GameObject GetShipPrefabByType(ShipType type)
+        {
+            switch (type)
             {
-                if (shipSOList[i].ShipType == ShipType.Scout)
-                {
-                    var shipBuildScript = scoutBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    scoutBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
-                else if (shipSOList[i].ShipType == ShipType.Destroyer)
-                {
-                    var shipBuildScript = destroyerBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    destroyerBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
-                else if (shipSOList[i].ShipType == ShipType.Cruiser)
-                {
-                    var shipBuildScript = cruiserBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    cruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
-                else if (shipSOList[i].ShipType == ShipType.LtCruiser)
-                {
-                    var shipBuildScript = ltCruiserBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    ltCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
-                else if (shipSOList[i].ShipType == ShipType.HvyCruiser)
-                {
-                    var shipBuildScript = hvyCruiserBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    hvyCruiserBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
-                else if (shipSOList[i].ShipType == ShipType.Transport)
-                {
-                    var shipBuildScript = transportBluePrintPrefab.GetComponent<ShipBuildDrag>();
-                    shipBuildScript.BuildDuration = shipSOList[i].BuildDuration;
-                    shipBuildScript.ShipSprite = shipSOList[i].shipSprite;
-                    transportBluePrintPrefab.GetComponent<Image>().sprite = shipSOList[i].shipSprite;
-                }
+                case ShipType.Scout: return scoutBluePrintPrefab;
+                case ShipType.Destroyer: return destroyerBluePrintPrefab;
+                case ShipType.Cruiser: return cruiserBluePrintPrefab;
+                case ShipType.LtCruiser: return ltCruiserBluePrintPrefab;
+                case ShipType.HvyCruiser: return hvyCruiserBluePrintPrefab;
+                case ShipType.Transport: return transportBluePrintPrefab;
+                default: return null;
             }
         }
         public void SysDataFromSO(List<CivSO> civSOList)
@@ -447,10 +416,10 @@ namespace BOTF3D.Core
 
             Debug.Log($"  ✅ System created: {starSysCon.name}, total systems: {StarSysControllerList.Count}");
 
-            // ✅ CHANGED: Use the consolidated method
+            // ✅ FIXED: Call InstantiateStarSysUI to create the system's main UI panel
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
-                InstantiateStarSysUI(starSysCon); // ✅ Single method call
+                InstantiateStarSysUI(starSysCon); // ✅ Creates system UI panel with ship list
             }
 
             List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
@@ -1039,9 +1008,32 @@ namespace BOTF3D.Core
         }
         public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
         {
-            GameObject sysBuildListInstance = (GameObject)Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0),
-                Quaternion.identity);
-            sysBuildListInstance.layer = 5; // UI layer
+            Debug.Log($"InstantiateSysBuildListUI: Opening for system '{sysCon.name}'");
+
+            var existingBuildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
+            if (existingBuildUI != null)
+            {
+                Debug.Log("  Destroying previous build UI");
+                Destroy(existingBuildUI);
+            }
+
+            GameObject sysBuildListInstance = Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0), Quaternion.identity);
+            sysBuildListInstance.layer = 5;
+
+            // ✅ Set civ-specific images FIRST (before anything else)
+            SetFacilityBuildImages(sysCon, sysBuildListInstance);
+            SetShipBuildImages(sysCon, sysBuildListInstance);
+
+            // Find GridLayoutGroups
+            GridLayoutGroup[] grids = sysBuildListInstance.GetComponentsInChildren<GridLayoutGroup>();
+            for (int i = 0; i < grids.Length; i++)
+            {
+                grids[i].enabled = true;
+                if (grids[i].name == "QueueHoldingBuildables")
+                    sysCon.BuildListGridLayoutGroup = grids[i];
+                else if (grids[i].name == "QueueHoldingBuildableShips")
+                    sysCon.ShipListGridLayoutGroup = grids[i];
+            }
 
             // Initialize watchers explicitly
             foreach (var watcher in sysBuildListInstance.GetComponentsInChildren<BuildQueueWatcher>(true))
@@ -1055,471 +1047,168 @@ namespace BOTF3D.Core
             }
 
             GalaxyMenuUIController.Instance.SetActiveBuildMenu(sysBuildListInstance);
-
             canvasBuildList.SetActive(true);
-
-            // Parent under canvas
             sysBuildListInstance.transform.SetParent(canvasBuildList.transform, false);
 
-            // set StarSysController reference on build-able items
-            FactoryBuildItemDrag[] buildable = sysBuildListInstance.GetComponentsInChildren<FactoryBuildItemDrag>();
-            for (int m = 0; m < buildable.Length; m++)
+            // ✅ CRITICAL: Find and wire inventory slot references AND sliders
+            Transform[] allTransforms = sysBuildListInstance.GetComponentsInChildren<Transform>(true);
+
+            foreach (Transform t in allTransforms)
             {
-                buildable[m].StarSysController = sysCon;
-                if (buildable[m].name == "ItemPowerPlant") buildable[m].FacilityType = StarSysFacilityType.PowerPlanet;
-                else if (buildable[m].name == "ItemFactory") buildable[m].FacilityType = StarSysFacilityType.Factory;
-                else if (buildable[m].name == "ItemShipyard") buildable[m].FacilityType = StarSysFacilityType.Shipyard;
-                else if (buildable[m].name == "ItemShieldGenerator") buildable[m].FacilityType = StarSysFacilityType.ShieldGenerator;
-                else if (buildable[m].name == "ItemOrbitalBattery") buildable[m].FacilityType = StarSysFacilityType.OrbitalBattery;
-                else if (buildable[m].name == "ItemResearchCenter") buildable[m].FacilityType = StarSysFacilityType.ResearchCenter;
-            }
-
-            // Prefer the explicit prefab helper component
-            var buildUI = sysBuildListInstance.GetComponent<BuildUIFields>();
-            if (buildUI != null)
-            {
-                // text
-                if (buildUI.systemNameTMP != null)
-                    buildUI.systemNameTMP.text = sysCon.StarSysData.SysName;
-
-                // grid layouts -> assign to controller and refresh its queues
-                if (buildUI.queueHoldingBuildables != null)
+                switch (t.name)
                 {
-                    sysCon.BuildListGridLayoutGroup = buildUI.queueHoldingBuildables;
-                    sysCon.GridFactoryQueueUpdate();
-                }
-                if (buildUI.queueHoldingBuildableShips != null)
-                {
-                    sysCon.ShipListGridLayoutGroup = buildUI.queueHoldingBuildableShips;
-                    sysCon.GridShipQueueUpdate();
-                }
-
-                // sliders -> menu controller
-                if (buildUI.factoryBuildProgress != null)
-                {
-                    StarSysMenuUIController.Instance.SliderBuildProgress = buildUI.factoryBuildProgress;
-                    StarSysMenuUIController.Instance.SliderBuildProgress.value = 0f;
-                }
-                if (buildUI.shipBuildProgress != null)
-                {
-                    StarSysMenuUIController.Instance.ShipSliderBuildProgress = buildUI.shipBuildProgress;
-                    StarSysMenuUIController.Instance.ShipSliderBuildProgress.value = 0f;
-                }
-
-                // inventory slot parents for later use
-                powerPlantInventorySlot =
-                    buildUI.powerPlantInventorySlot != null
-                        ? buildUI.powerPlantInventorySlot
-                        : powerPlantInventorySlot;
-                factoryInventorySlot = buildUI.factoryInventorySlot != null ? buildUI.factoryInventorySlot : factoryInventorySlot;
-                shipyardInventorySlot = buildUI.shipyardInventorySlot != null ? buildUI.shipyardInventorySlot : shipyardInventorySlot;
-                shieldGenInventorySlot = buildUI.shieldGenInventorySlot != null ? buildUI.shieldGenInventorySlot : shieldGenInventorySlot;
-                orbitalBatteryInventorySlot = buildUI.orbitalBatteryInventorySlot != null ? buildUI.orbitalBatteryInventorySlot : orbitalBatteryInventorySlot;
-                researchCenterInventory_slot = buildUI.researchCenterInventorySlot != null ? researchCenterInventory_slot : researchCenterInventory_slot;
-                scoutInventorySlot = buildUI.scoutInventorySlot != null ? buildUI.scoutInventorySlot : scoutInventorySlot;
-                destroyerInventorySlot = buildUI.destroyerInventorySlot != null ? buildUI.destroyerInventorySlot : destroyerInventorySlot;
-                cruiserInventorySlot = buildUI.cruiserInventorySlot != null ? buildUI.cruiserInventorySlot : cruiserInventorySlot;
-                ltCruiserInventorySlot = buildUI.ltCruiserInventorySlot != null ? buildUI.ltCruiserInventorySlot : ltCruiserInventorySlot;
-                hvyCruiserInventorySlot = buildUI.hvyCruiserInventorySlot != null ? buildUI.hvyCruiserInventorySlot : hvyCruiserInventorySlot;
-                transportInventorySlot = buildUI.transportInventorySlot != null ? buildUI.transportInventorySlot : transportInventorySlot;
-                var sysUIElement = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
-                // populate images from StarSysData into known image fields (if present)
-                if (sysUIElement.powerUnitImage != null && sysCon.StarSysData.PowerPlantData != null)
-                    sysUIElement.powerUnitImage.sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
-                if (sysUIElement.factoryImage != null && sysCon.StarSysData.FactoryData != null)
-                    sysUIElement.factoryImage.sprite = sysCon.StarSysData.FactoryData.FactorySprite;
-                if (sysUIElement.shipyardImage != null && sysCon.StarSysData.ShipyardData != null)
-                    sysUIElement.shipyardImage.sprite = sysCon.StarSysData.ShipyardData.ShipyardSprite;
-                if (sysUIElement.shieldPlantImage != null && sysCon.StarSysData.ShieldGeneratorData != null)
-                    sysUIElement.shieldPlantImage.sprite = sysCon.StarSysData.ShieldGeneratorData.ShieldGeneratorSprite;
-                if (sysUIElement.orbitalBatteriesImage != null && sysCon.StarSysData.OrbitalBatteryData != null)
-                    sysUIElement.orbitalBatteriesImage.sprite = sysCon.StarSysData.OrbitalBatteryData.OrbitalBatterySprite;
-                if (sysUIElement.researchImage != null && sysCon.StarSysData.ResearchCenterData != null)
-                    sysUIElement.researchImage.sprite = sysCon.StarSysData.ResearchCenterData.ResearchCenterSprite;
-
-                // wire action buttons (if present)
-                if (sysUIElement.buildButton != null)
-                {
-                    sysUIElement.buildButton.onClick.RemoveAllListeners();
-                    sysUIElement.buildButton.onClick.AddListener(() => sysCon.BuildClick(sysCon));
-                }
-                if (sysUIElement.shipButton != null)
-                {
-                    sysUIElement.shipButton.onClick.RemoveAllListeners();
-                    sysUIElement.shipButton.onClick.AddListener(() => sysCon.ShipClick(sysCon));
-                }
-
-                // wire facility on/off buttons to StarSysController's handlers if present
-                if (sysUIElement.factoryButtonOn != null)
-                {
-                    sysUIElement.factoryButtonOn.onClick.RemoveAllListeners();
-                    sysUIElement.factoryButtonOn.onClick.AddListener(() => sysCon.FactoryButtonOnClicked(sysCon));
-                }
-                if (sysUIElement.factoryButtonOff != null)
-                {
-                    sysUIElement.factoryButtonOff.onClick.RemoveAllListeners();
-                    sysUIElement.factoryButtonOff.onClick.AddListener(() => sysCon.FactoryButtonOffClicked(sysCon));
-                }
-                if (sysUIElement.yardButtonOn != null)
-                {
-                    sysUIElement.yardButtonOn.onClick.RemoveAllListeners();
-                    sysUIElement.yardButtonOn.onClick.AddListener(() => sysCon.YardButtonOnClicked(sysCon));
-                }
-                if (sysUIElement.yardButtonOff != null)
-                {
-                    sysUIElement.yardButtonOff.onClick.RemoveAllListeners();
-                    sysUIElement.yardButtonOff.onClick.AddListener(() => sysCon.YardButtonOffClicked(sysCon));
-                }
-                if (sysUIElement.shieldButtonOn != null)
-                {
-                    sysUIElement.shieldButtonOn.onClick.RemoveAllListeners();
-                    sysUIElement.shieldButtonOn.onClick.AddListener(() => sysCon.ShieldButtonOnClicked(sysCon));
-                }
-                if (sysUIElement.shieldButtonOff != null)
-                {
-                    sysUIElement.shieldButtonOff.onClick.RemoveAllListeners();
-                    sysUIElement.shieldButtonOff.onClick.AddListener(() => sysCon.ShieldButtonOffClicked(sysCon));
-                }
-                if (sysUIElement.oBButtonOn != null)
-                {
-                    sysUIElement.oBButtonOn.onClick.RemoveAllListeners();
-                    sysUIElement.oBButtonOn.onClick.AddListener(() => sysCon.OBButtonOnClicked(sysCon));
-                }
-                if (sysUIElement.oBButtonOff != null)
-                {
-                    sysUIElement.oBButtonOff.onClick.RemoveAllListeners();
-                    sysUIElement.oBButtonOff.onClick.AddListener(() => sysCon.OBButtonOffClicked(sysCon));
-                }
-                if (sysUIElement.researchButtonOn != null)
-                {
-                    sysUIElement.researchButtonOn.onClick.RemoveAllListeners();
-                    sysUIElement.researchButtonOn.onClick.AddListener(() => sysCon.ResearchButtonOnClicked(sysCon));
-                }
-                if (sysUIElement.researchButtonOff != null)
-                {
-                    sysUIElement.researchButtonOff.onClick.RemoveAllListeners();
-                    sysUIElement.researchButtonOff.onClick.AddListener(() => sysCon.ResearchButtonOffClicked(sysCon));
-                }
-
-                // wire close buttons array
-                if (buildUI.closeButtons != null)
-                {
-                    foreach (var btn in buildUI.closeButtons)
-                    {
-                        if (btn == null) continue;
-                        btn.gameObject.SetActive(true);
-                        btn.onClick.RemoveAllListeners();
-                        btn.onClick.AddListener(() => StarSysMenuUIController.Instance.CloseBuildingQueues());
-                    }
-                }
-
-                // ensure inventory slot images inside assigned parents are correct
-                if (powerPlantInventorySlot != null && sysCon.StarSysData.PowerPlantData != null)
-                {
-                    foreach (var img in powerPlantInventorySlot.GetComponentsInChildren<Image>(true))
-                        if (img.name == "ItemPowerPlant" || img.name == "ImagePowerBackground")
-                            img.sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
-                }
-
-                // ship inventory images
-                if (scoutInventorySlot != null && scoutBluePrintPrefab != null)
-                {
-                    foreach (var img in scoutInventorySlot.GetComponentsInChildren<Image>(true))
-                        if (img.name == "ItemScout" || img.name == "ImageScoutBackground")
-                            img.sprite = scoutBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                }
-
-                //return;
-            }
-
-            // Fallback: existing legacy traversal (keeps compatibility for prefabs missing BuildUISliders)
-            TextMeshProUGUI[] theTextItems = sysBuildListInstance.GetComponentsInChildren<TextMeshProUGUI>();
-            for (int j = 0; j < theTextItems.Length; j++)
-            {
-                theTextItems[j].enabled = true;
-                if (theTextItems[j].name == "SystemNameTMP")
-                {
-                    theTextItems[j].text = sysCon.StarSysData.SysName;
-                    break;
-                }
-            }
-            GridLayoutGroup[] theGrids = sysBuildListInstance.GetComponentsInChildren<GridLayoutGroup>();
-            for (int k = 0; k < theGrids.Length; k++)
-            {
-                theGrids[k].enabled = true;
-                if (theGrids[k].name == "QueueHoldingBuildables")
-                {
-                    sysCon.BuildListGridLayoutGroup = theGrids[k];
-                    sysCon.GridFactoryQueueUpdate();
-                }
-                else if (theGrids[k].name == "QueueHoldingBuildableShips")
-                {
-                    sysCon.ShipListGridLayoutGroup = theGrids[k];
-                    sysCon.GridShipQueueUpdate();
-                    break;
-                }
-            }
-
-            // Original per-slot traversal preserved below (unchanged)
-            Transform[] theSlots = sysBuildListInstance.GetComponentsInChildren<Transform>();
-            for (int l = 0; (l < theSlots.Length); l++)
-            {
-                theSlots[l].gameObject.SetActive(true);
-                switch (theSlots[l].gameObject.name)
-                {
-                    case "ItemSlotPower":
-                        {
-                            powerPlantInventorySlot = theSlots[l].gameObject;
-                            Image[] itemPowerPlantImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemPowerPlantImage.Length; i++)
-                            {
-                                if (itemPowerPlantImage[i].name == "ItemPowerPlant" || itemPowerPlantImage[i].name == "ImagePowerBackground")
-                                {
-                                    itemPowerPlantImage[i].sprite = sysCon.StarSysData.PowerPlantData.PowerPlantSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotFactory":
-                        {
-                            factoryInventorySlot = theSlots[l].gameObject;
-                            Image[] itemFactoryImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemFactoryImage.Length; i++)
-                            {
-                                if (itemFactoryImage[i].name == "ItemFactory" || itemFactoryImage[i].name == "ImageFactoryBackground")
-                                {
-                                    itemFactoryImage[i].sprite = sysCon.StarSysData.FactoryData.FactorySprite;
-                                }
-                            }
-                            break;
-
-                        }
-                    case "ItemSlotShipyard":
-                        {
-                            shipyardInventorySlot = theSlots[l].gameObject;
-                            Image[] itemShipyardImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemShipyardImage.Length; i++)
-                            {
-                                if (itemShipyardImage[i].name == "ItemShipyard" || itemShipyardImage[i].name == "ImageShipyardBackground")
-                                {
-                                    itemShipyardImage[i].sprite = sysCon.StarSysData.ShipyardData.ShipyardSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotShields":
-                        {
-                            shieldGenInventorySlot = theSlots[l].gameObject;
-                            Image[] itemShieldGenImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemShieldGenImage.Length; i++)
-                            {
-                                if (itemShieldGenImage[i].name == "ItemShieldGenerator" || itemShieldGenImage[i].name == "ImageShieldBackground")
-                                {
-                                    itemShieldGenImage[i].sprite = sysCon.StarSysData.ShieldGeneratorData.ShieldGeneratorSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotOrbitalBattery":
-                        {
-                            orbitalBatteryInventorySlot = theSlots[l].gameObject;
-                            Image[] itemOBImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemOBImage.Length; i++)
-                            {
-                                if (itemOBImage[i].name == "ItemOrbitalBattery" || itemOBImage[i].name == "ImageOrbitalBatteryBackground")
-                                {
-                                    itemOBImage[i].sprite = sysCon.StarSysData.OrbitalBatteryData.OrbitalBatterySprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotResearchCnt":
-                        {
-                            researchCenterInventory_slot = theSlots[l].gameObject;
-                            Image[] itemResearchCenterImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemResearchCenterImage.Length; i++)
-                            {
-                                if (itemResearchCenterImage[i].name == "ItemResearchCenter" || itemResearchCenterImage[i].name == "ImageResearchBackground")
-                                {
-                                    itemResearchCenterImage[i].sprite = sysCon.StarSysData.ResearchCenterData.ResearchCenterSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "FactoryProgressBar":
-                        {
-                            StarSysMenuUIController.Instance.SliderBuildProgress = theSlots[l].gameObject.GetComponent<Slider>();
-                            StarSysMenuUIController.Instance.gameObject.transform.SetParent(theSlots[l]);
-                            break;
-                        }
-                    case "Scout (TMP)":
-                        {
-                            // always available
-                            theSlots[l].gameObject.SetActive(true);
-                            break;
-                        }
-                    case "Destroyer (TMP)":
-                        {
-                            // always available
-                            theSlots[l].gameObject.SetActive(true);
-                            break;
-                        }
-                    case "Transport (TMP)":
-                        {
-                            // always available
-                            theSlots[l].gameObject.SetActive(true);
-                            break;
-                        }
-                    case "Cruiser (TMP)":
-                        {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY ||
-                                sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
-                            {
-                                theSlots[l].gameObject.SetActive(false);
-                                break;
-                            }
-                            else theSlots[l].gameObject.SetActive(true);
-                            break;
-                        }
-                    case "Lt Cruiser (TMP)":
-                    case "Hv Cruiser (TMP)":
-                        {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel != TechLevel.SUPREME)
-                            {
-                                theSlots[l].gameObject.SetActive(false);
-                                break;
-                            }
-                            else theSlots[l].gameObject.SetActive(true);
-                            break;
-                        }
-                    case "ItemSlotScout":
-                        {
-                            string localPlayer = GameController.Instance.GameData.LocalPlayerCivEnum.ToString();
-                            scoutInventorySlot = theSlots[l].gameObject;
-                            Image[] itemScoutImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemScoutImage.Length; i++)
-                            {
-                                if (itemScoutImage[i].name == "ItemScout" || itemScoutImage[i].name == "ImageScoutBackground")
-                                {
-                                    itemScoutImage[i].sprite = scoutBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotDestroyer":
-                        {
-                            string localPlayer = GameController.Instance.GameData.LocalPlayerCivEnum.ToString();
-                            destroyerInventorySlot = theSlots[l].gameObject;
-                            Image[] itemDestroyerImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemDestroyerImage.Length; i++)
-                            {
-                                if (itemDestroyerImage[i].name == "ItemDestroyer" || itemDestroyerImage[i].name == "ImageDestroyerBackground")
-                                {
-                                    itemDestroyerImage[i].sprite = destroyerBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotCruiser":
-                        {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.EARLY ||
-                                sysCon.StarSysData.CurrentCivController.CivData.TechLevel == TechLevel.SUPREME)
-                            {
-                                theSlots[l].gameObject.SetActive(false);
-                                break;
-                            }
-                            else theSlots[l].gameObject.SetActive(true);
-                            string localPlayer = GameController.Instance.GameData.LocalPlayerCivEnum.ToString();
-                            cruiserInventorySlot = theSlots[l].gameObject;
-                            Image[] itemCruiserImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemCruiserImage.Length; i++)
-                            {
-                                if (itemCruiserImage[i].name == "ItemCruiser" || itemCruiserImage[i].name == "ImageCruiserBackground")
-                                {
-                                    itemCruiserImage[i].sprite = cruiserBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotLtCruiser":
-                        {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel != TechLevel.SUPREME)
-                            {
-                                theSlots[l].gameObject.SetActive(false);
-                                break;
-                            }
-                            else theSlots[l].gameObject.SetActive(true);
-                            string localPlayer = GameController.Instance.GameData.LocalPlayerCivEnum.ToString();
-                            ltCruiserInventorySlot = theSlots[l].gameObject;
-                            Image[] itemCruiserImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemCruiserImage.Length; i++)
-                            {
-                                if (itemCruiserImage[i].name == "ItemLtCruiser" || itemCruiserImage[i].name == "ImageLtCruiserBackground")
-                                {
-                                    itemCruiserImage[i].sprite = ltCruiserBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotHvyCruiser":
-                        {
-                            if (sysCon.StarSysData.CurrentCivController.CivData.TechLevel != TechLevel.SUPREME)
-                            {
-                                theSlots[l].gameObject.SetActive(false);
-                                break;
-                            }
-                            else theSlots[l].gameObject.SetActive(true);
-                            hvyCruiserInventorySlot = theSlots[l].gameObject;
-                            Image[] itemCruiserImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemCruiserImage.Length; i++)
-                            {
-                                if (itemCruiserImage[i].name == "ItemHvyCruiser" || itemCruiserImage[i].name == "ImageHvyCruiserBackground")
-                                {
-                                    itemCruiserImage[i].sprite = hvyCruiserBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-                    case "ItemSlotTransport":
-                        {
-                            string localPlayer = GameController.Instance.GameData.LocalPlayerCivEnum.ToString();
-                            transportInventorySlot = theSlots[l].gameObject;
-                            Image[] itemCruiserImage = theSlots[l].gameObject.GetComponentsInChildren<Image>();
-                            for (int i = 0; i < itemCruiserImage.Length; i++)
-                            {
-                                if (itemCruiserImage[i].name == "ItemTransport" || itemCruiserImage[i].name == "ImageTransportBackground")
-                                {
-                                    itemCruiserImage[i].sprite = transportBluePrintPrefab.GetComponent<ShipBuildDrag>().ShipSprite;
-                                }
-                            }
-                            break;
-                        }
-
-                    default:
+                    case "PowerPlantInventorySlot":
+                        powerPlantInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found powerPlantInventorySlot");
+                        break;
+                    case "FactoryInventorySlot":
+                        factoryInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found factoryInventorySlot");
+                        break;
+                    case "ShipyardInventorySlot":
+                        shipyardInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found shipyardInventorySlot");
+                        break;
+                    case "ShieldGenInventorySlot":
+                        shieldGenInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found shieldGenInventorySlot");
+                        break;
+                    case "OrbitalBatteryInventorySlot":
+                        orbitalBatteryInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found orbitalBatteryInventorySlot");
+                        break;
+                    case "ResearchCenterInventorySlot":
+                        researchCenterInventory_slot = t.gameObject;
+                        Debug.Log("  ✅ Found researchCenterInventory_slot");
+                        break;
+                    // ✅ Ship blueprint slots
+                    case "ScoutInventorySlot":
+                        scoutInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found scoutInventorySlot");
+                        break;
+                    case "DestroyerInventorySlot":
+                        destroyerInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found destroyerInventorySlot");
+                        break;
+                    case "CruiserInventorySlot":
+                        cruiserInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found cruiserInventorySlot");
+                        break;
+                    case "LtCruiserInventorySlot":
+                        ltCruiserInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found ltCruiserInventorySlot");
+                        break;
+                    case "HvyCruiserInventorySlot":
+                        hvyCruiserInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found hvyCruiserInventorySlot");
+                        break;
+                    case "TransportInventorySlot":
+                        transportInventorySlot = t.gameObject;
+                        Debug.Log("  ✅ Found transportInventorySlot");
                         break;
                 }
             }
-            Button[] closeButton = sysBuildListInstance.GetComponentsInChildren<Button>();
-            for (int l = 0; (l < closeButton.Length); l++)
+
+            // ✅ NEW: Find and wire progress sliders
+            Slider[] allSliders = sysBuildListInstance.GetComponentsInChildren<Slider>(true);
+            Debug.Log($"  Found {allSliders.Length} sliders in build UI");
+
+            foreach (Slider slider in allSliders)
             {
-                closeButton[l].gameObject.SetActive(true);
-                switch (closeButton[l].gameObject.name)
+                if (slider.name.Contains("FactoryProgressBar"))
                 {
-                    case "CloseBuilding":
-                        {
-                            closeButton[l].onClick.RemoveAllListeners();
-                            closeButton[l].onClick.AddListener(() => StarSysMenuUIController.Instance.CloseBuildingQueues());
-                            break;
-                        }
+                    if (StarSysMenuUIController.Instance != null)
+                    {
+                        StarSysMenuUIController.Instance.SliderBuildProgress = slider;
+                        Debug.Log($"  ✅ Wired facility build slider: '{slider.name}'");
+                    }
+                }
+                else if (slider.name.Contains("ShipyardProgressBar"))
+                {
+                    if (StarSysMenuUIController.Instance != null)
+                    {
+                        StarSysMenuUIController.Instance.ShipSliderBuildProgress = slider;
+                        Debug.Log($"  ✅ Wired ship build slider: '{slider.name}'");
+                    }
                 }
             }
-            GameObject shipSliderGO = (GameObject)Instantiate(shipBuildSliderPrefab, new Vector3(0, 0, 0),
-                Quaternion.identity);// ship building progress bar as prefab
-            shipSliderGO.transform.SetParent(sysBuildListInstance.transform);
-            StarSysMenuUIController.Instance.ShipSliderBuildProgress = shipSliderGO.GetComponentInChildren<Slider>();
-            shipSliderGO.layer = 5; //UI layer
-        }
 
+            // ✅ NEW: Find and wire CloseBuilding button
+            Button[] allButtons = sysBuildListInstance.GetComponentsInChildren<Button>(true);
+            Debug.Log($"  Found {allButtons.Length} buttons in build UI");
+
+            foreach (Button button in allButtons)
+            {
+                if (button.name == "CloseBuilding") //close the build queues menu
+                {
+                    button.onClick.RemoveAllListeners(); // Clear any existing listeners
+                    button.onClick.AddListener(() =>
+                    {
+                        Debug.Log("CloseBuilding button clicked");
+                        if (StarSysMenuUIController.Instance != null)
+                        {
+                            StarSysMenuUIController.Instance.CloseBuildingQueues();
+                        }
+                    });
+                    Debug.Log($"  ✅ Wired CloseBuilding button: '{button.name}'");
+                }
+            }
+
+            // ✅ Validate that critical slots were found
+            if (powerPlantInventorySlot == null)
+                Debug.LogError("  ❌ powerPlantInventorySlot NOT FOUND in build UI prefab!");
+            if (factoryInventorySlot == null)
+                Debug.LogError("  ❌ factoryInventorySlot NOT FOUND in build UI prefab!");
+            if (shipyardInventorySlot == null)
+                Debug.LogError("  ❌ shipyardInventorySlot NOT FOUND in build UI prefab!");
+            if (shieldGenInventorySlot == null)
+                Debug.LogError("  ❌ shieldGenInventorySlot NOT FOUND in build UI prefab!");
+            if (orbitalBatteryInventorySlot == null)
+                Debug.LogError("  ❌ orbitalBatteryInventorySlot NOT FOUND in build UI prefab!");
+            if (researchCenterInventory_slot == null)
+                Debug.LogError("  ❌ researchCenterInventory_slot NOT FOUND in build UI prefab!");
+
+            if (StarSysMenuUIController.Instance?.SliderBuildProgress == null)
+                Debug.LogWarning("  ⚠️ Facility build slider not found!");
+            if (StarSysMenuUIController.Instance?.ShipSliderBuildProgress == null)
+                Debug.LogWarning("  ⚠️ Ship build slider not found!");
+
+            // ✅ CRITICAL: Set StarSysController reference on build-able items
+            FactoryBuildItemDrag[] buildable = sysBuildListInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true);
+            Debug.Log($"  Found {buildable.Length} FactoryBuildItemDrag components");
+
+            for (int m = 0; m < buildable.Length; m++)
+            {
+                buildable[m].StarSysController = sysCon; // ✅ Wire the reference!
+
+                if (buildable[m].name == "ItemPowerPlant")
+                    buildable[m].FacilityType = StarSysFacilityType.PowerPlanet;
+                else if (buildable[m].name == "ItemFactory")
+                    buildable[m].FacilityType = StarSysFacilityType.Factory;
+                else if (buildable[m].name == "ItemShipyard")
+                    buildable[m].FacilityType = StarSysFacilityType.Shipyard;
+                else if (buildable[m].name == "ItemShieldGenerator")
+                    buildable[m].FacilityType = StarSysFacilityType.ShieldGenerator;
+                else if (buildable[m].name == "ItemOrbitalBattery")
+                    buildable[m].FacilityType = StarSysFacilityType.OrbitalBattery;
+                else if (buildable[m].name == "ItemResearchCenter")
+                    buildable[m].FacilityType = StarSysFacilityType.ResearchCenter;
+
+                Debug.Log($"    Wired '{buildable[m].name}' to system '{sysCon.name}'");
+            }
+
+            // ✅ Also wire ship drag items
+            ShipBuildDrag[] shipDragItems = sysBuildListInstance.GetComponentsInChildren<ShipBuildDrag>(true);
+            Debug.Log($"  Found {shipDragItems.Length} ShipBuildDrag components");
+
+            foreach (var shipDrag in shipDragItems)
+            {
+                shipDrag.StarSysController = sysCon;
+                Debug.Log($"    Wired ship drag '{shipDrag.name}' to system '{sysCon.name}'");
+            }
+
+            Debug.Log($"InstantiateSysBuildListUI: Complete for '{sysCon.name}'");
+        }
         public void NewImageInEmptyBuildAbleInventory(StarSysFacilityType type, StarSysController sysCon)
         {
             Debug.Log($"NewImageInEmptyBuildAbleInventory: type={type}, sysCon={sysCon?.name}");
@@ -1651,99 +1340,143 @@ namespace BOTF3D.Core
                     break;
             }
         }
+
         public void NewImageInShipInventory(ShipType shiptype)
         {
             switch (shiptype)
             {
                 case ShipType.Scout:
-                    GameObject ItemSGO = (GameObject)Instantiate(scoutBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject ItemSGO = Instantiate(scoutBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     ItemSGO.transform.SetParent(scoutInventorySlot.transform, false);
                     break;
+
                 case ShipType.Destroyer:
-                    GameObject ItemDGO = (GameObject)Instantiate(destroyerBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject ItemDGO = Instantiate(destroyerBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     ItemDGO.transform.SetParent(destroyerInventorySlot.transform, false);
                     break;
+
                 case ShipType.Cruiser:
-                    GameObject cruiserItemGO = (GameObject)Instantiate(cruiserBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject cruiserItemGO = Instantiate(cruiserBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     cruiserItemGO.transform.SetParent(cruiserInventorySlot.transform, false);
                     break;
+
                 case ShipType.LtCruiser:
-                    GameObject ltCruiserItemGO = (GameObject)Instantiate(ltCruiserBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject ltCruiserItemGO = Instantiate(ltCruiserBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     ltCruiserItemGO.transform.SetParent(ltCruiserInventorySlot.transform, false);
                     break;
+
                 case ShipType.HvyCruiser:
-                    GameObject hvyCruiserItemGO = (GameObject)Instantiate(hvyCruiserBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject hvyCruiserItemGO = Instantiate(hvyCruiserBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     hvyCruiserItemGO.transform.SetParent(hvyCruiserInventorySlot.transform, false);
                     break;
+
                 case ShipType.Transport:
-                    GameObject transportItemGO = (GameObject)Instantiate(transportBluePrintPrefab, new Vector3(0, 0, 0),
-                        Quaternion.identity);
+                    GameObject transportItemGO = Instantiate(transportBluePrintPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                     transportItemGO.transform.SetParent(transportInventorySlot.transform, false);
                     break;
+
                 default:
+                    Debug.LogWarning($"NewImageInShipInventory: Unknown ship type {shiptype}");
                     break;
             }
         }
+
+        /// <summary>
+        /// Makes all star system names visible for a specific civilization
+        /// Called when first contact is made or when a civ is discovered
+        /// </summary>
         public void ExposeAllSystemName(CivEnum civEnum)
         {
-            localPlayerCanSeeMyNameList.Add(civEnum);
+            Debug.Log($"ExposeAllSystemName: Revealing system names for {civEnum}");
+
+            if (!localPlayerCanSeeMyNameList.Contains(civEnum))
+            {
+                localPlayerCanSeeMyNameList.Add(civEnum);
+            }
+
             foreach (var starSysController in StarSysControllerList)
             {
+                if (starSysController == null) continue;
+
                 if (starSysController.StarSysData.CurrentOwnerCivEnum == civEnum)
                 {
-                    Transform[] transforms = starSysController.gameObject.GetComponentsInChildren<Transform>();
+                    Transform[] transforms = starSysController.gameObject.GetComponentsInChildren<Transform>(true);
+                    bool nameUpdated = false;
+                    bool insigniaUpdated = false;
+
                     for (int i = 0; i < transforms.Length; i++)
                     {
                         GameObject ourGO = transforms[i].gameObject;
-                        bool oneDown = false;
-                        bool oneMoreDown = false;
+
                         if (ourGO.name == "SysName")
                         {
                             ourGO.SetActive(true);
-                            ourGO.GetComponentInChildren<TextMeshProUGUI>().text = starSysController.StarSysData.SysName;
-                            oneDown = true;
-
+                            var textComponent = ourGO.GetComponent<TextMeshProUGUI>();
+                            if (textComponent != null)
+                            {
+                                textComponent.text = starSysController.StarSysData.SysName;
+                                nameUpdated = true;
+                                Debug.Log($"  Revealed system name: {starSysController.StarSysData.SysName}");
+                            }
                         }
-                        if (ourGO.name == "OwnerInsignia")
+                        else if (ourGO.name == "OwnerInsignia")
                         {
                             ourGO.SetActive(true);
-                            ourGO.GetComponent<SpriteRenderer>().enabled = true;
-                            ourGO.GetComponent<SpriteRenderer>().sortingOrder = 0;
-                            oneMoreDown = true;
-
+                            var spriteRenderer = ourGO.GetComponent<SpriteRenderer>();
+                            if (spriteRenderer != null)
+                            {
+                                spriteRenderer.enabled = true;
+                                spriteRenderer.sortingOrder = 0;
+                                insigniaUpdated = true;
+                                Debug.Log($"  Revealed insignia for system: {starSysController.StarSysData.SysName}");
+                            }
                         }
-                        if (oneDown && oneMoreDown)
+
+                        // Exit early if both updated
+                        if (nameUpdated && insigniaUpdated)
                         {
-                            return;
+                            break;
                         }
                     }
                 }
             }
+
+            Debug.Log($"ExposeAllSystemName: Complete for {civEnum}");
         }
+
+        /// <summary>
+        /// Moves a ship from a star system to a fleet or another system
+        /// </summary>
         public void MoveShipOutOfStarSys(ShipController shipCon, FleetController targetFleet, StarSysController targetSys)
         {
+            if (shipCon == null)
+            {
+                Debug.LogWarning("MoveShipOutOfStarSys: shipCon is null");
+                return;
+            }
+
+            // Remove from current star system
             if (shipCon.ShipData.CurrentStarSysController != null)
             {
                 shipCon.ShipData.CurrentStarSysController.StarSysData.ShipsList.Remove(shipCon);
+                Debug.Log($"Removed ship '{shipCon.ShipData.ShipName}' from system '{shipCon.ShipData.CurrentStarSysController.name}'");
             }
+
+            // Add to target fleet or system
             if (targetFleet != null)
             {
                 targetFleet.FleetData.ShipsList.Add(shipCon);
                 shipCon.ShipData.CurrentFleetController = targetFleet;
                 shipCon.ShipData.CurrentStarSysController = null;
+                Debug.Log($"Added ship '{shipCon.ShipData.ShipName}' to fleet '{targetFleet.name}'");
             }
             else if (targetSys != null)
             {
                 targetSys.StarSysData.ShipsList.Add(shipCon);
                 shipCon.ShipData.CurrentStarSysController = targetSys;
                 shipCon.ShipData.CurrentFleetController = null;
+                Debug.Log($"Added ship '{shipCon.ShipData.ShipName}' to system '{targetSys.name}'");
             }
-
         }
 
         [ContextMenu("Debug: List All Facility SO Names")]
@@ -1833,6 +1566,142 @@ namespace BOTF3D.Core
 
             Debug.Log($"InstantiateStarSysUI: Complete for '{sysCon.name}'");
             return newUI;
+        }
+
+        /// <summary>
+        /// Sets the facility build item images based on local player's civilization
+        /// Called when opening build UI
+        /// </summary>
+        public void SetFacilityBuildImages(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon == null || buildUIInstance == null) return;
+
+            CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
+            Debug.Log($"SetFacilityBuildImages: Setting for {localCiv}");
+
+            // Find all buildable items
+            FactoryBuildItemDrag[] buildableItems = buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true);
+
+            foreach (var item in buildableItems)
+            {
+                Image itemImage = item.GetComponent<Image>();
+                if (itemImage == null) continue;
+
+                switch (item.name)
+                {
+                    case "ItemPowerPlant":
+                        var powerPlantSO = GetPowrPlantSObyCivEnum(localCiv);
+                        if (powerPlantSO != null && powerPlantSO.PowerPlantSprite != null)
+                        {
+                            itemImage.sprite = powerPlantSO.PowerPlantSprite;
+                            Debug.Log($"  ✅ Set PowerPlant sprite for {localCiv}");
+                        }
+                        break;
+
+                    case "ItemFactory":
+                        var factorySO = GetFactorySObyCivInt((int)localCiv);
+                        if (factorySO != null && factorySO.FactorySprite != null)
+                        {
+                            itemImage.sprite = factorySO.FactorySprite;
+                            Debug.Log($"  ✅ Set Factory sprite for {localCiv}");
+                        }
+                        break;
+
+                    case "ItemShipyard":
+                        var shipyardSO = GetShipyardSObyCivInt((int)localCiv);
+                        if (shipyardSO != null && shipyardSO.ShipyardSprite != null)
+                        {
+                            itemImage.sprite = shipyardSO.ShipyardSprite;
+                            Debug.Log($"  ✅ Set Shipyard sprite for {localCiv}");
+                        }
+                        break;
+
+                    case "ItemShieldGenerator":
+                        var shieldSO = GetShieldGeneratorSObyCivInt((int)localCiv);
+                        if (shieldSO != null && shieldSO.ShieldGeneratorSprite != null)
+                        {
+                            itemImage.sprite = shieldSO.ShieldGeneratorSprite;
+                            Debug.Log($"  ✅ Set ShieldGenerator sprite for {localCiv}");
+                        }
+                        break;
+
+                    case "ItemOrbitalBattery":
+                        var orbitalSO = GetOrbitalBatterySObyCivInt((int)localCiv);
+                        if (orbitalSO != null && orbitalSO.OrbitalBatterySprite != null)
+                        {
+                            itemImage.sprite = orbitalSO.OrbitalBatterySprite;
+                            Debug.Log($"  ✅ Set OrbitalBattery sprite for {localCiv}");
+                        }
+                        break;
+
+                    case "ItemResearchCenter":
+                        var researchSO = GetResearchCenterSObyCivInt((int)localCiv);
+                        if (researchSO != null && researchSO.ResearchCenterSprite != null)
+                        {
+                            itemImage.sprite = researchSO.ResearchCenterSprite;
+                            Debug.Log($"  ✅ Set ResearchCenter sprite for {localCiv}");
+                        }
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets ship build images based on civ and tech level
+        /// Only shows ships available for current tech level
+        /// </summary>
+        public void SetShipBuildImages(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon == null || buildUIInstance == null) return;
+
+            CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
+
+            Debug.Log($"SetShipBuildImages: Civ={localCiv}, TechLevel={techLevel}");
+
+            // ✅ NEW: Get ships from civ-specific list, filtered by tech
+            List<ShipSO> availableShips = ShipManager.Instance.GetShipSOsForCivAndTech(localCiv, techLevel);
+
+            if (availableShips.Count == 0)
+            {
+                Debug.LogWarning($"  ⚠️ No ships found for {localCiv} at {techLevel}!");
+                return;
+            }
+
+            Debug.Log($"  Found {availableShips.Count} ships: {string.Join(", ", availableShips.Select(s => s.ShipType))}");
+
+            // Find all ship drag items in build UI
+            ShipBuildDrag[] shipDragItems = buildUIInstance.GetComponentsInChildren<ShipBuildDrag>(true);
+
+            foreach (var dragItem in shipDragItems)
+            {
+                // ✅ Find matching ShipSO by type
+                ShipSO shipSO = availableShips.FirstOrDefault(s => s.ShipType == dragItem.ShipType);
+
+                if (shipSO != null)
+                {
+                    // Set image and data
+                    Image itemImage = dragItem.GetComponent<Image>();
+                    if (itemImage != null && shipSO.shipSprite != null)
+                    {
+                        itemImage.sprite = shipSO.shipSprite;
+                        dragItem.ShipSprite = shipSO.shipSprite;
+                        dragItem.BuildDuration = shipSO.BuildDuration;
+                        dragItem.ShipType = shipSO.ShipType;
+
+                        Debug.Log($"  ✅ Set {shipSO.ShipType} sprite for {localCiv}");
+                    }
+
+                    // ✅ Show this ship type
+                    dragItem.gameObject.SetActive(true);
+                }
+                else
+                {
+                    // ✅ Hide ships not available at this tech level
+                    dragItem.gameObject.SetActive(false);
+                    Debug.Log($"  ⚠️ {dragItem.ShipType} not available at {techLevel} - hiding");
+                }
+            }
         }
     }
 }

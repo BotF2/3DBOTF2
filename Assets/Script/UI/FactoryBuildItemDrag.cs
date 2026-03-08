@@ -1,3 +1,5 @@
+// Ignore Spelling: BOTF Sys
+
 using BOTF3D.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,6 +22,7 @@ namespace BOTF3D.GamePlay
             rectTransform = GetComponent<RectTransform>();
             canvasGroup = GetComponent<CanvasGroup>();
         }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
@@ -60,42 +63,68 @@ namespace BOTF3D.GamePlay
             Debug.Log("onDraging");
         }
 
+        // ✅ FIXED: Only ONE OnEndDrag method, no "override", includes validation
         public void OnEndDrag(PointerEventData eventData)
         {
             canvasGroup.blocksRaycasts = true;
+
+            // ✅ CRITICAL: Validate StarSysController before using!
+            if (StarSysController == null)
+            {
+                Debug.LogError("FactoryBuildItemDrag.OnEndDrag: StarSysController is NULL! Cannot complete drag operation.");
+                Debug.LogError("  This means the build UI wasn't properly initialized or the system reference was lost.");
+
+                // Return to original parent
+                transform.SetParent(originalParent);
+                rectTransform.anchoredPosition = Vector2.zero;
+                return; // ✅ Exit early
+            }
+
+            // ✅ Also validate StarSysData
+            if (StarSysController.StarSysData == null)
+            {
+                Debug.LogError($"FactoryBuildItemDrag.OnEndDrag: StarSysController '{StarSysController.name}' has null StarSysData!");
+                transform.SetParent(originalParent);
+                rectTransform.anchoredPosition = Vector2.zero;
+                return;
+            }
+
             if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("FactoryBuildSlot"))
             {
-                transform.SetParent(eventData.pointerEnter.transform);
+                // ✅ CRITICAL: Parent to the ACTUAL build queue, not the drop slot!
+                if (StarSysController.BuildListGridLayoutGroup != null)
+                {
+                    transform.SetParent(StarSysController.BuildListGridLayoutGroup.transform);
+                    Debug.Log($"  ✅ Added '{FacilityType}' to BuildListGridLayoutGroup");
+                }
+                else
+                {
+                    Debug.LogError("  ❌ BuildListGridLayoutGroup is NULL on StarSysController!");
+                    transform.SetParent(originalParent);
+                    rectTransform.anchoredPosition = Vector2.zero;
+                    return;
+                }
+
                 var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
 
-                switch (theDragedScript.FacilityType)
+                // ✅ Create visual icon in inventory
+                if (StarSysManager.Instance != null)
                 {
-                    case StarSysFacilityType.PowerPlanet:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    case StarSysFacilityType.Factory:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    case StarSysFacilityType.Shipyard:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    case StarSysFacilityType.ShieldGenerator:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    case StarSysFacilityType.OrbitalBattery:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    case StarSysFacilityType.ResearchCenter:
-                        StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
-                        break;
-                    default:
-                        break;
+                    StarSysManager.Instance.NewImageInEmptyBuildAbleInventory(theDragedScript.FacilityType, this.StarSysController);
                 }
+                else
+                {
+                    Debug.LogError("FactoryBuildItemDrag.OnEndDrag: StarSysManager.Instance is NULL!");
+                }
+
+                // ✅ CRITICAL: Manually trigger queue update since OnTransformChildrenChanged might not fire
+                StarSysController.GridFactoryQueueUpdate();
             }
             else
             {
                 transform.SetParent(originalParent);
             }
+
             rectTransform.anchoredPosition = Vector2.zero;
             Debug.Log("onEndDrag");
         }

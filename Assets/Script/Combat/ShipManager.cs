@@ -26,7 +26,7 @@ namespace BOTF3D.Core
         public List<ShipSO> ShipSOListTech1 = new List<ShipSO>();
         public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
         public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
-        public ShipSORegistry ShipSORegistry;
+        //public ShipSORegistry ShipSORegistry;
         [Header("Weapon Prefabs")]
         public GameObject targetGOPrefab;
         public GameObject[] torpedoPrefabs;
@@ -46,9 +46,8 @@ namespace BOTF3D.Core
         [SerializeField] public List<ShipSO> TerranShipSOList;
         // ToDo these later?
         [Header("Ship Prefabs")]
-        [SerializeField] private ShipController galaxyShipPrefab; // Visual representation in galaxy
-        [SerializeField] private ShipController combatShipPrefab; // Visual representation in combat (can be same or different)
-                                                                  // RUNTIME DATA - ship instances and state
+        [SerializeField] private ShipController galaxyShipPrefab;
+
         public List<ShipData> AllShipsData = new List<ShipData>();
         public List<ShipController> AllShipControllers = new List<ShipController>();
 
@@ -98,15 +97,16 @@ namespace BOTF3D.Core
         {
             switch (civEnum)
             {
-                //ToDo: set up these lists 
-                //    case CivEnum.FED: return FedShipSOList;
-                //case CivEnum.ROM: return RomShipSOList;
-                //case CivEnum.KLING: return KlingShipSOList;
-                //case CivEnum.CARD: return CardShipSOList;
-                //case CivEnum.DOM: return DomShipSOList;
-                //case CivEnum.BORG: return BorgShipSOList;
-                //case CivEnum.TERRAN: return TerranShipSOList;
-                default: return null;
+                case CivEnum.FED: return FedShipSOList;
+                case CivEnum.ROM: return RomShipSOList;
+                case CivEnum.KLING: return KlingShipSOList;
+                case CivEnum.CARD: return CardShipSOList;
+                case CivEnum.DOM: return DomShipSOList;
+                case CivEnum.BORG: return BorgShipSOList;
+                case CivEnum.TERRAN: return TerranShipSOList;
+                default:
+                    Debug.LogWarning($"GetShipSOListByCiv: No ship list for {civEnum}");
+                    return new List<ShipSO>(); // Empty list
             }
         }
         public ShipController InstantiateGalaxyShip(ShipSO shipSO, Vector3 position, CivEnum civEnum)
@@ -207,24 +207,24 @@ namespace BOTF3D.Core
             }
         }
         // Instantiate combat ship from existing ShipData
-        public ShipController InstantiateCombatShip(ShipData shipData, Vector3 position)
-        {
-            if (combatShipPrefab == null)
-            {
-                Debug.LogError("ShipManager: combatShipPrefab is null!");
-                return null;
-            }
+        //public ShipController InstantiateCombatShip(ShipData shipData, Vector3 position)
+        //{
+        //    if (combatShipPrefab == null)
+        //    {
+        //        Debug.LogError("ShipManager: combatShipPrefab is null!");
+        //        return null;
+        //    }
 
-            ShipController combatShip = Instantiate(combatShipPrefab, position, Quaternion.identity);
-            combatShip.ShipData = shipData; // Reuse the same data!
-            combatShip.name = $"{shipData.ShipName}_Combat";
+        //    ShipController combatShip = Instantiate(combatShipPrefab, position, Quaternion.identity);
+        //    combatShip.ShipData = shipData; // Reuse the same data!
+        //    combatShip.name = $"{shipData.ShipName}_Combat";
 
-            RegisterCombatShip(combatShip);
+        //    RegisterCombatShip(combatShip);
 
-            Debug.Log($"ShipManager: Instantiated combat ship {combatShip.name}");
+        //    Debug.Log($"ShipManager: Instantiated combat ship {combatShip.name}");
 
-            return combatShip;
-        }
+        //    return combatShip;
+        //}
         // Pending UI processing (from your existing code)
         public void AddPendingShipUI(ShipController shipController, GameObject uiParent)
         {
@@ -297,7 +297,8 @@ namespace BOTF3D.Core
         }
         public void SpawnByShipName(string shipName, Vector3 position)
         {
-            ShipSO shipSO = ShipSORegistry.GetByID(shipName);
+            ShipSORegistry shipSORegistry = new ShipSORegistry();
+            ShipSO shipSO = shipSORegistry.GetByID(shipName);
             if (shipSO != null && shipSO.Prefab != null)
             {
                 Instantiate(shipSO.Prefab, position, Quaternion.identity);
@@ -875,6 +876,38 @@ namespace BOTF3D.Core
             shipCon.ShipData.BuildDuration = shipSO.BuildDuration;
 
             // Add other initialization...
+        }
+
+        /// <summary>
+        /// Gets ships for a specific civ and tech level
+        /// </summary>
+        public List<ShipSO> GetShipSOsForCivAndTech(CivEnum civ, TechLevel techLevel)
+        {
+            List<ShipSO> allCivShips = GetShipSOListByCiv(civ);
+
+            if (allCivShips == null || allCivShips.Count == 0)
+            {
+                Debug.LogWarning($"GetShipSOsForCivAndTech: No ships found for {civ}");
+                return new List<ShipSO>();
+            }
+
+            // Filter by tech level
+            var filtered = allCivShips.Where(s => s.TechLevel == techLevel).ToList();
+
+            Debug.Log($"GetShipSOsForCivAndTech: Found {filtered.Count} ships for {civ} at {techLevel}");
+            return filtered;
+        }
+
+        /// <summary>
+        /// Gets a specific ship for civ, tech level, and type
+        /// </summary>
+        public ShipSO GetShipSO(CivEnum civ, TechLevel techLevel, ShipType shipType)
+        {
+            List<ShipSO> civShips = GetShipSOListByCiv(civ);
+
+            return civShips.FirstOrDefault(s =>
+                s.TechLevel == techLevel &&
+                s.ShipType == shipType);
         }
     }
 }
