@@ -38,9 +38,8 @@ namespace BOTF3D.Core
                 Debug.LogError("BuildFacilityCoroutine: buildItem is NULL!");
                 yield break;
             }
-
             var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
-            if (buildDrag == null)
+            if (buildDrag == null) // && buildItem.name != "BuildingBackground")
             {
                 Debug.LogError($"BuildFacilityCoroutine: No FactoryBuildItemDrag found on '{buildItem.name}'!");
                 yield break;

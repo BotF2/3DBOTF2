@@ -17,7 +17,7 @@ namespace BOTF3D.UI
     {
         public static StarSysMenuUIController Instance;
         private StarSysController lastSysCon;
-        private StarSysController activeStarSysController;
+        public StarSysController ActiveStarSysController;
         [Header("References (assign in Inspector)")]
         public GameObject SystemsMenuView;
         public GameObject ASystemMenuView;
@@ -194,35 +194,6 @@ namespace BOTF3D.UI
             Debug.Log("ASystemMenuView hidden (single system detail)");
         }
 
-        ///// <summary>
-        ///// Close the build queue UI and clean up references
-        ///// </summary>
-        //public void CloseBuildingQueues()
-        //{
-        //    Debug.Log("CloseBuildingQueues: Starting");
-
-        //    // ✅ CRITICAL: Destroy the build UI to prevent stale references
-        //    var buildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
-        //    if (buildUI != null)
-        //    {
-        //        Debug.Log("  Destroying build queue UI");
-        //        Destroy(buildUI);
-        //    }
-
-        //    GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
-        //    GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
-
-        //    if (lastSysCon != null)
-        //    {
-        //        lastSysCon.LoadAStarSystem();
-        //    }
-
-        //    Debug.Log("CloseBuildingQueues: Complete");
-        //}
-        /// <summary>
-        /// Wires buttons and updates UI data for all visible systems
-        /// CALLED BY: ShowSystemMenuView() after systems are parented
-        /// </summary>
         public void SetupSystemUIData()
         {
             Debug.Log("SetupSystemUIData: Wiring buttons and updating data");
@@ -335,6 +306,7 @@ namespace BOTF3D.UI
         /// </summary>
         private void WireSystemUIButtons(StarSysController sysCon, StarSysUI_Fields fields)
         {
+            this.ActiveStarSysController = sysCon;
             // Hide cancel button initially
             if (fields.cancelShipManagerButton != null)
             {
@@ -1345,7 +1317,7 @@ namespace BOTF3D.UI
                 }
             }
 
-            activeStarSysController = null;
+            ActiveStarSysController = null;
             Debug.Log("=== MoveBackAnyStarSysUIGO: Complete - all UIs moved and DEACTIVATED ===");
         }
     }

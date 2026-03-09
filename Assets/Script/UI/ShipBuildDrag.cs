@@ -1,5 +1,6 @@
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -23,6 +24,8 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
+        this.StarSysController = StarSysMenuUIController.Instance.ActiveStarSysController;
+
         var theDragedScript = eventData.pointerDrag.GetComponent<ShipBuildDrag>();
         switch (eventData.pointerDrag.name)
         {

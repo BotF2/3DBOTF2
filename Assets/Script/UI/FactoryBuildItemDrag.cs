@@ -1,6 +1,7 @@
 // Ignore Spelling: BOTF Sys
 
 using BOTF3D.Core;
+using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -25,6 +26,7 @@ namespace BOTF3D.GamePlay
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            StarSysController = StarSysMenuUIController.Instance.ActiveStarSysController;
             var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
             switch (eventData.pointerDrag.name)
             {
