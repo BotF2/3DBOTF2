@@ -5,7 +5,6 @@ using FischlWorks_FogWar;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace BOTF3D.Core
@@ -682,7 +681,7 @@ namespace BOTF3D.Core
         {
             destinationIntsInUse.Remove(asDestinationInt);
             FleetControllerList.Remove(go.GetComponent<FleetController>());
-            go.IsDestroyed();
+            Destroy(go);
         }
         public int GetNewFleetInt(CivEnum civEnum)
         {
