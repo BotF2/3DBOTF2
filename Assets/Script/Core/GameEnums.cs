@@ -392,5 +392,31 @@ namespace BOTF3D.Core
         HabitableSysMenu,
         Combat
     }
+    public enum BuildMenuType
+    {
+        None,
+        Factory,
+        PowerPlant,
+        Shipyard,
+        ShieldGenerator,
+        OrbitalBattery,
+        ResearchCenter
+    }
+    public enum DiplomaticStatus
+    {
+        Neutral,
+        Allied,
+        AtWar,
+        Truce,
+        Vassal,
+        Protectorate
+    }
+    public enum LayerType
+    {
+        Default,
+        Additive,
+        Single
+
+    }
     #endregion
 }

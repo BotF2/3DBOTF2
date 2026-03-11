@@ -3,9 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
+using UnityEngine.Pool;
+using Random = UnityEngine.Random;
 
-namespace BOTF3D.Core
+namespace BOTF3D.Audio
 {
     /// <summary>
     /// Centralized audio manager with pooling, crossfading, transitions, global volume, volume groups, and randomization.
@@ -13,6 +14,13 @@ namespace BOTF3D.Core
     /// !! Weapon sounds, combat, are not handled here - they should be managed by the weapon system for better performance and spatialization control.
     /// Weapons prefabs have attached AudioSources for their sounds, and the weapon system triggers those directly.
     /// This keeps the AudioManager focused on shared and global audio needs.
+    /// Recommended Setup (Common Game Dev Practice)
+    //Audio Type        Format Compression in Unity
+    //UI                sounds WAV ADPCM
+    //Short SFX         WAV ADPCM
+    //Ambient loops     OGG Vorbis
+    //Background music  OGG Vorbis
+    //Voice lines       WAV or OGG  Vorbis
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
@@ -28,10 +36,19 @@ namespace BOTF3D.Core
         [Header("Sound Pool Settings")]
         [SerializeField] private int sfxPoolSize = 10;
         [SerializeField] private int uiPoolSize = 5;
-
+        IObjectPool<SoundEmitter> soundEmitterPool;
+        readonly List<SoundEmitter> activeSoundEmitters = new List<SoundEmitter>();
         [Header("Sound Library")]
+        [SerializeField] private SoundData[] soundLibrary; // ✅ Changed from Sound[] to SoundData[]
+        private Dictionary<string, SoundData> soundDictionary;
+        public readonly Dictionary<SoundData, int> soundEmitterUsage = new Dictionary<SoundData, int>();
+        [SerializeField] private SoundEmitter soundEmitterPrefab;
+        [SerializeField] private bool collectionCheck = true;
+        [SerializeField] private int defaultCapacity = 10;
+        [SerializeField] private int maxSize = 160;
+        [SerializeField] private int maxSoundInstances = 30;
+
         [SerializeField] private Sound[] sounds;
-        private Dictionary<string, Sound> soundDictionary;
         private Dictionary<string, List<AudioClip>> randomSoundGroups; // For sound variations
 
         // Audio Source Pools
@@ -102,30 +119,13 @@ namespace BOTF3D.Core
 
         private void InitializeAudioManager()
         {
-            // Load volume settings from PlayerPrefs
-            LoadVolumeSettings();
-
-            // Initialize sound dictionary
-            soundDictionary = new Dictionary<string, Sound>();
-            randomSoundGroups = new Dictionary<string, List<AudioClip>>();
-
-            foreach (var sound in sounds)
+            // ✅ Initialize dictionary with SoundData
+            soundDictionary = new Dictionary<string, SoundData>();
+            foreach (var soundData in soundLibrary)
             {
-                if (!soundDictionary.ContainsKey(sound.name))
+                if (!soundDictionary.ContainsKey(soundData.name))
                 {
-                    soundDictionary.Add(sound.name, sound);
-                }
-
-                // Group sounds with same base name for randomization
-                // e.g., "Explosion_1", "Explosion_2" -> group "Explosion"
-                if (sound.name.Contains("_"))
-                {
-                    string baseName = sound.name.Substring(0, sound.name.LastIndexOf('_'));
-                    if (!randomSoundGroups.ContainsKey(baseName))
-                    {
-                        randomSoundGroups[baseName] = new List<AudioClip>();
-                    }
-                    randomSoundGroups[baseName].Add(sound.clip);
+                    soundDictionary.Add(soundData.name, soundData);
                 }
             }
 
@@ -170,6 +170,39 @@ namespace BOTF3D.Core
 
             Debug.Log($"AudioManager: Initialized with {sfxPoolSize} SFX sources and {uiPoolSize} UI sources");
         }
+        SoundEmitter CreatSoundEmitter()
+        {
+            SoundEmitter emitter = Instantiate(soundEmitterPrefab);
+            emitter.gameObject.SetActive(false);
+            return emitter;
+        }
+        void OnTakeFromPool(SoundEmitter emitter)
+        {
+            emitter.gameObject.SetActive(true);
+            activeSoundEmitters.Add(emitter);
+        }
+        void OnReturnedToPool(SoundEmitter emitter)
+        {
+            emitter.gameObject.SetActive(false);
+            activeSoundEmitters.Remove(emitter);
+        }
+        void OnDestroyPoolObject(SoundEmitter emitter)
+        {
+            Destroy(emitter.gameObject);
+        }
+        private void InitializePool()
+        {
+            soundEmitterPool = new ObjectPool<SoundEmitter>(
+                        CreatSoundEmitter,
+                        OnTakeFromPool,
+                        OnReturnedToPool,
+                        OnDestroyPoolObject,
+                        collectionCheck,
+                        defaultCapacity,
+                        maxSize);
+        }
+
+
 
         void Start()
         {
@@ -253,7 +286,56 @@ namespace BOTF3D.Core
         #endregion
 
         #region Music Playback with Crossfading
+        /// <summary>
+        /// Play SoundData by reference (recommended)
+        /// </summary>
+        public void PlaySoundData(SoundData soundData, float volumeMultiplier = 1f)
+        {
+            if (soundData == null || soundData.clip == null) return;
 
+            float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
+            float finalPitch = soundData.pitch + Random.Range(-soundData.randomPitchVariation, soundData.randomPitchVariation);
+
+            if (soundData.is3D)
+            {
+                // Use SoundEmitter pool for 3D
+                PlaySoundData3D(soundData, Camera.main.transform.position);
+            }
+            else
+            {
+                // Use simple AudioSource pool for 2D
+                PlaySoundData2D(soundData, finalVolume, finalPitch);
+            }
+        }
+        /// <summary>
+        /// Play 3D positional sound using SoundEmitter pool
+        /// </summary>
+        public void PlaySoundData3D(SoundData soundData, Vector3 position, float volumeMultiplier = 1f)
+        {
+            if (soundData == null || soundData.clip == null) return;
+
+            SoundEmitter emitter = soundEmitterPool.Get();
+            emitter.transform.position = position;
+
+            float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
+            float finalPitch = soundData.pitch + Random.Range(-soundData.randomPitchVariation, soundData.randomPitchVariation);
+
+            emitter.Initialize(soundData.clip, finalVolume, finalPitch, soundData.loop, soundData.minDistance, soundData.maxDistance);
+            emitter.OnFinished += () => soundEmitterPool.Release(emitter);
+        }
+        private void PlaySoundData2D(SoundData soundData, float volume, float pitch)
+        {
+            AudioSource source = GetAvailableSFXSource();
+            if (source == null) return;
+
+            source.clip = soundData.clip;
+            source.volume = volume;
+            source.pitch = pitch;
+            source.spatialBlend = 0f;
+            source.Play();
+
+            StartCoroutine(ReturnToPool(source, sfxPool, soundData.clip.length));
+        }
         /// <summary>
         /// Play music by name with optional crossfade
         /// </summary>
@@ -261,7 +343,7 @@ namespace BOTF3D.Core
         {
             if (!soundDictionary.ContainsKey(musicName))
             {
-                Debug.LogWarning($"Music '{musicName}' not found in sound library!");
+                Debug.LogWarning($"Music '{musicName}' not found in soundData library!");
                 return;
             }
 
@@ -368,19 +450,17 @@ namespace BOTF3D.Core
 
         #region SFX Playback (Pooled)
 
-        /// <summary>
-        /// Play sound effect by name
-        /// </summary>
-        public void PlaySFX(string sfxName)
+        // ✅ Legacy string-based lookup (keep for backwards compatibility)
+        public void PlaySFX(string soundName)
         {
-            if (!soundDictionary.ContainsKey(sfxName))
+            if (soundDictionary.TryGetValue(soundName, out SoundData soundData))
             {
-                Debug.LogWarning($"SFX '{sfxName}' not found!");
-                return;
+                PlaySoundData(soundData);
             }
-
-            AudioClip clip = soundDictionary[sfxName].clip;
-            PlaySFXClip(clip);
+            else
+            {
+                Debug.LogWarning($"Sound '{soundName}' not found!");
+            }
         }
 
         /// <summary>
@@ -502,7 +582,19 @@ namespace BOTF3D.Core
         #endregion
 
         #region Audio Source Pooling
-
+        private float GetCategoryVolume(AudioCategory category)
+        {
+            return category switch
+            {
+                AudioCategory.Music => musicVolume,
+                AudioCategory.SFX => sfxVolume,
+                AudioCategory.UI => uiVolume,
+                AudioCategory.Weapon => sfxVolume, // Or add weaponVolume if needed
+                AudioCategory.Ambient => musicVolume,
+                AudioCategory.Voice => sfxVolume,
+                _ => 1f
+            };
+        }
         private AudioSource GetAvailableSFXSource()
         {
             // Try to get from pool
@@ -573,8 +665,8 @@ namespace BOTF3D.Core
         {
             if (soundDictionary.ContainsKey(name))
             {
-                Sound sound = soundDictionary[name];
-                if (sound.isMusic)
+                SoundData soundData = soundDictionary[name];
+                if (soundData.is3D)
                 {
                     PlayMusic(name, crossfade: false);
                 }

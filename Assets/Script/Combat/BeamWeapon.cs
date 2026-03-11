@@ -1,9 +1,12 @@
+using BOTF3D.Audio;
 using UnityEngine;
 
 namespace BOTF3D.GamePlay
 {
     public class BeamWeapon : MonoBehaviour
     {
+        [SerializeField] private WeaponSO weaponData;
+
         public LineRenderer LineRenderer;
         public Transform TargetTransform;
         public Transform WeaponTransform;
@@ -19,6 +22,7 @@ namespace BOTF3D.GamePlay
                 return;
             }
         }
+
         public void SetWeaponAndTarget(Transform weapon, Transform target)
         {
             TargetTransform = target;
@@ -26,6 +30,7 @@ namespace BOTF3D.GamePlay
             _weaponAndTargetTrans[0] = WeaponTransform;
             _weaponAndTargetTrans[1] = TargetTransform;
         }
+
         private void Update()
         {
             if (LineRenderer == null || _weaponAndTargetTrans[0] == null || _weaponAndTargetTrans[1] == null)
@@ -36,6 +41,26 @@ namespace BOTF3D.GamePlay
             LineRenderer.positionCount = 2;
             LineRenderer.SetPosition(0, _weaponAndTargetTrans[0].position);
             LineRenderer.SetPosition(1, _weaponAndTargetTrans[1].position);
+        }
+
+        public void Fire(Vector3 targetPosition)
+        {
+            // ✅ Play fire sound at weapon position (doesn't need to follow)
+            if (weaponData.fireSound != null)
+            {
+                AudioManager.Instance?.PlaySoundData3D(weaponData.fireSound, transform.position);
+            }
+
+            // ... fire beam logic
+        }
+
+        public void OnHit(Vector3 hitPosition)
+        {
+            // ✅ Play impact sound at hit location
+            if (weaponData.impactSound != null)
+            {
+                AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, hitPosition);
+            }
         }
     }
 }

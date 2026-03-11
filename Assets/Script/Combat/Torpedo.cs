@@ -1,3 +1,4 @@
+using BOTF3D.Audio;
 using BOTF3D.Core;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace BOTF3D.GamePlay
         public CivEnum TargetCivEnum;
         public int TorpedoDamage;
         private AudioSource audioSource;
-        public SoundSO TorpedoSoundSO;
+        [SerializeField] private WeaponSO weaponData;
 
         private void Awake()
         {
@@ -22,7 +23,7 @@ namespace BOTF3D.GamePlay
             {
                 Debug.LogError("Torpedo Rigidbody is not assigned!");
             }
-            audioSource = GetComponent<AudioSource>();
+            audioSource = GetComponent<AudioSource>();//Attach the sound to an existing GameObject
         }
         public void SetCurrentTarget(Transform targetTransform)
         {
@@ -82,6 +83,31 @@ namespace BOTF3D.GamePlay
             //    ShipCombatCameraController.Instance.OnShipDestroyed(shipController);
             //}
             //Destroy(gameObject); // Destroy the torpedo after it hits something
+        }
+
+        public void Initialize(WeaponSO weapon)
+        {
+            weaponData = weapon;
+
+            // ✅ Play travel loop sound (follows torpedo)
+            if (weaponData.travelLoopSound != null && weaponData.travelLoopSound.clip != null)
+            {
+                audioSource.clip = weaponData.travelLoopSound.clip;
+                audioSource.volume = weaponData.travelLoopSound.volume;
+                audioSource.pitch = weaponData.travelLoopSound.pitch;
+                audioSource.minDistance = weaponData.travelLoopSound.minDistance;
+                audioSource.maxDistance = weaponData.travelLoopSound.maxDistance;
+                audioSource.Play();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // ✅ Play impact sound via AudioManager (3D positional, doesn't follow object)
+            if (weaponData != null && weaponData.impactSound != null)
+            {
+                AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, transform.position);
+            }
         }
     }
 }

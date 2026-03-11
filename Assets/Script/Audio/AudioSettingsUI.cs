@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BOTF3D.Core
+namespace BOTF3D.Audio
 {
     /// <summary>
     /// UI controller for audio settings sliders
