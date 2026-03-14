@@ -1,3 +1,5 @@
+// Ignore Spelling: BOTF
+
 using UnityEngine;
 using UnityEngine.UI;
 

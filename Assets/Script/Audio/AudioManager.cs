@@ -1,4 +1,4 @@
-using System;
+using BOTF3D.Core;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,22 +36,22 @@ namespace BOTF3D.Audio
         [Header("Sound Pool Settings")]
         [SerializeField] private int sfxPoolSize = 10;
         [SerializeField] private int uiPoolSize = 5;
+        //3D spatial audio with GameObject emitters	Ship sounds, explosions, ambient loops at specific positions
         IObjectPool<SoundEmitter> soundEmitterPool;
         readonly List<SoundEmitter> activeSoundEmitters = new List<SoundEmitter>();
         [Header("Sound Library")]
         [SerializeField] private SoundData[] soundLibrary; // ✅ Changed from Sound[] to SoundData[]
         private Dictionary<string, SoundData> soundDictionary;
-        public readonly Dictionary<SoundData, int> soundEmitterUsage = new Dictionary<SoundData, int>();
+        //public readonly Dictionary<SoundData, int> soundEmitterUsage = new Dictionary<SoundData, int>();
         [SerializeField] private SoundEmitter soundEmitterPrefab;
         [SerializeField] private bool collectionCheck = true;
         [SerializeField] private int defaultCapacity = 10;
         [SerializeField] private int maxSize = 160;
-        [SerializeField] private int maxSoundInstances = 30;
+        //[SerializeField] private int maxSoundInstances = 30;
 
-        [SerializeField] private Sound[] sounds;
-        private Dictionary<string, List<AudioClip>> randomSoundGroups; // For sound variations
+        //private Dictionary<string, List<AudioClip>> randomSoundGroups; // For sound variations
 
-        // Audio Source Pools
+        // Audio Source Pools Simple 2D audio on AudioManager itself, UI clicks, background music, non-positional SFX
         private Queue<AudioSource> sfxPool;
         private Queue<AudioSource> uiPool;
         private List<AudioSource> allPooledSources;
@@ -116,18 +116,38 @@ namespace BOTF3D.Audio
 
             InitializeAudioManager();
         }
-
+        void Start()
+        {
+            // ✅ Volume already loaded in InitializeAudioManager()
+            Debug.Log($"AudioManager: Ready - Volumes: Master={masterVolume}, Music={musicVolume}, SFX={sfxVolume}, UI={uiVolume}");
+        }
         private void InitializeAudioManager()
         {
-            // ✅ Initialize dictionary with SoundData
+            // ✅ Load saved volume settings FIRST
+            LoadVolumeSettings();
+            // ✅ Initialize dictionary with SoundData (skip null entries)
             soundDictionary = new Dictionary<string, SoundData>();
             foreach (var soundData in soundLibrary)
             {
+                // ✅ CRITICAL: Skip null entries (empty Inspector slots)
+                if (soundData == null)
+                {
+                    Debug.LogWarning("⚠️ AudioManager: soundLibrary contains null entry - skipping");
+                    continue;
+                }
+
                 if (!soundDictionary.ContainsKey(soundData.name))
                 {
                     soundDictionary.Add(soundData.name, soundData);
+                    Debug.Log($"✅ Registered sound: {soundData.name} ({soundData.category})");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️ Duplicate sound name in library: {soundData.name}");
                 }
             }
+
+            Debug.Log($"AudioManager: Loaded {soundDictionary.Count} sounds from library");
 
             // Initialize music sources
             if (musicSource1 == null)
@@ -139,6 +159,10 @@ namespace BOTF3D.Audio
             musicSource2.loop = true;
             musicSource1.playOnAwake = false;
             musicSource2.playOnAwake = false;
+
+            // ✅ Set initial volume from loaded settings
+            musicSource1.volume = masterVolume * musicVolume;
+            musicSource2.volume = masterVolume * musicVolume;
 
             activeMusicSource = musicSource1;
             inactiveMusicSource = musicSource2;
@@ -167,6 +191,8 @@ namespace BOTF3D.Audio
                 uiPool.Enqueue(source);
                 allPooledSources.Add(source);
             }
+            // ✅ ADD THIS - initialize SoundEmitter pool
+            InitializePool();
 
             Debug.Log($"AudioManager: Initialized with {sfxPoolSize} SFX sources and {uiPoolSize} UI sources");
         }
@@ -202,14 +228,6 @@ namespace BOTF3D.Audio
                         maxSize);
         }
 
-
-
-        void Start()
-        {
-            // Auto-play main theme if exists
-            PlayMusic("MainTheme");
-        }
-
         #region Volume Controls
 
         /// <summary>
@@ -222,7 +240,9 @@ namespace BOTF3D.Audio
             sfxVolume = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f);
             uiVolume = PlayerPrefs.GetFloat(UI_VOLUME_KEY, 1f);
 
-            Debug.Log($"Loaded volumes: Master={masterVolume}, Music={musicVolume}, SFX={sfxVolume}, UI={uiVolume}");
+            Debug.Log($"📊 Loaded volumes: Master={masterVolume}, Music={musicVolume}, SFX={sfxVolume}, UI={uiVolume}");
+            // ✅ Apply music volume immediately if sources exist
+            UpdateMusicVolume();
         }
 
         /// <summary>
@@ -277,10 +297,18 @@ namespace BOTF3D.Audio
         private void UpdateMusicVolume()
         {
             float finalVolume = masterVolume * musicVolume;
+
             if (musicSource1 != null)
+            {
                 musicSource1.volume = finalVolume;
+            }
+
             if (musicSource2 != null)
+            {
                 musicSource2.volume = finalVolume;
+            }
+
+            Debug.Log($"🔊 Updated music volume to: {finalVolume} (master={masterVolume} × music={musicVolume})");
         }
 
         #endregion
@@ -347,10 +375,53 @@ namespace BOTF3D.Audio
                 return;
             }
 
-            AudioClip clip = soundDictionary[musicName].clip;
-            PlayMusicClip(clip, crossfade);
-        }
+            SoundData soundData = soundDictionary[musicName];
+            AudioClip clip = soundData.clip;
 
+            // ✅ Calculate final volume INCLUDING SoundData volume
+            float finalVolume = masterVolume * musicVolume * soundData.volume;
+
+            Debug.Log($"🎵 PlayMusic: master={masterVolume} × music={musicVolume} × SoundData={soundData.volume} = {finalVolume}");
+            Debug.Log($"🎵 AudioClip assigned: {(clip != null ? clip.name : "NULL")}");
+
+            PlayMusicClip(clip, finalVolume, crossfade);
+        }
+        /// <summary>
+        /// Play music by AudioClip with specified volume and optional crossfade
+        /// </summary>
+        public void PlayMusicClip(AudioClip clip, float volume, bool crossfade = true)
+        {
+            if (clip == null)
+            {
+                Debug.LogError("❌ PlayMusicClip: clip is NULL!");
+                return;
+            }
+
+            Debug.Log($"🎵 PlayMusicClip: Playing '{clip.name}' at volume {volume} (crossfade={crossfade})");
+
+            // If same clip is already playing, do nothing
+            if (activeMusicSource.clip == clip && activeMusicSource.isPlaying)
+            {
+                Debug.Log($"🎵 Music '{clip.name}' is already playing");
+                return;
+            }
+
+            if (crossfade && activeMusicSource.isPlaying && !isCrossfading)
+            {
+                Debug.Log($"🎵 Crossfading from '{activeMusicSource.clip?.name}' to '{clip.name}'");
+                StartCoroutine(CrossfadeMusic(clip, volume));
+            }
+            else
+            {
+                // Immediate switch
+                activeMusicSource.Stop();
+                activeMusicSource.clip = clip;
+                activeMusicSource.volume = volume;
+                activeMusicSource.Play();
+
+                Debug.Log($"🎵 Started music: {clip.name} (isPlaying={activeMusicSource.isPlaying})");
+            }
+        }
         /// <summary>
         /// Play music by AudioClip with optional crossfade
         /// </summary>
@@ -382,7 +453,39 @@ namespace BOTF3D.Audio
                 activeMusicSource.Play();
             }
         }
+        private IEnumerator CrossfadeMusic(AudioClip newClip, float targetVolume)
+        {
+            isCrossfading = true;
 
+            // Setup inactive source with new clip
+            inactiveMusicSource.clip = newClip;
+            inactiveMusicSource.volume = 0f;
+            inactiveMusicSource.Play();
+
+            float elapsed = 0f;
+            float startVolume = activeMusicSource.volume;
+
+            // Crossfade
+            while (elapsed < crossfadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / crossfadeDuration;
+
+                activeMusicSource.volume = Mathf.Lerp(startVolume, 0f, t);
+                inactiveMusicSource.volume = Mathf.Lerp(0f, targetVolume, t);
+
+                yield return null;
+            }
+
+            // Finish
+            activeMusicSource.Stop();
+            activeMusicSource.volume = targetVolume;
+
+            // Swap active/inactive
+            (activeMusicSource, inactiveMusicSource) = (inactiveMusicSource, activeMusicSource);
+
+            isCrossfading = false;
+        }
         private IEnumerator CrossfadeMusic(AudioClip newClip)
         {
             isCrossfading = true;
@@ -483,26 +586,52 @@ namespace BOTF3D.Audio
 
             StartCoroutine(ReturnToPool(source, sfxPool, clip.length));
         }
-
         /// <summary>
-        /// Play randomized SFX from a group (e.g., "Explosion" plays random Explosion_1, Explosion_2, etc.)
+        /// Play randomized SFX - uses randomClips[] array from SoundData if available
         /// </summary>
-        public void PlayRandomSFX(string groupName, float volumeMultiplier = 1f)
+        public void PlayRandomSFX(string soundName, float volumeMultiplier = 1f)
         {
-            if (!randomSoundGroups.ContainsKey(groupName))
+            if (!soundDictionary.TryGetValue(soundName, out SoundData soundData))
             {
-                // Fallback: try exact name
-                PlaySFX(groupName);
+                Debug.LogWarning($"Sound '{soundName}' not found!");
                 return;
             }
 
-            List<AudioClip> clips = randomSoundGroups[groupName];
-            if (clips.Count == 0) return;
+            // GetClip() automatically handles random selection from randomClips[]
+            AudioClip clipToPlay = soundData.GetClip();
+            if (clipToPlay == null)
+            {
+                Debug.LogWarning($"Sound '{soundName}' has no clips assigned!");
+                return;
+            }
 
-            AudioClip randomClip = clips[UnityEngine.Random.Range(0, clips.Count)];
-            PlaySFXClip(randomClip, volumeMultiplier);
+            float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
+            float finalPitch = soundData.GetPitchWithVariation();
+
+            if (soundData.is3D)
+            {
+                // Use 3D positioned sound at camera location
+                PlaySoundData3D(soundData, Camera.main.transform.position, volumeMultiplier);
+            }
+            else
+            {
+                // Use 2D sound
+                AudioSource source = GetAvailableSFXSource();
+                if (source == null)
+                {
+                    Debug.LogWarning("No available SFX AudioSource in pool!");
+                    return;
+                }
+
+                source.clip = clipToPlay;
+                source.volume = finalVolume;
+                source.pitch = finalPitch;
+                source.spatialBlend = 0f;
+                source.Play();
+
+                StartCoroutine(ReturnToPool(source, sfxPool, clipToPlay.length / finalPitch));
+            }
         }
-
         /// <summary>
         /// Play 3D positional sound effect
         /// </summary>
@@ -657,7 +786,20 @@ namespace BOTF3D.Audio
         #endregion
 
         #region Legacy Compatibility
+        public void PlaySound(SoundData soundData, Vector3 position)
+        {
+            AudioClip clipToPlay = soundData.GetClip();
+            float finalPitch = soundData.GetPitchWithVariation();
+            float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume;
 
+            SoundEmitter emitter = soundEmitterPool.Get(); // ✅ Fixed
+            emitter.transform.position = position;
+            emitter.Initialize(clipToPlay, finalVolume, finalPitch, soundData.loop,
+                              soundData.minDistance, soundData.maxDistance);
+
+            // ✅ Return to pool when finished
+            emitter.OnFinished += () => soundEmitterPool.Release(emitter);
+        }
         /// <summary>
         /// Legacy Play method for backward compatibility
         /// </summary>
@@ -682,22 +824,22 @@ namespace BOTF3D.Audio
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// Sound definition for inspector
-    /// </summary>
-    [System.Serializable]
-    public class Sound
-    {
-        public string name;
-        public AudioClip clip;
-        [Range(0f, 1f)] public float volume = 1f;
-        [Range(0.1f, 3f)] public float pitch = 1f;
-        public bool loop;
-        public bool isMusic; // ✅ NEW: Flag to identify music vs SFX
-
-        [HideInInspector] public AudioSource source; // Legacy compatibility
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // ✅ Warn about null entries in Inspector
+            if (soundLibrary != null)
+            {
+                for (int i = 0; i < soundLibrary.Length; i++)
+                {
+                    if (soundLibrary[i] == null)
+                    {
+                        Debug.LogWarning($"⚠️ AudioManager: soundLibrary[{i}] is NULL - assign a SoundData asset or reduce array size");
+                    }
+                }
+            }
+        }
+#endif
     }
 }
 

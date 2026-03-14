@@ -418,5 +418,14 @@ namespace BOTF3D.Core
         Single
 
     }
+    public enum AudioCategory
+    {
+        Music,
+        SFX,
+        UI,
+        Weapon,
+        Ambient,
+        Voice
+    }
     #endregion
 }

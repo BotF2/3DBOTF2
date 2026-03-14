@@ -1507,21 +1507,11 @@ MonoBehaviour:
   musicSource2: {fileID: 0}
   sfxPoolSize: 10
   uiPoolSize: 5
-  sounds:
-  - name: Five years mission
-    clip: {fileID: 8300000, guid: bddcde2210752dd4bb75aa6321129abe, type: 3}
-    volume: 1
-    pitch: 0
-    loop: 0
-    isMusic: 1
-    source: {fileID: 0}
-  - name: Five years mission
-    clip: {fileID: 8300000, guid: bddcde2210752dd4bb75aa6321129abe, type: 3}
-    volume: 1
-    pitch: 0
-    loop: 0
-    isMusic: 1
-    source: {fileID: 0}
+  soundLibrary: []
+  soundEmitterPrefab: {fileID: 0}
+  collectionCheck: 1
+  defaultCapacity: 10
+  maxSize: 160
   crossfadeDuration: 2
 --- !u!4 &700052170
 Transform:
@@ -2240,56 +2230,23 @@ MonoBehaviour:
   musicSource2: {fileID: 0}
   sfxPoolSize: 10
   uiPoolSize: 5
-  sounds:
-  - name: Borg_Beam
-    clip: {fileID: 8300000, guid: cb99134a3f2c5e34185a6b368ea40810, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: Card_Distuptor
-    clip: {fileID: 8300000, guid: b05ad2c410874684093adeaaf58d42e7, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: Fed_Phaser
-    clip: {fileID: 8300000, guid: f49843bb00c25a548a83c9350876fc91, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: Rom_Disruptor
-    clip: {fileID: 8300000, guid: 1df8ea03cbad06346a059cbd91cebc04, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: Torpedo
-    clip: {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: Five year mission
-    clip: {fileID: 8300000, guid: bddcde2210752dd4bb75aa6321129abe, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
-  - name: The day to die
-    clip: {fileID: 8300000, guid: e6b0b9204a3a8014a9d15724ce273eb8, type: 3}
-    volume: 0.25
-    pitch: 0
-    loop: 0
-    isMusic: 0
-    source: {fileID: 0}
+  soundLibrary:
+  - {fileID: 11400000, guid: 172c6c05d86fb864d9e683c31bbddd5a, type: 2}
+  - {fileID: 11400000, guid: a3105f1b58055c443a1822ecc8843573, type: 2}
+  - {fileID: 11400000, guid: 24be48abdd9f51a4099ea3ecccfdff5c, type: 2}
+  - {fileID: 11400000, guid: e4b99798e88007c4fbeff3b91d752baf, type: 2}
+  - {fileID: 11400000, guid: 7eab1520775bb2b45b6fd56985c02831, type: 2}
+  - {fileID: 11400000, guid: 728f602c54944f84e8fa904d05e12908, type: 2}
+  - {fileID: 11400000, guid: 6448d593754c2214eb3528de498ceb22, type: 2}
+  - {fileID: 11400000, guid: d45d9dd77a00e454491d6a98014c88b8, type: 2}
+  - {fileID: 11400000, guid: ded37b7f04ac18f45a904682898529c9, type: 2}
+  - {fileID: 11400000, guid: 07fba7e8962a8c548b889914b53a271f, type: 2}
+  - {fileID: 11400000, guid: 8bf6a929db8c55142906209d2619d099, type: 2}
+  - {fileID: 11400000, guid: 84713c5acb4bf3c489125d5ac38aec1a, type: 2}
+  soundEmitterPrefab: {fileID: 0}
+  collectionCheck: 1
+  defaultCapacity: 12
+  maxSize: 12
   crossfadeDuration: 2
 --- !u!4 &1573193663
 Transform:

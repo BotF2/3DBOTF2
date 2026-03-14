@@ -1,3 +1,5 @@
+// Ignore Spelling: Minimap
+
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

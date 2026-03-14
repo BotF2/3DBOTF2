@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Anya
+﻿// Ignore Spelling: Anya BOTF
 
 using BOTF3D.Core;
 using BOTF3D.GamePlay;

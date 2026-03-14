@@ -1,4 +1,5 @@
 ﻿// Ignore Spelling: Kling
+using BOTF3D.Audio;
 using BOTF3D.Core;
 using Mirror;
 using System.Collections.Generic;
@@ -210,6 +211,24 @@ namespace BOTF3D.UI
 
         private void Start()
         {
+            // ✅ Play main menu music
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayMusic("MusicFiveYearMission", crossfade: false);
+                Debug.Log("🎵 Playing MainMenu music: MusicFiveYearMission");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ AudioManager not found - music won't play");
+            }
+
+            FedLocalPlayerToggle.isOn = true;
+            FedLocalPlayerToggle.Select();
+            FedLocalPlayerToggle.OnSelect(null);
+
+            // ✅ Show Fed images since it's default
+            TurnOffAllImages();
+            fedImages.SetActive(true);
             FedLocalPlayerToggle.isOn = true;
             FedLocalPlayerToggle.Select();
             FedLocalPlayerToggle.OnSelect(null);
@@ -314,7 +333,12 @@ namespace BOTF3D.UI
         private System.Collections.IEnumerator LoadGalaxySceneCoroutine()
         {
             Debug.Log("LoadGalaxySceneCoroutine: Step 1 - Waiting for UI events to finish");
-
+            // ✅ Fade out menu music
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopMusic(fade: true);
+                Debug.Log("🎵 Fading out MainMenu music");
+            }
             // Wait for UI to finish (per copilot-instructions.md: wait two frames)
             yield return null;
             yield return null;
@@ -412,7 +436,12 @@ namespace BOTF3D.UI
         private void FindAndActivateGalaxySceneReferences()
         {
             Debug.Log("FindAndActivateGalaxySceneReferences: Searching in loaded scenes...");
-
+            // ✅ Play galaxy exploration music
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayMusic("GalaxyExplorationTheme", crossfade: true);
+                Debug.Log("🎵 Playing Galaxy music");
+            }
             // List all loaded scenes and their root objects
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
