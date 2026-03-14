@@ -690,6 +690,7 @@ namespace BOTF3D.UI
             // ✅ Force refresh of ship UIs in fleet and system containers
             RefreshShipUIsInContainers();
 
+
             // Hide ship deploy if still visible
             if (ShipDeployMenuUIController.Instance != null)
             {
