@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: ShipSO_BORG_SCOUT_I(CLONE)
   m_EditorClassIdentifier: 
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 2a8aabc4e20f92640baf61b9e99c8dd7, type: 3}
   ShipName: BORG_SCOUT_I(CLONE)
   CivEnum: 5
   TechLevel: 100
@@ -24,5 +25,4 @@ MonoBehaviour:
   TorpedoDamage: 10
   BeamDamage: 10
   BuildDuration: 10
-  Prefab: {fileID: 919132149155446097, guid: 2a8aabc4e20f92640baf61b9e99c8dd7, type: 3}
   ShipDescription: 

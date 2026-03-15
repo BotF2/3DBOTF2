@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
+using BOTF3D.Core;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
-using BOTF3D.Core;
 
 public class FactorySOImporter : EditorWindow
 {
@@ -16,7 +14,7 @@ public class FactorySOImporter : EditorWindow
         GetWindow<FactorySOImporter>("FactorySO TSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/StarSysFactory.TSV";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysFactory.TSV";
 
     void OnGUI()
     {

@@ -299,9 +299,9 @@ namespace BOTF3D.Core
         {
             ShipSORegistry shipSORegistry = new ShipSORegistry();
             ShipSO shipSO = shipSORegistry.GetByID(shipName);
-            if (shipSO != null && shipSO.Prefab != null)
+            if (shipSO != null && shipSO.ShipFBX_ModelAsGOPrefab != null)
             {
-                Instantiate(shipSO.Prefab, position, Quaternion.identity);
+                Instantiate(shipSO.ShipFBX_ModelAsGOPrefab, position, Quaternion.identity);
             }
         }
 
@@ -908,6 +908,12 @@ namespace BOTF3D.Core
             return civShips.FirstOrDefault(s =>
                 s.TechLevel == techLevel &&
                 s.ShipType == shipType);
+        }
+
+        internal ShipSO GetFallbackShipSO()
+        {
+            // Get a default model;
+            return GetShipSO(CivEnum.FED, TechLevel.EARLY, ShipType.Destroyer);
         }
     }
 }

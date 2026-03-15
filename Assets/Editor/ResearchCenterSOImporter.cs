@@ -1,10 +1,7 @@
 using BOTF3D.Core;
-using System.Collections;
-using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
-using System;
-using System.IO;
 
 public class ResearchCenterSOImporter : EditorWindow
 {
@@ -17,7 +14,7 @@ public class ResearchCenterSOImporter : EditorWindow
         GetWindow<ResearchCenterSOImporter>("ResearchCenterSO TSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/StarSysResearchCenter.tsv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysResearchCenter.tsv";
 
     void OnGUI()
     {

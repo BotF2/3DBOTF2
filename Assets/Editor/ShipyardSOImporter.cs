@@ -1,5 +1,4 @@
 using BOTF3D.Core;
-using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +13,7 @@ public class ShipyardSOImporter : EditorWindow
         GetWindow<ShipyardSOImporter>("ShipyardSO TSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/StarSysShipyard.tsv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysShipyard.tsv";
 
     void OnGUI()
     {

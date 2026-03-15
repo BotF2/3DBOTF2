@@ -1,5 +1,4 @@
-﻿using BOTF3D.Core;
-using System;
+﻿using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -15,22 +14,22 @@ public class ThemeSOImporter : EditorWindow
         GetWindow<ThemeSOImporter>("ThemeSO CSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/Theme.csv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/Theme.csv"; // just a place holder csv file, to be replaced with the actual file
 
     void OnGUI()
     {
         GUILayout.Label("ThemeSO CSV Importer", EditorStyles.boldLabel);
         filePath = EditorGUILayout.TextField("CSV File Path", filePath);
 
-        if (GUILayout.Button("Import CIV CSV"))
+        if (GUILayout.Button("Import Theme CSV"))
         {
             //Output the Game data path to the console
             Debug.Log("dataPath : " + Application.dataPath);
-            ImportCIVCSV(filePath);
+            ImportThemeCSV(filePath);
         }
     }
 
-    private static void ImportCIVCSV(string filePath)
+    private static void ImportThemeCSV(string filePath)
     {
         if (!File.Exists(filePath))
         {
@@ -67,7 +66,7 @@ public class ThemeSOImporter : EditorWindow
                 //themeSO.Playable = bool.Parse(fields[12]);
                 //themeSO.Decription = "ToDo, connect to libaray of themeSO descriptions";
                 //string assetPath = $"Assets/SO/CivilizationSO/ThemeSO_{themeSO.CivInt}_{themeSO.CivShortName}.asset";
-               // AssetDatabase.CreateAsset(themeSO, assetPath);
+                // AssetDatabase.CreateAsset(themeSO, assetPath);
                 AssetDatabase.SaveAssets();
             }
         }

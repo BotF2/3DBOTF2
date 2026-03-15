@@ -1,13 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
+using BOTF3D.Core;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
-using BOTF3D.Core;
-using System;
-using System.IO;
 
 public class OrbitalBatterySOImporter : EditorWindow
-{ 
+{
 #if UNITY_EDITOR
 
     [MenuItem("Tools/Import OrbitalBatterySO TSV")]
@@ -16,7 +13,7 @@ public class OrbitalBatterySOImporter : EditorWindow
         GetWindow<OrbitalBatterySOImporter>("OrbitalBatterySO TSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/StarSysOrbitalBattery.tsv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysOrbitalBattery.tsv";
 
     void OnGUI()
     {

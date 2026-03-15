@@ -573,12 +573,33 @@ namespace BOTF3D.GamePlay
                 float length = 1f;
                 float height = 1f;
                 float width = 1f;
-                GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipConList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
+
+                ShipSO shipSO = GetShipSOForShip(shipConList[i]);  // You need to pass ShipSO to this method
+                GameObject mesheGO = shipSO != null ? shipSO.ShipFBX_ModelAsGOPrefab : null;
+
                 if (mesheGO == null)
                 {
-                    mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
+                    Debug.LogError($"❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
+
+                    // ✅ Load fallback from ShipManager
+                    ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
+                    mesheGO = fallbackSO?.ShipFBX_ModelAsGOPrefab;
                 }
-                GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
+
+                if (mesheGO == null)
+                {
+                    Debug.LogError("❌ Fallback ship model also NULL - cannot spawn ship!");
+                    continue;  // Skip this ship
+                }
+
+                GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);
+
+                //GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipConList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
+                //if (mesheGO == null)
+                //{
+                //    mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
+                //}
+                //GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
                 fbx.name = shipConList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
                 fbx.transform.SetParent(shipGameOb.transform, false);
 
@@ -955,6 +976,13 @@ namespace BOTF3D.GamePlay
             RunAnimation();
 
             Debug.Log("=== InitializeCombat: Complete ===");
+        }
+
+        private ShipSO GetShipSOForShip(ShipController ship)
+        {
+            // ShipData has a ShipSO property that holds the SO with .fbx game object 'prefab' reference
+            return ship?.ShipData?.ShipSO;
+
         }
     }
 }

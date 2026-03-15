@@ -1,5 +1,4 @@
 using BOTF3D.Core;
-using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +13,7 @@ public class PowerPlantSOImporter : EditorWindow
         GetWindow<PowerPlantSOImporter>("PowerPlantSO TSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/StarSysPowerPlant.tsv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysPowerPlant.tsv";
 
     void OnGUI()
     {

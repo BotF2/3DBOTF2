@@ -4,6 +4,8 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "ShipSO", menuName = "ShipSO", order = 1)]
 public class ShipSO : ScriptableObject
 {
+    [Header("3D Model")]
+    public GameObject ShipFBX_ModelAsGOPrefab;  // ✅ Assign in Inspector
     public string ShipName;
     public CivEnum CivEnum;
     public TechLevel TechLevel;
@@ -16,7 +18,6 @@ public class ShipSO : ScriptableObject
     public int TorpedoDamage;
     public int BeamDamage;
     public int BuildDuration;
-    public GameObject Prefab;
     public string ShipDescription;
     //public int Cost;
     //public int CrewCapacity;            

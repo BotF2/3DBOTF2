@@ -1,3 +1,5 @@
+// Ignore Spelling: BOTF
+
 using BOTF3D.Core;
 using System.Collections;
 using System.Collections.Generic;

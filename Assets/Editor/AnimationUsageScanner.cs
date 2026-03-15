@@ -46,7 +46,7 @@ public static class AnimationUsageScanner
         // Also include .controller assets found under AssetDatabase.FindAssets without type filter (just in case)
 
         // Find all prefabs and scenes to check dependencies
-        var prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+        var prefabGuids = AssetDatabase.FindAssets("t:ShipFBX_ModelAsGOPrefab");
         var sceneGuids = AssetDatabase.FindAssets("t:Scene");
         var otherGameObjects = AssetDatabase.FindAssets("t:GameObject"); // catches some older prefab types
 

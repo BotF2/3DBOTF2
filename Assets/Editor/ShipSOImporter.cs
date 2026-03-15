@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class ShipSOImporter : EditorWindow
 {
-//#if UNITY_EDITOR
+    //#if UNITY_EDITOR
 
     [MenuItem("Tools/Import ShipSO CSV")]
     public static void ShowWindow()
@@ -15,7 +15,7 @@ public class ShipSOImporter : EditorWindow
         GetWindow<ShipSOImporter>("ShipSO CSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/ShipSO.csv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/ShipSO.csv";
 
     void OnGUI()
     {
@@ -177,5 +177,5 @@ public class ShipSOImporter : EditorWindow
                 return ShipType.Scout;
         }
     }
-//#endif
+    //#endif
 }

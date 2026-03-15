@@ -5,6 +5,8 @@ namespace BOTF3D.Core
 {
     public class ShipData
     {
+        public ShipSO ShipSO;
+
         public string ShipName;
         public CivEnum CivEnum;
         public int PlayerId; // network player ID, not used in single player
@@ -26,13 +28,16 @@ namespace BOTF3D.Core
         public bool Distroyed = false;
         public Vector3 Position; // <-- Will we need to save a combat position?
 
+
         public ShipData(string name)
         {
             ShipName = name;
         }
         public ShipData(ShipSO shipSO)
         {
-
+            this.ShipSO = shipSO;  // ✅ Store reference
+            ShipName = shipSO.ShipName;
+            // ... populate from SO ..
         }
         public ShipData()
         {

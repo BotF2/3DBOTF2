@@ -13,7 +13,7 @@ public class FleetSOImporter : EditorWindow
         GetWindow<FleetSOImporter>("FleetSO CSV Importer");
     }
 
-    private string filePath = $"BOTF3D/Resources/Data/FleetSO.csv";
+    private string filePath = $"3D_BOTF2/Assets/Editor/Data/FleetSO.csv";
 
     void OnGUI()
     {
