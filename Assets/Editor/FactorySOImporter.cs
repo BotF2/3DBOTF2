@@ -14,7 +14,7 @@ public class FactorySOImporter : EditorWindow
         GetWindow<FactorySOImporter>("FactorySO TSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysFactory.TSV";
+    private string filePath = "Assets/Editor/Data/StarSysFactory.TSV";
 
     void OnGUI()
     {

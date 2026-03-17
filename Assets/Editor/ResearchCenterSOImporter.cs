@@ -14,7 +14,7 @@ public class ResearchCenterSOImporter : EditorWindow
         GetWindow<ResearchCenterSOImporter>("ResearchCenterSO TSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysResearchCenter.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysResearchCenter.tsv";
 
     void OnGUI()
     {

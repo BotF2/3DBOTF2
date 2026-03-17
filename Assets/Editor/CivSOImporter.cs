@@ -15,7 +15,7 @@ public class CivSOImporter : EditorWindow
         GetWindow<CivSOImporter>("CivSO TSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/Civilizations.tsv";
+    private string filePath = "Assets/Editor/Data/Civilizations.tsv";
 
     void OnGUI()
     {

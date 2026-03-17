@@ -16,7 +16,7 @@ using UnityEngine;
 /// </summary>
 public static class AnimationUsageScanner
 {
-    private static readonly string reportPath = "BOTF3D/Editor/AnimationUsageReport.txt";
+    private static readonly string reportPath = "Assets/Editor/AnimationUsageReport.txt";
 
     [MenuItem("Tools/Animation Usage Scanner/Run Scan")]
     public static void RunScanFromMenu()

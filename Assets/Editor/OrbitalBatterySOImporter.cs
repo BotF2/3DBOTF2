@@ -13,7 +13,7 @@ public class OrbitalBatterySOImporter : EditorWindow
         GetWindow<OrbitalBatterySOImporter>("OrbitalBatterySO TSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysOrbitalBattery.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysOrbitalBattery.tsv";
 
     void OnGUI()
     {

@@ -334,6 +334,8 @@ namespace BOTF3D.Core
 
                 shipCon.Init(this);
                 shipCon.ShipData = new ShipData();
+                // ✅ CRITICAL FIX: Store the ShipSO reference
+                shipCon.ShipData.ShipSO = shipSOList[i];
                 shipCon.ShipData.ShipName = shipSOList[i].ShipName;
                 shipCon.ShipData.CivEnum = shipSOList[i].CivEnum;
                 shipCon.ShipData.TechLevel = shipSOList[i].TechLevel;
@@ -859,6 +861,10 @@ namespace BOTF3D.Core
         {
             shipCon.Init(this);
             shipCon.ShipData = new ShipData();
+
+            // ✅ CRITICAL FIX: Store reference to the ShipSO
+            shipCon.ShipData.ShipSO = shipSO;
+
             shipCon.ShipData.ShipName = shipSO.ShipName;
             shipCon.ShipData.CivEnum = shipSO.CivEnum;
             shipCon.ShipData.TechLevel = shipSO.TechLevel;
@@ -913,7 +919,7 @@ namespace BOTF3D.Core
         internal ShipSO GetFallbackShipSO()
         {
             // Get a default model;
-            return GetShipSO(CivEnum.FED, TechLevel.EARLY, ShipType.Destroyer);
+            return GetShipSO(ShipType.Destroyer, TechLevel.EARLY, CivEnum.FED);
         }
     }
 }

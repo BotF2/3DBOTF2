@@ -13,7 +13,7 @@ public class ShieldGeneratorSOImporter : EditorWindow
         GetWindow<ShieldGeneratorSOImporter>("ShieldGeneratorSO TSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSysShieldGenerator.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysShieldGenerator.tsv";
 
     void OnGUI()
     {

@@ -14,7 +14,7 @@ public class StarSysSOImporter : EditorWindow
         GetWindow<StarSysSOImporter>("StarSysSO CSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/StarSystems.csv";
+    private string filePath = "Assets/Editor/Data/StarSystems.csv";
 
     void OnGUI()
     {

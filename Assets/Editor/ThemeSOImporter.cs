@@ -14,7 +14,7 @@ public class ThemeSOImporter : EditorWindow
         GetWindow<ThemeSOImporter>("ThemeSO CSV Importer");
     }
 
-    private string filePath = $"3D_BOTF2/Assets/Editor/Data/Theme.csv"; // just a place holder csv file, to be replaced with the actual file
+    private string filePath = "Assets/Editor/Data/Theme.csv"; // just a place holder csv file, to be replaced with the actual file
 
     void OnGUI()
     {

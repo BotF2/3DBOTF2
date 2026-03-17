@@ -579,7 +579,7 @@ namespace BOTF3D.GamePlay
 
                 if (mesheGO == null)
                 {
-                    Debug.LogError($"❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
+                    Debug.LogWarning($"❌NEED FBX MODLE IN SO❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
 
                     // ✅ Load fallback from ShipManager
                     ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
