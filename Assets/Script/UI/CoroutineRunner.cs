@@ -1,11 +1,12 @@
-﻿using System.Collections;
+﻿using BOTF3D.UI;
+using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class CoroutineRunner : MonoBehaviour
 {
     private static CoroutineRunner instance;
-
+    private GameObject goForFlash;
     public static CoroutineRunner Instance
     {
         get
@@ -32,16 +33,17 @@ public class CoroutineRunner : MonoBehaviour
     }
 
     // ✅ STATIC API — safest usage
-    public static void FlashPowerOverload()
+    public static void FlashPowerOverload(GameObject goToActivateForFlash)
     {
+        Instance.goForFlash = goToActivateForFlash;
         Instance.StartCoroutine(Instance.WaitAndFlash());
     }
 
     private IEnumerator WaitAndFlash()
     {
         yield return new WaitUntil(() =>
-            StarSysMenuUIController.Instance != null &&
-            StarSysMenuUIController.Instance.PowerOverloadImage != null);
+            StarSysMenuUIController.Instance != null); // &&
+                                                       //StarSysMenuUIController.Instance.PowerOverloadImage != null);
 
         yield return FlashRoutine();
     }
@@ -49,11 +51,25 @@ public class CoroutineRunner : MonoBehaviour
 
     private IEnumerator FlashRoutine()
     {
+        if (StarSysMenuUIController.Instance == null)
+        {
+            Debug.LogWarning("FlashRoutine: StarSysMenuUIController.Instance is null");
+            yield break;
+        }
+
+        var powerOverload = StarSysMenuUIController.Instance.PowerOverloadImage;
+
+        if (powerOverload == null)
+        {
+            Debug.LogWarning("FlashRoutine: PowerOverloadImage is null - cannot flash warning");
+            yield break;
+        }
+
         for (int i = 0; i < 3; i++)
         {
-            StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(true);
+            powerOverload.SetActive(true);
             yield return new WaitForSeconds(0.5f);
-            StarSysMenuUIController.Instance.PowerOverloadImage.SetActive(false);
+            powerOverload.SetActive(false);
             yield return new WaitForSeconds(0.5f);
         }
     }

@@ -1,5 +1,6 @@
-﻿// Ignore Spelling: Sys Habitalbe
-
+﻿// Ignore Spelling: Sys Habitalbe Unregister
+using BOTF3D.Core;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.GamePlay
 {
     /// <summary>
     /// Controlling Star System interactions while the matching StarSystemData class
@@ -20,10 +21,38 @@ namespace Assets.Core
         private StarSysData starSysData;
         public int PlayerID; // network player ID, not used in single player
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
-        [SerializeField]
-        private GameObject starSysUIGameObject; //The instantiated system UI for this system. a prefab clone, not a class but a game object
-        public GameObject StarSysUIGameObject { get { return starSysUIGameObject; } set { starSysUIGameObject = value; } }
-        public bool SettingUpNewFleet = false;
+
+        [SerializeField] // Make backing field serializable for Inspector
+        private GameObject _starSysUIGameObject;
+
+        public GameObject StarSysUIGameObject
+        {
+            get => _starSysUIGameObject;
+            set
+            {
+                // ✅ Log BOTH setting to null AND any change
+                if (value != _starSysUIGameObject)
+                {
+                    if (value == null && _starSysUIGameObject != null)
+                    {
+                        Debug.LogError($"❌❌❌ System '{name}' UI BEING SET TO NULL!");
+                        Debug.LogError($"  Previous value: {_starSysUIGameObject?.name}");
+                        Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
+                    }
+                    else if (value != null && _starSysUIGameObject == null)
+                    {
+                        Debug.Log($"✅ System '{name}' UI being assigned: {value.name}");
+                    }
+                    else if (value != null && _starSysUIGameObject != null)
+                    {
+                        Debug.LogWarning($"⚠️ System '{name}' UI being CHANGED from '{_starSysUIGameObject.name}' to '{value.name}'");
+                    }
+                }
+                _starSysUIGameObject = value;
+            }
+        }
+
+        private GameObject goForPowerOverload;
         private Camera galaxyEventCamera;
         [SerializeField]
         private Canvas canvasToolTip;
@@ -70,6 +99,7 @@ namespace Assets.Core
                 ShipManager.Instance?.ProcessPendingShipUIs();
             }
         }
+        private bool deployNotMerge = true; // true=deploy, false=merge
         private void Awake()
         {
             gameController = GameController.Instance;
@@ -90,9 +120,20 @@ namespace Assets.Core
 
         private void Start()
         {
-            galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
-            canvasToolTip.worldCamera = galaxyEventCamera;
-            //OnOffSysFacilityEvents.current.FacilityOnClick += FactoryButtonOnClicked;// subscribe method to the event += () => Debug.Log("Action Invoked!");
+            // Only find camera if not already set by StarSysManager
+            if (galaxyEventCamera == null)
+            {
+                galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<Camera>();
+                Debug.LogWarning($"StarSysController {name}: Had to find camera in Start() - should be set by StarSysManager");
+            }
+
+            if (canvasToolTip != null && galaxyEventCamera != null)
+            {
+                canvasToolTip.worldCamera = galaxyEventCamera;
+            }
+
+            if (StarSysUI != null)
+                goForPowerOverload = StarSysUI.PowerOverloadImage;
         }
         private void OnTransformChildrenChanged() //Unity automatically invokes when the transform hierarchy of the Controller GameObject changes.
         {  // This UI Queue is in the SysBuildUIListPanel prefab and not a child of StarSysController, BuildQueueWatcher helps call OnTransformChildrenChanged()
@@ -155,7 +196,10 @@ namespace Assets.Core
             foreach (Transform child in ShipListGridLayoutGroup.transform)
             {
                 if (!shipBuildQueueList.Contains(child))
+                {
+                    child.gameObject.SetActive(true);
                     shipBuildQueueList.Add(child);
+                }
             }
 
             shipBuildQueueList.RemoveAll(t => t == null || t.parent != ShipListGridLayoutGroup.transform);
@@ -184,69 +228,323 @@ namespace Assets.Core
         }
         private void OnMouseDown()
         {
-            var clickedStarSysCon = GetComponentInParent<StarSysController>();
-            if (clickedStarSysCon == null) return;
+            var clickedSystemCon = GetComponentInParent<StarSysController>();
+            if (clickedSystemCon == null) return;
 
-            switch (GalaxyUI.CurrentClickMode)
+            var galaxyUI = GalaxyMenuUIController.Instance;
+
+            switch (galaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
-                    HandleNormalClick(clickedStarSysCon);
+                    // ✅ Only close ship deploy if it's actually open!
+                    if (ShipDeployMenuUIController.Instance != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
+                    {
+                        galaxyUI.CloseShipDeployMenu();
+                    }
+
+                    // ✅ CRITICAL: Clean up BOTH star system UIs AND fleet UIs
+                    if (StarSysMenuUIController.Instance != null)
+                    {
+                        StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                    }
+                    if (FleetMenuUIController.Instance != null)
+                    {
+                        FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                        Debug.Log("OnMouseDown: Cleaned up fleet UIs before opening star system");
+                    }
+
+                    HandleNormalClick(clickedSystemCon);
                     break;
+
                 case GalaxyClickMode.SetDestination:
-                    HandleDestinationClick(clickedStarSysCon);
+                    HandleDestinationClick(clickedSystemCon);
                     break;
-                case GalaxyClickMode.SelectForShipExchange:
-                    if (gameController.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum))
-                        HandleShipExchangeSelection(this);
+
+                case GalaxyClickMode.SelectForShipDeploy:
+                    if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
+                        HandleShipDeploySelection(clickedSystemCon);
+                    break;
+
+                case GalaxyClickMode.SelectForShipMerge:
+                    if (GameController.Instance.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
+                        HandleMergeSelection(clickedSystemCon);
                     break;
             }
         }
 
-        private void HandleDestinationClick(StarSysController clickedSystemCon)
+        private void HandleMergeSelection(StarSysController clickedSystemCon)
         {
-            var fleetLookingForDestination = GalaxyUI.FleetLookingForDestination.GetComponent<FleetController>();
-            if (fleetLookingForDestination != null)
-            {
-                fleetLookingForDestination.FleetData.Destination = clickedSystemCon.gameObject;
-                fleetLookingForDestination.SetAsDestinationInUI(clickedSystemCon.gameObject);
-            }
-        }
-
-        private void HandleShipExchangeSelection(StarSysController clickedSystemCon)
-        {
-            if (clickedSystemCon != this) return;
-
+            if (clickedSystemCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
-            galaxyUI.WhatSystemIsSelectedForShipDeploy(this);
+            galaxyUI.WhatSystemIsSelectedForShipMerge(clickedSystemCon);
+
+            var fleetLooking = galaxyUI.FleetLookingForShipMerge;
+            var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
+            var shipDeployUI = ShipDeployMenuUIController.Instance;
+
+            if (fleetLooking != null) // Fleet-to-System merge
+            {
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.gameObject.SetActive(true);
+
+                // ✅ Add VerticalLayoutGroup if not present
+                var layoutGroup = aSysView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aSysView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f; // Space between fleet and system UI
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                    layoutGroup.childControlHeight = false;
+                    layoutGroup.childControlWidth = false;
+                }
+
+                // Parent fleet UI to container (TOP position)
+                if (fleetLooking.FleetUIGameObject != null)
+                {
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
+                    fleetLooking.FleetUIGameObject.SetActive(true);
+                    Debug.Log($"✅ Fleet UI parented to ASystemMenuView (top)");
+                }
+
+                // Parent system UI to container (BOTTOM position)
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
+                clickedSystemCon.StarSysUIGameObject.SetActive(true);
+                Debug.Log($"✅ System UI parented to ASystemMenuView (bottom)");
+
+                // Update facility UI
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
+
+                // Create combined ship list
+                var combinedShipsList = new List<ShipController>();
+                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
+                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
+
+                Debug.Log($"Merge Fleet-to-System: {fleetLooking.FleetData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, fleetLooking, null, clickedSystemCon);
+            }
+            else if (starSysLooking != null && starSysLooking != this)
+            {
+                // System-to-System merge - same approach
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.gameObject.SetActive(true);
+
+                var layoutGroup = aSysView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aSysView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f;
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                }
+
+                // Source system at TOP
+                starSysLooking.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                starSysLooking.StarSysUIGameObject.transform.SetAsFirstSibling();
+                starSysLooking.StarSysUIGameObject.SetActive(true);
+
+                // Target system at BOTTOM
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
+                clickedSystemCon.StarSysUIGameObject.SetActive(true);
+
+                // Update both
+                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
+
+                var combinedShipsList = new List<ShipController>();
+                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
+                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
+
+                Debug.Log($"Merge System-to-System: {starSysLooking.StarSysData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, null, starSysLooking, clickedSystemCon);
+            }
+
+            shipDeployUI.ShowShipDeployMenuView();
+        }
+        private void HandleShipDeploySelection(StarSysController clickedSystemCon)
+        {
+            if (clickedSystemCon != this) return;
+            deployNotMerge = true;
+            MousePointerChanger.Instance.ResetCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatSystemIsSelectedForShipDeploy(clickedSystemCon);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
             var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
-            if (fleetLooking == null)
+
+            if (fleetLooking == null && starSysLooking != null)
             {
+                // Star system to star system deploy
                 var aSysView = StarSysUI.ASystemMenuView.gameObject;
                 aSysView.SetActive(true);
-                this.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                StarSysUIGameObject.transform.SetAsLastSibling();
+
+                // Parent the LOOKING star system UI (top)
+                if (starSysLooking.StarSysUIGameObject != null)
+                {
+                    starSysLooking.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                    starSysLooking.StarSysUIGameObject.transform.SetAsFirstSibling();
+                    starSysLooking.StarSysUIGameObject.SetActive(true);
+
+                    // ✅ Update the LOOKING system's UI values
+                    StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                    StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                    StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                    StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                    StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+
+                    // Update mini map position for LOOKING system
+                    var lookingSysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                    if (lookingSysUIFields != null && lookingSysUIFields.redDot != null)
+                    {
+                        lookingSysUIFields.redDot.anchoredPosition = new Vector2(
+                            starSysLooking.StarSysData.GetPosition().x * 0.12f,
+                            starSysLooking.StarSysData.GetPosition().z * 0.12f);
+                        Debug.Log($"Updated mini map for LOOKING system '{starSysLooking.name}'");
+                    }
+                }
+
+                // Parent the CLICKED star system UI (bottom)
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
+                clickedSystemCon.StarSysUIGameObject.SetActive(true);
+
+                // ✅ Update THIS (clicked) system's UI values
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
+
+                // Update mini map position for THIS system
+                var thisSysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (thisSysUIFields != null && thisSysUIFields.redDot != null)
+                {
+                    thisSysUIFields.redDot.anchoredPosition = new Vector2(
+                        this.StarSysData.GetPosition().x * 0.12f,
+                        this.StarSysData.GetPosition().z * 0.12f);
+                    Debug.Log($"Updated mini map for clicked system '{this.name}'");
+                }
             }
-            else if (starSysLooking == null)
+            else if (fleetLooking != null && starSysLooking == null)
             {
+                // Fleet to star system deploy
                 var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
                 aFleetView.SetActive(true);
-                this.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                starSysUIGameObject.transform.SetAsLastSibling();
 
+                // Parent fleet UI (top)
+                if (fleetLooking.FleetUIGameObject != null)
+                {
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
+                    fleetLooking.FleetUIGameObject.SetActive(true);
+                }
+
+                // Parent THIS system UI (bottom)
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
+                clickedSystemCon.StarSysUIGameObject.SetActive(true);
+
+                // ✅ Update THIS system's UI values
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
+
+                // Update mini map position
+                var sysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (sysUIFields != null && sysUIFields.redDot != null)
+                {
+                    sysUIFields.redDot.anchoredPosition = new Vector2(
+                        this.StarSysData.GetPosition().x * 0.12f,
+                        this.StarSysData.GetPosition().z * 0.12f);
+                    Debug.Log($"Updated mini map for system '{this.name}' in fleet-to-system deploy");
+                }
             }
+
             ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedSystemCon, deployNotMerge);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
+
+            Debug.Log($"HandleShipDeploySelection: ShipDeploy opened for system '{this.name}'");
         }
+        private void HandleDestinationClick(StarSysController clickedSystemCon)
+        {
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI == null)
+            {
+                Debug.LogError("StarSysController.HandleDestinationClick: GalaxyMenuUIController.Instance is null");
+                return;
+            }
+
+            FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
+
+            // ✅ Add null check
+            if (theFleetConLookingForDestination == null)
+            {
+                Debug.LogWarning("StarSysController.HandleDestinationClick: No fleet is looking for a destination");
+                return;
+            }
+
+            // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
+            if (theFleetConLookingForDestination.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(theFleetConLookingForDestination);
+            }
+
+            // Set the destination
+            theFleetConLookingForDestination.FleetData.Destination = this.gameObject;
+            theFleetConLookingForDestination.SetAsDestinationInUI(clickedSystemCon.gameObject);
+
+            // Reset mode and cursor
+            galaxyUI.CompleteSetDestination();
+            MousePointerChanger.Instance?.ResetCursor();
+        }
+
+
         public void LoadAStarSystem()
         {
             HandleNormalClick(this);
         }
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
-            GalaxyUI.CloseButtonPressed();
+            // ✅ CRITICAL: Clean up BOTH star system UIs AND fleet UIs before opening new UI
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+            }
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
+            }
+
+            GalaxyUI.CloseShipDeployMenu();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
             {
@@ -258,13 +556,11 @@ namespace Assets.Core
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
-                    //StarSysUI.UpdateSystemPowerBalance(this);
-                    GalaxyUI.OpenMenu(Menu.ASystemMenu, this.gameObject); // set the system UI to this system
-                    //StarSysMenuUIController.Instance.lastStarSysController = this;
+                    GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject);
                 }
-                else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, this.StarSysData.CurrentCivController))
-                { // this is a system local player does not own but we know them
-                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivContoller, this);
+                else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, this.StarSysData.CurrentCivController))
+                {
+                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivController, this);
                 }
             }
         }
@@ -345,11 +641,15 @@ namespace Assets.Core
         {
             if (starSysCon != null && this == starSysCon)
             {
+                // Get the power overload image for THIS specific system
+                GameObject powerOverloadImg = GetPowerOverloadImage();
+
                 // Do we have enough power to turn a factory on?
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.FactoryData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    if (powerOverloadImg != null)
+                        CoroutineRunner.FlashPowerOverload(powerOverloadImg);
                 }
                 for (int i = 0; i < this.StarSysData.Factories.Count; i++)
                 {
@@ -367,6 +667,20 @@ namespace Assets.Core
                 }
                 StarSysUI.UpdateSystemPowerBalance(this);
             }
+        }
+
+        // Add this helper method to StarSysController
+        private GameObject GetPowerOverloadImage()
+        {
+            if (StarSysUIGameObject != null)
+            {
+                var sysUIFields = StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (sysUIFields != null && sysUIFields.PowerOverload != null)
+                {
+                    return sysUIFields.PowerOverload;
+                }
+            }
+            return null;
         }
         public void FactoryButtonOffClicked(StarSysController starSysCon)
         {
@@ -392,7 +706,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShipyardData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
                 for (int i = 0; i < this.StarSysData.Shipyards.Count; i++)
                 {
@@ -435,7 +749,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ShieldGeneratorData.PowerLoad >
                         this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
 
                 }
                 for (int i = 0; i < this.StarSysData.ShieldGenerators.Count; i++)
@@ -478,7 +792,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.OrbitalBatteryData.PowerLoad >
                             this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
             for (int i = 0; i < this.StarSysData.OrbitalBatteries.Count; i++)
             {
@@ -520,7 +834,7 @@ namespace Assets.Core
                 if (this.StarSysData.TotalSysPowerLoad + StarSysData.ResearchCenterData.PowerLoad >
                          this.StarSysData.TotalSysPowerOutput)
                 {
-                    CoroutineRunner.FlashPowerOverload();
+                    CoroutineRunner.FlashPowerOverload(goForPowerOverload);
                 }
                 for (int i = 0; i < this.StarSysData.ResearchCenters.Count; i++)
                 {
@@ -559,8 +873,15 @@ namespace Assets.Core
 
         private void OnDestroy()
         {
-            TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
-            // OnOffSysFacilityEvents.current.FacilityOnClick -= FacilityOnClick;
+            // Remove fog revealer when system is destroyed
+            if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
+            {
+                FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
+            }
+
+            // Existing cleanup code...
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
         }
         public void CleanupStarSysUIs()
         {
@@ -576,10 +897,6 @@ namespace Assets.Core
             }
         }
 
-        internal void InitNewFleet()
-        {
-            // ToDo: implement fleet creation in system
-        }
 
         internal void RemoveFromShipList(ShipController shipController)
         {
@@ -591,82 +908,7 @@ namespace Assets.Core
             if (shipController.transform.IsChildOf(transform))
                 shipController.transform.SetParent(null, worldPositionStays: true);
         }
-        //internal void AddSysFacility(GameObject faciltyGO, string loadName, string ratioName, StarSysFacilities facilityType)
-        //{
-        //    if (gameController,.AreWeLocalPlayer(this.StarSysData.CurrentOwnerCivEnum)
-        //    {
-        //        int newFacilityLoad = 0;
-        //        List<GameObject> facilities = new List<GameObject>();
-        //        switch (facilityType)
-        //        {
-        //            case StarSysFacilities.Factory:
-        //                newFacilityLoad = StarSysData.FactoryData.PowerLoad;
-        //                this.StarSysData.Factories.Add(faciltyGO);
-        //                facilities = this.StarSysData.Factories;
-        //                break;
-        //            case StarSysFacilities.Shipyard:
-        //                newFacilityLoad = StarSysData.ShipyardData.PowerLoad;
-        //                this.StarSysData.Shipyards.Add(faciltyGO);
-        //                facilities = this.StarSysData.Shipyards;
-        //                break;
-        //            case StarSysFacilities.ShieldGenerator:
-        //                newFacilityLoad = StarSysData.ShieldGeneratorData.PowerLoad;
-        //                this.StarSysData.ShieldGenerators.Add(faciltyGO);
-        //                facilities = StarSysData.ShieldGenerators;
-        //                break;
-        //            case StarSysFacilities.OrbitalBattery:
-        //                newFacilityLoad = StarSysData.OrbitalBatteryData.PowerLoad;
-        //                this.StarSysData.OrbitalBatteries.Add(faciltyGO);
-        //                facilities = StarSysData.OrbitalBatteries;
-        //                break;
-        //            case StarSysFacilities.ResearchCenter:
-        //                newFacilityLoad = StarSysData.ResearchCenterData.PowerLoad;
-        //                this.StarSysData.ResearchCenters.Add(faciltyGO);
-        //                facilities = StarSysData.ResearchCenters;
-        //                break;
-        //            default:
-        //                break;
-        //        }
 
-        //        if (StarSysUIGameObject != null)
-        //        {
-        //            TextMeshProUGUI[] theTextItems = StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
-        //            bool allDone = false;
-        //            for (int j = 0; j < theTextItems.Length; j++)
-        //            {
-        //                theTextItems[j].enabled = true;
-        //                int load = 0;
-        //                if (theTextItems[j].name == loadName)
-        //                {
-        //                    for (int k = 0; k < facilities.Count; k++)
-        //                    {
-        //                        if (facilities[k].GetComponent<TextMeshProUGUI>().text == "1")
-        //                        {
-        //                            load += newFacilityLoad;
-        //                        }
-        //                    }
-        //                    theTextItems[j].text = load.ToString();
-        //                }
-        //                else if (theTextItems[j].name == ratioName)
-        //                {
-        //                    int numOn = 0;
-        //                    for (int i = 0; i < facilities.Count; i++)
-        //                    {
-        //                        TextMeshProUGUI TheText = facilities[i].GetComponent<TextMeshProUGUI>();
-        //                        if (TheText.text == "1") // 1 = on and 0 = off
-        //                            numOn++;
-        //                    }
-        //                    theTextItems[j].text = numOn.ToString() + "/" + (facilities.Count).ToString();
-        //                    allDone = true;
-        //                }
-        //                else if (allDone)
-        //                    break;
-        //            }
-        //        }
-        //        StarSysUI.UpdateSystemPowerLoad(this);
-        //    }
-        //}
-        // New: add ship to this star system (gameplay object + model + UI)
         public void AddToShipList(ShipController shipController)
         {
             if (shipController == null) return;

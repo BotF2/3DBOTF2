@@ -1,5 +1,4 @@
-using Assets.Core;
-using System;
+using BOTF3D.Core;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +13,7 @@ public class PowerPlantSOImporter : EditorWindow
         GetWindow<PowerPlantSOImporter>("PowerPlantSO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysPowerPlant.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysPowerPlant.tsv";
 
     void OnGUI()
     {
@@ -45,9 +44,9 @@ public class PowerPlantSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imageString + ".png")
                     {
                         imageString = "Facilities/" + imageString;
                     }
@@ -67,7 +66,7 @@ public class PowerPlantSOImporter : EditorWindow
                     powerPlantSO.PowerOutput = int.Parse(fields[7]);
                     powerPlantSO.PowerPlantSprite = Resources.Load<Sprite>(imageString);
                     powerPlantSO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysPowerPlantSO/PowerPlantSO_{powerPlantSO.CivInt}_{powerPlantSO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysPowerPlantSO/PowerPlantSO_{powerPlantSO.CivInt}_{powerPlantSO.Name}.asset";
                     AssetDatabase.CreateAsset(powerPlantSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

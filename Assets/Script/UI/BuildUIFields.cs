@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Represents the collection of UI elements for a star system build panel (sliders, text, grids, slots, images, buttons).
-/// Attached to the SysBuildUIListPrefab and ShipSliderPrefab and wired references in the Inspector.
+/// Attached to the SysBuildUIListPrefab wired references in the Inspector.
 /// StarSysManager will read these fields to wire runtime references instead of searching the hierarchy by name.
 /// </summary>
 public class BuildUIFields : MonoBehaviour

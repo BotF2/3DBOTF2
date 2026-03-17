@@ -1,8 +1,10 @@
+using BOTF3D.Core;
+using BOTF3D.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.GamePlay
 {
     [RequireComponent(typeof(Rigidbody))]
     /// <summary>
@@ -20,9 +22,16 @@ namespace Assets.Core
         public int intName = 1;
         private readonly float warpFudgeFactor = 10f;
         private Rigidbody rb;
+        private float updateInterval = 0.1f; // ~10 updates/sec (adjust for smoothness vs performance)
+        private float lastUpdateTime;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
+        private float galaxyWidth = 1f;
+        private float galaxyHeight = 1f;
+        private float minimapWidth = 200f;
+        private float minimapHeight = 400f;
+        private bool gotMapSizeFromGameManager = false;
         [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
         private readonly GameObject aNull = null; // used to pass a null object to the UI when needed in Diplomacy
@@ -82,7 +91,6 @@ namespace Assets.Core
 
         private void Awake()
         {
-            //fleetUI = FleetMenuUIController.Instance;
             gameController = GameController.Instance;
         }
 
@@ -102,24 +110,54 @@ namespace Assets.Core
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
+            galaxyWidth = GalaxyView.Instance.GalaxyWidth;
+            galaxyHeight = GalaxyView.Instance.GalaxyHeight;
+
         }
         private void FixedUpdate()
         {
             // Destroying Fleets with no ships is problematic
             // The FleetController FeetData is still running in script
             // and if the player clicks on or OnTrigerEntere.... it causes errors
-            //if (FleetData != null && FleetData.ShipsList.Count == 0)
-            //{
-            //    OnDestroy();
-            //}   
             if (FleetData != null && FleetData.Destination != null)
             {
-                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && this.FleetData.CurrentWarpFactor > 0f)
+                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && FleetData.CurrentWarpFactor > 0f)
                 {
+                    // Always move the fleet (physics)
                     MoveToDesitinationGO(GetDirection(), distanceToDestination);
-                    DrawDestinationLine(FleetData.Destination.transform.position);
+                    if (!gotMapSizeFromGameManager)
+                        GetMapSise();
+                    // Throttle visual updates (line rendering, UI)
+                    if (Time.time - lastUpdateTime >= updateInterval)
+                    {
+                        DrawDestinationLine(FleetData.Destination.transform.position);
+                        UpdateMinimapPosition(); // Add this
+                        lastUpdateTime = Time.time;
+                    }
                 }
             }
+        }
+
+        private void GetMapSise()
+        {
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
+            RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
+            float minimapWidth = minimapRect.rect.width;
+            float minimapHeight = minimapRect.rect.height;
+            gotMapSizeFromGameManager = true;
+        }
+
+        private void UpdateMinimapPosition()
+        {
+            if (FleetUIGameObject == null) return;
+
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
+
+            // Convert world position to mini-map coordinates
+            Vector2 minimapPos = WorldToMinimapPosition(transform.position);
+            fleetUIFields.MinimapRedDot.anchoredPosition = minimapPos;
         }
         public GameObject ShipListUIParent
         {
@@ -133,30 +171,23 @@ namespace Assets.Core
                     ShipManager.Instance.ProcessPendingShipUIs();
             }
         }
-        public Rigidbody GetRigidBody() { return rb; }
-
-
-        private void OnMouseDown()
+        private Vector2 WorldToMinimapPosition(Vector3 worldPos)
         {
-            var clickedFleetCon = GetComponentInParent<FleetController>();
-            if (clickedFleetCon == null) return;
-            if (GalaxyUI.CurrentClickMode != GalaxyClickMode.SetDestination && galaxyUI.CurrentClickMode != GalaxyClickMode.SelectForShipExchange)
-            {
-                //if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
-                //{
-                GalaxyUI.CloseButtonPressed();
-                HandleNormalClick(clickedFleetCon);
-                //}
-            }
-            else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SetDestination && clickedFleetCon == this)
-            {
-                HandleDestinationClick(this);
-            }
-            else if (GalaxyUI.CurrentClickMode == GalaxyClickMode.SelectForShipExchange)
-            {
-                HandleShipDeploySelection(this);
-            }
+            // Assuming the mini-map represents a specific area of the galaxy
+            //float galaxyWidth = 2f; // GameManager.Instance.GalaxyWidth;
+            //float galaxyHeight = 4f; // GameManager.Instance.GalaxyHeight;
+            // Get mini-map RectTransform
+            var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return Vector2.zero;
+            RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
+            float minimapWidth = minimapRect.rect.width;
+            float minimapHeight = minimapRect.rect.height;
+            // Convert world position to mini-map coordinates
+            float x = (worldPos.x / galaxyWidth) * minimapWidth;
+            float y = (worldPos.z / galaxyHeight) * minimapHeight; // Assuming z is forward in world space
+            return new Vector2(x, y);
         }
+        public Rigidbody GetRigidBody() { return rb; }
 
         private void OnMouseDrag()
         {
@@ -177,6 +208,8 @@ namespace Assets.Core
                     isOurDestination = true;
                     if (weAreLocalPlayer)
                     {
+                        SliderOnValueChange(0f); // stop the fleet on arrival
+                        FleetUI.UpdateFleetWarpUI(this, 0f);
                         CloseUnLoadFleetUI(this); // we are there and have other things to do
                     }
                 }
@@ -248,61 +281,271 @@ namespace Assets.Core
                 {
                     if (isOurDestination)
                     {
-                        ClickCancelDestinationButton(); // we stop, cancel destination
-                        Destroy(collider.gameObject); // remove the player defined target
+                        ClickCancelDestinationButton(); // we stop, cancel destination & remove the player defined target
                     }
                 }
             }
 
         }
+        private void OnMouseDown()
+        {
+            var clickedFleetCon = GetComponentInParent<FleetController>();
+
+            if (clickedFleetCon == null) return;
+
+            switch (GalaxyUI.CurrentClickMode)
+            {
+                case GalaxyClickMode.Normal:
+                    // ✅ Only close ship deploy if it's actually open!
+                    if (ShipDeployMenuUIController.Instance != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
+                        ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
+                    {
+                        GalaxyMenuUIController.Instance.CloseShipDeployMenu();
+                        if (StarSysMenuUIController.Instance != null)
+                        {
+                            StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                            Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+                        }
+                        // ✅ NEW: Ensure all fleet UIs are moved back to storage after closing deploy menu
+                        if (FleetMenuUIController.Instance != null)
+                        {
+                            FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                            Debug.Log("OnMouseDown: Cleaned up fleet UIs after closing ship deploy menu");
+                        }
+                    }
+                    HandleNormalClick(clickedFleetCon);
+                    break;
+                case GalaxyClickMode.SetDestination:
+                    HandleDestinationClick(clickedFleetCon);
+                    break;
+                // no case GalaxyClickMode.SelectForNewFleet. that is a new fleet button click not a fleet click
+                case GalaxyClickMode.SelectForShipDeploy:
+                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        HandleShipDeploySelection(clickedFleetCon);
+                    break;
+                case GalaxyClickMode.SelectForShipMerge:
+                    if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
+                        HandleShipMergeSelection(clickedFleetCon);
+                    break;
+            }
+        }
+
         private void HandleNormalClick(FleetController clickedFleetCon)
         {
+            // ✅ CRITICAL: Clean up any fleet UIs from previous operations before opening new UI
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
+            }
+            if (StarSysMenuUIController.Instance != null)
+            {
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
+            }
             if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
             {
                 GalaxyUI.OpenMenu(Menu.AFleetMenu, this.gameObject);
             }
-            else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, clickedFleetCon.FleetData.CivController))
-            { // this is a system local player does not own but we know them
-                DiplomacyManager.Instance.ResolveDiplomacyForClickFleetWeKnow(CivManager.Instance.LocalPlayerCivContoller, clickedFleetCon);
+            else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, clickedFleetCon.FleetData.CivController))
+            { // this is a fleet local player does not own but we know them
+                DiplomacyManager.Instance.ResolveDiplomacyForClickFleetWeKnow(CivManager.Instance.LocalPlayerCivController, clickedFleetCon);
             }
         }
         private void HandleDestinationClick(FleetController clickedFleetCon)
         {
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
             if (theFleetConLookingForDestination == null) return;
+
+            // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
+            if (theFleetConLookingForDestination.TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(theFleetConLookingForDestination);
+            }
+
             theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
             theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
+
+            // Reset mode and cursor
+            GalaxyUI.CompleteSetDestination();
+            MousePointerChanger.Instance?.ResetCursor();
         }
 
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
-            if (!gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum)) { return; }
-
+            if (clickedFleetCon != this) { return; }
             MousePointerChanger.Instance.ResetCursor();
-            GalaxyUI.WhatFleetIsSelectedForShipDiploy(this);
-            var fleetLooking = GalaxyUI.FleetLookingForShipDeploy;
-            var starSysLooking = GalaxyUI.StarSystLookingForShipDeploy;
-            FleetUIGameObject = FleetMenuUIController.Instance.gameObject;
-            if (fleetLooking != null)
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatFleetIsSelectedForShipDiploy(clickedFleetCon);
+            var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
+            var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
+
+            if (fleetLooking != null && fleetLooking != this) // We have a fleet looking for ship deploy
             {
-                var aFleetView = FleetUI.AFleetMenuView;
+                var aFleetView = FleetUI.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
 
-                FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                // Parent both fleet UIs
+                if (fleetLooking.FleetUIGameObject != null)
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
 
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
+                ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
             }
-            else if (starSysLooking != null)
+            else if (starSysLooking != null) // We have a star system looking for ship deploy
             {
-                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView;
+                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
 
-                FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
+                // ✅ Update star system UI with current values (minimap, facilities, etc.)
+                if (starSysLooking.StarSysUIGameObject != null)
+                {
+                    starSysLooking.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
+                    starSysLooking.StarSysUIGameObject.SetActive(true);
+
+                    // Update facility UI to show current load values
+                    var starSysUI = StarSysMenuUIController.Instance;
+                    if (starSysUI != null)
+                    {
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+
+                        // Update minimap position
+                        var sysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                        if (sysUIFields != null && sysUIFields.redDot != null)
+                        {
+                            sysUIFields.redDot.anchoredPosition = new Vector2(
+                                starSysLooking.StarSysData.GetPosition().x * 0.12f,
+                                starSysLooking.StarSysData.GetPosition().z * 0.12f);
+                        }
+                    }
+                }
+
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                 FleetUIGameObject.transform.SetAsLastSibling();
+
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
+                ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedFleetCon, true);
             }
-            //ShipDeployMenuUIController.Instance.SetUpTopShipLists();
-            ShipDeployMenuUIController.Instance.SetUpBottomShipLists(this);
+
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
         }
+        private void HandleShipMergeSelection(FleetController clickedFleetCon)
+        {
+            if (clickedFleetCon != this) { return; }
+            MousePointerChanger.Instance.ResetCursor();
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            galaxyUI.WhatFleetIsSelectedForShipMerge(clickedFleetCon);
+            var fleetLooking = galaxyUI.FleetLookingForShipMerge;
+            var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
 
+            var shipDeployUI = ShipDeployMenuUIController.Instance;
+
+            if (fleetLooking != null && fleetLooking != this) // Fleet-to-Fleet merge
+            {
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+
+                // ✅ Add VerticalLayoutGroup if not present
+                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f; // Space between fleet UIs
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                    layoutGroup.childControlHeight = false;
+                    layoutGroup.childControlWidth = false;
+                }
+
+                // Parent source fleet UI to container (TOP position)
+                if (fleetLooking.FleetUIGameObject != null)
+                {
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
+                    fleetLooking.FleetUIGameObject.SetActive(true);
+                    Debug.Log($"✅ Source fleet UI parented to AFleetMenuView (top)");
+                }
+
+                // Parent target fleet UI to container (BOTTOM position)
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
+                Debug.Log($"✅ Target fleet UI parented to AFleetMenuView (bottom)");
+
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
+                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
+
+                Debug.Log($"Merge Fleet-to-Fleet: {fleetLooking.FleetData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, fleetLooking, null, null);
+            }
+            else if (starSysLooking != null) // System-to-Fleet merge
+            {
+                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
+                aFleetView.gameObject.SetActive(true);
+
+                // ✅ Add VerticalLayoutGroup if not present
+                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
+                if (layoutGroup == null)
+                {
+                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
+                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
+                    layoutGroup.spacing = 20f;
+                    layoutGroup.childForceExpandHeight = false;
+                    layoutGroup.childForceExpandWidth = false;
+                    layoutGroup.childControlHeight = false;
+                    layoutGroup.childControlWidth = false;
+                }
+
+                // Parent system UI to container (TOP position)
+                if (starSysLooking.StarSysUIGameObject != null)
+                {
+                    starSysLooking.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    starSysLooking.StarSysUIGameObject.transform.SetAsLastSibling();
+                    starSysLooking.StarSysUIGameObject.SetActive(true);
+                    Debug.Log($"✅ System UI parented to AFleetMenuView (top)");
+
+                    // Update system facility UI
+                    var starSysUI = StarSysMenuUIController.Instance;
+                    if (starSysUI != null)
+                    {
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
+                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
+                    }
+                }
+
+                // Parent fleet UI to container (BOTTOM position)
+                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
+                Debug.Log($"✅ Fleet UI parented to AFleetMenuView (bottom)");
+
+                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
+                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
+                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
+
+                Debug.Log($"Merge System-to-Fleet: {starSysLooking.StarSysData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
+
+                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
+                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, null, starSysLooking, null);
+            }
+
+            shipDeployUI.ShowShipDeployMenuView();
+        }
         private Vector3 GetMouseWorldPosition()
         {
             // pixel coordinates (x,y)
@@ -568,6 +811,13 @@ namespace Assets.Core
         }
         private void OnDestroy()
         {
+            // Remove fog revealer when fleet is destroyed
+            if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
+            {
+                FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
+            }
+
+            // Existing cleanup code...
             //StopAllCoroutines();
             if (this.FleetData != null)
             {
@@ -594,8 +844,30 @@ namespace Assets.Core
                 }
             }
         }
+        public void CloseShipDeploy(FleetController fleetCon)
+        {
+            if (fleetCon == this)
+            {
+                if (fleetCon.TargetController != null)
+                {
+                    PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+                }
+                if (ShipDeployMenuUIController.Instance != null)
+                {
+                    ShipDeployMenuUIController.Instance.ShipDeployPanel.SetActive(false);
+                }
+                fleetCon.FleetUIGameObject.SetActive(false);
+
+                //ShipDeployMenuUIController.Instance.CloseShipDeployMenuView();
+            }
+        }
         public void ClickCancelDestinationButton()
         {
+            // Destroy player-defined target if it exists
+            if (TargetController != null)
+            {
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
+            }
             DestinationLine.gameObject.SetActive(false);
             FleetData.LastDestination = FleetData.Destination;
             FleetData.Destination = FleetManager.Instance.GalaxyCenter;
@@ -608,42 +880,50 @@ namespace Assets.Core
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
+            Debug.Log($"=== SetAsDestinationInUI: Fleet '{name}' selecting destination ===");
 
             fleetData.Destination = hitObject;
-            GalaxyObjectType destinationType = GalaxyObjectType.None;// start with a blank
-            // galaxy object type Enum SystemType if =>1, None =0
+            GalaxyObjectType destinationType = GalaxyObjectType.None;
             string destinationNameText = "";
 
-            string coordiantesText = "X " + (hitObject.transform.position.x).ToString()
+            string coordiatesText = "X " + (hitObject.transform.position.x).ToString()
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
+
+            Debug.Log($"  Coordinates: {coordiatesText}");
+
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
-                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, starSysController.StarSysData.CurrentCivController))
-                { // if it is our star system we do have a diplomacy controller
+                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, starSysController.StarSysData.CurrentCivController))
+                {
                     destinationType = 0;
                     destinationNameText += starSysController.StarSysData.SysName;
+                    Debug.Log($"  Destination is known system: '{destinationNameText}'");
                 }
-                else // unknown system
+                else
                 {
                     destinationType = starSysController.StarSysData.SystemType;
+                    Debug.Log($"  Destination is unknown system type: {destinationType}");
                 }
             }
             else if (hitObject.GetComponent<FleetController>() != null)
             {
                 FleetController fleetCon = hitObject.GetComponent<FleetController>();
 
-                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivContoller, fleetCon.FleetData.CivController))
+                if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, fleetCon.FleetData.CivController))
                 {
                     destinationType = GalaxyObjectType.Fleet;
                     destinationNameText = fleetCon.FleetData.Name;
+                    Debug.Log($"  Destination is known fleet: '{destinationNameText}'");
                 }
-                else // unknown fleet
+                else
                 {
                     destinationType = GalaxyObjectType.UnknownFleet;
+                    Debug.Log($"  Destination is unknown fleet");
                 }
             }
+
             switch (destinationType)
             {
                 case GalaxyObjectType.None:
@@ -689,9 +969,21 @@ namespace Assets.Core
                 default:
                     destinationNameText = "";
                     break;
-
             }
-            FleetUI.SetAsDestination(destinationNameText, coordiantesText);
+
+            Debug.Log($"  Final destination name: '{destinationNameText}'");
+            Debug.Log($"  Calling FleetUI.SetAsDestination() - FleetUI is {(FleetUI != null ? "NOT NULL" : "NULL")}");
+
+            // ✅ CRITICAL FIX: Don't use cached FleetUI - use Instance directly!
+            if (FleetMenuUIController.Instance != null)
+            {
+                FleetMenuUIController.Instance.SetAsDestination(destinationNameText, coordiatesText);
+                Debug.Log($"  ✅ Called FleetMenuUIController.Instance.SetAsDestination()");
+            }
+            else
+            {
+                Debug.LogError($"  ❌ FleetMenuUIController.Instance is NULL! Cannot update destination UI!");
+            }
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
@@ -702,11 +994,6 @@ namespace Assets.Core
                 PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
                 FleetUI.GetPlayerDefinedTargetDestination(this);
             }
-        }
-
-        internal void saveCloseShipDelplyButton(FleetController fleetCon)
-        {
-            // ToDo should this be in FleetMenuUIController?
         }
     }
 }

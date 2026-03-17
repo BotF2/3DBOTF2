@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 //using UnityEngine.UI;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class FleetChildFields : MonoBehaviour

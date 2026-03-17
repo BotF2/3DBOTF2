@@ -1,20 +1,20 @@
-﻿using System;
+﻿using BOTF3D.Core;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 
-namespace Assets.Core
-{
-    enum TurnDirection
-    {
-        up,
-        right,
-        down,
-        left
-    }
 
+enum TurnDirection
+{
+    up,
+    right,
+    down,
+    left
+}
+namespace BOTF3D.GamePlay
+{
     public class ShipCombatCameraController : MonoBehaviour
     {
         /// <summary>
@@ -69,19 +69,23 @@ namespace Assets.Core
         {
             _debugProjection = DebugProjection.ROTATED;
             _autoRotationTimer = 5f;
+
             if (Instance != null && Instance != this)
             {
+                Debug.LogWarning("Duplicate ShipCombatCameraController found! Destroying duplicate.");
                 Destroy(gameObject);
                 return;
             }
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
 
+            Instance = this;
+            // ❌ REMOVE: DontDestroyOnLoad(gameObject);
+            // ✅ Camera should live in CombatScene only!
+            Debug.Log("✅ ShipCombatCameraController: Instance assigned (scene-based)");
         }
         private void Start()
         {
             _warpingIn = false;
-             WarpingInOver = false;
+            WarpingInOver = false;
             if (_shipCamera == null)
             {
                 _shipCamera = GetComponent<Camera>();
@@ -89,7 +93,7 @@ namespace Assets.Core
             gameObject.transform.position = new Vector3(0, 500, -800);
             _cameraOffSet = gameObject.transform.position - _cameraTarget;
         }
-        
+
         private void LateUpdate()
         {
             Scene scene = SceneManager.GetSceneByName("CombatScene");
@@ -188,7 +192,7 @@ namespace Assets.Core
         }
         public void OnShipDestroyed(ShipController shipController)
         {
-            List<GameObject> theTargetList = _targets.ToList(); 
+            List<GameObject> theTargetList = _targets.ToList();
             theTargetList.Remove(shipController.gameObject);
             _targets = theTargetList.ToArray();
         }
@@ -210,8 +214,8 @@ namespace Assets.Core
                 var targetsRotatedToCameraIdentity = targets.Select(target => inverseRotation * target.transform.position).ToArray();
                 if (targets.Length == 0)
                     return new PositionAndRotation(transform.position, transform.rotation);
-                else 
-                { 
+                else
+                {
                     float furthestPointDistanceFromCamera = targetsRotatedToCameraIdentity.Max(target => target.z);
                     float projectionPlaneZ = furthestPointDistanceFromCamera + 3f;
 
@@ -273,10 +277,10 @@ namespace Assets.Core
                 return new[] { target.y + projectionHalfSpan, target.y - projectionHalfSpan };
             }
         }
-         private void DebugDrawProjectionRays(Vector3 cameraPositionIdentity, ProjectionHits viewProjectionLeftAndRightEdgeHits,
-             ProjectionHits viewProjectionTopAndBottomEdgeHits, float requiredCameraPerpedicularDistanceFromProjectionPlane,
-             IEnumerable<Vector3> targetsRotatedToCameraIdentity, float projectionPlaneZ, float halfHorizontalFovRad,
-             float halfVerticalFovRad)
+        private void DebugDrawProjectionRays(Vector3 cameraPositionIdentity, ProjectionHits viewProjectionLeftAndRightEdgeHits,
+            ProjectionHits viewProjectionTopAndBottomEdgeHits, float requiredCameraPerpedicularDistanceFromProjectionPlane,
+            IEnumerable<Vector3> targetsRotatedToCameraIdentity, float projectionPlaneZ, float halfHorizontalFovRad,
+            float halfVerticalFovRad)
         {
 
             if (_debugProjection == DebugProjection.DISABLE)
@@ -365,6 +369,7 @@ namespace Assets.Core
         }
     }
 }
+
 
 
 

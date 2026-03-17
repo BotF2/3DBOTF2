@@ -1,10 +1,10 @@
 using UnityEngine;
-using System.Collections;
+using UnityEngine.InputSystem;
 
 
 namespace TMPro.Examples
 {
-    
+
     public class CameraController : MonoBehaviour
     {
         public enum CameraModes { Follow, Isometric, Free }
@@ -41,7 +41,11 @@ namespace TMPro.Examples
         private float mouseY;
         private Vector3 moveVector;
         private float mouseWheel;
-
+        private InputAction isometricAction;
+        private InputAction followAction;
+        private InputAction toggleSmoothingAction;
+        private InputAction leftShiftAction;
+        private InputAction rightShiftAction;
         // Controls for Touches on Mobile devices
         //private float prev_ZoomDelta;
 
@@ -62,6 +66,18 @@ namespace TMPro.Examples
 
             cameraTransform = transform;
             previousSmoothing = MovementSmoothing;
+            isometricAction = new InputAction("Isometric", binding: "<Keyboard>/i");
+            followAction = new InputAction("Follow", binding: "<Keyboard>/f");
+            toggleSmoothingAction = new InputAction("ToggleSmoothing", binding: "<Keyboard>/s");
+            leftShiftAction = new InputAction("LeftShift", binding: "<Keyboard>/leftShift");
+            rightShiftAction = new InputAction("RightShift", binding: "<Keyboard>/rightShift");
+
+            // Enable all actions
+            isometricAction.Enable();
+            followAction.Enable();
+            toggleSmoothingAction.Enable();
+            leftShiftAction.Enable();
+            rightShiftAction.Enable();
         }
 
 
@@ -132,18 +148,28 @@ namespace TMPro.Examples
 
             float touchCount = Input.touchCount;
 
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || touchCount > 0)
+            bool shiftPressed = leftShiftAction.ReadValue<float>() > 0 || rightShiftAction.ReadValue<float>() > 0;
+            if (shiftPressed)
+                mouseWheel *= 10;
+            //if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) || touchCount > 0)
             {
                 mouseWheel *= 10;
-
-                if (Input.GetKeyDown(KeyCode.I))
+                if (isometricAction.WasPressedThisFrame())
                     CameraMode = CameraModes.Isometric;
 
-                if (Input.GetKeyDown(KeyCode.F))
+                if (followAction.WasPressedThisFrame())
                     CameraMode = CameraModes.Follow;
 
-                if (Input.GetKeyDown(KeyCode.S))
+                if (toggleSmoothingAction.WasPressedThisFrame())
                     MovementSmoothing = !MovementSmoothing;
+                //if (Input.GetKeyDown(KeyCode.I))
+                //    CameraMode = CameraModes.Isometric;
+
+                //if (Input.GetKeyDown(KeyCode.F))
+                //    CameraMode = CameraModes.Follow;
+
+                //if (Input.GetKeyDown(KeyCode.S))
+                //    MovementSmoothing = !MovementSmoothing;
 
 
                 // Check for right mouse button to change camera follow and elevation angle
@@ -170,7 +196,7 @@ namespace TMPro.Examples
                 }
 
                 // Get Input from Mobile Device
-                if (touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Moved)
+                if (touchCount == 1 && Input.GetTouch(0).phase == UnityEngine.TouchPhase.Moved)
                 {
                     Vector2 deltaPosition = Input.GetTouch(0).deltaPosition;
 
@@ -285,8 +311,14 @@ namespace TMPro.Examples
                 // Limit FollowDistance between min & max values.
                 FollowDistance = Mathf.Clamp(FollowDistance, MinFollowDistance, MaxFollowDistance);
             }
-
-
+        }
+        private void OnDestroy()
+        {
+            isometricAction?.Disable();
+            followAction?.Disable();
+            toggleSmoothingAction?.Disable();
+            leftShiftAction?.Disable();
+            rightShiftAction?.Disable();
         }
     }
 }

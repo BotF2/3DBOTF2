@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -13,7 +13,7 @@ public class FleetSOImporter : EditorWindow
         GetWindow<FleetSOImporter>("FleetSO CSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/FleetSO.csv";
+    private string filePath = "Assets/Editor/Data/FleetSO.csv";
 
     void OnGUI()
     {
@@ -45,13 +45,13 @@ public class FleetSOImporter : EditorWindow
             if (fields.Length > 4) // Ensure there are enough fields
             {
                 string imageString = fields[1];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Insignias/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Insignias/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Insignias/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Insignias/" + imageString + ".png")
                     {
                         imageString = "Insignias/" + imageString;
                     }
-                    else if (file == "Assets/Resources/Insignias/" + imageString + "S" + ".png")
+                    else if (file == "BOTF3D/Resources/Insignias/" + imageString + "S" + ".png")
                     {
                         imageString = "Insignias/" + imageString + "S";
                     }
@@ -63,7 +63,7 @@ public class FleetSOImporter : EditorWindow
                 fleetSO.CivOwnerEnum = GetMyCivEnum(fields[2]);
                 fleetSO.CurrentWarpFactor = float.Parse(fields[3]);
                 fleetSO.Description = fields[4];
-                string assetPath = $"Assets/SO/FleetSO/FleetSO_{fleetSO.CivIndex}_{fleetSO.CivOwnerEnum}.asset";
+                string assetPath = $"BOTF3D/SO/FleetSO/FleetSO_{fleetSO.CivIndex}_{fleetSO.CivOwnerEnum}.asset";
                 AssetDatabase.CreateAsset(fleetSO, assetPath);
                 AssetDatabase.SaveAssets();
             }

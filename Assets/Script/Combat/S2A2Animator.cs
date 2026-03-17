@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     public class S2A2Animator : MonoBehaviour

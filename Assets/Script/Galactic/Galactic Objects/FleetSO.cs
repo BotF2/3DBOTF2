@@ -1,8 +1,9 @@
+using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace Assets.Core
+namespace BOTF3D.Core
 
 {
     [CreateAssetMenu(menuName = "Galaxy/FleetSO")]

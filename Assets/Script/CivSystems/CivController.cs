@@ -1,7 +1,8 @@
+using BOTF3D.Core;
 using System;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.GamePlay
 {
     /// <summary>
     /// Controlling a Civilization(faction) with the matching CivData class
@@ -40,7 +41,7 @@ namespace Assets.Core
                     case TrekStardateEvents.FederartionEst:
                         {
                             // ToDo: Do Disaster code for each disaster 
-                            Debug.Log("******** FedLocalPalyerToggle Established ***********"); ;
+                            Debug.Log("******** FedLocalPlayerToggle Established ***********"); ;
                             break;
                         }
                     case TrekStardateEvents.RomulanNeutralZoneEst:

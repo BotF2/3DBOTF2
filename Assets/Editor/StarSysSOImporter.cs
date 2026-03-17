@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -14,7 +14,7 @@ public class StarSysSOImporter : EditorWindow
         GetWindow<StarSysSOImporter>("StarSysSO CSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSystems.csv";
+    private string filePath = "Assets/Editor/Data/StarSystems.csv";
 
     void OnGUI()
     {
@@ -45,57 +45,57 @@ public class StarSysSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[6];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Stars/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Stars/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Stars/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Stars/" + imageString + ".png")
                     {
                         imageString = "Stars/" + imageString;
                     }
                 }
                 string imagesPower = fields[17];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesPower + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesPower + ".png")
                     {
                         imagesPower = "Facilities/" + imagesPower;
                     }
                 }
                 string imagesFactory = fields[18];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesFactory + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesFactory + ".png")
                     {
                         imagesFactory = "Facilities/" + imagesFactory;
                     }
                 }
                 string imagesShipyard = fields[19];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesShipyard + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesShipyard + ".png")
                     {
                         imagesShipyard = "Facilities/" + imagesShipyard;
                     }
                 }
                 string imagesShield = fields[20];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesShield + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesShield + ".png")
                     {
                         imagesShield = "Facilities/" + imagesShield;
                     }
                 }
                 string imagesOB = fields[21];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesOB + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesOB + ".png")
                     {
                         imagesOB = "Facilities/" + imagesOB;
                     }
                 }
                 string imagesRC = fields[22];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imagesRC + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imagesRC + ".png")
                     {
                         imagesRC = "Facilities/" + imagesRC;
                     }
@@ -128,7 +128,7 @@ public class StarSysSOImporter : EditorWindow
                     StarSysSO.shieldSprite = Resources.Load<Sprite>(imagesShield);
                     StarSysSO.orbitalSprite = Resources.Load<Sprite>(imagesOB);
                     StarSysSO.researchCenterSprite = Resources.Load<Sprite>(imagesRC);
-                    string assetPath = $"Assets/SO/StarSysSO/StarSysSO_{StarSysSO.StarSysInt}_{StarSysSO.SysName}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysSO/StarSysSO_{StarSysSO.StarSysInt}_{StarSysSO.SysName}.asset";
                     AssetDatabase.CreateAsset(StarSysSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

@@ -1,39 +1,42 @@
 using System.Collections;
 using UnityEngine;
 
-public class UIFlasher : MonoBehaviour
+namespace BOTF3D.UI
 {
-    [SerializeField] private GameObject powerOverloadImage;
-    [SerializeField] private float interval = 0.5f;
-    [SerializeField] private int flashes = 3;
-
-    private Coroutine flashRoutine;
-
-    private void OnEnable()
+    public class UIFlasher : MonoBehaviour
     {
-        flashRoutine = StartCoroutine(Flash());
-    }
+        [SerializeField] private GameObject powerOverloadImage;
+        [SerializeField] private float interval = 0.5f;
+        [SerializeField] private int flashes = 3;
 
-    private void OnDisable()
-    {
-        if (flashRoutine != null)
+        private Coroutine flashRoutine;
+
+        private void OnEnable()
         {
-            StopCoroutine(flashRoutine);
-            flashRoutine = null;
+            flashRoutine = StartCoroutine(Flash());
         }
 
-        //// Ensure final state
-        //gameObject.SetActive(false);
-    }
-
-    private IEnumerator Flash()
-    {
-        for (int i = 0; i < flashes; i++)
+        private void OnDisable()
         {
-            powerOverloadImage.SetActive(true);
-            yield return new WaitForSeconds(interval);
-            powerOverloadImage.SetActive(false);
-            yield return new WaitForSeconds(interval);
+            if (flashRoutine != null)
+            {
+                StopCoroutine(flashRoutine);
+                flashRoutine = null;
+            }
+
+            //// Ensure final state
+            //gameObject.SetActive(false);
+        }
+
+        private IEnumerator Flash()
+        {
+            for (int i = 0; i < flashes; i++)
+            {
+                powerOverloadImage.SetActive(true);
+                yield return new WaitForSeconds(interval);
+                powerOverloadImage.SetActive(false);
+                yield return new WaitForSeconds(interval);
+            }
         }
     }
 }

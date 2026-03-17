@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class ShipSOImporter : EditorWindow
 {
-//#if UNITY_EDITOR
+    //#if UNITY_EDITOR
 
     [MenuItem("Tools/Import ShipSO CSV")]
     public static void ShowWindow()
@@ -15,7 +15,7 @@ public class ShipSOImporter : EditorWindow
         GetWindow<ShipSOImporter>("ShipSO CSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/ShipSO.csv";
+    private string filePath = "Assets/Editor/Data/ShipSO.csv";
 
     void OnGUI()
     {
@@ -111,13 +111,13 @@ public class ShipSOImporter : EditorWindow
                 //shipSO.BuildDuration = int.Parse(fields[10]);
                 shipSO.maxWarpFactor = float.Parse(fields[11]);
                 if (shipSO.TechLevel == TechLevel.EARLY)
-                    assetPath = $"Assets/SO/ShipSO_Level_0/ShipSO_{shipSO.ShipName}.asset";
+                    assetPath = $"BOTF3D/SO/ShipSO_Level_0/ShipSO_{shipSO.ShipName}.asset";
                 else if (shipSO.TechLevel == TechLevel.DEVELOPED)
-                    assetPath = $"Assets/SO/ShipSO_Level_1/ShipSO_{shipSO.ShipName}.asset";
+                    assetPath = $"BOTF3D/SO/ShipSO_Level_1/ShipSO_{shipSO.ShipName}.asset";
                 else if (shipSO.TechLevel == TechLevel.ADVANCED)
-                    assetPath = $"Assets/SO/ShipSO_Level_2/ShipSO_{shipSO.ShipName}.asset";
+                    assetPath = $"BOTF3D/SO/ShipSO_Level_2/ShipSO_{shipSO.ShipName}.asset";
                 else if (shipSO.TechLevel == TechLevel.SUPREME)
-                    assetPath = $"Assets/SO/ShipSO_Level_3/ShipSO_{shipSO.ShipName}.asset";
+                    assetPath = $"BOTF3D/SO/ShipSO_Level_3/ShipSO_{shipSO.ShipName}.asset";
                 AssetDatabase.CreateAsset(shipSO, assetPath);
                 AssetDatabase.SaveAssets();
             }
@@ -177,5 +177,5 @@ public class ShipSOImporter : EditorWindow
                 return ShipType.Scout;
         }
     }
-//#endif
+    //#endif
 }

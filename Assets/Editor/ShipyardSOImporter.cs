@@ -1,5 +1,4 @@
-using Assets.Core;
-using System;
+using BOTF3D.Core;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +13,7 @@ public class ShipyardSOImporter : EditorWindow
         GetWindow<ShipyardSOImporter>("ShipyardSO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysShipyard.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysShipyard.tsv";
 
     void OnGUI()
     {
@@ -45,9 +44,9 @@ public class ShipyardSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Shipyards/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Shipyards/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Shipyards/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Shipyards/" + imageString + ".png")
                     {
                         imageString = "Shipyards/" + imageString;
                     }
@@ -67,7 +66,7 @@ public class ShipyardSOImporter : EditorWindow
                     ShipyardSO.PowerLoad = int.Parse(fields[7]);
                     ShipyardSO.ShipyardSprite = Resources.Load<Sprite>(imageString);
                     ShipyardSO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysShipyardSO/ShipyardSO_{ShipyardSO.CivInt}_{ShipyardSO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysShipyardSO/ShipyardSO_{ShipyardSO.CivInt}_{ShipyardSO.Name}.asset";
                     AssetDatabase.CreateAsset(ShipyardSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

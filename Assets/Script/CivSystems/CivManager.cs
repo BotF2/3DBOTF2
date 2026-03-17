@@ -1,9 +1,11 @@
+using BOTF3D.GamePlay;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     /// <summary>
     /// Instantiates the Civilizations(factions) (a CivController and a CivData) using CivSO
@@ -35,12 +37,12 @@ namespace Assets.Core
 
         public bool isSinglePlayer;
         public List<CivEnum> InGamePlayableCivs;
-        public CivController LocalPlayerCivContoller;
+        public CivController LocalPlayerCivController;
 
-        //public bool nowCivsCanJoinTheFederation = true; // for use with testing a muliple star system Federation
+        //public bool nowCivsCanJoinTheFederation = true; // for use with testing a multiple star system Federation
         private int HoldCivSize = 0;// used in testing of a multiStarSystem civilization/faction
         [SerializeField]
-        private GameObject civFolder; // hold civs in Hierachy, using the CivManager as a parent in Hierarchy
+        private GameObject civFolder; // hold civs in Hierarchy, using the CivilizationFolder as a parent in Hierarchy
         [SerializeField]
         private CivController civPrefab;
         private void Awake()
@@ -55,8 +57,8 @@ namespace Assets.Core
         }
         //private void Update()
         //{
-        //    #region temp multi-starsystem hack
-        //    //***** This is temporary so we can test a multi-starsystem civCon
+        //    #region temp multi-star system hack
+        //    //***** This is temporary so we can test a multi-star system civCon
         //    //******* before diplomacy will alow civs/systems to join another civCon
 
         //    //if (nowCivsCanJoinTheFederation && HoldCivSize == 1)
@@ -179,14 +181,16 @@ namespace Assets.Core
         }
         public void CivDataFromSO(List<CivSO> civSOList, int localPayerCivInt)
         {
+            Debug.Log($"=== CivDataFromSO: Creating {civSOList.Count} civilizations ===");
+
             for (int i = 0; i < civSOList.Count; i++)
             {
-                CivData civData = new CivData(); // CivData is not MonoBehavior so new is OK
+                CivData civData = new CivData();
                 civData.CivInt = civSOList[i].CivInt;
                 civData.CivEnum = civSOList[i].CivEnum;
                 civData.CivLongName = civSOList[i].CivLongName;
                 civData.CivShortName = civSOList[i].CivShortName;
-                civData.Warlike = (WarLikeEnum)civSOList[i].WarLikeEnum; // a scale from most worklike 0 to neutral 3 and most peasful at 5
+                civData.Warlike = (WarLikeEnum)civSOList[i].WarLikeEnum; // a scale from 0 to neutral 3 and most peaceful at 5
                 civData.Xenophbia = civSOList[i].XenophbiaEnum;
                 civData.Ruthelss = civSOList[i].RuthlessEnum;
                 civData.Greedy = civSOList[i].GreedyEnum;
@@ -202,12 +206,25 @@ namespace Assets.Core
                 civData.IntelPoints = civSOList[i].IntelPoints;
                 CivDataInGameList.Add(civData);
                 InstantiateCivilizations(civData, localPayerCivInt);
-
             }
+
             if (CivDataInGameList[0].CivHomeSystemName != null) { }
             else
-                CivDataInGameList.Remove(CivDataInGameList[0]); // remove the null entered by field
-            StarSysManager.Instance.SysDataFromSO(civSOList);
+                CivDataInGameList.Remove(CivDataInGameList[0]);
+
+            Debug.Log($"CivDataFromSO: Calling StarSysManager.SysDataFromSO with {civSOList.Count} civs");
+
+            // CRITICAL: Check if StarSysManager exists
+            if (StarSysManager.Instance != null)
+            {
+                StarSysManager.Instance.SysDataFromSO(civSOList);
+                Debug.Log($"CivDataFromSO: StarSysManager created systems");
+            }
+            else
+            {
+                Debug.LogError("CivDataFromSO: ? StarSysManager.Instance is NULL! Systems won't be created!");
+                Debug.LogError("  Make sure StarSysManager exists in GalaxyScene and scene is loaded");
+            }
         }
         private void InstantiateCivilizations(CivData civData, int localPlayerCivInt)
         {
@@ -220,7 +237,7 @@ namespace Assets.Core
             civController.name = civData.CivShortName.ToString();
             if (localPlayerCivInt == civController.CivData.CivInt)
             {
-                LocalPlayerCivContoller = civController;
+                LocalPlayerCivController = civController;
                 StarSysManager.Instance.SetShipBuildPrefabs(civController.CivData.CivEnum);
             }
 
@@ -291,7 +308,7 @@ namespace Assets.Core
             CivController civController = null;
             for (int i = 0; i < CivControllersInGame.Count; i++)
             {
-                if (CivControllersInGame[i] == CivManager.Instance.LocalPlayerCivContoller)
+                if (CivControllersInGame[i] == CivManager.Instance.LocalPlayerCivController)
                     civController = CivControllersInGame[i];
             }
             return civController;
@@ -308,6 +325,26 @@ namespace Assets.Core
                 }
             }
             return civController;
+        }
+
+        // NEW: Store galaxy state data (not the actual GameObjects)
+        [System.Serializable]
+        public class GalaxyStateData
+        {
+            public List<StarSysData> starSystemsData = new List<StarSysData>();
+            public List<FleetData> fleetsData = new List<FleetData>();
+            // etc.
+        }
+
+        public GalaxyStateData CurrentGalaxyState = new GalaxyStateData();
+
+        // Called by StarSysManager after it loads
+        public void RegisterStarSystemData(StarSysData data)
+        {
+            if (!CurrentGalaxyState.starSystemsData.Contains(data))
+            {
+                CurrentGalaxyState.starSystemsData.Add(data);
+            }
         }
     }
 }

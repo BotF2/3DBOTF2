@@ -1,7 +1,7 @@
 //using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
     [CreateAssetMenu(fileName = "CivSO", menuName = "CivSO")]
     public class CivSO : ScriptableObject

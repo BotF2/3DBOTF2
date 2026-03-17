@@ -1,12 +1,11 @@
-using UnityEngine;
-using Assets.Core;
-using System.Collections.Generic;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using Mirror;
-using System;
+using UnityEngine;
 
 public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
 {
-    public PlayerData PlayerData { get; set; }
+    public GamePlayerInfo PlayerInfo { get; set; }
     public static LocalHumanPlayerController localInstance { get; private set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => true; // do we need this with Mirror in place?
@@ -35,15 +34,15 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         base.OnStopServer();
     }
     public override void OnStartLocalPlayer()
-    { 
+    {
         if (localInstance != null && localInstance != this)
         {
             Debug.LogError("Multiple LocalHumanPlayerController instances detected. There should only be one per client.");
             return;
         }
-        PlayerData = new PlayerData("local Human");
-        PlayerData.PlayerId = 0;
-        PlayerData.PlayerType = PlayerType.Local;
+        PlayerInfo = new GamePlayerInfo("local Human");
+        PlayerInfo.PlayerId = 0;
+        PlayerInfo.PlayerType = PlayerType.Local;
         base.OnStartLocalPlayer();
         // Register with the PlayerManager
         PlayerManager.Instance.RegisterPlayer(this, true, PlayerName, netId.GetHashCode(), PlayerType.Local);
@@ -92,22 +91,22 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         //}
         switch (order)
         {
-        case CombatOrders.Engage:
+            case CombatOrders.Engage:
                 combatCon.SetCombatOrder(CombatOrders.Engage, civ); //PlayerCiv);
-            break;
-        case CombatOrders.Rush:
+                break;
+            case CombatOrders.Rush:
                 combatCon.SetCombatOrder(CombatOrders.Rush, civ);//PlayerCiv);
-            break;
-        case CombatOrders.Retreat:
+                break;
+            case CombatOrders.Retreat:
                 combatCon.SetCombatOrder(CombatOrders.Retreat, civ); // PlayerCiv);
-            break;
-        case CombatOrders.Formation:
+                break;
+            case CombatOrders.Formation:
                 combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
-            break;
-        case CombatOrders.TargetTransports:
-            combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
+                break;
+            case CombatOrders.TargetTransports:
+                combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
 
-            break;
+                break;
         }
     }
 
@@ -137,6 +136,6 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
 
     internal void SetCiv(CivEnum civEnum)
     {
-        PlayerData.PlayerCiv = civEnum;
+        PlayerInfo.PlayerCiv = civEnum;
     }
 }

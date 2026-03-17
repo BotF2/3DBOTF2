@@ -571,7 +571,6 @@ GameObject:
   - component: {fileID: 2288487821784046947}
   - component: {fileID: 4903180204303875410}
   - component: {fileID: 7399741297211749873}
-  - component: {fileID: 5701368572679431816}
   m_Layer: 4
   m_Name: StarSprite
   m_TagString: Untagged
@@ -665,18 +664,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
---- !u!114 &5701368572679431816
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5710607628615256866}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11e858768c8b40e438f212946ac7a265, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Assets.Core.Billboard
 --- !u!1 &6000483729355016117
 GameObject:
   m_ObjectHideFlags: 0
@@ -776,8 +763,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PlayerID: 0
-  starSysUIGameObject: {fileID: 0}
-  SettingUpNewFleet: 0
+  _starSysUIGameObject: {fileID: 0}
   canvasToolTip: {fileID: 4392431061251062606}
   BuildListGridLayoutGroup: {fileID: 0}
   ShipListGridLayoutGroup: {fileID: 0}

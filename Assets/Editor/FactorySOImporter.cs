@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
+using BOTF3D.Core;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
-using Assets.Core;
 
 public class FactorySOImporter : EditorWindow
 {
@@ -16,7 +14,7 @@ public class FactorySOImporter : EditorWindow
         GetWindow<FactorySOImporter>("FactorySO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysFactory.TSV";
+    private string filePath = "Assets/Editor/Data/StarSysFactory.TSV";
 
     void OnGUI()
     {
@@ -47,9 +45,9 @@ public class FactorySOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "Assets/Resources/Facilities/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/Facilities/" + imageString + ".png")
                     {
                         imageString = "Facilities/" + imageString;
                     }
@@ -69,7 +67,7 @@ public class FactorySOImporter : EditorWindow
                     factorySO.PowerLoad = int.Parse(fields[7]);
                     factorySO.FactorySprite = Resources.Load<Sprite>(imageString);
                     factorySO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysFactorySO/FactorySO_{factorySO.CivInt}_{factorySO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysFactorySO/FactorySO_{factorySO.CivInt}_{factorySO.Name}.asset";
                     AssetDatabase.CreateAsset(factorySO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

@@ -1,13 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
+using BOTF3D.Core;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
-using Assets.Core;
-using System;
-using System.IO;
 
 public class OrbitalBatterySOImporter : EditorWindow
-{ 
+{
 #if UNITY_EDITOR
 
     [MenuItem("Tools/Import OrbitalBatterySO TSV")]
@@ -16,7 +13,7 @@ public class OrbitalBatterySOImporter : EditorWindow
         GetWindow<OrbitalBatterySOImporter>("OrbitalBatterySO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/StarSysOrbitalBattery.tsv";
+    private string filePath = "Assets/Editor/Data/StarSysOrbitalBattery.tsv";
 
     void OnGUI()
     {
@@ -47,9 +44,9 @@ public class OrbitalBatterySOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"Assets/Resources/OrbitalBatteries/", "*.png"))
+                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/OrbitalBatteries/", "*.png"))
                 {
-                    if (file == "Assets/Resources/OrbitalBatteries/" + imageString + ".png")
+                    if (file == "BOTF3D/Resources/OrbitalBatteries/" + imageString + ".png")
                     {
                         imageString = "OrbitalBatteries/" + imageString;
                     }
@@ -69,7 +66,7 @@ public class OrbitalBatterySOImporter : EditorWindow
                     OrbitalBatterySO.PowerLoad = int.Parse(fields[7]);
                     OrbitalBatterySO.OrbitalBatterySprite = Resources.Load<Sprite>(imageString);
                     OrbitalBatterySO.Description = (fields[8]);
-                    string assetPath = $"Assets/SO/StarSysOrbitalBatterySO/OrbitalBatterySO_{OrbitalBatterySO.CivInt}_{OrbitalBatterySO.Name}.asset";
+                    string assetPath = $"BOTF3D/SO/StarSysOrbitalBatterySO/OrbitalBatterySO_{OrbitalBatterySO.CivInt}_{OrbitalBatterySO.Name}.asset";
                     AssetDatabase.CreateAsset(OrbitalBatterySO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

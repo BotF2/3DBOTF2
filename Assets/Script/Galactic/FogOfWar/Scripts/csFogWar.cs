@@ -1,4 +1,4 @@
-/*
+/**
  * Created :    Winter 2022
  * Author :     SeungGeon Kim (keithrek@hanmail.net)
  * Project :    FogWar
@@ -24,7 +24,7 @@ namespace FischlWorks_FogWar
     /// The non-static high-level monobehaviour interface of the AOS Fog of War module.
 
     /// This class holds serialized data for various configuration properties,\n
-    /// and is resposible for scanning / saving / loading the LevelData object.\n
+    /// and is responsible for scanning / saving / loading the LevelData object.\n
     /// The class handles the update frequency of the fog, plus some shader businesses.\n
     /// Various public interfaces related to FogRevealer's FOV are also available.
     public class csFogWar : MonoBehaviour
@@ -54,7 +54,9 @@ namespace FischlWorks_FogWar
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
-            fogPlaneParent = GameObject.FindWithTag("FogPlaneParent");
+
+            // DON'T find fogPlaneParent here - it might be in a scene that gets unloaded
+            // fogPlaneParent = GameObject.FindWithTag("FogPlaneParent");
         }
 
         [System.Serializable]
@@ -163,8 +165,21 @@ namespace FischlWorks_FogWar
         [System.Serializable]
         public class FogRevealer
         {
-            Transform camTransform = csFogWar.Instance.galacticCamHolder.transform;
-
+            // DON'T initialize here - it causes the error!
+            // Transform camTransform = csFogWar.Instance.galacticCamHolder.transform;
+            // Lazy-initialized property instead
+            private Transform camTransform;
+            private Transform CamTransform
+            {
+                get
+                {
+                    if (camTransform == null && csFogWar.Instance != null && csFogWar.Instance.galacticCamHolder != null)
+                    {
+                        camTransform = csFogWar.Instance.galacticCamHolder.transform;
+                    }
+                    return camTransform;
+                }
+            }
 
             public FogRevealer(Transform revealerTransform, int sightRange, bool updateOnlyOnMove)
             {
@@ -175,14 +190,19 @@ namespace FischlWorks_FogWar
 
             public Vector2Int GetCurrentLevelCoordinates(csFogWar fogWar)
             {
-                float xCam = camTransform.position.x;
-                float zCam = camTransform.position.z;
-                //if (currentLevelCoordinates != null)
-                //{
+                // SAFETY CHECK: Ensure transforms still exist
+                if (CamTransform == null || revealerTransform == null)
+                {
+                    Debug.LogWarning("FogRevealer.GetCurrentLevelCoordinates: Transform is null or destroyed");
+                    return currentLevelCoordinates; // Return last known position
+                }
+
+                float xCam = CamTransform.position.x;
+                float zCam = CamTransform.position.z;
+
                 currentLevelCoordinates = new Vector2Int(
-            fogWar.GetUnitX(revealerTransform.position.x), // - (camTransform.transform.position.x / 5)), // adjust for camera position moving the fog layer, move the revealer too
-            fogWar.GetUnitY(revealerTransform.position.z));
-                //}
+                    fogWar.GetUnitX(revealerTransform.position.x),
+                    fogWar.GetUnitY(revealerTransform.position.z));
 
                 return currentLevelCoordinates;
             }
@@ -190,11 +210,10 @@ namespace FischlWorks_FogWar
             // To be assigned manually by the user
             [SerializeField]
             private Transform revealerTransform = null;
-            // These are called expression-bodied properties btw, being stricter here because these are not pure data containers
             public Transform _RevealerTransform => revealerTransform;
 
             [SerializeField]
-            private int sightRange = 200; // Size of the hole in the fog plane to view
+            private int sightRange = 200;
             public int _SightRange => sightRange;
 
             [SerializeField]
@@ -207,7 +226,6 @@ namespace FischlWorks_FogWar
                 get
                 {
                     lastSeenAt = currentLevelCoordinates;
-
                     return currentLevelCoordinates;
                 }
             }
@@ -241,7 +259,7 @@ namespace FischlWorks_FogWar
         private Color fogColor = new Color32(5, 15, 25, 255);
         [SerializeField]
         [Range(0, 1)]
-        private float fogPlaneAlpha = 0.8f; // opaque
+        private float fogPlaneAlpha = 0.4f; // opaque
         [SerializeField]
         [Range(0, 5)]
         private float fogLerpSpeed = 2.5f;
@@ -303,8 +321,39 @@ namespace FischlWorks_FogWar
         //private void Start()
         public void RunFogOfWar()
         {
-            csFogWar.Instance.
-                CheckProperties();
+            // CRITICAL: Find fogPlaneParent NOW (when GalaxyScene is loaded)
+            if (fogPlaneParent == null)
+            {
+                fogPlaneParent = GameObject.FindWithTag("FogPlaneParent");
+
+                if (fogPlaneParent == null)
+                {
+                    Debug.LogError("csFogWar.RunFogOfWar: FogPlaneParent not found! Cannot initialize fog.");
+                    return;
+                }
+
+                Debug.Log($"csFogWar: Found FogPlaneParent: {fogPlaneParent.name}");
+            }
+
+            // CRITICAL: Find galacticCamHolder NOW if not assigned
+            if (galacticCamHolder == null)
+            {
+                galacticCamHolder = GameObject.Find("GalaxyCenter");
+
+                if (galacticCamHolder == null)
+                {
+                    // Try finding MainCamera
+                    var mainCam = GameObject.FindGameObjectWithTag("MainCamera");
+                    if (mainCam != null)
+                    {
+                        galacticCamHolder = mainCam;
+                    }
+                }
+
+                Debug.Log($"csFogWar: Found galacticCamHolder: {galacticCamHolder != null}");
+            }
+
+            csFogWar.Instance.CheckProperties();
 
             InitializeVariables();
 
@@ -314,7 +363,6 @@ namespace FischlWorks_FogWar
 
                 if (saveDataOnScan == true)
                 {
-                    // Preprocessor definitions are used because the save function code will be stripped out on build
 #if UNITY_EDITOR
                     SaveScanAsLevelData();
 #endif
@@ -327,12 +375,12 @@ namespace FischlWorks_FogWar
 
             InitializeFog();
 
-            // This part passes the needed references to the shadowcaster
             shadowcaster.Initialize(this);
 
-            // This is needed because we do not update the fog when there's no unit-scale movement of each fogRevealer
             ForceUpdateFog();
             fogReady = true;
+
+            Debug.Log("csFogWar: Fog of War initialized successfully");
         }
 
         private void Update()
@@ -391,14 +439,23 @@ namespace FischlWorks_FogWar
 
         private void InitializeFog()
         {
+            // SAFETY: Ensure fogPlaneParent still exists
+            if (fogPlaneParent == null)
+            {
+                Debug.LogError("csFogWar.InitializeFog: fogPlaneParent is NULL!");
+                return;
+            }
+
             fogPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
             fogPlane.layer = 8; // Fog of War Plane for ray hits
             fogPlane.name = "[RUNTIME] Fog_Plane";
-            fogPlane.transform.SetParent(fogPlaneParent.transform, false);
+            fogPlane.transform.SetParent(fogPlaneParent.transform, false); // LINE 414 - now safe
 
+            // Position fog plane at Y = -55 (same level as fog obstacles)
+            // This reduces perspective distortion between shadows and star systems
             fogPlane.transform.position = new Vector3(
                 levelMidPoint.position.x,
-                levelMidPoint.position.y + fogPlaneHeight,
+                -55f,  // CHANGED: Was levelMidPoint.position.y + fogPlaneHeight
                 levelMidPoint.position.z);
 
             fogPlane.transform.localScale = new Vector3(
@@ -410,13 +467,11 @@ namespace FischlWorks_FogWar
             fogPlaneTextureLerpBuffer = new Texture2D(levelDimensionX, levelDimensionY);
 
             fogPlaneTextureLerpBuffer.wrapMode = TextureWrapMode.Clamp;
-
             fogPlaneTextureLerpBuffer.filterMode = FilterMode.Bilinear;
 
             fogPlane.GetComponent<MeshRenderer>().material = new Material(fogPlaneMaterial);
-
             fogPlane.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", fogPlaneTextureLerpBuffer);
-            //fogPlane.GetComponent<MeshRenderer>().material.renderQueue = 1; // Not sure why this needs to be left out but it works
+
             MeshCollider mCollider = fogPlane.GetComponent<MeshCollider>();
             mCollider.enabled = false;
         }
@@ -432,58 +487,64 @@ namespace FischlWorks_FogWar
 
         private void UpdateFog()
         {
-
-            fogPlane.transform.position = new Vector3(
-                levelMidPoint.position.x,
-                levelMidPoint.position.y + fogPlaneHeight,
-                levelMidPoint.position.z);
-            // The Camera holder is offset to a location of -1100 in the z axis and on a range of movment from -1400 to +500, -820 corresponds to galactic center on z
-            //ToDo: get camera to start on home world of local player at same relative position as if Fed
-
-            FogRefreshRateTimer += Time.deltaTime;
-
-            if (FogRefreshRateTimer < 1 / FogRefreshRate)
-            {
-                UpdateFogPlaneTextureBuffer();
-
+            if (fogRevealers == null || fogRevealers.Count == 0)
                 return;
-            }
-            else
+
+            // Clean up any destroyed revealers BEFORE iterating
+            int removedCount = fogRevealers.RemoveAll(r => r == null || r._RevealerTransform == null);
+            if (removedCount > 0)
             {
-                // This is to cancel out minor excess values
-                FogRefreshRateTimer -= 1 / FogRefreshRate;
+                Debug.LogWarning($"csFogWar.UpdateFog: Removed {removedCount} destroyed revealer(s)");
             }
 
-            foreach (FogRevealer fogRevealer in fogRevealers)
+            // CRITICAL: Track if ANY revealer moved
+            bool anyRevealerMoved = false;
+
+            // Now iterate safely
+            for (int i = 0; i < fogRevealers.Count; i++)
             {
-                //if (fogRevealer != null)
-                //{
-                if (fogRevealer._UpdateOnlyOnMove == false)
-                {
-                    break;
-                }
-                if (fogRevealer._RevealerTransform == null)
+                var revealer = fogRevealers[i];
+
+                // Double-check safety
+                if (revealer == null || revealer._RevealerTransform == null)
                 {
                     continue;
                 }
 
-                Vector2Int currentLevelCoordinates = fogRevealer.GetCurrentLevelCoordinates(this);
-
-                if (currentLevelCoordinates != fogRevealer._LastSeenAt)
+                // Get coordinates and update fog
+                try
                 {
-                    break;
-                }
+                    Vector2Int currentCoords = revealer.GetCurrentLevelCoordinates(this);
 
-                if (fogRevealer == fogRevealers.Last())
-                {
-                    return;
+                    // CRITICAL: Check if revealer moved to a different grid cell
+                    if (revealer._UpdateOnlyOnMove)
+                    {
+                        // Only update if moved to different grid cell
+                        if (currentCoords != revealer._LastSeenAt)
+                        {
+                            anyRevealerMoved = true;
+                        }
+                    }
+                    else
+                    {
+                        // Always update if updateOnlyOnMove is false
+                        anyRevealerMoved = true;
+                    }
                 }
-                //}
+                catch (MissingReferenceException ex)
+                {
+                    Debug.LogWarning($"csFogWar.UpdateFog: Revealer transform destroyed mid-update: {ex.Message}");
+                    fogRevealers.RemoveAt(i);
+                    i--; // Adjust index after removal
+                }
             }
 
-            UpdateFogField();
-
-            UpdateFogPlaneTextureBuffer();
+            // CRITICAL: Only recalculate fog if a revealer moved OR updateOnlyOnMove is false
+            if (anyRevealerMoved)
+            {
+                UpdateFogField();
+                UpdateFogPlaneTextureBuffer();
+            }
         }
 
         private void UpdateFogField()
@@ -688,8 +749,6 @@ namespace FischlWorks_FogWar
             return result;
         }
 
-
-
         /// Checks if the given world coordinates are within level dimension range.
         public bool CheckWorldGridRange(Vector3 worldCoordinates)
         {
@@ -882,6 +941,33 @@ namespace FischlWorks_FogWar
             }
         }
 #endif
+
+        /// <summary>
+        /// Clear all fog revealers (call when transitioning scenes)
+        /// </summary>
+        public void ClearAllRevealers()
+        {
+            if (fogRevealers != null)
+            {
+                fogRevealers.Clear();
+                Debug.Log("csFogWar: Cleared all fog revealers");
+            }
+        }
+
+        /// <summary>
+        /// Remove a specific fog revealer by transform
+        /// </summary>
+        public void RemoveRevealer(Transform revealerTransform)
+        {
+            if (fogRevealers == null || revealerTransform == null) return;
+
+            int removed = fogRevealers.RemoveAll(r => r == null || r._RevealerTransform == null || r._RevealerTransform == revealerTransform);
+
+            if (removed > 0)
+            {
+                Debug.Log($"csFogWar: Removed {removed} revealer(s) for {revealerTransform.name}");
+            }
+        }
     }
 
 

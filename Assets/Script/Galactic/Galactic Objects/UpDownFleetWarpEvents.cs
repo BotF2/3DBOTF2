@@ -1,33 +1,33 @@
-using Assets.Core;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class UpDownFleetWarpEvents : MonoBehaviour
+namespace BOTF3D.GamePlay
 {
-    public static UpDownFleetWarpEvents current;
-
-    public Action<FleetController, string> FleetOnWarpUpClick;
-
-    private void Awake()
+    public class UpDownFleetWarpEvents : MonoBehaviour
     {
-        if (current != null) { Destroy(gameObject); }
-        else
+        public static UpDownFleetWarpEvents current;
+
+        public Action<FleetController, string> FleetOnWarpUpClick;
+
+        private void Awake()
         {
-            current = this;
-            DontDestroyOnLoad(gameObject);
+            if (current != null) { Destroy(gameObject); }
+            else
+            {
+                current = this;
+                DontDestroyOnLoad(gameObject);
+            }
         }
-    }
-    private void Start()
-    {
-        FleetOnWarpUpClick += DoFleetOnWarpUp;
-    }
-    public void DoFleetOnWarpUp(FleetController fleetCon, string name)
-    {
-        if (FleetOnWarpUpClick != null)
+        private void Start()
         {
-            FleetOnWarpUpClick?.Invoke(fleetCon, name);
+            FleetOnWarpUpClick += DoFleetOnWarpUp;
+        }
+        public void DoFleetOnWarpUp(FleetController fleetCon, string name)
+        {
+            if (FleetOnWarpUpClick != null)
+            {
+                FleetOnWarpUpClick?.Invoke(fleetCon, name);
+            }
         }
     }
 }

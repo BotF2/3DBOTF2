@@ -1,14 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using Assets.Core;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using Mirror;
-using System;
+using UnityEngine;
+
 
 public class AiPlayerController : NetworkBehaviour, IPlayerController
 {
-    public PlayerData PlayerData { get; set; }
+    public GamePlayerInfo PlayerInfo { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
     bool hasAuthority;
@@ -20,7 +18,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     {
         base.OnStartServer();
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.AI); 
+            PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.AI);
 
     }
     public override void OnStopServer()
@@ -107,7 +105,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
 
     public void GiveIntelOrder(SecretActionsEnum order, CivEnum civ)
     {
-      
+
         //***? will we have an IntelController like the combat controller?
         //var combatCons = CombatManager.Instance.CombatControllers;
         //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
@@ -145,3 +143,4 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     }
     //.....???? more orders as needed
 }
+

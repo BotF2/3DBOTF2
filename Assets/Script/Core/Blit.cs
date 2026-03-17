@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Assets.Core
+namespace BOTF3D.Core
 {
 
     /*

@@ -274,6 +274,81 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &1241912588100249887
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8799921155720413557}
+  - component: {fileID: 4224961027406643249}
+  - component: {fileID: 7684643845963108436}
+  m_Layer: 5
+  m_Name: OverloadImage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &8799921155720413557
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1241912588100249887}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1005823329715684053}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 200, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &4224961027406643249
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1241912588100249887}
+  m_CullTransparentMesh: 1
+--- !u!114 &7684643845963108436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1241912588100249887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &1254671200559811441
 GameObject:
   m_ObjectHideFlags: 0
@@ -1156,14 +1231,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1005823329715684053}
   - component: {fileID: 8132610530393969992}
-  - component: {fileID: 5070935721863454872}
+  - component: {fileID: 9046246967545470584}
   m_Layer: 5
   m_Name: PowerOverloadImage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1005823329715684053
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1172,16 +1247,17 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3094821245374669449}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -2811.8416}
+  m_LocalPosition: {x: 0, y: 0, z: -2812}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 8799921155720413557}
   - {fileID: 1350705090834508070}
   m_Father: {fileID: 7439897208480800557}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: -1174.8501, y: 925}
+  m_AnchoredPosition: {x: -1175, y: 925}
   m_SizeDelta: {x: 200, y: 100}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &8132610530393969992
@@ -1192,7 +1268,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3094821245374669449}
   m_CullTransparentMesh: 1
---- !u!114 &5070935721863454872
+--- !u!114 &9046246967545470584
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1203,16 +1279,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.38679248, g: 0.3594251, b: 0.3594251, a: 0.6666667}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.41568628}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 76f8224c55082d64aa69383969afd231, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3000,7 +3076,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801355736749082
 GameObject:
   m_ObjectHideFlags: 0
@@ -4013,7 +4088,49 @@ MonoBehaviour:
   numPUnits: {fileID: 4945801356616817425}
   numTotalEOut: {fileID: 4945801355902179642}
   numPLoad: {fileID: 8269275569014894448}
-  facilities: []
+  facilities:
+  - type: 1
+    nameText: {fileID: 4945801357003114911}
+    loadText: {fileID: 4945801357484871223}
+    ratioText: {fileID: 4945801357469446850}
+    onButton: {fileID: 4945801356593481036}
+    offButton: {fileID: 4945801357655294685}
+    icon: {fileID: 4945801357443104328}
+  - type: 2
+    nameText: {fileID: 4945801355973760036}
+    loadText: {fileID: 4945801356822363015}
+    ratioText: {fileID: 4945801357080630357}
+    onButton: {fileID: 4945801356349257477}
+    offButton: {fileID: 4945801356113059973}
+    icon: {fileID: 4945801357691225635}
+  - type: 3
+    nameText: {fileID: 4945801356240350539}
+    loadText: {fileID: 4945801356901144110}
+    ratioText: {fileID: 4945801357613259359}
+    onButton: {fileID: 4945801356391152301}
+    offButton: {fileID: 4945801356642525207}
+    icon: {fileID: 4945801357651037251}
+  - type: 4
+    nameText: {fileID: 4945801355664507003}
+    loadText: {fileID: 4945801355937844074}
+    ratioText: {fileID: 4945801357315874162}
+    onButton: {fileID: 4945801357577137574}
+    offButton: {fileID: 4945801356299958160}
+    icon: {fileID: 4945801355725590265}
+  - type: 5
+    nameText: {fileID: 4945801357490288101}
+    loadText: {fileID: 4945801356155772612}
+    ratioText: {fileID: 4945801357538781786}
+    onButton: {fileID: 4945801356621298206}
+    offButton: {fileID: 4945801356644369606}
+    icon: {fileID: 4945801356811591286}
+  - type: 4
+    nameText: {fileID: 4945801355664507003}
+    loadText: {fileID: 4945801355937844074}
+    ratioText: {fileID: 4945801357315874162}
+    onButton: {fileID: 4945801357577137574}
+    offButton: {fileID: 4945801356299958160}
+    icon: {fileID: 4945801355725590265}
   PowerOverload: {fileID: 8182671894782945358}
   shipContent: {fileID: 1432379251446014923}
   buildButton: {fileID: 4945801356985295004}
@@ -4055,7 +4172,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 4945801357651037251}
   orbitalBatteriesImage: {fileID: 4945801355725590265}
   researchImage: {fileID: 4945801356811591286}
-  powerOverloadImage: {fileID: 5070935721863454872}
 --- !u!1 &4945801355937844068
 GameObject:
   m_ObjectHideFlags: 0
@@ -4069,7 +4185,7 @@ GameObject:
   - component: {fileID: 4945801355937844074}
   - component: {fileID: 6023740645480230060}
   m_Layer: 5
-  m_Name: OBLoad
+  m_Name: OBLoadNum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4255,7 +4371,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801355973760038
 GameObject:
   m_ObjectHideFlags: 0
@@ -4545,7 +4660,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000010710111}
+  m_AnchoredPosition: {x: 0, y: -0.000038148257}
   m_SizeDelta: {x: 0, y: 200}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4945801356080388009
@@ -4919,7 +5034,7 @@ GameObject:
   - component: {fileID: 4945801356155772613}
   - component: {fileID: 4945801356155772612}
   m_Layer: 5
-  m_Name: ResearchLoad
+  m_Name: ResearchLoadNum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8025,7 +8140,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801356822363009
 GameObject:
   m_ObjectHideFlags: 0
@@ -8038,7 +8152,7 @@ GameObject:
   - component: {fileID: 4945801356822363012}
   - component: {fileID: 4945801356822363015}
   m_Layer: 5
-  m_Name: YardLoad
+  m_Name: YardLoadNum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10359,7 +10473,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357317038385
 GameObject:
   m_ObjectHideFlags: 0
@@ -10495,7 +10608,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357329821165
 GameObject:
   m_ObjectHideFlags: 0
@@ -11441,54 +11553,53 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e8ad15fe944424429c419b03fb6531f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StarSysUIElement
-  sysName: {fileID: 0}
-  redDot: {fileID: 0}
-  numPUnits: {fileID: 0}
-  numTotalEOut: {fileID: 0}
-  numPLoad: {fileID: 0}
+  sysName: {fileID: 7132288012290773030}
+  redDot: {fileID: 4945801356618348881}
+  numPUnits: {fileID: 4945801356616817425}
+  numTotalEOut: {fileID: 4945801355902179642}
+  numPLoad: {fileID: 8269275569014894448}
   facilities: []
-  PowerOverload: {fileID: 0}
-  shipContent: {fileID: 0}
-  buildButton: {fileID: 0}
-  shipButton: {fileID: 0}
-  factoryButtonOn: {fileID: 0}
-  factoryButtonOff: {fileID: 0}
-  yardButtonOn: {fileID: 0}
-  yardButtonOff: {fileID: 0}
-  shieldButtonOn: {fileID: 0}
-  shieldButtonOff: {fileID: 0}
-  oBButtonOn: {fileID: 0}
-  oBButtonOff: {fileID: 0}
-  researchButtonOn: {fileID: 0}
-  researchButtonOff: {fileID: 0}
-  newFleetButton: {fileID: 0}
-  mergeFleetButton: {fileID: 0}
-  shipDeployButton: {fileID: 0}
-  cancelShipManagerButton: {fileID: 0}
-  headerPowerUnitText: {fileID: 0}
-  nameFactory: {fileID: 0}
-  numFactoryRatio: {fileID: 0}
-  factoryLoad: {fileID: 0}
-  shipyardName: {fileID: 0}
-  numYardsOnRatio: {fileID: 0}
-  yardLoad: {fileID: 0}
-  shieldName: {fileID: 0}
-  numShieldsRatio: {fileID: 0}
-  shieldLoad: {fileID: 0}
-  oBName: {fileID: 0}
-  numOBRatio: {fileID: 0}
-  oBLoad: {fileID: 0}
-  researchName: {fileID: 0}
-  numResearchRatio: {fileID: 0}
-  researchLoad: {fileID: 0}
-  powerOverload: {fileID: 0}
-  powerUnitImage: {fileID: 0}
-  factoryImage: {fileID: 0}
-  shipyardImage: {fileID: 0}
-  shieldPlantImage: {fileID: 0}
-  orbitalBatteriesImage: {fileID: 0}
-  researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
+  PowerOverload: {fileID: 8182671894782945358}
+  shipContent: {fileID: 1432379251446014923}
+  buildButton: {fileID: 4945801356985295004}
+  shipButton: {fileID: 4945801356483526705}
+  factoryButtonOn: {fileID: 4945801356621298206}
+  factoryButtonOff: {fileID: 4945801356644369606}
+  yardButtonOn: {fileID: 4945801356349257477}
+  yardButtonOff: {fileID: 4945801356113059973}
+  shieldButtonOn: {fileID: 4945801356391152301}
+  shieldButtonOff: {fileID: 4945801356642525207}
+  oBButtonOn: {fileID: 4945801357577137574}
+  oBButtonOff: {fileID: 4945801356299958160}
+  researchButtonOn: {fileID: 4945801356621298206}
+  researchButtonOff: {fileID: 4945801356644369606}
+  newFleetButton: {fileID: 7610041836720482072}
+  mergeFleetButton: {fileID: 8568686513056910035}
+  shipDeployButton: {fileID: 8558494702674228579}
+  cancelShipManagerButton: {fileID: 2638313195996588369}
+  headerPowerUnitText: {fileID: 4945801357465359513}
+  nameFactory: {fileID: 4945801357003114911}
+  numFactoryRatio: {fileID: 4945801357469446850}
+  factoryLoad: {fileID: 8930304197939257691}
+  shipyardName: {fileID: 4945801355973760036}
+  numYardsOnRatio: {fileID: 4945801357080630357}
+  yardLoad: {fileID: 8734123798989734202}
+  shieldName: {fileID: 4945801356240350539}
+  numShieldsRatio: {fileID: 4945801357613259359}
+  shieldLoad: {fileID: 4945801356901144110}
+  oBName: {fileID: 4945801355664507003}
+  numOBRatio: {fileID: 4945801357315874162}
+  oBLoad: {fileID: 4945801355937844074}
+  researchName: {fileID: 4945801357490288101}
+  numResearchRatio: {fileID: 4945801357538781786}
+  researchLoad: {fileID: 4945801356155772612}
+  powerOverload: {fileID: 553143019139655919}
+  powerUnitImage: {fileID: 9046246967545470584}
+  factoryImage: {fileID: 4945801357443104328}
+  shipyardImage: {fileID: 4945801357691225635}
+  shieldPlantImage: {fileID: 4945801357651037251}
+  orbitalBatteriesImage: {fileID: 4945801355725590265}
+  researchImage: {fileID: 4945801356811591286}
 --- !u!1 &4945801357467425340
 GameObject:
   m_ObjectHideFlags: 0
@@ -11750,7 +11861,7 @@ GameObject:
   - component: {fileID: 4945801357484871220}
   - component: {fileID: 4945801357484871223}
   m_Layer: 5
-  m_Name: FactoryLoad
+  m_Name: FactoryLoadNum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12219,7 +12330,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 4945801356139592417}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.99999326
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -12831,7 +12942,6 @@ MonoBehaviour:
   shieldPlantImage: {fileID: 0}
   orbitalBatteriesImage: {fileID: 0}
   researchImage: {fileID: 0}
-  powerOverloadImage: {fileID: 0}
 --- !u!1 &4945801357655294687
 GameObject:
   m_ObjectHideFlags: 0
@@ -15082,7 +15192,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7439897208480800557
 Transform:
   m_ObjectHideFlags: 0
@@ -15117,7 +15227,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6502251171229829074
 RectTransform:
   m_ObjectHideFlags: 0

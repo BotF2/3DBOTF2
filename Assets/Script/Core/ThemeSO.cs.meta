@@ -3,7 +3,23 @@ guid: 80299fdb14b4be145bb13b85e61b6789
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - BackImage: {fileID: 21300000, guid: acca6070e494abf43a40eed03ba56309, type: 3}
+  - Insignia: {fileID: 21300000, guid: 18273931b6c901041bb9c53c43cea038, type: 3}
+  - RaceImage: {fileID: 21300000, guid: e09448d868a0bdc4eaef42a5a017aa67, type: 3}
+  - SystemImage: {fileID: 21300000, guid: 622857705278aab459e61c3bc6b1612c, type: 3}
+  - FleetShipImage: {instanceID: 0}
+  - PowerPlantImage: {instanceID: 0}
+  - FactoryImage: {instanceID: 0}
+  - ShipyardImage: {instanceID: 0}
+  - ShieldImage: {instanceID: 0}
+  - OrbitalBatteriesImage: {instanceID: 0}
+  - ResearchCenterImage: {instanceID: 0}
+  - TMP_Text: {instanceID: 0}
+  - ButtonSprite1: {instanceID: 0}
+  - ButtonSprite2: {instanceID: 0}
+  - ButtonSprite3: {instanceID: 0}
+  - ButtonSprite4: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

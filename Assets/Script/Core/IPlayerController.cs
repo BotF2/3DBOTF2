@@ -1,11 +1,9 @@
-using UnityEngine;
-using Assets.Core;
-using System.Collections.Generic;
-using Mirror;
+using BOTF3D.Core;
+using BOTF3D.GamePlay;
 
 public interface IPlayerController
 {
-    PlayerData PlayerData { get; set; }
+    GamePlayerInfo PlayerInfo { get; set; }
     CivEnum PlayerCiv { get; }
     bool controllerIsLocalPlayer { get; }
     string PlayerName { get; }

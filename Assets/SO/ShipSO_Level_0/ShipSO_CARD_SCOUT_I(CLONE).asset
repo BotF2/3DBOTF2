@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: ShipSO_CARD_SCOUT_I(CLONE)
   m_EditorClassIdentifier: 
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 6d91feeb8d0c47949b11f49c079c0621, type: 3}
   ShipName: CARD_SCOUT_I(CLONE)
   CivEnum: 3
   TechLevel: 100
@@ -24,5 +25,4 @@ MonoBehaviour:
   TorpedoDamage: 10
   BeamDamage: 10
   BuildDuration: 5
-  Prefab: {fileID: 919132149155446097, guid: 6d91feeb8d0c47949b11f49c079c0621, type: 3}
   ShipDescription: 

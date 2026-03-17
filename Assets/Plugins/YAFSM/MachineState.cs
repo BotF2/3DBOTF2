@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Plugins.YAFSM
+namespace BOTF3D.Plugins.YAFSM
 {
     [System.Serializable]
     public abstract class MachineState : State, IMachineBehaviour

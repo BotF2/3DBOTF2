@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: ShipSO_ROM_DESTROYER_I(CLONE)
   m_EditorClassIdentifier: 
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 9599dbd597928824a88e68028a4a4144, type: 3}
   ShipName: ROM_DESTROYER_I(CLONE)
   CivEnum: 1
   TechLevel: 100
@@ -24,5 +25,4 @@ MonoBehaviour:
   TorpedoDamage: 15
   BeamDamage: 15
   BuildDuration: 8
-  Prefab: {fileID: 0}
   ShipDescription: 

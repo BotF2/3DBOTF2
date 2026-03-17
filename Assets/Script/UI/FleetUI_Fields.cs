@@ -1,3 +1,5 @@
+// Ignore Spelling: Minimap
+
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,8 +9,8 @@ public class FleetUI_Fields : MonoBehaviour
     [Header("GameObjects")]
     public GameObject FleetShipContentGO;
 
-    [Header("RectTransforms")]
-    public RectTransform RedDot;
+    [Header("RectTrans Mini map")]
+    public RectTransform MinimapRedDot;
 
     [Header("Buttons")]
     public Button SelectDestinationCursor;

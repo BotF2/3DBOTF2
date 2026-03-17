@@ -1,4 +1,4 @@
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
@@ -15,7 +15,7 @@ public class CivSOImporter : EditorWindow
         GetWindow<CivSOImporter>("CivSO TSV Importer");
     }
 
-    private string filePath = $"Assets/Resources/Data/Civilizations.tsv";
+    private string filePath = "Assets/Editor/Data/Civilizations.tsv";
 
     void OnGUI()
     {
@@ -66,7 +66,7 @@ public class CivSOImporter : EditorWindow
                 civSO.HasWarp = bool.Parse(fields[11]);
                 civSO.Playable = bool.Parse(fields[12]);
                 civSO.Decription = fields[13];
-                string assetPath = $"Assets/SO/CivilizationSO/CivSO_{civSO.CivInt}_{civSO.CivShortName}.asset";
+                string assetPath = $"BOTF3D/SO/CivilizationSO/CivSO_{civSO.CivInt}_{civSO.CivShortName}.asset";
                 AssetDatabase.CreateAsset(civSO, assetPath);
                 AssetDatabase.SaveAssets();
             }

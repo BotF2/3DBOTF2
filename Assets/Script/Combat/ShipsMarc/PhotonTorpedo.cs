@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.SpaceCombat.AutoBattle.Scripts.Starships
+namespace BOTF3D.SpaceCombat.AutoBattle.Scripts.Starships
 {
     public class PhotonTorpedo : MonoBehaviour
     {

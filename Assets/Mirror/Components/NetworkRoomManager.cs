@@ -287,8 +287,6 @@ namespace Mirror
         /// <param name="conn">Connection from client.</param>
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
         {
-            GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-            NetworkServer.AddPlayerForConnection(conn, player);
             // increment the index before adding the player, so first player starts at 1
             clientIndex++;
 

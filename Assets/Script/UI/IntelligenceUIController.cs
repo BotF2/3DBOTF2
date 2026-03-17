@@ -1,11 +1,15 @@
+using BOTF3D.GamePlay;
 using UnityEngine;
 
-public class IntelligenceUIController : MonoBehaviour
+namespace BOTF3D.UI
 {
-    private Camera galaxyEventCamera;
-    [SerializeField]
-    private Canvas parentCanvas;
-    public IntelligenceController IntelligenceController;
-    public GameObject IntelUIToggle; // GameObject controlles this active UI on/off
-    public GameObject IntelUITable;
+    public class IntelligenceUIController : MonoBehaviour
+    {
+        private Camera galaxyEventCamera;
+        [SerializeField]
+        private Canvas parentCanvas;
+        public IntelligenceController IntelligenceController;
+        public GameObject IntelUIToggle; // GameObject controlles this active UI on/off
+        public GameObject IntelUITable;
+    }
 }

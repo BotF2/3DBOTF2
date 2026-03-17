@@ -1,6 +1,6 @@
 // Ignore Spelling: Sys
 
-using Assets.Core;
+using BOTF3D.Core;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -95,7 +95,7 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image orbitalBatteriesImage;
     public Image researchImage;
     //public Image powerOverLoad;
-    public Image powerOverloadImage;
+
     //internal CoroutineRunner coroutineRunner;
     private void Awake()
     {
@@ -118,7 +118,13 @@ public class StarSysUI_Fields : MonoBehaviour
     public void InitializeFromStarSysData(StarSysData data)
     {
         if (data == null)
+        {
+            Debug.LogWarning("InitializeFromStarSysData: data is NULL!");
             return;
+        }
+
+        Debug.Log($"🔧 InitializeFromStarSysData called for system: {data.SysName}");
+        Debug.Log($"  Facilities list size: {facilities?.Count ?? 0}");
 
         if (sysName != null)
             sysName.text = data.SysName ?? string.Empty;
@@ -138,7 +144,12 @@ public class StarSysUI_Fields : MonoBehaviour
         foreach (var f in facilities)
         {
             if (f == null)
+            {
+                Debug.LogWarning($"  Facility entry is NULL in facilities list!");
                 continue;
+            }
+
+            Debug.Log($"  Processing facility: {f.type}");
 
             switch (f.type)
             {
@@ -146,7 +157,16 @@ public class StarSysUI_Fields : MonoBehaviour
                     {
                         var pd = data.PowerPlantData;
                         if (f.icon != null) f.icon.sprite = pd?.PowerPlantSprite;
-                        if (f.nameText != null) f.nameText.text = pd?.Name ?? string.Empty;
+                        if (f.nameText != null)
+                        {
+                            string name = pd?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set PowerPlant name to: '{name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ PowerPlant nameText is NULL!");
+                        }
                         if (f.ratioText != null) f.ratioText.text = powerPlantCount.ToString();
                         if (f.loadText != null) f.loadText.text = (pd?.PowerOutput ?? 0).ToString();
                         break;
@@ -154,54 +174,120 @@ public class StarSysUI_Fields : MonoBehaviour
                 case StarSysFacilityType.Factory:
                     {
                         var fd = data.FactoryData;
-                        int factories = data.Factories?.Count ?? 0;
+                        var facilityList = data.Factories;
+                        int total = facilityList?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(facilityList);
+                        int loadPerFacility = fd?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = fd?.FactorySprite;
-                        if (f.nameText != null) f.nameText.text = fd?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = factories.ToString();
-                        if (f.loadText != null) f.loadText.text = (fd?.PowerLoad ?? 0).ToString();
+                        if (f.nameText != null)
+                        {
+                            string name = fd?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set Factory name to: '{name}' (from FactoryData)");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ Factory nameText is NULL!");
+                        }
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.Shipyard:
                     {
                         var sd = data.ShipyardData;
-                        int yards = data.Shipyards?.Count ?? 0;
+                        var yards = data.Shipyards;
+                        int total = yards?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(yards);
+                        int loadPerFacility = sd?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = sd?.ShipyardSprite;
-                        if (f.nameText != null) f.nameText.text = sd?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = yards.ToString();
-                        if (f.loadText != null) f.loadText.text = (sd?.PowerLoad ?? 0).ToString();
+                        if (f.nameText != null)
+                        {
+                            string name = sd?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set Shipyard name to: '{name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ Shipyard nameText is NULL!");
+                        }
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.ShieldGenerator:
                     {
                         var sh = data.ShieldGeneratorData;
-                        int shields = data.ShieldGenerators?.Count ?? 0;
+                        var shields = data.ShieldGenerators;
+                        int total = shields?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(shields);
+                        int loadPerFacility = sh?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = sh?.ShieldGeneratorSprite;
-                        if (f.nameText != null) f.nameText.text = sh?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = shields.ToString();
-                        if (f.loadText != null) f.loadText.text = (sh?.PowerLoad ?? 0).ToString();
+                        if (f.nameText != null)
+                        {
+                            string name = sh?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set Shield name to: '{name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ Shield nameText is NULL!");
+                        }
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.OrbitalBattery:
                     {
                         var ob = data.OrbitalBatteryData;
-                        int obs = data.OrbitalBatteries?.Count ?? 0;
+                        var obs = data.OrbitalBatteries;
+                        int total = obs?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(obs);
+                        int loadPerFacility = ob?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = ob?.OrbitalBatterySprite;
-                        if (f.nameText != null) f.nameText.text = ob?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = obs.ToString();
-                        if (f.loadText != null) f.loadText.text = (ob?.PowerLoad ?? 0).ToString();
+                        if (f.nameText != null)
+                        {
+                            string name = ob?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set OrbitalBattery name to: '{name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ OrbitalBattery nameText is NULL!");
+                        }
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 case StarSysFacilityType.ResearchCenter:
                     {
                         var rc = data.ResearchCenterData;
-                        int rcs = data.ResearchCenters?.Count ?? 0;
+                        var rcs = data.ResearchCenters;
+                        int total = rcs?.Count ?? 0;
+                        int numOn = CountFacilitiesOn(rcs);
+                        int loadPerFacility = rc?.PowerLoad ?? 0;
+
                         if (f.icon != null) f.icon.sprite = rc?.ResearchCenterSprite;
-                        if (f.nameText != null) f.nameText.text = rc?.Name ?? string.Empty;
-                        if (f.ratioText != null) f.ratioText.text = rcs.ToString();
-                        if (f.loadText != null) f.loadText.text = (rc?.PowerLoad ?? 0).ToString();
+                        if (f.nameText != null)
+                        {
+                            string name = rc?.Name ?? string.Empty;
+                            f.nameText.text = name;
+                            Debug.Log($"    ✅ Set ResearchCenter name to: '{name}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"    ❌ ResearchCenter nameText is NULL!");
+                        }
+                        if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
+                        if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
                         break;
                     }
                 default:
+                    Debug.LogWarning($"  Unknown facility type: {f.type}");
                     break;
             }
         }
@@ -212,5 +298,33 @@ public class StarSysUI_Fields : MonoBehaviour
             bool overloaded = data.TotalSysPowerLoad > totalOutput;
             PowerOverload.SetActive(overloaded);
         }
+
+        Debug.Log($"🔧 InitializeFromStarSysData complete for {data.SysName}");
+    }
+
+    /// <summary>
+    /// Counts how many facilities in the list are turned on (TextMeshProUGUI.text == "1")
+    /// </summary>
+    private int CountFacilitiesOn(List<GameObject> facilityList)
+    {
+        if (facilityList == null) return 0;
+
+        int count = 0;
+        foreach (var facilityGO in facilityList)
+        {
+            if (facilityGO == null) continue;
+
+            var tmp = facilityGO.GetComponent<TextMeshProUGUI>();
+            if (tmp != null && tmp.text == "1")
+                count++;
+        }
+        return count;
+    }
+
+    private void OnDestroy()
+    {
+        //Debug.LogError($"❌❌❌ StarSysUI_Fields '{gameObject.name}' IS BEING DESTROYED!");
+        //Debug.LogError($"  System name: {sysName?.text ?? "UNKNOWN"}");
+        //Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
     }
 }
