@@ -241,12 +241,22 @@ namespace BOTF3D.UI
             {
                 switch (rectTransforms[i].name)
                 {
-                    case "MinimapRedDot":
+                    case "MiniMap":
                         rectTransforms[i].gameObject.SetActive(true);
-                        float x = homeSysController.StarSysData.GetPosition().x * 0.12f; // 0.12f is our cosmologic constant, fudge factor to mini map
-                        float y = 0f;
+                        float x = homeSysController.StarSysData.GetPosition().x * 0.12f;
+                        //float y = 0f;
                         float z = homeSysController.StarSysData.GetPosition().z * 0.12f;
-                        rectTransforms[i].Translate(new Vector3(x, z, y), Space.Self); // flip z and y from main galaxy map to UI mini map
+
+                        // Get the first child's RectTransform
+                        if (rectTransforms[i].childCount > 0)
+                        {
+                            RectTransform dot = rectTransforms[i].GetChild(0).GetComponent<RectTransform>();
+                            dot.anchoredPosition = new Vector2(x, z);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"MiniMap has no children at {rectTransforms[i].name}");
+                        }
                         break;
                     case "InteractionButton":
                         rectTransforms[i].gameObject.SetActive(true);

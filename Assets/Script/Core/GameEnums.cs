@@ -427,5 +427,79 @@ namespace BOTF3D.Core
         Ambient,
         Voice
     }
+    public enum DiplomacyStatusEnum // between two civs held in the DiplomacyData
+    {
+        War = -20,
+        ColdWar = 0,
+        Hostile = 20,
+        UnFriendly = 40,
+        Neutral = 60,
+        Friendly = 80,
+        Allied = 100,
+        Membership = 120
+    }
+    public enum NegotiationPloysEnum // Diplomacy AI uses to change relations
+    {
+        OfferTrade, // default
+        DeclareWar,
+        Sanctions,
+        ThreatenAction,
+        OfferCulturalExchange,
+        OfferTech,
+        OfferAid,
+        OfferAlliance
+    }
+    public enum SecretActionsEnum // Secret actions that can be used by the AI or player to change relations
+    {
+        GatherIntelligence, // default
+        Sabotage,
+        Disinformation,
+        IntellectualTheft,
+        Combat
+    }
+    public enum DiplomaticEventEnum // Diplomacy AI uses to move relations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+    {
+        War,
+        DiscoveredSabotage,
+        DiscoveredDisinformation,
+        DiscoveredIntellectualTheft,
+        CulturalExchange,
+        Trade,
+        ShareTech,
+        GiveAid,
+        Alliance
+    }
+    public enum WarLikeEnum // held by the civ
+    {
+        Warlike = -2,
+        Aggressive = -1,
+        Neutral = 0,
+        Peaceful = 1,
+        Pacifist = 2
+    }
+    public enum XenophobiaEnum // held by the civ
+    {
+        Xenophobia = -2,
+        Intolerant = -1,
+        Indifferent = 0,
+        Sympathetic = 1,
+        Compassion = 2
+    }
+    public enum RuthlessEnum
+    {
+        Ruthless = -2,
+        Callous = -1,
+        Regulated = 0,
+        Ethical = 1,
+        Honorable = 2
+    }
+    public enum GreedyEnum
+    {
+        Greedy = -2,
+        Materialistic = -1,
+        Transactional = 0,
+        Egaliterian = 1,
+        Idealistic = 2
+    }
     #endregion
 }
