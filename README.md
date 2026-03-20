@@ -26,10 +26,10 @@ Target: .NET Standard 2.1
 **# Manager class roles: (A static single 'instance' class in the game, see CivManager, FleetManager, ShipManager...)
 
 Act as a Factory
- A factory is the class responsible to create a new object / instantiate a new gameObject of a specific type
+ A factory is the class responsible to create a new object / instantiate a new gameObject of a specific type.
 Maintain a list of ALL the game objects that has been instantiated.
-provide a method to get a specific game object from the list.
-will be used to saved the data component (the data class) attached to the controller of each game object. For example, the fleet manager contain a list of all the fleet game object of the game. Each fleet game object has a fleet controller component. Each fleet controller has a fleet data component.
+Provide a method to get a specific game object from the list.
+Will be used to saved the data component (the data class) attached to the controller of each game object. For example, the fleet manager contain a list of all the fleet game object of the game. Each fleet game object has a fleet controller component. Each fleet controller has a fleet data component.
 (The fleet data is basically a copy of the fleet controller properties that will be needed when we will be saving the game and loading the game.)
 **#Controller class roles:
 
