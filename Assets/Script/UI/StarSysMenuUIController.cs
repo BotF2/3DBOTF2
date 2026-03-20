@@ -116,7 +116,16 @@ namespace BOTF3D.UI
                 return;
             }
 
-            // ✅ Move all local player's system UIs to the scrollable SysListContainer
+            // ✅ ACTIVATE PARENT FIRST - This is critical!
+            SystemsMenuView.SetActive(true);
+
+            // ✅ Ensure SysListContainer is also active (it might be under SystemsMenuView)
+            if (SysListContainer != null)
+            {
+                SysListContainer.SetActive(true);
+            }
+
+            // ✅ NOW move and activate children
             if (StarSysManager.Instance != null)
             {
                 foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
@@ -127,13 +136,14 @@ namespace BOTF3D.UI
                     if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
                         continue;
 
-                    // ✅ Move to scrollable list container and ACTIVATE
+                    // ✅ Move to container first
                     sysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
-                    sysCon.StarSysUIGameObject.SetActive(true); // ✅ CRITICAL: Activate when displaying!
+
+                    // ✅ Then activate (parent is already active)
+                    sysCon.StarSysUIGameObject.SetActive(true);
                 }
             }
 
-            SystemsMenuView.SetActive(true);
             Debug.Log("  SystemMenuView activated with scrollable list");
 
             SetupSystemUIData();

@@ -4,7 +4,6 @@ using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-
 namespace BOTF3D.Core
 {
     public class GameManager : MonoBehaviour

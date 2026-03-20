@@ -5,10 +5,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-
-//Assets.Core              → Managers, Data classes, Game systems
-//Assets.UI                → UI Controllers(menu, HUD, panels)
-//Assets.GamePlay          → Gameplay controllers(Fleet, Ship, System)
 namespace BOTF3D.UI
 {
     public class GalaxyMenuUIController : MonoBehaviour
@@ -1110,6 +1106,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.SystemsMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     starSysMenuUIController.ShowSystemMenuView();
                     CloseTheBackgrounds();
                     sysBackground.SetActive(true);
@@ -1119,7 +1116,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.ASystemMenu:
                     HideShipDeployMenu();
-
+                    CloseAllMenus();
                     // ✅ VALIDATE: Ensure calling object has StarSysController, not FleetController
                     var starSysCon = callingMenuOrGalaxyObject?.GetComponentInChildren<StarSysController>();
                     if (starSysCon == null)
@@ -1155,7 +1152,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.AFleetMenu:
                     HideShipDeployMenu();
-
+                    CloseAllMenus();
                     // ✅ VALIDATE: Ensure calling object has FleetController, not StarSysController
                     var fleetCon = callingMenuOrGalaxyObject?.GetComponentInChildren<FleetController>();
                     if (fleetCon == null)
@@ -1189,6 +1186,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.DiplomacyMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     diplomacyMenuUIController.ShowDiplomacyMenuView();
                     CloseTheBackgrounds();
                     diplomacyBackground.SetActive(true);
@@ -1199,6 +1197,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.ADiplomacyMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     diplomacyMenuUIController.ShowA_DiplomacyMenuView();
                     CloseTheBackgrounds();
                     TimeManager.Instance.PauseTime();
@@ -1210,6 +1209,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.IntellMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     CloseTheBackgrounds();
                     intelMenuView.SetActive(true);
                     intelBackground.SetActive(true);
@@ -1218,6 +1218,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.EncyclopedianMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     CloseTheBackgrounds();
                     InactivateCallingMenu(callingMenuOrGalaxyObject);
                     encyclopediaMenuView.SetActive(true);
@@ -1227,12 +1228,13 @@ namespace BOTF3D.UI
                     break;
                 case Menu.HabitableSysMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     habitableSysMenu.SetActive(true);
                     openMenuWas = habitableSysMenu;
                     openMenuEnumWas = Menu.HabitableSysMenu;
                     break;
-                case Menu.Combat:
-                    break;
+                //case Menu.Combat:
+                //    break;
                 default:
                     break;
             }

@@ -1270,10 +1270,7 @@ namespace BOTF3D.UI
             panelCivSelection.SetActive(true);
             panelGamePara.SetActive(false);
         }
-        private void SetCivSelectionMenu(CivEnum civEnum)
-        {
 
-        }
         private void SetGalaxySize(int index)
         {
             this.MainMenuData.SelectedGalaxySize = (GalaxySize)index;
