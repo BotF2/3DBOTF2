@@ -23,27 +23,26 @@ C# Version: 9.0
 Target: .NET Standard 2.1
 **### The Unity 'MonoBehaviour' Manager/Controller/Data class code structure:
 
-**# Manager class roles: (A static single 'instance' class in the game, see CivManager, FleetManager, ShipManager and Inherits from MonoBehaviour.)
-
+**# MANAGER class roles: (A static single 'instance' class in the game, see CivManager, FleetManager, ShipManager and Inherits from MonoBehaviour.)
 Act as a Factory
  A factory is the class responsible to create a new object / instantiate a new gameObject of a specific type
 Maintain a list of ALL the game objects that has been instantiated.
 Provide a method to get a specific game object from the list.
 Will be used to saved the data component (the data class) attached to the controller of each game object. For example, the fleet manager contain a list of all the fleet game object of the game. Each fleet game object has a fleet controller component. Each fleet controller has a fleet data component.
 (The fleet data is basically a copy of the fleet controller properties that will be needed when we will be saving the game and loading the game.)
-**#Controller class roles:
 
+**# CONTROLLER class roles.
 The controller is the one containing the logic for a game object. Example: fleetController has a method MoveToDestination(GameObject destination GO). It also inherits from MonoBehaviour.
 (The MoveToDestinationGo() is called to command the fleet game object to move to a certain point.)
-**#Data class roles:
 
+**# The DATA class roles:
 The primary role of the data class is serialization and it does not inherit from MonoBehaviour. We save the progress of a fleet/ civilization faction/ star system during gameplay in the data. We should save, for example, the hit points of a fleet, its current destination and position, etc. The controller and the data class are working closely together. When we save a game, the data is saved as the state of the game object. For example, the fleet A.
 When we load a game, we instantiate a generic fleet prefab game object, then we will immediately over ride the fleet controller of that prefab with the saved data of fleet A.
-**### Key Conventions (from .github/copilot-instructions.md)
 
-Naming: Use descriptive names; avoid abbreviations except industry-standard (e.g., UI, SFX)
-ScriptableObjects: Use for data configuration (see SoundData.cs and ShipSO.cs examples)
-Pooling: Use Unity Object Pools for frequently spawned objects (Like Audio, SoundData)
+**### Key Conventions (from .github/copilot-instructions.md)
+- Naming: Use descriptive names; avoid abbreviations except industry-standard (e.g., UI, SFX)
+- ScriptableObjects: Use for data configuration (see SoundData.cs and ShipSO.cs examples)
+- Pooling: Use Unity Object Pools for frequently spawned objects (Like Audio, SoundData)
 **### Unity Documentation
 
 Unity Manual
