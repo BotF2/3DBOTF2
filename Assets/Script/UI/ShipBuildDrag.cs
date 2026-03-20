@@ -24,7 +24,16 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        this.StarSysController = StarSysMenuUIController.Instance.ActiveStarSysController;
+        // ✅ Don't overwrite if already set! Only set if null
+        if (this.StarSysController == null)
+        {
+            this.StarSysController = StarSysMenuUIController.Instance?.ActiveStarSysController;
+
+            if (this.StarSysController == null)
+            {
+                Debug.LogError("❌ ShipBuildDrag.OnBeginDrag: Cannot get StarSysController! Both references are null.");
+            }
+        }
 
         var theDragedScript = eventData.pointerDrag.GetComponent<ShipBuildDrag>();
         switch (eventData.pointerDrag.name)
@@ -51,10 +60,10 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
                 break;
         }
         originalParent = transform.parent;
-        canvasGroup.blocksRaycasts = false; // see slot below
-        transform.SetParent(transform.root); // down list to top layer to be seen
+        canvasGroup.blocksRaycasts = false;
+        transform.SetParent(transform.root);
         transform.SetAsLastSibling();
-        Debug.Log("onBeginDrag");
+        Debug.Log($"ShipBuildDrag.OnBeginDrag: {ShipType}, StarSysController={(StarSysController != null ? StarSysController.name : "NULL")}");
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -79,38 +88,66 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
 
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
-            // ✅ CRITICAL: Parent to the ACTUAL ship build queue!
-            if (StarSysController.ShipListGridLayoutGroup != null)
+            // ✅ CRITICAL: Instantiate CLONE instead of moving original
+            GameObject clone = Instantiate(gameObject);
+
+            // ✅ Copy all references to the clone
+            ShipBuildDrag clonedScript = clone.GetComponent<ShipBuildDrag>();
+            if (clonedScript != null)
             {
-                transform.SetParent(StarSysController.ShipListGridLayoutGroup.transform);
-                Debug.Log($"  ✅ Added '{ShipType}' to ShipListGridLayoutGroup");
+                clonedScript.StarSysController = this.StarSysController;
+                clonedScript.ShipType = this.ShipType;
+                clonedScript.ShipSprite = this.ShipSprite;
+                clonedScript.BuildDuration = this.BuildDuration;
+                clonedScript.originalParent = this.StarSysController.ShipListGridLayoutGroup.transform;
+
+                Debug.Log($"✅ Cloned ship build item: {ShipType}, StarSysController assigned: {(clonedScript.StarSysController != null)}");
             }
             else
             {
-                Debug.LogError("  ❌ ShipListGridLayoutGroup is NULL on StarSysController!");
+                Debug.LogError("❌ Failed to get ShipBuildDrag component on clone!");
+                Destroy(clone);
                 transform.SetParent(originalParent);
                 rectTransform.anchoredPosition = Vector2.zero;
                 return;
             }
 
-            var theDraggedScript = eventData.pointerDrag.GetComponent<ShipBuildDrag>();
+            // ✅ CRITICAL: Parent CLONE to the ship build queue
+            if (StarSysController.ShipListGridLayoutGroup != null)
+            {
+                clone.transform.SetParent(StarSysController.ShipListGridLayoutGroup.transform, false);
+                Debug.Log($"✅ Added '{ShipType}' clone to ShipListGridLayoutGroup");
+            }
+            else
+            {
+                Debug.LogError("❌ ShipListGridLayoutGroup is NULL on StarSysController!");
+                Destroy(clone);
+                transform.SetParent(originalParent);
+                rectTransform.anchoredPosition = Vector2.zero;
+                return;
+            }
 
             // ✅ Create visual icon in inventory
             if (StarSysManager.Instance != null)
             {
-                StarSysManager.Instance.NewImageInShipInventory(theDraggedScript.ShipType);
+                StarSysManager.Instance.NewImageInShipInventory(ShipType);
             }
+
+            // ✅ Return ORIGINAL to palette
+            transform.SetParent(originalParent);
+            rectTransform.anchoredPosition = Vector2.zero;
 
             // ✅ CRITICAL: Manually trigger queue update
             StarSysController.GridShipQueueUpdate();
         }
         else
         {
+            // Not dropped on valid slot - return to palette
             transform.SetParent(originalParent);
+            rectTransform.anchoredPosition = Vector2.zero;
         }
 
-        rectTransform.anchoredPosition = Vector2.zero;
-        Debug.Log("ShipBuildDrag: onEndDrag");
+        Debug.Log("ShipBuildDrag: onEndDrag complete");
     }
 
 }

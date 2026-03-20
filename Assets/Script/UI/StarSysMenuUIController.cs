@@ -555,21 +555,29 @@ namespace BOTF3D.UI
         {
             Debug.Log("CloseBuildingQueues: Starting");
 
-            // ✅ CRITICAL: Destroy the build UI to prevent stale references
+            // ✅ Destroy the build UI to prevent stale references
             var buildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
             if (buildUI != null)
             {
-                Debug.Log("  Destroying build queue UI");
+                Debug.Log("  Destroying build queue UI: " + buildUI.name);
                 Destroy(buildUI);
             }
-
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
-            GalaxyMenuUIController.Instance.CloseMenu(Menu.ASystemMenu);
-
-            if (lastSysCon != null)
+            else
             {
-                lastSysCon.LoadAStarSystem();
+                Debug.LogWarning("  Build queue UI not found (already destroyed?)");
             }
+
+            // ✅ Only close the BuildMenu, leave ASystemMenu open
+            if (GalaxyMenuUIController.Instance != null)
+            {
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
+                Debug.Log("  ✅ Closed Build Menu (Star System Menu remains open)");
+            }
+            else
+            {
+                Debug.LogError("  ❌ GalaxyMenuUIController.Instance is NULL!");
+            }
+
             Debug.Log("CloseBuildingQueues: Complete");
         }
         public void RemoveSystem(StarSysController sysController)

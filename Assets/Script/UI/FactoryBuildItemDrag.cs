@@ -26,7 +26,17 @@ namespace BOTF3D.GamePlay
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            StarSysController = StarSysMenuUIController.Instance.ActiveStarSysController;
+            // ✅ Don't overwrite if already set! Only set if null
+            if (StarSysController == null)
+            {
+                StarSysController = StarSysMenuUIController.Instance?.ActiveStarSysController;
+
+                if (StarSysController == null)
+                {
+                    Debug.LogError("❌ FactoryBuildItemDrag.OnBeginDrag: Cannot get StarSysController! Both references are null.");
+                }
+            }
+
             var theDragedScript = eventData.pointerDrag.GetComponent<FactoryBuildItemDrag>();
             switch (eventData.pointerDrag.name)
             {
@@ -52,10 +62,10 @@ namespace BOTF3D.GamePlay
                     break;
             }
             originalParent = transform.parent;
-            canvasGroup.blocksRaycasts = false; // allow click to hit for drag
-            transform.SetParent(transform.root);// parent to canvas, root parent
-            transform.SetAsLastSibling();// down list to top layer to be seen
-            Debug.Log("onBeginDrag");
+            canvasGroup.blocksRaycasts = false;
+            transform.SetParent(transform.root);
+            transform.SetAsLastSibling();
+            Debug.Log($"FactoryBuildItemDrag.OnBeginDrag: {FacilityType}, StarSysController={(StarSysController != null ? StarSysController.name : "NULL")}");
         }
 
         public void OnDrag(PointerEventData eventData)
