@@ -1,4 +1,4 @@
-A Unity-based space strategy game built with C# and .NET Standard 2.1.
+A Unity-based Star Trek fan strategy game built with C# and .NET Standard 2.1.
 
 🚀 Quick Start for Developers
 Prerequisites
@@ -26,18 +26,18 @@ Target: .NET Standard 2.1
 **# Manager class roles: (A static single 'instance' class in the game, see CivManager, FleetManager, ShipManager...)
 
 Act as a Factory
- A factory is the class responsible to create a new object / instantiate a new gameObject of a specific type.
+ A factory is the class responsible to create a new object / instantiate a new gameObject of a specific type
 Maintain a list of ALL the game objects that has been instantiated.
 Provide a method to get a specific game object from the list.
 Will be used to saved the data component (the data class) attached to the controller of each game object. For example, the fleet manager contain a list of all the fleet game object of the game. Each fleet game object has a fleet controller component. Each fleet controller has a fleet data component.
 (The fleet data is basically a copy of the fleet controller properties that will be needed when we will be saving the game and loading the game.)
 **#Controller class roles:
 
-the controller is the one containing the logic for a game object. Example: fleetController has a method MoveToDestination(GameObject destination GO)
+The controller is the one containing the logic for a game object. Example: fleetController has a method MoveToDestination(GameObject destination GO).
 (The MoveToDestinationGo() is called to command the fleet game object to move to a certain point.)
 **#Data class roles:
 
-the primary role of the data class is serialization. We want to be able to save the progress of a fleet/ civilization faction/ star system during gameplay, we want to save for example, the hit points of a fleet, its current destination and position, etc. The controller and the data class are working closely together. When we save a game, the data is saved as the state of the game object. For example the fleet A.
+The primary role of the data class is serialization. We want to be able to save the progress of a fleet/ civilization faction/ star system during gameplay, we want to save for example, the hit points of a fleet, its current destination and position, etc. The controller and the data class are working closely together. When we save a game, the data is saved as the state of the game object. For example, the fleet A.
 When we load a game, we instantiate a generic fleet prefab game object, then we will immediately over ride the fleet controller of that prefab with the saved data of fleet A.
 **### Key Conventions (from .github/copilot-instructions.md)
 
@@ -52,13 +52,12 @@ Unity Scripting API
 
 Mirror Networking Docs
 DOTween Documentation
-**### namespace
+**### namespaces
 BOTF3D.Core → Managers, Data classes, Game systems
 BOTF3D.UI → UI Controllers(menu, HUD, panels)
 BOTF3D.GamePlay → Gameplay controllers(Fleet, Ship, System)
-BOTF3D.Audio
-BOTF3D.SpaceCombat
-BOTF3D.UI
+BOTF3D.Audio → sounds
+BOTF3D.SpaceCombat → The 3D Combat scene using .fbx models unlike the UI ship placeholders in the galaxy scene.
 📦 Detailed Setup Instructions
 ✅ Unity Hub + correct Unity version
 Install Unity Hub https://unity.com/developer-tools?clickref=1101lD8rVNaT&utm_source=partnerize&utm_medium=affiliate&utm_campaign=unity_affiliate&gad_source=1&gad_campaignid=22883287084&gbraid=0AAAABA_4ouI15_4SCtDw8WOxKVduer4Vg&gclid=Cj0KCQjwmunNBhDbARIsAOndKpnvjJgI7IPc_Xjj41UrSvMvz0UfGzAGuS_ZYIc33XpFJ3UB9PSPZgAaApgiEALw_wcB
