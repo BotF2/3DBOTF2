@@ -357,7 +357,7 @@ namespace BOTF3D.Core
                 sysData.GetPosition().y, sysData.GetPosition().z));
             starSysCon.transform.SetParent(galaxyCenter.transform, true);
             starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
-
+            starSysCon.GalaxyEventCamera = galaxyCamera;
             Transform fogObsticleTransform = starSysCon.transform.Find("FogObstacle");
             fogObsticleTransform.SetParent(galaxyCenter.transform, false);
             fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));

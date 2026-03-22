@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Kling
+﻿// Ignore Spelling: Kling BOTF
 using BOTF3D.Audio;
 using BOTF3D.Core;
 using Mirror;
@@ -439,8 +439,8 @@ namespace BOTF3D.UI
             // ✅ Play galaxy exploration music
             if (AudioManager.Instance != null)
             {
-                AudioManager.Instance.PlayMusic("GalaxyExplorationTheme", crossfade: true);
-                Debug.Log("🎵 Playing Galaxy music");
+                //AudioManager.Instance.PlayMusic("Galaxy Music here", crossfade: true);
+                //Debug.Log("🎵 Playing Galaxy music");
             }
             // List all loaded scenes and their root objects
             for (int i = 0; i < SceneManager.sceneCount; i++)
@@ -1141,7 +1141,7 @@ namespace BOTF3D.UI
             // ✅ Check if CombatUIController exists
             if (CombatUIController.Instance == null)
             {
-                Debug.LogWarning("SetSinglePlayer: CombatUIController.Instance is NULL - combat UI won't be initialized yet");
+                Debug.Log("SetSinglePlayer: CombatUIController.Instance is NULL - combat UI won't be initialized yet");
             }
             else
             {
@@ -1297,7 +1297,8 @@ namespace BOTF3D.UI
         {
             if (localeManager == null)
             {
-                localeManager = FindObjectOfType<LocaleManager>();
+                // ✅ FIXED: Use FindFirstObjectByType instead of obsolete FindObjectOfType
+                localeManager = FindFirstObjectByType<LocaleManager>();
                 if (localeManager == null)
                 {
                     Debug.LogWarning("MainMenuUIController: LocaleManager not found!");

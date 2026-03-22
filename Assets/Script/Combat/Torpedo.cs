@@ -1,8 +1,9 @@
 using BOTF3D.Audio;
 using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using UnityEngine;
 
-namespace BOTF3D.GamePlay
+namespace BOTF3D.Combat
 {
     public class Torpedo : MonoBehaviour
     {

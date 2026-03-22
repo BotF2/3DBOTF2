@@ -58,27 +58,28 @@ namespace BOTF3D.GamePlay
             }
         }
         /// <summary>
-        /// Lazy initialization - finds camera only when needed and if not already assigned.
+        /// Lazy initialization - finds camera component when needed.
         /// </summary>
         private GameObject GetGalaxyCameraDragNDrop()
         {
             if (galaxyCameraDragNDrop == null)
             {
-                galaxyCameraDragNDrop = GameObject.Find("GalaxyCameraDragMoveZoom");
+                // ✅ FIXED: Search by component instead of GameObject name
+                var cameraComponent = FindFirstObjectByType<GalaxyCameraDragMoveZoom>();
 
-                if (galaxyCameraDragNDrop != null)
+                if (cameraComponent != null)
                 {
-                    Debug.Log("SceneController: Found GalaxyCameraDragMoveZoom");
+                    galaxyCameraDragNDrop = cameraComponent.gameObject;
+                    Debug.Log($"SceneController: Found GalaxyCameraDragMoveZoom on GameObject '{galaxyCameraDragNDrop.name}'");
                 }
                 else
                 {
-                    Debug.LogWarning("SceneController: GalaxyCameraDragMoveZoom not found - GalaxyScene may not be loaded yet");
+                    Debug.Log("SceneController: GalaxyCameraDragMoveZoom not found yet (scene may be loading or inactive)");
                 }
             }
 
             return galaxyCameraDragNDrop;
         }
-
         /// <summary>
         /// Called by GalaxySceneInitializer when GalaxyScene loads.
         /// </summary>
@@ -157,47 +158,104 @@ namespace BOTF3D.GamePlay
                 Debug.Log($"  Loading combat scene: {asyncLoad.progress * 100:F1}%");
                 yield return null;
             }
+
+            Debug.Log("✅ Combat scene loaded");
+
+            // ✅ Get scene references
             Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
-
-            foreach (GameObject go in galaxyScene.GetRootGameObjects())
-            {
-                go.SetActive(false);
-            }
-            Debug.Log("✅ Combat scene loaded additively");
-
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+
+            // ✅ STEP 1: FIRST disable ALL EventSystems in BOTH scenes (while objects are still inactive)
+            Debug.Log("Step 1: Disabling all EventSystems...");
+
+            var allEventSystems = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            foreach (var es in allEventSystems)
+            {
+                es.enabled = false;
+                Debug.Log($"  ✅ Disabled EventSystem on: '{es.gameObject.name}' in scene '{es.gameObject.scene.name}'");
+            }
+
+            // ✅ STEP 2: Deactivate all galaxy scene objects
+            if (galaxyScene.isLoaded)
+            {
+                foreach (GameObject go in galaxyScene.GetRootGameObjects())
+                {
+                    go.SetActive(false);
+                }
+                Debug.Log("  ✅ Galaxy scene deactivated");
+            }
+
+            // ✅ STEP 3: Set combat scene as active
             if (combatScene.isLoaded)
             {
                 SceneManager.SetActiveScene(combatScene);
                 Debug.Log($"  ✅ Combat scene set as active scene");
-                Debug.Log($"  Combat scene root objects: {combatScene.rootCount}");
-
-                // ✅ Activate ALL inactive root objects
-                var rootObjects = combatScene.GetRootGameObjects();
-                int activatedCount = 0;
-
-                foreach (var obj in rootObjects)
-                {
-                    bool wasActive = obj.activeSelf;
-
-                    if (!wasActive)
-                    {
-                        obj.SetActive(true);
-                        activatedCount++;
-                        Debug.Log($"    ✅ ACTIVATED: '{obj.name}' (was inactive)");
-                    }
-                    else
-                    {
-                        Debug.Log($"    - '{obj.name}' (already active)");
-                    }
-                }
-
-                Debug.Log($"  ✅ Activated {activatedCount} inactive root objects");
             }
             else
             {
                 Debug.LogError("  ❌ Combat scene failed to load!");
                 yield break;
+            }
+
+            // ✅ STEP 4: Activate combat scene objects
+            var combatRootObjects = combatScene.GetRootGameObjects();
+            int activatedCount = 0;
+
+            foreach (var obj in combatRootObjects)
+            {
+                if (!obj.activeSelf)
+                {
+                    obj.SetActive(true);
+                    activatedCount++;
+                    Debug.Log($"    ✅ ACTIVATED: '{obj.name}'");
+                }
+            }
+
+            Debug.Log($"  ✅ Activated {activatedCount} combat objects");
+
+            // ✅ STEP 5: Enable ONLY Combat EventSystem
+            UnityEngine.EventSystems.EventSystem combatEventSystem = null;
+
+            foreach (var obj in combatRootObjects)
+            {
+                var es = obj.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
+                if (es != null)
+                {
+                    combatEventSystem = es;
+                    es.enabled = true;
+                    Debug.Log($"  ✅ Enabled EventSystem in Combat scene: '{obj.name}'");
+                    break; // Only enable the FIRST one found
+                }
+            }
+
+            // ✅ Create EventSystem if missing
+            if (combatEventSystem == null)
+            {
+                Debug.LogWarning("  ⚠️ No EventSystem found in Combat scene - creating one...");
+                var eventSystemGO = new GameObject("EventSystem (Combat)");
+                eventSystemGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                eventSystemGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+                SceneManager.MoveGameObjectToScene(eventSystemGO, combatScene);
+                Debug.Log("  ✅ Created EventSystem for Combat scene");
+            }
+
+            // ✅ STEP 6: Double-check - disable any OTHER EventSystems that might have re-enabled
+            var allEventSystemsAfter = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            int disabledCount = 0;
+
+            foreach (var es in allEventSystemsAfter)
+            {
+                if (es != combatEventSystem && es.enabled)
+                {
+                    es.enabled = false;
+                    disabledCount++;
+                    Debug.LogWarning($"  ⚠️ Disabled duplicate EventSystem on: '{es.gameObject.name}'");
+                }
+            }
+
+            if (disabledCount > 0)
+            {
+                Debug.Log($"  ✅ Disabled {disabledCount} duplicate EventSystems");
             }
 
             // ✅ Wait TWO frames for Awake() and Start() to run
@@ -214,17 +272,17 @@ namespace BOTF3D.GamePlay
                     Debug.Log($"  ✅ Combat camera enabled");
                 }
             }
+
             var combatCon = CombatManager.Instance.InstantiateCombatController(shipControllers1, shipControllers2);
             combatCon.CombatData.CombatType = combatType;
             if (combatCon == null)
             {
-                //Debug.Log($"  ✅ CombatController.Instance found: {CombatController.Instance.gameObject.name}");
-
                 CombatController.Instance.InitializeCombat(
                     CombatContext.PlayerFleet,
                     CombatContext.EnemyFleet,
                     CombatContext.StarSystem);
             }
+
             Debug.Log("=== LoadCombatSceneAdditive: Complete ===");
         }
 
@@ -346,32 +404,85 @@ namespace BOTF3D.GamePlay
         {
             Debug.Log("=== UnloadCombatScene: Starting ===");
 
+            // ✅ STEP 1: Clear ShipCombatCameraController instance reference
+            if (ShipCombatCameraController.Instance != null)
+            {
+                ShipCombatCameraController.Instance = null;
+                Debug.Log("  ✅ Cleared ShipCombatCameraController.Instance");
+            }
+
+            // ✅ STEP 2: Get scene references
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-            SceneManager.UnloadSceneAsync(combatScene);
+            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene"); // ✅ ADD THIS LINE!
 
-            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+            // Validate galaxy scene exists
+            if (!galaxyScene.isLoaded)
+            {
+                Debug.LogError("UnloadCombatScene: GalaxyScene is not loaded!");
+                return;
+            }
 
+            // ✅ STEP 3: Disable Combat EventSystem BEFORE unloading
+            if (combatScene.isLoaded)
+            {
+                foreach (GameObject go in combatScene.GetRootGameObjects())
+                {
+                    var eventSystem = go.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
+                    if (eventSystem != null)
+                    {
+                        eventSystem.enabled = false;
+                        Debug.Log($"  ✅ Disabled EventSystem in Combat scene on: '{go.name}'");
+                    }
+                }
+
+                SceneManager.UnloadSceneAsync(combatScene);
+                Debug.Log("  ✅ Combat scene unloading...");
+            }
+
+            // ✅ STEP 4: Activate galaxy scene objects FIRST (so we can find references)
+            Debug.Log("  Activating Galaxy scene objects...");
             foreach (GameObject go in galaxyScene.GetRootGameObjects())
             {
                 go.SetActive(true);
             }
-            // ✅ 1. SHOW GALAXY SCENE
-            if (!string.IsNullOrEmpty(previousSceneName))
+
+            // ✅ STEP 5: Re-enable Galaxy EventSystem
+            foreach (GameObject go in galaxyScene.GetRootGameObjects())
             {
-                ExposeScene(previousSceneName);
-                Debug.Log($"  ✅ Exposed scene: {previousSceneName}");
+                var eventSystem = go.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
+                if (eventSystem != null)
+                {
+                    eventSystem.enabled = true;
+                    Debug.Log($"  ✅ Re-enabled EventSystem in Galaxy scene on: '{go.name}'");
+                }
             }
 
-            // ✅ 2. SHOW GALAXY CAMERA
+            // ✅ STEP 6: Set Galaxy as active scene
+            SceneManager.SetActiveScene(galaxyScene);
+            Debug.Log("  ✅ Galaxy scene set as active");
+
+            // ✅ STEP 7: NOW find and show galaxy camera (objects are active now)
             var galaxyCameraDandD = GetGalaxyCameraDragNDrop();
             if (galaxyCameraDandD != null)
             {
                 galaxyCameraDandD.SetActive(true);
-                GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>().enabled = true;
-                Debug.Log("  ✅ Galaxy camera shown");
+
+                if (GalaxyCameraDragMoveZoom.Instance != null)
+                {
+                    var camera = GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>();
+                    if (camera != null)
+                    {
+                        camera.enabled = true;
+                        Debug.Log("  ✅ Galaxy camera enabled");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogWarning("  ⚠️ Could not find GalaxyCameraDragMoveZoom - may need manual camera setup");
             }
 
-            // ✅ 3. SHOW FOG OF WAR
+            // ✅ STEP 8: Show fog of war
             for (int i = 0; i < persistentObjects.Count; i++)
             {
                 if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
@@ -381,7 +492,7 @@ namespace BOTF3D.GamePlay
                 }
             }
 
-            // ✅ 4. RE-ENABLE GALAXY INPUT
+            // ✅ STEP 9: Re-enable galaxy input
             var keyboardInput = FindFirstObjectByType<KeyboardInputManagerGalactica>();
             if (keyboardInput != null)
             {
@@ -389,23 +500,14 @@ namespace BOTF3D.GamePlay
                 Debug.Log("  ✅ Galaxy input re-enabled");
             }
 
-            // ✅ 5. RESUME TIME
+            // ✅ STEP 10: Resume time
             if (TimeManager.Instance != null)
             {
                 TimeManager.Instance.ResumeTime();
                 Debug.Log("  ✅ Time resumed");
             }
 
-            // ✅ 6. HIDE COMBAT SCENE
-            HideScene("CombatScene");
-            Debug.Log("  ✅ Combat scene hidden");
-
             Debug.Log("=== UnloadCombatScene: Complete ===");
-        }
-
-        public void LoadNextScene(string sceneName)
-        {
-            SceneManager.LoadSceneAsync(sceneName);
         }
     }
 

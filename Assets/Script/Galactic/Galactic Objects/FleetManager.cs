@@ -328,7 +328,8 @@ namespace BOTF3D.Core
             }
 
             fleetData.Position = newFleet.transform.position;
-
+            InstantiateFleetUIGameObject(newFleet, isNewFleet);
+            // ✅ Now ships can find the ShipListUIParent when their UIs are created
             if (!isNewFleet)
                 ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
 
@@ -545,28 +546,39 @@ namespace BOTF3D.Core
             }
 
             var shipManager = ShipManager.Instance;
-            if (fleetCon.FleetData.CivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
+
+            // ✅ CRITICAL FIX: Create UI for ALL fleets (local player only shows it)
+            if (fleetCon.FleetUIGameObject == null)
             {
-                if (fleetCon.FleetUIGameObject == null)
+                GameObject thisFleetUIGameObject = (GameObject)Instantiate(fleetUIPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+
+                // ✅ Only activate if local player
+                bool isLocalPlayer = GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum);
+                thisFleetUIGameObject.SetActive(isLocalPlayer);
+
+                thisFleetUIGameObject.layer = 5;
+                fleetCon.FleetUIGameObject = thisFleetUIGameObject;
+                thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
+
+                // ✅ CRITICAL: ALWAYS set ShipListUIParent (even for non-player fleets)
+                FleetUI_Fields fleetUI_Fields = thisFleetUIGameObject.GetComponent<FleetUI_Fields>();
+                if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
                 {
-                    GameObject thisFleetUIGameObject = (GameObject)Instantiate(fleetUIPrefab, new Vector3(0, 0, 0), Quaternion.identity);
-                    thisFleetUIGameObject.SetActive(true);
-                    thisFleetUIGameObject.layer = 5;
-                    fleetCon.FleetUIGameObject = thisFleetUIGameObject;
-                    fleetCon.FleetUIGameObject.SetActive(true);
-                    thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
-                    FleetUI_Fields fleetUI_Fields = thisFleetUIGameObject.GetComponent<FleetUI_Fields>();
-                    if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
+                    fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
+                    Debug.Log($"✅ Set ShipListUIParent for fleet '{fleetCon.name}' (LocalPlayer={isLocalPlayer})");
+
+                    // ✅ Only wire buttons if local player
+                    if (isLocalPlayer)
                     {
-                        fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
-                        FleetMenuUIController.Instance.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for system {fleetCon.name}");
+                        FleetMenuUIController.Instance?.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                     }
                 }
+                else
+                {
+                    Debug.LogWarning($"InstantiateFleetUIGameObject: ShipContent not found in UI prefab for fleet {fleetCon.name}");
+                }
             }
+
             if (shipManager != null)
             {
                 shipManager.ProcessPendingShipUIs();

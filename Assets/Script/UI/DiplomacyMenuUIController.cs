@@ -1,4 +1,4 @@
-using BOTF3D.Core;
+﻿using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
@@ -125,19 +125,92 @@ namespace BOTF3D.UI
         }
         public void ShowDiplomacyMenuView()
         {
+            if (DiplomacyMenuView == null) return;
+
             DiplomacyMenuView.SetActive(true);
+
+            // ✅ Re-enable raycasts when showing
+            var canvasGroups = DiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+            foreach (var group in canvasGroups)
+            {
+                group.blocksRaycasts = true;
+            }
+
+            // ✅ Activate scroll views
+            var scrollRects = DiplomacyMenuView.GetComponentsInChildren<ScrollRect>(true);
+            foreach (var scroll in scrollRects)
+            {
+                scroll.gameObject.SetActive(true);
+            }
+
+            Debug.Log("ShowDiplomacyMenuView: Activated with raycasts enabled");
         }
+
         public void ShowA_DiplomacyMenuView()
         {
+            if (ADiplomacyMenuView == null) return;
+
             ADiplomacyMenuView.SetActive(true);
+
+            // ✅ Re-enable raycasts when showing
+            var canvasGroups = ADiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+            foreach (var group in canvasGroups)
+            {
+                group.blocksRaycasts = true;
+            }
+
+            // ✅ Activate scroll views
+            var scrollRects = ADiplomacyMenuView.GetComponentsInChildren<ScrollRect>(true);
+            foreach (var scroll in scrollRects)
+            {
+                scroll.gameObject.SetActive(true);
+            }
+
+            Debug.Log("ShowA_DiplomacyMenuView: Activated with raycasts enabled");
         }
         public void HideDiplomacyMenuView()
         {
+            if (DiplomacyMenuView == null) return;
+
+            // ✅ Deactivate all child scroll views and canvas groups
+            var scrollRects = DiplomacyMenuView.GetComponentsInChildren<ScrollRect>(true);
+            foreach (var scroll in scrollRects)
+            {
+                scroll.gameObject.SetActive(false);
+                Debug.Log($"  Deactivated scroll view: {scroll.name}");
+            }
+
+            // ✅ Disable raycast blocking on canvas groups
+            var canvasGroups = DiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+            foreach (var group in canvasGroups)
+            {
+                group.blocksRaycasts = false;
+                Debug.Log($"  Disabled raycasts on: {group.name}");
+            }
+
             DiplomacyMenuView.SetActive(false);
+            Debug.Log("HideDiplomacyMenuView: Complete - all raycasts disabled");
         }
         public void HideA_DiplomacyMenuView()
         {
+            if (ADiplomacyMenuView == null) return;
+
+            // ✅ Deactivate all child scroll views and canvas groups
+            var scrollRects = ADiplomacyMenuView.GetComponentsInChildren<ScrollRect>(true);
+            foreach (var scroll in scrollRects)
+            {
+                scroll.gameObject.SetActive(false);
+            }
+
+            // ✅ Disable raycast blocking on canvas groups
+            var canvasGroups = ADiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+            foreach (var group in canvasGroups)
+            {
+                group.blocksRaycasts = false;
+            }
+
             ADiplomacyMenuView.SetActive(false);
+            Debug.Log("HideA_DiplomacyMenuView: Complete");
         }
 
         public void SetActiveSetParentADiplomacyUIData(DiplomacyController diploCon)
@@ -471,7 +544,7 @@ namespace BOTF3D.UI
         //    }
         //    else
         //    {
-        //        Debug.Log($"Diplomacy UI '{diploGO.name}' is already registered � skipping duplicate add.");
+        //        Debug.Log($"Diplomacy UI '{diploGO.name}' is already registered — skipping duplicate add.");
         //    }
         //}
 

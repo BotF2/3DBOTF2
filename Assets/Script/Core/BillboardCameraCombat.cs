@@ -11,19 +11,31 @@ namespace BOTF3D.Core
     {
         private Camera cameraShip;
         private bool isInCombatScene;
+        private bool sceneChecked = false; // ✅ ADD: Track if we've checked the scene
 
         void Start()
         {
+            CheckSceneAndInitialize();
+        }
+
+        // ✅ NEW: Centralized scene check
+        private void CheckSceneAndInitialize()
+        {
+            if (sceneChecked) return; // Already checked
+
             // ✅ Check if we're in combat scene
             Scene currentScene = gameObject.scene;
-            isInCombatScene = (currentScene.name == "CombatScene");
+            isInCombatScene = (currentScene.name == "CombatScene" || currentScene.name == "SpaceCombatScene");
 
             if (!isInCombatScene)
             {
-                Debug.LogWarning($"BillboardCameraCombat on '{gameObject.name}' is NOT in CombatScene (in '{currentScene.name}'). Disabling.");
+                Debug.Log($"BillboardCameraCombat on '{gameObject.name}' is in '{currentScene.name}' (not combat). Disabling.");
                 enabled = false; // Disable this component
+                sceneChecked = true;
                 return;
             }
+
+            sceneChecked = true;
 
             // ✅ Find combat camera
             FindCombatCamera();
@@ -31,6 +43,12 @@ namespace BOTF3D.Core
 
         private void FindCombatCamera()
         {
+            // ✅ Don't search if not in combat scene
+            if (!isInCombatScene)
+            {
+                return;
+            }
+
             // Search for camera with "ShipCamera" tag
             foreach (Camera camera in Camera.allCameras)
             {
@@ -55,15 +73,21 @@ namespace BOTF3D.Core
 
             if (cameraShip == null)
             {
-                Debug.LogWarning($"BillboardCameraCombat: ShipCamera not found yet (might not be active). Will retry each frame.");
+                Debug.LogWarning($"BillboardCameraCombat: ShipCamera not found in CombatScene yet. Will retry.");
             }
         }
 
         void LateUpdate()
         {
-            // ✅ Simple null guard
+            // ✅ Don't run if not in combat scene
+            if (!isInCombatScene) return;
+
+            // ✅ Try to find camera if missing (in combat scene only)
             if (cameraShip == null)
-                return;
+            {
+                FindCombatCamera();
+                return; // Don't billboard until camera found
+            }
 
             transform.LookAt(cameraShip.transform, Vector3.up);
             transform.rotation = cameraShip.transform.rotation;
@@ -71,11 +95,8 @@ namespace BOTF3D.Core
 
         private void OnEnable()
         {
-            // ✅ Try to find camera when re-enabled
-            if (cameraShip == null)
-            {
-                FindCombatCamera();
-            }
+            // ✅ Check scene first before trying to find camera
+            CheckSceneAndInitialize();
         }
     }
 }

@@ -36,10 +36,19 @@ namespace BOTF3D.Core
             //    warpAudioSource_0.Play();
             //}
         }
-        public void SetShipLayers()
+        /// <summary>
+        /// Called by AnimationEvent in S1A3_Stop/End animations
+        /// Signals that warp-in animation has completed
+        /// </summary>
+        public void EndOfFiendWarp()
         {
-            //GameManager.Instance.SetShipLayer();
-            
+            Debug.Log("S2A3: EndOfFiendWarp called - Warp animation complete");
+
+            if (CombatUIController.Instance?.CombatController != null)
+            {
+                CombatUIController.Instance.CombatController.WarpingAnimationOver = true;
+                Debug.Log("  ✅ Set WarpingAnimationOver = true");
+            }
         }
     }
 }

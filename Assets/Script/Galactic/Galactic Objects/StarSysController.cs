@@ -53,7 +53,7 @@ namespace BOTF3D.GamePlay
         }
 
         private GameObject goForPowerOverload;
-        private Camera galaxyEventCamera;
+        public Camera GalaxyEventCamera { get; set; }
         [SerializeField]
         private Canvas canvasToolTip;
         public static event Action<TrekRandomEventSO> TrekEventDisasters;
@@ -120,16 +120,20 @@ namespace BOTF3D.GamePlay
 
         private void Start()
         {
-            // Only find camera if not already set by StarSysManager
-            if (galaxyEventCamera == null)
+            // ✅ Use assigned camera, fallback to find if not set
+            if (GalaxyEventCamera == null)
             {
-                galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<Camera>();
+                GalaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<Camera>();
                 Debug.LogWarning($"StarSysController {name}: Had to find camera in Start() - should be set by StarSysManager");
             }
 
-            if (canvasToolTip != null && galaxyEventCamera != null)
+            if (canvasToolTip != null && GalaxyEventCamera != null)
             {
-                canvasToolTip.worldCamera = galaxyEventCamera;
+                canvasToolTip.worldCamera = GalaxyEventCamera;
+            }
+            else if (canvasToolTip != null)
+            {
+                Debug.LogError($"StarSysController {name}: Cannot set tooltip camera - GalaxyEventCamera is NULL!");
             }
 
             if (StarSysUI != null)

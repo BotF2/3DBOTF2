@@ -31,6 +31,8 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject encyclopediaMenuView;
         [SerializeField]
+        private GameObject habitableSysMenu;
+        [SerializeField]
         private GameObject aNull;
         [SerializeField]
         private GameObject closeMenuButton;
@@ -45,8 +47,6 @@ namespace BOTF3D.UI
         private GameObject intelBackground;
         [SerializeField]
         private GameObject encyclopediaBackground;
-        [SerializeField]
-        private GameObject habitableSysMenu;
         [SerializeField]
         private List<StarSysController> sysControllers;
         [SerializeField]
@@ -737,6 +737,12 @@ namespace BOTF3D.UI
                         Debug.Log("  Skipping null fleet reference");
                         continue;
                     }
+                    if (!GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+                    {
+                        // will we miss a ship list in the diplomacy UI? maybe, but trying to fix that is more work and risk than it's worth. The diplomacy UI is going to be a mess until we refactor it to not rely on the fleet/system menu views at all, so for now we'll just accept that ship lists won't show in diplomacy.
+                        Debug.Log($"  Fleet '{fleetCon.name}' does not belong to the local player - skipping");
+                        continue;
+                    }
 
                     if (fleetCon.FleetData == null)
                     {
@@ -1110,7 +1116,7 @@ namespace BOTF3D.UI
                     starSysMenuUIController.ShowSystemMenuView();
                     CloseTheBackgrounds();
                     sysBackground.SetActive(true);
-                    starSysMenuUIController.MoveBackAnyStarSysUIGO(); // ✅ FIXED: Correct method name
+                    starSysMenuUIController.PopulateSystemsList();
                     openMenuWas = null;
                     openMenuEnumWas = Menu.SystemsMenu;
                     break;
@@ -1259,6 +1265,9 @@ namespace BOTF3D.UI
             StarSystSelectedForShipMerge = starSysController;
             FleetSelectedForShipMerge = null;
         }
+        /// <summary>
+        /// Populates the SystemsMenuView with all local player's star system UIs
+        /// </summary>
         private void MoveBackShipUIGO()
         {
             Debug.Log($"MoveBackShipUIGO: FleetLooking={FleetLookingForShipDeploy?.name}, StarSystLooking={StarSystLookingForShipDeploy?.name}, FleetSelected={FleetSelectedForShipDeploy?.name}, StarSystSelected={StarSystSelectedForShipDeploy?.name}");
@@ -1407,8 +1416,35 @@ namespace BOTF3D.UI
             // Close ship deploy if open
             CloseShipDeployMenu();
 
-            // Deactivate any open menu views
+            // ✅ NUCLEAR OPTION: Force hide diplomacy views and disable raycasts
+            if (diplomacyMenuUIController != null)
+            {
+                diplomacyMenuUIController.HideDiplomacyMenuView();
+                diplomacyMenuUIController.HideA_DiplomacyMenuView();
 
+                // ✅ Extra safety: disable raycasts on all diplomacy UI elements
+                if (diplomacyMenuUIController.DiplomacyMenuView != null)
+                {
+                    var canvasGroups = diplomacyMenuUIController.DiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+                    foreach (var group in canvasGroups)
+                    {
+                        group.blocksRaycasts = false;
+                    }
+                }
+
+                if (diplomacyMenuUIController.ADiplomacyMenuView != null)
+                {
+                    var canvasGroups = diplomacyMenuUIController.ADiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
+                    foreach (var group in canvasGroups)
+                    {
+                        group.blocksRaycasts = false;
+                    }
+                }
+
+                Debug.Log("  ✅ Force-disabled all diplomacy UI raycasts");
+            }
+
+            // Deactivate any open menu views
             if (sysBuildMenu != null && sysBuildMenu.activeSelf)
                 sysBuildMenu.SetActive(false);
 
@@ -1426,6 +1462,8 @@ namespace BOTF3D.UI
 
             // Reset click mode
             ResetClickMode();
+
+            Debug.Log("CloseAllMenus: Complete - all raycasts cleared");
         }
         public void CloseMenu(Menu enumMenu)
         {
@@ -1469,11 +1507,29 @@ namespace BOTF3D.UI
                     openMenuWas = shipDeployMenuUIController?.gameObject;
                     break;
                 case Menu.DiplomacyMenu:
-                    diplomacyMenuUIController?.HideDiplomacyMenuView(); // ✅ Explicit hide
+                    // ✅ Explicitly deactivate the diplomacy menu view
+                    if (diplomacyMenuUIController != null)
+                    {
+                        diplomacyMenuUIController.HideDiplomacyMenuView();
+
+                        // ✅ CRITICAL: Also deactivate the GameObject itself to stop raycasts
+                        if (diplomacyMenuUIController.DiplomacyMenuView != null)
+                        {
+                            diplomacyMenuUIController.DiplomacyMenuView.SetActive(false);
+                            Debug.Log("  ✅ Deactivated DiplomacyMenuView GameObject");
+                        }
+                    }
+
                     diplomacyBackground.SetActive(false);
                     TimeManager.Instance?.ResumeTime();
                     openMenuWas = null;
                     break;
+                //case Menu.DiplomacyMenu:
+                //    diplomacyMenuUIController?.HideDiplomacyMenuView(); // ✅ Explicit hide
+                //    diplomacyBackground.SetActive(false);
+                //    TimeManager.Instance?.ResumeTime();
+                //    openMenuWas = null;
+                //    break;
                 case Menu.ADiplomacyMenu:
                     diplomacyMenuUIController?.MoveBackAnyDiplomacyUIGO();
                     diplomacyMenuUIController?.HideA_DiplomacyMenuView(); // ✅ Explicit hide

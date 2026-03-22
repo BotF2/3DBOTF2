@@ -21,7 +21,7 @@ namespace BOTF3D.Core
             {
                 anim.SetBool("WarpInS2A2", true); // code state turns on warp animation
                 PlayWarp();
-               // CombatUIController.Instance.CombatController.warpingInOver = false; // reset the warping in state
+                // CombatUIController.Instance.CombatController.warpingInOver = false; // reset the warping in state
             }
             // lets warp animation run
         }
@@ -32,6 +32,20 @@ namespace BOTF3D.Core
             //    warpAudioSource_0.volume = 1f;
             //    warpAudioSource_0.Play();
             //}
+        }
+        /// <summary>
+        /// Called by AnimationEvent in S1A3_Stop/End animations
+        /// Signals that warp-in animation has completed
+        /// </summary>
+        public void EndOfFiendWarp()
+        {
+            Debug.Log("S2A2: EndOfFiendWarp called - Warp animation complete");
+
+            if (CombatUIController.Instance?.CombatController != null)
+            {
+                CombatUIController.Instance.CombatController.WarpingAnimationOver = true;
+                Debug.Log("  ✅ Set WarpingAnimationOver = true");
+            }
         }
     }
 }

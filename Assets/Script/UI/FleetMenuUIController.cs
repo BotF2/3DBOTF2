@@ -203,7 +203,8 @@ namespace BOTF3D.UI
                 StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
             }
 
-            SetupFleetUIData();
+            // ✅ NO LONGER CALL SetupFleetUIData() - it only wires new fleets
+            // SetupFleetUIData();
 
             if (theFleetCon.FleetUIGameObject == null)
             {
@@ -231,11 +232,14 @@ namespace BOTF3D.UI
             theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
             theFleetCon.FleetUIGameObject.SetActive(true);
 
-            // ✅ CRITICAL FIX: Set activeFleetController so SetAsDestination() can find it!
+            // ✅ CRITICAL FIX: ALWAYS re-wire buttons when opening detail view!
+            SetupFleetUIElements(theFleetCon, theFleetCon.FleetUIGameObject);
+
+            // ✅ Set activeFleetController so SetAsDestination() can find it!
             activeFleetController = theFleetCon;
             lastFleetCon = theFleetCon;
 
-            Debug.Log($"SetActiveSetParentUIGO: Set activeFleetController to '{theFleetCon.name}'");
+            Debug.Log($"SetActiveSetParentUIGO: Set activeFleetController to '{theFleetCon.name}' and re-wired buttons");
         }
         public void MoveTheFleetUIGO(GameObject fleetConGO)
         {
@@ -355,7 +359,11 @@ namespace BOTF3D.UI
         }
         public void SetupFleetUIElements(FleetController fleetCon, GameObject newFleetUIGO)
         {
-            if (fleetCon == null || newFleetUIGO == null) return;
+            if (fleetCon == null || newFleetUIGO == null)
+            {
+                Debug.LogWarning("SetupFleetUIElements: fleetCon or newFleetUIGO is null");
+                return;
+            }
 
             // CRITICAL: Ensure FleetListContainer exists
             if (FleetListContainer == null)
@@ -364,13 +372,23 @@ namespace BOTF3D.UI
 
                 if (FleetListContainer == null)
                 {
-                    Debug.LogError($"FleetMenuUIController.SetupFleetUIElements: FleetListContainer is NULL! Cannot setup fleet UI for {fleetCon.name}");
+                    Debug.LogError($"SetupFleetUIElements: FleetListContainer is NULL! Cannot setup fleet UI for {fleetCon.name}");
                     return;
                 }
             }
 
+            FleetUI_Fields uiFields = newFleetUIGO.GetComponent<FleetUI_Fields>();
+            if (uiFields == null)
+            {
+                Debug.LogError($"SetupFleetUIElements: No FleetUI_Fields component found on {newFleetUIGO.name}!");
+                return;
+            }
+
+            // ✅ ONE-TIME SETUP: Only do this if fleet is NEW (not in tracking list)
             if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject))
             {
+                Debug.Log($"SetupFleetUIElements: First-time setup for fleet '{fleetCon.name}'");
+
                 newFleetUIGO.SetActive(true);
                 fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
                 listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
@@ -384,74 +402,88 @@ namespace BOTF3D.UI
                     }
                 }
 
-                FleetUI_Fields uiFields = newFleetUIGO.GetComponent<FleetUI_Fields>();
+                // Set ShipListUIParent (one-time)
                 fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                Debug.Log($"  Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
 
-                Debug.Log($"SetupFleetUIElements: Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
-
+                // Set mini map position (one-time)
                 float x = fleetCon.FleetData.Position.x * 0.12f;
                 float z = fleetCon.FleetData.Position.z * 0.12f;
                 RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
                 dot.anchoredPosition = new Vector2(x, z);
-
-                // Button bindings
-                uiFields.DestinationDragTarget.gameObject.SetActive(true);
-                uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
-                uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
-                dragDestinationTargetButtonGO = uiFields.DestinationDragTarget.gameObject;
-                uiFields.CancelDestination.gameObject.SetActive(false);
-                uiFields.CancelDestination.onClick.RemoveAllListeners();
-                uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
-                cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
-                uiFields.SelectDestination.gameObject.SetActive(true);
-                uiFields.SelectDestination.onClick.RemoveAllListeners();
-                uiFields.SelectDestination.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
-                selectDestinationCursorButtonGO = uiFields.SelectDestination.gameObject;
-                uiFields.WarpUp.gameObject.SetActive(true);
-                uiFields.WarpUp.onClick.RemoveAllListeners();
-                uiFields.WarpUp.onClick.AddListener(() => fleetCon.FleetOnWarpUpClick(fleetCon));
-                warpButtonUpGO = uiFields.WarpUp.gameObject;
-                uiFields.WarpDown.gameObject.SetActive(true);
-                uiFields.WarpDown.onClick.RemoveAllListeners();
-                uiFields.WarpDown.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
-                warpButtonDownGO = uiFields.WarpDown.gameObject;
-                //uiFields.CancelShipManagerButton.gameObject.SetActive(true);
-                //uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
-                //uiFields.CancelShipManagerButton.onClick.AddListener(() => fleetCon.ClickCancelShipManageButton());
-                saveCloseShipDeployButton.gameObject.SetActive(true);
-                saveCloseShipDeployButton.onClick.RemoveAllListeners();
-                saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.CloseShipDeploy(fleetCon));
-                uiFields.NewFleetButton.gameObject.SetActive(true);
-                uiFields.NewFleetButton.onClick.RemoveAllListeners();
-                uiFields.NewFleetButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
-                newFleetButtonGO = uiFields.NewFleetButton.gameObject;
-                uiFields.MergeFleetsButton.gameObject.SetActive(true);
-                uiFields.MergeFleetsButton.onClick.RemoveAllListeners();
-                uiFields.MergeFleetsButton.onClick.AddListener(() => ClickMergeFleetButton(fleetCon));
-                mergeFleetButtonGO = uiFields.MergeFleetsButton.gameObject;
-                uiFields.ShipDeployButton.gameObject.SetActive(true);
-                uiFields.ShipDeployButton.onClick.RemoveAllListeners();
-                uiFields.ShipDeployButton.onClick.AddListener(() => FleetClickedShipDeployButton(fleetCon));
-                shipDeployButtonGO = uiFields.ShipDeployButton.gameObject;
-                uiFields.CancelShipManagerButton.gameObject.SetActive(true);
-                uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
-                uiFields.CancelShipManagerButton.onClick.AddListener(() => CancelFleetUIButton());
-                cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
-                // Text bindings
-                uiFields.FleetNameText.text = fleetCon.FleetData.Name;
-                uiFields.DestinationName.gameObject.SetActive(true);
-                destinationName = uiFields.DestinationName;
-                uiFields.DestinationName.text = "";
-                uiFields.DestinationCoordinates.gameObject.SetActive(true);
-                destinationCoordinates = uiFields.DestinationCoordinates;
-                uiFields.DestinationCoordinates.text = "";
-                uiFields.WarpValueText.text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
-                // Slider wiring
-                uiFields.WarpSlider.onValueChanged.RemoveAllListeners();
-                uiFields.WarpSlider.value = fleetCon.FleetData.CurrentWarpFactor;
-                uiFields.WarpSlider.maxValue = fleetCon.FleetData.MaxWarpFactor;
-                uiFields.WarpSlider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
             }
+            else
+            {
+                Debug.Log($"SetupFleetUIElements: Re-wiring buttons for existing fleet '{fleetCon.name}'");
+            }
+
+            // ✅ BUTTON WIRING: ALWAYS runs (moved OUTSIDE the if block)
+            uiFields.DestinationDragTarget.gameObject.SetActive(true);
+            uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
+            uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
+            dragDestinationTargetButtonGO = uiFields.DestinationDragTarget.gameObject;
+
+            uiFields.CancelDestination.gameObject.SetActive(false);
+            uiFields.CancelDestination.onClick.RemoveAllListeners();
+            uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
+            cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
+
+            uiFields.SelectDestination.gameObject.SetActive(true);
+            uiFields.SelectDestination.onClick.RemoveAllListeners();
+            uiFields.SelectDestination.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
+            selectDestinationCursorButtonGO = uiFields.SelectDestination.gameObject;
+
+            uiFields.WarpUp.gameObject.SetActive(true);
+            uiFields.WarpUp.onClick.RemoveAllListeners();
+            uiFields.WarpUp.onClick.AddListener(() => fleetCon.FleetOnWarpUpClick(fleetCon));
+            warpButtonUpGO = uiFields.WarpUp.gameObject;
+
+            uiFields.WarpDown.gameObject.SetActive(true);
+            uiFields.WarpDown.onClick.RemoveAllListeners();
+            uiFields.WarpDown.onClick.AddListener(() => fleetCon.FleetOnWarpDownClick(fleetCon));
+            warpButtonDownGO = uiFields.WarpDown.gameObject;
+
+            saveCloseShipDeployButton.gameObject.SetActive(true);
+            saveCloseShipDeployButton.onClick.RemoveAllListeners();
+            saveCloseShipDeployButton.onClick.AddListener(() => fleetCon.CloseShipDeploy(fleetCon));
+
+            uiFields.NewFleetButton.gameObject.SetActive(true);
+            uiFields.NewFleetButton.onClick.RemoveAllListeners();
+            uiFields.NewFleetButton.onClick.AddListener(() => ClickNewFleetButton(fleetCon));
+            newFleetButtonGO = uiFields.NewFleetButton.gameObject;
+
+            uiFields.MergeFleetsButton.gameObject.SetActive(true);
+            uiFields.MergeFleetsButton.onClick.RemoveAllListeners();
+            uiFields.MergeFleetsButton.onClick.AddListener(() => ClickMergeFleetButton(fleetCon));
+            mergeFleetButtonGO = uiFields.MergeFleetsButton.gameObject;
+
+            uiFields.ShipDeployButton.gameObject.SetActive(true);
+            uiFields.ShipDeployButton.onClick.RemoveAllListeners();
+            uiFields.ShipDeployButton.onClick.AddListener(() => FleetClickedShipDeployButton(fleetCon));
+            shipDeployButtonGO = uiFields.ShipDeployButton.gameObject;
+
+            uiFields.CancelShipManagerButton.gameObject.SetActive(true);
+            uiFields.CancelShipManagerButton.onClick.RemoveAllListeners();
+            uiFields.CancelShipManagerButton.onClick.AddListener(() => CancelFleetUIButton());
+            cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
+
+            // ✅ TEXT BINDINGS: Always update
+            uiFields.FleetNameText.text = fleetCon.FleetData.Name;
+            uiFields.DestinationName.gameObject.SetActive(true);
+            destinationName = uiFields.DestinationName;
+            uiFields.DestinationName.text = "";
+            uiFields.DestinationCoordinates.gameObject.SetActive(true);
+            destinationCoordinates = uiFields.DestinationCoordinates;
+            uiFields.DestinationCoordinates.text = "";
+            uiFields.WarpValueText.text = fleetCon.FleetData.CurrentWarpFactor.ToString("0.0");
+
+            // ✅ SLIDER WIRING: Always re-wire
+            uiFields.WarpSlider.onValueChanged.RemoveAllListeners();
+            uiFields.WarpSlider.value = fleetCon.FleetData.CurrentWarpFactor;
+            uiFields.WarpSlider.maxValue = fleetCon.FleetData.MaxWarpFactor;
+            uiFields.WarpSlider.onValueChanged.AddListener((value) => fleetCon.SliderOnValueChange(value));
+
+            Debug.Log($"SetupFleetUIElements: Complete for fleet '{fleetCon.name}' - buttons wired");
         }
         private void FleetClickedShipDeployButton(FleetController fleetCon)
         {

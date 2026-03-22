@@ -1,4 +1,5 @@
 ﻿using BOTF3D.Audio;
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using Mirror;
@@ -87,6 +88,19 @@ namespace BOTF3D.GamePlay
             maxFirstShotDelay = 0.9f;
             currentSpeed = 30f;
             stopDistance = 390f;
+            CleanupOrphanedProjectiles();
+            // ✅ TEMPORARY: Stop all AudioSources playing "Explosion" clips on scene load
+            //AudioSource[] allSources = FindObjectsOfType<AudioSource>(true);
+            //foreach (var source in allSources)
+            //{
+            //    if (source.clip != null && source.clip.name.Contains("Explosion"))
+            //    {
+            //        Debug.LogWarning($"⚠️ Stopping auto-play explosion on: {source.gameObject.name}");
+            //        source.Stop();
+            //        source.playOnAwake = false; // Prevent it from playing again
+            //    }
+            //}
+
         }
 
         void LateUpdate()
@@ -149,7 +163,23 @@ namespace BOTF3D.GamePlay
             }
 
         }
+        /// <summary>
+        /// Destroys any torpedoes/beams left in the scene from previous combat
+        /// </summary>
+        private void CleanupOrphanedProjectiles()
+        {
+            var torpedoes = FindObjectsOfType<Torpedo>();
+            if (torpedoes.Length > 0)
+            {
+                Debug.Log($"⚠️ Found {torpedoes.Length} orphaned torpedoes - destroying silently");
 
+                foreach (var torpedo in torpedoes)
+                {
+                    // ✅ Destroy immediately without triggering OnDestroy() sound
+                    DestroyImmediate(torpedo.gameObject);
+                }
+            }
+        }
         public void BeginPhysicsLikeMovement()
         {
             moveDirections.Clear();

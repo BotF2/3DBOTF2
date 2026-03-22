@@ -2243,10 +2243,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 07fba7e8962a8c548b889914b53a271f, type: 2}
   - {fileID: 11400000, guid: 8bf6a929db8c55142906209d2619d099, type: 2}
   - {fileID: 11400000, guid: 84713c5acb4bf3c489125d5ac38aec1a, type: 2}
+  - {fileID: 11400000, guid: b0ba865778e25384192c6e4c644f51a0, type: 2}
+  - {fileID: 11400000, guid: 9b5edd8fe4b085a4b86419d92b70ac43, type: 2}
+  - {fileID: 11400000, guid: 8728b2ee0a8fbe24cb88c3c93e9d0dad, type: 2}
+  - {fileID: 11400000, guid: 57ea33ba1ee35954c9449fef61f1b65d, type: 2}
+  - {fileID: 11400000, guid: f5a51a85ee726eb418829c800b43e515, type: 2}
+  - {fileID: 11400000, guid: cb1adfa03f63756438637a24bbb2a5e8, type: 2}
   soundEmitterPrefab: {fileID: 0}
   collectionCheck: 1
   defaultCapacity: 12
-  maxSize: 12
+  maxSize: 160
   crossfadeDuration: 2
 --- !u!4 &1573193663
 Transform:
@@ -2480,7 +2486,7 @@ MonoBehaviour:
   offlineScene: 
   onlineScene: 
   offlineSceneLoadDelay: 0
-  transport: {fileID: 0}
+  transport: {fileID: 1932995085}
   networkAddress: localhost
   maxConnections: 100
   disconnectInactiveConnections: 0

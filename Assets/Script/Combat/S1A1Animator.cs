@@ -2,38 +2,48 @@ using UnityEngine;
 
 namespace BOTF3D.Core
 {
-
     public class S1A1Animator : MonoBehaviour
     {
-        // must CivName class and file the same
         public Animator anim;
         public AudioSource warpAudioSource_0;
-
 
         void Start()
         {
             anim = GetComponent<Animator>();
-            anim.enabled = true; // Ensure the animator is enabled
-            anim.SetBool("WarpInS1A1", true); // Ensure the animation is not running at start
+            anim.enabled = true;
+            anim.SetBool("WarpInS1A1", true);
         }
 
-        // Update is called once per frame  
         public void RunAnimation()
         {
-            if (CombatUIController.Instance.CombatController != null & !CombatUIController.Instance.CombatController.WarpingIn)
+            if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.WarpingIn)
             {
-                anim.SetBool("WarpInS1A1", true); // Anamator parameter to trigger the warp animation
+                anim.SetBool("WarpInS1A1", true);
                 PlayWarp();
-                //CombatUIController.Instance.CombatController.warpingInOver = false; // reset the warping in state
             }
         }
 
-        public void PlayWarp() // called in animation - warps by event to function PlayWarp()
+        public void PlayWarp()
         {
             if (CombatUIController.Instance.CombatController.WarpingIn)
             {
                 //warpAudioSource_0.volume = 1f;
                 //warpAudioSource_0.Play();
+            }
+        }
+
+        /// <summary>
+        /// Called by AnimationEvent in S1A1_Stop/End animations
+        /// Signals that warp-in animation has completed
+        /// </summary>
+        public void EndOfFiendWarp()
+        {
+            Debug.Log("S1A1: EndOfFiendWarp called - Warp animation complete");
+
+            if (CombatUIController.Instance?.CombatController != null)
+            {
+                CombatUIController.Instance.CombatController.WarpingAnimationOver = true;
+                Debug.Log("  ✅ Set WarpingAnimationOver = true");
             }
         }
     }

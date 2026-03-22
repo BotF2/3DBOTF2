@@ -1,4 +1,4 @@
-// Ignore Spelling: BOTF
+// Ignore Spelling: BOTF sfx
 
 using BOTF3D.Core;
 using System.Collections;
@@ -38,7 +38,7 @@ namespace BOTF3D.Audio
         [Header("Sound Pool Settings")]
         [SerializeField] private int sfxPoolSize = 10;
         [SerializeField] private int uiPoolSize = 5;
-        //3D spatial audio with GameObject emitters	Ship sounds, explosions, ambient loops at specific positions
+
         IObjectPool<SoundEmitter> soundEmitterPool;
         readonly List<SoundEmitter> activeSoundEmitters = new List<SoundEmitter>();
         [Header("Sound Library")]
@@ -49,9 +49,6 @@ namespace BOTF3D.Audio
         [SerializeField] private bool collectionCheck = true;
         [SerializeField] private int defaultCapacity = 10;
         [SerializeField] private int maxSize = 160;
-        //[SerializeField] private int maxSoundInstances = 30;
-
-        //private Dictionary<string, List<AudioClip>> randomSoundGroups; // For sound variations
 
         // Audio Source Pools Simple 2D audio on AudioManager itself, UI clicks, background music, non-positional SFX
         private Queue<AudioSource> sfxPool;
@@ -127,6 +124,51 @@ namespace BOTF3D.Audio
         {
             // ✅ Load saved volume settings FIRST
             LoadVolumeSettings();
+
+            // ✅ CRITICAL: Initialize music sources BEFORE anything else
+            if (musicSource1 == null)
+            {
+                musicSource1 = gameObject.AddComponent<AudioSource>();
+                Debug.Log("✅ Created musicSource1");
+            }
+            if (musicSource2 == null)
+            {
+                musicSource2 = gameObject.AddComponent<AudioSource>();
+                Debug.Log("✅ Created musicSource2");
+            }
+
+            musicSource1.loop = true;
+            musicSource2.loop = true;
+            musicSource1.playOnAwake = false;
+            musicSource2.playOnAwake = false;
+
+            // ✅ Set initial volume from loaded settings
+            musicSource1.volume = masterVolume * musicVolume;
+            musicSource2.volume = masterVolume * musicVolume;
+
+            // ✅ CRITICAL: Set active/inactive AFTER sources are created
+            activeMusicSource = musicSource1;
+            inactiveMusicSource = musicSource2;
+
+            Debug.Log("✅ Music sources initialized");
+
+            // ✅ SAFETY: Disable playOnAwake on ALL existing AudioSources (prevents accidents)
+            AudioSource[] existingSources = GetComponents<AudioSource>();
+            foreach (var source in existingSources)
+            {
+                if (source.playOnAwake)
+                {
+                    Debug.LogWarning($"⚠️ AudioManager: Found AudioSource with playOnAwake=true (clip: {source.clip?.name}) - disabling!");
+                    source.playOnAwake = false;
+
+                    // Also stop if it's already playing
+                    if (source.isPlaying)
+                    {
+                        source.Stop();
+                    }
+                }
+            }
+
             // ✅ Initialize dictionary with SoundData (skip null entries)
             soundDictionary = new Dictionary<string, SoundData>();
             foreach (var soundData in soundLibrary)
@@ -150,24 +192,6 @@ namespace BOTF3D.Audio
             }
 
             Debug.Log($"AudioManager: Loaded {soundDictionary.Count} sounds from library");
-
-            // Initialize music sources
-            if (musicSource1 == null)
-                musicSource1 = gameObject.AddComponent<AudioSource>();
-            if (musicSource2 == null)
-                musicSource2 = gameObject.AddComponent<AudioSource>();
-
-            musicSource1.loop = true;
-            musicSource2.loop = true;
-            musicSource1.playOnAwake = false;
-            musicSource2.playOnAwake = false;
-
-            // ✅ Set initial volume from loaded settings
-            musicSource1.volume = masterVolume * musicVolume;
-            musicSource2.volume = masterVolume * musicVolume;
-
-            activeMusicSource = musicSource1;
-            inactiveMusicSource = musicSource2;
 
             // Initialize SFX Pool
             sfxPool = new Queue<AudioSource>();
@@ -193,7 +217,8 @@ namespace BOTF3D.Audio
                 uiPool.Enqueue(source);
                 allPooledSources.Add(source);
             }
-            // ✅ ADD THIS - initialize SoundEmitter pool
+
+            // ✅ Initialize SoundEmitter pool
             InitializePool();
 
             Debug.Log($"AudioManager: Initialized with {sfxPoolSize} SFX sources and {uiPoolSize} UI sources");
@@ -524,9 +549,24 @@ namespace BOTF3D.Audio
 
         public void StopMusic(bool fade = true)
         {
+            // ✅ Safety: Check if music sources exist
+            if (activeMusicSource == null || inactiveMusicSource == null)
+            {
+                Debug.LogWarning("StopMusic: Music sources are NULL - cannot stop music");
+                return;
+            }
+
             if (fade)
             {
-                StartCoroutine(FadeOutMusic());
+                // ✅ Only fade if music is actually playing
+                if (activeMusicSource.isPlaying)
+                {
+                    StartCoroutine(FadeOutMusic());
+                }
+                else
+                {
+                    Debug.Log("StopMusic: No music playing - skipping fade");
+                }
             }
             else
             {
@@ -537,20 +577,49 @@ namespace BOTF3D.Audio
 
         private IEnumerator FadeOutMusic()
         {
+            // ✅ CRITICAL: Check if music source exists
+            if (activeMusicSource == null)
+            {
+                Debug.LogWarning("FadeOutMusic: activeMusicSource is NULL - nothing to fade out");
+                yield break;
+            }
+
+            // ✅ Check if music is actually playing
+            if (!activeMusicSource.isPlaying)
+            {
+                Debug.Log("FadeOutMusic: No music playing - skipping fade");
+                yield break;
+            }
+
             float startVolume = activeMusicSource.volume;
             float elapsed = 0f;
 
             while (elapsed < crossfadeDuration)
             {
                 elapsed += Time.deltaTime;
-                activeMusicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / crossfadeDuration);
+
+                // ✅ Safety check in case source gets destroyed mid-fade
+                if (activeMusicSource != null)
+                {
+                    activeMusicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / crossfadeDuration);
+                }
+                else
+                {
+                    Debug.LogWarning("FadeOutMusic: activeMusicSource became NULL during fade!");
+                    yield break;
+                }
+
                 yield return null;
             }
 
-            activeMusicSource.Stop();
-            activeMusicSource.volume = masterVolume * musicVolume;
+            // ✅ Final null check before stopping
+            if (activeMusicSource != null)
+            {
+                activeMusicSource.Stop();
+                activeMusicSource.volume = masterVolume * musicVolume;
+                Debug.Log("🎵 FadeOutMusic: Complete");
+            }
         }
-
         #endregion
 
         #region SFX Playback (Pooled)

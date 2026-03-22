@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: BOTF
+﻿// Ignore Spelling: BOTF Kling Unregister sys
 
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
@@ -481,7 +481,7 @@ namespace BOTF3D.Core
 
             if (shipCon.ShipData.CivEnum != GameController.Instance.GameData.LocalPlayerCivEnum)
             {
-                Debug.LogWarning($"  Ship '{shipCon.ShipData.ShipName}' is NOT local player - no UI created");
+                Debug.Log($"  Ship '{shipCon.ShipData.ShipName}' is NOT local player - no UI created");
                 return;
             }
 

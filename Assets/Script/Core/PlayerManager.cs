@@ -59,7 +59,8 @@ public class PlayerManager : NetworkBehaviour
     {
         if (AllPlayerControllers == null || AllPlayerControllers.Count == 0)
         {
-            Debug.LogWarning("No players to unregister.");
+            // ✅ Use Debug.Log instead of LogWarning during app shutdown (it's expected)
+            Debug.Log("UnregisterPlayer: No players to unregister (expected in single-player or during shutdown)");
             return;
         }
 
@@ -67,6 +68,7 @@ public class PlayerManager : NetworkBehaviour
         {
             if (AllPlayerControllers[i].PlayerInfo.PlayerId == playerID)
             {
+                Debug.Log($"UnregisterPlayer: Removed player ID {playerID}");
                 AllPlayerControllers.RemoveAt(i);
                 break;
             }

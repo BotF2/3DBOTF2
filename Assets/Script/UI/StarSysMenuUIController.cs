@@ -412,7 +412,69 @@ namespace BOTF3D.UI
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(listener);
         }
+        /// <summary>
+        /// Populates the SystemsMenuView with all local player's star system UIs
+        /// </summary>
+        public void PopulateSystemsList()
+        {
+            Debug.Log("PopulateSystemsList: Starting...");
 
+            if (SystemsMenuView == null || !SystemsMenuView.activeSelf)
+            {
+                Debug.LogWarning("PopulateSystemsList: SystemsMenuView is not active!");
+                return;
+            }
+
+            // Find the SysListContainer
+            Transform sysListContainer = SystemsMenuView.transform.Find("Viewport/SysListContainer");
+            if (sysListContainer == null)
+            {
+                Debug.LogError("PopulateSystemsList: SysListContainer not found! Check prefab hierarchy.");
+                return;
+            }
+
+            // Get all local player's systems from StarSysManager
+            if (StarSysManager.Instance == null)
+            {
+                Debug.LogError("PopulateSystemsList: StarSysManager.Instance is NULL!");
+                return;
+            }
+
+            var allSystems = StarSysManager.Instance.StarSysControllerList;
+            int populatedCount = 0;
+
+            foreach (var sysCon in allSystems)
+            {
+                if (sysCon == null)
+                {
+                    Debug.LogWarning("  Skipping null system reference");
+                    continue;
+                }
+
+                // ✅ CRITICAL: Only show LOCAL PLAYER's systems
+                if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
+                {
+                    Debug.Log($"  Skipping non-player system: {sysCon.name}");
+                    continue;
+                }
+
+                // ✅ Ensure system has UI
+                if (sysCon.StarSysUIGameObject == null)
+                {
+                    Debug.LogWarning($"  System '{sysCon.name}' has no UI GameObject - skipping");
+                    continue;
+                }
+
+                // ✅ Move system UI from home storage to list container
+                sysCon.StarSysUIGameObject.transform.SetParent(sysListContainer, false);
+                sysCon.StarSysUIGameObject.SetActive(true);
+                populatedCount++;
+
+                Debug.Log($"  ✅ Added system '{sysCon.name}' to systems list");
+            }
+
+            Debug.Log($"PopulateSystemsList: Complete - {populatedCount} systems added to list");
+        }
         /// <summary>
         /// Moves all system UIs back to home storage (StarSysUI_ListContainer)
         /// CALLED BY: HideSystemMenuView(), HideA_SystemMenuView(), MoveBackAnyStarSysUIGO()

@@ -22,7 +22,7 @@ namespace BOTF3D.GamePlay
         /// https://lopespm.com/libraries/games/2018/12/27/camera-multi-target.html
         /// </summary>
 
-        public static ShipCombatCameraController Instance { get; private set; }
+        public static ShipCombatCameraController Instance { get; set; }
         public float Pitch;
         public float Yaw;
         public float Roll;
@@ -72,7 +72,7 @@ namespace BOTF3D.GamePlay
 
             if (Instance != null && Instance != this)
             {
-                Debug.LogWarning("Duplicate ShipCombatCameraController found! Destroying duplicate.");
+                Debug.Log("Duplicate ShipCombatCameraController found! Destroying duplicate.");
                 Destroy(gameObject);
                 return;
             }

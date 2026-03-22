@@ -1,7 +1,7 @@
 using BOTF3D.Audio;
 using UnityEngine;
 
-namespace BOTF3D.GamePlay
+namespace BOTF3D.Combat
 {
     public class BeamWeapon : MonoBehaviour
     {
