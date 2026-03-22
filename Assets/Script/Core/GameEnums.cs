@@ -1,6 +1,5 @@
 namespace BOTF3D.Core
 {
-    #region Enums
     public enum CivEnum
     {
         FED,
@@ -236,10 +235,10 @@ namespace BOTF3D.Core
     }
     public enum TechLevel
     {
-        EARLY = 100,
-        DEVELOPED = 300,
-        ADVANCED = 600,
-        SUPREME = 900
+        EARLY,
+        DEVELOPED,
+        ADVANCED,
+        SUPREME
     }
     public enum GameMode
     {
@@ -501,5 +500,4 @@ namespace BOTF3D.Core
         Egaliterian = 1,
         Idealistic = 2
     }
-    #endregion
 }
