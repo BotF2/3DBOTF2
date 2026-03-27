@@ -1,6 +1,6 @@
 ﻿using BOTF3D.Audio;
-using BOTF3D.Combat;
 using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using Mirror;
 using System;
@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace BOTF3D.GamePlay
+namespace BOTF3D.Combat
 {
     public class CombatController : MonoBehaviour
     {
@@ -23,11 +23,13 @@ namespace BOTF3D.GamePlay
         ///                     <--- [RemoteHumanPlayerController] (Network)
         ///                     <--- [AIPlayerController] (AI)
         /// </summary>
-        public static CombatController Instance;
+
         private CombatData combatData;
+
+        public SoundData warpInSound;
         public Canvas ShipCombatCanvas;
         public CombatData CombatData { get { return combatData; } set { combatData = value; } }
-
+        public int CombatID { get; private set; } // for specific combat instance
         public List<Vector2Int> spiralPositions = new List<Vector2Int>();
         public List<Animator> animators; // Assign in Inspector or dynamically
         public Animator sideOneA1Animator;
@@ -69,18 +71,8 @@ namespace BOTF3D.GamePlay
 
         private void Awake()
         {
-            if (Instance != null)
-            {
-                Debug.LogWarning($"Duplicate CombatController found! Destroying duplicate.");
-                Destroy(gameObject);
-            }
-            else
-            {
-                Instance = this;
-                // ❌ REMOVE: DontDestroyOnLoad(gameObject);
-                // ✅ Combat objects should live in CombatScene only!
-                Debug.Log("✅ CombatController: Instance assigned (scene-based)");
-            }
+            CombatID = GetInstanceID(); // Unity object id for this combat instance
+            Debug.Log($"✅ CombatController {CombatID}: Created");
         }
         private void Start()
         {
@@ -152,9 +144,9 @@ namespace BOTF3D.GamePlay
                         isClosing = true;
                         Debug.Log($"Combat ending - Side 1: {CombatData.SideOneShipCons.Count}, Side 2: {CombatData.SideTwoShipCons.Count}");
 
-                        if (CombatUIController.Instance != null)
+                        if (CombatUIManager.Instance != null)
                         {
-                            CombatUIController.Instance.RunCombatOverPanel();
+                            CombatUIManager.Instance.ShowCombatOverPanel();
                         }
 
                         StartCoroutine(DelayedActionSomeSec());
@@ -372,7 +364,11 @@ namespace BOTF3D.GamePlay
                 if (hb != null) Destroy(hb);
             }
             healthbarRenderers.Clear();
-
+            // ✅ Clean up UI references
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.CleanupCombat();
+            }
             Debug.Log("=== EndCombat: Cleanup complete ===");
 
             // ✅ Unload combat scene
@@ -403,7 +399,6 @@ namespace BOTF3D.GamePlay
             {
                 StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO(); // ✅ This method exists!
                 StarSysMenuUIController.Instance.HideA_SystemMenuView(); // ✅ And this!
-                Debug.Log("  Closed star system UI");
             }
 
             // Resume time
@@ -411,7 +406,10 @@ namespace BOTF3D.GamePlay
             {
                 TimeManager.Instance.ResumeTime();
                 Debug.Log("  Resumed time");
+                CombatManager.Instance.OnCombatEnded(this);
             }
+
+            Debug.Log("=== EndCombat: Complete ===");
         }
         public void PlayExplosionSound(Vector3 position)
         {
@@ -445,7 +443,6 @@ namespace BOTF3D.GamePlay
             CountShips(); // Count the ships by type for both sides
             if (theCombatController == this)
             {
-                CombatUIController.Instance.PanelCombat_Menu.SetActive(true);
                 List<ShipController> sideOneShips = theCombatController.CombatData.SideOneShipCons;
                 List<ShipController> sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
                 PopulateShipGOAndAnimation(sideOneShips, -1); //sideOne is on the left, ships are -x axis world space attached to an animator...
@@ -753,10 +750,89 @@ namespace BOTF3D.GamePlay
 
         public void RunAnimation()
         {
-            // combat warp-in animation runs when ship prefab is instantiated, Start() function of animator script is called
-
             WarpingIn = true;
             WarpingAnimationOver = false;
+
+            // ✅ Play warp-in sound
+            if (warpInSound != null)
+            {
+                AudioSource tempSource = gameObject.AddComponent<AudioSource>();
+                tempSource.playOnAwake = false;
+                tempSource.spatialBlend = 0f;
+                warpInSound.Play(tempSource);
+                AudioClip clip = warpInSound.GetClip();
+                float clipLength = clip != null ? clip.length : 2f;
+                Destroy(tempSource, clipLength / warpInSound.GetPitchWithVariation() + 0.5f);
+                Debug.Log("🔊 Playing warp-in sound from CombatController");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ warpInSound is not assigned on CombatController!");
+            }
+
+            // ✅ NEW: Trigger animations on animator GameObjects
+            Debug.Log("🎬 Triggering animator scripts...");
+
+            if (sideOneA1Animator != null)
+            {
+                var animScript = sideOneA1Animator.GetComponent<S1A1Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S1A1Animator");
+                }
+            }
+
+            if (sideOneA2Animator != null)
+            {
+                var animScript = sideOneA2Animator.GetComponent<S1A2Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S1A2Animator");
+                }
+            }
+
+            if (sideOneA3Animator != null)
+            {
+                var animScript = sideOneA3Animator.GetComponent<S1A3Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S1A3Animator");
+                }
+            }
+
+            if (sideTwoA1Animator != null)
+            {
+                var animScript = sideTwoA1Animator.GetComponent<S2A1Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S2A1Animator");
+                }
+            }
+
+            if (sideTwoA2Animator != null)
+            {
+                var animScript = sideTwoA2Animator.GetComponent<S2A2Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S2A2Animator");
+                }
+            }
+
+            if (sideTwoA3Animator != null)
+            {
+                var animScript = sideTwoA3Animator.GetComponent<S2A3Animator>();
+                if (animScript != null)
+                {
+                    animScript.RunAnimation();
+                    Debug.Log("   ✅ Triggered S2A3Animator");
+                }
+            }
+
             List<GameObject> shipGameObjects = new List<GameObject>();
             for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
             {
@@ -770,11 +846,11 @@ namespace BOTF3D.GamePlay
                 shipGameObjects.Add(CombatData.SideTwoShipCons[i].gameObject);
                 CombatData.SideTwoShipCons[i].SetWarpInOver();
             }
+
             Scene scene = SceneManager.GetSceneByName("CombatScene");
             while (!scene.isLoaded)
             {
-                System.Threading.Thread.Sleep(100); // Wait for the scene to load
-                                                    //scene = SceneManager.GetSceneByName("CombatScene");
+                System.Threading.Thread.Sleep(100);
             }
 
             GameObject[] cameraTargets = shipGameObjects.ToArray();
@@ -786,12 +862,13 @@ namespace BOTF3D.GamePlay
         {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
             spiralPositions.Clear();
 
-            Vector2Int[] directions = {
-            Vector2Int.right,   // Right
-            Vector2Int.up,      // Up
-            Vector2Int.left,    // Left
-            Vector2Int.down     // Down
-        };
+            Vector2Int[] directions =
+            {
+                Vector2Int.right,   // Right
+                Vector2Int.up,      // Up
+                Vector2Int.left,    // Left
+                Vector2Int.down     // Down
+            };
 
             Vector2Int pos = Vector2Int.zero;
             spiralPositions.Add(pos);
@@ -827,37 +904,116 @@ namespace BOTF3D.GamePlay
             ShipCombatCameraController.Instance.SetWarpingIn(true);
             ShipCombatCameraController.Instance.SetWarpingInOver(false);
 
-            // Wait until all animators have stopped playing
-            while (AnyAnimatorIsPlaying())
+            // ✅ Check if any animators have controllers assigned
+            bool hasValidAnimators = animators.Any(a => a != null && a.runtimeAnimatorController != null);
+
+            if (hasValidAnimators)
             {
+                Debug.Log($"⏳ Waiting for animator-based warp-in... ({animators.Count} animators with controllers)");
+
+                // ✅ NEW: Wait one frame for animator scripts' Start() to run
                 yield return null;
+                Debug.Log("   Frame 1: Animator scripts initialized, beginning animation check...");
+
+                int frameCount = 0;
+                int maxFrames = 600; // Safety timeout (10 seconds at 60fps)
+
+                // Wait for animations to complete
+                while (AnyAnimatorIsPlaying())
+                {
+                    frameCount++;
+
+                    // ✅ Log every 30 frames (twice per second)
+                    if (frameCount % 30 == 0)
+                    {
+                        Debug.Log($"   Frame {frameCount}: Still waiting for animations...");
+                    }
+
+                    // ✅ Safety timeout
+                    if (frameCount > maxFrames)
+                    {
+                        Debug.LogWarning($"⚠️ Animation timeout after {maxFrames} frames - force continuing");
+                        break;
+                    }
+
+                    yield return null;
+                }
+
+                Debug.Log($"✅ Animation check complete after {frameCount} frames");
             }
+            else
+            {
+                // ✅ No valid animators - use timed wait instead
+                Debug.LogWarning("⚠️ No AnimatorControllers assigned - using timed warp-in (3 seconds)");
+                yield return new WaitForSeconds(3f);
+            }
+
+            Debug.Log("✅ Warp-in animation complete");
+
             ShipCombatCameraController.Instance.SetWarpingIn(false);
             ShipCombatCameraController.Instance.SetWarpingInOver(true);
+
+            // ✅ Start ship movement
             BeginPhysicsLikeMovement();
+
+            // ✅ Show health bars
             for (int i = 0; i < healthbarRenderers.Count; i++)
             {
-                healthbarRenderers[i].SetActive(true); // make sure health bars are visible after warp in
+                healthbarRenderers[i].SetActive(true);
             }
+
             WarpingAnimationOver = true;
             WarpingIn = false;
+
+            // ✅ Wait for ships to move closer (2 seconds) before firing
+            Debug.Log("⏳ Ships moving to battle positions...");
+            yield return new WaitForSeconds(2f);
+            Debug.Log("✅ Ships in position - starting weapon fire");
+
+            // ✅ Now assign targets and fire weapons
             FindClosestPairsForTargets(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
             FindClosestPairsForTargets(CombatData.SideTwoShipCons, CombatData.SideOneShipCons);
             FireWeaponsOrderOnShipControllers(CombatData.SideOneShipCons);
             FireWeaponsOrderOnShipControllers(CombatData.SideTwoShipCons);
-
         }
+
         private bool AnyAnimatorIsPlaying()
         {
-            foreach (Animator animator in animators)
+            bool anyPlaying = false;
+
+            for (int i = 0; i < animators.Count; i++)
             {
-                if (animator != null && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f &&
-                    !animator.IsInTransition(0))
+                Animator animator = animators[i];
+
+                if (animator == null)
                 {
-                    return true;
+                    Debug.LogWarning($"   ⚠️ Animator [{i}] is null");
+                    continue;
+                }
+
+                if (animator.runtimeAnimatorController == null)
+                {
+                    Debug.LogWarning($"   ⚠️ Animator [{i}] ({animator.name}) has no controller");
+                    continue;
+                }
+
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                bool isInTransition = animator.IsInTransition(0);
+                float normalizedTime = stateInfo.normalizedTime;
+
+                // ✅ Detailed logging for first frame
+                if (Time.frameCount % 30 == 0) // Log every 30 frames
+                {
+                    Debug.Log($"   Animator [{i}] '{animator.name}': State='{stateInfo.shortNameHash}', Time={normalizedTime:F3}, Transition={isInTransition}");
+                }
+
+                if (normalizedTime < 1f && !isInTransition)
+                {
+                    anyPlaying = true;
                 }
             }
-            return false;
+
+            return anyPlaying;
         }
 
         internal void GiveCombatOrders(CombatOrders order, CivEnum civEnumLocalPlayer)
@@ -986,15 +1142,13 @@ namespace BOTF3D.GamePlay
                 Debug.LogError("  ❌ ShipCombatCanvas is NULL!");
             }
 
-            // ✅ Show combat UI
-            if (CombatUIController.Instance != null)
+            if (CombatUIManager.Instance != null)
             {
-                // Assuming it has a Show/Initialize method
-                Debug.Log($"  ✅ CombatUIController found");
+                Debug.Log($"  ✅ CombatUIManager found and ready");
             }
             else
             {
-                Debug.LogWarning("  ⚠️ CombatUIController.Instance is NULL - UI might not show");
+                Debug.LogWarning("  ⚠️ CombatUIManager.Instance is NULL - UI will not show!");
             }
 
             // Populate ship data and UI

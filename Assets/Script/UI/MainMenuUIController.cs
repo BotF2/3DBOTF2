@@ -1139,14 +1139,14 @@ namespace BOTF3D.UI
             Debug.Log($"  ✅ Set GameMode to SINGLEPLAYER");
 
             // ✅ Check if CombatUIController exists
-            if (CombatUIController.Instance == null)
+            if (CombatUIManager.Instance == null)
             {
-                Debug.Log("SetSinglePlayer: CombatUIController.Instance is NULL - combat UI won't be initialized yet");
+                Debug.Log("SetSinglePlayer: CombatUIManager.Instance is NULL - combat UI won't be initialized yet");
             }
             else
             {
-                CombatUIController.Instance.CivEnumLocalPlayer = localPlayerCiv;
-                Debug.Log($"  ✅ Set CombatUIController local player: {localPlayerCiv}");
+                CombatUIManager.Instance.CivEnumLocalPlayer = localPlayerCiv;
+                Debug.Log($"  ✅ Set CombatUIManager local player: {localPlayerCiv}");
             }
 
             // ✅ Check if NetworkManager exists

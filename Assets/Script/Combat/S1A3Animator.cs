@@ -1,3 +1,4 @@
+using BOTF3D.UI;
 using UnityEngine;
 
 namespace BOTF3D.Core
@@ -6,34 +7,45 @@ namespace BOTF3D.Core
     public class S1A3Animator : MonoBehaviour
     {
         public Animator anim;
-        public AudioSource warpAudioSource_0;
 
         void Start()
         {
             anim = GetComponent<Animator>();
-            anim.enabled = true; // Ensure the animator is enabled
-            anim.SetBool("WarpInS1A3", true); // Ensure the animation is not running at start
+            if (anim != null)
+            {
+                anim.enabled = true;
+                anim.SetBool("WarpInS1A3", false);
+                Debug.Log("S1A3 animator initialized - waiting for RunAnimation()");
+            }
         }
 
         public void RunAnimation()
         {
-            if (CombatUIController.Instance.CombatController != null && !CombatUIController.Instance.CombatController.WarpingIn)
+            // ✅ Fixed: Check if WarpingIn is TRUE (not false!)
+            if (CombatUIManager.Instance?.CurrentCombatController != null &&
+                CombatUIManager.Instance.CurrentCombatController.WarpingIn)  // ✅ Changed from !WarpingIn
             {
-                anim.SetBool("WarpInS1A3", true);   // Animator parameter to trigger the warp animation
-                PlayWarp();
-                //CombatUIController.Instance.CombatController.warpingInOver = false; // reset the warping in state   
+                if (anim != null)
+                {
+                    anim.SetBool("WarpInS1A3", true);
+                    Debug.Log("✅ S1A3 animation triggered");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ S1A3: Cannot trigger animation - WarpingIn={CombatUIManager.Instance?.CurrentCombatController?.WarpingIn}");
             }
         }
-
-        public void PlayWarp() // called in animation - warp
+        /// <summary>
+        /// ✅ Called by AnimationEvent in S1A3_Warp animation
+        /// Audio is now handled centrally by CombatController, so this is just a stub
+        /// </summary>
+        public void PlayWarp()
         {
-            //if (GameManager.Instance._statePassedCombatInit)
-            //{
-            //    warpAudioSource_0.volume = 1f;
-            //    warpAudioSource_0.Play();
-            //}
+            // ✅ Empty method to satisfy Animation Event
+            // Audio is played by CombatController.RunAnimation() instead
+            Debug.Log("S1A3: PlayWarp AnimationEvent received (audio handled centrally)");
         }
-
         /// <summary>
         /// Called by AnimationEvent in S1A3_Stop/End animations
         /// Signals that warp-in animation has completed
@@ -42,10 +54,14 @@ namespace BOTF3D.Core
         {
             Debug.Log("S1A3: EndOfFiendWarp called - Warp animation complete");
 
-            if (CombatUIController.Instance?.CombatController != null)
+            if (CombatUIManager.Instance?.CurrentCombatController != null)
             {
-                CombatUIController.Instance.CombatController.WarpingAnimationOver = true;
+                CombatUIManager.Instance.CurrentCombatController.WarpingAnimationOver = true;
                 Debug.Log("  ✅ Set WarpingAnimationOver = true");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ S1A3: CombatUIManager or CurrentCombatController is null!");
             }
         }
     }

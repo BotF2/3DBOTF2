@@ -10371,6 +10371,50 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CanvasToolTip: {fileID: 2112011886}
   galaxyEventCamera: {fileID: 0}
+--- !u!1 &959440482
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 959440484}
+  - component: {fileID: 959440483}
+  m_Layer: 0
+  m_Name: CombatUIManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &959440483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 959440482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b59ff35f20b77ed4eb7ba0a77ff56f8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.CombatUIManager
+--- !u!4 &959440484
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 959440482}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -22880,6 +22924,73 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2089953907}
   m_CullTransparentMesh: 1
+--- !u!1 &2102662239
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2102662241}
+  - component: {fileID: 2102662240}
+  m_Layer: 0
+  m_Name: CombatManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2102662240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2102662239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1e324ae568db7343a2692a2aa72c246, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CombatUICanvas: {fileID: 0}
+  Combat3DCanvas: {fileID: 0}
+  HealthbarPrefab: {fileID: 4270739184393270735, guid: 18a5a57508ae71b43a72e2f3f5632ef6, type: 3}
+  combatConPrefab: {fileID: 8733955990648092505, guid: 045332c79739dd3429dd572865b28739, type: 3}
+  dropOutOfWarpSoundData: {fileID: 11400000, guid: 8d5ff37a6195d504fb6539bde481da65, type: 2}
+  TorpedoPrefabs:
+  - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
+  - {fileID: 3912758670790259718, guid: cc2c0058e724b7b4e9de90526d3c4bff, type: 3}
+  - {fileID: 2418217858496453369, guid: 900648a236471344095b2fce24fe8f9f, type: 3}
+  - {fileID: 7054183224101263012, guid: cfe8470bab9e3224785cf7c17a0cc792, type: 3}
+  - {fileID: 335383823464915842, guid: c94057a0f57e64743b6cc563c4ca1838, type: 3}
+  - {fileID: 2931441029016976707, guid: 3bd322b6fbc4dcf458dd7724d902c734, type: 3}
+  - {fileID: 7054183224101263012, guid: 3b657f2f0a4f2634c8b0b9ca40ba361d, type: 3}
+  - {fileID: 7054183224101263012, guid: 762c9817602360e4a8d251c7382cddc9, type: 3}
+  BeamPrefabs:
+  - {fileID: 9124248098745324454, guid: be36503a1c8662942ad11e8299bce16f, type: 3}
+  - {fileID: 2346474577054298038, guid: 162f3ab89e8dd804e888704c3f3c9683, type: 3}
+  - {fileID: 5033631567701610589, guid: 1dfb61c49117ac54eba5d4699c922b19, type: 3}
+  - {fileID: 4536739393464978480, guid: e80467a06758fb54faf1a973b8d75d29, type: 3}
+  - {fileID: 5741464907251326923, guid: 70498e40392cb4f43a8972962a277060, type: 3}
+  - {fileID: 3520991220717468901, guid: cde5ad04fdad01c46ad80976e1b27aec, type: 3}
+  - {fileID: 9124248098745324454, guid: 8c68eb5989df7e84ea779ed32dfe13a6, type: 3}
+  - {fileID: 9124248098745324454, guid: ff37a0f59d8dd1b40ab1c5a9b2d14e1d, type: 3}
+--- !u!4 &2102662241
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2102662239}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2112011882
 GameObject:
   m_ObjectHideFlags: 0
@@ -23566,6 +23677,8 @@ SceneRoots:
   - {fileID: 1013187646}
   - {fileID: 1965346450}
   - {fileID: 1362581733}
+  - {fileID: 2102662241}
+  - {fileID: 959440484}
   - {fileID: 933850022}
   - {fileID: 343267748}
   - {fileID: 1784209283}

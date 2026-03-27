@@ -15,7 +15,7 @@ MonoBehaviour:
   ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: f83e508b4eb41af4cb70d447ab48dee4, type: 3}
   ShipName: FED_TRANSPORT_I(CLONE)
   CivEnum: 0
-  TechLevel: 100
+  TechLevel: 0
   ShipType: 5
   shipSprite: {fileID: 21300000, guid: d966c86d4b77f0b429b5ef176f2b1583, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
