@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04298d161639d3c4d9d8c579609f4dc7, type: 3}
-  m_Name: KlingTorpFire
+  m_Name: DropOutOfWarp
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Audio.SoundData
-  clip: {fileID: 8300000, guid: bfbd2bd98f3648146a6e5a7a4c1abe17, type: 3}
+  clip: {fileID: 8300000, guid: 1b7435eca5d5b0e4e9ec4a2d61a99010, type: 3}
   randomClips: []
-  volume: 1
+  volume: 0.8
   pitch: 1
-  randomPitchVariation: 0.1
-  is3D: 1
-  minDistance: 1
+  randomPitchVariation: 0.05
+  is3D: 0
+  minDistance: 5
   maxDistance: 500
-  category: 3
+  category: 1
   loop: 0

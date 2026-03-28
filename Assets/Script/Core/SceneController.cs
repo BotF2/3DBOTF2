@@ -272,17 +272,7 @@ namespace BOTF3D.GamePlay
                     Debug.Log($"  ✅ Combat camera enabled");
                 }
             }
-
-            var combatCon = CombatManager.Instance.InstantiateCombatController(shipControllers1, shipControllers2);
-            combatCon.CombatData.CombatType = combatType;
-            if (combatCon == null)
-            {
-                CombatController.Instance.InitializeCombat(
-                    CombatContext.PlayerFleet,
-                    CombatContext.EnemyFleet,
-                    CombatContext.StarSystem);
-            }
-
+            CombatManager.Instance.RequestCombat(shipControllers1, shipControllers2, combatType);
             Debug.Log("=== LoadCombatSceneAdditive: Complete ===");
         }
 

@@ -827,7 +827,7 @@ namespace BOTF3D.Core
         {
             List<ShipController> shipConList = new List<ShipController>();
 
-            if (CombatManager.Instance == null || CombatManager.Instance.CombatUICanvasGO == null)
+            if (CombatManager.Instance == null || CombatManager.Instance.CombatUICanvas == null)
             {
                 Debug.LogError("CreateCombatShips: CombatManager or CombatUICanvas is NULL!");
                 return shipConList;
@@ -844,7 +844,7 @@ namespace BOTF3D.Core
                     shipConPrefab,
                     Vector3.zero,
                     Quaternion.identity,
-                    CombatManager.Instance.CombatUICanvasGO.transform);
+                    CombatManager.Instance.CombatUICanvas.transform);
 
                 InitializeShipData(shipCon, shipSOList[i]);
                 shipConList.Add(shipCon);
