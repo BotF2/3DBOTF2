@@ -456,6 +456,26 @@ namespace BOTF3D.Combat
                 ShipCombatCanvas = FindAnyObjectByType<Canvas>();
             }
             ShipCombatCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
+            if (ShipCombatCanvas != null)
+            {
+                // ✅ Configure for World Space rendering
+                ShipCombatCanvas.renderMode = RenderMode.WorldSpace;
+                ShipCombatCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
+
+                // ✅ IMPORTANT: Set canvas scale for world space (1 = 1 Unity unit)
+                var canvasRect = ShipCombatCanvas.GetComponent<RectTransform>();
+                if (canvasRect != null)
+                {
+                    canvasRect.localScale = Vector3.one;
+                }
+
+                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={ShipCombatCanvas.worldCamera?.name}");
+            }
+            else
+            {
+                Debug.LogError("❌ ShipCombatCanvas is NULL!");
+                return;
+            }
             int currentTransportIndex1 = -1;
             int currentTransportIndex2 = -1;
             int currentOtherShipIndex1 = -1;
@@ -485,26 +505,60 @@ namespace BOTF3D.Combat
                 shipConList[i].name = shipConList[i].ShipData.ShipName;
                 shipConList[i].gameObject.SetActive(true);
                 //********** Health bar code here for now *************
-                GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab,
-                    shipConList[i].transform.position, Quaternion.identity, ShipCombatCanvas.transform);
+                GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab);
                 healthbarGO.SetActive(true);
+                healthbarGO.SetActive(true);
+                // ✅ Parent directly to ship (skip canvas entirely for world-space UI)
                 healthbarGO.transform.SetParent(shipConList[i].transform, false);
-                healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0); // below ship model and closer to camera
-                healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // scale down to fit ship model
-                healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0); // face off the side of the ship model
+                healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0);
+                healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0);
+                // ✅ Ensure health bar Canvas is on World Space
+                Canvas healthbarCanvas = healthbarGO.GetComponent<Canvas>();
+                if (healthbarCanvas == null)
+                {
+                    healthbarCanvas = healthbarGO.AddComponent<Canvas>();
+                }
+
+                healthbarCanvas.renderMode = RenderMode.WorldSpace;
+                healthbarCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
+
+                // ✅ Add CanvasScaler for proper sizing
+                var canvasScaler = healthbarGO.GetComponent<CanvasScaler>();
+                if (canvasScaler == null)
+                {
+                    canvasScaler = healthbarGO.AddComponent<CanvasScaler>();
+                }
+                canvasScaler.dynamicPixelsPerUnit = 10;
+
+                // ✅ Set health bar layer to Default (NOT UI layer for world-space)
+                healthbarGO.layer = LayerMask.NameToLayer("Default");
+
+                // Set child layers recursively
+                SetLayerRecursively(healthbarGO, LayerMask.NameToLayer("Default"));
+
                 Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
                 for (int j = 0; j < healthbarImages.Length; j++)
                 {
                     if (healthbarImages[j].gameObject.name == "HealthFill")
                     {
                         shipConList[i].HealthFillImage = healthbarImages[j];
-                        shipConList[i].HealthFillImage.fillAmount = 1f; // set to full health
-                        shipConList[i].HealthFillImage.color = Color.green; // set to green color
+                        shipConList[i].HealthFillImage.fillAmount = 1f;
+                        shipConList[i].HealthFillImage.color = Color.green;
                     }
                 }
-                healthbarGO.SetActive(false);
+
+                healthbarGO.SetActive(false); // Start hidden until warp-in completes
                 healthbarRenderers.Add(healthbarGO);
-                healthbarGO.AddComponent<BillboardCameraCombat>();
+
+                // ✅ Add billboard component to face camera
+                var billboard = healthbarGO.GetComponent<BillboardCameraCombat>();
+                if (billboard == null)
+                {
+                    billboard = healthbarGO.AddComponent<BillboardCameraCombat>();
+                }
+
+                Debug.Log($"  ✅ Created health bar for {shipConList[i].ShipData.ShipName}");
                 GameObject shipGameOb = shipConList[i].gameObject;
                 shipGameOb.transform.SetPositionAndRotation(new Vector3(0, 0, 0),
                     Quaternion.Euler(0, 0, 0)); // 90 * side1negSide2pos, 0));
@@ -644,7 +698,20 @@ namespace BOTF3D.Combat
                 shipConList[i].SetWeaponPrefabs(); // Set the weapon prefabs for the ship controller
             }
         }
+        /// <summary>
+        /// Sets the layer of a GameObject and all its children recursively
+        /// </summary>
+        private void SetLayerRecursively(GameObject obj, int layer)
+        {
+            if (obj == null) return;
 
+            obj.layer = layer;
+
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
+        }
         private void SetLocalTransportPosition(GameObject shipGameOb, int indexTrans, List<Vector2Int> spiralPositions)
         {
             shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexTrans].x * 100, spiralPositions[indexTrans].y * 100);

@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1526668811385938295}
   - component: {fileID: 5210347203216739679}
-  - component: {fileID: 2655641527841352413}
   - component: {fileID: -9011507843168755453}
   - component: {fileID: -916000497248824174}
   m_Layer: 0
@@ -37,7 +36,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!120 &5210347203216739679
 LineRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -56,6 +55,8 @@ LineRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -77,9 +78,11 @@ LineRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Positions:
   - {x: 0, y: 0, z: 0}
   - {x: 0, y: 0, z: 1}
@@ -135,21 +138,12 @@ LineRenderer:
     numCapVertices: 0
     alignment: 0
     textureMode: 0
-    textureScale: {x: 0.1, y: 0.1}
+    textureScale: {x: 1, y: 1}
     shadowBias: 0.5
     generateLightingData: 0
-  m_MaskInteraction: 0
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 0
---- !u!33 &2655641527841352413
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9124248098745324454}
-  m_Mesh: {fileID: -8429869004850668383, guid: 200687b3df498bd46be048dadb383ad0, type: 3}
 --- !u!114 &-9011507843168755453
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -162,13 +156,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c38117f47fa4f24f9fcd1f9655a67f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  weaponData: {fileID: 0}
   LineRenderer: {fileID: 0}
   TargetTransform: {fileID: 0}
   WeaponTransform: {fileID: 0}
   _weaponAndTargetTrans:
   - {fileID: 0}
   - {fileID: 0}
-  BeamDamage: 0
 --- !u!82 &-916000497248824174
 AudioSource:
   m_ObjectHideFlags: 0
@@ -179,7 +173,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 97fc0e251bc73a84ea04f86f75437c54, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 97fc0e251bc73a84ea04f86f75437c54, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 0.25

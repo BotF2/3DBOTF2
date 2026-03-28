@@ -3560,6 +3560,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 331937021}
   m_CullTransparentMesh: 1
+--- !u!1 &342226117
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 342226119}
+  - component: {fileID: 342226118}
+  m_Layer: 0
+  m_Name: Post Processing Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &342226118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 342226117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: cdffe16343cc464458ebe6e017fc3ded, type: 2}
+--- !u!4 &342226119
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 342226117}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &343267747
 GameObject:
   m_ObjectHideFlags: 0
@@ -10400,6 +10449,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b59ff35f20b77ed4eb7ba0a77ff56f8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.CombatUIManager
+  CurrentCombatController: {fileID: 0}
+  CivEnumLocalPlayer: 0
 --- !u!4 &959440484
 Transform:
   m_ObjectHideFlags: 0
@@ -23691,3 +23742,4 @@ SceneRoots:
   - {fileID: 2039240825}
   - {fileID: 1071754289}
   - {fileID: 1795242872}
+  - {fileID: 342226119}
