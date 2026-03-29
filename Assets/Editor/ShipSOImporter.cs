@@ -1,14 +1,11 @@
-using BOTF3D.Core;
+﻿using BOTF3D.Core;
 using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-
 public class ShipSOImporter : EditorWindow
 {
-    //#if UNITY_EDITOR
-
     [MenuItem("Tools/Import ShipSO CSV")]
     public static void ShowWindow()
     {
@@ -24,7 +21,6 @@ public class ShipSOImporter : EditorWindow
 
         if (GUILayout.Button("Import CSV"))
         {
-            //Output the Game data path to the console
             Debug.Log("dataPath : " + Application.dataPath);
             ImportCSV(filePath);
         }
@@ -32,6 +28,8 @@ public class ShipSOImporter : EditorWindow
 
     private static void ImportCSV(string filePath)
     {
+        Debug.Log("=== ImportCSV START ===");
+
         if (!File.Exists(filePath))
         {
             Debug.LogError("File not found: " + filePath);
@@ -39,31 +37,84 @@ public class ShipSOImporter : EditorWindow
         }
 
         string[] lines = File.ReadAllLines(filePath);
+        Debug.Log($"  Read {lines.Length} lines from CSV");
+
+        int importedCount = 0;
+        int skippedCount = 0;
 
         foreach (string line in lines)
         {
+            if (line.StartsWith("ShipName") || string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
             string[] fields = line.Split(',');
-            string assetPath = " ";
+            Debug.Log($"  Processing line: {fields[0]}");
+            string assetPath = "";
 
             if (fields.Length > 8) // Ensure there are enough fields
             {
                 ShipSO shipSO = CreateInstance<ShipSO>();
-                shipSO.ShipName = fields[0];
-                shipSO.shipSprite = Resources.Load<Sprite>("Ships/" + shipSO.ShipName);
-                if (shipSO.shipSprite != null) { }
-                else shipSO.shipSprite = Resources.Load<Sprite>("Ships/DEFAULT");
+                shipSO.ShipName = fields[0].Trim();
+
+                string spritePath = $"Assets/Art/Ships/{shipSO.ShipName}.png";
+                shipSO.shipSprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+
+                if (shipSO.shipSprite == null)
+                {
+                    spritePath = $"Assets/Art/Ships/{shipSO.ShipName}(CLONE).png";
+                    shipSO.shipSprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                }
+
+                if (shipSO.shipSprite == null)
+                {
+                    // Fallback to default
+                    spritePath = "Assets/Art/Ships/DEFAULT.png";
+                    shipSO.shipSprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                    Debug.LogWarning($"  ⚠️ Sprite not found for '{shipSO.ShipName}' - using DEFAULT");
+                }
+                else
+                {
+                    Debug.Log($"  ✅ Loaded sprite: {spritePath}");
+                }
+
                 string[] data = shipSO.ShipName.Split("_");
                 shipSO.CivEnum = GetMyCivEnum(data[0]);
                 shipSO.TechLevel = GetMyTechLevel(data[2], out TechLevel st);
                 shipSO.ShipType = GetMyShipClass(data[1]);
+
+                // Remove (CLONE) from name if present
+                // ✅ Add detailed FBX loading logs
+                string fbxBaseName = shipSO.ShipName.Replace("(CLONE)", "").Replace("(Clone)", "").Trim();
+                Debug.Log($"    Looking for FBX: {fbxBaseName}");
+
+                string fbxPath = $"Assets/FBX/{fbxBaseName}.fbx";
+                Debug.Log($"    Trying path: {fbxPath}");
+
+                shipSO.ShipFBX_ModelAsGOPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+
+                if (shipSO.ShipFBX_ModelAsGOPrefab == null)
+                {
+                    Debug.LogWarning($" Use default FBX   ❌ NOT FOUND at: {fbxPath}");
+                    fbxPath = $"Assets/FBX/FED_DESTROYER.fbx";
+                    shipSO.ShipFBX_ModelAsGOPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+                }
+
+                if (shipSO.ShipFBX_ModelAsGOPrefab != null)
+                {
+                    Debug.Log($"    ✅ LOADED FBX: {AssetDatabase.GetAssetPath(shipSO.ShipFBX_ModelAsGOPrefab)}");
+                }
+                else
+                {
+                    Debug.LogError($"    ❌ FBX NOT FOUND for {fbxBaseName}");
+                }
+
                 shipSO.ShieldMaxHealth = int.Parse(fields[2]);
                 shipSO.HullMaxHealth = int.Parse(fields[4]);
                 shipSO.TorpedoDamage = int.Parse(fields[6]);
                 shipSO.BeamDamage = int.Parse(fields[8]);
-                // build duration does not use the csv value, currently calcuated below, consider adding in tech level factor
-                //int baseValue = 1000;
-                //shipSO.BuildDuration = int.Parse(fields[10]);
-                //shipSO.ShipDescription = fields[9]; // later we can add a description field to the csv
+
                 int civFactor = 0;
                 switch (shipSO.CivEnum)
                 {
@@ -81,10 +132,10 @@ public class ShipSOImporter : EditorWindow
                     case CivEnum.BORG:
                         civFactor = +4;
                         break;
-
                     default:
                         break;
                 }
+
                 switch (shipSO.ShipType)
                 {
                     case ShipType.Scout:
@@ -108,23 +159,38 @@ public class ShipSOImporter : EditorWindow
                     default:
                         break;
                 }
-                //shipSO.BuildDuration = int.Parse(fields[10]);
+
                 shipSO.maxWarpFactor = float.Parse(fields[11]);
-                if (shipSO.TechLevel == TechLevel.EARLY)
-                    assetPath = $"BOTF3D/SO/ShipSO_Level_0/ShipSO_{shipSO.ShipName}.asset";
-                else if (shipSO.TechLevel == TechLevel.DEVELOPED)
-                    assetPath = $"BOTF3D/SO/ShipSO_Level_1/ShipSO_{shipSO.ShipName}.asset";
-                else if (shipSO.TechLevel == TechLevel.ADVANCED)
-                    assetPath = $"BOTF3D/SO/ShipSO_Level_2/ShipSO_{shipSO.ShipName}.asset";
-                else if (shipSO.TechLevel == TechLevel.SUPREME)
-                    assetPath = $"BOTF3D/SO/ShipSO_Level_3/ShipSO_{shipSO.ShipName}.asset";
+                assetPath = $"Assets/SO/ShipSO/{shipSO.ShipName}.asset";
+
+                // ✅ CRITICAL: Create directory if it doesn't exist
+                string directoryPath = Path.GetDirectoryName(assetPath);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                    AssetDatabase.Refresh(); // Refresh so Unity sees the new folder
+                    Debug.Log($"  ✅ Created directory: {directoryPath}");
+                }
+
+                // ✅ Check if asset already exists (prevent duplicates)
+                if (AssetDatabase.LoadAssetAtPath<ShipSO>(assetPath) != null)
+                {
+                    Debug.LogWarning($"  ⚠️ Asset already exists, skipping: {assetPath}");
+                    skippedCount++;
+                    continue;
+                }
+
                 AssetDatabase.CreateAsset(shipSO, assetPath);
                 AssetDatabase.SaveAssets();
+                importedCount++;
+                Debug.Log($"  ✅ Created: {assetPath}");
             }
         }
 
-        Debug.Log("ShipSO Import Complete");
+        Debug.Log($"ShipSO Import Complete - Imported: {importedCount}, Skipped: {skippedCount}");
+        AssetDatabase.Refresh(); // Final refresh to show all new assets
     }
+
     public static CivEnum GetMyCivEnum(string title)
     {
         CivEnum st;

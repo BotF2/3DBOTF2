@@ -90,9 +90,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FleetSystemShipDrag
   originalParent: {fileID: 0}
-  FleetControllerOne: {fileID: 0}
-  FleetControllerTwo: {fileID: 0}
-  StarSysController: {fileID: 0}
   ShipType: 0
   ShipSprite: {fileID: 0}
   BuildDuration: 0
