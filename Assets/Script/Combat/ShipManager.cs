@@ -21,21 +21,14 @@ namespace BOTF3D.Core
 
         public List<ShipController> ShipControllerList = new List<ShipController>();
 
-        [Header("Ship ScriptableObjects by Tech Level")]
-        public List<ShipSO> ShipSOListTech0 = new List<ShipSO>();
-        public List<ShipSO> ShipSOListTech1 = new List<ShipSO>();
-        public List<ShipSO> ShipSOListTech2 = new List<ShipSO>();
-        public List<ShipSO> ShipSOListTech3 = new List<ShipSO>();
         //public ShipSORegistry ShipSORegistry;
         [Header("Weapon Prefabs")]
         public GameObject targetGOPrefab;
         public GameObject[] torpedoPrefabs;
         public GameObject[] beamWeaponPrefabs;
         int shipIndex = 0;
-        // ToDo these later?
-        // Pending UI items (from your existing code)
+
         private List<(ShipController shipController, GameObject uiParent)> pendingShipUIs = new List<(ShipController, GameObject)>();
-        // ToDo these later?
         [Header("Ship ScriptableObjects - Ship Templates")]
         [SerializeField] public List<ShipSO> FedShipSOList;
         [SerializeField] public List<ShipSO> RomShipSOList;
@@ -44,7 +37,8 @@ namespace BOTF3D.Core
         [SerializeField] public List<ShipSO> DomShipSOList;
         [SerializeField] public List<ShipSO> BorgShipSOList;
         [SerializeField] public List<ShipSO> TerranShipSOList;
-        // ToDo these later?
+        [SerializeField] public List<ShipSO> MinorShipSOList;
+
         [Header("Ship Prefabs")]
         [SerializeField] private ShipController galaxyShipPrefab;
 
@@ -62,12 +56,37 @@ namespace BOTF3D.Core
             if (Instance != null)
             {
                 Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+#if UNITY_EDITOR
+            // ✅ Auto-populate civ lists if empty (Editor only)
+            if (FedShipSOList.Count == 0)
+            {
+                Debug.Log("ShipManager: Auto-populating ship lists from assets...");
+                AutoPopulateShipLists();
             }
             else
             {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Debug.Log($"ShipManager: Ship lists already populated (Fed: {FedShipSOList.Count})");
             }
+#else
+    // ✅ In builds, verify lists are populated
+    int totalShips = FedShipSOList.Count + RomShipSOList.Count + KlingShipSOList.Count + 
+                     CardShipSOList.Count + DomShipSOList.Count + BorgShipSOList.Count + TerranShipSOList.Count;
+    
+    if (totalShips == 0)
+    {
+        Debug.LogError("❌ ShipManager: All ship lists are empty! Run Auto-Populate in Editor before building!");
+    }
+    else
+    {
+        Debug.Log($"✅ ShipManager: {totalShips} ships loaded across all civs");
+    }
+#endif
         }
         #region Possible AI Ship Manager for Galaxy and Combat Scenes
         //  blue print, In GalaxyScene - create ship from SO
@@ -85,6 +104,7 @@ namespace BOTF3D.Core
 
         //// After combat - sync results
         //ShipManager.Instance.SyncCombatResultsToGalaxy();
+
         public ShipSO GetShipSO(CivEnum civEnum, ShipType shipType)
         {
             List<ShipSO> shipList = GetShipSOListByCiv(civEnum);
@@ -104,9 +124,27 @@ namespace BOTF3D.Core
                 case CivEnum.DOM: return DomShipSOList;
                 case CivEnum.BORG: return BorgShipSOList;
                 case CivEnum.TERRAN: return TerranShipSOList;
-                default:
-                    Debug.LogWarning($"GetShipSOListByCiv: No ship list for {civEnum}");
-                    return new List<ShipSO>(); // Empty list
+                default: // search minor ship list for the given minor civ
+                    if (MinorShipSOList == null || MinorShipSOList.Count == 0)
+                    {
+                        Debug.LogWarning($"GetShipSOListByCiv: MinorShipSOList is empty!");
+                        return new List<ShipSO>();
+                    }
+
+                    var minorCivShips = MinorShipSOList
+                        .Where(s => s != null && s.CivEnum == civEnum)
+                        .ToList();
+
+                    if (minorCivShips.Count == 0)
+                    {
+                        Debug.LogWarning($"GetShipSOListByCiv: No ships found for minor civ {civEnum} in MinorShipSOList");
+                    }
+                    else
+                    {
+                        Debug.Log($"GetShipSOListByCiv: Found {minorCivShips.Count} ships for {civEnum}");
+                    }
+
+                    return minorCivShips;
             }
         }
         public ShipController InstantiateGalaxyShip(ShipSO shipSO, Vector3 position, CivEnum civEnum)
@@ -415,42 +453,42 @@ namespace BOTF3D.Core
             duration = aShipSO.BuildDuration;
             return duration;
         }
+        /// <summary>
+        /// Gets a specific ship by type, tech level, and civ
+        /// Uses civ-based lists for consistent lookup
+        /// </summary>
         public ShipSO GetShipSO(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
         {
-            ShipSO ourShipSO = null;
-            switch (techLevel)
+            // ✅ Get civ's ship list
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+
+            if (civShips == null || civShips.Count == 0)
             {
-                case TechLevel.EARLY:
-                    var shipSOIEnumEarly = ShipSOListTech0.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
-                    var shipSOe = shipSOIEnumEarly.ToList().FirstOrDefault();
-                    ourShipSO = shipSOe;
-                    break;
-                case TechLevel.DEVELOPED:
-                    var shipSOIEnumDeveloped = ShipSOListTech1.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
-                    var shipSOd = shipSOIEnumDeveloped.ToList().FirstOrDefault();
-                    ourShipSO = shipSOd;
-                    break;
-                case TechLevel.ADVANCED:
-                    var shipSOIEnumAdvanced = ShipSOListTech2.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
-                    var shipSOa = shipSOIEnumAdvanced.ToList().FirstOrDefault();
-                    ourShipSO = shipSOa;
-                    break;
-                case TechLevel.SUPREME:
-                    var shipSOIEnumSup = ShipSOListTech3.Where(x => x.ShipType == shipType && x.CivEnum == civEnum);
-                    var shipSOs = shipSOIEnumSup.ToList().FirstOrDefault();
-                    ourShipSO = shipSOs;
-                    break;
-                default:
-                    break;
+                Debug.LogWarning($"GetShipSO: No ships found for {civEnum}");
+                return null;
             }
-            if (ourShipSO == null)
+
+            // ✅ Find ship matching type AND tech level
+            ShipSO foundShip = civShips.FirstOrDefault(s =>
+                s.ShipType == shipType &&
+                s.TechLevel == techLevel);
+
+            if (foundShip == null)
             {
-                Debug.Log("No shipSO found for " + shipType.ToString() + " at tech level " + techLevel.ToString() + " for civ " + civEnum.ToString() + ". Returning default scout ship.");
-                var shipSOIEnumDefault = ShipSOListTech0.Where(x => x.ShipType == ShipType.Scout && x.CivEnum == civEnum);
-                var shipSOdft = shipSOIEnumDefault.ToList().FirstOrDefault();
-                ourShipSO = shipSOdft;
+                Debug.LogWarning($"GetShipSO: No {shipType} found for {civEnum} at {techLevel} - searching fallback...");
+
+                // ✅ Fallback: Try to find Scout at EARLY tech
+                foundShip = civShips.FirstOrDefault(s =>
+                    s.ShipType == ShipType.Scout &&
+                    s.TechLevel == TechLevel.EARLY);
+
+                if (foundShip != null)
+                {
+                    Debug.Log($"  ✅ Using fallback: {foundShip.ShipName}");
+                }
             }
-            return ourShipSO;
+
+            return foundShip;
         }
         public void BuildShipInSystem(ShipType shipType, StarSysController systemCon) // a destroyer for warp capable systems on game loading and shipyard during game
         {
@@ -695,7 +733,7 @@ namespace BOTF3D.Core
             // var shipCon = shipCon.GetComponent<FleetController>();
             CivEnum civEnum = fleetCon.FleetData.CivEnum;
             List<ShipSO> ships = new List<ShipSO>();
-            ships = FirstShipDateByTechLevel((int)CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
+            ships = FirstShipDataByTechLevel(CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
             List<ShipController> shipCons = new List<ShipController>();
             if (ships != null)
             {
@@ -712,59 +750,102 @@ namespace BOTF3D.Core
             }
             fleetCon.UpdateMaxWarp();
         }
-        public List<ShipSO> FirstShipDateByTechLevel(int techLevel, CivEnum civ)
+        public List<ShipSO> FirstShipDataByTechLevel(TechLevel techLevel, CivEnum civ)
         {
-            List<ShipSO> listOfShipSOs = new List<ShipSO>();
-            switch (techLevel)
+            List<ShipSO> allCivShips = GetShipSOListByCiv(civ);
+
+            if (allCivShips == null || allCivShips.Count == 0)
             {
-                case 100:// early
-                    foreach (var shipSO in ShipSOListTech0)
-                    {
-                        if (shipSO.CivEnum == civ)
-                        {
-                            listOfShipSOs.Add(shipSO);
-                        }
-                    }
-                    break;
-                case 300: // developed
-                    foreach (var shipSO in ShipSOListTech1)
-                    {
-                        if (shipSO.CivEnum == civ)
-                        {
-                            listOfShipSOs.Add(shipSO);
-                        }
-                    }
-                    break;
-                case 600: // advanced
-                    foreach (var shipSO in ShipSOListTech2)
-                    {
-                        if (shipSO.CivEnum == civ)
-                        {
-                            listOfShipSOs.Add(shipSO);
-                        }
-                    }
-                    break;
-                case 900: // supreme
-                    foreach (var shipSO in ShipSOListTech3)
-                    {
-                        if (shipSO.CivEnum == civ)
-                        {
-                            listOfShipSOs.Add(shipSO);
-                        }
-                    }
-                    break;
-                default:
-                    foreach (var shipSO in ShipSOListTech0)
-                    {
-                        if (shipSO.CivEnum == civ)
-                        {
-                            listOfShipSOs.Add(shipSO);
-                        }
-                    }
-                    ;
-                    break;
+                Debug.LogWarning($"FirstShipDataByTechLevel: No ships found for {civ}");
+                return new List<ShipSO>();
             }
-            return listOfShipSOs;
+
+            // ✅ Filter by tech level first (remove nulls too)
+            var techLevelShips = allCivShips
+                .Where(s => s != null && s.TechLevel == techLevel)
+                .ToList();
+
+            if (techLevelShips.Count == 0)
+            {
+                Debug.LogWarning($"FirstShipDataByTechLevel: No ships found for {civ} at {techLevel}");
+                return new List<ShipSO>();
+            }
+
+            // ✅ Check if this is a MAJOR race (FED through TERRAN get 3 ships)
+            bool isMajorRace = civ >= CivEnum.FED && civ <= CivEnum.TERRAN;
+
+            if (isMajorRace)
+            {
+                // ✅ MAJOR RACES get THREE ships: Destroyer, Scout, Transport
+                List<ShipSO> startingFleetShipList = new List<ShipSO>();
+
+                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
+                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
+                ShipSO transport = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Transport);
+
+                if (destroyer != null)
+                {
+                    startingFleetShipList.Add(destroyer);
+                    Debug.Log($"  ✅ Added destroyer '{destroyer.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No destroyer found for {civ} at {techLevel}");
+                }
+
+                if (scout != null)
+                {
+                    startingFleetShipList.Add(scout);
+                    Debug.Log($"  ✅ Added scout '{scout.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No scout found for {civ} at {techLevel}");
+                }
+
+                if (transport != null)
+                {
+                    startingFleetShipList.Add(transport);
+                    Debug.Log($"  ✅ Added transport '{transport.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No transport found for {civ} at {techLevel}");
+                }
+
+                if (startingFleetShipList.Count == 0)
+                {
+                    Debug.LogError($"❌ FirstShipDataByTechLevel: Could not find ANY starting ships for major race {civ}!");
+                }
+                else
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: {civ} starting fleet has {startingFleetShipList.Count} ships");
+                }
+
+                return startingFleetShipList;
+            }
+            else
+            {
+                // ✅ MINOR RACES get ONE ship: Destroyer (or Scout as fallback)
+                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
+
+                if (destroyer != null)
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: Minor race {civ} gets destroyer '{destroyer.ShipName}'");
+                    return new List<ShipSO> { destroyer };
+                }
+
+                // Fallback to scout if no destroyer
+                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
+                if (scout != null)
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: Minor race {civ} gets scout '{scout.ShipName}' (no destroyer found)");
+                    return new List<ShipSO> { scout };
+                }
+
+                Debug.LogError($"❌ FirstShipDataByTechLevel: Minor race {civ} has no destroyer or scout at {techLevel}!");
+                return new List<ShipSO>();
+            }
         }
 
         internal void RemoveShipControllerFromList(ShipController shipCon)
@@ -897,10 +978,19 @@ namespace BOTF3D.Core
                 return new List<ShipSO>();
             }
 
-            // Filter by tech level
+            // ✅ CRITICAL: Remove null entries before filtering
+            allCivShips = allCivShips.Where(s => s != null).ToList();
+
+            if (allCivShips.Count == 0)
+            {
+                Debug.LogError($"GetShipSOsForCivAndTech: All ships in {civ} list are NULL!");
+                return new List<ShipSO>();
+            }
+
+            // ✅ Now safe to filter by tech level
             var filtered = allCivShips.Where(s => s.TechLevel == techLevel).ToList();
 
-            Debug.Log($"GetShipSOsForCivAndTech: Found {filtered.Count} ships for {civ} at {techLevel}");
+            Debug.Log($"GetShipSOsForCivAndTech: Found {filtered.Count}/{allCivShips.Count} ships for {civ} at {techLevel}");
             return filtered;
         }
 
@@ -921,5 +1011,178 @@ namespace BOTF3D.Core
             // Get a default model;
             return GetShipSO(ShipType.Destroyer, TechLevel.EARLY, CivEnum.FED);
         }
+#if UNITY_EDITOR
+        [ContextMenu("Auto-Populate Ship Lists from Assets")]
+        private void AutoPopulateShipLists()
+        {
+            Debug.Log("=== Auto-Populating Ship Lists ===");
+
+            // Clear existing lists
+            FedShipSOList.Clear();
+            RomShipSOList.Clear();
+            KlingShipSOList.Clear();
+            CardShipSOList.Clear();
+            DomShipSOList.Clear();
+            BorgShipSOList.Clear();
+            TerranShipSOList.Clear();
+            MinorShipSOList.Clear();
+
+            // ✅ Load ALL ShipSO assets from entire project
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:ShipSO");
+
+            Debug.Log($"  Found {guids.Length} ShipSO assets to process");
+
+            foreach (string guid in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+                ShipSO shipSO = UnityEditor.AssetDatabase.LoadAssetAtPath<ShipSO>(path);
+
+                // ✅ CRITICAL: Skip if asset failed to load
+                if (shipSO == null)
+                {
+                    Debug.LogWarning($"  ⚠️ Failed to load ShipSO at path: {path}");
+                    continue;
+                }
+
+                // Add to appropriate civ list
+                switch (shipSO.CivEnum)
+                {
+                    case CivEnum.FED:
+                        if (!FedShipSOList.Contains(shipSO))
+                        {
+                            FedShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to FedShipSOList");
+                        }
+                        break;
+                    case CivEnum.ROM:
+                        if (!RomShipSOList.Contains(shipSO))
+                        {
+                            RomShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to RomShipSOList");
+                        }
+                        break;
+                    case CivEnum.KLING:
+                        if (!KlingShipSOList.Contains(shipSO))
+                        {
+                            KlingShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to KlingShipSOList");
+                        }
+                        break;
+                    case CivEnum.CARD:
+                        if (!CardShipSOList.Contains(shipSO))
+                        {
+                            CardShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to CardShipSOList");
+                        }
+                        break;
+                    case CivEnum.DOM:
+                        if (!DomShipSOList.Contains(shipSO))
+                        {
+                            DomShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to DomShipSOList");
+                        }
+                        break;
+                    case CivEnum.BORG:
+                        if (!BorgShipSOList.Contains(shipSO))
+                        {
+                            BorgShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to BorgShipSOList");
+                        }
+                        break;
+                    case CivEnum.TERRAN:
+                        if (!TerranShipSOList.Contains(shipSO))
+                        {
+                            TerranShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to TerranShipSOList");
+                        }
+                        break;
+                    default:
+                        if (!MinorShipSOList.Contains(shipSO))
+                        {
+                            MinorShipSOList.Add(shipSO);
+                            Debug.Log($"  ✅ Added {shipSO.ShipName} to MinorShipSOList");
+                        }
+                        Debug.LogWarning($"  ⚠️ Unknown CivEnum '{shipSO.CivEnum}' for {shipSO.ShipName}"); break;
+                }
+            }
+
+            // ✅ Sort lists by tech level, then ship type
+            FedShipSOList = FedShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            RomShipSOList = RomShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            KlingShipSOList = KlingShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            CardShipSOList = CardShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            DomShipSOList = DomShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            BorgShipSOList = BorgShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            TerranShipSOList = TerranShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+            MinorShipSOList = MinorShipSOList.OrderBy(s => s.TechLevel).ThenBy(s => s.ShipType).ToList();
+
+            Debug.Log("=== Auto-Populate Complete ===");
+            Debug.Log($"  Fed: {FedShipSOList.Count} ships");
+            Debug.Log($"  Rom: {RomShipSOList.Count} ships");
+            Debug.Log($"  Kling: {KlingShipSOList.Count} ships");
+            Debug.Log($"  Card: {CardShipSOList.Count} ships");
+            Debug.Log($"  Dom: {DomShipSOList.Count} ships");
+            Debug.Log($"  Borg: {BorgShipSOList.Count} ships");
+            Debug.Log($"  Terran: {TerranShipSOList.Count} ships");
+            Debug.Log($"  Minor: {MinorShipSOList.Count} ships");
+
+            // ✅ Mark as dirty so Unity saves the changes
+            UnityEditor.EditorUtility.SetDirty(this);
+            UnityEditor.AssetDatabase.SaveAssets();
+        }
+
+        [ContextMenu("Debug: Check for Null Entries in Ship Lists")]
+        private void DebugCheckNullEntries()
+        {
+            Debug.Log("=== Checking Ship Lists for Null Entries ===");
+
+            CheckListForNulls("FedShipSOList", FedShipSOList);
+            CheckListForNulls("RomShipSOList", RomShipSOList);
+            CheckListForNulls("KlingShipSOList", KlingShipSOList);
+            CheckListForNulls("CardShipSOList", CardShipSOList);
+            CheckListForNulls("DomShipSOList", DomShipSOList);
+            CheckListForNulls("BorgShipSOList", BorgShipSOList);
+            CheckListForNulls("TerranShipSOList", TerranShipSOList);
+            CheckListForNulls("MinorShipSOList", MinorShipSOList);
+
+            Debug.Log("=== Check Complete ===");
+        }
+
+        private void CheckListForNulls(string listName, List<ShipSO> list)
+        {
+            if (list == null)
+            {
+                Debug.LogError($"  ❌ {listName} is NULL (not initialized)!");
+                return;
+            }
+
+            int nullCount = 0;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == null)
+                {
+                    Debug.LogError($"  ❌ {listName}[{i}] is NULL!");
+                    nullCount++;
+                }
+            }
+
+            if (nullCount > 0)
+            {
+                Debug.LogWarning($"  {listName}: {nullCount}/{list.Count} entries are null!");
+            }
+            else if (list.Count == 0)
+            {
+                Debug.LogWarning($"  ⚠️ {listName}: List is EMPTY!");
+            }
+            else
+            {
+                Debug.Log($"  ✅ {listName}: All {list.Count} entries are valid");
+            }
+        }
+#endif
     }
 }
+
+
+
