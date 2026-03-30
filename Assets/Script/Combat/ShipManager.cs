@@ -64,14 +64,14 @@ namespace BOTF3D.Core
 
 #if UNITY_EDITOR
             // ✅ Auto-populate civ lists if empty (Editor only)
-            if (FedShipSOList.Count == 0 || RomShipSOList.Count == 0)
+            if (FedShipSOList.Count == 0)
             {
                 Debug.Log("ShipManager: Auto-populating ship lists from assets...");
                 AutoPopulateShipLists();
             }
             else
             {
-                Debug.Log($"ShipManager: Ship lists already populated (Fed: {FedShipSOList.Count}, Rom: {RomShipSOList.Count})");
+                Debug.Log($"ShipManager: Ship lists already populated (Fed: {FedShipSOList.Count})");
             }
 #else
     // ✅ In builds, verify lists are populated
@@ -124,10 +124,27 @@ namespace BOTF3D.Core
                 case CivEnum.DOM: return DomShipSOList;
                 case CivEnum.BORG: return BorgShipSOList;
                 case CivEnum.TERRAN: return TerranShipSOList;
+                default: // search minor ship list for the given minor civ
+                    if (MinorShipSOList == null || MinorShipSOList.Count == 0)
+                    {
+                        Debug.LogWarning($"GetShipSOListByCiv: MinorShipSOList is empty!");
+                        return new List<ShipSO>();
+                    }
 
-                default:
-                    Debug.LogWarning($"GetShipSOListByCiv: No ship list for {civEnum}");
-                    return MinorShipSOList;
+                    var minorCivShips = MinorShipSOList
+                        .Where(s => s != null && s.CivEnum == civEnum)
+                        .ToList();
+
+                    if (minorCivShips.Count == 0)
+                    {
+                        Debug.LogWarning($"GetShipSOListByCiv: No ships found for minor civ {civEnum} in MinorShipSOList");
+                    }
+                    else
+                    {
+                        Debug.Log($"GetShipSOListByCiv: Found {minorCivShips.Count} ships for {civEnum}");
+                    }
+
+                    return minorCivShips;
             }
         }
         public ShipController InstantiateGalaxyShip(ShipSO shipSO, Vector3 position, CivEnum civEnum)
@@ -735,7 +752,6 @@ namespace BOTF3D.Core
         }
         public List<ShipSO> FirstShipDataByTechLevel(TechLevel techLevel, CivEnum civ)
         {
-            // ✅ Use civ-based list, filter by tech
             List<ShipSO> allCivShips = GetShipSOListByCiv(civ);
 
             if (allCivShips == null || allCivShips.Count == 0)
@@ -744,14 +760,92 @@ namespace BOTF3D.Core
                 return new List<ShipSO>();
             }
 
-            // ✅ Filter by tech level
-            List<ShipSO> filteredShips = allCivShips
-                .Where(s => s.TechLevel == techLevel)
+            // ✅ Filter by tech level first (remove nulls too)
+            var techLevelShips = allCivShips
+                .Where(s => s != null && s.TechLevel == techLevel)
                 .ToList();
 
-            Debug.Log($"FirstShipDataByTechLevel: Found {filteredShips.Count} ships for {civ} at tech level {techLevel} ({techLevel})");
+            if (techLevelShips.Count == 0)
+            {
+                Debug.LogWarning($"FirstShipDataByTechLevel: No ships found for {civ} at {techLevel}");
+                return new List<ShipSO>();
+            }
 
-            return filteredShips;
+            // ✅ Check if this is a MAJOR race (FED through TERRAN get 3 ships)
+            bool isMajorRace = civ >= CivEnum.FED && civ <= CivEnum.TERRAN;
+
+            if (isMajorRace)
+            {
+                // ✅ MAJOR RACES get THREE ships: Destroyer, Scout, Transport
+                List<ShipSO> startingFleetShipList = new List<ShipSO>();
+
+                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
+                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
+                ShipSO transport = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Transport);
+
+                if (destroyer != null)
+                {
+                    startingFleetShipList.Add(destroyer);
+                    Debug.Log($"  ✅ Added destroyer '{destroyer.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No destroyer found for {civ} at {techLevel}");
+                }
+
+                if (scout != null)
+                {
+                    startingFleetShipList.Add(scout);
+                    Debug.Log($"  ✅ Added scout '{scout.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No scout found for {civ} at {techLevel}");
+                }
+
+                if (transport != null)
+                {
+                    startingFleetShipList.Add(transport);
+                    Debug.Log($"  ✅ Added transport '{transport.ShipName}' to {civ} starting fleet");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ⚠️ No transport found for {civ} at {techLevel}");
+                }
+
+                if (startingFleetShipList.Count == 0)
+                {
+                    Debug.LogError($"❌ FirstShipDataByTechLevel: Could not find ANY starting ships for major race {civ}!");
+                }
+                else
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: {civ} starting fleet has {startingFleetShipList.Count} ships");
+                }
+
+                return startingFleetShipList;
+            }
+            else
+            {
+                // ✅ MINOR RACES get ONE ship: Destroyer (or Scout as fallback)
+                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
+
+                if (destroyer != null)
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: Minor race {civ} gets destroyer '{destroyer.ShipName}'");
+                    return new List<ShipSO> { destroyer };
+                }
+
+                // Fallback to scout if no destroyer
+                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
+                if (scout != null)
+                {
+                    Debug.Log($"✅ FirstShipDataByTechLevel: Minor race {civ} gets scout '{scout.ShipName}' (no destroyer found)");
+                    return new List<ShipSO> { scout };
+                }
+
+                Debug.LogError($"❌ FirstShipDataByTechLevel: Minor race {civ} has no destroyer or scout at {techLevel}!");
+                return new List<ShipSO>();
+            }
         }
 
         internal void RemoveShipControllerFromList(ShipController shipCon)
