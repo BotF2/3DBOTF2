@@ -22,24 +22,63 @@ namespace BOTF3D.Core
         public int Population = 5;
         // public int Credits = 100;
         public int TechPoints = 10; // 10 for pre warp and playable get 90 more to be tech level early at 100; 
-        public TechLevel TechLevel; // all cis have tech points and the tech level enum value sets a level threshold
+        public TechLevel TechLevel = TechLevel.EARLY; // all cis have tech points and the tech level enum value sets a level threshold
         public bool Playable;
         public bool PlayedByAI = true;
         public CivEnum LocalPlayerCivEnum;
         public bool HasWarp;
         public string Decription = "We are the Borg";
-        public List<StarSysController> StarSysOwned;
+        public List<StarSysController> StarSysWeOwn;
         //public List<CivController> CivControllersWeKnow;
         //public List<CivEnum> CivEnumsWeKnow;
         //public float TaxRate; // universal or variable by civ/system??
         //public float GrowthRate; // universal or variable by civ/system??
         public float IntelPoints;
+        private object SystemsOwned;
 
         //public void AddToCivControllersWeKnow(CivController civControllerWeFound)
         //{
         //    CivControllersWeKnow.Add(civControllerWeFound);
         //    CivEnumsWeKnow.Add(civControllerWeFound.CivData.CivEnum);
         //}
+        /// <summary>
+        /// Get power efficiency multiplier based on tech level
+        /// </summary>
+        public float GetPowerTechMultiplier()
+        {
+            switch (TechLevel)
+            {
+                case TechLevel.EARLY: return 1.0f;
+                case TechLevel.DEVELOPED: return 1.2f;
+                case TechLevel.ADVANCED: return 1.5f;
+                case TechLevel.SUPREME: return 2f;  // Advanced antimatter
+
+                default: return 1.0f;
+            }
+        }
+        /// <summary>
+        /// Calculate total power output across all owned systems
+        /// </summary>
+        public float CalculateTotalEmpirePower()
+        {
+            float totalPower = 0f;
+            float techMultiplier = GetPowerTechMultiplier();
+
+            // Loop through all owned systems
+            var civController = CivManager.Instance?.GetCivControllerByCivEnum(CivEnum);
+            if (civController?.CivData?.StarSysWeOwn != null)
+            {
+                foreach (var system in civController.CivData.StarSysWeOwn)
+                {
+                    if (system?.StarSysData != null)
+                    {
+                        totalPower += system.StarSysData.CalculateTotalPower(techMultiplier);
+                    }
+                }
+            }
+
+            return totalPower;
+        }
     }
 }
 

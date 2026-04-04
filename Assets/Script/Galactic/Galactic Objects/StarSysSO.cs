@@ -1,14 +1,10 @@
 using BOTF3D.Core;
 using UnityEngine;
-using UnityEngine.UI;
 
 [CreateAssetMenu(menuName = "Galaxy/StarSysSO")]
 public class StarSysSO : ScriptableObject
 {
     public int StarSysInt;
-    //public int _x;
-    //public int _y;
-    //public int _z;
     public Vector3 Position;
     public string SysName;
     public CivEnum FirstOwner;
@@ -19,7 +15,7 @@ public class StarSysSO : ScriptableObject
     public int PopulationLimit;
     public int Farms;
     public int PowerStations;
-    public int Factories;  
+    public int Factories;
     public int ResearchCenters;
     public int Shipyards;
     public int ShieldGenerators;
@@ -32,4 +28,7 @@ public class StarSysSO : ScriptableObject
     public Sprite shieldSprite;
     public Sprite orbitalSprite;
     public Sprite researchCenterSprite;
+    internal bool IsHomeworld;
+    internal bool Habitable;
+    internal bool Terraformable;
 }

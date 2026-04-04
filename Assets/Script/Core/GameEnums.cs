@@ -305,12 +305,12 @@ namespace BOTF3D.Core
         OmarianNebula,
         OrionNebula,
         UniComplex,
-        Station,
-        TargetDestination,
+        Station,// this and above isHabitable = true
+        TargetDestination,// isHabitable = false
         UnknownFleet,
         Fleet,
-        BlackHole,
-        WormHole,
+        BlackHole,// isHabitable = false
+        WormHole,// isHabitable = false
         SomeBadAssGalacticObject,
     }
     public enum SystemOnOffButtons

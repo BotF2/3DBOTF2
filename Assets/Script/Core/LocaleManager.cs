@@ -37,10 +37,52 @@ namespace BOTF3D.Core
 
         private void Start()
         {
-            // ✅ Set default language (English) at startup
-            SetLanguageByCode(currentLanguageCode);
+            SetLanguageByCode("en"); // or whatever you're using
+            StartCoroutine(InitializeLocalization());
         }
+        /// <summary>
+        /// Wait for Unity Localization to initialize
+        /// </summary>
+        private System.Collections.IEnumerator InitializeLocalization()
+        {
+            Debug.Log("LocaleManager: Waiting for Localization to initialize...");
 
+            // ✅ Wait for initialization
+            yield return LocalizationSettings.InitializationOperation;
+
+            // ✅ Check if initialization succeeded
+            if (LocalizationSettings.InitializationOperation.IsDone)
+            {
+                if (LocalizationSettings.SelectedLocale != null)
+                {
+                    Debug.Log($"✅ Localization initialized: {LocalizationSettings.SelectedLocale.Identifier.Code}");
+                }
+                else
+                {
+                    Debug.LogWarning("⚠️ Localization initialized but no locale selected - using default");
+                    TrySetDefaultLocale();
+                }
+            }
+            else
+            {
+                Debug.LogError("❌ Localization failed to initialize - disabling localized text");
+            }
+        }
+        /// <summary>
+        /// Try to set a default locale if none is selected
+        /// </summary>
+        private void TrySetDefaultLocale()
+        {
+            if (LocalizationSettings.AvailableLocales.Locales.Count > 0)
+            {
+                LocalizationSettings.SelectedLocale = LocalizationSettings.AvailableLocales.Locales[0];
+                Debug.Log($"  Set default locale to: {LocalizationSettings.SelectedLocale.Identifier.Code}");
+            }
+            else
+            {
+                Debug.LogError("  ❌ No locales available! Build Addressables for Localization.");
+            }
+        }
         /// <summary>
         /// Changes the game language to the specified locale.
         /// </summary>
@@ -79,7 +121,28 @@ namespace BOTF3D.Core
                 Debug.LogError($"LocaleManager: Could not find locale for code '{code}'");
             }
         }
+        /// <summary>
+        /// Change the current language
+        /// </summary>
+        public void SetLocale(string localeCode)
+        {
+            if (LocalizationSettings.SelectedLocale == null)
+            {
+                Debug.LogError("Cannot change locale - localization not initialized");
+                return;
+            }
 
+            var locale = LocalizationSettings.AvailableLocales.GetLocale(localeCode);
+            if (locale != null)
+            {
+                LocalizationSettings.SelectedLocale = locale;
+                Debug.Log($"Changed locale to: {localeCode}");
+            }
+            else
+            {
+                Debug.LogWarning($"Locale '{localeCode}' not found");
+            }
+        }
         /// <summary>
         /// Gets a Locale by ISO language code.
         /// </summary>

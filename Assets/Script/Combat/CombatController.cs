@@ -1089,9 +1089,9 @@ namespace BOTF3D.Combat
                 NetworkClient.localPlayer.GetComponent<IPlayerController>().GiveCombatOrder(order, this, civEnumLocalPlayer);
             else if (GameController.Instance.GameData.GameMode == GameMode.SINGLEPLAYER)
             {
-                var aiPlayer = PlayerManager.Instance.AllPlayerControllers.Find(p => p is AiPlayerController && (p as AiPlayerController));
-                if (aiPlayer != null)
-                    aiPlayer.GiveCombatOrder(order, this, aiPlayer.PlayerCiv);
+                //var aiPlayer = PlayerManager.Instance.AllPlayerControllers.Find(p => p is AiPlayerController && (p as AiPlayerController));
+                //if (aiPlayer != null)
+                //    aiPlayer.GiveCombatOrder(order, this, aiPlayer.PlayerCiv);
             }
         }
 

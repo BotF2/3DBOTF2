@@ -60,7 +60,7 @@ namespace BOTF3D.UI
         {
             sysCon.StarSysData.CurrentOwnerCivEnum = civCon.CivData.CivEnum;
 
-            civCon.CivData.StarSysOwned.Add(starSysController);
+            civCon.CivData.StarSysWeOwn.Add(starSysController);
             sysCurrentOwnerNameTMP.text = civCon.CivData.CivShortName;
             starSysController.StarSysData.CurrentCivController = civCon;
         }

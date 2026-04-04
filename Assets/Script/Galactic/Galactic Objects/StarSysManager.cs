@@ -362,7 +362,11 @@ namespace BOTF3D.Core
             fogObsticleTransform.SetParent(galaxyCenter.transform, false);
             fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));
             starSysCon.name = sysData.GetSysName();
-
+            // ✅ Set Dilithium Capacity based on system type
+            sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
+            sysData.TotalSysPowerLoad = 0; // Will be updated as facilities are added
+            sysData.TotalSysPowerOutput = 0;
+            sysData.CurrentPowerPlantCount = 0; // Will be set when power plants are added
             starSysCon.StarSysData.ShipsList.Clear();
             sysData.SysGameObject = starSysCon.gameObject;
 
@@ -416,7 +420,6 @@ namespace BOTF3D.Core
 
             Debug.Log($"  ✅ System created: {starSysCon.name}, total systems: {StarSysControllerList.Count}");
 
-            // ✅ FIXED: Call InstantiateStarSysUI to create the system's main UI panel
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
                 InstantiateStarSysUI(starSysCon); // ✅ Creates system UI panel with ship list
@@ -438,7 +441,17 @@ namespace BOTF3D.Core
             }
             if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
             {
-                sysData.PowerPlants = AddSystemFacilities(starSysSO.PowerStations, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+                // ✅ MODIFIED: Use Dilithium capacity to limit starting power plants
+                int startingPowerPlants = DetermineStartingPowerPlants(civSO, sysData.DilithiumCapacity);
+
+                sysData.PowerPlants = AddSystemFacilities(
+                    startingPowerPlants,
+                    PowerPlantPrefab,
+                    (int)starSysCon.StarSysData.CurrentOwnerCivEnum,
+                    1,
+                    starSysCon);
+                // ✅ Update count
+                sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
@@ -461,7 +474,53 @@ namespace BOTF3D.Core
                 localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
             }
         }
+        /// <summary>
+        /// Determine Dilithium capacity based on system type and owner
+        /// </summary>
+        private int DetermineDilithiumCapacity(CivSO civSO, StarSysSO starSysSO)
+        {
+            // ✅ Major race homeworlds
+            if (civSO.Playable && starSysSO.IsHomeworld)
+            {
+                return 3; // Federation, Romulan, Klingon, etc. homeworlds
+            }
 
+            // ✅ Minor race systems
+            if (!civSO.Playable && civSO.HasWarp)
+            {
+                // 70% get capacity 1-2, 30% get capacity 3
+                float roll = UnityEngine.Random.value;
+                if (roll < 0.40f) return 1;
+                if (roll < 0.70f) return 2;
+                return 3;
+            }
+
+            // ✅ Colonizable/Terraformable systems
+            if (starSysSO.Habitable || starSysSO.Terraformable)
+            {
+                // Based on planet quality (you can expand this)
+                float roll = UnityEngine.Random.value;
+                if (roll < 0.50f) return 1;
+                if (roll < 0.85f) return 2;
+                return 3;
+            }
+
+            // ✅ Non-habitable systems
+            return 0;
+        }
+        /// <summary>
+        /// Determine starting power plants (always 1 for warp-capable, 0 otherwise)
+        /// </summary>
+        private int DetermineStartingPowerPlants(CivSO civSO, int dilithiumCapacity)
+        {
+            if (dilithiumCapacity == 0)
+                return 0;
+
+            if (civSO.HasWarp)
+                return 1; // All warp-capable civs start with 1 power plant
+
+            return 0; // Non-warp systems start with 0
+        }
         private void SetParentForFacilities(GameObject parent, StarSysData starSysData)
         {
             foreach (var go in starSysData.PowerPlants)
@@ -549,7 +608,7 @@ namespace BOTF3D.Core
                     newFacilityGO.SetActive(false);
                     factoryData.SysGameObject = newFacilityGO;
                     returnList.Add(newFacilityGO);
-                    sysController.StarSysData.TotalSysPowerLoad += factoryData.PowerLoad;
+                    //sysController.StarSysData.TotalSysPowerLoad += factoryData.PowerLoad;
                 }
             }
             else if (prefab == ShipyardPrefab)
@@ -577,7 +636,7 @@ namespace BOTF3D.Core
                     newFacilityGO.SetActive(false);
                     syData.SysGameObject = newFacilityGO;
                     returnList.Add(newFacilityGO);
-                    sysController.StarSysData.TotalSysPowerLoad += syData.PowerLoad;
+                    //sysController.StarSysData.TotalSysPowerLoad += syData.PowerLoad;
                 }
             }
             else if (prefab == ShieldGeneratorPrefab)
@@ -605,7 +664,7 @@ namespace BOTF3D.Core
                     newFacilityGO.SetActive(false);
                     sgData.SysGameObject = newFacilityGO;
                     returnList.Add(newFacilityGO);
-                    sysController.StarSysData.TotalSysPowerLoad += sgData.PowerLoad;
+                    //sysController.StarSysData.TotalSysPowerLoad += sgData.PowerLoad;
                 }
             }
             else if (prefab == OrbitalBatteryPrefab)
@@ -633,7 +692,7 @@ namespace BOTF3D.Core
                     newFacilityGO.SetActive(false);
                     obData.SysGameObject = newFacilityGO;
                     returnList.Add(newFacilityGO);
-                    sysController.StarSysData.TotalSysPowerLoad += obData.PowerLoad;
+                    //sysController.StarSysData.TotalSysPowerLoad += obData.PowerLoad;
                 }
             }
             else if (prefab == ResearchCenterPrefab)
@@ -661,7 +720,7 @@ namespace BOTF3D.Core
                     newFacilityGO.SetActive(false);
                     researchData.SysGameObject = newFacilityGO;
                     returnList.Add(newFacilityGO);
-                    sysController.StarSysData.TotalSysPowerLoad += researchData.PowerLoad;
+                    //sysController.StarSysData.TotalSysPowerLoad += researchData.PowerLoad;
                 }
             }
             return returnList;
@@ -1522,6 +1581,7 @@ namespace BOTF3D.Core
             GameObject newUI = Instantiate(sysUIPrefab, Vector3.zero, Quaternion.identity);
             newUI.layer = 5; // UI layer
             newUI.name = $"SystemUI ({sysCon.StarSysData.SysName})";
+
 
             // Store reference on the controller
             sysCon.StarSysUIGameObject = newUI;

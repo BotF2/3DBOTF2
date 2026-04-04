@@ -30,6 +30,9 @@ namespace BOTF3D.Core
         public int TechUnits; // ResearchCenters centers provide tech output units that determines progress to a civ level StartingTechLevel enum.
         public Sprite StarSprit;
         public List<ShipController> ShipsList = new List<ShipController>();
+        [Header("Dilithium & Power")]
+        public int DilithiumCapacity = 1; // Max power plants (1-3)
+        public int CurrentPowerPlantCount = 0; // How many are built
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;
@@ -102,5 +105,28 @@ namespace BOTF3D.Core
         }
         public string GetSysName() { return this.sysName; }
         public CivEnum GetFirstOwner() { return this.firstOwnerCivEnum; }
+        /// <summary>
+        /// Check if system can build another power plant
+        /// </summary>
+        public bool CanBuildPowerPlant()
+        {
+            return PowerPlants.Count < DilithiumCapacity;
+        }
+        /// <summary>
+        /// Get available power plant slots
+        /// </summary>
+        public int GetAvailablePowerPlantSlots()
+        {
+            return Mathf.Max(0, DilithiumCapacity - CurrentPowerPlantCount);
+        }
+
+        /// <summary>
+        /// Calculate total power output for this system
+        /// </summary>
+        public float CalculateTotalPower(float techMultiplier)
+        {
+            const float basePowerPerPlant = 10f;
+            return CurrentPowerPlantCount * basePowerPerPlant * techMultiplier;
+        }
     }
 }

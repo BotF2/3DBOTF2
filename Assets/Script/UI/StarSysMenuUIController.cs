@@ -1400,5 +1400,27 @@ namespace BOTF3D.UI
             ActiveStarSysController = null;
             Debug.Log("=== MoveBackAnyStarSysUIGO: Complete - all UIs moved and DEACTIVATED ===");
         }
+        // ✅ Add this method to display power plant build info
+        public void UpdatePowerPlantBuildUI(StarSysController selectedSystem)
+        {
+            if (selectedSystem == null || selectedSystem.StarSysData == null)
+                return;
+
+            var sysData = selectedSystem.StarSysData;
+            var civData = CivManager.Instance.GetCivDataByCivEnum(sysData.CurrentOwnerCivEnum);
+
+            // Check if build is allowed
+            bool canBuild = PowerPlantBuildValidator.CanBuildPowerPlant(selectedSystem, out string reason);
+
+            // Update UI elements (you'll need to add these to your UI prefab)
+            // powerPlantCapacityText.text = PowerPlantBuildValidator.GetCapacityInfo(sysData);
+            // powerOutputText.text = PowerPlantBuildValidator.GetPowerOutputInfo(sysData, civData);
+            // buildPowerPlantButton.interactable = canBuild;
+            // buildConstraintText.text = reason;
+
+            Debug.Log($"Power Plant UI: {PowerPlantBuildValidator.GetCapacityInfo(sysData)}");
+            Debug.Log($"  {PowerPlantBuildValidator.GetPowerOutputInfo(sysData, civData)}");
+            Debug.Log($"  Can Build: {canBuild} - {reason}");
+        }
     }
 }

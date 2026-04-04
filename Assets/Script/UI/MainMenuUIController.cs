@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
@@ -123,17 +124,19 @@ namespace BOTF3D.UI
 
         private void Awake()
         {
+            Debug.Log("=== MainMenuUIController.Awake() START ===");
+
             if (Instance != null)
             {
+                Debug.LogWarning("MainMenuUIController: Duplicate instance detected, destroying");
                 Destroy(gameObject);
+                return;
             }
-            else
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            Instance = this;
 
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            EnsureEventSystem();
+            Debug.Log("✅ MainMenuUIController: Instance set and marked DontDestroyOnLoad");
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.RegisterMainMenu(this);
@@ -207,10 +210,13 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.DOM); });
             BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.BORG); });
             TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.TERRAN); });
+            Debug.Log("=== MainMenuUIController.Awake() COMPLETE ===");
         }
 
         private void Start()
         {
+            Debug.Log("=== MainMenuUIController.Start() START ===");
+            VerifyButtonsAreInteractable();
             // ✅ Play main menu music
             if (AudioManager.Instance != null)
             {
@@ -278,8 +284,87 @@ namespace BOTF3D.UI
             DevelopedToggle.isOn = false;
             AdvancedToggle.isOn = false;
             SupremeToggle.isOn = false;
+            Debug.Log("=== MainMenuUIController.Start() COMPLETE ===");
         }
+        /// <summary>
+        /// Ensures an EventSystem exists for UI input AND persists across scenes
+        /// </summary>
+        private void EnsureEventSystem()
+        {
+            // Check if EventSystem already exists
+            EventSystem currentES = EventSystem.current;
 
+            if (currentES == null)
+            {
+                Debug.LogWarning("⚠️ No EventSystem found - creating one");
+
+                GameObject eventSystemGO = new GameObject("EventSystem");
+                currentES = eventSystemGO.AddComponent<EventSystem>();
+                eventSystemGO.AddComponent<StandaloneInputModule>();
+
+                // ✅ CRITICAL FIX: Make EventSystem persist across scenes
+                DontDestroyOnLoad(eventSystemGO);
+
+                Debug.Log("✅ Created persistent EventSystem with StandaloneInputModule");
+            }
+            else
+            {
+                Debug.Log($"✅ EventSystem found: {currentES.name}");
+
+                // ✅ CRITICAL FIX: Ensure StandaloneInputModule exists
+                var inputModule = currentES.GetComponent<StandaloneInputModule>();
+                if (inputModule == null)
+                {
+                    currentES.gameObject.AddComponent<StandaloneInputModule>();
+                    Debug.Log("✅ Added missing StandaloneInputModule to existing EventSystem");
+                }
+
+                // ✅ CRITICAL FIX: Make existing EventSystem persistent
+                if (currentES.gameObject.scene.name != "DontDestroyOnLoad")
+                {
+                    DontDestroyOnLoad(currentES.gameObject);
+                    Debug.Log($"✅ Made EventSystem persistent (was in {currentES.gameObject.scene.name})");
+                }
+            }
+        }
+        /// <summary>
+        /// Debug helper to verify button states
+        /// </summary>
+        private void VerifyButtonsAreInteractable()
+        {
+            // ✅ Search from mainMenuCanvas root instead of this GameObject
+            Button[] buttons = null;
+
+            if (mainMenuCanvas != null)
+            {
+                buttons = mainMenuCanvas.GetComponentsInChildren<Button>(true);
+                Debug.Log($"Found {buttons.Length} buttons in MainMenuCanvas");
+            }
+            else
+            {
+                // Fallback: search from this GameObject
+                buttons = GetComponentsInChildren<Button>(true);
+                Debug.Log($"Found {buttons.Length} buttons as children of MainMenuUIController");
+            }
+
+            if (buttons.Length == 0)
+            {
+                Debug.LogError("❌ NO BUTTONS FOUND! Check MainMenu hierarchy structure!");
+                return;
+            }
+
+            foreach (var button in buttons)
+            {
+                if (button.interactable)
+                {
+                    Debug.Log($"  ✅ Button '{button.name}' is interactable");
+                }
+                else
+                {
+                    Debug.LogWarning($"  ❌ Button '{button.name}' is NOT interactable!");
+                }
+            }
+        }
         private void InitializeCameras()
         {
             Debug.Log("InitializeCameras: Menu camera setup");
@@ -399,11 +484,13 @@ namespace BOTF3D.UI
             yield return null;
 
             Debug.Log("LoadGalaxySceneCoroutine: Step 5 - Hiding UI and unloading MainMenuScene");
-
+            // ✅ CRITICAL FIX: Update EventSystem BEFORE disabling MainMenu camera
+            UpdateEventSystemForGalaxy();
             // Disable UI camera
             if (uiCamera != null)
             {
                 uiCamera.enabled = false;
+                Debug.Log("  MainMenu UI camera disabled");
             }
 
             // Hide main menu canvas
@@ -413,6 +500,7 @@ namespace BOTF3D.UI
                 if (canvasComponent != null)
                 {
                     canvasComponent.enabled = false;
+                    Debug.Log("  MainMenu canvas disabled");
                 }
             }
 
@@ -432,7 +520,48 @@ namespace BOTF3D.UI
 
             Debug.Log("LoadGalaxySceneCoroutine: Complete");
         }
+        /// <summary>
+        /// Updates EventSystem to work with Galaxy UI cameras
+        /// </summary>
+        private void UpdateEventSystemForGalaxy()
+        {
+            Debug.Log("UpdateEventSystemForGalaxy: Configuring EventSystem for galaxy scene");
 
+            // Find the galaxy camera
+            Camera galaxyCamera = galaxyCenter?.GetComponentInChildren<Camera>();
+            if (galaxyCamera == null)
+            {
+                galaxyCamera = Camera.main;
+            }
+
+            if (galaxyCamera == null)
+            {
+                Debug.LogError("UpdateEventSystemForGalaxy: No galaxy camera found!");
+                return;
+            }
+
+            Debug.Log($"  Found galaxy camera: {galaxyCamera.name}");
+            // Update all galaxy canvases to use the galaxy camera
+            Canvas[] galaxyCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+            int updatedCount = 0;
+
+            foreach (Canvas canvas in galaxyCanvases)
+            {
+                // Only update canvases in GalaxyScene (not MainMenu or Persistent)
+                if (canvas.gameObject.scene.name == "GalaxyScene")
+                {
+                    if (canvas.renderMode == RenderMode.ScreenSpaceCamera ||
+                        canvas.renderMode == RenderMode.WorldSpace)
+                    {
+                        canvas.worldCamera = galaxyCamera;
+                        updatedCount++;
+                        Debug.Log($"  ✅ Updated canvas '{canvas.name}' to use galaxy camera");
+                    }
+                }
+            }
+
+            Debug.Log($"UpdateEventSystemForGalaxy: Updated {updatedCount} canvases");
+        }
         private void FindAndActivateGalaxySceneReferences()
         {
             Debug.Log("FindAndActivateGalaxySceneReferences: Searching in loaded scenes...");
@@ -1288,9 +1417,41 @@ namespace BOTF3D.UI
 
         private void SetLocalCivilization(int index)
         {
+            // ✅ NULL-SAFE: Check GameManager exists
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError($"SetLocalCivilization({index}): GameManager.Instance is NULL!");
+                return;
+            }
+
+            // ✅ NULL-SAFE: Check GameController exists
+            if (GameManager.Instance.GameController == null)
+            {
+                Debug.LogError($"SetLocalCivilization({index}): GameController is NULL!");
+                return;
+            }
+
+            // ✅ NULL-SAFE: Check GameData exists
+            if (GameManager.Instance.GameController.GameData == null)
+            {
+                Debug.LogError($"SetLocalCivilization({index}): GameData is NULL!");
+                return;
+            }
+
+            // ✅ Now safe to set
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
-            ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
+
+            // ✅ NULL-SAFE: Check ThemeManager
+            if (ThemeManager.Instance != null)
+            {
+                ThemeManager.Instance.ApplyTheme((ThemeEnum)((int)index));
+                Debug.Log($"SetLocalCivilization: Set to {localPlayerCiv}, applied theme");
+            }
+            else
+            {
+                Debug.LogWarning("SetLocalCivilization: ThemeManager.Instance is NULL");
+            }
         }
 
         private void SetupLanguageButtons()

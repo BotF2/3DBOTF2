@@ -772,7 +772,7 @@ Canvas:
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 0
+  m_SortingLayerID: 919144659
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!1 &44498444
@@ -13106,8 +13106,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 895974089}
-        m_TargetAssemblyTypeName: GalaxyMenuUIController, Assembly-CSharp
-        m_MethodName: EncylopediaButtonPressed
+        m_TargetAssemblyTypeName: BOTF3D.UI.GalaxyMenuUIController, Assembly-CSharp
+        m_MethodName: EncyclopediaButtonPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

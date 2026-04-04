@@ -3,6 +3,7 @@ using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace BOTF3D.UI
@@ -128,18 +129,10 @@ namespace BOTF3D.UI
                 Destroy(gameObject);
             }
         }
-
-        private void OnDestroy()
+        private void Start()
         {
-            if (Instance == this)
-            {
-                Instance = null;
-                Debug.Log("GalaxyMenuUIController: Instance cleared");
-            }
-        }
-
-        void Start()
-        {
+            Debug.Log("❌==========❌ GalaxyMenuUIController.Start() DIAGNOSTIC ===");
+            DiagnoseGalaxyUI();
             Debug.Log("GalaxyMenuUIController: Start called - deferring camera setup");
 
             // Initialize UI states
@@ -156,43 +149,223 @@ namespace BOTF3D.UI
             HideShipDeployMenu();
             diplomacyControllers = new List<DiplomacyController>();
 
+            // ✅ CRITICAL FIX: Activate the main galaxy menu ribbon/panel
+            ActivateMainGalaxyMenu();
+
+            // ✅ CRITICAL FIX: Wire up dynamic button listeners
+            WireHomeSystemButton();
+            WireCloseMenuButton();
+
             Debug.Log("GalaxyMenuUIController: Start complete");
         }
 
-        // Call this from MainMenuUIController after CanvasGalaxy activates
-        public void InitializeGalaxyCamera()
+        /// <summary>
+        /// Activates the main galaxy menu UI (System, Fleet, Diplomacy buttons)
+        /// </summary>
+        private void ActivateMainGalaxyMenu()
         {
-            var xAngle = GalaxyCameraDragMoveZoom.Instance.galaxyXRotation; // Set reference in camera controller as well
-            if (galaxyEventCamera == null)
-            {
-                var mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
-                if (mainCameraGO != null)
-                {
+            Debug.Log("ActivateMainGalaxyMenu: Searching for main menu UI...");
 
-                    galaxyEventCamera = mainCameraGO.GetComponent<Camera>();
-                    galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
-                    Debug.Log($"GalaxyMenuUIController: Found galaxy camera: {galaxyEventCamera?.name}");
+            // Common names for the main menu ribbon/panel
+            string menuName = "MainGalaxyMenuRibbon";
+
+            Canvas parentCanvas = GetComponentInParent<Canvas>();
+            if (parentCanvas == null)
+            {
+                Debug.LogError("ActivateMainGalaxyMenu: No parent canvas found!");
+                return;
+            }
+
+            Transform menuTransform = parentCanvas.transform.Find(menuName);
+            if (menuTransform != null)
+            {
+                menuTransform.gameObject.SetActive(true);
+                Debug.Log($"✅ Activated main menu: {menuName}");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Diagnoses why buttons might not be working
+        /// </summary>
+        private void DiagnoseGalaxyUI()
+        {
+            // 1. Check EventSystem
+            var es = EventSystem.current;
+            Debug.Log($"  EventSystem exists: {es != null}");
+            if (es != null)
+            {
+                Debug.Log($"    GameObject: {es.gameObject.name}");
+                Debug.Log($"    Scene: {es.gameObject.scene.name}");
+                Debug.Log($"    Enabled: {es.enabled}");
+
+                var inputModule = es.GetComponent<StandaloneInputModule>();
+                Debug.Log($"    StandaloneInputModule: {inputModule != null} (enabled: {inputModule?.enabled})");
+            }
+
+            // 2. Check parent Canvas
+            Canvas canvas = GetComponentInParent<Canvas>();
+            Debug.Log($"  Parent Canvas: {canvas != null}");
+            if (canvas != null)
+            {
+                Debug.Log($"    Name: {canvas.name}");
+                Debug.Log($"    Render Mode: {canvas.renderMode}");
+                Debug.Log($"    World Camera: {canvas.worldCamera?.name ?? "NULL"}");
+                Debug.Log($"    Enabled: {canvas.enabled}");
+                Debug.Log($"    Sorting Order: {canvas.sortingOrder}");
+
+                var raycaster = canvas.GetComponent<GraphicRaycaster>();
+                Debug.Log($"    GraphicRaycaster: {raycaster != null}");
+                if (raycaster != null)
+                {
+                    Debug.Log($"      Enabled: {raycaster.enabled}");
+                    Debug.Log($"      Blocking Objects: {raycaster.blockingObjects}");
                 }
                 else
                 {
-                    Debug.LogWarning("GalaxyMenuUIController: MainCamera not found yet");
+                    Debug.LogError("    ❌ GraphicRaycaster MISSING! Adding it now...");
+                    canvas.gameObject.AddComponent<GraphicRaycaster>();
                 }
             }
 
-            if (parentCanvas != null && galaxyEventCamera != null)
+            // 3. Check Camera
+            Camera mainCam = Camera.main;
+            Debug.Log($"  Main Camera: {mainCam != null}");
+            if (mainCam != null)
             {
-                parentCanvas.worldCamera = galaxyEventCamera;
-                galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
-                Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
+                Debug.Log($"    Name: {mainCam.name}");
+                Debug.Log($"    Enabled: {mainCam.enabled}");
+                Debug.Log($"    Scene: {mainCam.gameObject.scene.name}");
             }
 
-            // Wire up the HomeSystemButton dynamically
-            WireHomeSystemButton();
+            // 4. Check buttons
+            Canvas c = GetComponentInParent<Canvas>();
+            if (c == null)
+            {
+                Debug.LogError("  ❌ No parent Canvas found! GalaxyMenuUIController not in canvas hierarchy!");
+                return;
+            }
 
-            // ✅ Wire up the close button
-            WireCloseMenuButton();
+            // ✅ FIX: Search from Canvas root, not from this GameObject
+            Button[] buttons = c.GetComponentsInChildren<Button>(true);
+            Debug.Log($"  Found {buttons.Length} buttons in CanvasGalaxy hierarchy");
+
+            int interactableCount = 0;
+            foreach (var btn in buttons)
+            {
+                if (btn.interactable && btn.gameObject.activeInHierarchy)
+                {
+                    interactableCount++;
+                }
+                else
+                {
+                    Debug.LogWarning($"    ❌ Button '{btn.name}': Interactable={btn.interactable}, Active={btn.gameObject.activeInHierarchy}");
+                }
+            }
+            Debug.Log($"  {interactableCount}/{buttons.Length} buttons are interactable and active");
+
+            // 5. Check for blocking UI
+            Canvas[] allCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+            Debug.Log($"  Total canvases in scene: {allCanvases.Length}");
+            foreach (var _c in allCanvases)
+            {
+                if (_c.sortingOrder > c.sortingOrder)
+                {
+                    Debug.LogWarning($"    ⚠️ Canvas '{c.name}' has higher sorting order ({c.sortingOrder}) and might block input!");
+                }
+            }
+
+            Debug.Log("=== GalaxyMenuUIController.Start() DIAGNOSTIC COMPLETE ===");
         }
 
+        public void InitializeGalaxyCamera()
+        {
+            Debug.Log("GalaxyMenuUIController: InitializeGalaxyCamera called");
+
+            // Find the parent canvas for galaxy UI
+            Canvas galaxyCanvas = GetComponentInParent<Canvas>();
+            if (galaxyCanvas == null)
+            {
+                Debug.LogError("GalaxyMenuUIController: No parent Canvas found!");
+                return;
+            }
+
+            // Find the galaxy camera
+            Camera galaxyCamera = Camera.main;
+            if (galaxyCamera == null)
+            {
+                galaxyCamera = FindFirstObjectByType<Camera>();
+            }
+
+            if (galaxyCamera != null)
+            {
+                // CRITICAL: Only set camera if render mode needs it
+                if (galaxyCanvas.renderMode == RenderMode.ScreenSpaceCamera)
+                {
+                    galaxyCanvas.worldCamera = galaxyCamera;
+                    galaxyCanvas.planeDistance = 100f;
+                    Debug.Log($"✅ Galaxy Canvas '{galaxyCanvas.name}' now using camera: {galaxyCamera.name}");
+                }
+                else if (galaxyCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    Debug.Log($"ℹ️ Galaxy Canvas '{galaxyCanvas.name}' is Screen Space - Overlay (no camera needed)");
+                }
+
+                // Ensure GraphicRaycaster exists
+                var raycaster = galaxyCanvas.GetComponent<GraphicRaycaster>();
+                if (raycaster == null)
+                {
+                    raycaster = galaxyCanvas.gameObject.AddComponent<GraphicRaycaster>();
+                    Debug.Log($"✅ Added GraphicRaycaster to '{galaxyCanvas.name}'");
+                }
+            }
+            else
+            {
+                Debug.LogError("GalaxyMenuUIController: Galaxy Camera not found!");
+            }
+        }
+
+        //// Call this from MainMenuUIController after CanvasGalaxy activates
+        //public void InitializeGalaxyCamera()
+        //{
+        //    var xAngle = GalaxyCameraDragMoveZoom.Instance.galaxyXRotation; // Set reference in camera controller as well
+        //    if (galaxyEventCamera == null)
+        //    {
+        //        var mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
+        //        if (mainCameraGO != null)
+        //        {
+
+        //            galaxyEventCamera = mainCameraGO.GetComponent<Camera>();
+        //            galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
+        //            Debug.Log($"GalaxyMenuUIController: Found galaxy camera: {galaxyEventCamera?.name}");
+        //        }
+        //        else
+        //        {
+        //            Debug.LogWarning("GalaxyMenuUIController: MainCamera not found yet");
+        //        }
+        //    }
+
+        //    if (parentCanvas != null && galaxyEventCamera != null)
+        //    {
+        //        parentCanvas.worldCamera = galaxyEventCamera;
+        //        galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
+        //        Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
+        //    }
+
+        //    // Wire up the HomeSystemButton dynamically
+        //    WireHomeSystemButton();
+
+        //    // ✅ Wire up the close button
+        //    WireCloseMenuButton();
+        //}
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+                Debug.Log("GalaxyMenuUIController: Instance cleared");
+            }
+        }
         //Wire HomeSystemButton to the galaxy camera controller
         private void WireHomeSystemButton()
         {
@@ -1561,7 +1734,7 @@ namespace BOTF3D.UI
         public void FindTheirHomeSystem(CivController civCon, out StarSysController homeSystController)
         {
             homeSystController = null;
-            List<StarSysController> SystemCons = civCon.CivData.StarSysOwned;
+            List<StarSysController> SystemCons = civCon.CivData.StarSysWeOwn;
             for (int i = 0; i < SystemCons.Count; i++)
             {
                 if (SystemCons[i].StarSysData.SysName == civCon.CivData.CivHomeSystemName)

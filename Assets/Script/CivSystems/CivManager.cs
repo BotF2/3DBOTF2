@@ -297,7 +297,7 @@ namespace BOTF3D.Core
             {
                 if (CivControllersInGame[i].CivData.CivEnum == controllers[0].StarSysData.CurrentOwnerCivEnum)
                 {
-                    CivControllersInGame[i].CivData.StarSysOwned = controllers;
+                    CivControllersInGame[i].CivData.StarSysWeOwn = controllers;
                     CivControllersInGame[i].CivData.CivHomeSystemName = controllers[0].StarSysData.SysName;
                     CivControllersInGame[i].CivData.HomeStarSystemPosition = controllers[0].transform.position;
                 }
