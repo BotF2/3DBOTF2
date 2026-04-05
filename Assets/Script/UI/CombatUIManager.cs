@@ -19,6 +19,7 @@ namespace BOTF3D.UI
         public CombatController CurrentCombatController;
         private GameObject currentCombatUICanvas;
         private GameObject currentCombat3DCanvas;
+        private GameObject currentGameOverCanvas;
 
         // ✅ Cached UI references (found dynamically each combat)
         private GameObject panelCombatMenu;
@@ -72,13 +73,14 @@ namespace BOTF3D.UI
         /// <summary>
         /// Called by CombatManager when a new combat starts for the local player
         /// </summary>
-        public void SetupForCombat(CombatController combatController, GameObject combatUICanvas, GameObject combat3DCanva)
+        public void SetupForCombat(CombatController combatController, GameObject combatUICanvas, GameObject combat3DCanva, GameObject gameOverCanvas)
         {
             Debug.Log($"🎮 CombatUIManager: Setting up for combat {combatController.CombatID}");
 
             CurrentCombatController = combatController;
             currentCombatUICanvas = combatUICanvas;
             currentCombat3DCanvas = combat3DCanva;
+            currentGameOverCanvas = gameOverCanvas;
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
 
             // ✅ Find and setup all UI elements
@@ -123,8 +125,15 @@ namespace BOTF3D.UI
                         panelShipCombat = rt2.gameObject;
                         panelShipCombat.SetActive(false);
                         break;
+                }
+            }
+            RectTransform[] rectTransforms3 = currentGameOverCanvas.GetComponentsInChildren<RectTransform>(true);
+            foreach (var rt3 in rectTransforms3)
+            {
+                switch (rt3.name)
+                {
                     case "PanelCombatEnd":
-                        panelCombatOver = rt2.gameObject;
+                        panelCombatOver = rt3.gameObject;
                         panelCombatOver.SetActive(false);
                         break;
                 }

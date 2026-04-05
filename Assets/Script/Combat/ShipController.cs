@@ -1,4 +1,3 @@
-using BOTF3D.Audio;
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
@@ -23,12 +22,7 @@ namespace BOTF3D.GamePlay
         private AudioSource theSource;
         public Transform TargetGroup; // for movement, The center or leader of the other group
         private int flipShipForward = 1;
-        //private Vector3 moveDirection;
-        //private bool isMoving = false;
-        //private float currentSpeed;
-        //private Rigidbody rb;
         public bool WarpingInOver = false;
-        //private bool setSpeed = true;
         private GameObject beamWeaponGO;
         public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
         [SerializeField] private float minRefireDelay; // see Start()
@@ -356,7 +350,7 @@ namespace BOTF3D.GamePlay
                     Destroy(gameObject);
                     this.ShipData.CurrentFleetController.IsTheFleetDestroyed();
                     ShipManager.Instance.RemoveShipControllerFromList(this);
-                    FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
+                    // FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
                 }
 
                 else if (starSysController != null && !ShipData.Distroyed)
@@ -369,7 +363,7 @@ namespace BOTF3D.GamePlay
                     Destroy(beamWeaponGO);
                     Destroy(gameObject);
                     ShipManager.Instance.RemoveShipControllerFromList(this);
-                    FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
+                    // FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
                 }
             }
         }

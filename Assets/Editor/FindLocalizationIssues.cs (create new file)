@@ -1,0 +1,88 @@
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.Localization.Components;
+
+public class FindLocalizationIssues : EditorWindow
+{
+    [MenuItem("Tools/Debug: Find Localization Issues")]
+    public static void ShowWindow()
+    {
+        var window = GetWindow<FindLocalizationIssues>("Localization Debug");
+        window.Show();
+    }
+
+    void OnGUI()
+    {
+        GUILayout.Label("Localization Issue Finder", EditorStyles.boldLabel);
+
+        if (GUILayout.Button("Find All LocalizeStringEvent Components"))
+        {
+            FindAllLocalizeComponents();
+        }
+
+        if (GUILayout.Button("Remove All LocalizeStringEvent Components"))
+        {
+            RemoveAllLocalizeComponents();
+        }
+    }
+
+    private void FindAllLocalizeComponents()
+    {
+        Debug.Log("=== Finding All LocalizeStringEvent Components ===");
+
+        LocalizeStringEvent[] allLocalizers = Resources.FindObjectsOfTypeAll<LocalizeStringEvent>();
+        
+        Debug.Log($"Found {allLocalizers.Length} LocalizeStringEvent components:");
+
+        foreach (var localizer in allLocalizers)
+        {
+            if (localizer == null) continue;
+
+            string sceneName = localizer.gameObject.scene.name;
+            string path = GetGameObjectPath(localizer.transform);
+
+            Debug.Log($"  📍 {sceneName} → {path}");
+            Debug.Log($"     StringReference: {localizer.StringReference}");
+        }
+
+        Debug.Log("=== Search Complete ===");
+    }
+
+    private void RemoveAllLocalizeComponents()
+    {
+        if (!EditorUtility.DisplayDialog("Remove Localization",
+            "This will remove ALL LocalizeStringEvent components from the project. Continue?",
+            "Yes", "Cancel"))
+        {
+            return;
+        }
+
+        Debug.Log("=== Removing All LocalizeStringEvent Components ===");
+
+        LocalizeStringEvent[] allLocalizers = Resources.FindObjectsOfTypeAll<LocalizeStringEvent>();
+        int removed = 0;
+
+        foreach (var localizer in allLocalizers)
+        {
+            if (localizer == null) continue;
+
+            Debug.Log($"  Removing from: {GetGameObjectPath(localizer.transform)}");
+            DestroyImmediate(localizer);
+            removed++;
+        }
+
+        Debug.Log($"=== Removed {removed} components ===");
+        EditorUtility.DisplayDialog("Complete", $"Removed {removed} LocalizeStringEvent components", "OK");
+    }
+
+    private string GetGameObjectPath(Transform transform)
+    {
+        string path = transform.name;
+        while (transform.parent != null)
+        {
+            transform = transform.parent;
+            path = transform.name + "/" + path;
+        }
+        return path;
+    }
+}

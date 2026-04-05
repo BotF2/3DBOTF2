@@ -17,6 +17,7 @@ namespace BOTF3D.Core
         [Header("Combat Prefabs & Assets")]
         public GameObject CombatUICanvas;
         public GameObject Combat3DCanvas;
+        public GameObject GameOverCanvas { get; private set; }
         public GameObject HealthbarPrefab;
         [SerializeField] private CombatController combatConPrefab;
         [SerializeField] private SoundData dropOutOfWarpSoundData;
@@ -36,6 +37,8 @@ namespace BOTF3D.Core
         // ✅ Combat queue system
         private Queue<PendingCombat> combatQueue = new Queue<PendingCombat>();
         public CombatController ActiveCombatController { get; private set; }
+
+
         private List<CombatController> allCombatControllers = new List<CombatController>();
         // ✅ NEW: Track combat state
         private bool isProcessingCombat = false;
@@ -468,6 +471,13 @@ namespace BOTF3D.Core
                         Debug.Log($"     ✅ Found and assigned Combat3DCanvas at path: {GetGameObjectPath(go)}");
                     }
                     break;
+                case "GameOverCanvas":
+                    if (GameOverCanvas == null)
+                    {
+                        GameOverCanvas = go;
+                        Debug.Log($"     ✅ Found and assigned GameOverCanvas at path: {GetGameObjectPath(go)}");
+                    }
+                    break;
             }
         }
 
@@ -548,7 +558,7 @@ namespace BOTF3D.Core
             // ✅ Use persistent CombatUIManager instead of CombatUIController
             if (CombatUIManager.Instance != null && ActiveCombatController != null)
             {
-                CombatUIManager.Instance.SetupForCombat(ActiveCombatController, thisCombatUIGameObject, Combat3DCanvas);
+                CombatUIManager.Instance.SetupForCombat(ActiveCombatController, thisCombatUIGameObject, Combat3DCanvas, GameOverCanvas);
                 Debug.Log("✅ CombatUIManager configured for local player");
             }
             else
