@@ -36,11 +36,6 @@ namespace BOTF3D.Core
         public float IntelPoints;
         private object SystemsOwned;
 
-        //public void AddToCivControllersWeKnow(CivController civControllerWeFound)
-        //{
-        //    CivControllersWeKnow.Add(civControllerWeFound);
-        //    CivEnumsWeKnow.Add(civControllerWeFound.CivData.CivEnum);
-        //}
         /// <summary>
         /// Get power efficiency multiplier based on tech level
         /// </summary>

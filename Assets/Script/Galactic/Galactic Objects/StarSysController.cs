@@ -17,7 +17,7 @@ namespace BOTF3D.GamePlay
     public class StarSysController : MonoBehaviour
     {
         //Fields
-        public StarSysBuildManager SysBuildManager;
+        public StarSysBuildManager StarSysBuildManager { get; set; }
         private StarSysData starSysData;
         public int PlayerID; // network player ID, not used in single player
         public StarSysData StarSysData { get { return starSysData; } set { starSysData = value; } }
@@ -65,7 +65,7 @@ namespace BOTF3D.GamePlay
         internal List<Transform> sysBuildQueueList;
         private Transform buildingItem;
         [SerializeField]
-        internal List<Transform> shipBuildQueueList;
+        internal List<Transform> sysShipBuildQueueList;
         private Transform shipBuildingItem;
         private GalaxyMenuUIController galaxyUI;
         private GalaxyMenuUIController GalaxyUI
@@ -106,8 +106,8 @@ namespace BOTF3D.GamePlay
             if (sysBuildQueueList == null)
                 sysBuildQueueList = new List<Transform>();
 
-            if (shipBuildQueueList == null)
-                shipBuildQueueList = new List<Transform>();
+            if (sysShipBuildQueueList == null)
+                sysShipBuildQueueList = new List<Transform>();
         }
 
 
@@ -188,9 +188,9 @@ namespace BOTF3D.GamePlay
                 .ToList();
 
             // 2️⃣ THEN maybe start coroutine
-            if (!SysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
+            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
             {
-                SysBuildManager.StartNextFacilityBuildIfAny();
+                StarSysBuildManager.StartNextFacilityBuildIfAny();
             }
         }
         public void GridShipQueueUpdate()
@@ -199,23 +199,23 @@ namespace BOTF3D.GamePlay
                 return;
             foreach (Transform child in ShipListGridLayoutGroup.transform)
             {
-                if (!shipBuildQueueList.Contains(child))
+                if (!sysShipBuildQueueList.Contains(child))
                 {
                     child.gameObject.SetActive(true);
-                    shipBuildQueueList.Add(child);
+                    sysShipBuildQueueList.Add(child);
                 }
             }
 
-            shipBuildQueueList.RemoveAll(t => t == null || t.parent != ShipListGridLayoutGroup.transform);
+            sysShipBuildQueueList.RemoveAll(t => t == null || t.parent != ShipListGridLayoutGroup.transform);
 
-            shipBuildQueueList = shipBuildQueueList
+            sysShipBuildQueueList = sysShipBuildQueueList
                 .OrderByDescending(t => t.localPosition.y)
                 .ThenBy(t => t.localPosition.x)
                 .ToList();
 
-            if (!SysBuildManager.IsBuildingShip && shipBuildQueueList.Count > 0)
+            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
             {
-                SysBuildManager.StartNextShipBuildIfAny();
+                StarSysBuildManager.StartNextShipBuildIfAny();
             }
         }
         public void DoHabitalbeSystemUI(CivController discoveringCiv)

@@ -365,8 +365,8 @@ namespace BOTF3D.Core
             // ✅ Set Dilithium Capacity based on system type
             sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
             sysData.TotalSysPowerLoad = 0; // Will be updated as facilities are added
-            sysData.TotalSysPowerOutput = 0;
-            sysData.CurrentPowerPlantCount = 0; // Will be set when power plants are added
+            sysData.TotalSysPowerOutput = starSysSO.PowerStations * sysData.BasePowerPerPlant;
+            sysData.CurrentPowerPlantCount = starSysSO.PowerStations; // Start with the number of power plants defined in the SO
             starSysCon.StarSysData.ShipsList.Clear();
             sysData.SysGameObject = starSysCon.gameObject;
 
@@ -442,7 +442,7 @@ namespace BOTF3D.Core
             if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
             {
                 // ✅ MODIFIED: Use Dilithium capacity to limit starting power plants
-                int startingPowerPlants = DetermineStartingPowerPlants(civSO, sysData.DilithiumCapacity);
+                int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
 
                 sysData.PowerPlants = AddSystemFacilities(
                     startingPowerPlants,
@@ -452,12 +452,19 @@ namespace BOTF3D.Core
                     starSysCon);
                 // ✅ Update count
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
+                sysData.PowerPlants = AddSystemFacilities(starSysSO.PowerStations, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 SetParentForFacilities(starSysCon.gameObject, sysData);
+                // ✅ NEW: Calculate initial power balance BEFORE initializing UI
+                if (StarSysMenuUIController.Instance != null)
+                {
+                    StarSysMenuUIController.Instance.UpdateSystemPowerBalance(starSysCon);
+                    Debug.Log($"  ✅ Initial power balance: Load={sysData.TotalSysPowerLoad}, Output={sysData.TotalSysPowerOutput}");
+                }
 
                 // initialize/wire the system UI from StarSysData (new helper on StarSysUIElement)
                 if (starSysCon.StarSysUIGameObject != null)
@@ -511,13 +518,23 @@ namespace BOTF3D.Core
         /// <summary>
         /// Determine starting power plants (always 1 for warp-capable, 0 otherwise)
         /// </summary>
-        private int DetermineStartingPowerPlants(CivSO civSO, int dilithiumCapacity)
+        private int DetermineStartingPowerPlants(CivSO civSO, StarSysSO starSysSO, int dilithiumCapacity)
         {
             if (dilithiumCapacity == 0)
                 return 0;
 
+            // ✅ Read from ScriptableObject if available
+            if (starSysSO != null && starSysSO.PowerStations > 0)
+            {
+                // Respect the SO's configured value, but cap at dilithium capacity
+                return Mathf.Min(starSysSO.PowerStations, dilithiumCapacity);
+            }
+
+            // ✅ Fallback: Warp-capable civs start with 1 power plant
+            if (civSO.CivInt <= 6)
+                return 2;
             if (civSO.HasWarp)
-                return 1; // All warp-capable civs start with 1 power plant
+                return 1;
 
             return 0; // Non-warp systems start with 0
         }
@@ -567,7 +584,7 @@ namespace BOTF3D.Core
                 powerPlantData.Name = powerPlantSO.Name;
                 powerPlantData.StartStarDate = startingStarDate;
                 powerPlantData.BuildDuration = powerPlantSO.BuildDuration;
-                powerPlantData.PowerOutput = powerPlantSO.PowerOutput;
+                powerPlantData.BasePowerOutput = powerPlantSO.PowerOutput;
                 powerPlantData.PowerPlantSprite = powerPlantSO.PowerPlantSprite;
                 powerPlantData.Description = powerPlantSO.Description;
                 sysController.StarSysData.PowerPlantData = powerPlantData;
@@ -729,7 +746,7 @@ namespace BOTF3D.Core
         private void GetPowerPlantText(StarSysController sysCon, GameObject newFacilityGo, int numOf)
         {
             int plants = 0;
-            int powerOut = sysCon.StarSysData.PowerPlantData.PowerOutput;
+            int powerOut = sysCon.StarSysData.PowerPlantData.BasePowerOutput;
             string description = sysCon.StarSysData.PowerPlantData.Description;
             string name = sysCon.StarSysData.PowerPlantData.Name;
             if (sysCon.StarSysData.PowerPlants != null)

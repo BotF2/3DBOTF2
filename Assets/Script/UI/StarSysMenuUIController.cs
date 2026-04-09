@@ -54,10 +54,7 @@ namespace BOTF3D.UI
         private void Start()
         {
             // DON'T call FindSysUIContainers() here - GalaxyScene doesn't exist yet!
-            // It will be called from MainMenuUIController after scene loads
 
-            // Record the original parent of each StarSysUIGameObject
-            // This might be empty initially - systems are created later
             if (StarSysManager.Instance != null)
             {
                 for (int i = 0; i < StarSysManager.Instance.StarSysControllerList.Count; i++)
@@ -288,6 +285,9 @@ namespace BOTF3D.UI
                     listOfStarSysUiGos.Add(sysCon.StarSysUIGameObject);
                 }
 
+                // ✅ CRITICAL: Calculate power balance BEFORE updating UI
+                UpdateSystemPowerBalance(sysCon);
+
                 // ✅ EVERY TIME: Update facility data
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
@@ -295,7 +295,7 @@ namespace BOTF3D.UI
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.OrbitalBattery);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ResearchCenter);
 
-                // Update from StarSysData
+                // ✅ NOW initialize UI from calculated data
                 try
                 {
                     sysUIFieldElement.InitializeFromStarSysData(sysCon.StarSysData);
@@ -568,8 +568,6 @@ namespace BOTF3D.UI
                 FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
             }
 
-            SetupSystemUIData();
-
             if (theSysCon == null)
             {
                 Debug.LogWarning("SetActiveSetParentUIGO: theSysCon is null");
@@ -590,6 +588,9 @@ namespace BOTF3D.UI
                 return;
             }
 
+            // ✅ Setup UI data (calculates power balance internally before displaying)
+            SetupSystemUIData();
+
             // ✅ Move to detail view and ACTIVATE
             try
             {
@@ -598,6 +599,7 @@ namespace BOTF3D.UI
                 lastSysCon = theSysCon;
 
                 Debug.Log($"SetActiveSetParentUIGO: Successfully displayed system '{theSysCon.name}'");
+                Debug.Log($"  Power Output: {theSysCon.StarSysData.TotalSysPowerOutput}, Load: {theSysCon.StarSysData.TotalSysPowerLoad}");
             }
             catch (Exception ex)
             {
@@ -610,6 +612,8 @@ namespace BOTF3D.UI
             if (sysUIFieldElement != null && sysUIFieldElement.PowerOverload != null)
             {
                 PowerOverloadImage = sysUIFieldElement.PowerOverload;
+                // ✅ Ensure it starts OFF when first displayed
+                PowerOverloadImage.SetActive(false);
             }
         }
 
@@ -669,7 +673,7 @@ namespace BOTF3D.UI
                 Debug.LogWarning($"UpdateFacilityUI: StarSysUI_Fields not found on {sysController.name}");
                 return;
             }
-
+            float newPowerOutput;
             int newFacilityLoad = 0;
             int numOn = 0;
             int numOff = 0;
@@ -680,6 +684,14 @@ namespace BOTF3D.UI
 
             switch (facilityType)
             {
+                case StarSysFacilityType.PowerPlanet:
+                    var techMulitplyer = sysController.StarSysData.CurrentCivController.CivData.GetPowerTechMultiplier();
+                    newPowerOutput = sysController.StarSysData.CalculateTotalPower(techMulitplyer);
+                    facilities = sysController.StarSysData.PowerPlants;
+
+                    fields.numPUnits.text = sysController.StarSysData.PowerPlants.Count.ToString();
+                    fields.numTotalEOut.text = newPowerOutput.ToString();
+                    break;
                 case StarSysFacilityType.Factory:
                     newFacilityLoad = sysController.StarSysData.FactoryData.PowerLoad;
                     facilities = sysController.StarSysData.Factories;
@@ -739,16 +751,20 @@ namespace BOTF3D.UI
                     break;
             }
 
-            // ✅ NEW: Hide/Show On button based on whether there are facilities to turn on
+            // ✅ NEW: Show/Hide On button based on whether there are facilities to turn on
             if (onButton != null)
             {
-                onButton.gameObject.SetActive(numOff > 0); // Show only if there are facilities that are OFF
+                bool shouldShowOnButton = numOff > 0;
+                onButton.gameObject.SetActive(shouldShowOnButton);
+                Debug.Log($"🔘 UpdateFacilityUI: {facilityType} Power ON button -> {(shouldShowOnButton ? "VISIBLE" : "HIDDEN")} (numOff={numOff})");
             }
 
-            // ✅ NEW: Hide/Show Off button based on whether there are facilities to turn off
+            // ✅ NEW: Show/Hide Off button based on whether there are facilities to turn off
             if (offButton != null)
             {
-                offButton.gameObject.SetActive(numOn > 0); // Show only if there are facilities that are ON
+                bool shouldShowOffButton = numOn > 0;
+                offButton.gameObject.SetActive(shouldShowOffButton);
+                Debug.Log($"🔘 UpdateFacilityUI: {facilityType} Power OFF button -> {(shouldShowOffButton ? "VISIBLE" : "HIDDEN")} (numOn={numOn})");
             }
         }
 
@@ -767,42 +783,103 @@ namespace BOTF3D.UI
         public void UpdateSystemPowerBalance(StarSysController sysCon)
         {
             if (sysCon == null) return;
-            int load = 0;
-            int output = 0;
+
+            // ✅ NEW: Early exit if no UI exists (for non-player systems)
+            if (sysCon.StarSysUIGameObject == null)
+            {
+                // Still update the data values even without UI
+                int load = 0;
+                int output = 0;
+
+                for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
+                    output += sysCon.StarSysData.PowerPlantData.BasePowerOutput;
+                for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
+                    if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
+                        load += sysCon.StarSysData.FactoryData.PowerLoad;
+
+                for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
+                    if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
+                        load += sysCon.StarSysData.ShipyardData.PowerLoad;
+
+                for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
+                    if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
+                        load += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
+
+                for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
+                    if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
+                        load += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
+
+                for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
+                    if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
+                        load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
+
+                sysCon.StarSysData.TotalSysPowerLoad = load;
+                sysCon.StarSysData.TotalSysPowerOutput = output;
+                return; // ✅ Exit - no UI to update
+            }
+
+            // ✅ ORIGINAL CODE: UI exists, calculate and update UI
+            int loadUI = 0;
+            int outputUI = 0;
             for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
-                output += sysCon.StarSysData.PowerPlantData.PowerOutput;
+                outputUI += sysCon.StarSysData.PowerPlantData.BasePowerOutput;
             for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
                 if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    load += sysCon.StarSysData.FactoryData.PowerLoad;
+                    loadUI += sysCon.StarSysData.FactoryData.PowerLoad;
 
             for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
                 if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    load += sysCon.StarSysData.ShipyardData.PowerLoad;
+                    loadUI += sysCon.StarSysData.ShipyardData.PowerLoad;
 
             for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
                 if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    load += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
+                    loadUI += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
 
             for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
                 if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    load += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
+                    loadUI += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
 
             for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
                 if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
+                    loadUI += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
-            sysCon.StarSysData.TotalSysPowerLoad = load;
-            sysCon.StarSysData.TotalSysPowerOutput = output;
-            //if (load > output)
-            //    CoroutineRunner.FlashPowerOverload();
+            sysCon.StarSysData.TotalSysPowerLoad = loadUI;
+            sysCon.StarSysData.TotalSysPowerOutput = outputUI;
+
+            // ✅ Update PowerOverload UI state and ONLY flash when overloaded
+            var uiFields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (uiFields != null && uiFields.PowerOverload != null)
+            {
+                if (PowerOverloadImage != null)
+                    PowerOverloadImage.SetActive(false); // Default to OFF
+                bool isOverloaded = loadUI > outputUI;
+                bool notWhenFirstOpening = false;
+                if (isOverloaded && notWhenFirstOpening && PowerOverloadImage != null)
+                {
+                    Debug.Log($"⚠️ POWER OVERLOAD: System '{sysCon.name}' - Load {loadUI} > Output {outputUI}");
+                    // Flash the warning ONLY when overloaded
+                    PowerOverloadImage.SetActive(true);
+                    CoroutineRunner.FlashPowerOverload();
+                }
+                else
+                {
+                    // No overload - ensure PowerOverload image is OFF
+                    if (PowerOverloadImage != null)
+                        PowerOverloadImage.SetActive(false);
+                    if (!notWhenFirstOpening)
+                        notWhenFirstOpening = true;
+                }
+            }
+
+            // ✅ Update text displays (NOW SAFE - we know StarSysUIGameObject exists)
             TextMeshProUGUI[] OneTMP = sysCon.StarSysUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
             for (int i = 0; i < OneTMP.Length; i++)
             {
                 OneTMP[i].enabled = true;
                 if ("NumP Load" == OneTMP[i].name)
-                    OneTMP[i].text = load.ToString();
+                    OneTMP[i].text = loadUI.ToString();
                 if ("NumTotal EOut" == OneTMP[i].name)
-                    OneTMP[i].text = output.ToString();
+                    OneTMP[i].text = outputUI.ToString();
             }
         }
 
@@ -845,7 +922,7 @@ namespace BOTF3D.UI
                         facilities = starSysData.ResearchCenters;
                         break;
                     case StarSysFacilityType.PowerPlanet:
-                        newFacilityLoad = starSysData.PowerPlantData?.PowerOutput ?? 0;
+                        newFacilityLoad = starSysData.PowerPlantData?.BasePowerOutput ?? 0;
                         facilities = starSysData.PowerPlants;
                         break;
                     default:

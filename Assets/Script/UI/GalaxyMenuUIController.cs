@@ -114,6 +114,7 @@ namespace BOTF3D.UI
         private readonly int _hvyCruisers;
         private readonly int _transports;
 
+        private bool _isInitialized = false;
 
         private void Awake()
         {
@@ -131,6 +132,14 @@ namespace BOTF3D.UI
         }
         private void Start()
         {
+            // ✅ Guard against re-initialization when scene is reactivated
+            if (_isInitialized)
+            {
+                Debug.Log("GalaxyMenuUIController.Start() skipped - already initialized");
+                return;
+            }
+            _isInitialized = true;
+
             Debug.Log("❌==========❌ GalaxyMenuUIController.Start() DIAGNOSTIC ===");
             DiagnoseGalaxyUI();
             Debug.Log("GalaxyMenuUIController: Start called - deferring camera setup");

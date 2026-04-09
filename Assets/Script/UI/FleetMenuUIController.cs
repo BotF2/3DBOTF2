@@ -844,49 +844,35 @@ namespace BOTF3D.UI
             Debug.Log($"  nameDestination: '{nameDestination}'");
             Debug.Log($"  newCoordinates: '{newCoordinates}'");
 
-            // ✅ CRITICAL FIX: Get fields from LAST ACTIVE fleet, not activeFleetController
-            FleetUI_Fields fields = null;
+            // ✅ CRITICAL FIX: Get the fleet that's waiting for a destination from GalaxyMenuUIController
+            FleetController fleetWaitingForDestination = GalaxyMenuUIController.Instance?.FleetLookingForDestination;
 
-            // Try lastFleetCon first (most recent fleet UI shown)
-            if (lastFleetCon != null && lastFleetCon.FleetUIGameObject != null)
+            if (fleetWaitingForDestination == null)
             {
-                fields = lastFleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
-                Debug.Log($"  Using lastFleetCon '{lastFleetCon.name}' UI fields: {(fields != null ? "FOUND" : "NOT FOUND")}");
-            }
-
-            // Fallback to activeFleetController
-            if (fields == null && activeFleetController != null && activeFleetController.FleetUIGameObject != null)
-            {
-                fields = activeFleetController.FleetUIGameObject.GetComponent<FleetUI_Fields>();
-                Debug.Log($"  Fallback to activeFleetController '{activeFleetController.name}' UI fields: {(fields != null ? "FOUND" : "NOT FOUND")}");
-            }
-
-            // Last resort: find the fleet UI in AFleetMenuView
-            if (fields == null && AFleetMenuView != null)
-            {
-                for (int i = 0; i < AFleetMenuView.transform.childCount; i++)
-                {
-                    var child = AFleetMenuView.transform.GetChild(i);
-                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
-                    if (fleetUIFields != null)
-                    {
-                        fields = fleetUIFields;
-                        Debug.Log($"  Found FleetUI_Fields in AFleetMenuView child '{child.name}'");
-                        break;
-                    }
-                }
-            }
-
-            if (fields == null)
-            {
-                Debug.LogError($"  ❌ NO FleetUI_Fields FOUND! Cannot update destination!");
-                Debug.LogError($"    lastFleetCon: {(lastFleetCon != null ? lastFleetCon.name : "NULL")}");
-                Debug.LogError($"    activeFleetController: {(activeFleetController != null ? activeFleetController.name : "NULL")}");
-                Debug.LogError($"    AFleetMenuView children: {(AFleetMenuView != null ? AFleetMenuView.transform.childCount : 0)}");
+                Debug.LogError($"  ❌ No fleet waiting for destination! GalaxyMenuUIController.FleetLookingForDestination is NULL");
                 return;
             }
 
-            // Update fields
+            Debug.Log($"  Fleet waiting for destination: '{fleetWaitingForDestination.name}'");
+
+            // Get the UI fields from the waiting fleet
+            if (fleetWaitingForDestination.FleetUIGameObject == null)
+            {
+                Debug.LogError($"  ❌ Fleet '{fleetWaitingForDestination.name}' has no FleetUIGameObject!");
+                return;
+            }
+
+            FleetUI_Fields fields = fleetWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+
+            if (fields == null)
+            {
+                Debug.LogError($"  ❌ Fleet '{fleetWaitingForDestination.name}' UI has no FleetUI_Fields component!");
+                return;
+            }
+
+            Debug.Log($"  ✅ Found FleetUI_Fields for fleet '{fleetWaitingForDestination.name}'");
+
+            // ✅ Update destination fields
             if (fields.DestinationName != null)
             {
                 fields.DestinationName.text = nameDestination;
@@ -907,6 +893,7 @@ namespace BOTF3D.UI
                 Debug.LogError($"  ❌ fields.DestinationCoordinates is NULL!");
             }
 
+            // ✅ Update button visibility
             if (fields.CancelDestination != null)
             {
                 fields.CancelDestination.gameObject.SetActive(true);
@@ -917,6 +904,12 @@ namespace BOTF3D.UI
             {
                 fields.DestinationDragTarget.gameObject.SetActive(false);
                 Debug.Log($"  ✅ Deactivated DestinationDragTarget button");
+            }
+
+            if (fields.SelectDestination != null)
+            {
+                fields.SelectDestination.gameObject.SetActive(false);
+                Debug.Log($"  ✅ Deactivated SelectDestination button");
             }
 
             MousePointerChanger.Instance.ResetCursor();

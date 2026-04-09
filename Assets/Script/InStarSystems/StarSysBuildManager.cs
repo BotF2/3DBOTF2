@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace BOTF3D.Core
 {
-
     public class StarSysBuildManager
     {
         /// <summary>
@@ -130,37 +129,37 @@ namespace BOTF3D.Core
                 case StarSysFacilityType.PowerPlanet:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.PowerPlants = controller.StarSysData.PowerPlants ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.PowerPlants.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.PowerPlants.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 case StarSysFacilityType.Factory:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.FactoryPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.Factories = controller.StarSysData.Factories ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.Factories.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.Factories.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 case StarSysFacilityType.Shipyard:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ShipyardPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.Shipyards = controller.StarSysData.Shipyards ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.Shipyards.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.Shipyards.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 case StarSysFacilityType.ShieldGenerator:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ShieldGeneratorPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.ShieldGenerators = controller.StarSysData.ShieldGenerators ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.ShieldGenerators.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.ShieldGenerators.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 case StarSysFacilityType.OrbitalBattery:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.OrbitalBatteryPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.OrbitalBatteries = controller.StarSysData.OrbitalBatteries ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.OrbitalBatteries.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.OrbitalBatteries.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 case StarSysFacilityType.ResearchCenter:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.ResearchCenterPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.ResearchCenters = controller.StarSysData.ResearchCenters ?? new System.Collections.Generic.List<GameObject>();
-                    controller.StarSysData.ResearchCenters.Add(newFacilityGO);
+                    // ❌ REMOVED: controller.StarSysData.ResearchCenters.Add(newFacilityGO); // Let AddSysFacility handle this
                     break;
 
                 default:
@@ -176,19 +175,14 @@ namespace BOTF3D.Core
             buildItem.SetParent(buildDrag.originalParent, false);
             UnityEngine.Object.Destroy(buildItem.gameObject);
 
-            // ✅ NEW: ALWAYS update UI for ALL facility types using typed system
+            // ✅ AddSysFacility will now handle adding to the list AND updating UI
             if (StarSysMenuUIController.Instance != null && newFacilityGO != null)
             {
-                // AddSysFacility will:
-                // 1. Ensure facility is in the data list
-                // 2. Update the typed UI (ratioText, loadText, icons)
-                // 3. Call UpdateFacilityUI to update button visibility
-                // 4. Call UpdateSystemPowerBalance to recalculate power
                 StarSysMenuUIController.Instance.AddSysFacility(
                     controller,
                     newFacilityGO,
-                    string.Empty,  // loadName (unused in typed UI path)
-                    string.Empty,  // ratioName (unused in typed UI path)
+                    string.Empty,
+                    string.Empty,
                     buildDrag.FacilityType
                 );
             }
@@ -278,7 +272,7 @@ namespace BOTF3D.Core
             ShipManager.Instance.BuildShipInSystem(drag.ShipType, controller);
 
             UnityEngine.Object.Destroy(shipBuildItem.gameObject);
-            controller.shipBuildQueueList.Remove(shipBuildItem);
+            controller.sysShipBuildQueueList.Remove(shipBuildItem);
 
             // ✅ Reset slider
             if (StarSysMenuUIController.Instance != null)
@@ -293,11 +287,11 @@ namespace BOTF3D.Core
             if (shipBuildCoroutine != null)
                 controller.StopCoroutine(shipBuildCoroutine);
 
-            if (controller.shipBuildQueueList.Count == 0 || controller.shipBuildQueueList[0] == null)
+            if (controller.sysShipBuildQueueList.Count == 0 || controller.sysShipBuildQueueList[0] == null)
                 return;
 
             shipBuildCoroutine = controller.StartCoroutine(
-                BuildShipCoroutine(controller.shipBuildQueueList[0])
+                BuildShipCoroutine(controller.sysShipBuildQueueList[0])
             );
         }
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
@@ -334,7 +328,7 @@ namespace BOTF3D.Core
 
         internal void RegisterStarSysController(StarSysController starSysCon)
         {
-            starSysCon.SysBuildManager = this;
+            starSysCon.StarSysBuildManager = this;
         }
     }
 }

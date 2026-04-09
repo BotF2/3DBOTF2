@@ -9,8 +9,8 @@ public class PowerPlantData // uses StarSysController and StarSysManager
     public StarSysFacilityType FacilitiesEnumType;
     public string Name;
     public int StartStarDate; //start to build in factory queue
-    public int BuildDuration;// duration to build can be reduced by number and output of factories
-    public int PowerOutput;
+    public int BuildDuration; // duration to build can be reduced by number and output of factories
+    public int BasePowerOutput = 20; // base power output, majors have 2 to start and minors have 1
     public Sprite PowerPlantSprite;
     public string Description;
     public bool On;

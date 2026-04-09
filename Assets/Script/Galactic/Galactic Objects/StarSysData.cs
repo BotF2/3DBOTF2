@@ -32,7 +32,7 @@ namespace BOTF3D.Core
         public List<ShipController> ShipsList = new List<ShipController>();
         [Header("Dilithium & Power")]
         public int DilithiumCapacity = 1; // Max power plants (1-3)
-        public int CurrentPowerPlantCount = 0; // How many are built
+        public int CurrentPowerPlantCount = 1; // How many are built
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;
@@ -43,6 +43,8 @@ namespace BOTF3D.Core
         public List<GameObject> OrbitalBatteries;
         public GameObject buildSlotItemImage;
         public List<GameObject> buildQueueImageList;
+        public int BasePowerPerPlant = 20; // two power plants for major home systems so 40 total
+
         public int TotalSysPowerOutput = 0;
         public int TotalSysPowerLoad = 0;
         public PowerPlantData PowerPlantData;
@@ -125,8 +127,7 @@ namespace BOTF3D.Core
         /// </summary>
         public float CalculateTotalPower(float techMultiplier)
         {
-            const float basePowerPerPlant = 10f;
-            return CurrentPowerPlantCount * basePowerPerPlant * techMultiplier;
+            return CurrentPowerPlantCount * BasePowerPerPlant * techMultiplier;
         }
     }
 }

@@ -64,5 +64,14 @@ namespace BOTF3D.GamePlay
                 }
             }
         }
+
+        internal TechLevel GetTechLevel(CivEnum civEnum)
+        {
+            if (civEnum == this.CivData.CivEnum)
+            {
+                return CivData.TechLevel;
+            }
+            return TechLevel.EARLY;
+        }
     }
 }
