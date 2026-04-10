@@ -756,7 +756,7 @@ namespace BOTF3D.Combat
 
                 if (mesheGO == null)
                 {
-                    Debug.LogWarning($"❌NEED FBX MODLE IN SO❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
+                    Debug.Log($"❌NEED FBX MODLE IN SO❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
 
                     // ✅ Load fallback from ShipManager
                     ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
@@ -765,7 +765,7 @@ namespace BOTF3D.Combat
 
                 if (mesheGO == null)
                 {
-                    Debug.LogError("❌ Fallback ship model also NULL - cannot spawn ship!");
+                    Debug.Log("❌ Fallback ship model also NULL - cannot spawn ship!");
                     continue;  // Skip this ship
                 }
 
@@ -779,7 +779,8 @@ namespace BOTF3D.Combat
                 //GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
                 fbx.name = shipConList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
                 fbx.transform.SetParent(shipGameOb.transform, false);
-
+                // ✅ Disable stencil masking on ship materials
+                DisableStencilOnShipRenderers(fbx);
                 Renderer renderer = fbx.GetComponentInChildren<Renderer>();
                 if (renderer != null)
                 {
@@ -1330,6 +1331,31 @@ namespace BOTF3D.Combat
             // ShipData has a ShipSO property that holds the SO with .fbx game object 'prefab' reference
             return ship?.ShipData?.ShipSO;
 
+        }
+        /// <summary>
+        /// Prevents 3D ship materials from conflicting with UI masking
+        /// Call after instantiating ship FBX models
+        /// </summary>
+        private void DisableStencilOnShipRenderers(GameObject shipGameObject)
+        {
+            Renderer[] renderers = shipGameObject.GetComponentsInChildren<Renderer>(true);
+
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null) continue;
+
+                foreach (var material in renderer.materials)
+                {
+                    if (material == null) continue;
+
+                    // Set render queue above UI to avoid masking
+                    material.renderQueue = 3001;
+
+                    Debug.Log($"    Set render queue for material '{material.name}' to 3001");
+                }
+            }
+
+            Debug.Log($"  ✅ Fixed {renderers.Length} renderers for '{shipGameObject.name}'");
         }
     }
 }

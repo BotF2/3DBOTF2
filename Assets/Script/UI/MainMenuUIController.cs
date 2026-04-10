@@ -1458,13 +1458,12 @@ namespace BOTF3D.UI
         {
             if (localeManager == null)
             {
-                // ✅ FIXED: Use FindFirstObjectByType instead of obsolete FindObjectOfType
                 localeManager = FindFirstObjectByType<LocaleManager>();
-                if (localeManager == null)
-                {
-                    Debug.LogWarning("MainMenuUIController: LocaleManager not found!");
-                    return;
-                }
+                //if (localeManager == null)
+                //{
+                //    Debug.LogWarning("MainMenuUIController: LocaleManager not found!");
+                //    return;
+                //}
             }
 
             // ✅ Wire English button

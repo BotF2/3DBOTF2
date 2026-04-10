@@ -168,7 +168,8 @@ namespace BOTF3D.GamePlay
             // ✅ STEP 1: FIRST disable ALL EventSystems in BOTH scenes (while objects are still inactive)
             Debug.Log("Step 1: Disabling all EventSystems...");
 
-            var allEventSystems = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            var allEventSystems = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
+            //👉 In this scenario: we don’t care about order, just need to find them all So Mode None is exactly what you want
             foreach (var es in allEventSystems)
             {
                 es.enabled = false;
@@ -372,7 +373,7 @@ namespace BOTF3D.GamePlay
             }
             else
             {
-                Debug.LogWarning("  ⚠️ No EventSystem found! Creating one...");
+                Debug.Log("  ⚠️ No EventSystem found! Creating one...");
                 CreateGalaxyEventSystem();
             }
 

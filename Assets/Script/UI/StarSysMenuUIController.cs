@@ -630,7 +630,7 @@ namespace BOTF3D.UI
             }
             else
             {
-                Debug.LogWarning("  Build queue UI not found (already destroyed?)");
+                Debug.Log("  Build queue UI not found (already destroyed?)");
             }
 
             // ✅ Only close the BuildMenu, leave ASystemMenu open

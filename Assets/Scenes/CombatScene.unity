@@ -2486,7 +2486,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 932392498}
-  - component: {fileID: 932392496}
   - component: {fileID: 932392497}
   m_Layer: 0
   m_Name: CombatOrderSelection
@@ -2495,18 +2494,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &932392496
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 932392495}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99c8df661b95a1e428854cdd81e24138, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &932392497
 MonoBehaviour:
   m_ObjectHideFlags: 0

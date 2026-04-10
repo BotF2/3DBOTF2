@@ -268,7 +268,7 @@ namespace BOTF3D.UI
                 }
                 else
                 {
-                    Debug.LogWarning($"    ❌ Button '{btn.name}': Interactable={btn.interactable}, Active={btn.gameObject.activeInHierarchy}");
+                    // Debug.LogWarning($"    ❌ Button '{btn.name}': Interactable={btn.interactable}, Active={btn.gameObject.activeInHierarchy}");
                 }
             }
             Debug.Log($"  {interactableCount}/{buttons.Length} buttons are interactable and active");
