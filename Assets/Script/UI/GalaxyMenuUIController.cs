@@ -1331,6 +1331,7 @@ namespace BOTF3D.UI
                     break;
                 case Menu.FleetMenu:
                     HideShipDeployMenu();
+                    CloseAllMenus();
                     fleetMenuUIController.ShowFleetMenuView();
                     CloseTheBackgrounds();
                     fleetsBackground.SetActive(true);

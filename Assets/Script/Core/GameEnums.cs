@@ -235,10 +235,10 @@ namespace BOTF3D.Core
     }
     public enum TechLevel
     {
-        EARLY,
-        DEVELOPED,
-        ADVANCED,
-        SUPREME
+        EARLY, //public int EarlyThreshold = 100;
+        DEVELOPED, //public int DevelopedThreshold = 300;
+        ADVANCED, //public int AdvancedThreshold = 600;
+        SUPREME //public int SupremeThreshold = 1000;
     }
     public enum GameMode
     {

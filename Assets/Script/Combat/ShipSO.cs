@@ -10,6 +10,12 @@ public class ShipSO : ScriptableObject
     public CivEnum CivEnum;
     public TechLevel TechLevel;
     public ShipType ShipType;
+
+    [Header("Tech Requirements")]
+    [Tooltip("Minimum tech points required to unlock this ship (e.g., 0, 150, 350, 700)")]
+    public int MinTechPointsRequired = 0;
+
+    [Header("Ship Stats")]
     public Sprite shipSprite;
     public Color shipColor;
     public float maxWarpFactor;
@@ -19,9 +25,16 @@ public class ShipSO : ScriptableObject
     public int BeamDamage;
     public int BuildDuration;
     public string ShipDescription;
-    //public int Cost;
-    //public int CrewCapacity;            
-    //public float FuelCapacity;                      
-    //public float CurrentFuel;
-    //public bool IsPowered;      
+
+    /// <summary>
+    /// Get the tech tier suffix from ship name (_I, _II, _III, _IV)
+    /// </summary>
+    public int GetTechTier()
+    {
+        if (ShipName.Contains("_IV")) return 4;
+        if (ShipName.Contains("_III")) return 3;
+        if (ShipName.Contains("_II")) return 2;
+        if (ShipName.Contains("_I")) return 1;
+        return 1; // Default to tier 1
+    }
 }

@@ -313,6 +313,10 @@ namespace BOTF3D.Core
             }
             return civController;
         }
+        public List<CivController> GetAllCivControllers()
+        {
+            return CivControllersInGame;
+        }
         public CivController GetCivControllerByCivEnum(CivEnum civEnum)
         {
             CivController civController = null;

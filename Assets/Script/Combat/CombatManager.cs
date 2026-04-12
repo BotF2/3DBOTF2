@@ -547,15 +547,27 @@ namespace BOTF3D.Core
         }
         public void SetUpLocalPlayer()
         {
+            StartCoroutine(SetUpLocalPlayerAfterSceneLoad());
+        }
+
+        /// <summary>
+        /// Setup local player UI after CombatScene fully loads
+        /// </summary>
+        private IEnumerator SetUpLocalPlayerAfterSceneLoad()
+        {
+            // ✅ Wait two frames per copilot-instructions.md
+            yield return null;
+            yield return null;
+
             GameObject thisCombatUIGameObject = CombatUICanvas;
 
             if (thisCombatUIGameObject == null)
             {
                 Debug.LogError("❌ CombatUICanvas is null - cannot setup UI!");
-                return;
+                yield break;
             }
 
-            // ✅ Use persistent CombatUIManager instead of CombatUIController
+            // ✅ Use persistent CombatUIManager
             if (CombatUIManager.Instance != null && ActiveCombatController != null)
             {
                 CombatUIManager.Instance.SetupForCombat(ActiveCombatController, thisCombatUIGameObject, Combat3DCanvas, GameOverCanvas);
@@ -566,6 +578,7 @@ namespace BOTF3D.Core
                 Debug.LogError("❌ CombatUIManager.Instance or ActiveCombatController is null!");
             }
         }
+
         /// <summary>
         /// ✅ NEW: Data structure for queued combats
         /// </summary>

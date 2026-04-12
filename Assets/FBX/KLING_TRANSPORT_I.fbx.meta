@@ -8,22 +8,22 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: A_Deflector
-    second: {fileID: 2100000, guid: e107d78a93006a247b7fdd4cfdc1b219, type: 2}
+    second: {fileID: 2100000, guid: 4e7414a330e6b214f8f9599062af2eba, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: A_KlingHull
-    second: {fileID: 2100000, guid: d9d25863628e6024db36be009f377bdc, type: 2}
+    second: {fileID: 2100000, guid: 20d06665d6fd9e34695bd30630a514b8, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: A_RedGlow
-    second: {fileID: 2100000, guid: 3742b636b43cba342912b2779f40ce1a, type: 2}
+    second: {fileID: 2100000, guid: 88ce341f73a34004d92d5d7671c578dd, type: 2}
   materials:
-    materialImportMode: 2
-    materialName: 0
-    materialSearch: 1
-    materialLocation: 1
+    materialImportMode: 1
+    materialName: 1
+    materialSearch: 0
+    materialLocation: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0

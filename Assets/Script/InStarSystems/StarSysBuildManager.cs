@@ -298,7 +298,8 @@ namespace BOTF3D.Core
         {
             int timeDuration = 1;
             TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.TechLevel;
-            // ToD use tech level to set features of system production, defense....q
+
+            // ✅ Get base build time
             switch (starSysFacilities)
             {
                 case StarSysFacilityType.PowerPlanet:
@@ -322,8 +323,34 @@ namespace BOTF3D.Core
                 default:
                     break;
             }
+
+            // ✅ Apply tech multipliers to reduce build time
+            if (TechManager.Instance != null)
+            {
+                float speedMultiplier = 1f;
+
+                // Use appropriate multiplier based on facility type
+                switch (starSysFacilities)
+                {
+                    case StarSysFacilityType.Factory:
+                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel);
+                        break;
+                    case StarSysFacilityType.Shipyard:
+                        speedMultiplier = TechManager.Instance.GetShipyardSpeedMultiplier(ourTechLevel);
+                        break;
+                    default:
+                        // Other facilities use factory speed bonus
+                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel);
+                        break;
+                }
+
+                // ✅ Reduce build time based on speed multiplier
+                timeDuration = Mathf.Max(1, Mathf.RoundToInt(timeDuration / speedMultiplier));
+
+                Debug.Log($"GetBuildTimeDuration: {starSysFacilities} at {ourTechLevel} - Base: {timeDuration * speedMultiplier}, Adjusted: {timeDuration} (x{speedMultiplier:F2})");
+            }
+
             return timeDuration;
-            //ToD use tech level to set features of system production, defense....
         }
 
         internal void RegisterStarSysController(StarSysController starSysCon)

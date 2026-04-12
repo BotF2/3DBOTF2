@@ -1181,6 +1181,101 @@ namespace BOTF3D.Core
             }
         }
 #endif
+
+        /// <summary>
+        /// Get all ships available to a civilization at their current tech level (and below)
+        /// NOW USES GRANULAR TECH POINTS for unlocking
+        /// </summary>
+        public List<ShipSO> GetAvailableShipsForCiv(CivEnum civEnum, TechLevel techLevel)
+        {
+            // Get current tech points for more granular unlocking
+            var civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
+            int currentTechPoints = civData?.TechPoints ?? 0;
+
+            if (TechManager.Instance != null && civData != null)
+            {
+                // Use granular unlocking based on tech points
+                return TechManager.Instance.GetUnlockedShips(civEnum, currentTechPoints);
+            }
+
+            // Fallback: use old tech level-based unlocking
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+
+            if (civShips == null || civShips.Count == 0)
+            {
+                Debug.LogWarning($"GetAvailableShipsForCiv: No ships found for {civEnum}");
+                return new List<ShipSO>();
+            }
+
+            // Filter ships by tech level (current level and below)
+            var availableShips = civShips
+                .Where(s => s != null && s.TechLevel <= techLevel)
+                .ToList();
+
+            Debug.Log($"GetAvailableShipsForCiv: {civEnum} at {techLevel} has {availableShips.Count} ship types available");
+
+            return availableShips;
+        }
+
+        /// <summary>
+        /// Get newly unlocked ships at a specific tech level
+        /// </summary>
+        public List<ShipSO> GetNewlyUnlockedShipsAtLevel(CivEnum civEnum, TechLevel techLevel)
+        {
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+
+            if (civShips == null || civShips.Count == 0)
+            {
+                Debug.LogWarning($"GetNewlyUnlockedShipsAtLevel: No ships found for {civEnum}");
+                return new List<ShipSO>();
+            }
+
+            // Get ships unlocked EXACTLY at this tech level
+            var newShips = civShips
+                .Where(s => s != null && s.TechLevel == techLevel)
+                .ToList();
+
+            if (newShips.Count > 0)
+            {
+                Debug.Log($"GetNewlyUnlockedShipsAtLevel: {civEnum} unlocked {newShips.Count} ships at {techLevel}:");
+                foreach (var ship in newShips)
+                {
+                    Debug.Log($"  - {ship.ShipName} ({ship.ShipType}) - Requires {ship.MinTechPointsRequired} tech points");
+                }
+            }
+
+            return newShips;
+        }
+
+        /// <summary>
+        /// Check if a specific ship is available for a civilization at their tech level
+        /// NOW CHECKS TECH POINTS for granular unlocking
+        /// </summary>
+        public bool IsShipAvailable(CivEnum civEnum, ShipType shipType, TechLevel civTechLevel)
+        {
+            var civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
+            if (civData == null) return false;
+
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+            if (civShips == null || civShips.Count == 0) return false;
+
+            // Find ship matching type and tech level
+            var matchingShip = civShips.FirstOrDefault(s =>
+                s != null &&
+                s.ShipType == shipType &&
+                s.TechLevel == civTechLevel);
+
+            if (matchingShip == null) return false;
+
+            // Check if tech points meet requirement
+            if (TechManager.Instance != null)
+            {
+                return TechManager.Instance.IsShipUnlockedByPoints(matchingShip, civData.TechPoints);
+            }
+
+            // Fallback: just check tech level
+            return civData.TechLevel >= matchingShip.TechLevel;
+        }
     }
 }
 

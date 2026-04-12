@@ -38,16 +38,22 @@ namespace BOTF3D.Core
 
         /// <summary>
         /// Get power efficiency multiplier based on tech level
+        /// Uses TechManager for centralized tech bonuses
         /// </summary>
         public float GetPowerTechMultiplier()
         {
+            if (TechManager.Instance != null)
+            {
+                return TechManager.Instance.GetPowerEfficiencyMultiplier(TechLevel);
+            }
+
+            // Fallback if TechManager not available
             switch (TechLevel)
             {
                 case TechLevel.EARLY: return 1.0f;
                 case TechLevel.DEVELOPED: return 1.2f;
                 case TechLevel.ADVANCED: return 1.5f;
-                case TechLevel.SUPREME: return 2f;  // Advanced antimatter
-
+                case TechLevel.SUPREME: return 2f;
                 default: return 1.0f;
             }
         }
