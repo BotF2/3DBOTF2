@@ -24,6 +24,7 @@
   <Project Path="Unity.RenderPipelines.Core.Editor.csproj" />
   <Project Path="Unity.Localization.Editor.csproj" />
   <Project Path="Edgegap.csproj" />
+  <Project Path="Unity.Networking.Transport.csproj" />
   <Project Path="Unity.VisualStudio.Editor.csproj" />
   <Project Path="Unity.Timeline.Editor.csproj" />
   <Project Path="Mirror.Editor.csproj" />
@@ -60,7 +61,6 @@
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Component.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="Unity.RenderPipelines.GPUDriven.Runtime.csproj" />
-  <Project Path="Unity.Networking.Transport.csproj" />
   <Project Path="Unity.Rider.Editor.csproj" />
   <Project Path="Unity.Mirror.CodeGen.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
@@ -128,6 +128,7 @@
   <Project Path="Unity.CollabProxy.Editor.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Common.csproj" />
   <Project Path="Unity.Netcode.Editor.CodeGen.csproj" />
+  <Project Path="Unity.Services.Multiplayer.Editor.csproj" />
   <Project Path="Unity.Services.DeploymentApi.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="Unity.Services.Core.Registration.csproj" />
@@ -154,7 +155,6 @@
   <Project Path="Unity.Collections.Editor.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Adapters.Ngo1WithUtp2.csproj" />
   <Project Path="Unity.VisualScripting.DocCodeExamples.csproj" />
-  <Project Path="Unity.Services.Multiplayer.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.csproj" />
   <Project Path="Unity.RenderPipelines.Core.ShaderLibrary.csproj" />
   <Project Path="Unity.Services.Core.Environments.csproj" />
