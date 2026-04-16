@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -21,17 +22,22 @@ namespace BOTF3D.Core
         [SerializeField] private Button buttonEnglish;
         [SerializeField] private Button buttonFrench;
         [SerializeField] private Button buttonGerman;
+        [SerializeField] private Button buttonSpanish;
+        [SerializeField] private Button buttonItalian;
+        [SerializeField] private Button buttonPolish;
+        [SerializeField] private Button buttonPortuguese;
 
         private void Awake()
         {
-            if (Instance != null)
-            {
-                Destroy(gameObject);
-            }
-            else
+            if (Instance == null)
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
+                Debug.Log("✅ LocaleManager initialized");
+            }
+            else
+            {
+                Destroy(gameObject);
             }
         }
 
@@ -43,46 +49,46 @@ namespace BOTF3D.Core
         /// <summary>
         /// Wait for Unity Localization to initialize
         /// </summary>
-        private System.Collections.IEnumerator InitializeLocalization()
+        /// 
+        private IEnumerator InitializeLocalization()
         {
-            Debug.Log("LocaleManager: Waiting for Localization to initialize...");
+            Debug.Log("LocaleManager: Waiting for Localization system to initialize...");
 
-            // ✅ Wait for initialization
+            // ✅ Wait for localization system to be ready
             yield return LocalizationSettings.InitializationOperation;
 
-            // ✅ Check if initialization succeeded
-            if (LocalizationSettings.InitializationOperation.IsDone)
-            {
-                if (LocalizationSettings.SelectedLocale != null)
-                {
-                    Debug.Log($"✅ Localization initialized: {LocalizationSettings.SelectedLocale.Identifier.Code}");
-                }
-                else
-                {
-                    Debug.LogWarning("⚠️ Localization initialized but no locale selected - using default");
-                    TrySetDefaultLocale();
-                }
-            }
-            else
-            {
-                Debug.LogError("❌ Localization failed to initialize - disabling localized text");
-            }
+            Debug.Log("✅ Localization system initialized");
+
+            // ✅ Force a locale refresh to ensure all UI updates
+            RefreshAllLocalizedStrings();
         }
         /// <summary>
-        /// Try to set a default locale if none is selected
+        /// Force all LocalizeStringEvent components to refresh
         /// </summary>
-        private void TrySetDefaultLocale()
+        /// <summary>
+        /// Force all LocalizeStringEvent components to refresh
+        /// </summary>
+        public void RefreshAllLocalizedStrings()
         {
-            if (LocalizationSettings.AvailableLocales.Locales.Count > 0)
+            Debug.Log("RefreshAllLocalizedStrings: Forcing update on all active UI...");
+
+            // Find all active LocalizeStringEvent components
+            var localizedStrings = FindObjectsByType<UnityEngine.Localization.Components.LocalizeStringEvent>(FindObjectsSortMode.None);
+
+            Debug.Log($"  Found {localizedStrings.Length} LocalizeStringEvent components");
+
+            foreach (var localizedString in localizedStrings)
             {
-                LocalizationSettings.SelectedLocale = LocalizationSettings.AvailableLocales.Locales[0];
-                Debug.Log($"  Set default locale to: {LocalizationSettings.SelectedLocale.Identifier.Code}");
+                if (localizedString != null && localizedString.StringReference != null && !localizedString.StringReference.IsEmpty)
+                {
+                    localizedString.RefreshString();
+                }
             }
-            else
-            {
-                Debug.LogError("  ❌ No locales available! Build Addressables for Localization.");
-            }
+
+            Debug.Log("RefreshAllLocalizedStrings: Complete");
         }
+
+
         /// <summary>
         /// Changes the game language to the specified locale.
         /// </summary>
@@ -143,6 +149,7 @@ namespace BOTF3D.Core
                 Debug.LogWarning($"Locale '{localeCode}' not found");
             }
         }
+
         /// <summary>
         /// Gets a Locale by ISO language code.
         /// </summary>
@@ -175,20 +182,5 @@ namespace BOTF3D.Core
         {
             return LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en";
         }
-
-        /// <summary>
-        /// Lazy property for LocaleManager
-        /// </summary>
-        //private LocaleManager LocaleManager
-        //{
-        //    get
-        //    {
-        //        if (LocaleManager.Instance == null)
-        //        {
-        //            Debug.LogError("MainMenuUIController: LocaleManager.Instance is NULL!");
-        //        }
-        //        return LocaleManager.Instance;
-        //    }
-        //}
     }
 }

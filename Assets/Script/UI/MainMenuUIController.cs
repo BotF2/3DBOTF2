@@ -2,6 +2,7 @@
 using BOTF3D.Audio;
 using BOTF3D.Core;
 using Mirror;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -119,8 +120,10 @@ namespace BOTF3D.UI
         [SerializeField] private Button buttonEnglish;
         [SerializeField] private Button buttonFrench;
         [SerializeField] private Button buttonGerman;
-        [SerializeField] private LocaleManager localeManager = LocaleManager.Instance;
-
+        [SerializeField] private Button buttonItalian;
+        [SerializeField] private Button buttonSpanish;
+        [SerializeField] private Button buttonPolish;
+        [SerializeField] private Button buttonPortuguese;
 
         private void Awake()
         {
@@ -216,6 +219,31 @@ namespace BOTF3D.UI
         private void Start()
         {
             Debug.Log("=== MainMenuUIController.Start() START ===");
+            // ✅ Wait for localization before setting up UI
+            StartCoroutine(InitializeAfterLocalization());
+
+        }
+        private IEnumerator InitializeAfterLocalization()
+        {
+            Debug.Log("MainMenuUIController: Waiting for localization...");
+
+            // ✅ Wait for localization to be ready
+            yield return LocalizationSettings.InitializationOperation;
+
+            Debug.Log("✅ Localization ready - setting up MainMenu UI");
+
+            // ✅ Now setup your UI (existing Start() code goes here)
+            SetupMainMenuUI();
+
+            // ✅ Force refresh all localized strings
+            if (LocaleManager.Instance != null)
+            {
+                LocaleManager.Instance.RefreshAllLocalizedStrings();
+            }
+        }
+
+        private void SetupMainMenuUI()
+        {
             VerifyButtonsAreInteractable();
             // ✅ Play main menu music
             if (AudioManager.Instance != null)
@@ -286,6 +314,7 @@ namespace BOTF3D.UI
             SupremeToggle.isOn = false;
             Debug.Log("=== MainMenuUIController.Start() COMPLETE ===");
         }
+
         /// <summary>
         /// Ensures an EventSystem exists for UI input AND persists across scenes
         /// </summary>
@@ -771,25 +800,21 @@ namespace BOTF3D.UI
             Debug.Log("ActivateGalaxyGameObjects: Complete");
         }
 
-
-        // This is now only called when returning from Galaxy to MainMenu (e.g., quit to menu)
-        public void ReturnToMainMenu()
+        public void ReturnToLobbyMenu()
         {
-            Debug.Log("ReturnToMainMenu: Reloading MainMenu scene");
-
-            // Simply reload the MainMenu scene - it will unload Galaxy automatically
-            SceneManager.LoadScene("MainMenuScene");
-
-            // Reset instance if this controller is destroyed
-            Instance = null;
+            ResetPlayers();
+            panelLobby.SetActive(true);
+            panelMuliplayer.SetActive(false);
+            panelCivSelection.SetActive(false);
+            panelGamePara.SetActive(false);
         }
 
-        // No longer needed - kept for reference
-        public void TransitionToGameplay()
-        {
-            // This method is now handled by LoadGalaxySceneCoroutine
-            Debug.Log("TransitionToGameplay: Scene transition handled by LoadGalaxySceneCoroutine");
-        }
+        //// No longer needed - kept for reference
+        //public void TransitionToGameplay()
+        //{
+        //    // This method is now handled by LoadGalaxySceneCoroutine
+        //    Debug.Log("TransitionToGameplay: Scene transition handled by LoadGalaxySceneCoroutine");
+        //}
 
         private void UpdatePlayers()
         {
@@ -1267,7 +1292,7 @@ namespace BOTF3D.UI
 
             Debug.Log($"  ✅ Set GameMode to SINGLEPLAYER");
 
-            // ✅ Check if CombatUIController exists
+            // ✅ Check if CombatUIManager exists
             if (CombatUIManager.Instance == null)
             {
                 Debug.Log("SetSinglePlayer: CombatUIManager.Instance is NULL - combat UI won't be initialized yet");
@@ -1285,8 +1310,16 @@ namespace BOTF3D.UI
                 return;
             }
 
-            NetworkManager.singleton.StartHost();
-            Debug.Log("  ✅ Started host (network manager)");
+            // ✅ Only start if not already running
+            if (!NetworkServer.active && !NetworkClient.isConnected)
+            {
+                NetworkManager.singleton.StartHost();
+                Debug.Log("  ✅ Started host (network manager)");
+            }
+            else
+            {
+                Debug.Log("SetSinglePlayer: NetworkManager already running - skipping StartHost()");
+            }
 
             Debug.Log("=== SetSinglePlayer: Complete ===");
         }
@@ -1363,23 +1396,21 @@ namespace BOTF3D.UI
                 FedLocalPlayerToggle.isOn = true;
         }
 
-        private void CancelButton()
+        public void PreviousButton()
         {
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(false);
             panelLobby.SetActive(true);
         }
-        private void SaveButton()
+        public void SaveButton()
         {
-            //singlePlayToggleGroup.SetActive(true);
             UpdatePlayers();
             UpdateNotInGame();
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(true);
-
         }
         public void OpenSettingButton()
         {
@@ -1391,7 +1422,7 @@ namespace BOTF3D.UI
             settingsMenuView.SetActive(false);
             closeSettingsButton.SetActive(false);
         }
-        private void ReturnButton()
+        public void ReturnButton()
         {
             ResetPlayers();
             panelLobby.SetActive(false);
@@ -1456,15 +1487,7 @@ namespace BOTF3D.UI
 
         private void SetupLanguageButtons()
         {
-            if (localeManager == null)
-            {
-                localeManager = FindFirstObjectByType<LocaleManager>();
-                //if (localeManager == null)
-                //{
-                //    Debug.LogWarning("MainMenuUIController: LocaleManager not found!");
-                //    return;
-                //}
-            }
+            Debug.Log("SetupLanguageButtons: Wiring language buttons...");
 
             // ✅ Wire English button
             if (buttonEnglish != null)
@@ -1472,6 +1495,10 @@ namespace BOTF3D.UI
                 buttonEnglish.onClick.RemoveAllListeners();
                 buttonEnglish.onClick.AddListener(() => ChangeToEnglish());
                 Debug.Log("✅ English button wired");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonEnglish is NULL - not wired");
             }
 
             // ✅ Wire French button
@@ -1481,6 +1508,10 @@ namespace BOTF3D.UI
                 buttonFrench.onClick.AddListener(() => ChangeToFrench());
                 Debug.Log("✅ French button wired");
             }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonFrench is NULL - not wired");
+            }
 
             // ✅ Wire German button
             if (buttonGerman != null)
@@ -1489,38 +1520,200 @@ namespace BOTF3D.UI
                 buttonGerman.onClick.AddListener(() => ChangeToGerman());
                 Debug.Log("✅ German button wired");
             }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonGerman is NULL - not wired");
+            }
+            // ✅ Wire Spanish button
+            if (buttonSpanish != null)
+            {
+                buttonSpanish.onClick.RemoveAllListeners();
+                buttonSpanish.onClick.AddListener(() => ChangeToSpanish());
+                Debug.Log("✅ Spanish button wired");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonSpanish is NULL - not wired");
+            }
+            // ✅ Wire Italian button
+            if (buttonItalian != null)
+            {
+                buttonItalian.onClick.RemoveAllListeners();
+                buttonItalian.onClick.AddListener(() => ChangeToItalian());
+                Debug.Log("✅ Italian button wired");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonItalian is NULL - not wired");
+            }
+            // ✅ Wire Polish button
+            if (buttonPolish != null)
+            {
+                buttonPolish.onClick.RemoveAllListeners();
+                buttonPolish.onClick.AddListener(() => ChangeToPolish());
+                Debug.Log("✅ Polish button wired");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonPolish is NULL - not wired");
+            }
+
+            // ✅ Wire Portuguese button
+            if (buttonPortuguese != null)
+            {
+                buttonPortuguese.onClick.RemoveAllListeners();
+                buttonPortuguese.onClick.AddListener(() => ChangeToPortuguese());
+                Debug.Log("✅ Portuguese button wired");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ buttonPortuguese is NULL - not wired");
+            }
+
         }
 
         private void ChangeToEnglish()
         {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToEnglish: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
             var locale = GetLocaleByCode("en");
             if (locale != null)
             {
-                localeManager.ChangeLanguage(locale);
-                Debug.Log("Language changed to English");
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to English");
+            }
+            else
+            {
+                Debug.LogError("❌ English locale not found!");
             }
         }
 
         private void ChangeToFrench()
         {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToFrench: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
             var locale = GetLocaleByCode("fr");
             if (locale != null)
             {
-                localeManager.ChangeLanguage(locale);
-                Debug.Log("Language changed to French");
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to French");
+            }
+            else
+            {
+                Debug.LogError("❌ French locale not found!");
             }
         }
 
         private void ChangeToGerman()
         {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToGerman: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
             var locale = GetLocaleByCode("de");
             if (locale != null)
             {
-                localeManager.ChangeLanguage(locale);
-                Debug.Log("Language changed to German");
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to German");
+            }
+            else
+            {
+                Debug.LogError("❌ German locale not found!");
             }
         }
+        private void ChangeToSpanish()
+        {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToSpanish: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
 
+            var locale = GetLocaleByCode("es");
+            if (locale != null)
+            {
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to Spanish");
+            }
+            else
+            {
+                Debug.LogError("❌ Spanish locale not found!");
+            }
+        }
+        private void ChangeToPolish()
+        {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToPolish: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
+            var locale = GetLocaleByCode("pl");
+            if (locale != null)
+            {
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to Polish");
+            }
+            else
+            {
+                Debug.LogError("❌ Polish locale not found!");
+            }
+        }
+        private void ChangeToItalian()
+        {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToItalian: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
+            var locale = GetLocaleByCode("it");
+            if (locale != null)
+            {
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to Italian");
+            }
+            else
+            {
+                Debug.LogError("❌ Italian locale not found!");
+            }
+        }
+        private void ChangeToPortuguese()
+        {
+            // ✅ Always use Instance directly (don't cache it)
+            if (LocaleManager.Instance == null)
+            {
+                Debug.LogError("ChangeToPortuguese: LocaleManager.Instance is NULL! Cannot change language.");
+                return;
+            }
+
+            var locale = GetLocaleByCode("pt-BR"); // ✅ Changed from "pt" to "pt-BR"
+            if (locale != null)
+            {
+                LocaleManager.Instance.ChangeLanguage(locale);
+                Debug.Log("✅ Language changed to Portuguese (Brazilian)");
+            }
+            else
+            {
+                Debug.LogError("❌ Portuguese locale not found!");
+            }
+        }
         /// <summary>
         /// Gets a Locale by language code (en, fr, de, etc.)
         /// </summary>

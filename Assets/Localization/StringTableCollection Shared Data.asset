@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: StringTableCollection Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: StringTableCollection
+  m_TableCollectionNameGuidString: fa1ee9bcf2027c649882dd684b17436b
+  m_Entries:
+  - m_Id: 62150139904
+    m_Key: Single.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 311542483984384
+    m_Key: Multiple.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72856576000
+    m_Key: ToBoldly.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267776
+    m_Key: LoadGame.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267777
+    m_Key: StartSetup.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267778
+    m_Key: Previous.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 847503923455459451
+  references:
+    version: 2
+    RefIds:
+    - rid: 847503923455459451
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1776297771334
