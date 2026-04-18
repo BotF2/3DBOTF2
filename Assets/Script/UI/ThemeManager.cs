@@ -175,7 +175,7 @@ namespace BOTF3D.UI
             OnThemeChanged?.Invoke(CurrentTheme);
 
             // Find all ThemedUIElement components in active scenes and update them
-            var themedElements = FindObjectsByType<UI.ThemedUIElement>(FindObjectsSortMode.None);
+            var themedElements = FindObjectsByType<ThemedUIElement>(FindObjectsSortMode.None);
             Debug.Log($"ThemeManager: Found {themedElements.Length} ThemedUIElement components to update");
 
             foreach (var element in themedElements)
