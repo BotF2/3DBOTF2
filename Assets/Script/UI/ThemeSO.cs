@@ -1,13 +1,12 @@
-using UnityEngine;
-using BOTF3D.Core;
 using TMPro;
+using UnityEngine;
 
 
 [CreateAssetMenu(fileName = "ThemeSO", menuName = "ThemeSO")]
 /// <summary>
 /// This is a type of UI menu theme based on the style, color scheme and design of the faction/civilization (Federation, Klingon...) selected by the local player
 /// </summary>
-public class ThemeSO: ScriptableObject
+public class ThemeSO : ScriptableObject
 {
     public int CivInt;
     public Sprite BackImage;
@@ -28,8 +27,8 @@ public class ThemeSO: ScriptableObject
     public Color LowLightColor;
     public Color TextColor;
     public TMP_Text TMP_Text;
+    public Sprite ButtonSprite0;
     public Sprite ButtonSprite1;
     public Sprite ButtonSprite2;
     public Sprite ButtonSprite3;
-    public Sprite ButtonSprite4;
 }

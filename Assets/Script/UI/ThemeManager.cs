@@ -1,6 +1,8 @@
+using BOTF3D.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
 public enum ThemeEnum
 {
     Fed,
@@ -12,7 +14,7 @@ public enum ThemeEnum
     Terran
 }
 
-namespace BOTF3D.Core
+namespace BOTF3D.UI
 {
 
     public class ThemeManager : MonoBehaviour
@@ -44,6 +46,10 @@ namespace BOTF3D.Core
         [SerializeField] private Font[] fonts;
         [SerializeField] private TMP_Text[] tMP_Texts;
         [SerializeField] private Button[] buttons;
+
+        // Event system for theme changes
+        public delegate void ThemeChangedDelegate(ThemeSO newTheme);
+        public static event ThemeChangedDelegate OnThemeChanged;
 
         private void Awake()
         {
@@ -148,8 +154,11 @@ namespace BOTF3D.Core
                 if (spriteResearchCenter != null)
                     spriteResearchCenter.sprite = CurrentTheme.ResearchCenterImage;
 
+                // ✅ BROADCAST THEME CHANGE TO ALL THEMED UI ELEMENTS
+                NotifyThemeChanged();
+
                 // Note: MainMenu UI elements become null after scene unload - that's expected behavior
-                Debug.Log($"ThemeManager: Theme {themeEnum} applied (MainMenu UI refs may be null after scene transition)");
+                Debug.Log($"ThemeManager: Theme {themeEnum} applied and broadcasted to all ThemedUIElements");
             }
             else
             {
@@ -157,10 +166,54 @@ namespace BOTF3D.Core
             }
         }
 
+        /// <summary>
+        /// Notify all ThemedUIElement components to update
+        /// </summary>
+        private void NotifyThemeChanged()
+        {
+            // Trigger event for components listening
+            OnThemeChanged?.Invoke(CurrentTheme);
+
+            // Find all ThemedUIElement components in active scenes and update them
+            var themedElements = FindObjectsByType<UI.ThemedUIElement>(FindObjectsSortMode.None);
+            Debug.Log($"ThemeManager: Found {themedElements.Length} ThemedUIElement components to update");
+
+            foreach (var element in themedElements)
+            {
+                if (element != null && element.gameObject.activeInHierarchy)
+                {
+                    element.ApplyTheme();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Force refresh all themed UI elements in current scene
+        /// </summary>
+        public void RefreshAllThemedElements()
+        {
+            if (CurrentTheme != null)
+            {
+                NotifyThemeChanged();
+            }
+        }
+
         public ThemeSO GetLocalPlayerTheme()
         {
             return CurrentTheme;
         }
+
+        /// <summary>
+        /// Get theme for a specific civilization
+        /// </summary>
+        public ThemeSO GetThemeByCivEnum(CivEnum civEnum)
+        {
+            int index = (int)civEnum;
+            if (index >= 0 && index < themeSOs.Length)
+            {
+                return themeSOs[index];
+            }
+            return CurrentTheme;
+        }
     }
 }
-

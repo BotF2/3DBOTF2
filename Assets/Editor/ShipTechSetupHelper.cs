@@ -27,6 +27,7 @@ public class ShipTechSetupHelper : EditorWindow
             "Examples:\n" +
             "  FED_DESTROYER_I(CLONE) → 25 points (Early)\n" +
             "  FED_CRUISER_II(CLONE) → 150 points (Developed)\n" +
+            "  FED_CRUISER_III(CLONE) → 400 points (Advanced)\n" +
             "  FED_HVYCRUISER_IV(CLONE) → 850 points (Supreme)",
             MessageType.Info);
 

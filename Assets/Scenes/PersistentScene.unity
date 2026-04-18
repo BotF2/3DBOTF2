@@ -2122,7 +2122,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 48ee95d8f83a86149849158eac52db44, type: 2}
   - {fileID: 11400000, guid: a85733ba38895ce40bace95cfbad76e8, type: 2}
   - {fileID: 11400000, guid: c4be30cfc3f2be342bb0f15eb00a9b79, type: 2}
-  CurrentTheme: {fileID: 0}
+  CurrentTheme: {fileID: 11400000, guid: a85733ba38895ce40bace95cfbad76e8, type: 2}
   imageBackground: {fileID: 0}
   spriteInsignia: {fileID: 0}
   spriteRace: {fileID: 0}
