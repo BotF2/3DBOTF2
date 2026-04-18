@@ -23,11 +23,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: Mehrere Spieler
+    m_Localized: Mehrspieler
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: auf Entdeckungsreise gehen...
+    m_Localized: Mutig dorthin zu gehen, wo noch nie ein Mensch zuvor gewesen ist.
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -35,11 +35,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72936267777
-    m_Localized: Einrichtung starten
+    m_Localized: Einstellungen speichern
     m_Metadata:
       m_Items: []
   - m_Id: 72936267778
+    m_Localized: "Zur\xFCck"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: Karte erstellen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Laden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Einstellungen speichern
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
     m_Localized: Vorherige
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038337
+    m_Localized: Karte erstellen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: Du
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: Zivilisation
     m_Metadata:
       m_Items: []
   references:

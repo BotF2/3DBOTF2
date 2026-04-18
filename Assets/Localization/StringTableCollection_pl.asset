@@ -19,15 +19,16 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 62150139904
-    m_Localized: Pojedynczy gracz
+    m_Localized: Tryb dla jednego gracza
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: Wielu graczy
+    m_Localized: Tryb wieloosobowy
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: "I\u015B\u0107 \u015Bmia\u0142o..."
+    m_Localized: "\u015Amia\u0142o pod\u0105\u017Ca\u0107 tam, gdzie nikt jeszcze
+      nie dotar\u0142."
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -35,11 +36,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72936267777
-    m_Localized: "Rozpocznij konfiguracj\u0119"
+    m_Localized: Zapisz ustawienia
     m_Metadata:
       m_Items: []
   - m_Id: 72936267778
     m_Localized: Poprzedni
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: "Utw\xF3rz map\u0119"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Cywilizacja
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Gracze
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: Ustawienie
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038337
+    m_Localized: '#VALUE!'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: Ty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: W grze
     m_Metadata:
       m_Items: []
   references:

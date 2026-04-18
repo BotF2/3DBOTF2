@@ -245,6 +245,10 @@ namespace BOTF3D.UI
         private void SetupMainMenuUI()
         {
             VerifyButtonsAreInteractable();
+
+            // ✅ CRITICAL: Initialize all toggle checkmarks before setting any toggle states
+            InitializeAllToggleCheckmarks();
+
             // ✅ Play main menu music
             if (AudioManager.Instance != null)
             {
@@ -1098,6 +1102,90 @@ namespace BOTF3D.UI
             borgImages.SetActive(false);
             terranImages.SetActive(false);
         }
+
+        /// <summary>
+        /// Initialize all toggle checkmarks to ensure they have proper Image components and materials.
+        /// This fixes issues where checkmarks don't show up or materials aren't assigned at runtime.
+        /// </summary>
+        private void InitializeAllToggleCheckmarks()
+        {
+            Debug.Log("=== InitializeAllToggleCheckmarks: START ===");
+
+            EnsureToggleCheckmarkConfigured(FedLocalPlayerToggle, "ToggleLocal_Fed");
+            EnsureToggleCheckmarkConfigured(RomLocalPlayerToggle, "ToggleLocal_Rom");
+            EnsureToggleCheckmarkConfigured(KlingLocalPlayerToggle, "ToggleLocal_Kling");
+            EnsureToggleCheckmarkConfigured(CardLocalPlayerToggle, "ToggleLocal_Card");
+            EnsureToggleCheckmarkConfigured(DomLocalPlayerToggle, "ToggleLocal_Dom");
+            EnsureToggleCheckmarkConfigured(BorgLocalPlayerToggle, "ToggleLocal_Borg");
+            EnsureToggleCheckmarkConfigured(TerranLocalPlayerToggle, "ToggleLocal_Terran");
+
+            Debug.Log("=== InitializeAllToggleCheckmarks: COMPLETE ===");
+        }
+
+        /// <summary>
+        /// Ensure a toggle's checkmark has proper Image component and is assigned to Toggle.graphic.
+        /// </summary>
+        private void EnsureToggleCheckmarkConfigured(Toggle toggle, string toggleName)
+        {
+            if (toggle == null)
+            {
+                Debug.LogError($"EnsureToggleCheckmarkConfigured: '{toggleName}' toggle is NULL!");
+                return;
+            }
+
+            // Find Background/Checkmark
+            Transform background = toggle.transform.Find("Background");
+            if (background == null)
+            {
+                Debug.LogError($"EnsureToggleCheckmarkConfigured: '{toggleName}' has no Background child!");
+                return;
+            }
+
+            Transform checkmarkTransform = background.Find("Checkmark");
+            if (checkmarkTransform == null)
+            {
+                Debug.LogError($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background' has no Checkmark child!");
+                return;
+            }
+
+            // Ensure checkmark has an Image component
+            Image checkmarkImage = checkmarkTransform.GetComponent<Image>();
+            if (checkmarkImage == null)
+            {
+                Debug.LogWarning($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background/Checkmark' missing Image component - adding it");
+                checkmarkImage = checkmarkTransform.gameObject.AddComponent<Image>();
+            }
+
+            // Ensure the checkmark Image has a sprite (use a default checkmark if needed)
+            if (checkmarkImage.sprite == null)
+            {
+                Debug.LogWarning($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background/Checkmark' has no sprite assigned");
+                // Try to find the default UI sprite
+                Sprite defaultCheckmark = Resources.Load<Sprite>("UI/Skin/Checkmark");
+                if (defaultCheckmark != null)
+                {
+                    checkmarkImage.sprite = defaultCheckmark;
+                    Debug.Log($"  ✅ Assigned default checkmark sprite to '{toggleName}'");
+                }
+            }
+
+            // Ensure the Toggle component references the checkmark as its graphic
+            if (toggle.graphic == null || toggle.graphic != checkmarkImage)
+            {
+                toggle.graphic = checkmarkImage;
+                Debug.Log($"  ✅ Assigned checkmark Image to Toggle.graphic for '{toggleName}'");
+            }
+
+            // ✅ CRITICAL: Keep the checkmark GameObject ACTIVE - let Unity's Toggle control visibility through the graphic
+            // The Toggle component will automatically enable/disable the Image based on isOn state
+            checkmarkTransform.gameObject.SetActive(true);
+
+            Debug.Log($"✅ '{toggleName}' checkmark initialized: Image={(checkmarkImage != null ? "Yes" : "No")}, " +
+                      $"Sprite={(checkmarkImage?.sprite != null ? checkmarkImage.sprite.name : "None")}, " +
+                      $"Graphic={(toggle.graphic != null ? "Assigned" : "NULL")}, " +
+                      $"IsOn={toggle.isOn}");
+        }
+
         public void ActiveMapToggle()
         {
             switch (activeMapToggle.name.ToUpper())
@@ -1324,73 +1412,73 @@ namespace BOTF3D.UI
             Debug.Log("=== SetSinglePlayer: Complete ===");
         }
 
-        private void FedOnOffToggleReset()
+        public void FedOnOffToggleReset()
         {
             if (FedLocalPlayerToggle.isOn == true)
                 FedOnOff.isOn = true;
         }
-        private void RomOnOffToggleReset()
+        public void RomOnOffToggleReset()
         {
             if (RomLocalPlayerToggle.isOn == true)
                 RomOnOff.isOn = true;
         }
-        private void KlinOnOffToggleReset()
+        public void KlingOnOffToggleReset()
         {
             if (KlingLocalPlayerToggle.isOn == true)
                 KlingOnOff.isOn = true;
         }
-        private void CardOnOffToggleReset()
+        public void CardOnOffToggleReset()
         {
             if (CardLocalPlayerToggle.isOn == true)
                 CardOnOff.isOn = true;
         }
-        private void DomOnOffToggleReset()
+        public void DomOnOffToggleReset()
         {
             if (DomLocalPlayerToggle.isOn == true)
                 DomOnOff.isOn = true;
         }
-        private void BorgOnOffToggleReset()
+        public void BorgOnOffToggleReset()
         {
             if (BorgLocalPlayerToggle.isOn == true)
                 BorgOnOff.isOn = true;
         }
-        private void TerranOnOffToggleReset()
+        public void TerranOnOffToggleReset()
         {
             if (TerranLocalPlayerToggle.isOn == true)
                 TerranOnOff.isOn = true;
         }
 
-        private void FedPlayToggleReset()
+        public void FedPlayToggleReset()
         {
             if (FedOnOff.isOn == false && FedLocalPlayerToggle.isOn == true)
                 RomLocalPlayerToggle.isOn = true;
         }
-        private void RomPlayToggleReset()
+        public void RomPlayToggleReset()
         {
             if (RomOnOff.isOn == false && RomLocalPlayerToggle.isOn == true)
                 KlingLocalPlayerToggle.isOn = true;
         }
-        private void KlingPlayToggleReset()
+        public void KlingPlayToggleReset()
         {
             if (KlingOnOff.isOn == false && KlingLocalPlayerToggle.isOn == true)
                 CardLocalPlayerToggle.isOn = true;
         }
-        private void CardPlayToggleReset()
+        public void CardPlayToggleReset()
         {
             if (CardOnOff.isOn == false && CardLocalPlayerToggle.isOn == true)
                 DomLocalPlayerToggle.isOn = true;
         }
-        private void DomPlayToggleReset()
+        public void DomPlayToggleReset()
         {
             if (DomOnOff.isOn == false && DomLocalPlayerToggle.isOn == true)
                 BorgLocalPlayerToggle.isOn = true;
         }
-        private void BorgPlayerToggleReset()
+        public void BorgPlayerToggleReset()
         {
             if (BorgOnOff.isOn == false && BorgLocalPlayerToggle.isOn == true)
                 TerranLocalPlayerToggle.isOn = true;
         }
-        private void TerranPlayerToggleReset()
+        public void TerranPlayerToggleReset()
         {
             if (TerranOnOff.isOn == false && TerranLocalPlayerToggle.isOn == true)
                 FedLocalPlayerToggle.isOn = true;

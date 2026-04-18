@@ -39,6 +39,34 @@ MonoBehaviour:
     m_Key: Previous.LocalPlayer.MainMenu
     m_Metadata:
       m_Items: []
+  - m_Id: 904229303623680
+    m_Key: YourCiv.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Key: InGame.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Key: GalaxyMap.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Key: CivHeader.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Key: PlayerHeader.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Key: Settings.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038337
+    m_Key: New Entry
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

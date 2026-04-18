@@ -19,15 +19,15 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 62150139904
-    m_Localized: Single Player
+    m_Localized: Singleplayer
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: Multiple Players
+    m_Localized: Multiplayer
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: To Boldly Go...
+    m_Localized: To boldly go where no one has gone before.
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -35,11 +35,35 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72936267777
-    m_Localized: Start Setup
+    m_Localized: Save Settings
     m_Metadata:
       m_Items: []
   - m_Id: 72936267778
     m_Localized: Previous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: Create Map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Civilization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Players
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: Setting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: In Game
     m_Metadata:
       m_Items: []
   references:

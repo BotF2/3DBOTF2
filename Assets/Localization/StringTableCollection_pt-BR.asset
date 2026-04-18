@@ -23,11 +23,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: "V\xE1rios jogadores"
+    m_Localized: Multijogador
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: Ir audaciosamente...
+    m_Localized: "Ir audaciosamente aonde ningu\xE9m jamais foi."
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -35,11 +35,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72936267777
-    m_Localized: "Iniciar Configura\xE7\xE3o"
+    m_Localized: "Salvar configura\xE7\xF5es"
     m_Metadata:
       m_Items: []
   - m_Id: 72936267778
     m_Localized: Anterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: Criar mapa
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: "Civiliza\xE7\xE3o"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Jogadores
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: Contexto
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038337
+    m_Localized: '#VALUE!'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: "Voc\xEA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: No jogo
     m_Metadata:
       m_Items: []
   references:

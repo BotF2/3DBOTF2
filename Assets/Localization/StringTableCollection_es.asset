@@ -23,11 +23,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: Varios jugadores
+    m_Localized: Multijugador
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: "Para ir con valent\xEDa..."
+    m_Localized: Ir audazmente donde nadie ha ido antes.
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -35,11 +35,39 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72936267777
-    m_Localized: "Iniciar configuraci\xF3n"
+    m_Localized: "Guardar configuraci\xF3n"
     m_Metadata:
       m_Items: []
   - m_Id: 72936267778
     m_Localized: Anterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: Crear mapa
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: "Civilizaci\xF3n"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Jugadores
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: "Configuraci\xF3n"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038337
+    m_Localized: '#VALUE!'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: "T\xFA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: En el juego
     m_Metadata:
       m_Items: []
   references:
