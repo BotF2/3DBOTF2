@@ -55,11 +55,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 891215905038336
-    m_Localized: "Param\xE8tre"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 891215905038337
-    m_Localized: '#VALUE!'
+    m_Localized: "Param\xE8tres"
     m_Metadata:
       m_Items: []
   - m_Id: 904229303623680
@@ -68,6 +64,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 904229349761024
     m_Localized: Dans le jeu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: CV
     m_Metadata:
       m_Items: []
   references:

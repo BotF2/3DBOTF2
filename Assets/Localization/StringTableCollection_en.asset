@@ -55,7 +55,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 891215905038336
-    m_Localized: Setting
+    m_Localized: Settings
     m_Metadata:
       m_Items: []
   - m_Id: 904229303623680
@@ -64,6 +64,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 904229349761024
     m_Localized: In Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: Resume
     m_Metadata:
       m_Items: []
   references:

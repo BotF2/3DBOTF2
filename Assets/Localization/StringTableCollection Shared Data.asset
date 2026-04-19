@@ -15,6 +15,14 @@ MonoBehaviour:
   m_TableCollectionName: StringTableCollection
   m_TableCollectionNameGuidString: fa1ee9bcf2027c649882dd684b17436b
   m_Entries:
+  - m_Id: 1288034254331904
+    m_Key: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Key: Resume
+    m_Metadata:
+      m_Items: []
   - m_Id: 62150139904
     m_Key: Single.LobbyMenu.MainMenu
     m_Metadata:
@@ -61,10 +69,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 891215905038336
     m_Key: Settings.GameParam.MainMenu
-    m_Metadata:
-      m_Items: []
-  - m_Id: 891215905038337
-    m_Key: New Entry
     m_Metadata:
       m_Items: []
   m_Metadata:

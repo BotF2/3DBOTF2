@@ -1,0 +1,676 @@
+// Ignore Spelling: BOTF
+
+using BOTF3D.Core;
+using System.Reflection;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Localization.Components;
+using UnityEngine.UI;
+
+namespace BOTF3D.UI
+{
+    /// <summary>
+    /// Persistent UI overlay that provides master volume control and game pause functionality.
+    /// This GameObject should be marked as DontDestroyOnLoad and exist in all gameplay scenes.
+    /// </summary>
+    public class GameControlOverlay : MonoBehaviour
+    {
+        public static GameControlOverlay Instance { get; private set; }
+
+        [Header("UI References")]
+        [SerializeField] private GameObject overlayPanel;
+        [SerializeField] private Slider masterVolumeSlider;
+        [SerializeField] private TextMeshProUGUI volumeValueText;
+        [SerializeField] private Button pauseButton;
+        [SerializeField] private TextMeshProUGUI stardateText; // Displays current stardate
+
+        [Header("Pause Button Display")]
+        [SerializeField] private Image pauseButtonImage; // Image icon (optional)
+        [SerializeField] private Sprite pauseIcon; // Icon to show when game is running (unpaused)
+        [SerializeField] private Sprite playIcon; // Icon to show when game is paused
+
+        [Header("Pause Button Text (Localized)")]
+        [SerializeField] private TextMeshProUGUI pauseButtonTextTMP; // Localized text label
+
+        [SerializeField] private Button toggleOverlayButton; // Optional: button to show/hide the overlay
+        [Header("Localization")]
+        [SerializeField] private LocalizeStringEvent pauseResumeTextLocalizer;
+
+        //[Header("Icons (optional)")]
+        //[SerializeField] private GameObject pauseIconGO;
+        //[SerializeField] private GameObject resumeIconGO;
+
+        [Header("Settings")]
+        [SerializeField] private bool startVisible = true;
+        [SerializeField] private bool showInMainMenu = false; // Hide overlay in main menu
+        [SerializeField] private bool showInCombatScene = false; // Hide overlay in combat (time pauses automatically)
+        [SerializeField] private bool showIconAndText = true; // Show both icon and text together
+
+        private bool isPaused = false;
+        private bool isInMainMenu = true;
+        private bool isInCombat = false;
+
+        // Cached references to avoid reflection lookups every frame
+        private object audioManagerInstance;
+        private object timeManagerInstance;
+        private MethodInfo audioGetMasterVolumeMethod;
+        private MethodInfo audioSetMasterVolumeMethod;
+        //private MethodInfo timePauseMethod;
+        //private MethodInfo timeResumeMethod;
+        private PropertyInfo timeCurrentStardateProperty; // For reading stardate
+
+        private void Awake()
+        {
+            // Singleton pattern
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+                Debug.Log("✅ GameControlOverlay: Instance created and set to DontDestroyOnLoad");
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ Duplicate GameControlOverlay detected - destroying");
+                Destroy(gameObject);
+                return;
+            }
+
+            CacheManagerReferences();
+            InitializeUI();
+        }
+
+        private void Start()
+        {
+            // Retry caching managers in case they weren't ready in Awake
+            StartCoroutine(RetryCachingManagers());
+
+            // Delay visibility update to ensure we're in the correct scene
+            // This prevents hiding the panel during scene initialization
+            StartCoroutine(DelayedVisibilityUpdate());
+            // Find LocalizeStringEvent if not assigned
+            if (pauseResumeTextLocalizer == null)
+            {
+                pauseResumeTextLocalizer = GetComponentInChildren<LocalizeStringEvent>();
+            }
+            if (pauseResumeTextLocalizer == null)
+            {
+                Debug.LogError("GameControlOverlay: LocalizeStringEvent not found! Assign it in Inspector.");
+            }
+
+            // Set initial state
+            UpdateButtonState();
+        }
+
+        //private void UpdateButtonText()
+        //{
+        //    if (pauseResumeTextLocalizer == null) return;
+
+        //    string key = !TimeManager.Instance.timeRunning ? "Resume" : "Pause";
+        //    pauseResumeTextLocalizer.StringReference.SetReference("UI Strings", key);
+        //}
+        public void OnPauseButtonClicked()
+        {
+            if (!TimeManager.Instance.timeRunning)
+            {
+                TimeManager.Instance.ResumeTime();
+            }
+            else
+            {
+                TimeManager.Instance.PauseTime();
+            }
+
+            UpdateButtonState();
+        }
+        private void UpdateButtonState()
+        {
+            if (TimeManager.Instance == null) return;
+
+            if (pauseResumeTextLocalizer != null)
+            {
+                string key = isPaused ? "Resume" : "Pause";
+
+                Debug.Log($"🔄 Setting key: '{key}', isPaused={isPaused}");
+
+                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", key);
+
+                // ✅ Check if reference is valid
+                if (pauseResumeTextLocalizer.StringReference.IsEmpty)
+                {
+                    Debug.LogError($"❌ StringReference is EMPTY after SetReference! Check that 'StringTableCollection' table exists and has key '{key}'");
+                }
+
+                // Get the localized string to verify it works
+                string localizedText = pauseResumeTextLocalizer.StringReference.GetLocalizedString();
+                Debug.Log($"📖 Localized text for key '{key}': '{localizedText}'");
+
+                pauseResumeTextLocalizer.RefreshString();
+
+                if (pauseButtonTextTMP != null)
+                {
+                    Debug.Log($"📝 TextMeshPro.text is now: '{pauseButtonTextTMP.text}'");
+                }
+            }
+
+            // Update icon
+            if (pauseButtonImage != null && pauseIcon != null && playIcon != null)
+            {
+                pauseButtonImage.sprite = isPaused ? playIcon : pauseIcon;
+            }
+        }
+
+        /// <summary>
+        /// Retry caching managers if they weren't available in Awake
+        /// </summary>
+        private System.Collections.IEnumerator RetryCachingManagers()
+        {
+            int retries = 0;
+            int maxRetries = 10; // Try for ~1 second
+
+            while ((audioManagerInstance == null || timeManagerInstance == null) && retries < maxRetries)
+            {
+                yield return new WaitForSeconds(0.1f); // Wait 100ms
+                CacheManagerReferences();
+                retries++;
+            }
+
+            if (audioManagerInstance == null)
+            {
+                Debug.LogError("❌ GameControlOverlay: Failed to find AudioManager after retries - volume control will not work");
+            }
+
+            if (timeManagerInstance == null)
+            {
+                Debug.LogError("❌ GameControlOverlay: Failed to find TimeManager after retries - pause and stardate will not work");
+            }
+        }
+
+        /// <summary>
+        /// Wait one frame before updating visibility to ensure scene is fully loaded
+        /// </summary>
+        private System.Collections.IEnumerator DelayedVisibilityUpdate()
+        {
+            yield return null; // Wait one frame
+            UpdateOverlayVisibility();
+        }
+
+        /// <summary>
+        /// Cache references to AudioManager and TimeManager using reflection to avoid assembly issues
+        /// </summary>
+        private void CacheManagerReferences()
+        {
+            // Find AudioManager
+            var audioManagerType = System.Type.GetType("BOTF3D.Audio.AudioManager, Assembly-CSharp");
+            if (audioManagerType != null)
+            {
+                // Try to get Instance as a property first
+                var instanceProperty = audioManagerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+                if (instanceProperty != null)
+                {
+                    audioManagerInstance = instanceProperty.GetValue(null);
+                }
+                else
+                {
+                    // If not a property, try as a field
+                    var instanceField = audioManagerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+                    if (instanceField != null)
+                    {
+                        audioManagerInstance = instanceField.GetValue(null);
+                    }
+                }
+
+                if (audioManagerInstance != null)
+                {
+                    audioGetMasterVolumeMethod = audioManagerType.GetMethod("GetMasterVolume");
+                    audioSetMasterVolumeMethod = audioManagerType.GetMethod("SetMasterVolume");
+                    Debug.Log("✅ GameControlOverlay: AudioManager cached successfully");
+                }
+                else
+                {
+                    Debug.LogWarning("⚠️ GameControlOverlay: AudioManager type found but Instance is null - AudioManager may not be initialized yet");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ GameControlOverlay: AudioManager type not found");
+            }
+
+            // Find TimeManager
+            var timeManagerType = System.Type.GetType("BOTF3D.Core.TimeManager, Assembly-CSharp");
+            if (timeManagerType != null)
+            {
+                // Try to get Instance as a property first
+                var instanceProperty = timeManagerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+                if (instanceProperty != null)
+                {
+                    timeManagerInstance = instanceProperty.GetValue(null);
+                }
+                else
+                {
+                    // If not a property, try as a field
+                    var instanceField = timeManagerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+                    if (instanceField != null)
+                    {
+                        timeManagerInstance = instanceField.GetValue(null);
+                    }
+                }
+
+                if (timeManagerInstance != null)
+                {
+                    //timePauseMethod = timeManagerType.GetMethod("PauseTime");
+                    //timeResumeMethod = timeManagerType.GetMethod("ResumeTime");
+                    timeCurrentStardateProperty = timeManagerType.GetProperty("currentStardate");
+                    Debug.Log("✅ GameControlOverlay: TimeManager cached successfully");
+                }
+                else
+                {
+                    Debug.LogWarning("⚠️ GameControlOverlay: TimeManager type found but Instance is null - TimeManager may not be initialized yet");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ GameControlOverlay: TimeManager type not found");
+            }
+        }
+
+        private void InitializeUI()
+        {
+            // ✅ Initialize master volume slider
+            if (masterVolumeSlider != null)
+            {
+                // Get current master volume from AudioManager (0-1 range)
+                float currentVolume = GetMasterVolume();
+
+                masterVolumeSlider.minValue = 0f;
+                masterVolumeSlider.maxValue = 1f;
+                masterVolumeSlider.value = currentVolume;
+                masterVolumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+
+                UpdateVolumeText(currentVolume);
+                Debug.Log($"GameControlOverlay: Volume slider initialized to {currentVolume:F2}");
+            }
+            else
+            {
+                Debug.LogWarning("GameControlOverlay: masterVolumeSlider not assigned in Inspector!");
+            }
+
+            // ✅ Initialize pause button
+            if (pauseButton != null)
+            {
+                pauseButton.onClick.AddListener(TogglePause);
+                //UpdatePauseButtonText();
+                Debug.Log("GameControlOverlay: Pause button initialized");
+            }
+            else
+            {
+                Debug.LogWarning("GameControlOverlay: pauseButton not assigned in Inspector!");
+            }
+
+            // ✅ Initialize toggle overlay button (optional)
+            if (toggleOverlayButton != null)
+            {
+                toggleOverlayButton.onClick.AddListener(ToggleOverlayVisibility);
+            }
+
+            // ✅ Don't set initial visibility here - let UpdateOverlayVisibility() handle it based on scene
+            // This prevents conflicts between startVisible setting and scene-based visibility
+            Debug.Log($"GameControlOverlay: UI initialized, waiting for scene-based visibility update");
+        }
+
+        /// <summary>
+        /// Get master volume from AudioManager using reflection
+        /// </summary>
+        private float GetMasterVolume()
+        {
+            if (audioManagerInstance != null && audioGetMasterVolumeMethod != null)
+            {
+                return (float)audioGetMasterVolumeMethod.Invoke(audioManagerInstance, null);
+            }
+            return PlayerPrefs.GetFloat("MasterVolume", 1f);
+        }
+
+        /// <summary>
+        /// Set master volume on AudioManager using reflection
+        /// </summary>
+        private void SetMasterVolume(float volume)
+        {
+            if (audioManagerInstance != null && audioSetMasterVolumeMethod != null)
+            {
+                audioSetMasterVolumeMethod.Invoke(audioManagerInstance, new object[] { volume });
+            }
+        }
+
+        /// <summary>
+        /// Called when volume slider value changes
+        /// </summary>
+        private void OnVolumeChanged(float value)
+        {
+            SetMasterVolume(value);
+            UpdateVolumeText(value);
+            Debug.Log($"GameControlOverlay: Master volume set to {value:F2}");
+        }
+
+        /// <summary>
+        /// Update the volume percentage text display
+        /// </summary>
+        private void UpdateVolumeText(float volume)
+        {
+            if (volumeValueText != null)
+            {
+                volumeValueText.text = $"{Mathf.RoundToInt(volume * 100)}%";
+            }
+        }
+
+        /// <summary>
+        /// Toggle game pause state
+        /// </summary>
+
+        public void TogglePause()
+        {
+            if (timeManagerInstance == null)
+            {
+                Debug.LogError("❌ GameControlOverlay: TimeManager instance is NULL - cannot pause/resume.");
+                CacheManagerReferences();
+                if (timeManagerInstance == null)
+                {
+                    Debug.LogError("❌ GameControlOverlay: TimeManager still not found after retry.");
+                    return;
+                }
+            }
+
+            isPaused = !isPaused;
+
+            if (isPaused)
+            {
+                Time.timeScale = 0f;
+                Debug.Log("🛑 Game PAUSED");
+            }
+            else
+            {
+                Time.timeScale = 1f;
+                Debug.Log("▶️ Game RESUMED");
+            }
+
+            // ✅ CHANGE: Call UpdateButtonState() which handles localization
+            UpdateButtonState();
+        }
+
+        /// <summary>
+        /// Update pause button text/icon based on current state.
+        /// Supports showing icon + text simultaneously with localization.
+        /// </summary>
+        //private void UpdatePauseButtonText()
+        //{
+        //    Debug.Log($"UpdatePauseButtonText: showIconAndText={showIconAndText}, isPaused={isPaused}");
+
+        //    // ✅ UPDATE ICON (if assigned)
+        //    if (pauseButtonImage != null)
+        //    {
+        //        // When paused, show play icon (to resume)
+        //        // When running, show pause icon (to pause)
+        //        Sprite newSprite = isPaused ? playIcon : pauseIcon;
+
+        //        Debug.Log($"Changing icon: isPaused={isPaused}, newSprite={(newSprite != null ? newSprite.name : "NULL")}");
+
+        //        pauseButtonImage.sprite = newSprite;
+        //        pauseButtonImage.enabled = true;
+        //        pauseButtonImage.color = Color.white; // Ensure visible
+
+        //        // Force canvas update
+        //        Canvas.ForceUpdateCanvases();
+
+        //        Debug.Log($"✅ Icon updated: {pauseButtonImage.sprite?.name}");
+        //    }
+
+        //    // ✅ UPDATE TEXT (if assigned and showIconAndText is true)
+        //    if (pauseButtonTextTMP != null && showIconAndText)
+        //    {
+        //        pauseButtonTextTMP.enabled = true;
+
+        //        // Use localization if available, otherwise fallback to English
+        //        if (isPaused)
+        //        {
+        //            // Show "Resume" or localized equivalent
+        //            if (pauseResumeTextLocalizer != null)
+        //            {
+        //                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Resume");
+        //            }
+        //            else
+        //            {
+        //                pauseButtonTextTMP.text = "Resume"; // Fallback
+        //            }
+        //        }
+        //        else
+        //        {
+        //            // Show "Pause" or localized equivalent
+        //            if (pauseResumeTextLocalizer != null)
+        //            {
+        //                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Pause");
+        //            }
+        //            else
+        //            {
+        //                pauseButtonTextTMP.text = "Pause"; // Fallback
+        //            }
+        //        }
+
+        //        Debug.Log($"✅ Text updated: {pauseButtonTextTMP.text}");
+        //    }
+        //    else if (pauseButtonTextTMP != null && !showIconAndText)
+        //    {
+        //        // Hide text if showIconAndText is false (icon-only mode)
+        //        pauseButtonTextTMP.enabled = false;
+        //    }
+        //}
+
+        /// <summary>
+        /// Toggle overlay panel visibility
+        /// </summary>
+        public void ToggleOverlayVisibility()
+        {
+            if (overlayPanel != null)
+            {
+                overlayPanel.SetActive(!overlayPanel.activeSelf);
+            }
+        }
+
+        /// <summary>
+        /// Show the overlay panel
+        /// </summary>
+        public void ShowOverlay()
+        {
+            if (overlayPanel != null)
+            {
+                overlayPanel.SetActive(true);
+            }
+        }
+
+        /// <summary>
+        /// Hide the overlay panel
+        /// </summary>
+        public void HideOverlay()
+        {
+            if (overlayPanel != null)
+            {
+                overlayPanel.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Update overlay visibility based on current scene
+        /// </summary>
+        private void UpdateOverlayVisibility()
+        {
+            // Check active scene name
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+
+            // ✅ CRITICAL: Check if GalaxyScene is LOADED (not just active)
+            // PersistentScene is often the "active" scene, but GalaxyScene is loaded additively
+            UnityEngine.SceneManagement.Scene galaxyScene = UnityEngine.SceneManagement.SceneManager.GetSceneByName("GalaxyScene");
+            bool isGalaxySceneLoaded = galaxyScene.IsValid() && galaxyScene.isLoaded;
+
+            isInMainMenu = activeSceneName.Contains("MainMenu") || activeSceneName.Contains("Lobby");
+            isInCombat = activeSceneName.Contains("Combat");
+
+            // ✅ Treat as galaxy gameplay if GalaxyScene is loaded
+            bool isGalaxyScene = isGalaxySceneLoaded;
+            bool isPersistentScene = activeSceneName.Contains("Persistent");
+
+            // Default to showing overlay unless we're in a scene that should hide it
+            bool shouldShowOverlay = true;
+
+            // Hide in main menu if showInMainMenu is false
+            if (isInMainMenu && !showInMainMenu)
+            {
+                shouldShowOverlay = false;
+            }
+
+            // Hide in combat scene if showInCombatScene is false
+            if (isInCombat && !showInCombatScene)
+            {
+                shouldShowOverlay = false;
+            }
+
+            // Show overlay panel
+            if (overlayPanel != null)
+            {
+                overlayPanel.SetActive(shouldShowOverlay);
+                Debug.Log($"GameControlOverlay: OverlayPanel set to {shouldShowOverlay}");
+            }
+
+            // ✅ Show pause button and stardate when GalaxyScene is loaded
+            bool showGameplayControls = isGalaxyScene;
+
+            // Control pause button visibility (show when GalaxyScene loaded)
+            if (pauseButton != null)
+            {
+                pauseButton.gameObject.SetActive(showGameplayControls);
+                Debug.Log($"GameControlOverlay: PauseButton set to {showGameplayControls}");
+            }
+
+            // Control stardate text visibility (show when GalaxyScene loaded)
+            if (stardateText != null)
+            {
+                stardateText.gameObject.SetActive(showGameplayControls);
+                Debug.Log($"GameControlOverlay: StardateText set to {showGameplayControls}");
+            }
+
+            Debug.Log($"GameControlOverlay visibility: ActiveScene={activeSceneName}, GalaxySceneLoaded={isGalaxySceneLoaded}, MainMenu={isInMainMenu}, Combat={isInCombat}, Persistent={isPersistentScene}, ShowOverlay={shouldShowOverlay}, ShowGameplayControls={showGameplayControls}");
+        }
+
+        /// <summary>
+        /// Public method to force unpause (useful for scene transitions)
+        /// </summary>
+        public void ForceUnpause()
+        {
+            if (isPaused)
+            {
+                isPaused = false;
+                //if (timeManagerInstance != null && timeResumeMethod != null)
+                //{
+                //    timeResumeMethod.Invoke(timeManagerInstance, null);
+                //}
+                Time.timeScale = 1f;
+                Debug.Log("GameControlOverlay: Force unpaused");
+            }
+        }
+
+        /// <summary>
+        /// Get current pause state
+        /// </summary>
+        public bool IsPaused()
+        {
+            return isPaused;
+        }
+
+        /// <summary>
+        /// Keyboard shortcut support and stardate update
+        /// </summary>
+        private void Update()
+        {
+            // Re-cache managers if they weren't available at startup
+            if (audioManagerInstance == null || timeManagerInstance == null)
+            {
+                CacheManagerReferences();
+            }
+
+            // Update stardate display every frame (lightweight property read)
+            UpdateStardateDisplay();
+
+            // Press 'P' to toggle pause (only in GalaxyScene)
+            if (Input.GetKeyDown(KeyCode.P) && !isInMainMenu && !isInCombat)
+            {
+                TogglePause();
+            }
+
+            // Press 'M' to toggle overlay visibility
+            if (Input.GetKeyDown(KeyCode.M))
+            {
+                ToggleOverlayVisibility();
+            }
+        }
+        public void TestSetToPause()
+        {
+            if (pauseResumeTextLocalizer != null)
+            {
+                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Pause");
+                pauseResumeTextLocalizer.RefreshString();
+                Debug.Log($"Test: Set to 'Pause', text is now: '{pauseButtonTextTMP.text}'");
+            }
+        }
+
+        public void TestSetToResume()
+        {
+            if (pauseResumeTextLocalizer != null)
+            {
+                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Resume");
+                pauseResumeTextLocalizer.RefreshString();
+                Debug.Log($"Test: Set to 'Resume', text is now: '{pauseButtonTextTMP.text}'");
+            }
+        }
+        /// <summary>
+        /// Update stardate text display from TimeManager
+        /// </summary>
+        private void UpdateStardateDisplay()
+        {
+            if (stardateText == null) return;
+
+            // Don't control visibility here - let UpdateOverlayVisibility() handle it
+            // Just update the text content if the object is active
+
+            if (!stardateText.gameObject.activeInHierarchy) return;
+
+            // Get current stardate from TimeManager
+            if (timeManagerInstance != null && timeCurrentStardateProperty != null)
+            {
+                int currentStardate = (int)timeCurrentStardateProperty.GetValue(timeManagerInstance);
+                stardateText.text = $"Stardate: {currentStardate}";
+            }
+            else
+            {
+                stardateText.text = "Stardate: --";
+            }
+        }
+
+        private void OnEnable()
+        {
+            // Subscribe to scene loaded event to update visibility
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            // Unsubscribe from scene loaded event
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            UpdateOverlayVisibility();
+
+            // Force unpause when returning to main menu
+            if (scene.name.Contains("MainMenu") || scene.name.Contains("Lobby"))
+            {
+                ForceUnpause();
+            }
+        }
+    }
+}

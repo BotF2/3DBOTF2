@@ -593,6 +593,10 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+
+                    // ✅ Parent to the star system controller to keep hierarchy clean
+                    newFacilityGO.transform.SetParent(sysController.transform);
+
                     GetPowerPlantText(sysController, newFacilityGO, numOf);
                     newFacilityGO.SetActive(false);
                     powerPlantData.SysGameObject = newFacilityGO;
@@ -618,6 +622,7 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+                    newFacilityGO.transform.SetParent(sysController.transform);
                     TextMeshProUGUI onTmp = newFacilityGO.AddComponent<TextMeshProUGUI>();
                     onTmp.text = onOff.ToString(); // or "0" to be explicit
                     onTmp.name = "OnOffTMP";
@@ -647,6 +652,7 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+                    newFacilityGO.transform.SetParent(sysController.transform);
                     TextMeshProUGUI On = newFacilityGO.AddComponent<TextMeshProUGUI>();
                     On.text = onOff.ToString();
                     GetShipyardText(newFacilityGO, syData, numOf);
@@ -675,6 +681,7 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+                    newFacilityGO.transform.SetParent(sysController.transform);
                     TextMeshProUGUI On = newFacilityGO.AddComponent<TextMeshProUGUI>();
                     On.text = onOff.ToString();
                     GetShieldGText(newFacilityGO, sgData, numOf);
@@ -703,6 +710,7 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+                    newFacilityGO.transform.SetParent(sysController.transform);
                     TextMeshProUGUI On = newFacilityGO.AddComponent<TextMeshProUGUI>();
                     On.text = onOff.ToString();
                     GetOBText(newFacilityGO, obData, numOf);
@@ -731,6 +739,7 @@ namespace BOTF3D.Core
                 {
                     GameObject newFacilityGO = Instantiate(prefab, Vector3.zero, Quaternion.identity);
                     newFacilityGO.layer = 5;
+                    newFacilityGO.transform.SetParent(sysController.transform);
                     TextMeshProUGUI On = newFacilityGO.AddComponent<TextMeshProUGUI>();
                     On.text = onOff.ToString();
                     GetResearchCenterText(newFacilityGO, researchData, numOf);

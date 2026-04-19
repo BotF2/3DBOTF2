@@ -100,24 +100,33 @@ namespace BOTF3D.Core
         // Method to pause time progression
         public void PauseTime()
         {
+            timeRunning = false; // Stop the coroutine loop (paused)
+            Time.timeScale = 0f;
             if (timeCoroutine != null)
             {
                 StopCoroutine(timeCoroutine);
-                timeRunning = false;
+                timeCoroutine = null; // Clear reference
             }
 
+            Debug.Log("⏸️ TimeManager: Time PAUSED");
         }
 
         // Method to resume time progression
         public void ResumeTime()
         {
-            SetTimeSpeedMultiplier(timeSpeedup);
-            timeCoroutine = StartCoroutine(TimeProgression());
-            if (this != null && timeCoroutine != null)
+            // ✅ CRITICAL: Set timeRunning FIRST before starting coroutine
+            timeRunning = true;
+
+            // Stop any existing coroutine first
+            if (timeCoroutine != null)
             {
-                timeRunning = true;
-                timeCoroutine = StartCoroutine(TimeProgression());
+                StopCoroutine(timeCoroutine);
             }
+
+            // Start time progression
+            timeCoroutine = StartCoroutine(TimeProgression());
+
+            Debug.Log($"▶️ TimeManager: Time RESUMED (speed={timeSpeedup})");
         }
 
         // Method to get current oneInXChance

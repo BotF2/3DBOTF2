@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000
-    m_Localized: Mutig dorthin zu gehen, wo noch nie ein Mensch zuvor gewesen ist.
+    m_Localized: Hin zu gehen, wo noch nie ein Mensch zuvor gewesen ist.
     m_Metadata:
       m_Items: []
   - m_Id: 72936267776
@@ -47,19 +47,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 884664951644160
-    m_Localized: Laden
+    m_Localized: Zivilisation
     m_Metadata:
       m_Items: []
   - m_Id: 891215858900992
-    m_Localized: Einstellungen speichern
+    m_Localized: Spieler
     m_Metadata:
       m_Items: []
   - m_Id: 891215905038336
-    m_Localized: Vorherige
-    m_Metadata:
-      m_Items: []
-  - m_Id: 891215905038337
-    m_Localized: Karte erstellen
+    m_Localized: Einstellungen
     m_Metadata:
       m_Items: []
   - m_Id: 904229303623680
@@ -67,7 +63,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 904229349761024
-    m_Localized: Zivilisation
+    m_Localized: Im Spiel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: Wieder aufnehmen
     m_Metadata:
       m_Items: []
   references:
