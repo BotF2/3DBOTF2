@@ -71,7 +71,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: Riprendere
+    m_Localized: Continuare
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: Voi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Assente
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Livello tecnico
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Presto
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: Sviluppato
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Avanzato
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: Supremo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Piccolo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Mezzo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Grande
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Ponderoso
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Canone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: Casuale
     m_Metadata:
       m_Items: []
   references:

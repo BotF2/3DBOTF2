@@ -36,10 +36,6 @@ namespace BOTF3D.UI
         [Header("Localization")]
         [SerializeField] private LocalizeStringEvent pauseResumeTextLocalizer;
 
-        //[Header("Icons (optional)")]
-        //[SerializeField] private GameObject pauseIconGO;
-        //[SerializeField] private GameObject resumeIconGO;
-
         [Header("Settings")]
         [SerializeField] private bool startVisible = true;
         [SerializeField] private bool showInMainMenu = false; // Hide overlay in main menu
@@ -55,8 +51,6 @@ namespace BOTF3D.UI
         private object timeManagerInstance;
         private MethodInfo audioGetMasterVolumeMethod;
         private MethodInfo audioSetMasterVolumeMethod;
-        //private MethodInfo timePauseMethod;
-        //private MethodInfo timeResumeMethod;
         private PropertyInfo timeCurrentStardateProperty; // For reading stardate
 
         private void Awake()
@@ -101,13 +95,6 @@ namespace BOTF3D.UI
             UpdateButtonState();
         }
 
-        //private void UpdateButtonText()
-        //{
-        //    if (pauseResumeTextLocalizer == null) return;
-
-        //    string key = !TimeManager.Instance.timeRunning ? "Resume" : "Pause";
-        //    pauseResumeTextLocalizer.StringReference.SetReference("UI Strings", key);
-        //}
         public void OnPauseButtonClicked()
         {
             if (!TimeManager.Instance.timeRunning)
@@ -256,8 +243,6 @@ namespace BOTF3D.UI
 
                 if (timeManagerInstance != null)
                 {
-                    //timePauseMethod = timeManagerType.GetMethod("PauseTime");
-                    //timeResumeMethod = timeManagerType.GetMethod("ResumeTime");
                     timeCurrentStardateProperty = timeManagerType.GetProperty("currentStardate");
                     Debug.Log("✅ GameControlOverlay: TimeManager cached successfully");
                 }
@@ -279,12 +264,10 @@ namespace BOTF3D.UI
             {
                 // Get current master volume from AudioManager (0-1 range)
                 float currentVolume = GetMasterVolume();
-
                 masterVolumeSlider.minValue = 0f;
                 masterVolumeSlider.maxValue = 1f;
                 masterVolumeSlider.value = currentVolume;
                 masterVolumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-
                 UpdateVolumeText(currentVolume);
                 Debug.Log($"GameControlOverlay: Volume slider initialized to {currentVolume:F2}");
             }
@@ -389,77 +372,8 @@ namespace BOTF3D.UI
                 Time.timeScale = 1f;
                 Debug.Log("▶️ Game RESUMED");
             }
-
-            // ✅ CHANGE: Call UpdateButtonState() which handles localization
             UpdateButtonState();
         }
-
-        /// <summary>
-        /// Update pause button text/icon based on current state.
-        /// Supports showing icon + text simultaneously with localization.
-        /// </summary>
-        //private void UpdatePauseButtonText()
-        //{
-        //    Debug.Log($"UpdatePauseButtonText: showIconAndText={showIconAndText}, isPaused={isPaused}");
-
-        //    // ✅ UPDATE ICON (if assigned)
-        //    if (pauseButtonImage != null)
-        //    {
-        //        // When paused, show play icon (to resume)
-        //        // When running, show pause icon (to pause)
-        //        Sprite newSprite = isPaused ? playIcon : pauseIcon;
-
-        //        Debug.Log($"Changing icon: isPaused={isPaused}, newSprite={(newSprite != null ? newSprite.name : "NULL")}");
-
-        //        pauseButtonImage.sprite = newSprite;
-        //        pauseButtonImage.enabled = true;
-        //        pauseButtonImage.color = Color.white; // Ensure visible
-
-        //        // Force canvas update
-        //        Canvas.ForceUpdateCanvases();
-
-        //        Debug.Log($"✅ Icon updated: {pauseButtonImage.sprite?.name}");
-        //    }
-
-        //    // ✅ UPDATE TEXT (if assigned and showIconAndText is true)
-        //    if (pauseButtonTextTMP != null && showIconAndText)
-        //    {
-        //        pauseButtonTextTMP.enabled = true;
-
-        //        // Use localization if available, otherwise fallback to English
-        //        if (isPaused)
-        //        {
-        //            // Show "Resume" or localized equivalent
-        //            if (pauseResumeTextLocalizer != null)
-        //            {
-        //                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Resume");
-        //            }
-        //            else
-        //            {
-        //                pauseButtonTextTMP.text = "Resume"; // Fallback
-        //            }
-        //        }
-        //        else
-        //        {
-        //            // Show "Pause" or localized equivalent
-        //            if (pauseResumeTextLocalizer != null)
-        //            {
-        //                pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", "Pause");
-        //            }
-        //            else
-        //            {
-        //                pauseButtonTextTMP.text = "Pause"; // Fallback
-        //            }
-        //        }
-
-        //        Debug.Log($"✅ Text updated: {pauseButtonTextTMP.text}");
-        //    }
-        //    else if (pauseButtonTextTMP != null && !showIconAndText)
-        //    {
-        //        // Hide text if showIconAndText is false (icon-only mode)
-        //        pauseButtonTextTMP.enabled = false;
-        //    }
-        //}
 
         /// <summary>
         /// Toggle overlay panel visibility
@@ -632,9 +546,6 @@ namespace BOTF3D.UI
         private void UpdateStardateDisplay()
         {
             if (stardateText == null) return;
-
-            // Don't control visibility here - let UpdateOverlayVisibility() handle it
-            // Just update the text content if the object is active
 
             if (!stardateText.gameObject.activeInHierarchy) return;
 

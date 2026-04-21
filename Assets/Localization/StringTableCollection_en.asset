@@ -71,7 +71,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: Resume
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Tech Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Early
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: Developed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Advanced
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: Supreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Small
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Large
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Ponderous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: Random
     m_Metadata:
       m_Items: []
   references:

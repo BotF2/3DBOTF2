@@ -71,7 +71,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: Wieder aufnehmen
+    m_Localized: Fortfahren
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: Du
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Abwesend
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Technisches Niveau
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: "Fr\xFCh"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: Entwickelt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Fortschrittlich
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: "H\xF6chste"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Klein
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: "Gro\xDF"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: "Schwerf\xE4llig"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Kanon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: "Zuf\xE4llig"
     m_Metadata:
       m_Items: []
   references:

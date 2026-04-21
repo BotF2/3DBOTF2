@@ -47,10 +47,6 @@ MonoBehaviour:
     m_Key: Previous.LocalPlayer.MainMenu
     m_Metadata:
       m_Items: []
-  - m_Id: 904229303623680
-    m_Key: YourCiv.LocalPlayer.MainMenu
-    m_Metadata:
-      m_Items: []
   - m_Id: 904229349761024
     m_Key: InGame.LocalPlayer.MainMenu
     m_Metadata:
@@ -69,6 +65,66 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 891215905038336
     m_Key: Settings.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Key: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Key: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Key: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Key: TechLevel.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Key: Early
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Key: Developed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Key: Advanced
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Key: Supreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Key: Small
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Key: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Key: Large
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Key: Ponderous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Key: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Key: Random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Key: YourCiv.LocalPlayer.MainMenu
     m_Metadata:
       m_Items: []
   m_Metadata:

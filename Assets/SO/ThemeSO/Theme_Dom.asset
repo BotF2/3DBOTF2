@@ -24,12 +24,12 @@ MonoBehaviour:
   ShieldImage: {fileID: 21300000, guid: 786125c77cd5d4f458686e1dd6022656, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 0264ca17952eabd47a594f836bcd1aae, type: 3}
   ResearchCenterImage: {fileID: 21300000, guid: 36541ed4e9dcd8e46a44c9b92d8de09d, type: 3}
-  BackgroundColor: {r: 0.6320754, g: 0.28920433, b: 0.5900912, a: 1}
-  ForegroundColor: {r: 0.9921569, g: 0.9607844, b: 0.9019608, a: 1}
-  BoarderColor: {r: 0.5450981, g: 0, b: 0.5450981, a: 1}
-  HighLightColor: {r: 0.99215686, g: 0.9607843, b: 0.9019608, a: 1}
-  LowLightColor: {r: 0.99215686, g: 0.9607843, b: 0.9019608, a: 1}
-  TextColor: {r: 0.99215686, g: 0.9607843, b: 0.9019608, a: 1}
+  BackgroundColor: {r: 0.48, g: 0.29, b: 0.76, a: 1}
+  ForegroundColor: {r: 0.35, g: 0.2, b: 0.55, a: 1}
+  BoarderColor: {r: 0.2, g: 0.1, b: 0.35, a: 1}
+  HighLightColor: {r: 0.63, g: 0.47, b: 0.9, a: 1}
+  LowLightColor: {r: 0.29, g: 0.18, b: 0.48, a: 1}
+  TextColor: {r: 0.95, g: 0.92, b: 1, a: 1}
   TMP_Text: {fileID: 0}
   ButtonSprite0: {fileID: 21300000, guid: a363ac2c87fda5c41a56dc6f76fc0f6a, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: a363ac2c87fda5c41a56dc6f76fc0f6a, type: 3}

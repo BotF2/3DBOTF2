@@ -71,7 +71,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: Retomar
+    m_Localized: Continuar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: "Voc\xEA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Computador
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Ausente
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: "N\xEDvel t\xE9cnico"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Cedo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: Desenvolvido
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: "Avan\xE7ado"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: Supremo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Pequeno
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: "M\xE9dio"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Grande
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Ponderoso
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: "C\xE2none"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: "Aleat\xF3rio"
     m_Metadata:
       m_Items: []
   references:

@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Localization;
+using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -33,7 +34,6 @@ namespace BOTF3D.UI
         [SerializeField]
         private Camera uiCamera;
 
-        // Remove [SerializeField] from these - they'll be found at runtime
         private Camera galaxyCamera;
         private GameObject galaxyCenter;
         public GameObject GalaxyMenuGO { get; private set; }
@@ -70,13 +70,18 @@ namespace BOTF3D.UI
         private GameObject techLevelToggleGroup;
         [SerializeField]
         private TMP_Text playerFed, playerRom, playerKling, playerCard, playerDom, playerBorg, playerTerran;
-        private readonly string player = "You", computer = "Computer", notInGame = "Absent";
+        private string player = "You", computer = "Computer", notInGame = "Absent";
+        [SerializeField]
+        private LocalizeStringEvent[] playerLocalizers;
+        //private LocalizeStringEvent playerFedLocalizer, playerRomLocalizer, playerKlingLocalizer,
+        //                   playerCardLocalizer, playerDomLocalizer, playerBorgLocalizer, playerTerranLocalizer;
         private Toggle activeLocalPlayerToggle;
         private CivEnum localPlayerCiv = CivEnum.FED;
-        private List<CivEnum> majorCivsInGameList = new List<CivEnum>
-        {
-            CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
-        };
+        private Toggle[] civToggles;
+        //private List<CivEnum> majorCivsInGameList = new List<CivEnum>
+        //{
+        //    CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
+        //};
         [SerializeField] private GameObject fedImages;
         [SerializeField] private GameObject romImages;
         [SerializeField] private GameObject klingImages;
@@ -190,7 +195,30 @@ namespace BOTF3D.UI
             TechLevelToggleGroup.RegisterToggle(DevelopedToggle);
             TechLevelToggleGroup.RegisterToggle(AdvancedToggle);
             TechLevelToggleGroup.RegisterToggle(SupremeToggle);
-
+            // ✅ Initialize localizer array (order matches CivEnum: FED=0, ROM=1, etc.)
+            playerLocalizers = new LocalizeStringEvent[]
+            {
+                playerFed.GetComponent<LocalizeStringEvent>(),
+                playerRom.GetComponent<LocalizeStringEvent>(),
+                playerKling.GetComponent<LocalizeStringEvent>(),
+                playerCard.GetComponent<LocalizeStringEvent>(),
+                playerDom.GetComponent<LocalizeStringEvent>(),
+                playerBorg.GetComponent<LocalizeStringEvent>(),
+                playerTerran.GetComponent<LocalizeStringEvent>()
+            };
+            // ✅ Initialize toggle array
+            civToggles = new Toggle[]
+            {
+                FedOnOff, RomOnOff, KlingOnOff, CardOnOff, DomOnOff, BorgOnOff, TerranOnOff
+            };
+            // Get LocalizeStringEvent components from each player text
+            //playerFedLocalizer = playerFed.GetComponent<LocalizeStringEvent>();
+            //playerRomLocalizer = playerRom.GetComponent<LocalizeStringEvent>();
+            //playerKlingLocalizer = playerKling.GetComponent<LocalizeStringEvent>();
+            //playerCardLocalizer = playerCard.GetComponent<LocalizeStringEvent>();
+            //playerDomLocalizer = playerDom.GetComponent<LocalizeStringEvent>();
+            //playerBorgLocalizer = playerBorg.GetComponent<LocalizeStringEvent>();
+            //playerTerranLocalizer = playerTerran.GetComponent<LocalizeStringEvent>();
             // Pending Multiplayer lobby if needed
             //MultiplayerCivilizationGroup.enabled = true;
             //MultiplayerCivilizationGroup = mulitplayerToggleGroup.GetComponent<ToggleGroup>();
@@ -218,10 +246,27 @@ namespace BOTF3D.UI
 
         private void Start()
         {
-            Debug.Log("=== MainMenuUIController.Start() START ===");
-            // ✅ Wait for localization before setting up UI
-            StartCoroutine(InitializeAfterLocalization());
+            SetupMainMenuUI();
 
+            // ✅ Initialize all player text to "Computer" before any selection
+            InitializePlayerTextDefaults();
+        }
+        /// <summary>
+        /// Initialize all player text fields with default "Computer" localization
+        /// Call this in Start() or when panel first loads
+        /// </summary>
+        private void InitializePlayerTextDefaults()
+        {
+            Debug.Log("InitializePlayerTextDefaults: Setting all players to 'Computer' by default");
+
+            for (int i = 0; i < playerLocalizers.Length; i++)
+            {
+                if (playerLocalizers[i] != null)
+                {
+                    // Set default to "Computer"
+                    SetLocalizedPlayerText(playerLocalizers[i], "Computer");
+                }
+            }
         }
         private IEnumerator InitializeAfterLocalization()
         {
@@ -241,7 +286,27 @@ namespace BOTF3D.UI
                 LocaleManager.Instance.RefreshAllLocalizedStrings();
             }
         }
+        /// <summary>
+        /// Sets a localized string key for a player text field
+        /// </summary>
+        /// <summary>
+        /// Sets a localized string key for a player text field
+        /// </summary>
+        /// <summary>
+        /// Sets a localized string key for a player text field
+        /// </summary>
+        private void SetLocalizedPlayerText(LocalizeStringEvent localizer, string key)
+        {
+            if (localizer == null)
+            {
+                Debug.LogError($"SetLocalizedPlayerText: localizer is null for key '{key}'");
+                return;
+            }
 
+            Debug.Log($"SetLocalizedPlayerText: Setting localizer to key='{key}'");
+            localizer.StringReference.SetReference("StringTableCollection", key);
+            localizer.RefreshString();
+        }
         private void SetupMainMenuUI()
         {
             VerifyButtonsAreInteractable();
@@ -442,7 +507,7 @@ namespace BOTF3D.UI
 
             // Store game settings before transition
             GameController.Instance.GameData.GameMode = IsSinglePlayer ? GameMode.SINGLEPLAYER : GameMode.MULTIPLAYER;
-            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+            //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
 
             // Use coroutine for clean transition
             StartCoroutine(LoadGalaxySceneCoroutine());
@@ -806,7 +871,7 @@ namespace BOTF3D.UI
 
         public void ReturnToLobbyMenu()
         {
-            ResetPlayers();
+            ResetPlayers(-1); // resets all to "Computer"
             panelLobby.SetActive(true);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(false);
@@ -890,126 +955,25 @@ namespace BOTF3D.UI
         }
         private void UpdateNotInGame()
         {
-            for (int i = 0; i < OnOffToggles.Count; i++)
+            for (int i = 0; i < civToggles.Length; i++)
             {
-                if (OnOffToggles[i].isOn == false)
-                {
-                    switch (i)
-                    {
-                        case 0:
-                            playerFed.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.FED);
-                            break;
-                        case 1:
-                            playerRom.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.ROM);
-                            break;
-                        case 2:
-                            playerKling.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.KLING);
-                            break;
-                        case 3:
-                            playerCard.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.CARD);
-                            break;
-                        case 4:
-                            playerDom.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.DOM);
-                            break;
-                        case 5:
-                            playerBorg.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.BORG);
-                            break;
-                        case 6:
-                            playerTerran.text = notInGame;
-                            majorCivsInGameList.Remove(CivEnum.TERRAN);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                if (OnOffToggles[i].isOn == true)
-                {
-                    switch (i)
-                    {
-                        case 0:
-                            if (!majorCivsInGameList.Contains(CivEnum.FED))
-                            {
-                                majorCivsInGameList.Add(CivEnum.FED);
-                                if (localPlayerCiv == CivEnum.FED)
-                                    playerFed.text = player;
-                                else
-                                    playerFed.text = computer;
-                            }
-                            break;
-                        case 1:
-                            if (!majorCivsInGameList.Contains(CivEnum.ROM))
-                            {
-                                majorCivsInGameList.Add(CivEnum.ROM);
-                                if (localPlayerCiv == CivEnum.ROM)
-                                    playerRom.text = player;
-                                else
-                                    playerRom.text = computer;
-                            }
-                            break;
-                        case 2:
-                            if (!majorCivsInGameList.Contains(CivEnum.KLING))
-                            {
-                                majorCivsInGameList.Add(CivEnum.KLING);
-                                if (localPlayerCiv == CivEnum.KLING)
-                                    playerKling.text = player;
-                                else
-                                    playerKling.text = computer;
-                            }
-                            break;
-                        case 3:
-                            if (!majorCivsInGameList.Contains(CivEnum.CARD))
-                            {
-                                majorCivsInGameList.Add(CivEnum.CARD);
-                                if (localPlayerCiv == CivEnum.CARD)
-                                    playerCard.text = player;
-                                else
-                                    playerCard.text = computer;
-                            }
-                            break;
-                        case 4:
-                            if (!majorCivsInGameList.Contains(CivEnum.DOM))
-                            {
-                                majorCivsInGameList.Add(CivEnum.DOM);
-                                if (localPlayerCiv == CivEnum.DOM)
-                                    playerDom.text = player;
-                                else
-                                    playerDom.text = computer;
-                            }
-                            break;
-                        case 5:
-                            if (!majorCivsInGameList.Contains(CivEnum.BORG))
-                            {
-                                majorCivsInGameList.Add(CivEnum.BORG);
-                                if (localPlayerCiv == CivEnum.BORG)
-                                    playerBorg.text = player;
-                                else
-                                    playerBorg.text = computer;
-                            }
-                            break;
-                        case 6:
-                            if (!majorCivsInGameList.Contains(CivEnum.TERRAN))
-                            {
-                                majorCivsInGameList.Add(CivEnum.TERRAN);
-                                if (localPlayerCiv == CivEnum.TERRAN)
-                                    playerTerran.text = player;
-                                else
-                                    playerTerran.text = computer;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-            SetCivMajorCivsInGame(majorCivsInGameList);
-        }
+                if (playerLocalizers[i] == null) continue;
 
+                string currentKey = playerLocalizers[i].StringReference.TableEntryReference.Key;
+
+                if (!civToggles[i].isOn && currentKey != "You")
+                {
+                    // Civ is OFF and not the player → set to "Absent"
+                    SetLocalizedPlayerText(playerLocalizers[i], "Absent");
+                }
+                else if (civToggles[i].isOn && currentKey == "Absent")
+                {
+                    // Civ turned back ON from "Absent" → set to "Computer"
+                    SetLocalizedPlayerText(playerLocalizers[i], "Computer");
+                }
+                // ✅ If currentKey == "You", leave it alone (don't change it)
+            }
+        }
         private void ActivePlayerToggle()
         {
             // ✅ Turn off all images first
@@ -1024,7 +988,7 @@ namespace BOTF3D.UI
                     FedLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active FedLocalPlayerToggle.");
                     SetLocalCivilization(0);
-                    PlaceTheYouInPlayerList(0);
+                    ResetPlayers(0);
                     break;
 
                 case "TOGGLELOCAL_ROM":
@@ -1034,7 +998,7 @@ namespace BOTF3D.UI
                     RomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active RomLocalPlayerToggle.");
                     SetLocalCivilization(1);
-                    PlaceTheYouInPlayerList(1);
+                    ResetPlayers(1);
                     break;
 
                 case "TOGGLELOCAL_KLING":
@@ -1044,7 +1008,7 @@ namespace BOTF3D.UI
                     KlingLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active KlingLocalPlayerToggle.");
                     SetLocalCivilization(2);
-                    PlaceTheYouInPlayerList(2);
+                    ResetPlayers(2);
                     break;
 
                 case "TOGGLELOCAL_CARD":
@@ -1054,7 +1018,7 @@ namespace BOTF3D.UI
                     CardLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active CardLocalPlayerToggle.");
                     SetLocalCivilization(3);
-                    PlaceTheYouInPlayerList(3);
+                    ResetPlayers(3);
                     break;
 
                 case "TOGGLELOCAL_DOM":
@@ -1064,7 +1028,7 @@ namespace BOTF3D.UI
                     DomLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active DomLocalPlayerToggle.");
                     SetLocalCivilization(4);
-                    PlaceTheYouInPlayerList(4);
+                    ResetPlayers(4);
                     break;
 
                 case "TOGGLELOCAL_BORG":
@@ -1074,7 +1038,7 @@ namespace BOTF3D.UI
                     BorgLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active BorgLocalPlayerToggle.");
                     SetLocalCivilization(5);
-                    PlaceTheYouInPlayerList(5);
+                    ResetPlayers(5);
                     break;
 
                 case "TOGGLELOCAL_TERRAN":
@@ -1084,7 +1048,7 @@ namespace BOTF3D.UI
                     TerranLocalPlayerToggle = activeLocalPlayerToggle;
                     Debug.Log("Active TerranLocalPlayerToggle.");
                     SetLocalCivilization(6);
-                    PlaceTheYouInPlayerList(6);
+                    ResetPlayers(6);
                     break;
 
                 default:
@@ -1283,53 +1247,90 @@ namespace BOTF3D.UI
                     break;
             }
         }
-        private void PlaceTheYouInPlayerList(int civInt)
+        /// <summary>
+        /// Resets all players and sets ONLY the specified civ to "You"
+        /// </summary>
+        /// <param name="civInt">Index of civilization to mark as "You" (0-6), or -1 to reset all to Computer</param>
+        private void ResetPlayers(int civInt)
         {
-            switch (civInt)
-            {
-                case 0:
-                    playerFed.text = player;
-                    break;
-                case 1:
-                    playerRom.text = player;
-                    break;
-                case 2:
-                    playerKling.text = player;
-                    break;
-                case 3:
-                    playerCard.text = player;
-                    break;
-                case 4:
-                    playerDom.text = player;
-                    break;
-                case 5:
-                    playerBorg.text = player;
-                    break;
-                case 6:
-                    playerTerran.text = player;
-                    break;
-                default:
-                    break;
-            }
-        }
+            Debug.Log($"=== ResetPlayers({civInt}) START ===");
 
-        private void ResetPlayers()
-        {
-            if (playerFed.text == player)
-                playerFed.text = computer;
-            if (playerRom.text == player)
-                playerRom.text = computer;
-            if (playerKling.text == player)
-                playerKling.text = computer;
-            if (playerCard.text == player)
-                playerCard.text = computer;
-            if (playerDom.text == player)
-                playerDom.text = computer;
-            if (playerBorg.text == player)
-                playerBorg.text = computer;
-            if (playerTerran.text == player)
-                playerTerran.text = computer;
+            // Reset all "You" to "Computer" (keeps "Absent" unchanged)
+            for (int i = 0; i < playerLocalizers.Length; i++)
+            {
+                if (playerLocalizers[i] == null)
+                {
+                    Debug.LogError($"  playerLocalizers[{i}] is NULL!");
+                    continue;
+                }
+
+                string currentKey = playerLocalizers[i].StringReference.TableEntryReference.Key;
+                Debug.Log($"  Index {i}: current key = '{currentKey}'");
+
+                if (currentKey == "You")
+                {
+                    Debug.Log($"  Index {i}: Resetting from 'You' to 'Computer'");
+                    SetLocalizedPlayerText(playerLocalizers[i], "Computer");
+                }
+            }
+
+            // Set selected civ to "You"
+            if (civInt >= 0 && civInt < playerLocalizers.Length)
+            {
+                Debug.Log($"  Setting index {civInt} to 'You'");
+                SetLocalizedPlayerText(playerLocalizers[civInt], "You");
+            }
+            else
+            {
+                Debug.LogWarning($"  Invalid civInt: {civInt}");
+            }
+
+            Debug.Log($"=== ResetPlayers({civInt}) COMPLETE ===");
         }
+        //private void ResetPlayers()
+        //{
+        //    var players = new[]
+        //    {
+        //        playerFedLocalizer,
+        //        playerRomLocalizer,
+        //        playerKlingLocalizer,
+        //        playerCardLocalizer,
+        //        playerDomLocalizer,
+        //        playerBorgLocalizer,
+        //        playerTerranLocalizer
+        //    };
+
+        //    foreach (var player in players)
+        //    {
+        //        var key = player.StringReference.TableEntryReference.Key;
+
+        //        if (key == "You" || key == "Computer" || key == "Absent")
+        //        {
+        //            SetLocalizedPlayerText(player, key);
+        //        }
+        //    }
+        //    // Only change "You" to "Computer", leave "Absent" alone
+        //    if (playerFedLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerFedLocalizer, "Computer");
+
+        //    if (playerRomLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerRomLocalizer, "Computer");
+
+        //    if (playerKlingLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerKlingLocalizer, "Computer");
+
+        //    if (playerCardLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerCardLocalizer, "Computer");
+
+        //    if (playerDomLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerDomLocalizer, "Computer");
+
+        //    if (playerBorgLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerBorgLocalizer, "Computer");
+
+        //    if (playerTerranLocalizer.StringReference.TableEntryReference.Key == "You")
+        //        SetLocalizedPlayerText(playerTerranLocalizer, "Computer");
+        //}
         private void SetCivMajorCivsInGame(List<CivEnum> majorCivsInGameList)
         {
             if (!IsSinglePlayer && NetworkServer.active)
@@ -1345,7 +1346,8 @@ namespace BOTF3D.UI
             panelCivSelection.SetActive(false);
             singlePlayToggleGroup.SetActive(false);
             GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
-            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+            UpdateNotInGame(); // Update player statuses based on toggles before starting the game
+            //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
         }
 
         public void SetSinglePlayer() // button in Canvas MainMenu / Panel-Lobby when first loaded 
@@ -1376,7 +1378,8 @@ namespace BOTF3D.UI
 
             // ✅ Now safe to set
             GameController.Instance.GameData.GameMode = GameMode.SINGLEPLAYER;
-            GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+            UpdateNotInGame(); // Update player statuses based on toggles before starting the game
+            //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
 
             Debug.Log($"  ✅ Set GameMode to SINGLEPLAYER");
 
@@ -1493,12 +1496,20 @@ namespace BOTF3D.UI
         }
         public void SaveButton()
         {
-            UpdatePlayers();
-            UpdateNotInGame();
+            Debug.Log($"SaveButton: localPlayerCiv = {localPlayerCiv} (index {(int)localPlayerCiv})");
+
+            UpdatePlayers();      // This calls ActivePlayerToggle() → ResetPlayer(civInt)
+            UpdateNotInGame();    // This handles "Absent" states
+
+            // ❌ REMOVE THIS LINE - Don't call ResetPlayer again!
+            // ResetPlayer((int)localPlayerCiv);  
+
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(true);
+
+            Debug.Log($"SaveButton: Complete. Check Panel-GameParametersMenu player list.");
         }
         public void OpenSettingButton()
         {
@@ -1512,7 +1523,8 @@ namespace BOTF3D.UI
         }
         public void ReturnButton()
         {
-            ResetPlayers();
+            // Restore the local player selection
+            ResetPlayers((int)localPlayerCiv);
             panelLobby.SetActive(false);
             panelMuliplayer.SetActive(false);
             panelCivSelection.SetActive(true);

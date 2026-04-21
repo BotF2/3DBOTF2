@@ -72,7 +72,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: "Wznawia\u0107"
+    m_Localized: "Kontynuowa\u0107"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: Ty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Komputer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Nieobecny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Poziom techniczny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Wczesny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: "Rozwini\u0119ty"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Zaawansowany
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: "Najwy\u017Cszy"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: "Ma\u0142y"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: "\u015Aredni"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: "Du\u017Cy"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: "Ci\u0119\u017Cki"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Kanon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: Losowy
     m_Metadata:
       m_Items: []
   references:

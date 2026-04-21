@@ -71,7 +71,63 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1288034308857856
-    m_Localized: CV
+    m_Localized: Continuer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048232288256
+    m_Localized: Toi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Ordinateur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Niveau technique
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: "T\xF4t"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: "D\xE9velopp\xE9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: "Avanc\xE9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: "Supr\xEAme"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Petit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Moyen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Grand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Lourd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: "Al\xE9atoire"
     m_Metadata:
       m_Items: []
   references:
