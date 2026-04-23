@@ -310,8 +310,19 @@ namespace BOTF3D.Core
 
                 if (starSysSO == null)
                 {
-                    Debug.LogWarning($"  No StarSysSO found for civ {civSOList[i].CivShortName} (int={civSOList[i].CivInt})");
+                    Debug.LogWarning($"  ⚠️ No StarSysSO found for civ {civSOList[i].CivShortName} (int={civSOList[i].CivInt})");
                     continue;
+                }
+
+                // ✅ DIAGNOSTIC: Validate star sprite before creating system
+                if (starSysSO.StarSprit == null)
+                {
+                    Debug.LogError($"  ❌ MISSING STAR SPRITE for system '{starSysSO.SysName}' (CivInt={civSOList[i].CivInt}, StarType={starSysSO.StarType})");
+                    Debug.LogError($"     This system will appear without a visible star! Check CSV import and sprite assets.");
+                }
+                else
+                {
+                    Debug.Log($"  ✅ Star sprite found for '{starSysSO.SysName}': {starSysSO.StarSprit.name} (StarType={starSysSO.StarType})");
                 }
 
                 SysData = new StarSysData(starSysSO);
@@ -489,30 +500,30 @@ namespace BOTF3D.Core
             // ✅ Major race homeworlds
             if (civSO.Playable && starSysSO.IsHomeworld)
             {
-                return 3; // Federation, Romulan, Klingon, etc. homeworlds
+                return 2; // Federation, Romulan, Klingon, etc. homeworlds
             }
 
             // ✅ Minor race systems
-            if (!civSO.Playable && civSO.HasWarp)
+            if (!civSO.Playable)
             {
-                // 70% get capacity 1-2, 30% get capacity 3
-                float roll = UnityEngine.Random.value;
-                if (roll < 0.40f) return 1;
-                if (roll < 0.70f) return 2;
-                return 3;
+                //// 70% get capacity 1-2, 30% get capacity 3
+                //float roll = UnityEngine.Random.value;
+                //if (roll < 0.40f) return 1;
+                //if (roll < 0.70f) return 2;
+                return 1;
             }
 
             // ✅ Colonizable/Terraformable systems
-            if (starSysSO.Habitable || starSysSO.Terraformable)
+            if (starSysSO.IsHabitable || starSysSO.IsTerraformable)
             {
-                // Based on planet quality (you can expand this)
-                float roll = UnityEngine.Random.value;
-                if (roll < 0.50f) return 1;
-                if (roll < 0.85f) return 2;
-                return 3;
+                //// Based on planet quality (you can expand this)
+                //float roll = UnityEngine.Random.value;
+                //if (roll < 0.50f) return 1;
+                //if (roll < 0.85f) return 2;
+                return 1;
             }
 
-            // ✅ Non-habitable systems
+            // ✅ Non-habitable systems, black hole....
             return 0;
         }
         /// <summary>

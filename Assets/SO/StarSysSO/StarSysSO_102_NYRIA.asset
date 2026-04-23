@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 413d21328479c6a43b56205ac7b8ebcc, type: 3}
   m_Name: StarSysSO_102_NYRIA
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 102
   Position: {x: 123, y: 2, z: 627}
   SysName: NYRIA
@@ -19,19 +19,20 @@ MonoBehaviour:
   CurrentOwner: 102
   StarType: 0
   StarSprit: {fileID: 21300000, guid: e4a5fe77159a4474faeb4032f0274153, type: 3}
-  Population: 10
-  PopulationLimit: 20
-  Farms: 5
+  Dilitium: 1
   PowerStations: 1
   Factories: 1
   ResearchCenters: 1
   Shipyards: 1
   ShieldGenerators: 2
   OrbitalBatteries: 5
-  Description: descrition here...
-  powerPlantSprite: {fileID: 21300000, guid: 0a34e6bbee394d04ca1f5b1eb0018ab6, type: 3}
+  Description: Description
+  powerPlantSprite: {fileID: 0}
   factorySprite: {fileID: 21300000, guid: 3122b83fc111b524bb8d653746b72bd3, type: 3}
   shipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
   shieldSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
   orbitalSprite: {fileID: 21300000, guid: eed8212e85494304581c2fbe4cbf2e84, type: 3}
   researchCenterSprite: {fileID: 21300000, guid: ce8c2536b4f642f4488292d2bf4faad3, type: 3}
+  IsHomeworld: 1
+  IsHabitable: 1
+  IsTerraformable: 1

@@ -11,9 +11,7 @@ public class StarSysSO : ScriptableObject
     public CivEnum CurrentOwner;
     public GalaxyObjectType StarType;
     public Sprite StarSprit;
-    public int Population;
-    public int PopulationLimit;
-    public int Farms;
+    public int Dilitium;
     public int PowerStations;
     public int Factories;
     public int ResearchCenters;
@@ -28,7 +26,7 @@ public class StarSysSO : ScriptableObject
     public Sprite shieldSprite;
     public Sprite orbitalSprite;
     public Sprite researchCenterSprite;
-    internal bool IsHomeworld;
-    internal bool Habitable;
-    internal bool Terraformable;
+    public bool IsHomeworld;
+    public bool IsHabitable;
+    public bool IsTerraformable;
 }

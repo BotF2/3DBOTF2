@@ -11,27 +11,28 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 413d21328479c6a43b56205ac7b8ebcc, type: 3}
   m_Name: StarSysSO_104_ORION
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 104
   Position: {x: -323, y: 25, z: -670}
   SysName: ORION
   FirstOwner: 104
   CurrentOwner: 104
-  StarType: 7
+  StarType: 0
   StarSprit: {fileID: 21300000, guid: ba15e4ad72d9dc742b9cf4c766854c07, type: 3}
-  Population: 10
-  PopulationLimit: 20
-  Farms: 5
+  Dilitium: 1
   PowerStations: 1
   Factories: 1
   ResearchCenters: 1
   Shipyards: 1
   ShieldGenerators: 2
   OrbitalBatteries: 5
-  Description: descrition here...
+  Description: Description
   powerPlantSprite: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
   factorySprite: {fileID: 21300000, guid: 5121a27f0bd353f4ca5cf0ebcb16f223, type: 3}
   shipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
   shieldSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
   orbitalSprite: {fileID: 21300000, guid: 8b78df08e970299418fcfedccdb29648, type: 3}
   researchCenterSprite: {fileID: 21300000, guid: 6e52dd9974776e4468567ae690e10a9a, type: 3}
+  IsHomeworld: 1
+  IsHabitable: 1
+  IsTerraformable: 1

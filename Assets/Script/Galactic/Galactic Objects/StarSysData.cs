@@ -31,8 +31,9 @@ namespace BOTF3D.Core
         public Sprite StarSprit;
         public List<ShipController> ShipsList = new List<ShipController>();
         [Header("Dilithium & Power")]
-        public int DilithiumCapacity = 1; // Max power plants (1-3)
-        public int CurrentPowerPlantCount = 1; // How many are built
+        public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitalbe or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
+        public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
+                                               // Consider adding other power sources and adjust this variable to be more general for total power output.
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;
@@ -67,6 +68,9 @@ namespace BOTF3D.Core
         private Image researchCenter;
 
         public string Description;
+        public bool IsHomeworld;
+        public bool IsHabitable;
+        public bool? IsTerraformable;
         private string v;
 
         public StarSysData(StarSysSO starSysSO)

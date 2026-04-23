@@ -44,9 +44,9 @@ public class ShieldGeneratorSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
+                foreach (string file in Directory.GetFiles($"3DBOTF2/Resources/Facilities/", "*.png"))
                 {
-                    if (file == "BOTF3D/Resources/Facilities/" + imageString + ".png")
+                    if (file == "3DBOTF2/Resources/Facilities/" + imageString + ".png")
                     {
                         imageString = "Facilities/" + imageString;
                     }
@@ -66,7 +66,7 @@ public class ShieldGeneratorSOImporter : EditorWindow
                     ShieldGeneratorSO.PowerLoad = int.Parse(fields[7]);
                     ShieldGeneratorSO.ShieldGeneratorSprite = Resources.Load<Sprite>(imageString);
                     ShieldGeneratorSO.Description = (fields[8]);
-                    string assetPath = $"BOTF3D/SO/StarSysShieldGeneratorSO/ShieldGeneratorSO_{ShieldGeneratorSO.CivInt}_{ShieldGeneratorSO.Name}.asset";
+                    string assetPath = $"3DBOTF2/SO/StarSysShieldGeneratorSO/ShieldGeneratorSO_{ShieldGeneratorSO.CivInt}_{ShieldGeneratorSO.Name}.asset";
                     AssetDatabase.CreateAsset(ShieldGeneratorSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

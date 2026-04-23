@@ -38,103 +38,106 @@ public class StarSysSOImporter : EditorWindow
 
         string[] lines = File.ReadAllLines(filePath);
 
-        foreach (string line in lines)
+        for (int i = 0; i < lines.Length; i++)
         {
-            string[] fields = line.Split(',');
+            string[] fields = lines[i].Split(',');
+            string imageString = fields[6];
+            string imagesPower = fields[15];
+            string imagesFactory = fields[16];
+            string imagesShipyard = fields[17];
+            string imagesShield = fields[18];
+            string imagesOB = fields[19];
+            string imagesRC = fields[20];
 
-            if (fields.Length > 7) // Ensure there are enough fields
+            string starsPath = Path.Combine(Application.dataPath, "Art/Stars");
+            string facilitiesPath = Path.Combine(Application.dataPath, "Art/Facilities");
+            // Build asset paths
+            string starSpritePath = FindAssetPath("Assets/Art/Stars", imageString);
+            // ✅ DIAGNOSTIC: Log sprite path resolution
+            if (string.IsNullOrEmpty(starSpritePath))
             {
-                string imageString = fields[6];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Stars/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Stars/" + imageString + ".png")
-                    {
-                        imageString = "Stars/" + imageString;
-                    }
-                }
-                string imagesPower = fields[17];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesPower + ".png")
-                    {
-                        imagesPower = "Facilities/" + imagesPower;
-                    }
-                }
-                string imagesFactory = fields[18];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesFactory + ".png")
-                    {
-                        imagesFactory = "Facilities/" + imagesFactory;
-                    }
-                }
-                string imagesShipyard = fields[19];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesShipyard + ".png")
-                    {
-                        imagesShipyard = "Facilities/" + imagesShipyard;
-                    }
-                }
-                string imagesShield = fields[20];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesShield + ".png")
-                    {
-                        imagesShield = "Facilities/" + imagesShield;
-                    }
-                }
-                string imagesOB = fields[21];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesOB + ".png")
-                    {
-                        imagesOB = "Facilities/" + imagesOB;
-                    }
-                }
-                string imagesRC = fields[22];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Facilities/", "*.png"))
-                {
-                    if (file == "BOTF3D/Resources/Facilities/" + imagesRC + ".png")
-                    {
-                        imagesRC = "Facilities/" + imagesRC;
-                    }
-                }
-
-                if (fields.Length >= 8) // Ensure there are enough fields
-                {
-                    StarSysSO StarSysSO = CreateInstance<StarSysSO>();
-                    ////StarSysInt	,	StarSysSO Enum	,	StarSysSO Short TextComponent	,	StarSysSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	StarSysSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
-                    StarSysSO.StarSysInt = int.Parse(fields[0]);
-                    StarSysSO.Position = new Vector3((int.Parse(fields[1])) / 10, (int.Parse(fields[2])) / 10, (int.Parse(fields[3])) / 10);
-                    StarSysSO.SysName = fields[4];
-                    StarSysSO.FirstOwner = GetMyCivEnum(fields[5]);
-                    StarSysSO.CurrentOwner = GetMyCivEnum(fields[5]);
-                    StarSysSO.StarType = GetMyStarTypeEnum(fields[6]);
-                    StarSysSO.StarSprit = Resources.Load<Sprite>(imageString);
-                    StarSysSO.Population = int.Parse(fields[7]);
-                    StarSysSO.PopulationLimit = int.Parse(fields[8]);
-                    StarSysSO.Farms = int.Parse(fields[9]);
-                    StarSysSO.PowerStations = int.Parse(fields[10]);
-                    StarSysSO.Factories = int.Parse(fields[11]);
-                    StarSysSO.Shipyards = int.Parse(fields[12]);
-                    StarSysSO.ResearchCenters = int.Parse(fields[13]);
-                    StarSysSO.ShieldGenerators = int.Parse(fields[14]);
-                    StarSysSO.OrbitalBatteries = int.Parse(fields[15]);
-                    StarSysSO.Description = "descrition here...";
-                    StarSysSO.powerPlantSprite = Resources.Load<Sprite>(imagesPower);
-                    StarSysSO.factorySprite = Resources.Load<Sprite>(imagesFactory);
-                    StarSysSO.shipyardSprite = Resources.Load<Sprite>(imagesShipyard);
-                    StarSysSO.shieldSprite = Resources.Load<Sprite>(imagesShield);
-                    StarSysSO.orbitalSprite = Resources.Load<Sprite>(imagesOB);
-                    StarSysSO.researchCenterSprite = Resources.Load<Sprite>(imagesRC);
-                    string assetPath = $"BOTF3D/SO/StarSysSO/StarSysSO_{StarSysSO.StarSysInt}_{StarSysSO.SysName}.asset";
-                    AssetDatabase.CreateAsset(StarSysSO, assetPath);
-                    AssetDatabase.SaveAssets();
-                }
+                Debug.LogError($"❌ Row {i}: Failed to find star sprite '{imageString}' for system '{fields[4]}'");
             }
+            else
+            {
+                Debug.Log($"  ✅ Row {i}: Found star sprite at '{starSpritePath}' for system '{fields[4]}'");
+            }
+            string powerSpritePath = FindAssetPath("Assets/Art/Facilities", imagesPower);
+            string factorySpritePath = FindAssetPath("Assets/Art/Facilities", imagesFactory);
+            string shipyardSpritePath = FindAssetPath("Assets/Art/Facilities", imagesShipyard);
+            string shieldSpritePath = FindAssetPath("Assets/Art/Facilities", imagesShield);
+            string obSpritePath = FindAssetPath("Assets/Art/Facilities", imagesOB);
+            string rcSpritePath = FindAssetPath("Assets/Art/Facilities", imagesRC);
+
+            if (lines.Length >= 8) // Ensure there are enough fields
+            {
+                StarSysSO StarSysSO = CreateInstance<StarSysSO>();
+                //StarSysInt	,	StarSysSO Enum	,	StarSysSO Short TextComponent	,	StarSysSO Long TextComponent	,	Home System	,	Triat One	,	Trait Two	,	StarSysSO Image	,	Insginia	,	Population	,	Credits	,	StartingTechLevel Points
+                StarSysSO.StarSysInt = int.Parse(fields[0]);
+                StarSysSO.Position = new Vector3((int.Parse(fields[1])) / 10, (int.Parse(fields[2])) / 10, (int.Parse(fields[3])) / 10);
+                StarSysSO.SysName = fields[4];
+                StarSysSO.FirstOwner = GetMyCivEnum(fields[5]);
+                StarSysSO.CurrentOwner = GetMyCivEnum(fields[5]);
+                StarSysSO.StarType = GetMyStarTypeEnum(fields[6]);
+                StarSysSO.StarSprit = LoadSprite(starSpritePath);
+                if (StarSysSO.StarSprit == null)
+                {
+                    Debug.LogError($"❌ Row {i}: FAILED to load sprite from '{starSpritePath}' for system '{StarSysSO.SysName}'");
+                    Debug.LogError($"   This system will appear without a visible star in-game!");
+                }
+                else
+                {
+                    Debug.Log($"  ✅ Row {i}: Successfully loaded sprite '{StarSysSO.StarSprit.name}' for system '{StarSysSO.SysName}'");
+                }
+                StarSysSO.Dilitium = int.Parse(fields[7]);
+                StarSysSO.PowerStations = int.Parse(fields[8]);
+                StarSysSO.Factories = int.Parse(fields[9]);
+                StarSysSO.Shipyards = int.Parse(fields[10]);
+                StarSysSO.ResearchCenters = int.Parse(fields[11]);
+                StarSysSO.ShieldGenerators = int.Parse(fields[12]);
+                StarSysSO.OrbitalBatteries = int.Parse(fields[13]);
+                StarSysSO.Description = fields[14];
+                StarSysSO.powerPlantSprite = LoadSprite(powerSpritePath);
+                StarSysSO.factorySprite = LoadSprite(factorySpritePath);
+                StarSysSO.shipyardSprite = LoadSprite(shipyardSpritePath);
+                StarSysSO.shieldSprite = LoadSprite(shieldSpritePath);
+                StarSysSO.orbitalSprite = LoadSprite(obSpritePath);
+                StarSysSO.researchCenterSprite = LoadSprite(rcSpritePath);
+                StarSysSO.IsHomeworld = bool.Parse(fields[21]);
+                StarSysSO.IsHabitable = bool.Parse(fields[22]);
+                StarSysSO.IsTerraformable = bool.Parse(fields[23]);
+                string assetPath = $"Assets/SO/StarSysSO/StarSysSO_{StarSysSO.StarSysInt}_{StarSysSO.SysName}.asset";
+                AssetDatabase.CreateAsset(StarSysSO, assetPath);
+                AssetDatabase.SaveAssets();
+            }
+
             Debug.Log("CivSOImporter Import Complete");
         }
+    }
+    static Sprite LoadSprite(string path)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (sprite == null)
+        {
+            Debug.LogError($"❌ Sprite not found at: {path}");
+        }
+        return sprite;
+    }
+    static string FindAssetPath(string folder, string fileName)
+    {
+        string[] guids = AssetDatabase.FindAssets(fileName, new[] { folder });
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            string name = Path.GetFileNameWithoutExtension(path);
+
+            if (string.Equals(name, fileName, StringComparison.OrdinalIgnoreCase))
+                return path;
+        }
+
+        Debug.LogError($"❌ Could not find asset: {fileName} in {folder}");
+        return null;
     }
     public static CivEnum GetMyCivEnum(string title)
     {

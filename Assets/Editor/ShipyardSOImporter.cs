@@ -44,9 +44,9 @@ public class ShipyardSOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/Shipyards/", "*.png"))
+                foreach (string file in Directory.GetFiles($"3DBOTF2/Resources/Shipyards/", "*.png"))
                 {
-                    if (file == "BOTF3D/Resources/Shipyards/" + imageString + ".png")
+                    if (file == "3DBOTF2/Resources/Shipyards/" + imageString + ".png")
                     {
                         imageString = "Shipyards/" + imageString;
                     }
@@ -66,7 +66,7 @@ public class ShipyardSOImporter : EditorWindow
                     ShipyardSO.PowerLoad = int.Parse(fields[7]);
                     ShipyardSO.ShipyardSprite = Resources.Load<Sprite>(imageString);
                     ShipyardSO.Description = (fields[8]);
-                    string assetPath = $"BOTF3D/SO/StarSysShipyardSO/ShipyardSO_{ShipyardSO.CivInt}_{ShipyardSO.Name}.asset";
+                    string assetPath = $"3DBOTF2/SO/StarSysShipyardSO/ShipyardSO_{ShipyardSO.CivInt}_{ShipyardSO.Name}.asset";
                     AssetDatabase.CreateAsset(ShipyardSO, assetPath);
                     AssetDatabase.SaveAssets();
                 }
