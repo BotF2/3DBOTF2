@@ -1,4 +1,4 @@
-using BOTF3D.Combat;
+﻿using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
@@ -144,7 +144,7 @@ namespace BOTF3D.GamePlay
         private void MoveLikeAirplane()
         {
             #region How to make ships circle each other, move like airplanes
-            //Instead of always moving towards the enemy group�s center, compute a circle vector around that center:
+            //Instead of always moving towards the enemy group’s center, compute a circle vector around that center:
             // Ships move like banking airplanes and not like spaceships in a vacuum.
             //if (TargetGroup != null)
             //{
@@ -154,7 +154,7 @@ namespace BOTF3D.GamePlay
             //    // Choose an "orbit axis" (here: world up for flat 2D circling)
             //    Vector3 orbitAxis = Vector3.up;
 
-            //    // Rotate the direction vector 90� around the axis to get tangent direction
+            //    // Rotate the direction vector 90° around the axis to get tangent direction
             //    Vector3 orbitDirection = Quaternion.AngleAxis(90, orbitAxis) * toTarget;
 
             //    // Blend between circling and moving toward the orbit distance
@@ -176,11 +176,11 @@ namespace BOTF3D.GamePlay
             //    }
             //    //        What this does
 
-            //    //TargetGroup = the other fleet�s center or leader GameObject.
+            //    //TargetGroup = the other fleet’s center or leader GameObject.
 
             //    //Ships try to maintain a distance(OrbitDistance) from that point.
 
-            //    //They add a tangential offset(orbitDirection) so they don�t collide head - on but instead circle.
+            //    //They add a tangential offset(orbitDirection) so they don’t collide head - on but instead circle.
 
             //    //Both groups, if given each other as TargetGroup, will end up orbiting each other like two swarms circling.
 
@@ -277,24 +277,35 @@ namespace BOTF3D.GamePlay
                 yield return new WaitForSeconds(refireDelay);
             }
         }
-        internal void FireWeapons(bool baem)
+        internal void FireWeapons(bool beam)
         {
             if (ShipData.TargetThisShipController != null)
             {
                 if (this != null && transform != null)
                 {
-                    if (baem && ShipData.BeamDamage > 0)
+                    // ✅ Apply accuracy multiplier from combat order
+                    float accuracyMult = CombatOrderMatrix.GetAccuracyMultiplier(Order);
+                    bool hitSuccess = UnityEngine.Random.value < accuracyMult;
+
+                    if (!hitSuccess)
+                    {
+                        // Miss! Don't deal damage
+                        Debug.Log($"  ❌ Ship '{ShipData.ShipName}' missed! (Accuracy={accuracyMult:F2})");
+                        return;
+                    }
+
+                    if (beam && ShipData.BeamDamage > 0)
                     {
                         var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
                         beamWeaponGO = beamWeaponGo;
                         var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
                         var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
-                        beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // Set the target transform
-                        beamWeaponScript.WeaponTransform = this.transform; // Set the weapon transform
+                        beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
+                        beamWeaponScript.WeaponTransform = this.transform;
                         beamWeaponScript.LineRenderer = lineRenderer;
-                        beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform); // Set the weapon and target transforms
+                        beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform);
                         ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage);
-                        Destroy(beamWeaponGo, 0.5f); // Destroy the beam after so much time
+                        Destroy(beamWeaponGo, 0.5f);
                     }
                     else if (ShipData.TorpedoDamage > 0)
                     {
@@ -303,8 +314,8 @@ namespace BOTF3D.GamePlay
                         torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
                         if (ShipData.TargetThisShipController != null)
                         {
-                            torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform; // ShipData.TargetForThisShip is GameObject and Torpedo.Target is Transform
-                            torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum; // Get the target ship's CivEnum
+                            torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
+                            torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum;
                         }
                     }
                 }
@@ -314,8 +325,14 @@ namespace BOTF3D.GamePlay
         {
             if (Health != 0)
             {
-                Health -= (weaponDamageInt / 3);
-                Health = Mathf.Max(Health, 0.0f); // if Health goes below zero, set to zero
+                // ✅ Apply defensive multiplier based on combat order
+                float defenseMult = CombatOrderMatrix.GetDefenseMultiplier(Order);
+                float adjustedDamage = (weaponDamageInt / 3f) * defenseMult;
+
+                Health -= adjustedDamage;
+                Health = Mathf.Max(Health, 0.0f);
+
+                Debug.Log($"  Ship '{ShipData.ShipName}' took {adjustedDamage:F1} damage (order={Order}, mult={defenseMult:F2})");
             }
             #region for tracking shields and hull individually
             //if (ShipData.ShieldHealth > 0)

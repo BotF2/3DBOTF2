@@ -218,7 +218,7 @@ namespace BOTF3D.UI
             }
 
             // ✅ Re-enable button after short delay (debounce)
-            yield return new WaitForSecondsRealtime(0.2f); // Use realtime (works when paused)
+            yield return new WaitForSecondsRealtime(0.2f); // Use real time (works when paused)
             isTogglingPause = false;
         }
 

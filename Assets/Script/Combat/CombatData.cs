@@ -68,6 +68,9 @@ namespace BOTF3D.Core
         int _zCapitalDepth = 0;
         int _zUtilityDepth = 0;
 
+        // ✅ NEW: Speed multipliers based on combat orders
+        public float SideOneSpeedMultiplier = 1.0f;
+        public float SideTwoSpeedMultiplier = 1.0f;
         public CombatData()
         {
             OrderSideOne = CombatOrders.None;

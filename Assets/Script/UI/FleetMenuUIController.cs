@@ -840,81 +840,38 @@ namespace BOTF3D.UI
 
         public void SetAsDestination(string nameDestination, string newCoordinates)
         {
-            Debug.Log($"=== SetAsDestination CALLED ===");
+            Debug.Log("=== SetAsDestination CALLED ===");
             Debug.Log($"  nameDestination: '{nameDestination}'");
             Debug.Log($"  newCoordinates: '{newCoordinates}'");
 
-            // ✅ CRITICAL FIX: Get the fleet that's waiting for a destination from GalaxyMenuUIController
-            FleetController fleetWaitingForDestination = GalaxyMenuUIController.Instance?.FleetLookingForDestination;
+            var galaxyUI = GalaxyMenuUIController.Instance;
 
-            if (fleetWaitingForDestination == null)
+            // ✅ Check if a fleet is waiting for destination
+            if (galaxyUI?.FleetLookingForDestination == null)
             {
-                Debug.LogError($"  ❌ No fleet waiting for destination! GalaxyMenuUIController.FleetLookingForDestination is NULL");
+                Debug.LogError("❌ No fleet waiting for destination! This shouldn't be called without setting FleetLookingForDestination first.");
                 return;
             }
 
-            Debug.Log($"  Fleet waiting for destination: '{fleetWaitingForDestination.name}'");
+            var fleetCon = galaxyUI.FleetLookingForDestination;
 
-            // Get the UI fields from the waiting fleet
-            if (fleetWaitingForDestination.FleetUIGameObject == null)
+            // Get text fields from the specific fleet's UI
+            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
             {
-                Debug.LogError($"  ❌ Fleet '{fleetWaitingForDestination.name}' has no FleetUIGameObject!");
-                return;
-            }
+                if (fields.DestinationName != null)
+                    fields.DestinationName.text = nameDestination;
+                if (fields.DestinationCoordinates != null)
+                    fields.DestinationCoordinates.text = newCoordinates;
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
 
-            FleetUI_Fields fields = fleetWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>();
-
-            if (fields == null)
-            {
-                Debug.LogError($"  ❌ Fleet '{fleetWaitingForDestination.name}' UI has no FleetUI_Fields component!");
-                return;
-            }
-
-            Debug.Log($"  ✅ Found FleetUI_Fields for fleet '{fleetWaitingForDestination.name}'");
-
-            // ✅ Update destination fields
-            if (fields.DestinationName != null)
-            {
-                fields.DestinationName.text = nameDestination;
-                Debug.Log($"  ✅ Set DestinationName to '{nameDestination}'");
-            }
-            else
-            {
-                Debug.LogError($"  ❌ fields.DestinationName is NULL!");
-            }
-
-            if (fields.DestinationCoordinates != null)
-            {
-                fields.DestinationCoordinates.text = newCoordinates;
-                Debug.Log($"  ✅ Set DestinationCoordinates to '{newCoordinates}'");
-            }
-            else
-            {
-                Debug.LogError($"  ❌ fields.DestinationCoordinates is NULL!");
-            }
-
-            // ✅ Update button visibility
-            if (fields.CancelDestination != null)
-            {
-                fields.CancelDestination.gameObject.SetActive(true);
-                Debug.Log($"  ✅ Activated CancelDestination button");
-            }
-
-            if (fields.DestinationDragTarget != null)
-            {
-                fields.DestinationDragTarget.gameObject.SetActive(false);
-                Debug.Log($"  ✅ Deactivated DestinationDragTarget button");
-            }
-
-            if (fields.SelectDestination != null)
-            {
-                fields.SelectDestination.gameObject.SetActive(false);
-                Debug.Log($"  ✅ Deactivated SelectDestination button");
+                Debug.Log($"✅ Set destination for fleet '{fleetCon.name}'");
             }
 
             MousePointerChanger.Instance.ResetCursor();
-
-            Debug.Log($"=== SetAsDestination: Complete ===");
         }
 
         // Helper: get buttons from the currently active fleet UI

@@ -536,24 +536,13 @@ namespace BOTF3D.GamePlay
         }
         private void HandleNormalClick(StarSysController clickedSystemCon)
         {
-            // ✅ CRITICAL: Clean up BOTH star system UIs AND fleet UIs before opening new UI
-            if (StarSysMenuUIController.Instance != null)
-            {
-                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
-                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
-            }
-            if (FleetMenuUIController.Instance != null)
-            {
-                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
-                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
-            }
-
             GalaxyUI.CloseShipDeployMenu();
             if (clickedSystemCon == null) return;
             if (clickedSystemCon == this)
             {
                 if (gameController.AreWeLocalPlayer(clickedSystemCon.StarSysData.CurrentOwnerCivEnum))
                 {
+                    // Our own system - open system UI
                     StarSysUI.SetActiveSetParentUIGO(this);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
@@ -562,9 +551,38 @@ namespace BOTF3D.GamePlay
                     StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
                     GalaxyUI.OpenMenu(Menu.ASystemMenu, clickedSystemCon.gameObject);
                 }
-                else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, this.StarSysData.CurrentCivController))
+                else
                 {
-                    DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivController, this);
+                    // ✅ Check if this is an uninhabited system (CivEnum >= 158)
+                    int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // 158
+
+                    if ((int)this.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+                    {
+                        // ✅ Uninhabited system - show colonization UI (if habitable)
+                        if (this.StarSysData.IsHabitable)
+                        {
+                            Debug.Log($"Clicked uninhabited habitable system '{this.StarSysData.SysName}' - showing colonization UI");
+
+                            // Show habitable system UI for colonization
+                            HabitableSysUIController.Instance?.LoadHabitableSysUI(this, CivManager.Instance.LocalPlayerCivController);
+                        }
+                        else
+                        {
+                            Debug.Log($"Clicked uninhabited non-habitable system '{this.StarSysData.SysName}' - no action");
+                            // Could show a "System scanned - not habitable" message
+                        }
+                    }
+                    else if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, this.StarSysData.CurrentCivController))
+                    {
+                        // ✅ Foreign owned system (real civilization) - open diplomacy
+                        Debug.Log($"Clicked known foreign system '{this.StarSysData.SysName}' owned by {this.StarSysData.CurrentOwnerCivEnum}");
+                        DiplomacyManager.Instance.ResolveDiplomacyForClickSystemWeKnow(CivManager.Instance.LocalPlayerCivController, this);
+                    }
+                    else
+                    {
+                        Debug.Log($"Clicked unknown foreign system '{this.StarSysData.SysName}' owned by {this.StarSysData.CurrentOwnerCivEnum} - no diplomacy controller found");
+                        // First contact should happen via fleet OnTriggerEnter, not clicking
+                    }
                 }
             }
         }
