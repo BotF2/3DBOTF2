@@ -496,7 +496,7 @@ namespace BOTF3D.UI
         public void LoadGalaxyScene()
         {
             TimeManager.Instance.timeRunning = true;
-            TimeManager.Instance.StarTime();
+            TimeManager.Instance.StartTime();
             UpdateMapSelection();
             UpdateGalaxySizeSelection();
             UpdateTechLevelSelection();

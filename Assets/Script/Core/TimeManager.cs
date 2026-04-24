@@ -14,45 +14,73 @@ namespace BOTF3D.Core
         public event Action<TrekStardateEventSO> onStardateSpecialEvent; // 
         public Action<TrekStardateEventSO> OnStardateSpecialEvent;
         public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
-        private float timer;
+
         //public TMPro.TextMeshProUGUI messageText;
         public int currentStardate { get; private set; }
+
+        public bool timeRunning = true; // ✅ Change from false to true
+        public bool IsPaused { get; private set; } = false; // Already correct
         private Coroutine timeCoroutine;
-        private float timeSpeedup = 10f;// a lower number is slower time
+        private float currentTimeSpeed = 10f; // This controls YOUR coroutine delay
+        private float unityTimeScale = 1f; // ✅ Add this for Unity's Time.timeScale
+        private bool isPausing = false;
         public List<TrekRandomEventSO> RandomEvents;
         public List<TrekStardateEventSO> StardateEvents;
-        public bool timeRunning = false;
+
         public int StaringStardate = 1010; // the starting stardate
+        //private float currentTimeSpeed;
+
         void Awake()
         {
             if (Instance == null)
                 Instance = this;
             else if (Instance != this)
             {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
+                Destroy(gameObject); // ✅ Destroy duplicate, don't replace Instance
+                return;
             }
+
+            DontDestroyOnLoad(gameObject); // ✅ Move here
+
+            // ✅ Initialize to running state
+            IsPaused = false;
+            timeRunning = true;
+
+            Debug.Log($"⏰ TimeManager: Initialized - IsPaused={IsPaused}, timeRunning={timeRunning}");
         }
         private void Start()
         {
-            timer = timeSpeedup;
+            // timer = currentTimeSpeed;
             timeCoroutine = StartCoroutine(TimeProgression());
             currentStardate = StaringStardate;
+
+            // ✅ Ensure running state
+            IsPaused = false;
+            timeRunning = true;
+
+            Debug.Log($"⏰ TimeManager: Started - currentStardate={currentStardate}");
         }
         void Update()
         {
 
         }
-        public void StarTime()
+        public void StartTime()
         {
+            if (timeCoroutine != null)
+            {
+                StopCoroutine(timeCoroutine);
+            }
             timeCoroutine = StartCoroutine(TimeProgression());
+            IsPaused = false; // ✅ FIX: Starting time means NOT paused
+            timeRunning = true; // ✅ Also set this
+            Debug.Log("⏰ TimeManager: Time started via StartTime()");
         }
         private System.Collections.IEnumerator TimeProgression()
         {
 
             while (timeRunning)
             {
-                yield return new WaitForSeconds(10f / timeSpeedup); // 10 seconds in game = 1 oneInXChance
+                yield return new WaitForSeconds(10f / currentTimeSpeed); // 10 seconds in game = 1 oneInXChance
                 currentStardate++;
                 OnStardateChanged?.Invoke();
                 CheckSpecialEvents();
@@ -87,7 +115,7 @@ namespace BOTF3D.Core
         public void SetTimeSpeedMultiplier(float multiplier)
         {
             if (multiplier > 0)
-                timeSpeedup = multiplier;
+                currentTimeSpeed = multiplier;
 
             // Restart time progression coroutine with new speed multiplier
             if (timeCoroutine != null)
@@ -100,33 +128,18 @@ namespace BOTF3D.Core
         // Method to pause time progression
         public void PauseTime()
         {
-            timeRunning = false; // Stop the coroutine loop (paused)
-            Time.timeScale = 0f;
-            if (timeCoroutine != null)
-            {
-                StopCoroutine(timeCoroutine);
-                timeCoroutine = null; // Clear reference
-            }
-
-            Debug.Log("⏸️ TimeManager: Time PAUSED");
+            timeRunning = false;
+            IsPaused = true;
+            Time.timeScale = 0f; // ✅ Correct - freeze Unity time
+            Debug.Log("⏸ TimeManager: Time PAUSED");
         }
 
-        // Method to resume time progression
         public void ResumeTime()
         {
-            // ✅ CRITICAL: Set timeRunning FIRST before starting coroutine
             timeRunning = true;
-
-            // Stop any existing coroutine first
-            if (timeCoroutine != null)
-            {
-                StopCoroutine(timeCoroutine);
-            }
-
-            // Start time progression
-            timeCoroutine = StartCoroutine(TimeProgression());
-
-            Debug.Log($"▶️ TimeManager: Time RESUMED (speed={timeSpeedup})");
+            IsPaused = false;
+            Time.timeScale = 1f; // ✅ FIX: Use 1.0, not currentTimeSpeed (which is 10)
+            Debug.Log($"▶️ TimeManager: Time RESUMED (timeScale=1.0, coroutineSpeed={currentTimeSpeed})");
         }
 
         // Method to get current oneInXChance
@@ -143,20 +156,8 @@ namespace BOTF3D.Core
 
             Debug.Log("Action after delay.");
         }
-        //public void PauseForMessage(float delay)
-        //{
-        //    // Start the coroutine to pause and resume time
-        //    StartCoroutine(PauseForMessageCoroutine(delay));
-        //}
-        //private IEnumerator PauseForMessageCoroutine(float delay)
-        //{
-        //    Time.timeScale = 0f;
-        //    PauseTime();
-        //    yield return new WaitForSecondsRealtime(delay);
-        //    ResumeTime();
-        //    Time.timeScale = 1f;
-        //}
-        private bool isPausing = false;
+
+
 
         public void PauseForMessage(float delay)
         {

@@ -45,14 +45,15 @@ namespace BOTF3D.UI
         private bool isPaused = false;
         private bool isInMainMenu = true;
         private bool isInCombat = false;
+        private bool isTogglingPause = false; // ✅ Add debounce flag
 
-        // Cached references to avoid reflection lookups every frame
+        // Cached references to avoid reflection look-ups every frame
         private object audioManagerInstance;
         private object timeManagerInstance;
         private MethodInfo audioGetMasterVolumeMethod;
         private MethodInfo audioSetMasterVolumeMethod;
         private PropertyInfo timeCurrentStardateProperty; // For reading stardate
-
+        private int lastToggleFrame = -999;
         private void Awake()
         {
             // Singleton pattern
@@ -79,8 +80,8 @@ namespace BOTF3D.UI
             StartCoroutine(RetryCachingManagers());
 
             // Delay visibility update to ensure we're in the correct scene
-            // This prevents hiding the panel during scene initialization
             StartCoroutine(DelayedVisibilityUpdate());
+
             // Find LocalizeStringEvent if not assigned
             if (pauseResumeTextLocalizer == null)
             {
@@ -91,8 +92,58 @@ namespace BOTF3D.UI
                 Debug.LogError("GameControlOverlay: LocalizeStringEvent not found! Assign it in Inspector.");
             }
 
-            // Set initial state
-            UpdateButtonState();
+            // ✅ Wait for TimeManager before updating button state
+            StartCoroutine(InitializeButtonStateWhenReady());
+        }
+        /// <summary>
+        /// Keyboard shortcut support and stardate update
+        /// </summary>
+        private void Update()
+        {
+            // Re-cache managers if they weren't available at startup
+            if (audioManagerInstance == null || timeManagerInstance == null)
+            {
+                CacheManagerReferences();
+            }
+
+            // Update stardate display every frame (lightweight property read)
+            UpdateStardateDisplay();
+
+            // Press 'P' to toggle pause
+            if (Input.GetKeyDown(KeyCode.P) && !isInMainMenu && !isInCombat)
+            {
+                Debug.Log("🎮 P key pressed - toggling pause");
+                TogglePause();
+            }
+
+            // Press 'M' to toggle overlay visibility
+            if (Input.GetKeyDown(KeyCode.M))
+            {
+                ToggleOverlayVisibility();
+            }
+        }
+        /// <summary>
+        /// Wait for TimeManager to be ready before initializing button state
+        /// </summary>
+        private System.Collections.IEnumerator InitializeButtonStateWhenReady()
+        {
+            // Wait until TimeManager is available
+            int attempts = 0;
+            while (TimeManager.Instance == null && attempts < 50)
+            {
+                yield return new WaitForSeconds(0.1f);
+                attempts++;
+            }
+
+            if (TimeManager.Instance != null)
+            {
+                Debug.Log("✅ TimeManager ready - initializing button state");
+                UpdateButtonState();
+            }
+            else
+            {
+                Debug.LogError("❌ TimeManager not found after 5 seconds - button state not initialized");
+            }
         }
 
         public void OnPauseButtonClicked()
@@ -108,33 +159,94 @@ namespace BOTF3D.UI
 
             UpdateButtonState();
         }
+        public void TogglePause()
+        {
+            int currentFrame = Time.frameCount;
+
+            // ✅ Ignore if called on the same frame
+            if (currentFrame == lastToggleFrame)
+            {
+                Debug.Log($"⚠️ TogglePause called AGAIN on frame {currentFrame} - ignoring double-click");
+                return;
+            }
+
+            lastToggleFrame = currentFrame;
+            Debug.Log($"🎯 TogglePause called on frame {currentFrame}");
+            if (TimeManager.Instance == null)
+            {
+                Debug.LogError("❌ GameControlOverlay: TimeManager.Instance is NULL");
+                return;
+            }
+
+            // ✅ Debounce: Prevent multiple clicks in quick succession
+            if (isTogglingPause)
+            {
+                Debug.LogWarning("⚠️ TogglePause called while already toggling - ignoring");
+                return;
+            }
+
+            isTogglingPause = true;
+
+            // Toggle based on current state
+            if (TimeManager.Instance.IsPaused)
+            {
+                TimeManager.Instance.ResumeTime();
+                Debug.Log("▶️ Game RESUMED");
+            }
+            else
+            {
+                TimeManager.Instance.PauseTime();
+                Debug.Log("🛑 Game PAUSED");
+            }
+
+            Debug.Log($"🔄 After toggle: IsPaused={TimeManager.Instance.IsPaused}");
+
+            // ✅ Wait one frame for localization and layout to update
+            StartCoroutine(UpdateButtonStateDelayed());
+        }
+        private System.Collections.IEnumerator UpdateButtonStateDelayed()
+        {
+            // Wait for end of frame so localization and UI layout complete
+            yield return new WaitForEndOfFrame();
+
+            UpdateButtonState();
+
+            // Force canvas update
+            if (pauseButtonTextTMP != null)
+            {
+                Canvas.ForceUpdateCanvases();
+            }
+
+            // ✅ Re-enable button after short delay (debounce)
+            yield return new WaitForSecondsRealtime(0.2f); // Use realtime (works when paused)
+            isTogglingPause = false;
+        }
+
         private void UpdateButtonState()
         {
-            if (TimeManager.Instance == null) return;
+            if (TimeManager.Instance == null)
+            {
+                Debug.LogWarning("⚠️ UpdateButtonState: TimeManager.Instance is NULL");
+                return;
+            }
 
+            bool isPaused = TimeManager.Instance.IsPaused;
+
+            Debug.Log($"🔄 UpdateButtonState: isPaused={isPaused}");
+
+            // Update localization key
             if (pauseResumeTextLocalizer != null)
             {
                 string key = isPaused ? "Resume" : "Pause";
 
-                Debug.Log($"🔄 Setting key: '{key}', isPaused={isPaused}");
+                Debug.Log($"🔄 Setting key to '{key}'");
 
                 pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", key);
-
-                // ✅ Check if reference is valid
-                if (pauseResumeTextLocalizer.StringReference.IsEmpty)
-                {
-                    Debug.LogError($"❌ StringReference is EMPTY after SetReference! Check that 'StringTableCollection' table exists and has key '{key}'");
-                }
-
-                // Get the localized string to verify it works
-                string localizedText = pauseResumeTextLocalizer.StringReference.GetLocalizedString();
-                Debug.Log($"📖 Localized text for key '{key}': '{localizedText}'");
-
                 pauseResumeTextLocalizer.RefreshString();
 
                 if (pauseButtonTextTMP != null)
                 {
-                    Debug.Log($"📝 TextMeshPro.text is now: '{pauseButtonTextTMP.text}'");
+                    Debug.Log($"📝 Text is: '{pauseButtonTextTMP.text}'");
                 }
             }
 
@@ -142,6 +254,8 @@ namespace BOTF3D.UI
             if (pauseButtonImage != null && pauseIcon != null && playIcon != null)
             {
                 pauseButtonImage.sprite = isPaused ? playIcon : pauseIcon;
+                pauseButtonImage.enabled = true;
+                Debug.Log($"🖼️ Icon: {pauseButtonImage.sprite.name}");
             }
         }
 
@@ -213,7 +327,8 @@ namespace BOTF3D.UI
                 }
                 else
                 {
-                    Debug.LogWarning("⚠️ GameControlOverlay: AudioManager type found but Instance is null - AudioManager may not be initialized yet");
+                    // ✅ Change to Info level since this is expected during startup
+                    Debug.Log("⏳ GameControlOverlay: AudioManager not ready yet - will retry");
                 }
             }
             else
@@ -240,7 +355,6 @@ namespace BOTF3D.UI
                         timeManagerInstance = instanceField.GetValue(null);
                     }
                 }
-
                 if (timeManagerInstance != null)
                 {
                     timeCurrentStardateProperty = timeManagerType.GetProperty("currentStardate");
@@ -248,7 +362,8 @@ namespace BOTF3D.UI
                 }
                 else
                 {
-                    Debug.LogWarning("⚠️ GameControlOverlay: TimeManager type found but Instance is null - TimeManager may not be initialized yet");
+                    // ✅ Change to Info level
+                    Debug.Log("⏳ GameControlOverlay: TimeManager not ready yet - will retry");
                 }
             }
             else
@@ -275,7 +390,28 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning("GameControlOverlay: masterVolumeSlider not assigned in Inspector!");
             }
+            // ✅ Initialize pause button
+            if (pauseButton != null)
+            {
+                // ✅ CRITICAL: Remove ALL listeners before adding (prevents duplicates)
+                pauseButton.onClick.RemoveAllListeners();
 
+                // Set TargetGraphic if not set
+                if (pauseButton.targetGraphic == null && pauseButtonImage != null)
+                {
+                    pauseButton.targetGraphic = pauseButtonImage;
+                    Debug.Log("✅ Set PauseButton targetGraphic");
+                }
+
+                // Add listener ONCE
+                pauseButton.onClick.AddListener(TogglePause);
+
+                Debug.Log($"GameControlOverlay: Pause button initialized with {pauseButton.onClick.GetPersistentEventCount()} persistent listeners");
+            }
+            else
+            {
+                Debug.LogWarning("GameControlOverlay: pauseButton not assigned in Inspector!");
+            }
             // ✅ Initialize pause button
             if (pauseButton != null)
             {
@@ -341,38 +477,6 @@ namespace BOTF3D.UI
             {
                 volumeValueText.text = $"{Mathf.RoundToInt(volume * 100)}%";
             }
-        }
-
-        /// <summary>
-        /// Toggle game pause state
-        /// </summary>
-
-        public void TogglePause()
-        {
-            if (timeManagerInstance == null)
-            {
-                Debug.LogError("❌ GameControlOverlay: TimeManager instance is NULL - cannot pause/resume.");
-                CacheManagerReferences();
-                if (timeManagerInstance == null)
-                {
-                    Debug.LogError("❌ GameControlOverlay: TimeManager still not found after retry.");
-                    return;
-                }
-            }
-
-            isPaused = !isPaused;
-
-            if (isPaused)
-            {
-                Time.timeScale = 0f;
-                Debug.Log("🛑 Game PAUSED");
-            }
-            else
-            {
-                Time.timeScale = 1f;
-                Debug.Log("▶️ Game RESUMED");
-            }
-            UpdateButtonState();
         }
 
         /// <summary>
@@ -471,7 +575,7 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Public method to force unpause (useful for scene transitions)
+        /// Public method to force "unpause" (useful for scene transitions)
         /// </summary>
         public void ForceUnpause()
         {
@@ -495,32 +599,7 @@ namespace BOTF3D.UI
             return isPaused;
         }
 
-        /// <summary>
-        /// Keyboard shortcut support and stardate update
-        /// </summary>
-        private void Update()
-        {
-            // Re-cache managers if they weren't available at startup
-            if (audioManagerInstance == null || timeManagerInstance == null)
-            {
-                CacheManagerReferences();
-            }
 
-            // Update stardate display every frame (lightweight property read)
-            UpdateStardateDisplay();
-
-            // Press 'P' to toggle pause (only in GalaxyScene)
-            if (Input.GetKeyDown(KeyCode.P) && !isInMainMenu && !isInCombat)
-            {
-                TogglePause();
-            }
-
-            // Press 'M' to toggle overlay visibility
-            if (Input.GetKeyDown(KeyCode.M))
-            {
-                ToggleOverlayVisibility();
-            }
-        }
         public void TestSetToPause()
         {
             if (pauseResumeTextLocalizer != null)
