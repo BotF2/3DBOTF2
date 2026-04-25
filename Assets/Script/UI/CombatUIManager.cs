@@ -4,7 +4,6 @@ using BOTF3D.GamePlay;
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace BOTF3D.UI
@@ -12,7 +11,6 @@ namespace BOTF3D.UI
     /// <summary>
     /// Persistent manager that controls the CombatUICanvas in CombatScene
     /// Lives in GalaxyScene and updates for each new combat
-    /// Uses new Input System for keyboard/mouse controls
     /// </summary>
     public class CombatUIManager : MonoBehaviour
     {
@@ -37,10 +35,6 @@ namespace BOTF3D.UI
         private CombatOrders currentOrder = CombatOrders.Engage;
         public CivEnum CivEnumLocalPlayer;
 
-        // ✅ NEW: Input Actions
-        private CombatControls combatControls;
-        private CombatControls.CombatActions combatActions;
-
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -53,49 +47,7 @@ namespace BOTF3D.UI
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            // ✅ Initialize input actions
-            combatControls = new CombatControls();
-            combatActions = combatControls.Combat;
-
-            // ✅ Subscribe to input events
-            combatActions.SkipTimer.performed += OnSkipTimerPerformed;
-            combatActions.Pause.performed += OnPausePerformed;
-
             Debug.Log("✅ CombatUIManager initialized (persistent)");
-        }
-
-        private void OnEnable()
-        {
-            // Enable combat controls when UI is active
-            if (combatControls != null)
-            {
-                combatActions.Enable();
-            }
-            Debug.Log("✅ Combat controls enabled");
-        }
-
-        private void OnDisable()
-        {
-            // Disable combat controls when UI is inactive
-            if (combatControls != null)
-            {
-                combatActions.Disable();
-            }
-            Debug.Log("⏸️ Combat controls disabled");
-        }
-
-        private void OnDestroy()
-        {
-            // Unsubscribe from events
-            if (combatControls != null)
-            {
-                combatActions.SkipTimer.performed -= OnSkipTimerPerformed;
-                combatActions.Pause.performed -= OnPausePerformed;
-            }
-
-            // Dispose of input actions
-            combatControls?.Dispose();
-            Debug.Log("🧹 Combat controls disposed");
         }
 
         private void Update()
@@ -118,24 +70,9 @@ namespace BOTF3D.UI
                     EnterShipCombatPhase();
                 }
             }
-        }
 
-        // ✅ NEW: Input callbacks
-        private void OnSkipTimerPerformed(InputAction.CallbackContext context)
-        {
-            if (isTimerRunning)
-            {
-                Debug.Log("⏩ Timer skipped via keyboard (Space/Enter)");
-                isTimerRunning = false;
-                remainingTime = 0f;
-                EnterShipCombatPhase();
-            }
-        }
-
-        private void OnPausePerformed(InputAction.CallbackContext context)
-        {
-            Debug.Log("⏸️ Pause requested (Escape key)");
-            // TODO: Implement pause menu
+            // ✅ Camera rotation is now handled by ShipCombatCameraController itself
+            // No need to duplicate the spacebar logic here
         }
 
         /// <summary>
@@ -185,9 +122,6 @@ namespace BOTF3D.UI
             // ✅ Start timer
             remainingTime = 10f;
             isTimerRunning = true;
-
-            // ✅ Enable input
-            combatActions.Enable();
 
             Debug.Log("✅ Combat UI setup complete");
         }
@@ -635,7 +569,7 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Called when timer ends, button clicked, or Space/Enter pressed
+        /// Called when timer ends or button clicked
         /// </summary>
         private void EnterShipCombatPhase()
         {
@@ -659,10 +593,20 @@ namespace BOTF3D.UI
                 // Apply current order
                 CurrentCombatController.SetShipOrders(currentOrder, CivEnumLocalPlayer);
 
+                // ✅ Give AI a random order for the other side
+                CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
+                    ? CurrentCombatController.CombatData.CivEnumSideTwo
+                    : CurrentCombatController.CombatData.CivEnumSideOne;
+
+                // Generate random combat order for AI
+                System.Array combatOrderValues = System.Enum.GetValues(typeof(CombatOrders));
+                CombatOrders randomAIOrder = (CombatOrders)combatOrderValues.GetValue(Random.Range(0, combatOrderValues.Length));
+                CurrentCombatController.SetShipOrders(randomAIOrder, aiCivEnum);
+
                 // Start combat animation
                 CurrentCombatController.RunAnimation();
 
-                Debug.Log($"✅ Combat phase started with order: {currentOrder}");
+                Debug.Log($"✅ Combat phase started with order: {currentOrder}, AI order: {randomAIOrder}");
             }
             else
             {
@@ -707,9 +651,6 @@ namespace BOTF3D.UI
             formation = null;
             targetTransports = null;
             isTimerRunning = false;
-
-            // ✅ Disable input when combat ends
-            combatActions.Disable();
         }
     }
 }

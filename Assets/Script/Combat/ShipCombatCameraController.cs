@@ -46,6 +46,23 @@ namespace BOTF3D.GamePlay
         public float _mouseRotationSpeed = 5.0f;
         private TurnDirection _turnDirection { get; set; } = TurnDirection.left;
         private Vector3 _axisOfRotation;
+
+        // ✅ Public accessors for CombatUIManager
+        public Vector3 CameraOffSet
+        {
+            get { return _cameraOffSet; }
+            set { _cameraOffSet = value; }
+        }
+
+        public float MouseRotationSpeed
+        {
+            get { return _mouseRotationSpeed; }
+        }
+
+        public void SetAutoRotationTimer(float time)
+        {
+            _autoRotationTimer = time;
+        }
         #endregion
         public struct PositionAndRotation
         {
@@ -369,6 +386,9 @@ namespace BOTF3D.GamePlay
         }
     }
 }
+
+
+
 
 
 
