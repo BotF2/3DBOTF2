@@ -37,7 +37,7 @@ namespace BOTF3D.UI
         private CombatOrders currentOrder = CombatOrders.Engage;
         public CivEnum CivEnumLocalPlayer;
 
-        // ✅ NEW: Input Actions
+        // ✅ Input Actions
         private CombatControls combatControls;
         private CombatControls.CombatActions combatActions;
 

@@ -74,8 +74,8 @@ MonoBehaviour:
     m_Localized: Fortfahren
     m_Metadata:
       m_Items: []
-  - m_Id: 1661048232288256
-    m_Localized: Du
+  - m_Id: 3444178414477312
+    m_Localized: "W\xE4hle eine Zivilisation"
     m_Metadata:
       m_Items: []
   - m_Id: 1661048295202816
@@ -87,7 +87,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2038611676962816
-    m_Localized: Technisches Niveau
+    m_Localized: Entwicklungsstufe
     m_Metadata:
       m_Items: []
   - m_Id: 2041072923910144
@@ -103,7 +103,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298754
-    m_Localized: "H\xF6chste"
+    m_Localized: "\xDCberlegen"
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298755
@@ -111,7 +111,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298756
-    m_Localized: Medium
+    m_Localized: Mittel
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298757
@@ -123,11 +123,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298759
-    m_Localized: Kanon
+    m_Localized: Canon
     m_Metadata:
       m_Items: []
   - m_Id: 2041072932298760
     m_Localized: "Zuf\xE4llig"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: Du
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: "Sehr gro\xDF"
     m_Metadata:
       m_Items: []
   references:

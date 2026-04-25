@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Kling BOTF
+// Ignore Spelling: Kling BOTF
 using BOTF3D.Audio;
 using BOTF3D.Core;
 using Mirror;
@@ -233,14 +233,63 @@ namespace BOTF3D.UI
             // ✅ Wire language buttons
             SetupLanguageButtons();
 
-            // ✅ Wire toggle events to update images directly
-            FedLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.FED); });
-            RomLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.ROM); });
-            KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.KLING); });
-            CardLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.CARD); });
-            DomLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.DOM); });
-            BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.BORG); });
-            TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) => { if (isOn) ShowCivImages(CivEnum.TERRAN); });
+            // ✅ Wire toggle events to update images AND background visibility
+            FedLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.FED);
+                    UpdateToggleBackgrounds(FedLocalPlayerToggle);
+                }
+            });
+            RomLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.ROM);
+                    UpdateToggleBackgrounds(RomLocalPlayerToggle);
+                }
+            });
+            KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.KLING);
+                    UpdateToggleBackgrounds(KlingLocalPlayerToggle);
+                }
+            });
+            CardLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.CARD);
+                    UpdateToggleBackgrounds(CardLocalPlayerToggle);
+                }
+            });
+            DomLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.DOM);
+                    UpdateToggleBackgrounds(DomLocalPlayerToggle);
+                }
+            });
+            BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.BORG);
+                    UpdateToggleBackgrounds(BorgLocalPlayerToggle);
+                }
+            });
+            TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
+            { 
+                if (isOn) 
+                {
+                    ShowCivImages(CivEnum.TERRAN);
+                    UpdateToggleBackgrounds(TerranLocalPlayerToggle);
+                }
+            });
             Debug.Log("=== MainMenuUIController.Awake() COMPLETE ===");
         }
 
@@ -1087,7 +1136,8 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Ensure a toggle's checkmark has proper Image component and is assigned to Toggle.graphic.
+        /// Ensure a toggle's Background Image is configured to show/hide based on toggle state.
+        /// The Background Image component will be controlled by Unity's Toggle.graphic property.
         /// </summary>
         private void EnsureToggleCheckmarkConfigured(Toggle toggle, string toggleName)
         {
@@ -1097,7 +1147,7 @@ namespace BOTF3D.UI
                 return;
             }
 
-            // Find Background/Checkmark
+            // ✅ Find Background child GameObject
             Transform background = toggle.transform.Find("Background");
             if (background == null)
             {
@@ -1105,49 +1155,28 @@ namespace BOTF3D.UI
                 return;
             }
 
-            Transform checkmarkTransform = background.Find("Checkmark");
-            if (checkmarkTransform == null)
+            // ✅ Get or add Image component to Background
+            Image backgroundImage = background.GetComponent<Image>();
+            if (backgroundImage == null)
             {
-                Debug.LogError($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background' has no Checkmark child!");
-                return;
+                Debug.LogWarning($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background' missing Image component - adding it");
+                backgroundImage = background.gameObject.AddComponent<Image>();
             }
 
-            // Ensure checkmark has an Image component
-            Image checkmarkImage = checkmarkTransform.GetComponent<Image>();
-            if (checkmarkImage == null)
-            {
-                Debug.LogWarning($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background/Checkmark' missing Image component - adding it");
-                checkmarkImage = checkmarkTransform.gameObject.AddComponent<Image>();
-            }
+            // ✅ CRITICAL: Assign Background Image as the Toggle's graphic
+            // Unity's Toggle will automatically enable/disable this Image based on isOn state
+            toggle.graphic = backgroundImage;
+            Debug.Log($"  ✅ Assigned Background Image to Toggle.graphic for '{toggleName}'");
 
-            // Ensure the checkmark Image has a sprite (use a default checkmark if needed)
-            if (checkmarkImage.sprite == null)
-            {
-                Debug.LogWarning($"EnsureToggleCheckmarkConfigured: '{toggleName}/Background/Checkmark' has no sprite assigned");
-                // Try to find the default UI sprite
-                Sprite defaultCheckmark = Resources.Load<Sprite>("UI/Skin/Checkmark");
-                if (defaultCheckmark != null)
-                {
-                    checkmarkImage.sprite = defaultCheckmark;
-                    Debug.Log($"  ✅ Assigned default checkmark sprite to '{toggleName}'");
-                }
-            }
+            // ✅ Ensure Background GameObject is ACTIVE (Toggle will control Image visibility, not GameObject)
+            background.gameObject.SetActive(true);
 
-            // Ensure the Toggle component references the checkmark as its graphic
-            if (toggle.graphic == null || toggle.graphic != checkmarkImage)
-            {
-                toggle.graphic = checkmarkImage;
-                Debug.Log($"  ✅ Assigned checkmark Image to Toggle.graphic for '{toggleName}'");
-            }
+            // ✅ Set initial state: only show background if toggle is ON
+            backgroundImage.enabled = toggle.isOn;
 
-            // ✅ CRITICAL: Keep the checkmark GameObject ACTIVE - let Unity's Toggle control visibility through the graphic
-            // The Toggle component will automatically enable/disable the Image based on isOn state
-            checkmarkTransform.gameObject.SetActive(true);
-
-            Debug.Log($"✅ '{toggleName}' checkmark initialized: Image={(checkmarkImage != null ? "Yes" : "No")}, " +
-                      $"Sprite={(checkmarkImage?.sprite != null ? checkmarkImage.sprite.name : "None")}, " +
-                      $"Graphic={(toggle.graphic != null ? "Assigned" : "NULL")}, " +
-                      $"IsOn={toggle.isOn}");
+            Debug.Log($"✅ '{toggleName}' configured: Image={backgroundImage != null}, " +
+                      $"Sprite={(backgroundImage?.sprite != null ? backgroundImage.sprite.name : "None")}, " +
+                      $"IsOn={toggle.isOn}, ImageEnabled={backgroundImage.enabled}");
         }
 
         public void ActiveMapToggle()
@@ -1288,49 +1317,7 @@ namespace BOTF3D.UI
             Debug.Log($"=== ResetPlayers({civInt}) COMPLETE ===");
         }
         //private void ResetPlayers()
-        //{
-        //    var players = new[]
-        //    {
-        //        playerFedLocalizer,
-        //        playerRomLocalizer,
-        //        playerKlingLocalizer,
-        //        playerCardLocalizer,
-        //        playerDomLocalizer,
-        //        playerBorgLocalizer,
-        //        playerTerranLocalizer
-        //    };
 
-        //    foreach (var player in players)
-        //    {
-        //        var key = player.StringReference.TableEntryReference.Key;
-
-        //        if (key == "You" || key == "Computer" || key == "Absent")
-        //        {
-        //            SetLocalizedPlayerText(player, key);
-        //        }
-        //    }
-        //    // Only change "You" to "Computer", leave "Absent" alone
-        //    if (playerFedLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerFedLocalizer, "Computer");
-
-        //    if (playerRomLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerRomLocalizer, "Computer");
-
-        //    if (playerKlingLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerKlingLocalizer, "Computer");
-
-        //    if (playerCardLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerCardLocalizer, "Computer");
-
-        //    if (playerDomLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerDomLocalizer, "Computer");
-
-        //    if (playerBorgLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerBorgLocalizer, "Computer");
-
-        //    if (playerTerranLocalizer.StringReference.TableEntryReference.Key == "You")
-        //        SetLocalizedPlayerText(playerTerranLocalizer, "Computer");
-        //}
         private void SetCivMajorCivsInGame(List<CivEnum> majorCivsInGameList)
         {
             if (!IsSinglePlayer && NetworkServer.active)
@@ -1866,6 +1853,54 @@ namespace BOTF3D.UI
             }
 
             Debug.Log($"ShowCivImages: Displaying {civEnum} images");
+        }
+
+        /// <summary>
+        /// Updates all civilization toggle backgrounds - shows ONLY the selected toggle's background
+        /// </summary>
+        private void UpdateToggleBackgrounds(Toggle selectedToggle)
+        {
+            Debug.Log($"UpdateToggleBackgrounds: Selected toggle = {selectedToggle.name}");
+
+            // ✅ Array of all civilization toggles
+            Toggle[] allCivToggles = new Toggle[]
+            {
+                FedLocalPlayerToggle,
+                RomLocalPlayerToggle,
+                KlingLocalPlayerToggle,
+                CardLocalPlayerToggle,
+                DomLocalPlayerToggle,
+                BorgLocalPlayerToggle,
+                TerranLocalPlayerToggle
+            };
+
+            // ✅ Iterate through all toggles and update their background visibility
+            foreach (var toggle in allCivToggles)
+            {
+                if (toggle == null) continue;
+
+                // Find Background child
+                Transform background = toggle.transform.Find("Background");
+                if (background == null)
+                {
+                    Debug.LogWarning($"  Toggle '{toggle.name}' has no Background child!");
+                    continue;
+                }
+
+                // Get Image component
+                Image backgroundImage = background.GetComponent<Image>();
+                if (backgroundImage == null)
+                {
+                    Debug.LogWarning($"  Toggle '{toggle.name}/Background' has no Image component!");
+                    continue;
+                }
+
+                // ✅ Show background ONLY if this is the selected toggle
+                bool shouldShow = (toggle == selectedToggle);
+                backgroundImage.enabled = shouldShow;
+
+                Debug.Log($"  {toggle.name}: Background.Image.enabled = {shouldShow}");
+            }
         }
     }
 }

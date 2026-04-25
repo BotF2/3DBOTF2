@@ -75,8 +75,8 @@ MonoBehaviour:
     m_Localized: "Kontynuowa\u0107"
     m_Metadata:
       m_Items: []
-  - m_Id: 1661048232288256
-    m_Localized: Ty
+  - m_Id: 3444178414477312
+    m_Localized: "Wybierz cywilizacj\u0119"
     m_Metadata:
       m_Items: []
   - m_Id: 1661048295202816
@@ -129,6 +129,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2041072932298760
     m_Localized: Losowy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: Ty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: Skrajny
     m_Metadata:
       m_Items: []
   references:

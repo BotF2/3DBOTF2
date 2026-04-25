@@ -1,0 +1,19 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# All files
+[*]
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# C# files
+[*.cs]
+
+# IDE0130: Namespace does not match folder structure
+# Suppress this warning because the project uses BOTF3D.* namespace convention
+# instead of matching Unity's Assets.Script.* folder structure
+dotnet_diagnostic.IDE0130.severity = none

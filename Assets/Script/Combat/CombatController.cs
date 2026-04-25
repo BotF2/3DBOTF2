@@ -1,4 +1,6 @@
-﻿using BOTF3D.Audio;
+// Ignore Spelling: BOTF Healthbar
+
+using BOTF3D.Audio;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
@@ -15,6 +17,9 @@ namespace BOTF3D.Combat
 {
     public class CombatController : MonoBehaviour
     {
+        private static WaitForSeconds _waitForSeconds3 = new WaitForSeconds(3f);
+        private static WaitForSeconds _waitForSeconds2 = new WaitForSeconds(2f);
+
         /// <summary>
         /// [CombatController]
         /// |
@@ -59,13 +64,13 @@ namespace BOTF3D.Combat
         List<Vector2Int> _spiralPositionsTran2 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
-        List<GameObject> healthbarRenderers = new List<GameObject>();
+        public List<GameObject> HealthbarRenderers { get; private set; } = new List<GameObject>();
         [Header("Move animators to move ships")]
         public float initialSpeed = 30f;     // starting velocity (units/sec)
         public float stopDistance;    // distance over which to stop
         private float deceleration;         // computed deceleration
         private float currentSpeed;
-        private List<Vector3> moveDirections = new List<Vector3>();
+        private readonly List<Vector3> moveDirections = new List<Vector3>();
         public bool isMoving = false;
         public bool isClosing = false;
 
@@ -135,8 +140,6 @@ namespace BOTF3D.Combat
                     }
                 }
             }
-
-            // ... (rest of LateUpdate remains the same)
         }
         /// <summary>
         /// Destroys any torpedoes/beams left in the scene from previous combat
@@ -161,7 +164,7 @@ namespace BOTF3D.Combat
 
             for (int i = 0; i < animators.Count; i++)
             {
-                Vector3 dir = Vector3.zero;
+                Vector3 dir; //= Vector3.zero;
                 if (animators[i].transform.childCount > 0)
                 {
                     // ✅ Base direction (towards enemy)
@@ -406,8 +409,7 @@ namespace BOTF3D.Combat
                                 ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
 
                                 // Reset position/rotation relative to fleet
-                                ship.transform.localPosition = Vector3.zero;
-                                ship.transform.localRotation = Quaternion.identity;
+                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
                                 // Enable the ship (it will be in GalaxyScene now)
                                 ship.gameObject.SetActive(true);
@@ -431,8 +433,7 @@ namespace BOTF3D.Combat
                     if (ship != null && ship.gameObject != null)
                     {
                         // Remove combat-only BoxCollider
-                        var boxCollider = ship.GetComponent<BoxCollider>();
-                        if (boxCollider != null) Destroy(boxCollider);
+                        if (ship.TryGetComponent<BoxCollider>(out var boxCollider)) Destroy(boxCollider);
 
                         // Check if ship was destroyed (health <= 0)
                         if (ship.ShipData != null && ship.ShipData.HullHealth <= 0)
@@ -458,8 +459,7 @@ namespace BOTF3D.Combat
                                 ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
 
                                 // Reset position/rotation relative to fleet
-                                ship.transform.localPosition = Vector3.zero;
-                                ship.transform.localRotation = Quaternion.identity;
+                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
                                 // Enable the ship (it will be in GalaxyScene now)
                                 ship.gameObject.SetActive(true);
@@ -547,11 +547,11 @@ namespace BOTF3D.Combat
             }
 
             // ✅ STEP 6: Destroy all health bars
-            foreach (var hb in healthbarRenderers)
+            foreach (var hb in HealthbarRenderers)
             {
                 if (hb != null) Destroy(hb);
             }
-            healthbarRenderers.Clear();
+            HealthbarRenderers.Clear();
 
             // ✅ STEP 7: Clean up UI references
             if (CombatUIManager.Instance != null)
@@ -591,8 +591,7 @@ namespace BOTF3D.Combat
             // ✅ STEP 10: Re-enable galaxy camera
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
-                var galaxyCam = GalaxyCameraDragMoveZoom.Instance.GetComponent<Camera>();
-                if (galaxyCam != null)
+                if (GalaxyCameraDragMoveZoom.Instance.TryGetComponent<Camera>(out var galaxyCam))
                 {
                     galaxyCam.enabled = true;
                     Debug.Log($"  Galaxy camera enabled: {galaxyCam.enabled}");
@@ -673,7 +672,7 @@ namespace BOTF3D.Combat
                     canvasRect.localScale = Vector3.one;
                 }
 
-                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={ShipCombatCanvas.worldCamera?.name}");
+                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={(ShipCombatCanvas.worldCamera != null ? ShipCombatCanvas.worldCamera.name : null)}");
             }
             else
             {
@@ -728,8 +727,7 @@ namespace BOTF3D.Combat
                 healthbarCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
 
                 // ✅ Add CanvasScaler for proper sizing
-                var canvasScaler = healthbarGO.GetComponent<CanvasScaler>();
-                if (canvasScaler == null)
+                if (!healthbarGO.TryGetComponent<CanvasScaler>(out var canvasScaler))
                 {
                     canvasScaler = healthbarGO.AddComponent<CanvasScaler>();
                 }
@@ -753,7 +751,7 @@ namespace BOTF3D.Combat
                 }
 
                 healthbarGO.SetActive(false); // Start hidden until warp-in completes
-                healthbarRenderers.Add(healthbarGO);
+                HealthbarRenderers.Add(healthbarGO);
 
                 // ✅ Add billboard component to face camera
                 var billboard = healthbarGO.GetComponent<BillboardCameraCombat>();
@@ -868,7 +866,7 @@ namespace BOTF3D.Combat
 
                     // ✅ Load fallback from ShipManager
                     ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
-                    mesheGO = fallbackSO?.ShipFBX_ModelAsGOPrefab;
+                    mesheGO = fallbackSO != null ? fallbackSO.ShipFBX_ModelAsGOPrefab : null;
                 }
 
                 if (mesheGO == null)
@@ -1028,6 +1026,13 @@ namespace BOTF3D.Combat
             WarpingIn = true;
             WarpingAnimationOver = false;
 
+            // ✅ CRITICAL: Ensure CombatUIManager knows about this controller BEFORE triggering animations
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.CurrentCombatController = this;
+                Debug.Log("✅ Set CurrentCombatController in CombatUIManager before animations");
+            }
+
             // ✅ Play warp-in sound
             if (warpInSound != null)
             {
@@ -1060,8 +1065,7 @@ namespace BOTF3D.Combat
 
             if (sideOneA2Animator != null)
             {
-                var animScript = sideOneA2Animator.GetComponent<S1A2Animator>();
-                if (animScript != null)
+                if (sideOneA2Animator.TryGetComponent<S1A2Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S1A2Animator");
@@ -1080,8 +1084,7 @@ namespace BOTF3D.Combat
 
             if (sideTwoA1Animator != null)
             {
-                var animScript = sideTwoA1Animator.GetComponent<S2A1Animator>();
-                if (animScript != null)
+                if (sideTwoA1Animator.TryGetComponent<S2A1Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A1Animator");
@@ -1100,8 +1103,7 @@ namespace BOTF3D.Combat
 
             if (sideTwoA3Animator != null)
             {
-                var animScript = sideTwoA3Animator.GetComponent<S2A3Animator>();
-                if (animScript != null)
+                if (sideTwoA3Animator.TryGetComponent<S2A3Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A3Animator");
@@ -1170,7 +1172,7 @@ namespace BOTF3D.Combat
         }
         IEnumerator DelayedActionSomeSec()
         {
-            yield return new WaitForSeconds(2f);
+            yield return _waitForSeconds2;
             // Action to perform after the delay
             EndCombat();
         }
@@ -1220,7 +1222,7 @@ namespace BOTF3D.Combat
             {
                 // ✅ No valid animators - use timed wait instead
                 Debug.LogWarning("⚠️ No AnimatorControllers assigned - using timed warp-in (3 seconds)");
-                yield return new WaitForSeconds(3f);
+                yield return _waitForSeconds3;
             }
 
             Debug.Log("✅ Warp-in animation complete");
@@ -1232,9 +1234,9 @@ namespace BOTF3D.Combat
             BeginPhysicsLikeMovement();
 
             // ✅ Show health bars
-            for (int i = 0; i < healthbarRenderers.Count; i++)
+            for (int i = 0; i < HealthbarRenderers.Count; i++)
             {
-                healthbarRenderers[i].SetActive(true);
+                HealthbarRenderers[i].SetActive(true);
             }
 
             WarpingAnimationOver = true;
@@ -1242,7 +1244,7 @@ namespace BOTF3D.Combat
 
             // ✅ Wait for ships to move closer (2 seconds) before firing
             Debug.Log("⏳ Ships moving to battle positions...");
-            yield return new WaitForSeconds(2f);
+            yield return _waitForSeconds2;
             Debug.Log("✅ Ships in position - starting weapon fire");
 
             // ✅ Now assign targets and fire weapons

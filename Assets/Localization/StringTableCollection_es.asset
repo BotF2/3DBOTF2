@@ -74,8 +74,8 @@ MonoBehaviour:
     m_Localized: Continuar
     m_Metadata:
       m_Items: []
-  - m_Id: 1661048232288256
-    m_Localized: "T\xFA"
+  - m_Id: 3444178414477312
+    m_Localized: "Elegimos una civilizaci\xF3n"
     m_Metadata:
       m_Items: []
   - m_Id: 1661048295202816
@@ -128,6 +128,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 2041072932298760
     m_Localized: Aleatorio
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: "T\xFA"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: Extremo
     m_Metadata:
       m_Items: []
   references:
