@@ -1,4 +1,6 @@
-﻿using BOTF3D.Audio;
+// Ignore Spelling: BOTF Healthbar
+
+using BOTF3D.Audio;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
@@ -15,6 +17,9 @@ namespace BOTF3D.Combat
 {
     public class CombatController : MonoBehaviour
     {
+        private static WaitForSeconds _waitForSeconds3 = new WaitForSeconds(3f);
+        private static WaitForSeconds _waitForSeconds2 = new WaitForSeconds(2f);
+
         /// <summary>
         /// [CombatController]
         /// |
@@ -59,13 +64,13 @@ namespace BOTF3D.Combat
         List<Vector2Int> _spiralPositionsTran2 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
-        List<GameObject> healthbarRenderers = new List<GameObject>();
+        public List<GameObject> HealthbarRenderers { get; private set; } = new List<GameObject>();
         [Header("Move animators to move ships")]
         public float initialSpeed = 30f;     // starting velocity (units/sec)
         public float stopDistance;    // distance over which to stop
         private float deceleration;         // computed deceleration
         private float currentSpeed;
-        private List<Vector3> moveDirections = new List<Vector3>();
+        private readonly List<Vector3> moveDirections = new List<Vector3>();
         public bool isMoving = false;
         public bool isClosing = false;
 
@@ -94,7 +99,6 @@ namespace BOTF3D.Combat
             //}
 
         }
-
         void LateUpdate()
         {
             if (WarpingIn && !WarpingAnimationOver)
@@ -113,14 +117,21 @@ namespace BOTF3D.Combat
                 if (isMoving)
                 {
                     float step = currentSpeed * Time.deltaTime;
+
                     for (int i = 0; i < animators.Count; i++)
                     {
+                        // ✅ Apply order-based speed multiplier
+                        bool isSideOne = (i < 3);
+                        float speedMult = isSideOne ? CombatData.SideOneSpeedMultiplier : CombatData.SideTwoSpeedMultiplier;
+                        float adjustedStep = step * speedMult;
+
                         var numChildren = animators[i].transform.childCount;
                         for (int j = 0; j < numChildren; j++)
                         {
-                            animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * step, Space.Self);
+                            animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * adjustedStep, Space.Self);
                         }
                     }
+
                     currentSpeed -= deceleration * Time.deltaTime;
                     if (currentSpeed <= 0f)
                     {
@@ -129,31 +140,6 @@ namespace BOTF3D.Combat
                     }
                 }
             }
-            if (!isClosing)
-            {
-                if (CombatData != null &&
-                    CombatData.SideOneShipCons != null &&
-                    CombatData.SideTwoShipCons != null)
-                {
-                    // Clean up null/destroyed ships from lists
-                    CombatData.SideOneShipCons.RemoveAll(s => s == null || s.gameObject == null);
-                    CombatData.SideTwoShipCons.RemoveAll(s => s == null || s.gameObject == null);
-
-                    if (CombatData.SideOneShipCons.Count == 0 || CombatData.SideTwoShipCons.Count == 0)
-                    {
-                        isClosing = true;
-                        Debug.Log($"Combat ending - Side 1: {CombatData.SideOneShipCons.Count}, Side 2: {CombatData.SideTwoShipCons.Count}");
-
-                        if (CombatUIManager.Instance != null)
-                        {
-                            CombatUIManager.Instance.ShowCombatOverPanel();
-                        }
-
-                        StartCoroutine(DelayedActionSomeSec());
-                    }
-                }
-            }
-
         }
         /// <summary>
         /// Destroys any torpedoes/beams left in the scene from previous combat
@@ -175,25 +161,84 @@ namespace BOTF3D.Combat
         public void BeginPhysicsLikeMovement()
         {
             moveDirections.Clear();
+
             for (int i = 0; i < animators.Count; i++)
             {
-                Vector3 dir = Vector3.zero;
+                Vector3 dir; //= Vector3.zero;
                 if (animators[i].transform.childCount > 0)
                 {
-                    dir = (i < 3) ? -animators[i].transform.GetChild(0).transform.right.normalized
-                                        : animators[i].transform.GetChild(0).transform.right.normalized;
+                    // ✅ Base direction (towards enemy)
+                    bool isSideOne = (i < 3);
+                    dir = isSideOne ? -animators[i].transform.GetChild(0).transform.right.normalized
+                                    : animators[i].transform.GetChild(0).transform.right.normalized;
+
+                    // ✅ Modify direction based on combat order
+                    var ships = isSideOne ? CombatData.SideOneShipCons : CombatData.SideTwoShipCons;
+                    CombatOrders order = isSideOne ? CombatData.OrderSideOne : CombatData.OrderSideTwo;
+
+                    // Apply order-based movement modifiers
+                    switch (order)
+                    {
+                        case CombatOrders.Retreat:
+                            // Reverse direction (run away)
+                            dir = -dir;
+                            Debug.Log($"  Animator {i}: RETREAT - reversing direction");
+                            break;
+
+                        case CombatOrders.Formation:
+                            // Slight spread pattern (maintain defensive formation)
+                            float spreadAngle = (i % 3 - 1) * 15f; // -15°, 0°, +15°
+                            dir = Quaternion.Euler(0, spreadAngle, 0) * dir;
+                            Debug.Log($"  Animator {i}: FORMATION - spread {spreadAngle}°");
+                            break;
+
+                        case CombatOrders.Rush:
+                            // Direct aggressive approach (no modification needed, just faster)
+                            Debug.Log($"  Animator {i}: RUSH - full speed ahead");
+                            break;
+
+                        case CombatOrders.TargetTransports:
+                        case CombatOrders.Engage:
+                        default:
+                            // Standard approach
+                            break;
+                    }
                 }
                 else
                 {
                     dir = Vector3.zero;
                 }
 
-                moveDirections.Add(dir.normalized); // cache direction
+                moveDirections.Add(dir.normalized);
             }
 
-            deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance); // 2f would be stop at the distance.
+            // ✅ Apply speed multipliers based on orders
+            float sideOneSpeedMult = CombatOrderMatrix.GetSpeedMultiplier(CombatData.OrderSideOne);
+            float sideTwoSpeedMult = CombatOrderMatrix.GetSpeedMultiplier(CombatData.OrderSideTwo);
+
+            // Calculate advantage-based speed boost
+            int advantage = CombatOrderMatrix.GetAdvantage(CombatData.OrderSideOne, CombatData.OrderSideTwo);
+            if (advantage > 0)
+            {
+                sideOneSpeedMult *= 1.1f; // 10% bonus for advantageous tactics
+                Debug.Log("  ✅ Side One gets 10% speed bonus from tactical advantage!");
+            }
+            else if (advantage < 0)
+            {
+                sideTwoSpeedMult *= 1.1f; // 10% bonus for advantageous tactics
+                Debug.Log("  ✅ Side Two gets 10% speed bonus from tactical advantage!");
+            }
+
+            // Apply base speed with order modifiers
+            // (We'll apply this in LateUpdate based on which animator group)
+            CombatData.SideOneSpeedMultiplier = sideOneSpeedMult;
+            CombatData.SideTwoSpeedMultiplier = sideTwoSpeedMult;
+
+            deceleration = (initialSpeed * initialSpeed) / (2f * stopDistance);
             currentSpeed = initialSpeed;
             isMoving = true;
+
+            Debug.Log($"📊 Movement started: Side1 speed={sideOneSpeedMult:F2}x, Side2 speed={sideTwoSpeedMult:F2}x");
         }
         public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
         {
@@ -225,11 +270,77 @@ namespace BOTF3D.Combat
             if (civOfOrder == CombatData.CivEnumSideOne)
             {
                 CombatData.OrderSideOne = order;
+
+                // ✅ Apply order to all side one ships
+                foreach (var ship in CombatData.SideOneShipCons)
+                {
+                    if (ship != null)
+                    {
+                        ship.SetShipOrder(order);
+                    }
+                }
             }
             else if (civOfOrder == CombatData.CivEnumSideTwo)
             {
                 CombatData.OrderSideTwo = order;
+
+                // ✅ Apply order to all side two ships
+                foreach (var ship in CombatData.SideTwoShipCons)
+                {
+                    if (ship != null)
+                    {
+                        ship.SetShipOrder(order);
+                    }
+                }
             }
+
+            // ✅ Calculate and log combat advantage
+            int advantage = CombatOrderMatrix.GetAdvantage(CombatData.OrderSideOne, CombatData.OrderSideTwo);
+            Debug.Log($"📊 Combat Orders: Side 1={CombatData.OrderSideOne}, Side 2={CombatData.OrderSideTwo}");
+            Debug.Log($"   {CombatOrderMatrix.GetAdvantageDescription(advantage)} (Advantage: {advantage})");
+        }
+        /// <summary>
+        /// Give AI ships a random combat order
+        /// </summary>
+        public void SetAIRandomOrder(CivEnum aiCivEnum)
+        {
+            // Check if this civ has transports (affects available orders)
+            bool hasTransports = false;
+            int side = 0;
+
+            if (aiCivEnum == CombatData.CivEnumSideOne)
+            {
+                hasTransports = CombatOrderMatrix.HasTransports(CombatData, 1);
+                side = 1;
+            }
+            else if (aiCivEnum == CombatData.CivEnumSideTwo)
+            {
+                hasTransports = CombatOrderMatrix.HasTransports(CombatData, 2);
+                side = 2;
+            }
+
+            // Build list of available orders
+            var availableOrders = new System.Collections.Generic.List<CombatOrders>
+            {
+                CombatOrders.Engage,
+                CombatOrders.Formation,
+                CombatOrders.Rush,
+                CombatOrders.Retreat
+            };
+
+            // Only add TargetTransports if enemy has transports
+            bool enemyHasTransports = CombatOrderMatrix.HasTransports(CombatData, side == 1 ? 2 : 1);
+            if (enemyHasTransports)
+            {
+                availableOrders.Add(CombatOrders.TargetTransports);
+            }
+
+            // Pick random order
+            CombatOrders randomOrder = availableOrders[UnityEngine.Random.Range(0, availableOrders.Count)];
+
+            Debug.Log($"🤖 AI ({aiCivEnum}) selected order: {randomOrder}");
+
+            SetShipOrders(randomOrder, aiCivEnum);
         }
         public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diplomacyCon, IPlayerController player)
         {
@@ -298,8 +409,7 @@ namespace BOTF3D.Combat
                                 ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
 
                                 // Reset position/rotation relative to fleet
-                                ship.transform.localPosition = Vector3.zero;
-                                ship.transform.localRotation = Quaternion.identity;
+                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
                                 // Enable the ship (it will be in GalaxyScene now)
                                 ship.gameObject.SetActive(true);
@@ -323,8 +433,7 @@ namespace BOTF3D.Combat
                     if (ship != null && ship.gameObject != null)
                     {
                         // Remove combat-only BoxCollider
-                        var boxCollider = ship.GetComponent<BoxCollider>();
-                        if (boxCollider != null) Destroy(boxCollider);
+                        if (ship.TryGetComponent<BoxCollider>(out var boxCollider)) Destroy(boxCollider);
 
                         // Check if ship was destroyed (health <= 0)
                         if (ship.ShipData != null && ship.ShipData.HullHealth <= 0)
@@ -350,8 +459,7 @@ namespace BOTF3D.Combat
                                 ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
 
                                 // Reset position/rotation relative to fleet
-                                ship.transform.localPosition = Vector3.zero;
-                                ship.transform.localRotation = Quaternion.identity;
+                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
                                 // Enable the ship (it will be in GalaxyScene now)
                                 ship.gameObject.SetActive(true);
@@ -439,11 +547,11 @@ namespace BOTF3D.Combat
             }
 
             // ✅ STEP 6: Destroy all health bars
-            foreach (var hb in healthbarRenderers)
+            foreach (var hb in HealthbarRenderers)
             {
                 if (hb != null) Destroy(hb);
             }
-            healthbarRenderers.Clear();
+            HealthbarRenderers.Clear();
 
             // ✅ STEP 7: Clean up UI references
             if (CombatUIManager.Instance != null)
@@ -483,8 +591,7 @@ namespace BOTF3D.Combat
             // ✅ STEP 10: Re-enable galaxy camera
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
-                var galaxyCam = GalaxyCameraDragMoveZoom.Instance.GetComponent<Camera>();
-                if (galaxyCam != null)
+                if (GalaxyCameraDragMoveZoom.Instance.TryGetComponent<Camera>(out var galaxyCam))
                 {
                     galaxyCam.enabled = true;
                     Debug.Log($"  Galaxy camera enabled: {galaxyCam.enabled}");
@@ -565,7 +672,7 @@ namespace BOTF3D.Combat
                     canvasRect.localScale = Vector3.one;
                 }
 
-                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={ShipCombatCanvas.worldCamera?.name}");
+                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={(ShipCombatCanvas.worldCamera != null ? ShipCombatCanvas.worldCamera.name : null)}");
             }
             else
             {
@@ -620,8 +727,7 @@ namespace BOTF3D.Combat
                 healthbarCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
 
                 // ✅ Add CanvasScaler for proper sizing
-                var canvasScaler = healthbarGO.GetComponent<CanvasScaler>();
-                if (canvasScaler == null)
+                if (!healthbarGO.TryGetComponent<CanvasScaler>(out var canvasScaler))
                 {
                     canvasScaler = healthbarGO.AddComponent<CanvasScaler>();
                 }
@@ -645,7 +751,7 @@ namespace BOTF3D.Combat
                 }
 
                 healthbarGO.SetActive(false); // Start hidden until warp-in completes
-                healthbarRenderers.Add(healthbarGO);
+                HealthbarRenderers.Add(healthbarGO);
 
                 // ✅ Add billboard component to face camera
                 var billboard = healthbarGO.GetComponent<BillboardCameraCombat>();
@@ -760,7 +866,7 @@ namespace BOTF3D.Combat
 
                     // ✅ Load fallback from ShipManager
                     ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
-                    mesheGO = fallbackSO?.ShipFBX_ModelAsGOPrefab;
+                    mesheGO = fallbackSO != null ? fallbackSO.ShipFBX_ModelAsGOPrefab : null;
                 }
 
                 if (mesheGO == null)
@@ -839,58 +945,61 @@ namespace BOTF3D.Combat
         {
             for (int i = 0; i < shipListFiring.Count; i++)
             {
-                ShipController closestB = null;
+                ShipController closestTarget = null;
                 float shortestDist = Mathf.Infinity;
+
+                // ✅ Get firing ship's combat order
+                CombatOrders firingOrder = shipListFiring[i].Order;
+
                 for (int j = 0; j < shipListTargets.Count; j++)
                 {
+                    var potentialTarget = shipListTargets[j];
+
+                    // ✅ ORDER-BASED TARGETING PRIORITY
+                    // If order is TargetTransports, prioritize transport ships
+                    if (firingOrder == CombatOrders.TargetTransports)
+                    {
+                        // Skip non-transport ships if transports are available
+                        if (potentialTarget.ShipData.ShipType != ShipType.Transport)
+                        {
+                            bool hasTransportTargets = shipListTargets.Any(s => s.ShipData.ShipType == ShipType.Transport);
+                            if (hasTransportTargets)
+                                continue; // Skip this ship, look for transports
+                        }
+                    }
+
                     Vector3 origin = shipListFiring[i].transform.position;
-                    Vector3 targetPos = shipListTargets[j].transform.position;
+                    Vector3 targetPos = potentialTarget.transform.position;
                     Vector3 dir = (targetPos - origin).normalized;
                     Vector3 safeOrigin = origin + dir * 10f;
                     float dist = Vector3.Distance(origin, targetPos);
 
-                    float distSqr = (shipListFiring[i].transform.position - shipListTargets[j].transform.position).sqrMagnitude;
+                    float distSqr = (shipListFiring[i].transform.position - potentialTarget.transform.position).sqrMagnitude;
+
+                    // ✅ Apply targeting priority bonus for transports when using TargetTransports order
+                    if (firingOrder == CombatOrders.TargetTransports && potentialTarget.ShipData.ShipType == ShipType.Transport)
+                    {
+                        distSqr *= 0.5f; // Make transports seem "closer" for priority targeting
+                    }
+
                     if (distSqr < shortestDist)
                     {
-
                         shortestDist = distSqr;
                         if (Physics.Raycast(safeOrigin, dir, out RaycastHit hit, dist, 9) == false)
                         {
                             if (dist < shortestDist)
                             {
                                 shortestDist = dist;
-                                closestB = shipListTargets[j];
+                                closestTarget = potentialTarget;
                             }
                         }
-                        // ********** do not know why the ray cast is not working, want to check with ray cast for one of our ships getting in the way
-                        //else if (Physics.Raycast(safeOrigin, dir, out RaycastHit realHit, dist, 9, QueryTriggerInteraction.Collide))
-                        //{
-
-                        //    ShipController hitShip = realHit.collider.GetComponent<ShipController>();
-
-                        //    if (hitShip != null)
-                        //    {
-                        //        // If the first ship we hit is the candidate → line of sight is clear
-                        //        if (hitShip == shipListTargets[j])
-                        //        {
-                        //            if (dist < shortestDist)
-                        //            {
-                        //                shortestDist = dist;
-                        //                closestB = shipListTargets[j];
-                        //            }
-                        //        }
-                        //        else
-                        //        {
-                        //            // Hit some other ship first (could be friendly) → blocked, skip this target
-                        //            continue;
-                        //        }
-                        //    }
-                        //}
                     }
                 }
-                if (closestB != null)
+
+                if (closestTarget != null)
                 {
-                    shipListFiring[i].ShipData.TargetThisShipController = closestB;
+                    shipListFiring[i].ShipData.TargetThisShipController = closestTarget;
+                    Debug.Log($"  Ship '{shipListFiring[i].ShipData.ShipName}' ({firingOrder}) targets '{closestTarget.ShipData.ShipName}' ({closestTarget.ShipData.ShipType})");
                 }
             }
         }
@@ -916,6 +1025,13 @@ namespace BOTF3D.Combat
         {
             WarpingIn = true;
             WarpingAnimationOver = false;
+
+            // ✅ CRITICAL: Ensure CombatUIManager knows about this controller BEFORE triggering animations
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.CurrentCombatController = this;
+                Debug.Log("✅ Set CurrentCombatController in CombatUIManager before animations");
+            }
 
             // ✅ Play warp-in sound
             if (warpInSound != null)
@@ -949,8 +1065,7 @@ namespace BOTF3D.Combat
 
             if (sideOneA2Animator != null)
             {
-                var animScript = sideOneA2Animator.GetComponent<S1A2Animator>();
-                if (animScript != null)
+                if (sideOneA2Animator.TryGetComponent<S1A2Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S1A2Animator");
@@ -969,8 +1084,7 @@ namespace BOTF3D.Combat
 
             if (sideTwoA1Animator != null)
             {
-                var animScript = sideTwoA1Animator.GetComponent<S2A1Animator>();
-                if (animScript != null)
+                if (sideTwoA1Animator.TryGetComponent<S2A1Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A1Animator");
@@ -989,8 +1103,7 @@ namespace BOTF3D.Combat
 
             if (sideTwoA3Animator != null)
             {
-                var animScript = sideTwoA3Animator.GetComponent<S2A3Animator>();
-                if (animScript != null)
+                if (sideTwoA3Animator.TryGetComponent<S2A3Animator>(out var animScript))
                 {
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A3Animator");
@@ -1059,7 +1172,7 @@ namespace BOTF3D.Combat
         }
         IEnumerator DelayedActionSomeSec()
         {
-            yield return new WaitForSeconds(2f);
+            yield return _waitForSeconds2;
             // Action to perform after the delay
             EndCombat();
         }
@@ -1109,7 +1222,7 @@ namespace BOTF3D.Combat
             {
                 // ✅ No valid animators - use timed wait instead
                 Debug.LogWarning("⚠️ No AnimatorControllers assigned - using timed warp-in (3 seconds)");
-                yield return new WaitForSeconds(3f);
+                yield return _waitForSeconds3;
             }
 
             Debug.Log("✅ Warp-in animation complete");
@@ -1121,9 +1234,9 @@ namespace BOTF3D.Combat
             BeginPhysicsLikeMovement();
 
             // ✅ Show health bars
-            for (int i = 0; i < healthbarRenderers.Count; i++)
+            for (int i = 0; i < HealthbarRenderers.Count; i++)
             {
-                healthbarRenderers[i].SetActive(true);
+                HealthbarRenderers[i].SetActive(true);
             }
 
             WarpingAnimationOver = true;
@@ -1131,7 +1244,7 @@ namespace BOTF3D.Combat
 
             // ✅ Wait for ships to move closer (2 seconds) before firing
             Debug.Log("⏳ Ships moving to battle positions...");
-            yield return new WaitForSeconds(2f);
+            yield return _waitForSeconds2;
             Debug.Log("✅ Ships in position - starting weapon fire");
 
             // ✅ Now assign targets and fire weapons

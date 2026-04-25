@@ -1147,7 +1147,7 @@ namespace BOTF3D.UI
                     }
 
                     // ✅ NOW check if LOCAL PLAYER system has null UI (this IS an error!)
-                    if (sysCon.StarSysUIGameObject == null)
+                    if (GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum) && sysCon.StarSysUIGameObject == null)
                     {
                         Debug.LogError($"  ❌ LOCAL PLAYER system '{sysCon.name}' has null StarSysUIGameObject! This should NEVER happen!");
 

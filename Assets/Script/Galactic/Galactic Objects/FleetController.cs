@@ -256,20 +256,41 @@ namespace BOTF3D.GamePlay
                     {
                         ClickCancelDestinationButton(); // we stop, cancel destination
 
-                        if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // not our system
+                        // ✅ Check if uninhabited system
+                        int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+
+                        if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
+                            // ✅ Uninhabited system - check if habitable and show colonization UI
+                            if (sysCon.StarSysData.IsHabitable)
+                            {
+                                Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
+
+                                if (weAreLocalPlayer)
+                                {
+                                    FleetUI.MoveBackAnyaFleetUIGO();
+                                    HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
+                                }
+                            }
+                            else
+                            {
+                                Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}' - no colonization possible");
+                            }
+                        }
+                        else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // Foreign owned system (real civ)
+                        {
+                            // ✅ Foreign civilization's system - trigger diplomacy
                             if (weAreLocalPlayer)
                             {
-                                EncounterUnknownSystemShowName(collider.gameObject); // update Galaxy view to expose insignia/name
+                                EncounterUnknownSystemShowName(collider.gameObject);
                             }
-                            //OnEnterForeignStarSystem(); // ToDo
-                            FleetUI.MoveBackAnyaFleetUIGO(); // close our fleet UI
+                            FleetUI.MoveBackAnyaFleetUIGO();
                             DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
-
                         }
-                        else // ToDo: enter our system
+                        else // Our own system
                         {
-
+                            Debug.Log($"Fleet arrived at our own system '{sysCon.StarSysData.SysName}'");
+                            // ToDo: enter our system logic
                         }
                     }
                     else
@@ -988,12 +1009,33 @@ namespace BOTF3D.GamePlay
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
         {
-            if (this == fleetCon)
+            if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
+
+            // ✅ CRITICAL: Tell GalaxyMenuUIController which fleet is looking for destination
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
             {
-                FleetUI.SetAsDestination("Drag target to", "your destination");
-                PlayerDefinedTargetManager.Instance.PlayerTargetFromData(gameObject);
-                FleetUI.GetPlayerDefinedTargetDestination(this);
+                galaxyUI.BeginSetDestination(fleetCon); // ✅ This sets FleetLookingForDestination
+                galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
+                Debug.Log($"✅ Set FleetLookingForDestination to '{fleetCon.name}'");
             }
+
+            // Get buttons from the specific fleet's UI
+            var fields = fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.SelectDestination != null)
+                    fields.SelectDestination.gameObject.SetActive(true);
+            }
+
+            MousePointerChanger.Instance.SetDestinationCursor();
+
+            // ✅ Create the PlayerDefinedTarget
+            PlayerDefinedTargetManager.Instance.PlayerTargetFromData(fleetCon.gameObject);
         }
     }
 }
