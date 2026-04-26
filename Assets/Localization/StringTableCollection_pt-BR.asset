@@ -138,6 +138,18 @@ MonoBehaviour:
     m_Localized: Extremo
     m_Metadata:
       m_Items: []
+  - m_Id: 3501554970664960
+    m_Localized: Nenhum evento
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996608
+    m_Localized: Eventos raros
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996609
+    m_Localized: Alguns eventos
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -78,6 +78,13 @@ namespace BOTF3D.Combat
         {
             CombatID = GetInstanceID(); // Unity object id for this combat instance
             Debug.Log($"✅ CombatController {CombatID}: Created");
+
+            // ✅ CRITICAL: Initialize animators list
+            // This list is used by BeginPhysicsLikeMovement() and LateUpdate()
+            if (animators == null)
+            {
+                animators = new List<Animator>();
+            }
         }
         private void Start()
         {
@@ -86,6 +93,19 @@ namespace BOTF3D.Combat
             currentSpeed = 30f;
             stopDistance = 390f;
             CleanupOrphanedProjectiles();
+
+            // ✅ CRITICAL: Populate animators list with the 6 animator references
+            // Order matters: [0-2] = Side One, [3-5] = Side Two
+            animators.Clear();
+
+            if (sideOneA1Animator != null) animators.Add(sideOneA1Animator);
+            if (sideOneA2Animator != null) animators.Add(sideOneA2Animator);
+            if (sideOneA3Animator != null) animators.Add(sideOneA3Animator);
+            if (sideTwoA1Animator != null) animators.Add(sideTwoA1Animator);
+            if (sideTwoA2Animator != null) animators.Add(sideTwoA2Animator);
+            if (sideTwoA3Animator != null) animators.Add(sideTwoA3Animator);
+
+            Debug.Log($"✅ Populated animators list with {animators.Count} animators");
             // ✅ TEMPORARY: Stop all AudioSources playing "Explosion" clips on scene load
             //AudioSource[] allSources = FindObjectsOfType<AudioSource>(true);
             //foreach (var source in allSources)
@@ -1026,11 +1046,18 @@ namespace BOTF3D.Combat
             WarpingIn = true;
             WarpingAnimationOver = false;
 
+            Debug.Log($"🎬 RunAnimation() called: WarpingIn={WarpingIn}, WarpingAnimationOver={WarpingAnimationOver}");
+            Debug.Log($"   ⏱️ Time.timeScale={Time.timeScale}, Time.deltaTime={Time.deltaTime}");
+
             // ✅ CRITICAL: Ensure CombatUIManager knows about this controller BEFORE triggering animations
             if (CombatUIManager.Instance != null)
             {
                 CombatUIManager.Instance.CurrentCombatController = this;
                 Debug.Log("✅ Set CurrentCombatController in CombatUIManager before animations");
+            }
+            else
+            {
+                Debug.LogError("❌ CombatUIManager.Instance is NULL!");
             }
 
             // ✅ Play warp-in sound
@@ -1050,6 +1077,15 @@ namespace BOTF3D.Combat
                 Debug.LogWarning("⚠️ warpInSound is not assigned on CombatController!");
             }
 
+            // ✅ Log animator status
+            Debug.Log($"🎬 Animator count: {animators.Count}");
+            Debug.Log($"   sideOneA1Animator: {(sideOneA1Animator != null ? sideOneA1Animator.name : "NULL")}");
+            Debug.Log($"   sideOneA2Animator: {(sideOneA2Animator != null ? sideOneA2Animator.name : "NULL")}");
+            Debug.Log($"   sideOneA3Animator: {(sideOneA3Animator != null ? sideOneA3Animator.name : "NULL")}");
+            Debug.Log($"   sideTwoA1Animator: {(sideTwoA1Animator != null ? sideTwoA1Animator.name : "NULL")}");
+            Debug.Log($"   sideTwoA2Animator: {(sideTwoA2Animator != null ? sideTwoA2Animator.name : "NULL")}");
+            Debug.Log($"   sideTwoA3Animator: {(sideTwoA3Animator != null ? sideTwoA3Animator.name : "NULL")}");
+
             // ✅ NEW: Trigger animations on animator GameObjects
             Debug.Log("🎬 Triggering animator scripts...");
 
@@ -1061,6 +1097,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S1A1Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideOneA1Animator has no S1A1Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideOneA1Animator is NULL - cannot trigger animation");
             }
 
             if (sideOneA2Animator != null)
@@ -1070,6 +1114,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S1A2Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideOneA2Animator has no S1A2Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideOneA2Animator is NULL - skipping");
             }
 
             if (sideOneA3Animator != null)
@@ -1080,6 +1132,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S1A3Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideOneA3Animator has no S1A3Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideOneA3Animator is NULL - skipping");
             }
 
             if (sideTwoA1Animator != null)
@@ -1089,6 +1149,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A1Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideTwoA1Animator has no S2A1Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideTwoA1Animator is NULL - skipping");
             }
 
             if (sideTwoA2Animator != null)
@@ -1099,6 +1167,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A2Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideTwoA2Animator has no S2A2Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideTwoA2Animator is NULL - skipping");
             }
 
             if (sideTwoA3Animator != null)
@@ -1108,6 +1184,14 @@ namespace BOTF3D.Combat
                     animScript.RunAnimation();
                     Debug.Log("   ✅ Triggered S2A3Animator");
                 }
+                else
+                {
+                    Debug.LogError("   ❌ sideTwoA3Animator has no S2A3Animator component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("   ⚠️ sideTwoA3Animator is NULL - skipping");
             }
 
             List<GameObject> shipGameObjects = new List<GameObject>();
@@ -1432,9 +1516,9 @@ namespace BOTF3D.Combat
             Debug.Log("  Calling PopulateShipData...");
             PopulateShipData(this);
 
-            // Start combat animation
-            Debug.Log("  Calling RunAnimation...");
-            RunAnimation();
+            // ✅ DON'T call RunAnimation() here - it will be called by CombatUIManager.EnterShipCombatPhase()
+            // when the player clicks the button or the timer expires
+            Debug.Log("  ⏳ Waiting for player to start combat (button click or timer)...");
 
             Debug.Log("=== InitializeCombat: Complete ===");
         }

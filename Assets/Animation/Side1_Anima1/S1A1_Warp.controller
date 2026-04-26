@@ -20,7 +20,7 @@ AnimatorStateMachine:
     m_Position: {x: -530, y: -50, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -364445576617392861}
-    m_Position: {x: -40, y: -170, z: 0}
+    m_Position: {x: -30, y: -180, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
@@ -189,7 +189,7 @@ AnimatorStateTransition:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: WarpIn == true
+  m_Name: WarpInS1A1 = true
   m_Conditions:
   - m_ConditionMode: 1
     m_ConditionEvent: WarpInS1A1
