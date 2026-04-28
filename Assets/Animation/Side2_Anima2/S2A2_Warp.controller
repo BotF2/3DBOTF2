@@ -178,7 +178,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Side2A2_Warp
+  m_Name: S2A2_Warp
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: WarpInS2A2

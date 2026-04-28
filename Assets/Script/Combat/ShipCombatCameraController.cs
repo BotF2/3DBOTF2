@@ -163,10 +163,12 @@ namespace BOTF3D.GamePlay
                     }
                     else if (_autoRotationTimer > 0)
                     {
-                        // use multi-target camera controller to keep all ships in view
-                        transform.position = Vector3.SmoothDamp(transform.position, targetPositionAndRotation.Position, ref _velocity, MoveSmoothTime);
-                        transform.rotation = targetPositionAndRotation.Rotation;
-                        _autoRotationTimer -= Time.deltaTime;
+                        // ✅ Use manual lerp with unscaledDeltaTime instead of SmoothDamp
+                        float smoothFactor = Time.unscaledDeltaTime / MoveSmoothTime;
+                        transform.position = Vector3.Lerp(transform.position, targetPositionAndRotation.Position, smoothFactor);
+                        transform.rotation = Quaternion.Lerp(transform.rotation, targetPositionAndRotation.Rotation, smoothFactor);
+
+                        _autoRotationTimer -= Time.unscaledDeltaTime;  // ✅ Changed from Time.deltaTime
                     }
                     else
                     {
@@ -202,7 +204,8 @@ namespace BOTF3D.GamePlay
                             transform.RotateAround(_cameraTarget, _axisOfRotation, Rotation);
                         else
                             transform.RotateAround(_cameraTarget, _axisOfRotation, -Rotation);
-                        _rotationDirectionTimer -= Time.deltaTime;
+
+                        _rotationDirectionTimer -= Time.unscaledDeltaTime;  // ✅ Changed from Time.deltaTime
                     }
                 }
             }
@@ -386,6 +389,12 @@ namespace BOTF3D.GamePlay
         }
     }
 }
+
+
+
+
+
+
 
 
 

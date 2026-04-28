@@ -42,6 +42,8 @@ namespace BOTF3D.Core
         private List<CombatController> allCombatControllers = new List<CombatController>();
         // ✅ NEW: Track combat state
         private bool isProcessingCombat = false;
+        private CombatController _cachedCombatConPrefab; // Cache the prefab reference
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -52,7 +54,31 @@ namespace BOTF3D.Core
             }
 
             Instance = this;
-            DontDestroyOnLoad(gameObject); // ✅ ADD THIS
+
+            // ✅ Cache the prefab BEFORE DontDestroyOnLoad
+            _cachedCombatConPrefab = combatConPrefab;
+
+            // ✅ Verify it's actually assigned
+            if (_cachedCombatConPrefab == null)
+            {
+                Debug.LogError("❌ combatConPrefab is NULL in Awake! Check Inspector assignment in the scene.");
+                Debug.LogError($"   CombatManager is on GameObject: {gameObject.name}");
+                Debug.LogError($"   In scene: {gameObject.scene.name}");
+            }
+            else
+            {
+                Debug.Log($"✅ combatConPrefab cached successfully: {_cachedCombatConPrefab.name}");
+            }
+
+            DontDestroyOnLoad(gameObject);
+
+            // ✅ Verify it survived the move
+            if (combatConPrefab == null && _cachedCombatConPrefab != null)
+            {
+                Debug.LogWarning("⚠️ combatConPrefab was cleared by DontDestroyOnLoad - restoring from cache");
+                combatConPrefab = _cachedCombatConPrefab;
+            }
+
             Debug.Log("✅ CombatManager initialized.");
         }
         /// <summary>
@@ -211,7 +237,21 @@ namespace BOTF3D.Core
                 OrderSideOne = CombatOrders.Engage,
                 OrderSideTwo = CombatOrders.Engage
             };
-
+            if (combatConPrefab == null)
+            {
+                // Try to use cached version
+                if (_cachedCombatConPrefab != null)
+                {
+                    Debug.LogWarning("⚠️ Using cached combatConPrefab reference");
+                    combatConPrefab = _cachedCombatConPrefab;
+                }
+                else
+                {
+                    Debug.LogError("InstantiateCombatController: combatConPrefab is null! Assign it in Inspector.");
+                    Debug.LogError($"   Check GameObject '{gameObject.name}' in the starting scene (before DontDestroyOnLoad)");
+                    return null;
+                }
+            }
             // ✅ Instantiate new controller (never reuse)
             CombatController aCombatController = Instantiate(combatConPrefab, Vector3.zero, Quaternion.identity);
             aCombatController.transform.SetParent(transform, false);
@@ -227,23 +267,69 @@ namespace BOTF3D.Core
             aCombatController.ShipCombatCanvas = Combat3DCanvas.GetComponent<Canvas>();
             aCombatController.warpInSound = dropOutOfWarpSoundData;
 
-            // ✅ REMOVED: Old CombatUIController.Instance setup
-            // UI setup is now handled by CombatUIManager.Instance.SetupForCombat() 
-            // which is called in SetUpLocalPlayer() below
+            // Assign animators (found at runtime from scene)
+            if (_sideOneA1Animator != null)
+            {
+                aCombatController.sideOneA1Animator = _sideOneA1Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideOneA1Animator is null! FindCombatSceneReferences() may have failed.");
+            }
 
-            // Assign animators
+            if (_sideOneA2Animator != null)
+            {
+                aCombatController.sideOneA2Animator = _sideOneA2Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideOneA2Animator is null!");
+            }
+
+            if (_sideOneA3Animator != null)
+            {
+                aCombatController.sideOneA3Animator = _sideOneA3Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideOneA3Animator is null!");
+            }
+
+            if (_sideTwoA1Animator != null)
+            {
+                aCombatController.sideTwoA1Animator = _sideTwoA1Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideTwoA1Animator is null!");
+            }
+
+            if (_sideTwoA2Animator != null)
+            {
+                aCombatController.sideTwoA2Animator = _sideTwoA2Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideTwoA2Animator is null!");
+            }
+
+            if (_sideTwoA3Animator != null)
+            {
+                aCombatController.sideTwoA3Animator = _sideTwoA3Animator;
+            }
+            else
+            {
+                Debug.LogError("❌ _sideTwoA3Animator is null!");
+            }
+            // Assign animators - only set the individual fields, don't populate the list
+            // The list will be populated by CombatController.Start()
             aCombatController.sideOneA1Animator = _sideOneA1Animator;
-            aCombatController.animators.Add(_sideOneA1Animator);
             aCombatController.sideOneA2Animator = _sideOneA2Animator;
-            aCombatController.animators.Add(_sideOneA2Animator);
             aCombatController.sideOneA3Animator = _sideOneA3Animator;
-            aCombatController.animators.Add(_sideOneA3Animator);
             aCombatController.sideTwoA1Animator = _sideTwoA1Animator;
-            aCombatController.animators.Add(_sideTwoA1Animator);
             aCombatController.sideTwoA2Animator = _sideTwoA2Animator;
-            aCombatController.animators.Add(_sideTwoA2Animator);
             aCombatController.sideTwoA3Animator = _sideTwoA3Animator;
-            aCombatController.animators.Add(_sideTwoA3Animator);
+            // ✅ REMOVED: Don't add to animators list here - Start() will do it
             // Assign weapon prefabs
             aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
             aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
@@ -615,6 +701,44 @@ namespace BOTF3D.Core
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Clean up after combat ends
+        /// </summary>
+        private void CleanupCombat()
+        {
+            Debug.Log("🧹 CombatManager: Cleaning up combat...");
+
+            // ✅ Clear Unity Editor selection to prevent MissingReferenceException
+#if UNITY_EDITOR
+            UnityEditor.Selection.activeObject = null;
+#endif
+
+            // Existing cleanup code...
+            if (ActiveCombatController != null)
+            {
+                // Your existing cleanup
+            }
+
+            // Unload scene
+            if (SceneManager.GetSceneByName("CombatScene").isLoaded)
+            {
+                SceneManager.UnloadSceneAsync("CombatScene");
+            }
+
+            // Clear references
+            CombatUICanvas = null;
+            Combat3DCanvas = null;
+            GameOverCanvas = null;
+            _sideOneA1Animator = null;
+            _sideOneA2Animator = null;
+            _sideOneA3Animator = null;
+            _sideTwoA1Animator = null;
+            _sideTwoA2Animator = null;
+            _sideTwoA3Animator = null;
+
+            Debug.Log("✅ Combat cleanup complete");
         }
     }
 }

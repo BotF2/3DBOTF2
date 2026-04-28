@@ -10,19 +10,28 @@ namespace BOTF3D.Core
 
         void Start()
         {
+            Debug.Log($"🔵 S1A2Animator.Start() CALLED on GameObject '{gameObject.name}', active={gameObject.activeInHierarchy}");
+
             anim = GetComponent<Animator>();
             if (anim != null)
             {
                 anim.enabled = true;
+
+                // ✅ CRITICAL: Use UnscaledTime so animations run even when Time.timeScale = 0
+                anim.updateMode = AnimatorUpdateMode.UnscaledTime;
+
                 anim.SetBool("WarpInS1A2", false);
                 Debug.Log("S1A2 animator initialized - waiting for RunAnimation()");
             }
-
+            else
+            {
+                Debug.LogError($"❌ S1A2Animator: No Animator component found on {gameObject.name}!");
+            }
         }
 
         public void RunAnimation()
         {
-            // ✅ Fixed: Check if WarpingIn is TRUE (not false!)
+            // ✅ FCheck if WarpingIn is TRUE (not false!)
             if (CombatUIManager.Instance?.CurrentCombatController != null &&
                 CombatUIManager.Instance.CurrentCombatController.WarpingIn)  // ✅ Changed from !WarpingIn
             {

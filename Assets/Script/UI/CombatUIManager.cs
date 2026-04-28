@@ -54,7 +54,9 @@ namespace BOTF3D.UI
         {
             if (isTimerRunning)
             {
-                remainingTime -= Time.deltaTime;
+                // ✅ Use unscaledDeltaTime instead of deltaTime
+                remainingTime -= Time.unscaledDeltaTime;
+
                 if (remainingTime > 0f)
                 {
                     if (timerText != null)
@@ -70,7 +72,6 @@ namespace BOTF3D.UI
                     EnterShipCombatPhase();
                 }
             }
-
             // ✅ Camera rotation is now handled by ShipCombatCameraController itself
             // No need to duplicate the spacebar logic here
         }

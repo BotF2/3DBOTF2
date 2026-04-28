@@ -17,8 +17,8 @@ namespace BOTF3D.Combat
 {
     public class CombatController : MonoBehaviour
     {
-        private static WaitForSeconds _waitForSeconds3 = new WaitForSeconds(3f);
-        private static WaitForSeconds _waitForSeconds2 = new WaitForSeconds(2f);
+        private static WaitForSecondsRealtime _waitForSeconds3 = new WaitForSecondsRealtime(3f);
+        private static WaitForSecondsRealtime _waitForSeconds2 = new WaitForSecondsRealtime(2f);
 
         /// <summary>
         /// [CombatController]
@@ -73,6 +73,8 @@ namespace BOTF3D.Combat
         private readonly List<Vector3> moveDirections = new List<Vector3>();
         public bool isMoving = false;
         public bool isClosing = false;
+        private bool combatEnded = false;
+        private bool showingEndPanel = false;
 
         private void Awake()
         {
@@ -97,6 +99,19 @@ namespace BOTF3D.Combat
             // ✅ CRITICAL: Populate animators list with the 6 animator references
             // Order matters: [0-2] = Side One, [3-5] = Side Two
             animators.Clear();
+
+            //if (sideOneA1Animator.TryGetComponent<S1A1Animator>(out var animScript)) ;
+            //animScript.RunAnimation();
+            //if (sideOneA2Animator.TryGetComponent<S1A2Animator>(out var animScript2)) ;
+            //animScript2.RunAnimation();
+            //if (sideOneA3Animator.TryGetComponent<S1A3Animator>(out var animScript3)) ;
+            //animScript3.RunAnimation();
+            //if (sideTwoA1Animator.TryGetComponent<S2A1Animator>(out var animScript4)) ;
+            //animScript4.RunAnimation();
+            //if (sideTwoA2Animator.TryGetComponent<S2A2Animator>(out var animScript5)) ;
+            //animScript5.RunAnimation();
+            //if (sideTwoA3Animator.TryGetComponent<S2A3Animator>(out var animScript6)) ;
+            //animScript6.RunAnimation();
 
             if (sideOneA1Animator != null) animators.Add(sideOneA1Animator);
             if (sideOneA2Animator != null) animators.Add(sideOneA2Animator);
@@ -136,7 +151,8 @@ namespace BOTF3D.Combat
             {
                 if (isMoving)
                 {
-                    float step = currentSpeed * Time.deltaTime;
+                    // ✅ Use unscaledDeltaTime for combat movement
+                    float step = currentSpeed * Time.unscaledDeltaTime;
 
                     for (int i = 0; i < animators.Count; i++)
                     {
@@ -152,7 +168,8 @@ namespace BOTF3D.Combat
                         }
                     }
 
-                    currentSpeed -= deceleration * Time.deltaTime;
+                    // ✅ Use unscaledDeltaTime for deceleration
+                    currentSpeed -= deceleration * Time.unscaledDeltaTime;
                     if (currentSpeed <= 0f)
                     {
                         currentSpeed = 0f;
@@ -963,6 +980,8 @@ namespace BOTF3D.Combat
 
         void FindClosestPairsForTargets(List<ShipController> shipListFiring, List<ShipController> shipListTargets)
         {
+            Debug.Log($"🎯 FindClosestPairsForTargets: {shipListFiring.Count} ships firing at {shipListTargets.Count} targets");
+
             for (int i = 0; i < shipListFiring.Count; i++)
             {
                 ShipController closestTarget = null;
@@ -970,6 +989,8 @@ namespace BOTF3D.Combat
 
                 // ✅ Get firing ship's combat order
                 CombatOrders firingOrder = shipListFiring[i].Order;
+
+                Debug.Log($"   Ship {i}: '{shipListFiring[i].ShipData.ShipName}' (Order={firingOrder}) searching for target...");
 
                 for (int j = 0; j < shipListTargets.Count; j++)
                 {
@@ -1019,21 +1040,47 @@ namespace BOTF3D.Combat
                 if (closestTarget != null)
                 {
                     shipListFiring[i].ShipData.TargetThisShipController = closestTarget;
-                    Debug.Log($"  Ship '{shipListFiring[i].ShipData.ShipName}' ({firingOrder}) targets '{closestTarget.ShipData.ShipName}' ({closestTarget.ShipData.ShipType})");
+                    Debug.Log($"   ✅ Ship '{shipListFiring[i].ShipData.ShipName}' ({firingOrder}) targets '{closestTarget.ShipData.ShipName}' ({closestTarget.ShipData.ShipType})");
+                }
+                else
+                {
+                    Debug.LogWarning($"   ⚠️ Ship '{shipListFiring[i].ShipData.ShipName}' found NO valid target!");
                 }
             }
         }
+
         private void FireWeaponsOrderOnShipControllers(List<ShipController> shipCons)
         {
+            Debug.Log($"🔫 FireWeaponsOrderOnShipControllers called with {shipCons.Count} ships");
+
+            int weaponsStarted = 0;
+
             // Implement logic to fire weapons on their enemy ships
             for (int i = 0; i < shipCons.Count; i++)
             {
-                if (shipCons[i].ShipData.TargetThisShipController != null & (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
+                string shipName = shipCons[i].ShipData.ShipName;
+                string targetName = shipCons[i].ShipData.TargetThisShipController?.ShipData.ShipName ?? "NULL";
+                int torpedoDmg = shipCons[i].ShipData.TorpedoDamage;
+                int beamDmg = shipCons[i].ShipData.BeamDamage;
+
+                Debug.Log($"   Ship [{i}]: '{shipName}' - Target={targetName}, TorpedoDmg={torpedoDmg}, BeamDmg={beamDmg}");
+
+                if (shipCons[i].ShipData.TargetThisShipController != null && (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
                 {
                     float delay = UnityEngine.Random.Range(minFirstShotDelay, maxFirstShotDelay);
+                    Debug.Log($"   ✅ Starting fire loop for '{shipName}' with {delay}s delay");
                     StartCoroutine(shipCons[i].ShipFireLoop(delay));
+                    weaponsStarted++;
                 }
+                else
+                {
+
+                }
+                if (shipCons[i].ShipData.TargetThisShipController == null)
+                    Debug.Log($"   ⚠️ '{shipName}' has NO TARGET assigned!");
             }
+
+            Debug.Log($"🔫 Started {weaponsStarted} weapon fire loops out of {shipCons.Count} ships");
         }
 
         IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)
@@ -1304,9 +1351,7 @@ namespace BOTF3D.Combat
             }
             else
             {
-                // ✅ No valid animators - use timed wait instead
-                Debug.LogWarning("⚠️ No AnimatorControllers assigned - using timed warp-in (3 seconds)");
-                yield return _waitForSeconds3;
+                yield return _waitForSeconds2;
             }
 
             Debug.Log("✅ Warp-in animation complete");
@@ -1332,10 +1377,21 @@ namespace BOTF3D.Combat
             Debug.Log("✅ Ships in position - starting weapon fire");
 
             // ✅ Now assign targets and fire weapons
+            Debug.Log($"📊 Side One ships: {CombatData.SideOneShipCons.Count}, Side Two ships: {CombatData.SideTwoShipCons.Count}");
+
+            Debug.Log("🎯 Assigning targets for Side One ships...");
             FindClosestPairsForTargets(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
+
+            Debug.Log("🎯 Assigning targets for Side Two ships...");
             FindClosestPairsForTargets(CombatData.SideTwoShipCons, CombatData.SideOneShipCons);
+
+            Debug.Log("🔫 Starting weapon fire for Side One ships...");
             FireWeaponsOrderOnShipControllers(CombatData.SideOneShipCons);
+
+            Debug.Log("🔫 Starting weapon fire for Side Two ships...");
             FireWeaponsOrderOnShipControllers(CombatData.SideTwoShipCons);
+
+            Debug.Log("✅ All weapon systems initialized");
         }
 
         private bool AnyAnimatorIsPlaying()
@@ -1354,8 +1410,20 @@ namespace BOTF3D.Combat
 
                 if (animator.runtimeAnimatorController == null)
                 {
-                    Debug.LogWarning($"   ⚠️ Animator [{i}] ({animator.name}) has no controller");
+                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) has NO CONTROLLER ASSIGNED!");
                     continue;
+                }
+
+                // ✅ CHECK CULLING MODE
+                if (animator.cullingMode == AnimatorCullingMode.CullCompletely)
+                {
+                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) CullingMode is 'CullCompletely' - animations won't play!");
+                }
+
+                // ✅ CHECK IF ENABLED
+                if (!animator.enabled)
+                {
+                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) is DISABLED!");
                 }
 
                 AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
@@ -1365,7 +1433,7 @@ namespace BOTF3D.Combat
                 // ✅ Detailed logging for first frame
                 if (Time.frameCount % 30 == 0) // Log every 30 frames
                 {
-                    Debug.Log($"   Animator [{i}] '{animator.name}': State='{stateInfo.shortNameHash}', Time={normalizedTime:F3}, Transition={isInTransition}");
+                    Debug.Log($"   Animator [{i}] '{animator.name}': State='{stateInfo.shortNameHash}', Time={normalizedTime:F3}, Transition={isInTransition}, Enabled={animator.enabled}, CullingMode={animator.cullingMode}");
                 }
 
                 if (normalizedTime < 1f && !isInTransition)
@@ -1553,6 +1621,77 @@ namespace BOTF3D.Combat
             }
 
             Debug.Log($"  ✅ Fixed {renderers.Length} renderers for '{shipGameObject.name}'");
+        }
+
+        void Update()
+        {
+            // Check for combat end condition after animations complete
+            if (!combatEnded && WarpingAnimationOver && !WarpingIn)
+            {
+                // Count surviving ships on each side (only active, non-destroyed ships)
+                int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.Health > 0 && !s.ShipData.Distroyed);
+                int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.Health > 0 && !s.ShipData.Distroyed);
+
+                // Check if one side has been eliminated
+                if (sideOneAlive == 0 || sideTwoAlive == 0)
+                {
+                    Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
+                    combatEnded = true;
+
+                    // Stop all weapon fire immediately by setting targets to null
+                    StopAllWeaponFire();
+
+                    // Show the combat over panel
+                    if (!showingEndPanel)
+                    {
+                        showingEndPanel = true;
+                        StartCoroutine(ShowCombatEndSequence(sideOneAlive > 0));
+                    }
+                }
+            }
+        }
+
+        private void StopAllWeaponFire()
+        {
+            // Nullify all targets to stop firing loops immediately
+            foreach (var ship in CombatData.SideOneShipCons)
+            {
+                if (ship != null && ship.ShipData != null)
+                {
+                    ship.ShipData.TargetThisShipController = null;
+                }
+            }
+            foreach (var ship in CombatData.SideTwoShipCons)
+            {
+                if (ship != null && ship.ShipData != null)
+                {
+                    ship.ShipData.TargetThisShipController = null;
+                }
+            }
+            Debug.Log("🛑 All weapon fire stopped");
+        }
+
+        private IEnumerator ShowCombatEndSequence(bool sideOneWon)
+        {
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.ShowCombatOverPanel();
+                Debug.Log($"🏆 Victory for: {(sideOneWon ? CombatData.CivEnumSideOne : CombatData.CivEnumSideTwo)}");
+            }
+            // Wait for player to view results (or add a button click handler)
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // Clean up and return to galaxy
+            EndCombat();
+            // Instead of timer, wait for button click (don't call EndCombat here)
+            // Add a button to PanelCombatEnd that calls CombatController.EndCombat() directly
+        }
+        public void OnReturnToGalaxyButtonClicked()
+        {
+            Debug.Log("Player clicked return to galaxy");
+            EndCombat();
         }
     }
 }

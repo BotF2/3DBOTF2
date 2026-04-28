@@ -10,12 +10,22 @@ namespace BOTF3D.Core
 
         void Start()
         {
+            Debug.Log($"🔵 S2A2Animator.Start() CALLED on GameObject '{gameObject.name}', active={gameObject.activeInHierarchy}");
+
             anim = GetComponent<Animator>();
             if (anim != null)
             {
                 anim.enabled = true;
+
+                // ✅ CRITICAL: Use UnscaledTime so animations run even when Time.timeScale = 0
+                anim.updateMode = AnimatorUpdateMode.UnscaledTime;
+
                 anim.SetBool("WarpInS2A2", false);
                 Debug.Log("S2A2 animator initialized - waiting for RunAnimation()");
+            }
+            else
+            {
+                Debug.LogError($"❌ S2A2Animator: No Animator component found on {gameObject.name}!");
             }
         }
 

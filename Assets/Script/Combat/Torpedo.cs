@@ -7,8 +7,8 @@ namespace BOTF3D.Combat
 {
     public class Torpedo : MonoBehaviour
     {
-        public float Velocity = 100f; // the velocity used appears to be set in the prefab and not this value.
-        public float TurnRatio = 10f; // same, set in prefab, not this value. keep it for now, have options different torpedoes by civ
+        public float Velocity = 100f;
+        public float TurnRatio = 10f;
         public Transform Target;
         public Rigidbody torpedoRigidbody;
         public CivEnum OwnerCivEnum;
@@ -24,90 +24,106 @@ namespace BOTF3D.Combat
             {
                 Debug.LogError("Torpedo Rigidbody is not assigned!");
             }
-            audioSource = GetComponent<AudioSource>();//Attach the sound to an existing GameObject
-        }
-        public void SetCurrentTarget(Transform targetTransform)
-        {
-            Target = targetTransform;
+            else
+            {
+                // ✅ Make kinematic so physics doesn't interfere
+                torpedoRigidbody.isKinematic = true;
+                torpedoRigidbody.useGravity = false;
+            }
+            audioSource = GetComponent<AudioSource>();
         }
 
-        private void FixedUpdate()
+        private void Start()
+        {
+            // ✅ Start runs after target is assigned
+            if (Target == null)
+            {
+                Debug.LogWarning($"🚀⚠️ Torpedo {gameObject.name} has NO TARGET in Start() - will destroy!");
+                Destroy(gameObject);
+            }
+            else
+            {
+                Debug.Log($"🚀✅ Torpedo {gameObject.name} initialized with target={Target.name}, velocity={Velocity}");
+            }
+        }
+
+        // ✅ Use Update with transform.position instead of Rigidbody.MovePosition
+        private void Update()
         {
             if (Target == null)
             {
-                Destroy(gameObject); // Destroy the torpedo if no target is set
+                Debug.LogWarning($"🚀⚠️ Torpedo {gameObject.name} target destroyed - destroying torpedo");
+                Destroy(gameObject);
                 return;
             }
-            Vector3 currentPosition = torpedoRigidbody.position;
-            Vector3 direction = (Target.position - currentPosition).normalized;
-            float speedWhileGameTimePaused = Velocity * Time.fixedUnscaledDeltaTime;
-            Vector3 nextPosition = Vector3.MoveTowards(currentPosition, Target.position, speedWhileGameTimePaused);
-            torpedoRigidbody.MovePosition(nextPosition);
+
+            Vector3 currentPosition = transform.position;
+            Vector3 targetPosition = Target.position;
+            Vector3 direction = (targetPosition - currentPosition).normalized;
+
+            // ✅ Use unscaledDeltaTime for movement during paused galaxy time
+            float speedThisFrame = Velocity * Time.unscaledDeltaTime;
+
+            // ✅ Move directly using transform.position (works better for kinematic with timeScale=0)
+            Vector3 newPosition = Vector3.MoveTowards(currentPosition, targetPosition, speedThisFrame);
+            transform.position = newPosition;
+
+            // ✅ Rotate to face target
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
-                torpedoRigidbody.MoveRotation(Quaternion.RotateTowards(torpedoRigidbody.rotation, targetRotation, TurnRatio * Time.fixedUnscaledDeltaTime));
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, TurnRatio * 100f * Time.unscaledDeltaTime);
+            }
+
+            // ✅ Check if reached target
+            float distanceToTarget = Vector3.Distance(newPosition, targetPosition);
+
+            // ✅ Debug log every 30 frames to verify movement
+            if (Time.frameCount % 30 == 0)
+            {
+                Debug.Log($"🚀 Torpedo moving: pos={newPosition:F1}, target={targetPosition:F1}, distance={distanceToTarget:F2}, speed={speedThisFrame:F2}");
+            }
+
+            // ✅ Destroy if reached target (within 2 units)
+            if (distanceToTarget < 2f)
+            {
+                Debug.Log($"💥 Torpedo reached target {Target.name} at distance {distanceToTarget:F2}");
+
+                // Find and damage the target ship
+                ShipController targetShip = Target.GetComponentInParent<ShipController>();
+                if (targetShip != null && OwnerCivEnum != targetShip.ShipData.CivEnum)
+                {
+                    Debug.Log($"💥 Torpedo HIT {targetShip.ShipData.ShipName} for {TorpedoDamage} damage");
+                    targetShip.TakeDamage(TorpedoDamage);
+
+                    // Play explosion sound
+                    if (weaponData?.impactSound != null)
+                    {
+                        AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, transform.position);
+                    }
+                }
+
+                Destroy(gameObject);
             }
         }
 
         public void OnTriggerEnter(Collider other)
         {
-            // TODO, need to add explosion and sound effects (add new a object for that)
+            Debug.Log($"🚀 Torpedo collided with {other.gameObject.name}");
 
             ShipController shipController = other.gameObject.GetComponent<ShipController>();
             if (shipController != null && OwnerCivEnum != shipController.ShipData.CivEnum)
             {
+                Debug.Log($"💥 Torpedo TRIGGER HIT {shipController.ShipData.ShipName} for {TorpedoDamage} damage");
                 shipController.TakeDamage(TorpedoDamage);
-            }
-            if (shipController != null && TargetCivEnum == shipController.ShipData.CivEnum)
-            {
-                Destroy(gameObject); // Destroy the torpedo after it hits something
-            }
-        }
-        private void DoDamage(ShipController shipController)
-        {
-            //if (shipController.ShipData.ShieldHealth > 0)
-            //{
-            //    // If the ship has shields, damage the shields first
-            //    shipController.ShipData.ShieldHealth -= (TorpedoDamage/2);
-            //    return;
-            //}
-            //else if (shipController.ShipData.HullHealth > 0)
-            //{
-            //    shipController.ShipData.HullHealth -= (TorpedoDamage/3); // Example damage value
-            //    return;
-            //}
-            //else         
-            //{
-            //    // If both shields and hull are destroyed, destroy the ship
-            //    Destroy(shipController.gameObject);
-            //    ShipCombatCameraController.Instance.OnShipDestroyed(shipController);
-            //}
-            //Destroy(gameObject); // Destroy the torpedo after it hits something
-        }
 
-        public void Initialize(WeaponSO weapon)
-        {
-            weaponData = weapon;
+                // Play explosion sound
+                if (weaponData?.impactSound != null)
+                {
+                    AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, transform.position);
+                }
 
-            // ✅ Play travel loop sound (follows torpedo)
-            if (weaponData.travelLoopSound != null && weaponData.travelLoopSound.clip != null)
-            {
-                audioSource.clip = weaponData.travelLoopSound.clip;
-                audioSource.volume = weaponData.travelLoopSound.volume;
-                audioSource.pitch = weaponData.travelLoopSound.pitch;
-                audioSource.minDistance = weaponData.travelLoopSound.minDistance;
-                audioSource.maxDistance = weaponData.travelLoopSound.maxDistance;
-                audioSource.Play();
-            }
-        }
-
-        private void OnDestroy()
-        {
-            // ✅ Play impact sound via AudioManager (3D positional, doesn't follow object)
-            if (weaponData != null && weaponData.impactSound != null)
-            {
-                AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, transform.position);
+                Destroy(gameObject);
             }
         }
     }

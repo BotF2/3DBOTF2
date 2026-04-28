@@ -1,4 +1,4 @@
-﻿using BOTF3D.Combat;
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
@@ -58,8 +58,31 @@ namespace BOTF3D.GamePlay
         void Update()
         {
             if (HealthFillImage != null)
-                HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetHealthFillAmount, HealthSpeed * Time.deltaTime);
+            {
+                // ✅ Use unscaledDeltaTime so health bar updates even when Time.timeScale = 0
+                HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetHealthFillAmount, HealthSpeed * Time.unscaledDeltaTime);
+            }
+
             TargetHealthFillAmount = Health / MaxHealth;
+
+            // ✅ Update health bar color based on health percentage
+            if (HealthFillImage != null)
+            {
+                float healthPercent = TargetHealthFillAmount;
+
+                if (healthPercent > 0.66f)
+                {
+                    HealthFillImage.color = Color.green; // Healthy
+                }
+                else if (healthPercent > 0.33f)
+                {
+                    HealthFillImage.color = Color.yellow; // Damaged
+                }
+                else
+                {
+                    HealthFillImage.color = Color.red; // Critical
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -262,23 +285,47 @@ namespace BOTF3D.GamePlay
         }
         public IEnumerator ShipFireLoop(float initialDelay)
         {
-            yield return new WaitForSeconds(initialDelay);
+            Debug.Log($"🔫 ShipFireLoop started for '{ShipData.ShipName}' with {initialDelay}s delay");
+
+            // ✅ Use WaitForSecondsRealtime instead of WaitForSeconds
+            yield return new WaitForSecondsRealtime(initialDelay);
+
+            Debug.Log($"🔫 '{ShipData.ShipName}' starting weapon fire loop");
+
             bool beam = true;
+            int shotCount = 0;
             while (true) // ToDo: not true when ship weapons are offline?
             {
+                // ✅ CRITICAL: Check if target still exists before firing
+                if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed)
+                {
+                    Debug.Log($"🔫 '{ShipData.ShipName}' target destroyed or null - stopping fire loop");
+                    yield break; // Exit the coroutine
+                }
+                shotCount++;
+                Debug.Log($"🔫 '{ShipData.ShipName}' firing shot #{shotCount} (beam={beam})");
+
                 // Fire the ship's beam weapons
                 FireWeapons(beam);
+
                 if (beam)
                     beam = false;
                 else
                     beam = true;
+
                 // Wait for a random refire delay before next shot
                 float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
-                yield return new WaitForSeconds(refireDelay);
+                Debug.Log($"   Waiting {refireDelay}s before next shot...");
+
+                // ✅ Use WaitForSecondsRealtime instead of WaitForSeconds
+                yield return new WaitForSecondsRealtime(refireDelay);
             }
         }
+
         internal void FireWeapons(bool beam)
         {
+            Debug.Log($"🎯 FireWeapons called for '{ShipData.ShipName}', beam={beam}, target={ShipData.TargetThisShipController?.ShipData.ShipName ?? "NULL"}");
+
             if (ShipData.TargetThisShipController != null)
             {
                 if (this != null && transform != null)
@@ -296,8 +343,13 @@ namespace BOTF3D.GamePlay
 
                     if (beam && ShipData.BeamDamage > 0)
                     {
+                        Debug.Log($"  💥 Firing BEAM from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.BeamDamage})");
+
                         var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
                         beamWeaponGO = beamWeaponGo;
+
+                        Debug.Log($"  ⚡ Beam GameObject created: {beamWeaponGo.name}");
+
                         var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
                         var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
                         beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
@@ -305,34 +357,100 @@ namespace BOTF3D.GamePlay
                         beamWeaponScript.LineRenderer = lineRenderer;
                         beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform);
                         ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage);
-                        Destroy(beamWeaponGo, 0.5f);
+
+                        // ✅ Use coroutine with WaitForSecondsRealtime instead of Destroy(obj, time)
+                        Debug.Log($"  ⏱️ Starting DestroyBeamAfterDelay coroutine for {beamWeaponGo.name}...");
+                        StartCoroutine(DestroyBeamAfterDelay(beamWeaponGo, 0.5f));
                     }
                     else if (ShipData.TorpedoDamage > 0)
                     {
+                        Debug.Log($"  🚀 Firing TORPEDO from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.TorpedoDamage})");
+
                         var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
+                        Debug.Log($"  🎯 Torpedo GameObject created: {torpedoGo.name}, active={torpedoGo.activeSelf}");
+
                         var torpedoScript = torpedoGo.GetComponent<Torpedo>();
-                        torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
-                        if (ShipData.TargetThisShipController != null)
+                        if (torpedoScript == null)
                         {
-                            torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
-                            torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum;
+                            Debug.LogError($"  ❌ Torpedo prefab has NO Torpedo component!");
+                        }
+                        else
+                        {
+                            Debug.Log($"  ✅ Torpedo script found, setting damage and target...");
+                            torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
+                            torpedoScript.OwnerCivEnum = ShipData.CivEnum;
+                            if (ShipData.TargetThisShipController != null)
+                            {
+                                torpedoScript.Target = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
+                                torpedoScript.TargetCivEnum = ShipData.TargetThisShipController.ShipData.CivEnum;
+                                Debug.Log($"  🎯 Torpedo target set to: {torpedoScript.Target.name}");
+                            }
                         }
                     }
+                    else
+                    {
+                        Debug.LogWarning($"  ⚠️ Ship '{ShipData.ShipName}' has no weapon damage! BeamDamage={ShipData.BeamDamage}, TorpedoDamage={ShipData.TorpedoDamage}");
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"  ❌ Ship or transform is NULL for '{ShipData.ShipName}'");
                 }
             }
+            else
+            {
+                Debug.LogWarning($"  ⚠️ No target assigned for '{ShipData.ShipName}'");
+            }
         }
+
+        // ✅ NEW: Coroutine to destroy beam weapon using realtime
+        private IEnumerator DestroyBeamAfterDelay(GameObject beamObj, float delay)
+        {
+            Debug.Log($"  ⏱️ DestroyBeamAfterDelay STARTED for {beamObj?.name ?? "NULL"}, waiting {delay}s...");
+
+            yield return new WaitForSecondsRealtime(delay);
+
+            Debug.Log($"  ⏱️ DestroyBeamAfterDelay WAIT COMPLETE after {delay}s");
+
+            if (beamObj != null)
+            {
+                Debug.Log($"  🔴 Destroying beam weapon: {beamObj.name}");
+                Destroy(beamObj);
+            }
+            else
+            {
+                Debug.LogWarning($"  ⚠️ Beam object is NULL, can't destroy");
+            }
+        }
+
         public void TakeDamage(int weaponDamageInt)
         {
-            if (Health != 0)
+            if (Health > 0)
             {
                 // ✅ Apply defensive multiplier based on combat order
                 float defenseMult = CombatOrderMatrix.GetDefenseMultiplier(Order);
                 float adjustedDamage = (weaponDamageInt / 3f) * defenseMult;
 
+                float oldHealth = Health;
                 Health -= adjustedDamage;
                 Health = Mathf.Max(Health, 0.0f);
 
-                Debug.Log($"  Ship '{ShipData.ShipName}' took {adjustedDamage:F1} damage (order={Order}, mult={defenseMult:F2})");
+                float newHealthPercent = Health / MaxHealth;
+                TargetHealthFillAmount = newHealthPercent;
+
+                Debug.Log($"  💔 Ship '{ShipData.ShipName}' took {adjustedDamage:F1} damage (order={Order}, mult={defenseMult:F2})");
+                Debug.Log($"     Health: {oldHealth:F1} → {Health:F1} ({newHealthPercent:P0}), TargetFillAmount={TargetHealthFillAmount:F2}");
+
+                // ✅ Force immediate health bar update if needed
+                if (HealthFillImage != null)
+                {
+                    Debug.Log($"     HealthBar fillAmount={HealthFillImage.fillAmount:F2} → target {TargetHealthFillAmount:F2}");
+                }
+
+                if (Health <= 0)
+                {
+                    Debug.LogWarning($"  ☠️ Ship '{ShipData.ShipName}' DESTROYED!");
+                }
             }
             #region for tracking shields and hull individually
             //if (ShipData.ShieldHealth > 0)
@@ -350,7 +468,7 @@ namespace BOTF3D.GamePlay
             #endregion
             else
             {
-                // If both shields and hull are zero, destroy the ship
+                // If health is zero, destroy the ship
                 var fleetController = this.ShipData.CurrentFleetController;
                 var starSysController = this.ShipData.CurrentStarSysController;
                 if (fleetController != null && !ShipData.Distroyed)
