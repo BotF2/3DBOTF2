@@ -52,7 +52,7 @@ namespace BOTF3D.Combat
         {
             if (Target == null)
             {
-                Debug.LogWarning($"🚀⚠️ Torpedo {gameObject.name} target destroyed - destroying torpedo");
+                Debug.Log($"🚀⚠️ Torpedo {gameObject.name} target destroyed - destroying torpedo");
                 Destroy(gameObject);
                 return;
             }
@@ -102,7 +102,6 @@ namespace BOTF3D.Combat
                         AudioManager.Instance?.PlaySoundData3D(weaponData.impactSound, transform.position);
                     }
                 }
-
                 Destroy(gameObject);
             }
         }

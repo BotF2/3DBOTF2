@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Sys Anya
+// Ignore Spelling: Sys Anya
 
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
@@ -1104,9 +1104,9 @@ namespace BOTF3D.UI
             // ✅ Only clear Instance if we're the current instance
             if (Instance == this)
             {
-                Debug.LogWarning("⚠️ StarSysMenuUIController SINGLETON is being destroyed!");
-                Debug.LogWarning($"  GameObject: {gameObject.name}, Scene: {gameObject.scene.name}");
-                Debug.LogWarning($"  Stack trace:\n{System.Environment.StackTrace}");
+                Debug.Log("⚠️ StarSysMenuUIController SINGLETON is being destroyed!");
+                Debug.Log($"  GameObject: {gameObject.name}, Scene: {gameObject.scene.name}");
+                Debug.Log($"  Stack trace:\n{System.Environment.StackTrace}");
 
                 Instance = null;
             }

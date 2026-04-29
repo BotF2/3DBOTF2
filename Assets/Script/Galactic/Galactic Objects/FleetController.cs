@@ -816,7 +816,7 @@ namespace BOTF3D.GamePlay
                 // no ships left, remove fleet
                 FleetManager.Instance.RemoveFleetNumInUse(this.FleetData.CivEnum, this.FleetData.FleetInt);
                 FleetData.ShipsList.Remove(shipController);
-                //Destroy(this.gameObject);
+                Destroy(this.gameObject);
             }
             else
             {

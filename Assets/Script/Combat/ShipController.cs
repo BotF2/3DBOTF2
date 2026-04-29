@@ -28,11 +28,9 @@ namespace BOTF3D.GamePlay
         [SerializeField] private float minRefireDelay; // see Start()
         [SerializeField] private float maxRefireDelay;
         public Image HealthFillImage;
+        public Image HealthBackgroundImage;
         public float HealthSpeed;
         public float TargetHealthFillAmount { get; set; } = 1.0f;
-        public float Health;
-        public float MaxHealth;
-
 
         void Awake()
         {
@@ -41,48 +39,108 @@ namespace BOTF3D.GamePlay
             //rb.useGravity = false; // space, microgravity set to zero
             //rb.linearDamping = 0f; // no air drag
             //rb.angularDamping = 0.5f; // small resistance to rotation
-
         }
+
         private void Start()
         {
             theSource = GetComponent<AudioSource>();
-            if (transform.position.x < 0) flipShipForward = -1; // if on left side of map, flip direction ship faces
-                                                                //moveDirection = transform.forward.normalized * flipShipForward; // initial move direction
+            if (transform.position.x < 0) flipShipForward = -1;
+
             minRefireDelay = 1.5f;
             maxRefireDelay = 2.5f;
-            MaxHealth = ShipData.HullHealth + ShipData.HullHealth;
-            Health = MaxHealth;
-            HealthSpeed = 10.0f;
+            HealthSpeed = 10.0f; // HOW FAST THE HEALTH BAR LERPS TO NEW VALUE
 
+            // ✅ Initialize ShipData health values from ShipSO if not already set
+            if (ShipData != null && ShipData.ShipSO != null)
+            {
+                // Only initialize if values are 0 (new ship) or if we're resetting for combat
+                if (ShipData.ShieldHealth == 0 && ShipData.HullHealth == 0)
+                {
+                    ShipData.ShieldHealth = ShipData.ShipSO.ShieldMaxHealth;
+                    ShipData.HullHealth = ShipData.ShipSO.HullMaxHealth;
+                    Debug.Log($"✅ Ship '{ShipData.ShipName}' initialized: Shields={ShipData.ShieldHealth}, Hull={ShipData.HullHealth}");
+                }
+                else
+                {
+                    Debug.Log($"📊 Ship '{ShipData.ShipName}' entering combat: Shields={ShipData.ShieldHealth}, Hull={ShipData.HullHealth}");
+                }
+            }
         }
         void Update()
         {
-            if (HealthFillImage != null)
-            {
-                // ✅ Use unscaledDeltaTime so health bar updates even when Time.timeScale = 0
-                HealthFillImage.fillAmount = Mathf.Lerp(HealthFillImage.fillAmount, TargetHealthFillAmount, HealthSpeed * Time.unscaledDeltaTime);
-            }
+            //Health: 100% → [████████████████████] Green fill, no red background showing
+            //Health:  80% → [█████████████░░░░░░░] Green fill, red showing on right
+            //Health:  50% → [██████████░░░░░░░░░░] Cyan fill, red showing on right
+            // Health:  20% →[████░░░░░░░░░░░░░░░░] Yellow fill, red showing on right
+            //Health:   0% → [░░░░░░░░░░░░░░░░░░░░] All red
 
-            TargetHealthFillAmount = Health / MaxHealth;
-
-            // ✅ Update health bar color based on health percentage
-            if (HealthFillImage != null)
+            if (HealthFillImage != null && ShipData != null)
             {
+                // ✅ Calculate total health percentage (shields + hull)
+                int maxHealth = GetMaxHealth(); // shield and hull max combined, starting values
+                int currentHealth = GetCurrentTotalHealth();
+                TargetHealthFillAmount = (float)currentHealth / maxHealth;
+
+                // ✅ Smooth lerp to target
+                HealthFillImage.fillAmount = Mathf.Lerp(
+                    HealthFillImage.fillAmount,      // current fill amount
+                    TargetHealthFillAmount,           // target fill amount based on current health
+                    HealthSpeed * Time.unscaledDeltaTime // speed of lerp
+                );
+
+                // ✅ Set background to RED (damage color) - always full
+                if (HealthBackgroundImage != null)
+                {
+                    HealthBackgroundImage.color = Color.red;
+                    HealthBackgroundImage.fillAmount = 1.0f; // Always full
+                }
+
+                // ✅ Color the FILLED portion (remaining health)
                 float healthPercent = TargetHealthFillAmount;
 
                 if (healthPercent > 0.66f)
                 {
-                    HealthFillImage.color = Color.green; // Healthy
+                    // Healthy: Green
+                    HealthFillImage.color = Color.green;
                 }
                 else if (healthPercent > 0.33f)
                 {
-                    HealthFillImage.color = Color.yellow; // Damaged
+                    // Damaged: Cyan
+                    HealthFillImage.color = Color.cyan;
+                }
+                else if (healthPercent > 0)
+                {
+                    // Critical: Yellow
+                    HealthFillImage.color = Color.yellow;
                 }
                 else
                 {
-                    HealthFillImage.color = Color.red; // Critical
+                    // Destroyed: Red (entire bar red)
+                    HealthFillImage.color = Color.red;
                 }
             }
+        }
+
+        // Add helper method to get total max health
+        private int GetMaxHealth()
+        {
+            if (ShipData?.ShipSO != null)
+            {
+                return ShipData.ShipSO.ShieldMaxHealth + ShipData.ShipSO.HullMaxHealth;
+            }
+
+            Debug.LogWarning($"ShipSO not found for {ShipData?.ShipName}, using default max health");
+            return 100;
+        }
+
+        // Add helper method to get current total health
+        private int GetCurrentTotalHealth()
+        {
+            if (ShipData != null)
+            {
+                return ShipData.ShieldHealth + ShipData.HullHealth;
+            }
+            return 0;
         }
 
         private void FixedUpdate()
@@ -423,82 +481,111 @@ namespace BOTF3D.GamePlay
             }
         }
 
+        // Update TakeDamage to modify ShipData.HullHealth directly (lines 426-480)
         public void TakeDamage(int weaponDamageInt)
         {
-            if (Health > 0)
+            if (ShipData == null)
             {
-                // ✅ Apply defensive multiplier based on combat order
-                float defenseMult = CombatOrderMatrix.GetDefenseMultiplier(Order);
-                float adjustedDamage = (weaponDamageInt / 3f) * defenseMult;
+                Debug.LogError("TakeDamage called but ShipData is null!");
+                return;
+            }
 
-                float oldHealth = Health;
-                Health -= adjustedDamage;
-                Health = Mathf.Max(Health, 0.0f);
+            // ✅ Ship must have health to take damage
+            if (ShipData.ShieldHealth <= 0 && ShipData.HullHealth <= 0)
+            {
+                Debug.LogWarning($"Ship '{ShipData.ShipName}' already destroyed, ignoring damage");
+                return;
+            }
 
-                float newHealthPercent = Health / MaxHealth;
-                TargetHealthFillAmount = newHealthPercent;
+            // ✅ Apply defensive multiplier based on combat order
+            float defenseMult = CombatOrderMatrix.GetDefenseMultiplier(Order);
+            float adjustedDamage = weaponDamageInt * defenseMult;
 
-                Debug.Log($"  💔 Ship '{ShipData.ShipName}' took {adjustedDamage:F1} damage (order={Order}, mult={defenseMult:F2})");
-                Debug.Log($"     Health: {oldHealth:F1} → {Health:F1} ({newHealthPercent:P0}), TargetFillAmount={TargetHealthFillAmount:F2}");
+            int oldShields = ShipData.ShieldHealth;
+            int oldHull = ShipData.HullHealth;
+            int totalOldHealth = oldShields + oldHull;
 
-                // ✅ Force immediate health bar update if needed
-                if (HealthFillImage != null)
+            // ✅ SHIELDS-FIRST DAMAGE SYSTEM
+            if (ShipData.ShieldHealth > 0)
+            {
+                // Damage shields first
+                int shieldDamage = Mathf.RoundToInt(adjustedDamage);
+                ShipData.ShieldHealth -= shieldDamage;
+
+                if (ShipData.ShieldHealth < 0)
                 {
-                    Debug.Log($"     HealthBar fillAmount={HealthFillImage.fillAmount:F2} → target {TargetHealthFillAmount:F2}");
+                    // Shields depleted - overflow damage goes to hull
+                    int overflowDamage = -ShipData.ShieldHealth;
+                    ShipData.ShieldHealth = 0;
+                    ShipData.HullHealth -= overflowDamage;
+                    ShipData.HullHealth = Mathf.Max(ShipData.HullHealth, 0);
+
+                    Debug.Log($"  🛡️💥 '{ShipData.ShipName}' shields COLLAPSED! {shieldDamage} damage: {oldShields} shields → 0, overflow {overflowDamage} to hull");
                 }
-
-                if (Health <= 0)
+                else
                 {
-                    Debug.LogWarning($"  ☠️ Ship '{ShipData.ShipName}' DESTROYED!");
+                    Debug.Log($"  🛡️ '{ShipData.ShipName}' shields absorbed {shieldDamage} damage: {oldShields} → {ShipData.ShieldHealth}");
                 }
             }
-            #region for tracking shields and hull individually
-            //if (ShipData.ShieldHealth > 0)
-            //{
-            //    //If the ship has shields, damage the shields first
-            //    ShipData.ShieldHealth -= (weaponDamageInt / 2);
-
-            //    return;
-            //}
-            //else if (ShipData.HullHealth > 0)
-            //{
-            //    ShipData.HullHealth -= (weaponDamageInt  / 3);
-            //    return;
-            //}
-            #endregion
             else
             {
-                // If health is zero, destroy the ship
-                var fleetController = this.ShipData.CurrentFleetController;
-                var starSysController = this.ShipData.CurrentStarSysController;
-                if (fleetController != null && !ShipData.Distroyed)
-                {
-                    ShipData.Distroyed = true;
-                    fleetController.RemoveShipFromFleet(this);
-                    CombatManager.Instance.RemoveThisShipController(this);
-                    ShipCombatCameraController.Instance.OnShipDestroyed(this);
-                    ShipData.TargetThisShipController = null; // Clear the target ship controller
-                    this.ShipData.CurrentFleetController.FleetData.ShipsList.Remove(this); // Remove this ship from the fleet's ship list
-                                                                                           // this can be problematic, FleetController can be null when its script is still running giving null reference exception
-                                                                                           // FleetManager.Instance.RemoveFleetConIfShipListIsEmpty(this); // Remove this ship from all ship lists in FleetManager
-                    Destroy(beamWeaponGO);
-                    Destroy(gameObject);
-                    this.ShipData.CurrentFleetController.IsTheFleetDestroyed();
-                    ShipManager.Instance.RemoveShipControllerFromList(this);
-                    // FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
-                }
+                // Shields already down - damage hull directly
+                int hullDamage = Mathf.RoundToInt(adjustedDamage);
+                ShipData.HullHealth -= hullDamage;
+                ShipData.HullHealth = Mathf.Max(ShipData.HullHealth, 0);
 
-                else if (starSysController != null && !ShipData.Distroyed)
+                Debug.Log($"  💔 '{ShipData.ShipName}' hull hit for {hullDamage} damage: {oldHull} → {ShipData.HullHealth}");
+            }
+
+            // ✅ Calculate health percentage
+            int maxHealth = GetMaxHealth();
+            int currentHealth = GetCurrentTotalHealth();
+            float healthPercent = (float)currentHealth / maxHealth;
+
+            Debug.Log($"  📊 '{ShipData.ShipName}' status: Shields={ShipData.ShieldHealth}, Hull={ShipData.HullHealth}, Total={currentHealth}/{maxHealth} ({healthPercent:P0})");
+            Debug.Log($"     Order={Order}, DefenseMult={defenseMult:F2}, AdjustedDamage={adjustedDamage:F1}");
+
+            // ✅ Check if ship is destroyed (hull depleted)
+            if (ShipData.HullHealth <= 0)
+            {
+                Debug.Log($"  ☠️☠️☠️ Ship '{ShipData.ShipName}' DESTROYED! ☠️☠️☠️");
+                Debug.Log($"  Final damage breakdown: Shields {oldShields}→{ShipData.ShieldHealth}, Hull {oldHull}→{ShipData.HullHealth}");
+
+                // ✅ Mark ship as destroyed and clean up
+                if (!ShipData.Distroyed)
                 {
                     ShipData.Distroyed = true;
-                    starSysController.StarSysData.ShipsList.Remove(this);
-                    CombatManager.Instance.RemoveThisShipController(this);
-                    ShipCombatCameraController.Instance.OnShipDestroyed(this);
-                    ShipData.TargetThisShipController = null; // Clear the target ship controller
-                    Destroy(beamWeaponGO);
+
+                    // Remove from fleet
+                    if (ShipData.CurrentFleetController != null)
+                    {
+                        ShipData.CurrentFleetController.RemoveShipFromFleet(this);
+                        Debug.Log($"    ✅ Removed from fleet '{ShipData.CurrentFleetController.name}'");
+                    }
+
+                    // Remove from combat tracking
+                    if (CombatManager.Instance != null)
+                    {
+                        CombatManager.Instance.RemoveThisShipController(this);
+                    }
+
+                    // Remove from camera targets
+                    if (ShipCombatCameraController.Instance != null)
+                    {
+                        ShipCombatCameraController.Instance.OnShipDestroyed(this);
+                    }
+
+                    // Clear target reference
+                    ShipData.TargetThisShipController = null;
+
+                    // ✅ CRITICAL: Destroy the ship GameObject IMMEDIATELY
+                    Debug.Log($"    🗑️ DESTROYING ship GameObject immediately!");
+
+                    // Stop any coroutines first (weapon fire, etc.)
+                    StopAllCoroutines();
+
+                    // Destroy immediately so ship vanishes from combat scene
                     Destroy(gameObject);
-                    ShipManager.Instance.RemoveShipControllerFromList(this);
-                    // FindAnyObjectByType<AudioManager>().Play("ShipDestroyed");
                 }
             }
         }

@@ -76,6 +76,7 @@ namespace BOTF3D.Combat
         private bool combatEnded = false;
         private bool showingEndPanel = false;
 
+
         private void Awake()
         {
             CombatID = GetInstanceID(); // Unity object id for this combat instance
@@ -149,7 +150,8 @@ namespace BOTF3D.Combat
             }
             else if (WarpingAnimationOver && !WarpingIn)
             {
-                if (isMoving)
+                // ✅ Stop moving if combat has ended
+                if (isMoving && !combatEnded)
                 {
                     // ✅ Use unscaledDeltaTime for combat movement
                     float step = currentSpeed * Time.unscaledDeltaTime;
@@ -164,7 +166,18 @@ namespace BOTF3D.Combat
                         var numChildren = animators[i].transform.childCount;
                         for (int j = 0; j < numChildren; j++)
                         {
-                            animators[i].transform.GetChild(j).transform.Translate(moveDirections[i] * adjustedStep, Space.Self);
+                            var child = animators[i].transform.GetChild(j);
+
+                            // ✅ CRITICAL: Don't move destroyed ships
+                            if (child != null && child.TryGetComponent<ShipController>(out var shipController))
+                            {
+                                if (shipController.ShipData != null &&
+                                    !shipController.ShipData.Distroyed &&
+                                    shipController.ShipData.ShieldHealth + shipController.ShipData.HullHealth > 0)
+                                {
+                                    child.transform.Translate(moveDirections[i] * adjustedStep, Space.Self);
+                                }
+                            }
                         }
                     }
 
@@ -177,6 +190,97 @@ namespace BOTF3D.Combat
                     }
                 }
             }
+        }
+
+        void Update()
+        {
+            // Check for combat end condition after animations complete
+            if (!combatEnded && WarpingAnimationOver && !WarpingIn)
+            {
+                // Count surviving ships on each side (only active, non-destroyed ships)
+                int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
+                int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
+
+                // Check if one side has been eliminated
+                if (sideOneAlive == 0 || sideTwoAlive == 0)
+                {
+                    Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
+                    combatEnded = true;
+
+                    // Stop all weapon fire immediately
+                    StopAllWeaponFire();
+
+                    // Show the combat end sequence
+                    if (!showingEndPanel)
+                    {
+                        showingEndPanel = true;
+                        StartCoroutine(ShowCombatEndSequence(sideOneAlive > 0));
+                    }
+                }
+            }
+        }
+
+        // Add this helper method to stop all firing
+        private void StopAllWeaponFire()
+        {
+            // Nullify all targets to stop firing loops immediately
+            foreach (var ship in CombatData.SideOneShipCons)
+            {
+                if (ship != null && ship.ShipData != null)
+                {
+                    ship.ShipData.TargetThisShipController = null;
+                }
+            }
+            foreach (var ship in CombatData.SideTwoShipCons)
+            {
+                if (ship != null && ship.ShipData != null)
+                {
+                    ship.ShipData.TargetThisShipController = null;
+                }
+            }
+            Debug.Log("🛑 All weapon fire stopped");
+        }
+
+        // Add this coroutine for the end sequence with proper delays
+        private IEnumerator ShowCombatEndSequence(bool sideOneWon)
+        {
+            // ✅ PHASE 1: Stop all movement and weapon fire
+            Debug.Log("Combat End Phase 1: Stopping movement and weapons");
+            isMoving = false; // ✅ Stop ship movement immediately
+
+            // ✅ PHASE 2: Wait for last projectiles to hit
+            // (Ships are already destroyed via TakeDamage when hull <= 0)
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ✅ PHASE 3: Show the combat over panel (destroyed ships already gone!)
+            Debug.Log("Combat End Phase 2: Showing victory panel");
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.ShowCombatOverPanel();
+
+                // Determine winner
+                CivEnum winner = sideOneWon ? CombatData.CivEnumSideOne : CombatData.CivEnumSideTwo;
+                CivEnum loser = sideOneWon ? CombatData.CivEnumSideTwo : CombatData.CivEnumSideOne;
+
+                Debug.Log($"🏆 Victory for: {winner}");
+                Debug.Log($"💀 Defeated: {loser}");
+
+                // TODO: Update panel text with winner/loser names
+            }
+
+            // ✅ PHASE 4: Wait for player to view results
+            yield return new WaitForSecondsRealtime(5f);
+
+            // ✅ PHASE 5: Clean up and return to galaxy
+            Debug.Log("Combat End Phase 3: Returning to galaxy");
+            EndCombat();
+        }
+
+        // Add this public method for button handlers (optional)
+        public void OnReturnToGalaxyButtonClicked()
+        {
+            Debug.Log("Player clicked return to galaxy");
+            EndCombat();
         }
         /// <summary>
         /// Destroys any torpedoes/beams left in the scene from previous combat
@@ -403,110 +507,75 @@ namespace BOTF3D.Combat
         {
             Debug.Log("=== EndCombat: Starting cleanup ===");
 
-            // ✅ STEP 1: Move ships BACK to their fleet parent BEFORE processing health
-            // This is critical - ships are currently parented to animator GameObjects in CombatScene
-            // We must move them back to their fleet in GalaxyScene BEFORE unloading
-
             if (CombatData.SideOneShipCons != null)
             {
                 for (int i = CombatData.SideOneShipCons.Count - 1; i >= 0; i--)
                 {
                     var ship = CombatData.SideOneShipCons[i];
-                    if (ship != null && ship.gameObject != null)
+
+                    // ✅ Skip if ship is null (already destroyed during combat)
+                    if (ship == null || ship.gameObject == null)
                     {
-                        // Remove combat-only components (these were added for combat targeting,
-                        // keep the target clone but destroy the rest)
-                        for (int j = 0; j < ship.transform.childCount; j++)
-                        {
-                            if (ship.transform.GetChild(j).name != "TargetPrefab(Clone)")
-                                Destroy(ship.transform.GetChild(j).gameObject);
-                        }
-
-                        // Check if ship was destroyed (health <= 0)
-                        if (ship.ShipData != null && ship.ShipData.HullHealth <= 0)
-                        {
-                            Debug.Log($"  Ship '{ship.name}' destroyed - removing from fleet");
-
-                            // Remove from FleetData.ShipsList
-                            if (ship.ShipData.CurrentFleetController != null &&
-                                ship.ShipData.CurrentFleetController.FleetData != null)
-                            {
-                                ship.ShipData.CurrentFleetController.FleetData.RemoveFromShipList(ship);
-                            }
-
-                            // Destroy the ship GameObject
-                            Destroy(ship.gameObject);
-                        }
-                        else
-                        {
-                            // ✅ Ship survived - CRITICAL: Move back to fleet parent BEFORE scene unload
-                            if (ship.ShipData.CurrentFleetController != null)
-                            {
-                                // Re-parent to fleet GameObject (must be in GalaxyScene, not CombatScene)
-                                ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
-
-                                // Reset position/rotation relative to fleet
-                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-                                // Enable the ship (it will be in GalaxyScene now)
-                                ship.gameObject.SetActive(true);
-
-                                Debug.Log($"  ✅ Ship '{ship.name}' moved back to fleet '{ship.ShipData.CurrentFleetController.name}'");
-                            }
-                            else
-                            {
-                                Debug.LogError($"  ❌ Ship '{ship.name}' has no fleet reference - will be destroyed with scene!");
-                            }
-                        }
+                        Debug.Log($"  ⚠️ Ship at index {i} is null (destroyed during combat)");
+                        continue;
                     }
-                }
-            }
 
-            if (CombatData.SideTwoShipCons != null)
-            {
-                for (int i = CombatData.SideTwoShipCons.Count - 1; i >= 0; i--)
-                {
-                    var ship = CombatData.SideTwoShipCons[i];
-                    if (ship != null && ship.gameObject != null)
+                    if (ship.ShipData != null)
                     {
-                        // Remove combat-only BoxCollider
-                        if (ship.TryGetComponent<BoxCollider>(out var boxCollider)) Destroy(boxCollider);
-
-                        // Check if ship was destroyed (health <= 0)
-                        if (ship.ShipData != null && ship.ShipData.HullHealth <= 0)
+                        // Remove combat-only components
+                        for (int j = ship.transform.childCount - 1; j >= 0; j--)
                         {
-                            Debug.Log($"  Ship '{ship.name}' destroyed - removing from fleet");
-
-                            // Remove from FleetData.ShipsList
-                            if (ship.ShipData.CurrentFleetController != null &&
-                                ship.ShipData.CurrentFleetController.FleetData != null)
+                            var child = ship.transform.GetChild(j);
+                            if (child.name != "TargetPrefab(Clone)")
                             {
-                                ship.ShipData.CurrentFleetController.FleetData.RemoveFromShipList(ship);
+                                Destroy(child.gameObject);
+                            }
+                        }
+
+                        // ✅ Ship survived - prepare for return to galaxy
+                        if (ship.ShipData.CurrentFleetController != null)
+                        {
+                            Debug.Log($"  ✅ Ship '{ship.name}' survived - returning to fleet");
+
+                            // ✅ CRITICAL: Remove combat-specific children before reparenting
+                            List<Transform> childrenToDestroy = new List<Transform>();
+
+                            foreach (Transform child in ship.transform)
+                            {
+                                // Destroy FBX model and combat additions
+                                if (child.name.Contains("_Model") ||
+                                    child.name.Contains("Healthbar") ||
+                                    child.name.Contains("Health") ||
+                                    child.name.Contains("Beam") ||
+                                    child.name.Contains("Torpedo"))
+                                {
+                                    childrenToDestroy.Add(child);
+                                }
                             }
 
-                            // Destroy the ship GameObject
-                            Destroy(ship.gameObject);
+                            foreach (var child in childrenToDestroy)
+                            {
+                                Debug.Log($"    🗑️ Destroying combat child: {child.name}");
+                                Destroy(child.gameObject);
+                            }
+
+                            // ✅ Re-parent to fleet GameObject (must be in GalaxyScene)
+                            ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
+
+                            // ✅ Reset position/rotation relative to fleet
+                            ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+                            // ✅ Reset scale
+                            ship.transform.localScale = Vector3.one;
+
+                            // ✅ Deactivate ship in galaxy (fleets keep ships inactive)
+                            ship.gameObject.SetActive(false);
+
+                            Debug.Log($"    ✅ Ship cleaned and returned to fleet '{ship.ShipData.CurrentFleetController.name}'");
                         }
                         else
                         {
-                            // ✅ Ship survived - CRITICAL: Move back to fleet parent BEFORE scene unload
-                            if (ship.ShipData.CurrentFleetController != null)
-                            {
-                                // Re-parent to fleet GameObject (must be in GalaxyScene, not CombatScene)
-                                ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
-
-                                // Reset position/rotation relative to fleet
-                                ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-                                // Enable the ship (it will be in GalaxyScene now)
-                                ship.gameObject.SetActive(true);
-
-                                Debug.Log($"  ✅ Ship '{ship.name}' moved back to fleet '{ship.ShipData.CurrentFleetController.name}'");
-                            }
-                            else
-                            {
-                                Debug.LogError($"  ❌ Ship '{ship.name}' has no fleet reference - will be destroyed with scene!");
-                            }
+                            Debug.LogError($"  ❌ Ship '{ship.name}' has no fleet reference - will be destroyed with scene!");
                         }
                     }
                 }
@@ -548,25 +617,62 @@ namespace BOTF3D.Combat
 
             Debug.Log($"  Found {allCombatFleets.Count} unique fleets in combat");
 
-            // ✅ STEP 3: Destroy empty fleets (now accurately reflects ships that survived)
+            // ✅ STEP 3: Destroy empty fleets and clean up fleet references
             foreach (var fleet in allCombatFleets)
             {
-                if (fleet == null) continue;
+                if (fleet == null)
+                {
+                    Debug.LogWarning("  ⚠️ Null fleet reference in combat cleanup");
+                    continue;
+                }
 
                 int shipCount = fleet.FleetData?.ShipsList?.Count ?? 0;
-                Debug.Log($"  Fleet '{fleet.name}': {shipCount} ships remaining");
+                Debug.Log($"  🚢 Fleet '{fleet.name}' ({fleet.FleetData?.CivEnum}): {shipCount} ships remaining");
 
                 if (shipCount == 0)
                 {
-                    Debug.Log($"  ✅ Destroying empty fleet '{fleet.name}'");
+                    Debug.LogWarning($"  💀💀💀 Fleet '{fleet.name}' has NO SHIPS - DESTROYING FLEET 💀💀💀");
+
+                    // ✅ CRITICAL: Use DestroyImmediate to ensure fleet is gone from GalaxyScene
                     if (FleetManager.Instance != null)
                     {
+                        // Call the manager's destroy method first (cleans up references)
                         FleetManager.Instance.DestroyFleetController(fleet);
+                        Debug.Log($"    ✅ Called FleetManager.DestroyFleetController()");
+                    }
+
+                    // ✅ FORCE immediate destruction of fleet GameObject
+                    if (fleet != null && fleet.gameObject != null)
+                    {
+                        Debug.LogWarning($"    🗑️🗑️ FORCE DESTROYING fleet GameObject: {fleet.gameObject.name}");
+
+                        // Destroy UI elements first
+                        if (fleet.FleetUIGameObject != null)
+                        {
+                            DestroyImmediate(fleet.FleetUIGameObject);
+                        }
+
+                        // Destroy drop line
+                        if (fleet.DropLine != null && fleet.DropLine.gameObject != null)
+                        {
+                            DestroyImmediate(fleet.DropLine.gameObject);
+                        }
+
+                        // Destroy the fleet GameObject itself
+                        DestroyImmediate(fleet.gameObject);
+
+                        Debug.LogWarning($"    ✅✅ Fleet '{fleet.name}' GameObject DESTROYED from GalaxyScene");
                     }
                 }
                 else
                 {
                     Debug.Log($"  ✅ Fleet '{fleet.name}' survived with {shipCount} ships");
+
+                    // ✅ Update fleet's max warp factor based on remaining ships
+                    if (fleet != null)
+                    {
+                        fleet.UpdateMaxWarp();
+                    }
                 }
             }
 
@@ -783,7 +889,14 @@ namespace BOTF3D.Combat
                     {
                         shipConList[i].HealthFillImage = healthbarImages[j];
                         shipConList[i].HealthFillImage.fillAmount = 1f;
-                        shipConList[i].HealthFillImage.color = Color.green;
+                        shipConList[i].HealthFillImage.color = Color.green; // Start green
+                    }
+                    else if (healthbarImages[j].gameObject.name == "HealthBackground")
+                    {
+                        // NEW: Set up background as red damage indicator
+                        shipConList[i].HealthBackgroundImage = healthbarImages[j];
+                        shipConList[i].HealthBackgroundImage.fillAmount = 1f;
+                        shipConList[i].HealthBackgroundImage.color = Color.red;
                     }
                 }
 
@@ -1621,77 +1734,6 @@ namespace BOTF3D.Combat
             }
 
             Debug.Log($"  ✅ Fixed {renderers.Length} renderers for '{shipGameObject.name}'");
-        }
-
-        void Update()
-        {
-            // Check for combat end condition after animations complete
-            if (!combatEnded && WarpingAnimationOver && !WarpingIn)
-            {
-                // Count surviving ships on each side (only active, non-destroyed ships)
-                int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.Health > 0 && !s.ShipData.Distroyed);
-                int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.Health > 0 && !s.ShipData.Distroyed);
-
-                // Check if one side has been eliminated
-                if (sideOneAlive == 0 || sideTwoAlive == 0)
-                {
-                    Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
-                    combatEnded = true;
-
-                    // Stop all weapon fire immediately by setting targets to null
-                    StopAllWeaponFire();
-
-                    // Show the combat over panel
-                    if (!showingEndPanel)
-                    {
-                        showingEndPanel = true;
-                        StartCoroutine(ShowCombatEndSequence(sideOneAlive > 0));
-                    }
-                }
-            }
-        }
-
-        private void StopAllWeaponFire()
-        {
-            // Nullify all targets to stop firing loops immediately
-            foreach (var ship in CombatData.SideOneShipCons)
-            {
-                if (ship != null && ship.ShipData != null)
-                {
-                    ship.ShipData.TargetThisShipController = null;
-                }
-            }
-            foreach (var ship in CombatData.SideTwoShipCons)
-            {
-                if (ship != null && ship.ShipData != null)
-                {
-                    ship.ShipData.TargetThisShipController = null;
-                }
-            }
-            Debug.Log("🛑 All weapon fire stopped");
-        }
-
-        private IEnumerator ShowCombatEndSequence(bool sideOneWon)
-        {
-            yield return new WaitForSecondsRealtime(1.5f);
-
-            if (CombatUIManager.Instance != null)
-            {
-                CombatUIManager.Instance.ShowCombatOverPanel();
-                Debug.Log($"🏆 Victory for: {(sideOneWon ? CombatData.CivEnumSideOne : CombatData.CivEnumSideTwo)}");
-            }
-            // Wait for player to view results (or add a button click handler)
-            yield return new WaitForSecondsRealtime(1.5f);
-
-            // Clean up and return to galaxy
-            EndCombat();
-            // Instead of timer, wait for button click (don't call EndCombat here)
-            // Add a button to PanelCombatEnd that calls CombatController.EndCombat() directly
-        }
-        public void OnReturnToGalaxyButtonClicked()
-        {
-            Debug.Log("Player clicked return to galaxy");
-            EndCombat();
         }
     }
 }
