@@ -232,7 +232,7 @@ namespace BOTF3D.GamePlay
             // ✅ Create EventSystem if missing
             if (combatEventSystem == null)
             {
-                Debug.LogWarning("  ⚠️ No EventSystem found in Combat scene - creating one...");
+                Debug.Log("  ⚠️ No EventSystem found in Combat scene - creating one...");
                 var eventSystemGO = new GameObject("EventSystem (Combat)");
                 eventSystemGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
                 eventSystemGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
@@ -241,7 +241,7 @@ namespace BOTF3D.GamePlay
             }
 
             // ✅ STEP 6: Double-check - disable any OTHER EventSystems that might have re-enabled
-            var allEventSystemsAfter = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            var allEventSystemsAfter = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             int disabledCount = 0;
 
             foreach (var es in allEventSystemsAfter)

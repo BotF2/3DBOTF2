@@ -2,6 +2,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,7 @@ namespace BOTF3D.GamePlay
         private int flipShipForward = 1;
         public bool WarpingInOver = false;
         private GameObject beamWeaponGO;
+        private List<GameObject> activeBeamWeapons = new List<GameObject>();
         public CombatOrders Order; // orders for the ship, e.g. attack, defend, patrol
         [SerializeField] private float minRefireDelay; // see Start()
         [SerializeField] private float maxRefireDelay;
@@ -71,7 +73,7 @@ namespace BOTF3D.GamePlay
             //Health: 100% → [████████████████████] Green fill, no red background showing
             //Health:  80% → [█████████████░░░░░░░] Green fill, red showing on right
             //Health:  50% → [██████████░░░░░░░░░░] Cyan fill, red showing on right
-            // Health:  20% →[████░░░░░░░░░░░░░░░░] Yellow fill, red showing on right
+            //Health:  20% → [████░░░░░░░░░░░░░░░░] Yellow fill, red showing on right
             //Health:   0% → [░░░░░░░░░░░░░░░░░░░░] All red
 
             if (HealthFillImage != null && ShipData != null)
@@ -399,12 +401,16 @@ namespace BOTF3D.GamePlay
                         return;
                     }
 
+                    // Modify FireWeapons to track beams (around line 406-421)
                     if (beam && ShipData.BeamDamage > 0)
                     {
                         Debug.Log($"  💥 Firing BEAM from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.BeamDamage})");
 
                         var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
                         beamWeaponGO = beamWeaponGo;
+
+                        // ✅ NEW: Track this beam weapon
+                        activeBeamWeapons.Add(beamWeaponGo);
 
                         Debug.Log($"  ⚡ Beam GameObject created: {beamWeaponGo.name}");
 
@@ -473,6 +479,10 @@ namespace BOTF3D.GamePlay
             if (beamObj != null)
             {
                 Debug.Log($"  🔴 Destroying beam weapon: {beamObj.name}");
+
+                // ✅ NEW: Remove from tracking list
+                activeBeamWeapons.Remove(beamObj);
+
                 Destroy(beamObj);
             }
             else
@@ -480,7 +490,38 @@ namespace BOTF3D.GamePlay
                 Debug.LogWarning($"  ⚠️ Beam object is NULL, can't destroy");
             }
         }
+        /// <summary>
+        /// Destroys all active beam weapons created by or targeting this ship
+        /// </summary>
+        private void DestroyAllActiveBeams()
+        {
+            Debug.Log($"  🧹 Cleaning up {activeBeamWeapons.Count} active beam weapons for '{ShipData.ShipName}'");
 
+            // Create a copy of the list to avoid modification during iteration
+            var beamsToDestroy = new List<GameObject>(activeBeamWeapons);
+
+            foreach (var beam in beamsToDestroy)
+            {
+                if (beam != null)
+                {
+                    Debug.Log($"    🗑️ Destroying beam: {beam.name}");
+                    Destroy(beam);
+                }
+            }
+            activeBeamWeapons.Clear();
+
+            // ✅ ALSO: Find and destroy any beam weapons targeting THIS ship
+            var allBeams = FindObjectsByType<BeamWeapon>(FindObjectsSortMode.None);
+            foreach (var beamWeapon in allBeams)
+            {
+                if (beamWeapon.TargetTransform != null &&
+                    beamWeapon.TargetTransform.root == this.transform.root)
+                {
+                    Debug.Log($"    🎯 Destroying beam targeting this ship: {beamWeapon.gameObject.name}");
+                    Destroy(beamWeapon.gameObject);
+                }
+            }
+        }
         // Update TakeDamage to modify ShipData.HullHealth directly (lines 426-480)
         public void TakeDamage(int weaponDamageInt)
         {
@@ -580,6 +621,9 @@ namespace BOTF3D.GamePlay
 
                     // ✅ CRITICAL: Destroy the ship GameObject IMMEDIATELY
                     Debug.Log($"    🗑️ DESTROYING ship GameObject immediately!");
+
+                    // ✅ NEW: Clean up beam weapons BEFORE stopping coroutines
+                    DestroyAllActiveBeams();
 
                     // Stop any coroutines first (weapon fire, etc.)
                     StopAllCoroutines();

@@ -2,6 +2,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -128,33 +129,65 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Ensures EventSystem exists in CombatScene (critical for builds!)
+        /// Ensures the persistent EventSystem is active (from DontDestroyOnLoad)
+        /// Destroys any EventSystem found in CombatScene to prevent conflicts
         /// </summary>
         private void EnsureEventSystemExists()
         {
-            var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            // ✅ Find the persistent EventSystem (should be in DontDestroyOnLoad)
+            UnityEngine.EventSystems.EventSystem[] allEventSystems =
+                FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
 
-            if (eventSystem == null)
+            UnityEngine.EventSystems.EventSystem persistentEventSystem = null;
+            List<UnityEngine.EventSystems.EventSystem> sceneEventSystems = new List<UnityEngine.EventSystems.EventSystem>();
+
+            foreach (var es in allEventSystems)
             {
-                Debug.LogWarning("⚠️ No EventSystem found in CombatScene - creating one!");
-
-                GameObject esGO = new GameObject("EventSystem_Combat");
-                esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
-                esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-
-                Debug.Log("✅ Created EventSystem for CombatScene");
-            }
-            else
-            {
-                Debug.Log($"✅ EventSystem exists: {eventSystem.gameObject.name}");
-
-                // Ensure it's enabled
-                if (!eventSystem.enabled)
+                // Check if this EventSystem is in DontDestroyOnLoad
+                if (es.gameObject.scene.name == "DontDestroyOnLoad" || es.gameObject.scene.buildIndex == -1)
                 {
-                    eventSystem.enabled = true;
-                    Debug.Log("  Re-enabled EventSystem");
+                    persistentEventSystem = es;
+                    Debug.Log($"✅ Found persistent EventSystem: '{es.gameObject.name}' in DontDestroyOnLoad");
+                }
+                else
+                {
+                    sceneEventSystems.Add(es);
+                    Debug.Log($"⚠️ Found scene EventSystem: '{es.gameObject.name}' in scene '{es.gameObject.scene.name}'");
                 }
             }
+
+            // ✅ If no persistent EventSystem exists, create one
+            if (persistentEventSystem == null)
+            {
+                Debug.LogWarning("⚠️ No persistent EventSystem found - creating one!");
+
+                GameObject esGO = new GameObject("EventSystem_Persistent");
+                persistentEventSystem = esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+
+                DontDestroyOnLoad(esGO);
+
+                Debug.Log("✅ Created persistent EventSystem in DontDestroyOnLoad");
+            }
+
+            // ✅ Ensure persistent EventSystem is enabled
+            if (!persistentEventSystem.enabled)
+            {
+                persistentEventSystem.enabled = true;
+                Debug.Log("✅ Enabled persistent EventSystem");
+            }
+
+            // ✅ CRITICAL: Destroy any EventSystems found in loaded scenes (prevents conflicts)
+            foreach (var sceneES in sceneEventSystems)
+            {
+                Debug.LogWarning($"🗑️ Destroying duplicate EventSystem '{sceneES.gameObject.name}' from scene to prevent conflicts");
+                Destroy(sceneES.gameObject);
+            }
+
+            // ✅ Set as current EventSystem
+            UnityEngine.EventSystems.EventSystem.current = persistentEventSystem;
+
+            Debug.Log($"✅ EventSystem configured: Active='{persistentEventSystem.gameObject.name}', Scene=DontDestroyOnLoad");
         }
 
         /// <summary>

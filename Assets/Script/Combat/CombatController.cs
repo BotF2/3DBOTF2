@@ -702,31 +702,12 @@ namespace BOTF3D.Combat
                 CombatUIManager.Instance.CleanupCombat();
             }
 
-            // ✅ STEP 8: Re-enable EventSystem in GalaxyScene BEFORE unloading CombatScene
-            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
-            if (galaxyScene.isLoaded)
-            {
-                GameObject[] rootObjects = galaxyScene.GetRootGameObjects();
-                foreach (var go in rootObjects)
-                {
-                    var eventSystem = go.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
-                    if (eventSystem != null)
-                    {
-                        eventSystem.enabled = true;
-                        Debug.Log($"  ✅ Re-enabled EventSystem: '{eventSystem.gameObject.name}'");
-                    }
-                }
-            }
+            // ✅ STEP 8: EventSystem cleanup no longer needed - persistent EventSystem stays active
 
             Debug.Log("=== EndCombat: Cleanup complete ===");
 
-            // ✅ STEP 9: Unload combat scene (ships are now safe in GalaxyScene)
+            // ✅ STEP 9: Unload combat scene
             Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-            if (combatScene.isLoaded)
-            {
-                SceneManager.UnloadSceneAsync(combatScene);
-                Debug.Log("  Unloaded combat scene");
-            }
 
             SceneController.Instance.UnloadCombatScene();
             SceneController.Instance.ReturnToGalaxyFromCombat();
