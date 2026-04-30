@@ -1,3 +1,5 @@
+using BOTF3D.UI;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -55,6 +57,12 @@ namespace BOTF3D.Core
 
         [Tooltip("Research output at each tech level (recursive bonus)")]
         public float[] ResearchOutputMultipliers = { 1.0f, 1.1f, 1.25f, 1.5f };
+
+        /// <summary>
+        /// Event fired when a civilization advances to a new tech level
+        /// Parameters: CivEnum, old TechLevel, new TechLevel
+        /// </summary>
+        public event Action<CivEnum, TechLevel, TechLevel> OnTechLevelAdvanced;
 
         private void Awake()
         {
@@ -178,23 +186,76 @@ namespace BOTF3D.Core
             if (newLevel != oldLevel)
             {
                 civData.TechLevel = newLevel;
-                OnTechLevelAdvanced(civData, oldLevel, newLevel);
+                HandleTechLevelAdvanced(civData, oldLevel, newLevel);
             }
         }
 
         /// <summary>
         /// Called when a civilization advances to a new tech level
         /// </summary>
-        private void OnTechLevelAdvanced(Core.CivData civData, Core.TechLevel oldLevel, Core.TechLevel newLevel)
+        private void HandleTechLevelAdvanced(Core.CivData civData, Core.TechLevel oldLevel, Core.TechLevel newLevel)
         {
             Debug.Log($"🔬 {civData.CivShortName} advanced from {oldLevel} to {newLevel}!");
+
+            // ✅ Fire event for UI listeners
+            OnTechLevelAdvanced?.Invoke(civData.CivEnum, oldLevel, newLevel);
 
             // Unlock new ship types
             UnlockShipsForTechLevel(civData.CivEnum, newLevel);
 
+            // ✅ NEW: Refresh build UIs for all systems owned by this civ
+            RefreshBuildUIsForCiv(civData.CivEnum);
+
             // TODO: Trigger UI notification
             // TODO: Play sound effect
             // TODO: Update available buildings/facilities
+        }
+
+        /// <summary>
+        /// Refresh build UIs for all systems owned by a civilization
+        /// Call this when tech level changes to update available ships
+        /// </summary>
+        private void RefreshBuildUIsForCiv(CivEnum civEnum)
+        {
+            if (StarSysManager.Instance == null) return;
+
+            var civController = CivManager.Instance?.GetCivControllerByCivEnum(civEnum);
+            if (civController?.CivData?.StarSysWeOwn == null) return;
+
+            Debug.Log($"  Refreshing build UIs for {civController.CivData.StarSysWeOwn.Count} systems owned by {civEnum}");
+
+            foreach (var system in civController.CivData.StarSysWeOwn)
+            {
+                if (system != null)
+                {
+                    // If the build UI is currently open for this system, refresh it
+                    RefreshSystemBuildUI(system);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refresh the build UI for a specific system
+        /// </summary>
+        private void RefreshSystemBuildUI(GamePlay.StarSysController sysCon)
+        {
+            // Check if this system's build UI is currently open
+            if (StarSysMenuUIController.Instance != null &&
+                StarSysMenuUIController.Instance.ActiveStarSysController == sysCon)
+            {
+                // Find the active build UI instance
+                GameObject buildUI = GameObject.Find("SysBuildUIList(Clone)");
+                if (buildUI != null)
+                {
+                    Debug.Log($"    ✅ Refreshing build UI for system '{sysCon.name}'");
+
+                    // Re-run the tech level filter
+                    if (StarSysManager.Instance != null)
+                    {
+                        StarSysManager.Instance.UpdateAvailableShipsByTechLevel(sysCon, buildUI);
+                    }
+                }
+            }
         }
 
         #endregion
@@ -431,6 +492,51 @@ namespace BOTF3D.Core
                 }
             }
         }
+
+        #endregion
+
+        #region Debug
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Debug: Add tech points to local player (for testing)
+        /// </summary>
+        [ContextMenu("Debug: Add 50 Tech Points")]
+        private void DebugAdd50TechPoints()
+        {
+            var localPlayer = GameController.Instance?.GameData?.LocalPlayerCivEnum;
+            if (localPlayer != null)
+            {
+                var civData = CivManager.Instance?.GetCivDataByCivEnum(localPlayer.Value);
+                if (civData != null)
+                {
+                    AddResearchPoints(civData, 50);
+                    Debug.Log($"✅ Added 50 tech points to {civData.CivShortName}. Total: {civData.TechPoints}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Debug: Advance to next tech level immediately
+        /// </summary>
+        [ContextMenu("Debug: Advance to Next Tech Level")]
+        private void DebugAdvanceToNextLevel()
+        {
+            var localPlayer = GameController.Instance?.GameData?.LocalPlayerCivEnum;
+            if (localPlayer != null)
+            {
+                var civData = CivManager.Instance?.GetCivDataByCivEnum(localPlayer.Value);
+                if (civData != null)
+                {
+                    int pointsNeeded = GetPointsNeededForNextLevel(civData.TechLevel);
+                    int pointsToAdd = pointsNeeded - civData.TechPoints + 1;
+
+                    AddResearchPoints(civData, pointsToAdd);
+                    Debug.Log($"✅ Advanced {civData.CivShortName} to {civData.TechLevel}");
+                }
+            }
+        }
+#endif
 
         #endregion
     }

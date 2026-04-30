@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: shiptype Sys hvy BOTF
+// Ignore Spelling: shiptype Sys hvy BOTF
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
@@ -1002,60 +1002,79 @@ namespace BOTF3D.Core
                     sysCon.StarSysData.CurrentOwnerCivEnum = civNew;
             }
         }
+        /// <summary>
+        /// Enables/disables ship build items based on the system owner's tech level
+        /// Called when opening the build UI
+        /// </summary>
+        /// <summary>
+        /// Enables/disables ship build items based on the system owner's tech level
+        /// Called when opening the build UI
+        /// </summary>
+        public void UpdateAvailableShipsByTechLevel(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon == null || buildUIInstance == null)
+            {
+                Debug.LogError("UpdateAvailableShipsByTechLevel: sysCon or buildUIInstance is null");
+                return;
+            }
 
-        //public void InstantiateSysUI(StarSysController sysController)
-        //{
-        //    var shipManager = ShipManager.Instance;
-        //    if (sysController.StarSysData.CurrentOwnerCivEnum == GameController.Instance.GameData.LocalPlayerCivEnum)
-        //    {
-        //        if (sysController.StarSysUIGameObject == null)
-        //        {
-        //            GameObject thisStarSysUIGameObject = (GameObject)Instantiate(sysUIPrefab, new Vector3(0, 0, 0),
-        //                Quaternion.identity);
-        //            thisStarSysUIGameObject.layer = 5;
-        //            sysController.StarSysUIGameObject = thisStarSysUIGameObject;
-        //            sysController.StarSysUIGameObject.SetActive(true);
+            CivEnum ownerCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel currentTechLevel = sysCon.StarSysData.CurrentCivController.CivData.TechLevel;
 
-        //            // Find the UI container that will hold ship UI items (include inactive children)
-        //            var shipContent = thisStarSysUIGameObject.GetComponentsInChildren<Transform>(true)
-        //                                            .FirstOrDefault(t => t.name == "ShipContent");
-        //            if (shipContent != null)
-        //            {
-        //                EnsureSystemShipUIs(sysController);
-        //                sysController.StarSysData.ShipListUIParent = shipContent.gameObject;
-        //            }
-        //            else
-        //            {
-        //                Debug.LogWarning($"InstantiateSysUI: ShipContent not found in UI prefab for system {sysController.name}");
-        //            }
+            Debug.Log($"=== UpdateAvailableShipsByTechLevel: {sysCon.name} ({ownerCiv}) at {currentTechLevel} ===");
 
-        //            // existing code to wire other UI child references...
-        //            var transforms = thisStarSysUIGameObject.transform.GetComponentsInChildren<Transform>();
-        //            for (int j = 0; j < transforms.Length; j++)
-        //            {
-        //                if (transforms[j].gameObject.name == "ShipContent")
-        //                {
-        //                    sysController.StarSysData.ShipListUIParent = transforms[j].gameObject;
-        //                    //var shipManager = ShipManager.Instance;
-        //                    if (shipManager != null)
-        //                    {
-        //                        shipManager.ProcessPendingShipUIs();
-        //                    }
-        //                    return;
-        //                }
-        //            }
-        //            thisStarSysUIGameObject.transform.SetParent(sysUIGOContentParent.transform, false);
-        //        }
-        //    }
-        //    if (shipManager != null)
-        //    {
-        //        // Process any pending ship UIs (created earlier before parent existed)
-        //        shipManager.ProcessPendingShipUIs();
+            // ✅ Find all ship build drag items in the build UI
+            ShipBuildDrag[] shipBuildItems = buildUIInstance.GetComponentsInChildren<ShipBuildDrag>(true);
 
-        //        // Ensure each ship in the StarSysData has a UI item and that the UI is parented correctly
-        //        EnsureSystemShipUIs(sysController);
-        //    }
-        //}
+            foreach (var shipItem in shipBuildItems)
+            {
+                // ✅ CRITICAL: Use GetShipSOAtBestTechLevel instead of GetShipSO
+                // GetShipSO has fallback logic that returns Scout when ship not found
+                // GetShipSOAtBestTechLevel returns null when ship not available
+                ShipSO shipAtCurrentTech = ShipManager.Instance.GetShipSOAtBestTechLevel(
+                    shipItem.ShipType,
+                    currentTechLevel,
+                    ownerCiv);
+
+                bool isAvailable = (shipAtCurrentTech != null);
+
+                if (isAvailable)
+                {
+                    // ✅ Ship available - enable and set normal appearance
+                    shipItem.gameObject.SetActive(true);
+
+                    var canvasGroup = shipItem.GetComponent<CanvasGroup>();
+                    if (canvasGroup != null)
+                    {
+                        canvasGroup.alpha = 1.0f;
+                        canvasGroup.interactable = true;
+                        canvasGroup.blocksRaycasts = true;
+                    }
+
+                    Debug.Log($"  ✅ Enabled: {shipItem.ShipType} (found {shipAtCurrentTech.ShipName} at {shipAtCurrentTech.TechLevel})");
+                }
+                else
+                {
+                    // ❌ Ship not available at current tech - grey out and disable
+                    shipItem.gameObject.SetActive(true);
+
+                    var canvasGroup = shipItem.GetComponent<CanvasGroup>();
+                    if (canvasGroup == null)
+                    {
+                        canvasGroup = shipItem.gameObject.AddComponent<CanvasGroup>();
+                    }
+
+                    canvasGroup.alpha = 0.3f; // Greyed out
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+
+                    Debug.Log($"  🔒 Locked: {shipItem.ShipType} (not available at {currentTechLevel})");
+                }
+            }
+
+            Debug.Log("=== UpdateAvailableShipsByTechLevel: Complete ===");
+        }
+
         private void EnsureSystemShipUIs(StarSysController sysCon)
         {
             if (sysCon == null || sysCon.StarSysData == null) return;
@@ -1228,7 +1247,10 @@ namespace BOTF3D.Core
                     }
                 }
             }
+            SetShipBuildImages(sysCon, sysBuildListInstance);
+            SetFacilityBuildImages(sysCon, sysBuildListInstance);
 
+            Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
             // ✅ NEW: Find and wire CloseBuilding button
             Button[] allButtons = sysBuildListInstance.GetComponentsInChildren<Button>(true);
             Debug.Log($"  Found {allButtons.Length} buttons in build UI");
@@ -1303,7 +1325,10 @@ namespace BOTF3D.Core
                 Debug.Log($"    Wired ship drag '{shipDrag.name}' to system '{sysCon.name}'");
             }
 
-            Debug.Log($"InstantiateSysBuildListUI: Complete for '{sysCon.name}'");
+            // ✅ NEW: Filter ship build items based on tech level
+            UpdateAvailableShipsByTechLevel(sysCon, sysBuildListInstance);
+
+            Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
         }
         public void NewImageInEmptyBuildAbleInventory(StarSysFacilityType type, StarSysController sysCon)
         {
@@ -1752,16 +1777,18 @@ namespace BOTF3D.Core
             if (sysCon == null || buildUIInstance == null) return;
 
             CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
-            TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
+
+            // ✅ FIX: Use CURRENT tech level, not starting!
+            TechLevel techLevel = sysCon.StarSysData.CurrentCivController.CivData.TechLevel;
 
             Debug.Log($"SetShipBuildImages: Civ={localCiv}, TechLevel={techLevel}");
 
-            // ✅ NEW: Get ships from civ-specific list, filtered by tech
-            List<ShipSO> availableShips = ShipManager.Instance.GetShipSOsForCivAndTech(localCiv, techLevel);
+            // ✅ Get ships available at or below current tech level
+            List<ShipSO> availableShips = ShipManager.Instance.GetAvailableShipsForCiv(localCiv, techLevel);
 
             if (availableShips.Count == 0)
             {
-                Debug.LogWarning($"  ⚠️ No ships found for {localCiv} at {techLevel}!");
+                Debug.LogWarning($"  ⚠️ No ships found for {localCiv} at or below {techLevel}!");
                 return;
             }
 
@@ -1789,14 +1816,38 @@ namespace BOTF3D.Core
                         Debug.Log($"  ✅ Set {shipSO.ShipType} sprite for {localCiv}");
                     }
 
-                    // ✅ Show this ship type
+                    // ✅ Show this ship type - make it fully interactable
                     dragItem.gameObject.SetActive(true);
+
+                    var canvasGroup = dragItem.GetComponent<CanvasGroup>();
+                    if (canvasGroup != null)
+                    {
+                        canvasGroup.alpha = 1.0f;
+                        canvasGroup.interactable = true;
+                        canvasGroup.blocksRaycasts = true;
+                    }
                 }
                 else
                 {
-                    // ✅ Hide ships not available at this tech level
-                    dragItem.gameObject.SetActive(false);
-                    Debug.Log($"  ⚠️ {dragItem.ShipType} not available at {techLevel} - hiding");
+                    // ❌ Ship not available at current tech level
+
+                    // Option A: Hide completely
+                    // dragItem.gameObject.SetActive(false);
+
+                    // Option B: Show greyed out (better UX - shows what's coming)
+                    dragItem.gameObject.SetActive(true);
+
+                    var canvasGroup = dragItem.GetComponent<CanvasGroup>();
+                    if (canvasGroup == null)
+                    {
+                        canvasGroup = dragItem.gameObject.AddComponent<CanvasGroup>();
+                    }
+
+                    canvasGroup.alpha = 0.3f; // Greyed out
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+
+                    Debug.Log($"  🔒 {dragItem.ShipType} locked (requires higher tech level)");
                 }
             }
         }

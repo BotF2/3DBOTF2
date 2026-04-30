@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: BOTF Kling Unregister sys
+// Ignore Spelling: BOTF Kling Unregister sys
 
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
@@ -490,22 +490,35 @@ namespace BOTF3D.Core
 
             return foundShip;
         }
-        public void BuildShipInSystem(ShipType shipType, StarSysController systemCon) // a destroyer for warp capable systems on game loading and shipyard during game
+        public void BuildShipInSystem(ShipType shipType, StarSysController systemCon)
         {
-            ShipSO ourShipSO = GetShipSO(shipType, systemCon.StarSysData.CurrentCivController.CivData.TechLevel, systemCon.StarSysData.CurrentOwnerCivEnum);
+            TechLevel civTechLevel = systemCon.StarSysData.CurrentCivController.CivData.TechLevel;
+            CivEnum civEnum = systemCon.StarSysData.CurrentOwnerCivEnum;
+
+            // ✅ Use new method that finds best available tech version
+            ShipSO ourShipSO = GetShipSOAtBestTechLevel(shipType, civTechLevel, civEnum);
+
+            if (ourShipSO == null)
+            {
+                Debug.LogError($"BuildShipInSystem: Cannot build {shipType} for {civEnum} at tech level {civTechLevel} - ship not available!");
+                return; // ✅ Don't create null ship
+            }
+
+            Debug.Log($"✅ Building {ourShipSO.ShipName} ({shipType} at {ourShipSO.TechLevel}) for system {systemCon.name}");
+
             List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
             List<ShipController> shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList, systemCon.gameObject);
+
             foreach (ShipController shipCon in shipConListOfOne)
             {
                 if (shipCon != null)
                 {
                     shipCon.transform.SetParent(systemCon.transform);
-                    // NOTE: InstantiateShipControllersWithDataFromSO already:
-                    //  - adds the ShipController to ShipControllerList
-                    //  - adds the ShipController to sysCon.StarSysData.ShipsList (when owner is a StarSysController)
-                    // so we must not add them again to avoid duplicates.
                     shipCon.ShipData.CurrentStarSysController = systemCon;
                     shipCon.ShipData.CurrentFleetController = null;
+
+                    Debug.Log($"  ✅ Ship '{shipCon.ShipData.ShipName}' added to system '{systemCon.name}'");
+                    Debug.Log($"       System now has {systemCon.StarSysData.ShipsList.Count} ships");
                 }
             }
         }
@@ -1186,98 +1199,91 @@ namespace BOTF3D.Core
         /// Get all ships available to a civilization at their current tech level (and below)
         /// NOW USES GRANULAR TECH POINTS for unlocking
         /// </summary>
-        public List<ShipSO> GetAvailableShipsForCiv(CivEnum civEnum, TechLevel techLevel)
+        public List<ShipSO> GetAvailableShipsForCiv(CivEnum civEnum, TechLevel currentTechLevel)
         {
-            // Get current tech points for more granular unlocking
-            var civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
-            int currentTechPoints = civData?.TechPoints ?? 0;
+            List<ShipSO> allCivShips = GetShipSOListByCiv(civEnum);
 
-            if (TechManager.Instance != null && civData != null)
-            {
-                // Use granular unlocking based on tech points
-                return TechManager.Instance.GetUnlockedShips(civEnum, currentTechPoints);
-            }
-
-            // Fallback: use old tech level-based unlocking
-            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
-
-            if (civShips == null || civShips.Count == 0)
+            if (allCivShips == null || allCivShips.Count == 0)
             {
                 Debug.LogWarning($"GetAvailableShipsForCiv: No ships found for {civEnum}");
                 return new List<ShipSO>();
             }
 
-            // Filter ships by tech level (current level and below)
-            var availableShips = civShips
-                .Where(s => s != null && s.TechLevel <= techLevel)
+            // ✅ Remove null entries
+            allCivShips = allCivShips.Where(s => s != null).ToList();
+
+            // ✅ Filter: Only include ships at or below current tech level
+            List<ShipSO> availableShips = allCivShips
+                .Where(s => s.TechLevel <= currentTechLevel)
                 .ToList();
 
-            Debug.Log($"GetAvailableShipsForCiv: {civEnum} at {techLevel} has {availableShips.Count} ship types available");
+            Debug.Log($"GetAvailableShipsForCiv: {civEnum} at {currentTechLevel} has {availableShips.Count}/{allCivShips.Count} ships available");
+
+            foreach (var ship in availableShips)
+            {
+                Debug.Log($"  ✅ {ship.ShipName} ({ship.ShipType} at {ship.TechLevel})");
+            }
 
             return availableShips;
         }
 
         /// <summary>
-        /// Get newly unlocked ships at a specific tech level
+        /// Checks if a specific ship type is available for a civilization at their tech level
         /// </summary>
-        public List<ShipSO> GetNewlyUnlockedShipsAtLevel(CivEnum civEnum, TechLevel techLevel)
+        public bool IsShipTypeAvailable(ShipType shipType, CivEnum civEnum, TechLevel currentTechLevel)
         {
+            ShipSO ship = GetShipSO(shipType, currentTechLevel, civEnum);
+
+            if (ship == null)
+            {
+                // Try to find ANY version of this ship type for this civ
+                List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+                ship = civShips?.FirstOrDefault(s => s != null && s.ShipType == shipType);
+
+                if (ship == null)
+                {
+                    Debug.Log($"IsShipTypeAvailable: {civEnum} has no {shipType} at any tech level");
+                    return false; // This civ doesn't have this ship type at all
+                }
+            }
+
+            // ✅ Ship is available if its tech level is at or below the civ's current level
+            bool available = ship.TechLevel <= currentTechLevel;
+
+            Debug.Log($"IsShipTypeAvailable: {shipType} for {civEnum} - Required: {ship.TechLevel}, Current: {currentTechLevel}, Available: {available}");
+            return available;
+        }
+
+        /// <summary>
+        /// Gets a specific ship by type at the BEST available tech level for the civ
+        /// Searches from current tech level DOWN to find the best match
+        /// </summary>
+        public ShipSO GetShipSOAtBestTechLevel(ShipType shipType, TechLevel maxTechLevel, CivEnum civEnum)
+        {
+            // ✅ Get civ's ship list
             List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
 
             if (civShips == null || civShips.Count == 0)
             {
-                Debug.LogWarning($"GetNewlyUnlockedShipsAtLevel: No ships found for {civEnum}");
-                return new List<ShipSO>();
+                Debug.LogWarning($"GetShipSOAtBestTechLevel: No ships found for {civEnum}");
+                return null;
             }
 
-            // Get ships unlocked EXACTLY at this tech level
-            var newShips = civShips
-                .Where(s => s != null && s.TechLevel == techLevel)
+            // ✅ Find ALL ships of this type at or below max tech level
+            var candidateShips = civShips
+                .Where(s => s != null && s.ShipType == shipType && s.TechLevel <= maxTechLevel)
+                .OrderByDescending(s => s.TechLevel) // Highest tech first
                 .ToList();
 
-            if (newShips.Count > 0)
+            if (candidateShips.Count > 0)
             {
-                Debug.Log($"GetNewlyUnlockedShipsAtLevel: {civEnum} unlocked {newShips.Count} ships at {techLevel}:");
-                foreach (var ship in newShips)
-                {
-                    Debug.Log($"  - {ship.ShipName} ({ship.ShipType}) - Requires {ship.MinTechPointsRequired} tech points");
-                }
+                ShipSO bestShip = candidateShips[0];
+                Debug.Log($"GetShipSOAtBestTechLevel: Found {shipType} for {civEnum} at {bestShip.TechLevel} (max allowed: {maxTechLevel})");
+                return bestShip;
             }
 
-            return newShips;
-        }
-
-        /// <summary>
-        /// Check if a specific ship is available for a civilization at their tech level
-        /// NOW CHECKS TECH POINTS for granular unlocking
-        /// </summary>
-        public bool IsShipAvailable(CivEnum civEnum, ShipType shipType, TechLevel civTechLevel)
-        {
-            var civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
-            if (civData == null) return false;
-
-            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
-            if (civShips == null || civShips.Count == 0) return false;
-
-            // Find ship matching type and tech level
-            var matchingShip = civShips.FirstOrDefault(s =>
-                s != null &&
-                s.ShipType == shipType &&
-                s.TechLevel == civTechLevel);
-
-            if (matchingShip == null) return false;
-
-            // Check if tech points meet requirement
-            if (TechManager.Instance != null)
-            {
-                return TechManager.Instance.IsShipUnlockedByPoints(matchingShip, civData.TechPoints);
-            }
-
-            // Fallback: just check tech level
-            return civData.TechLevel >= matchingShip.TechLevel;
+            Debug.LogWarning($"GetShipSOAtBestTechLevel: No {shipType} found for {civEnum} at or below {maxTechLevel}");
+            return null;
         }
     }
 }
-
-
-

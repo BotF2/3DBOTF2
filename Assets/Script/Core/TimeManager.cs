@@ -1,3 +1,4 @@
+using BOTF3D.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,8 +15,8 @@ namespace BOTF3D.Core
         public event Action<TrekStardateEventSO> onStardateSpecialEvent; // 
         public Action<TrekStardateEventSO> OnStardateSpecialEvent;
         public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
+        public event Action<CivEnum, TechLevel, TechLevel> OnTechLevelAdvanced;
 
-        //public TMPro.TextMeshProUGUI messageText;
         public int currentStardate { get; private set; }
 
         public bool timeRunning = true; // ✅ Change from false to true
@@ -80,11 +81,78 @@ namespace BOTF3D.Core
 
             while (timeRunning)
             {
-                yield return new WaitForSeconds(10f / currentTimeSpeed); // 10 seconds in game = 1 oneInXChance
+                yield return new WaitForSeconds(10f / currentTimeSpeed); // 10 seconds in game = 1 turn
                 currentStardate++;
                 OnStardateChanged?.Invoke();
+
+                // ✅ NEW: Process research for all civs each turn
+                ProcessTurnEvents();
+
                 CheckSpecialEvents();
             }
+        }
+
+        /// <summary>
+        /// Refresh build UIs for all systems owned by a civilization
+        /// Call this when tech level changes to update available ships
+        /// </summary>
+        private void RefreshBuildUIsForCiv(CivEnum civEnum)
+        {
+            if (StarSysManager.Instance == null) return;
+
+            var civController = CivManager.Instance?.GetCivControllerByCivEnum(civEnum);
+            if (civController?.CivData?.StarSysWeOwn == null) return;
+
+            Debug.Log($"  Refreshing build UIs for {civController.CivData.StarSysWeOwn.Count} systems owned by {civEnum}");
+
+            foreach (var system in civController.CivData.StarSysWeOwn)
+            {
+                if (system != null)
+                {
+                    // If the build UI is currently open for this system, refresh it
+                    RefreshSystemBuildUI(system);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refresh the build UI for a specific system
+        /// </summary>
+        private void RefreshSystemBuildUI(GamePlay.StarSysController sysCon)
+        {
+            // Check if this system's build UI is currently open
+            if (StarSysMenuUIController.Instance != null &&
+                StarSysMenuUIController.Instance.ActiveStarSysController == sysCon)
+            {
+                // Find the active build UI instance
+                GameObject buildUI = GameObject.Find("SysBuildUIList(Clone)");
+                if (buildUI != null)
+                {
+                    Debug.Log($"    ✅ Refreshing build UI for system '{sysCon.name}'");
+
+                    // Re-run the tech level filter
+                    if (StarSysManager.Instance != null)
+                    {
+                        StarSysManager.Instance.UpdateAvailableShipsByTechLevel(sysCon, buildUI);
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Process all turn-based events (research, production, etc.)
+        /// </summary>
+        private void ProcessTurnEvents()
+        {
+            // Process research for all civilizations
+            if (TechManager.Instance != null)
+            {
+                TechManager.Instance.ProcessResearchForAllCivs();
+            }
+
+            // TODO: Add other turn-based processing here
+            // - Population growth
+            // - Credits/income
+            // - Random events
         }
 
         // Check for special events and trigger corresponding actions

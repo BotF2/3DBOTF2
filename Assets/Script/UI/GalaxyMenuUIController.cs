@@ -1,7 +1,8 @@
-﻿using BOTF3D.Core;
+using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -17,7 +18,12 @@ namespace BOTF3D.UI
         private Canvas parentCanvas;
         [SerializeField]
         Button homeSystemButton;
-        // REMOVE [SerializeField] - use Instance singletons instead
+        [SerializeField]
+        Image insginiaSprite;
+        [SerializeField]
+        Image raceSprite;
+        [SerializeField]
+        TextMeshProUGUI civShortNameText;
         private FleetMenuUIController fleetMenuUIController => FleetMenuUIController.Instance;
         private StarSysMenuUIController starSysMenuUIController => StarSysMenuUIController.Instance;
         private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
@@ -161,8 +167,13 @@ namespace BOTF3D.UI
             // ✅ CRITICAL FIX: Activate the main galaxy menu ribbon/panel
             ActivateMainGalaxyMenu();
 
-            // ✅ CRITICAL FIX: Wire up dynamic button listeners
-            WireHomeSystemButton();
+            // ✅ Wire button with lazy initialization
+            if (homeSystemButton != null)
+            {
+                homeSystemButton.onClick.RemoveAllListeners();
+                homeSystemButton.onClick.AddListener(OnHomeSystemButtonClicked);
+                Debug.Log("✅ HomeSystemButton wired (lazy initialization)");
+            }
             WireCloseMenuButton();
 
             Debug.Log("GalaxyMenuUIController: Start complete");
@@ -193,7 +204,20 @@ namespace BOTF3D.UI
                 return;
             }
         }
-
+        /// <summary>
+        /// Called when home system button is clicked - wires to camera on first use
+        /// </summary>
+        private void OnHomeSystemButtonClicked()
+        {
+            if (GalaxyCameraDragMoveZoom.Instance != null)
+            {
+                GalaxyCameraDragMoveZoom.Instance.SetCameraToLocalPlayerHome();
+            }
+            else
+            {
+                Debug.LogError("OnHomeSystemButtonClicked: GalaxyCameraDragMoveZoom.Instance is null!");
+            }
+        }
         /// <summary>
         /// Diagnoses why buttons might not be working
         /// </summary>
@@ -334,39 +358,6 @@ namespace BOTF3D.UI
             }
         }
 
-        //// Call this from MainMenuUIController after CanvasGalaxy activates
-        //public void InitializeGalaxyCamera()
-        //{
-        //    var xAngle = GalaxyCameraDragMoveZoom.Instance.galaxyXRotation; // Set reference in camera controller as well
-        //    if (galaxyEventCamera == null)
-        //    {
-        //        var mainCameraGO = GameObject.FindGameObjectWithTag("MainCamera");
-        //        if (mainCameraGO != null)
-        //        {
-
-        //            galaxyEventCamera = mainCameraGO.GetComponent<Camera>();
-        //            galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
-        //            Debug.Log($"GalaxyMenuUIController: Found galaxy camera: {galaxyEventCamera?.name}");
-        //        }
-        //        else
-        //        {
-        //            Debug.LogWarning("GalaxyMenuUIController: MainCamera not found yet");
-        //        }
-        //    }
-
-        //    if (parentCanvas != null && galaxyEventCamera != null)
-        //    {
-        //        parentCanvas.worldCamera = galaxyEventCamera;
-        //        galaxyEventCamera.transform.rotation = Quaternion.Euler(xAngle, galaxyEventCamera.transform.eulerAngles.y, galaxyEventCamera.transform.eulerAngles.z); // Rotate camera to face correct down angle for galaxy view
-        //        Debug.Log("GalaxyMenuUIController: Parent canvas camera assigned");
-        //    }
-
-        //    // Wire up the HomeSystemButton dynamically
-        //    WireHomeSystemButton();
-
-        //    // ✅ Wire up the close button
-        //    WireCloseMenuButton();
-        //}
         private void OnDestroy()
         {
             if (Instance == this)

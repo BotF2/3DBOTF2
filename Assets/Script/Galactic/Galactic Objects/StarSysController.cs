@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Sys Habitalbe Unregister
+// Ignore Spelling: Sys Habitalbe Unregister
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System;

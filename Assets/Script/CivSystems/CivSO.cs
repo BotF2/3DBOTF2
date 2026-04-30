@@ -20,7 +20,7 @@ namespace BOTF3D.Core
         public int Population;
         public int Credits;
         public int TechPoints;
-        public TechLevel CivTechLevel; // ToDo we could define tech level by TechPoints?
+        public TechLevel CivTechLevel;
         public bool Playable;
         public bool HasWarp;
         public string Decription;
