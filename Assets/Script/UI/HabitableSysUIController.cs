@@ -44,19 +44,19 @@ namespace BOTF3D.UI
             // add a Colonize Button in habitable system ui calls HabitableSysUIController.OnColonizeButtonClicked()
             // add a Cancel Button → calls HabitableSysUIController.OnCancelButtonClicked()
             // see methods below for reference on what they should do
-            //if ((int)this.starSysController.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
-            //{
-            //    TimeManager.Instance.PauseTime();
-            //    GameObject aNull = new GameObject();
-            //    GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
-            //    Destroy(aNull);
+            if ((int)this.starSysController.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+            {
+                TimeManager.Instance.PauseTime();
+                GameObject aNull = new GameObject();
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
+                Destroy(aNull);
 
-            //    // ✅ DON'T claim immediately - wait for player to click "Colonize" button
-            //    // ClamSystem(discoveringFleetCivController, starSysController); // ❌ Remove thisYou'll need buttons in your HabitableSysUI prefab:
+                // ✅ DON'T claim immediately - wait for player to click "Colonize" button
+                // ClamSystem(discoveringFleetCivController, starSysController); // ❌ Remove thisYou'll need buttons in your HabitableSysUI prefab:
 
-            //    // ✅ Instead, show UI with colonization option
-            //    ShowColonizationOptions(discoveringFleetCivController, starSysController);
-            //}
+                // ✅ Instead, show UI with colonization option
+                ShowColonizationOptions(discoveringFleetCivController, starSysController);
+            }
         }
 
         private void ShowColonizationOptions(CivController civCon, StarSysController sysCon)

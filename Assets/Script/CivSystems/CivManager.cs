@@ -196,10 +196,8 @@ namespace BOTF3D.Core
                 civData.Greedy = civSOList[i].GreedyEnum;
                 civData.CivRaceSprite = civSOList[i].CivImage;
                 civData.InsigniaSprite = civSOList[i].Insignia;
-                civData.Population = civSOList[i].Population;
-                civData.LocalPlayerCivEnum = ((CivEnum)localPayerCivInt);
                 civData.TechPoints = civSOList[i].TechPoints;
-                civData.TechLevel = MainMenuUIController.Instance.MainMenuData.SelectedTechLevel;
+                civData.CurrentTechLevel = MainMenuUIController.Instance.MainMenuData.SelectedTechLevel;
                 civData.Playable = civSOList[i].Playable;
                 civData.HasWarp = civSOList[i].HasWarp;
                 civData.Decription = civSOList[i].Decription;

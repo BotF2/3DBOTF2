@@ -3323,8 +3323,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Technology
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d5577256cc4469040961651086e771d7, type: 2}
-  m_sharedMaterial: {fileID: -1062221726002910740, guid: d5577256cc4469040961651086e771d7, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3348,7 +3348,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 11
+  m_fontSize: 13.4
   m_fontSizeBase: 10
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -9796,9 +9796,25 @@ MonoBehaviour:
   galaxyEventCamera: {fileID: 963194234}
   parentCanvas: {fileID: 966764658}
   homeSystemButton: {fileID: 693248678}
-  insginiaSprite: {fileID: 2019961645}
-  raceSprite: {fileID: 1628814816}
+  insigniaSprite: {fileID: 21300000, guid: 18273931b6c901041bb9c53c43cea038, type: 3}
+  insigniaGO: {fileID: 2019961643}
+  raceSprite: {fileID: 21300000, guid: 9f337b818e6ce7f49ada896cbf5c1bd4, type: 3}
+  raceGO: {fileID: 1628814814}
   civShortNameText: {fileID: 1473721642}
+  federationInsignia: {fileID: 21300000, guid: 18273931b6c901041bb9c53c43cea038, type: 3}
+  romulanInsignia: {fileID: 21300000, guid: 1b5479184d7cea445b4270a277fa0adb, type: 3}
+  klingonInsignia: {fileID: 21300000, guid: 314213c0075b78447b6dd9514ca2fe63, type: 3}
+  cardassianInsignia: {fileID: 21300000, guid: fe3216cef2c7a434ebc99bee3423171a, type: 3}
+  dominionInsignia: {fileID: 21300000, guid: c05efc7684b21b14cbb712987fd3bed7, type: 3}
+  borgInsignia: {fileID: 21300000, guid: d6f9a44a9dc9a3a4ea7c0c1fedc3d44b, type: 3}
+  terranInsignia: {fileID: 21300000, guid: 2e7e9d4de9e0b2849985693c559e018b, type: 3}
+  federationRace: {fileID: 21300000, guid: 9f337b818e6ce7f49ada896cbf5c1bd4, type: 3}
+  romulanRace: {fileID: 21300000, guid: ce09c123ea9d6984ebb51c0f4c5327b6, type: 3}
+  klingonRace: {fileID: 21300000, guid: b126cfe016a216d4ab3fc9d194dc64ed, type: 3}
+  cardassianRace: {fileID: 21300000, guid: c72d1e1efe3abc8498879263caae4611, type: 3}
+  dominionRace: {fileID: 21300000, guid: cc32a325fc3e7da44964681152974a95, type: 3}
+  borgRace: {fileID: 21300000, guid: 6ed7684e500f6d341b5ba9b422dc3b30, type: 3}
+  terranRace: {fileID: 21300000, guid: 39ec3883ff6684245a79fc2d4b9ff202, type: 3}
   sysBuildMenu: {fileID: 0}
   diplomacyNoContacts: {fileID: 1682047500}
   intelMenuView: {fileID: 983926167}
@@ -9843,7 +9859,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 895974088}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

@@ -19,11 +19,32 @@ namespace BOTF3D.UI
         [SerializeField]
         Button homeSystemButton;
         [SerializeField]
-        Image insginiaSprite;
+        Sprite insigniaSprite;
+        [SerializeField] private GameObject insigniaGO;
         [SerializeField]
-        Image raceSprite;
+        private Sprite raceSprite;
+        [SerializeField] private GameObject raceGO;
         [SerializeField]
         TextMeshProUGUI civShortNameText;
+
+        // ✅ Civilization Sprites - Assign in Inspector
+        [Header("Civilization Insignias")]
+        [SerializeField] private Sprite federationInsignia;
+        [SerializeField] private Sprite romulanInsignia;
+        [SerializeField] private Sprite klingonInsignia;
+        [SerializeField] private Sprite cardassianInsignia;
+        [SerializeField] private Sprite dominionInsignia;
+        [SerializeField] private Sprite borgInsignia;
+        [SerializeField] private Sprite terranInsignia;
+
+        [Header("Civilization Race Portraits")]
+        [SerializeField] private Sprite federationRace;
+        [SerializeField] private Sprite romulanRace;
+        [SerializeField] private Sprite klingonRace;
+        [SerializeField] private Sprite cardassianRace;
+        [SerializeField] private Sprite dominionRace;
+        [SerializeField] private Sprite borgRace;
+        [SerializeField] private Sprite terranRace;
         private FleetMenuUIController fleetMenuUIController => FleetMenuUIController.Instance;
         private StarSysMenuUIController starSysMenuUIController => StarSysMenuUIController.Instance;
         private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
@@ -176,7 +197,201 @@ namespace BOTF3D.UI
             }
             WireCloseMenuButton();
 
+            // ✅ Load local player civilization UI
+            LoadLocalPlayerCivilizationUI();
+
             Debug.Log("GalaxyMenuUIController: Start complete");
+        }
+
+        /// <summary>
+        /// Loads the local player's civilization insignia, race sprite, and short name
+        /// Called after MainMenu closes and GalaxyMenu loads
+        /// </summary>
+        private void LoadLocalPlayerCivilizationUI()
+        {
+            Debug.Log("=== LoadLocalPlayerCivilizationUI: Starting ===");
+
+            // ✅ Get local player's civilization
+            if (GameController.Instance == null || GameController.Instance.GameData == null)
+            {
+                Debug.LogError("LoadLocalPlayerCivilizationUI: GameController or GameData is NULL!");
+                return;
+            }
+
+            CivEnum localPlayerCiv = GameController.Instance.GameData.LocalPlayerCivEnum;
+            Debug.Log($"  Local Player Civilization: {localPlayerCiv}");
+
+            // ✅ Get civilization short name (e.g., "FED" → "Federation")
+            string civShortName = GetCivilizationShortName(localPlayerCiv);
+            Debug.Log($"  Civilization Short Name: '{civShortName}'");
+
+            // ✅ Load Insignia Sprite
+            LoadInsigniaSprite(civShortName);
+
+            // ✅ Load Race Sprite  
+            LoadRaceSprite(civShortName);
+
+            // ✅ Set Short Name Text
+            if (civShortNameText != null)
+            {
+                civShortNameText.text = civShortName;
+                Debug.Log($"  ✅ Set civShortNameText to: '{civShortName}'");
+            }
+            else
+            {
+                Debug.LogWarning("  ⚠️ civShortNameText is NULL - cannot set text");
+            }
+
+            Debug.Log("=== LoadLocalPlayerCivilizationUI: Complete ===");
+        }
+
+        /// <summary>
+        /// Converts CivEnum to civilization short name (e.g., FED → "Federation")
+        /// </summary>
+        private string GetCivilizationShortName(CivEnum civEnum)
+        {
+            switch (civEnum)
+            {
+                case CivEnum.FED:
+                    return "Federation";
+                case CivEnum.ROM:
+                    return "Romulan";
+                case CivEnum.KLING:
+                    return "Klingon";
+                case CivEnum.CARD:
+                    return "Cardassian";
+                case CivEnum.DOM:
+                    return "Dominion";
+                case CivEnum.BORG:
+                    return "Borg";
+                case CivEnum.TERRAN:
+                    return "Terran";
+                default:
+                    Debug.LogWarning($"GetCivilizationShortName: Unknown CivEnum '{civEnum}' - using enum name");
+                    return civEnum.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Loads the insignia sprite from Inspector-assigned references
+        /// </summary>
+        private void LoadInsigniaSprite(string civShortName)
+        {
+            Sprite sprite = GetInsigniaForCivilization(civShortName);
+
+            if (sprite != null)
+            {
+                // ✅ Assign to the sprite field so it's visible in the Inspector
+                insigniaSprite = sprite;
+
+                // ✅ Correctly update the UI Image component
+                if (insigniaGO != null)
+                {
+                    Image img = insigniaGO.GetComponent<Image>();
+                    if (img != null)
+                    {
+                        img.sprite = sprite;
+                        insigniaGO.SetActive(true);
+                        Debug.Log($"  ✅ Set {insigniaGO.name} Image sprite to: '{sprite.name}'");
+                    }
+                    else
+                    {
+                        Debug.LogError($"  ❌ {insigniaGO.name} is missing an Image component!");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError($"  ❌ No insignia sprite assigned for '{civShortName}' in Inspector!");
+            }
+        }
+
+        /// <summary>
+        /// Gets the insignia sprite for a civilization from Inspector references
+        /// </summary>
+        private Sprite GetInsigniaForCivilization(string civShortName)
+        {
+            switch (civShortName.ToLower())
+            {
+                case "federation":
+                    return federationInsignia;
+                case "romulan":
+                    return romulanInsignia;
+                case "klingon":
+                    return klingonInsignia;
+                case "cardassian":
+                    return cardassianInsignia;
+                case "dominion":
+                    return dominionInsignia;
+                case "borg":
+                    return borgInsignia;
+                case "terran":
+                    return terranInsignia;
+                default:
+                    Debug.LogWarning($"GetInsigniaForCivilization: Unknown civilization '{civShortName}'");
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Loads the race sprite from Inspector-assigned references
+        /// </summary>
+        private void LoadRaceSprite(string civShortName)
+        {
+            Sprite sprite = GetRacePortraitForCivilization(civShortName);
+
+            if (sprite != null)
+            {
+                // ✅ Assign to the sprite field so it's visible in the Inspector
+                raceSprite = sprite;
+
+                // ✅ Correctly update the UI Image component
+                if (raceGO != null)
+                {
+                    Image img = raceGO.GetComponent<Image>();
+                    if (img != null)
+                    {
+                        img.sprite = sprite;
+                        raceGO.SetActive(true);
+                        Debug.Log($"  ✅ Set {raceGO.name} Image sprite to: '{sprite.name}'");
+                    }
+                    else
+                    {
+                        Debug.LogError($"  ❌ {raceGO.name} is missing an Image component!");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError($"  ❌ No race sprite assigned for '{civShortName}' in Inspector!");
+            }
+        }
+
+        /// <summary>
+        /// Gets the race portrait sprite for a civilization from Inspector references
+        /// </summary>
+        private Sprite GetRacePortraitForCivilization(string civShortName)
+        {
+            switch (civShortName.ToLower())
+            {
+                case "federation":
+                    return federationRace;
+                case "romulan":
+                    return romulanRace;
+                case "klingon":
+                    return klingonRace;
+                case "cardassian":
+                    return cardassianRace;
+                case "dominion":
+                    return dominionRace;
+                case "borg":
+                    return borgRace;
+                case "terran":
+                    return terranRace;
+                default:
+                    Debug.LogWarning($"GetRacePortraitForCivilization: Unknown civilization '{civShortName}'");
+                    return null;
+            }
         }
 
         /// <summary>
@@ -184,23 +399,9 @@ namespace BOTF3D.UI
         /// </summary>
         private void ActivateMainGalaxyMenu()
         {
-            Debug.Log("ActivateMainGalaxyMenu: Searching for main menu UI...");
-
-            // Common names for the main menu ribbon/panel
-            string menuName = "MainGalaxyMenuRibbon";
-
-            Canvas parentCanvas = GetComponentInParent<Canvas>();
-            if (parentCanvas == null)
+            if (parentCanvas != null)
             {
-                Debug.LogError("ActivateMainGalaxyMenu: No parent canvas found!");
-                return;
-            }
-
-            Transform menuTransform = parentCanvas.transform.Find(menuName);
-            if (menuTransform != null)
-            {
-                menuTransform.gameObject.SetActive(true);
-                Debug.Log($"✅ Activated main menu: {menuName}");
+                parentCanvas.gameObject.SetActive(true);
                 return;
             }
         }
@@ -209,6 +410,7 @@ namespace BOTF3D.UI
         /// </summary>
         private void OnHomeSystemButtonClicked()
         {
+
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
                 GalaxyCameraDragMoveZoom.Instance.SetCameraToLocalPlayerHome();

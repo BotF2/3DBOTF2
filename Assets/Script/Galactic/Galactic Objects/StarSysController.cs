@@ -68,6 +68,7 @@ namespace BOTF3D.GamePlay
         internal List<Transform> sysShipBuildQueueList;
         private Transform shipBuildingItem;
         private GalaxyMenuUIController galaxyUI;
+
         private GalaxyMenuUIController GalaxyUI
         {
             get
@@ -193,6 +194,8 @@ namespace BOTF3D.GamePlay
                 StarSysBuildManager.StartNextFacilityBuildIfAny();
             }
         }
+
+
         public void GridShipQueueUpdate()
         {
             if (ShipListGridLayoutGroup == null)
@@ -216,6 +219,17 @@ namespace BOTF3D.GamePlay
             if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
             {
                 StarSysBuildManager.StartNextShipBuildIfAny();
+            }
+        }
+        public void UpgradeShipToCurrentTech(ShipController ship)
+        {
+            var currentTech = this.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+
+            if (ship.ShipData.TechLevel < currentTech)
+            {
+                // Add to upgrade queue
+                // Cost: BuildDuration / 2, uses shipyard
+                Debug.Log($"Upgrading {ship.ShipData.ShipName} from {ship.ShipData.TechLevel} to {currentTech}");
             }
         }
         public void DoHabitalbeSystemUI(CivController discoveringCiv)

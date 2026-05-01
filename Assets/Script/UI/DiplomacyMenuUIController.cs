@@ -1,4 +1,4 @@
-﻿using BOTF3D.Core;
+using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
@@ -386,7 +386,7 @@ namespace BOTF3D.UI
             TextMeshProUGUI[] ourTMPs = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
             for (int i = 0; i < ourTMPs.Length; i++)
             {
-                int techLevelInt = (int)notLocalPlayerCiv.CivData.TechLevel / 100; // Early Tech level = 100, Supreme = 900;
+                int techLevelInt = (int)notLocalPlayerCiv.CivData.CurrentTechLevel / 100; // Early Tech level = 100, Supreme = 900;
                 ourTMPs[i].enabled = true;
                 var aName = ourTMPs[i].name;
                 var sysCiv = homeSysController.StarSysData.CurrentOwnerCivEnum;

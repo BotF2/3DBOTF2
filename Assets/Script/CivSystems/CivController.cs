@@ -69,7 +69,7 @@ namespace BOTF3D.GamePlay
         {
             if (civEnum == this.CivData.CivEnum)
             {
-                return CivData.TechLevel;
+                return CivData.CurrentTechLevel;
             }
             return TechLevel.EARLY;
         }

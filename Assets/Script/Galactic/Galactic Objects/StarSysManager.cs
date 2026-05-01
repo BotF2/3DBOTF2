@@ -1019,7 +1019,7 @@ namespace BOTF3D.Core
             }
 
             CivEnum ownerCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
-            TechLevel currentTechLevel = sysCon.StarSysData.CurrentCivController.CivData.TechLevel;
+            TechLevel currentTechLevel = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
 
             Debug.Log($"=== UpdateAvailableShipsByTechLevel: {sysCon.name} ({ownerCiv}) at {currentTechLevel} ===");
 
@@ -1779,7 +1779,7 @@ namespace BOTF3D.Core
             CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
 
             // ✅ FIX: Use CURRENT tech level, not starting!
-            TechLevel techLevel = sysCon.StarSysData.CurrentCivController.CivData.TechLevel;
+            TechLevel techLevel = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
 
             Debug.Log($"SetShipBuildImages: Civ={localCiv}, TechLevel={techLevel}");
 

@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Sys
+// Ignore Spelling: Sys
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections;
@@ -230,7 +230,7 @@ namespace BOTF3D.Core
 
             int buildTime = ShipManager.Instance.GetShipBuildDuration(
                 drag.ShipType,
-                controller.StarSysData.CurrentCivController.CivData.TechLevel,
+                controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel,
                 controller.StarSysData.CurrentOwnerCivEnum
             );
 
@@ -297,7 +297,7 @@ namespace BOTF3D.Core
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
         {
             int timeDuration = 1;
-            TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.TechLevel;
+            TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
 
             // ✅ Get base build time
             switch (starSysFacilities)

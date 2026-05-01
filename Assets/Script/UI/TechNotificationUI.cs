@@ -1,4 +1,5 @@
 using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -45,10 +46,10 @@ namespace BOTF3D.UI
 
         private void OnEnable()
         {
-            // Subscribe to tech advancement events
+            // Subscribe to tech advancement event
             if (TechManager.Instance != null)
             {
-                TechManager.Instance.OnTechLevelAdvanced += ShowTechAdvancementNotification;
+                TechManager.Instance.OnTechAdvanced += OnTechAdvanced; // ✅ Use event, not private method
             }
         }
 
@@ -57,38 +58,24 @@ namespace BOTF3D.UI
             // Unsubscribe
             if (TechManager.Instance != null)
             {
-                TechManager.Instance.OnTechLevelAdvanced -= ShowTechAdvancementNotification;
+                TechManager.Instance.OnTechAdvanced -= OnTechAdvanced;
             }
+        }
+
+        private void OnTechAdvanced(CivController civ, TechLevel newLevel)
+        {
+            // Handle the event
+            ShowTechAdvancement(civ, newLevel);
         }
 
         /// <summary>
         /// Show notification when tech level advances
         /// </summary>
-        private void ShowTechAdvancementNotification(CivEnum civEnum, TechLevel oldLevel, TechLevel newLevel)
+        public void ShowTechAdvancement(CivController civ, TechLevel newLevel)
         {
-            // Only show for local player
-            if (!GameController.Instance.AreWeLocalPlayer(civEnum))
-                return;
-
-            var civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
-            if (civData == null) return;
-
-            string civName = civData.CivShortName;
-
-            if (titleText != null)
-                titleText.text = "TECHNOLOGY ERA";
-
-            if (messageText != null)
-                messageText.text = $"{newLevel}"; //{civName} available
-
-            if (notificationPanel != null)
-                notificationPanel.SetActive(true);
-
-            // Auto-close after duration
-            if (autoCloseDuration > 0)
-                Invoke(nameof(CloseNotification), autoCloseDuration);
-
-            Debug.Log($"🔔 Showing tech advancement notification: {civName} → {newLevel}");
+            // Show notification UI
+            Debug.Log($"📢 Showing tech notification: {civ.CivData.CivShortName} → {newLevel}");
+            // TODO: Show UI panel with tech advancement message
         }
 
         public void CloseNotification()

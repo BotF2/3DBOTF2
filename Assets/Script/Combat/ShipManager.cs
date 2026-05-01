@@ -492,7 +492,7 @@ namespace BOTF3D.Core
         }
         public void BuildShipInSystem(ShipType shipType, StarSysController systemCon)
         {
-            TechLevel civTechLevel = systemCon.StarSysData.CurrentCivController.CivData.TechLevel;
+            TechLevel civTechLevel = systemCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
             CivEnum civEnum = systemCon.StarSysData.CurrentOwnerCivEnum;
 
             // ✅ Use new method that finds best available tech version
@@ -746,7 +746,7 @@ namespace BOTF3D.Core
             // var shipCon = shipCon.GetComponent<FleetController>();
             CivEnum civEnum = fleetCon.FleetData.CivEnum;
             List<ShipSO> ships = new List<ShipSO>();
-            ships = FirstShipDataByTechLevel(CivManager.Instance.GetCivDataByCivEnum(civEnum).TechLevel, civEnum);
+            ships = FirstShipDataByTechLevel(CivManager.Instance.GetCivDataByCivEnum(civEnum).CurrentTechLevel, civEnum);
             List<ShipController> shipCons = new List<ShipController>();
             if (ships != null)
             {

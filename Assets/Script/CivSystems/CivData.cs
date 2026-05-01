@@ -19,10 +19,15 @@ namespace BOTF3D.Core
         public GreedyEnum Greedy; //XenophobiaEnum
         public Sprite CivRaceSprite;
         public Sprite InsigniaSprite;
-        public int Population = 5;
-        // public int Credits = 100;
-        public int TechPoints = 10; // 10 for pre warp and playable get 90 more to be tech level early at 100; 
-        public TechLevel TechLevel = TechLevel.EARLY; // all cis have tech points and the tech level enum value sets a level threshold
+        public static readonly Dictionary<TechLevel, int> TechThresholds = new()
+        {
+            { TechLevel.EARLY, 0 },
+            { TechLevel.DEVELOPED, 100 },
+            { TechLevel.ADVANCED, 300 },
+            { TechLevel.SUPREME, 600 }
+        };
+        public int TechPoints { get; set; } = 0;
+        public TechLevel CurrentTechLevel { get; set; } = TechLevel.EARLY;
         public bool Playable;
         public bool PlayedByAI = true;
         public CivEnum LocalPlayerCivEnum;
@@ -31,8 +36,6 @@ namespace BOTF3D.Core
         public List<StarSysController> StarSysWeOwn;
         //public List<CivController> CivControllersWeKnow;
         //public List<CivEnum> CivEnumsWeKnow;
-        //public float TaxRate; // universal or variable by civ/system??
-        //public float GrowthRate; // universal or variable by civ/system??
         public float IntelPoints;
         private object SystemsOwned;
 
@@ -44,11 +47,11 @@ namespace BOTF3D.Core
         {
             if (TechManager.Instance != null)
             {
-                return TechManager.Instance.GetPowerEfficiencyMultiplier(TechLevel);
+                return TechManager.Instance.GetPowerEfficiencyMultiplier(CurrentTechLevel);
             }
 
             // Fallback if TechManager not available
-            switch (TechLevel)
+            switch (CurrentTechLevel)
             {
                 case TechLevel.EARLY: return 1.0f;
                 case TechLevel.DEVELOPED: return 1.2f;
@@ -89,59 +92,33 @@ namespace BOTF3D.Core
         {
             if (TechManager.Instance != null)
             {
-                TechManager.Instance.AddResearchPoints(this, points);
+                TechManager.Instance.AddResearchPoints(CivManager.Instance.GetCivControllerByCivEnum(CivEnum), points);
             }
             else
             {
                 // Fallback if TechManager not available
-                TechLevel oldLevel = TechLevel;
+                TechLevel oldLevel = CurrentTechLevel;
                 TechPoints += points;
 
                 // Simple threshold check
-                if (TechPoints >= 1000 && oldLevel != TechLevel.SUPREME)
-                    TechLevel = TechLevel.SUPREME;
-                else if (TechPoints >= 600 && oldLevel != TechLevel.ADVANCED)
-                    TechLevel = TechLevel.ADVANCED;
-                else if (TechPoints >= 300 && oldLevel != TechLevel.DEVELOPED)
-                    TechLevel = TechLevel.DEVELOPED;
-                else if (TechPoints >= 100 && oldLevel != TechLevel.EARLY)
-                    TechLevel = TechLevel.EARLY;
+                if (TechPoints >= 600 && oldLevel != TechLevel.SUPREME)
+                    CurrentTechLevel = TechLevel.SUPREME;
+                else if (TechPoints >= 300 && oldLevel != TechLevel.ADVANCED)
+                    CurrentTechLevel = TechLevel.ADVANCED;
+                else if (TechPoints >= 100 && oldLevel != TechLevel.DEVELOPED)
+                    CurrentTechLevel = TechLevel.DEVELOPED;
+                else
+                    CurrentTechLevel = TechLevel.EARLY;
             }
         }
 
         /// <summary>
         /// Get progress toward next tech level (0-1)
         /// </summary>
-        public float GetTechProgressToNextLevel()
+        public float GetTechProgress()
         {
-            if (TechManager.Instance != null)
-            {
-                return TechManager.Instance.GetProgressToNextLevel(TechPoints, TechLevel);
-            }
-
-            // Fallback calculation
-            int currentThreshold = 0;
-            int nextThreshold = 300;
-
-            switch (TechLevel)
-            {
-                case TechLevel.EARLY:
-                    currentThreshold = 0;
-                    nextThreshold = 300;
-                    break;
-                case TechLevel.DEVELOPED:
-                    currentThreshold = 300;
-                    nextThreshold = 600;
-                    break;
-                case TechLevel.ADVANCED:
-                    currentThreshold = 600;
-                    nextThreshold = 1000;
-                    break;
-                case TechLevel.SUPREME:
-                    return 1f; // Max level
-            }
-
-            return Mathf.Clamp01((float)(TechPoints - currentThreshold) / (nextThreshold - currentThreshold));
+            if (TechManager.Instance == null) return 0f;
+            return TechManager.Instance.GetProgressToNextLevel(this);
         }
     }
 }
