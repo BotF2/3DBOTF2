@@ -111,10 +111,8 @@ namespace BOTF3D.Core
                         _SOsInGame.Add(smallMapMinorNeighborsInGame[i]); // add playable's minor races
                         if (galaxySize >= 1)
                             _SOsInGame.Add(mediumMapMinorNeighborsInGame[i]);
-                        if (galaxySize == 2)
+                        if (galaxySize >= 2)
                             _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
-                        //if (galaxySize >= 3)
-                        //_SOsInGame.Add(randomMinorsInGame[i]);
                     }
                 }
                 SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
@@ -146,6 +144,7 @@ namespace BOTF3D.Core
                 // Small = 7 playables + ~40 minors (~47 total)
                 // Medium = 7 playables + ~80 minors (~87 total)
                 // Large = 7 playables + ~120 minors (~127 total)
+                // Extreme = 7 playables + ~160 minors (~167 total)
                 int targetMinorCount = (galaxySize + 1) * 40;
 
                 List<CivSO> availableMinors = new List<CivSO>();

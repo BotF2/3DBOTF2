@@ -110,7 +110,7 @@ namespace BOTF3D.UI
         public List<Toggle> MapToggles;
         private Toggle activeGalaxySizeToggle;
         public ToggleGroup GalaxySizeToggleGroup;
-        public Toggle SmallGalaxyToggle, MediumGalaxyToggle, LargeGalaxyToggle, PonderousGalaxyToggle;
+        public Toggle SmallGalaxyToggle, MediumGalaxyToggle, LargeGalaxyToggle, ExtremeGalaxyToggle;
         public List<Toggle> GalaxySizeToggles;
         private Toggle activeTechLevelToggle;
         public ToggleGroup TechLevelToggleGroup;
@@ -187,7 +187,7 @@ namespace BOTF3D.UI
             GalaxySizeToggleGroup.RegisterToggle(SmallGalaxyToggle);
             GalaxySizeToggleGroup.RegisterToggle(MediumGalaxyToggle);
             GalaxySizeToggleGroup.RegisterToggle(LargeGalaxyToggle);
-            GalaxySizeToggleGroup.RegisterToggle(PonderousGalaxyToggle);
+            GalaxySizeToggleGroup.RegisterToggle(ExtremeGalaxyToggle);
 
             TechLevelToggleGroup.enabled = true;
             TechLevelToggleGroup = techLevelToggleGroup.GetComponent<ToggleGroup>();
@@ -423,7 +423,7 @@ namespace BOTF3D.UI
             SmallGalaxyToggle.isOn = true;
             MediumGalaxyToggle.isOn = false;
             LargeGalaxyToggle.isOn = false;
-            PonderousGalaxyToggle.isOn = false;
+            ExtremeGalaxyToggle.isOn = false;
 
             // Tech level toggles
             EarlyToggle.isOn = true;
@@ -1230,10 +1230,10 @@ namespace BOTF3D.UI
                     LargeGalaxyToggle = activeGalaxySizeToggle;
                     SetGalaxySize((int)GalaxySize.MEDIUM);
                     break;
-                case "TOGGLE_PONDEROUS":
-                    PonderousGalaxyToggle.isOn = true;
-                    PonderousGalaxyToggle.OnSelect(null);
-                    PonderousGalaxyToggle = activeGalaxySizeToggle;
+                case "TOGGLE_EXTREME":
+                    ExtremeGalaxyToggle.isOn = true;
+                    ExtremeGalaxyToggle.OnSelect(null);
+                    ExtremeGalaxyToggle = activeGalaxySizeToggle;
                     SetGalaxySize((int)GalaxySize.EXTREME);
                     break;
                 default:

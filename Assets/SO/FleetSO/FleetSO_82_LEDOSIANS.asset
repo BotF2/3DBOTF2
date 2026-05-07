@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: FleetSO_82_LEDOSIANS
   m_EditorClassIdentifier: 
   CivIndex: 82
-  Insignia: {fileID: 21300000, guid: 20a4523b791b0c54197bd8bcdb9cc44f, type: 3}
+  Insignia: {fileID: 21300000, guid: 1aa879e315ba89144b60186112c97190, type: 3}
   CivOwnerEnum: 82
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 

@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Nums Revealer
+// Ignore Spelling: Nums Revealer
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
@@ -316,7 +316,7 @@ namespace BOTF3D.Core
             {
                 if (!isNewFleet)
                 {
-                    newFleet.transform.Translate(new Vector3(newTrans.position.x + 15f, newTrans.position.y + 10f, newTrans.position.z + 10F));
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y + 20f, newTrans.position.z + 10F));
                 }
                 else
                 {

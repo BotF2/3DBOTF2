@@ -2316,7 +2316,7 @@ MonoBehaviour:
   SmallGalaxyToggle: {fileID: 1076926855}
   MediumGalaxyToggle: {fileID: 2074779820}
   LargeGalaxyToggle: {fileID: 1630856275}
-  PonderousGalaxyToggle: {fileID: 783945026}
+  ExtremeGalaxyToggle: {fileID: 783945026}
   GalaxySizeToggles: []
   TechLevelToggleGroup: {fileID: 430108345}
   EarlyToggle: {fileID: 712588519}
