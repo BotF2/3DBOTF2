@@ -127,15 +127,78 @@ namespace BOTF3D.Core
             }
             else if (galaxyType == GalaxyMapType.RANDOM)
             {
-                // do random map here
+                // ✅ FIX: Implement random galaxy generation
+                Debug.Log($"=== UpdatePlayableCivGameList: RANDOM galaxy (size={galaxySize}) ===");
+
+                List<CivSO> _SOsInGame = new List<CivSO>();
+
+                // ✅ Step 1: Add selected playable civs (user choices from main menu)
+                for (int i = 0; i < listPlayableCivEnumForCivSOs.Count; i++)
+                {
+                    if (listPlayableCivEnumForCivSOs[i] != CivEnum.ZZUNINHABITED1)
+                    {
+                        _SOsInGame.Add(CivSOListAllPossible[i]); // Add the playable civ
+                        Debug.Log($"  Added playable: {CivSOListAllPossible[i].CivShortName}");
+                    }
+                }
+
+                // ✅ Step 2: Add random minor races based on galaxy size
+                // Small = 7 playables + ~40 minors (~47 total)
+                // Medium = 7 playables + ~80 minors (~87 total)
+                // Large = 7 playables + ~120 minors (~127 total)
+                int targetMinorCount = (galaxySize + 1) * 40;
+
+                List<CivSO> availableMinors = new List<CivSO>();
+                for (int i = 0; i < CivSOListAllPossible.Count; i++)
+                {
+                    // Skip playables and uninhabited
+                    if (!CivSOListAllPossible[i].Playable &&
+                        CivSOListAllPossible[i].CivEnum != CivEnum.ZZUNINHABITED1)
+                    {
+                        availableMinors.Add(CivSOListAllPossible[i]);
+                    }
+                }
+
+                // ✅ Shuffle using Fisher-Yates
+                availableMinors = availableMinors.OrderBy(x => Guid.NewGuid()).ToList();
+
+                // ✅ Take the first N minors
+                int minorsToAdd = Mathf.Min(targetMinorCount, availableMinors.Count);
+                for (int i = 0; i < minorsToAdd; i++)
+                {
+                    _SOsInGame.Add(availableMinors[i]);
+                    Debug.Log($"  Added minor: {availableMinors[i].CivShortName}");
+                }
+
+                CivSOsInGame = _SOsInGame;
+                Debug.Log($"=== RANDOM galaxy complete: {CivSOsInGame.Count} total civs ===");
             }
             else if (galaxyType == GalaxyMapType.RING)
             {
-                // do ring galaxy here
+                // TODO: Implement ring galaxy here
+                Debug.LogWarning("RING galaxy type not yet implemented - using CANON logic");
+
+                // ✅ Fallback to CANON for now
+                List<CivSO> _SOsInGame = new List<CivSO>();
+                for (int i = 0; i < listPlayableCivEnumForCivSOs.Count; i++)
+                {
+                    if (listPlayableCivEnumForCivSOs[i] != CivEnum.ZZUNINHABITED1)
+                    {
+                        _SOsInGame.Add(CivSOListAllPossible[i]);
+                        _SOsInGame.Add(smallMapMinorNeighborsInGame[i]);
+                        if (galaxySize >= 1)
+                            _SOsInGame.Add(mediumMapMinorNeighborsInGame[i]);
+                        if (galaxySize == 2)
+                            _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
+                    }
+                }
+                SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
+                CivSOsInGame = _SOsInGame;
             }
             else if (galaxyType == GalaxyMapType.WHATEVER)
             {
                 // do something else here
+                Debug.LogWarning("WHATEVER galaxy type not implemented");
             }
 
         }

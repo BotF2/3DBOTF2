@@ -125,6 +125,13 @@ namespace BOTF3D.Audio
             // ✅ Load saved volume settings FIRST
             LoadVolumeSettings();
 
+            // ✅ Ensure AudioManager has an AudioListener (since it's DontDestroyOnLoad)
+            if (GetComponent<AudioListener>() == null)
+            {
+                gameObject.AddComponent<AudioListener>();
+                Debug.Log("✅ Added AudioListener to AudioManager");
+            }
+
             // ✅ CRITICAL: Initialize music sources BEFORE anything else
             if (musicSource1 == null)
             {
