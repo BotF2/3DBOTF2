@@ -664,13 +664,13 @@ namespace BOTF3D.GamePlay
         }
         public void BuildClick(StarSysController sysCon) // open build and ship build list UI
         {
-            StarSysManager.Instance.InstantiateSysBuildListUI(this);
+            StarSysManager.Instance.InstantiateSysBuildUI(this);
             GalaxyUI.OpenMenu(Menu.BuildMenu, null);
 
         }
         public void ShipClick(StarSysController sysCon) // open build and ship build list UI
         {
-            StarSysManager.Instance.InstantiateSysBuildListUI(this);
+            StarSysManager.Instance.InstantiateSysBuildUI(this);
             GalaxyUI.OpenMenu(Menu.BuildMenu, null);
         }
         public void FactoryButtonOnClicked(StarSysController starSysCon)

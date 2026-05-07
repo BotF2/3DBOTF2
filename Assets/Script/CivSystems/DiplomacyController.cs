@@ -3,17 +3,6 @@ using BOTF3D.UI;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum EncounterType
-{
-    FirstContact,
-    Diplomacy, // civ to civ and civs can be local player or AI
-    Combat,  //? is this a subtype of Diplomacy as seen by Diplomacy
-    FleetManagement, // thinking we can do this back in the fleetController
-    EnterSystem,
-    UninhabitedSystem,
-    StrangeGalacticObject,
-}
-
 namespace BOTF3D.GamePlay
 {
     public class DiplomacyController : MonoBehaviour
@@ -145,10 +134,17 @@ namespace BOTF3D.GamePlay
             // ToDo: include orbital batteries and shields in combat, see ValidCombatCheck()
             if (diplomacyController.DiplomacyData.CombatIntiated != true && ValidCombatCheck(diplomacyController.DiplomacyData))
             {
-
                 diplomacyController.DiplomacyData.CombatIntiated = true;
 
+                // ✅ CRITICAL: Close diplomacy menu AND clear the open menu tracking
+                // This prevents the system from trying to re-open the wrong menu
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu); // Also close the individual diplomacy view
+
+                // ✅ Force close ALL menus to prevent UI conflicts
+                GalaxyMenuUIController.Instance.CloseAllMenus();
+
+                Debug.Log($"✅ Diplomacy closed, loading combat scene...");
 
                 SceneController.Instance.LoadCombatScene(
                     diplomacyController.DiplomacyData.FleetControllerCivOne,

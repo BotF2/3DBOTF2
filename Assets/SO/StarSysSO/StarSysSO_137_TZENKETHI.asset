@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_137_TZENKETHI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 137
-  Position: {x: 440, y: 3, z: -250}
+  Position: {x: 49.8, y: 0.56, z: -23.66}
   SysName: TZENKETHI
   FirstOwner: 137
   CurrentOwner: 137
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

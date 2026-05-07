@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_173_AMLETH
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 173
-  Position: {x: -500, y: 20, z: -650}
+  Position: {x: -50.05, y: 1.8, z: -65.32}
   SysName: AMLETH
   FirstOwner: 173
   CurrentOwner: 173
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

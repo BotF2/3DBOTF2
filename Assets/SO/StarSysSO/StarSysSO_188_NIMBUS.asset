@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_188_NIMBUS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 188
-  Position: {x: 100, y: 27, z: 470}
+  Position: {x: 13.94, y: 2.31, z: 50.3}
   SysName: NIMBUS
   FirstOwner: 188
   CurrentOwner: 188
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

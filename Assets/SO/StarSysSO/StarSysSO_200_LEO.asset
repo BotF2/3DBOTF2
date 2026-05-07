@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_200_LEO
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 200
-  Position: {x: 100, y: 1, z: -260}
+  Position: {x: 13.94, y: 0.42, z: -25.09}
   SysName: LEO
   FirstOwner: 200
   CurrentOwner: 200
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

@@ -103,6 +103,10 @@ namespace BOTF3D.Core
         [SerializeField]
         public GameObject StarSysUI_ListContainer;
 
+        // ✅ NEW: Random position pool for RANDOM galaxy type
+        private List<Vector3> randomPositionPool;
+        private int randomPositionIndex = 0;
+
         private void Awake()
         {
             if (Instance != null)
@@ -116,26 +120,79 @@ namespace BOTF3D.Core
 
                 Debug.Log("StarSysManager: Awake - Instance created");
 
+                // Load all StarSysSO assets
+                LoadStarSystemScriptableObjects();
+
                 // Find critical references EARLY
                 FindGalaxyReferences();
             }
         }
 
-        private void Start()
+        private void LoadStarSystemScriptableObjects()
         {
-            Debug.Log("StarSysManager: Start called");
+            // ✅ Check if list needs loading: null, empty, or contains null entries
+            bool needsLoading = starSysSOList == null ||
+                               starSysSOList.Count == 0 ||
+                               starSysSOList.Any(s => s == null);
 
-            // Double-check references
-            if (galaxyCenter == null || galaxyCamera == null)
+            if (needsLoading)
             {
-                FindGalaxyReferences();
+                Debug.Log("Loading StarSysSO assets from AssetDatabase...");
+
+#if UNITY_EDITOR
+                // In Editor, use AssetDatabase
+                string[] guids = UnityEditor.AssetDatabase.FindAssets("t:StarSysSO", new[] { "Assets/SO/StarSysSO" });
+                starSysSOList = new List<StarSysSO>();
+
+                foreach (string guid in guids)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+                    StarSysSO starSO = UnityEditor.AssetDatabase.LoadAssetAtPath<StarSysSO>(path);
+                    if (starSO != null)
+                    {
+                        starSysSOList.Add(starSO);
+                    }
+                }
+
+                // ✅ Sort by StarSysInt for consistent ordering
+                starSysSOList = starSysSOList.OrderBy(s => s.StarSysInt).ToList();
+
+                Debug.Log($"✅ Loaded {starSysSOList.Count} StarSysSO assets from AssetDatabase");
+
+                // ✅ Log first few entries for verification
+                if (starSysSOList.Count > 0)
+                {
+                    Debug.Log($"   First system: {starSysSOList[0].SysName} (StarSysInt={starSysSOList[0].StarSysInt})");
+                    if (starSysSOList.Count > 1)
+                    {
+                        Debug.Log($"   Second system: {starSysSOList[1].SysName} (StarSysInt={starSysSOList[1].StarSysInt})");
+                    }
+                }
+#else
+                // ✅ In builds, load from Resources folder
+                starSysSOList = new List<StarSysSO>();
+                StarSysSO[] loadedStars = Resources.LoadAll<StarSysSO>("StarSysSO");
+                
+                if (loadedStars != null && loadedStars.Length > 0)
+                {
+                    starSysSOList.AddRange(loadedStars);
+                    // Sort by StarSysInt
+                    starSysSOList = starSysSOList.OrderBy(s => s.StarSysInt).ToList();
+                    Debug.Log($"✅ Loaded {starSysSOList.Count} StarSysSO assets from Resources folder");
+                }
+                else
+                {
+                    Debug.LogError("❌ No StarSysSO assets found in Resources/StarSysSO folder!");
+                    Debug.LogError("   ACTION: Move StarSysSO assets to Assets/Resources/StarSysSO/");
+                }
+#endif
             }
-
-            // Initialize Fog of War
-            InitializeFogOfWar();
-
-            Debug.Log("StarSysManager: Ready to create systems");
+            else
+            {
+                Debug.Log($"StarSysSO list already populated with {starSysSOList.Count} valid entries");
+            }
         }
+
         public void SetGalaxyReferences(GameObject center, GameObject systemContainer)
         {
             galaxyCenter = center;
@@ -144,6 +201,7 @@ namespace BOTF3D.Core
 
             Debug.Log("StarSysManager: Galaxy references set.");
         }
+
         public void FindGalaxyReferences()
         {
             // Find galaxyCenter if not assigned
@@ -242,6 +300,7 @@ namespace BOTF3D.Core
                 }
             }
         }
+
         private void OnDestroy()
         {
             // Clean up singleton when scene unloads
@@ -250,6 +309,7 @@ namespace BOTF3D.Core
                 Instance = null;
             }
         }
+
         public void SetShipBuildPrefabs(CivEnum localCiv)
         {
             TechLevel techLevel = GameController.Instance.GameData.StartingTechLevel;
@@ -289,6 +349,122 @@ namespace BOTF3D.Core
                 default: return null;
             }
         }
+
+        /// <summary>
+        /// ✅ NEW: Initialize random position pool from all 211 star positions
+        /// </summary>
+        private void InitializeRandomPositionPool()
+        {
+            randomPositionPool = new List<Vector3>
+            {
+                new Vector3(-7.37f, 1.07f, -39.37f), new Vector3(33.65f, 0.34f, -16.79f), new Vector3(18.22f, -1.48f, -67.02f),
+                new Vector3(-42.61f, 1.44f, -34.3f), new Vector3(-57.44f, 2.53f, 62.14f), new Vector3(61.97f, 1.07f, 84.35f),
+                new Vector3(-45.4f, 1.29f, -70.41f), new Vector3(-2.04f, 0.34f, -71.75f), new Vector3(-15.91f, -0.39f, -33.27f),
+                new Vector3(19.08f, -1.19f, 39.03f), new Vector3(0.09f, 2.07f, -40.49f), new Vector3(-45.92f, 0.34f, -48.75f),
+                new Vector3(41.68f, -0.07f, 61.66f), new Vector3(-6.32f, 1.18f, -49.87f), new Vector3(4.35f, -1.23f, -48.75f),
+                new Vector3(50.91f, 2.07f, 32.74f), new Vector3(-14.86f, 0.29f, -79.74f), new Vector3(-4.08f, -0.07f, -68.39f),
+                new Vector3(-12.7f, 1.18f, -18.85f), new Vector3(6.47f, -1.23f, -62.21f), new Vector3(-28.72f, 2.07f, 68.9f),
+                new Vector3(17.12f, 0.29f, -88f), new Vector3(-6.32f, -0.07f, -80.76f), new Vector3(8.61f, 1.18f, -53.93f),
+                new Vector3(-42.61f, -1.2f, -32.24f), new Vector3(8.61f, -1.12f, -86.97f), new Vector3(6.47f, -1.23f, -83.9f),
+                new Vector3(34.2f, 2.07f, 76.1f), new Vector3(12.89f, 0.29f, -84.93f), new Vector3(26.73f, -0.26f, -82.93f),
+                new Vector3(-27.63f, 1.18f, -71.49f), new Vector3(-22.33f, 1.6f, -86.97f), new Vector3(-16.94f, 1.88f, -67.2f),
+                new Vector3(52.49f, -0.83f, 47.16f), new Vector3(-14.86f, 0.7f, -28.46f), new Vector3(49.8f, -1.63f, 5.02f),
+                new Vector3(-24.47f, -1.44f, -49.87f), new Vector3(-35.12f, -1.08f, -23.66f), new Vector3(13.66f, 1.14f, -84.42f),
+                new Vector3(-64f, 0.34f, -73.56f), new Vector3(2.21f, 0.73f, -20.63f), new Vector3(18.22f, -0.55f, -81.9f),
+                new Vector3(-6.32f, -0.56f, -62.39f), new Vector3(5.42f, -1.23f, -82.93f), new Vector3(0.09f, 2.07f, -51.87f),
+                new Vector3(3.91f, 0.34f, -82.93f), new Vector3(-7.37f, -0.07f, 12.1f), new Vector3(-44.73f, 1.14f, -78.25f),
+                new Vector3(0.09f, 1.01f, -32.24f), new Vector3(37.07f, -0.58f, 38.52f), new Vector3(-12.7f, 2.27f, 1.28f),
+                new Vector3(-43.76f, -1.63f, 53.19f), new Vector3(-19.62f, -1.34f, 76.1f), new Vector3(-21.21f, -0.46f, -84.42f),
+                new Vector3(-39.42f, 2.4f, -85.94f), new Vector3(45.59f, -1.66f, -1.28f), new Vector3(-56.91f, 0.27f, -38.48f),
+                new Vector3(33.55f, -1.66f, 51.48f), new Vector3(32.08f, 1.69f, -85.94f), new Vector3(57.31f, -0.21f, -36.3f),
+                new Vector3(-31.89f, 2.09f, -36.99f), new Vector3(45.59f, -1.18f, -35.27f), new Vector3(38.2f, 1.66f, -28.46f),
+                new Vector3(-29.77f, -0.12f, -80.94f), new Vector3(20.23f, -0.46f, 76.1f), new Vector3(-44.73f, -1.01f, -13.48f),
+                new Vector3(56.24f, 1.8f, 37.14f), new Vector3(-41.54f, -1.41f, -85.94f), new Vector3(18.22f, -0.99f, 48.98f),
+                new Vector3(-5.25f, 0.56f, -58.74f), new Vector3(18.22f, -1.48f, -85.94f), new Vector3(-26.58f, 2.02f, -85.94f),
+                new Vector3(-6.32f, 1.42f, -82.93f), new Vector3(-36.21f, -2.08f, 60.09f), new Vector3(50.66f, 0.58f, 55.28f),
+                new Vector3(-53.28f, -1.61f, -78.02f), new Vector3(22.37f, 0.94f, -79.74f), new Vector3(-40.47f, 2.53f, -66.17f),
+                new Vector3(22.37f, -1.63f, 59.06f), new Vector3(-7.37f, 0.34f, -8.51f), new Vector3(19.16f, 1.84f, -59.77f),
+                new Vector3(-53.28f, 2.36f, -75.96f), new Vector3(21.28f, 2.47f, 5.41f), new Vector3(-29.77f, 2.51f, -9.36f),
+                new Vector3(22.37f, -2.42f, 19.93f), new Vector3(-28.72f, -2.39f, -30.01f), new Vector3(-0.98f, -1.12f, -58.08f),
+                new Vector3(49.8f, 0.83f, 44.64f), new Vector3(-32.94f, 0.8f, -44.09f), new Vector3(-7.37f, 0.2f, -75.96f),
+                new Vector3(-60.71f, -2.36f, 78.28f), new Vector3(8.61f, -0.58f, -37.97f), new Vector3(-20.17f, -1.8f, -20.11f),
+                new Vector3(35.29f, -0.99f, -82.93f), new Vector3(-15.99f, 1.68f, 63.92f), new Vector3(46.66f, 2.09f, 40.58f),
+                new Vector3(-5.25f, -2.61f, -55.47f), new Vector3(61.57f, 1.31f, 68.9f), new Vector3(54.48f, -2.08f, 80.8f),
+                new Vector3(28.7f, 0.42f, 16.37f), new Vector3(31.87f, 1.31f, 71.12f), new Vector3(11.82f, -1.83f, 16.37f),
+                new Vector3(16.41f, 0.49f, 66.49f), new Vector3(1.14f, 2.02f, 73.81f), new Vector3(-31.16f, 2.16f, -66.86f),
+                new Vector3(-2.04f, 0.17f, -74.93f), new Vector3(-0.98f, -1.17f, -26.92f), new Vector3(-50.05f, 1.27f, 69.08f),
+                new Vector3(-2.04f, -0.81f, 19.93f), new Vector3(-46.86f, 1.44f, 78.28f), new Vector3(57.31f, -0.79f, 66.15f),
+                new Vector3(5.63f, 2.09f, -75.73f), new Vector3(-44.73f, 2.09f, -59.77f), new Vector3(-13.77f, 0.16f, -60.69f),
+                new Vector3(-21.76f, 1.68f, -44.89f), new Vector3(-16.96f, -2.61f, -85.94f), new Vector3(19.16f, 1.67f, -86.46f),
+                new Vector3(45.98f, 0.05f, 73.81f), new Vector3(-28.72f, 0.05f, 21.58f), new Vector3(1.46f, -2.31f, 88f),
+                new Vector3(7.54f, 2.43f, -80.25f), new Vector3(-55.48f, 0.47f, -25.79f), new Vector3(63.75f, 3f, 75.07f),
+                new Vector3(38.98f, -2.89f, 20.79f), new Vector3(-27.63f, -1.52f, -80.76f), new Vector3(3.18f, 2.57f, 67.87f),
+                new Vector3(-39.42f, 1.01f, -1.28f), new Vector3(-37.28f, -2.63f, -69.56f), new Vector3(-11.73f, -2.22f, -82.93f),
+                new Vector3(-15.91f, -2.35f, -43.06f), new Vector3(-59.18f, 0.76f, 58.03f), new Vector3(43.07f, -0.84f, -52.55f),
+                new Vector3(15.05f, -2.33f, -84.93f), new Vector3(-48.98f, -2.89f, -49.87f), new Vector3(38.98f, -1.62f, 87.31f),
+                new Vector3(-24.47f, 2.16f, -63.93f), new Vector3(-60.71f, 2.22f, 50.47f), new Vector3(49.8f, 0.56f, -23.66f),
+                new Vector3(-35.12f, -2.82f, -13.48f), new Vector3(39.15f, -2.87f, 29.6f), new Vector3(-60.71f, -0.19f, -11.42f),
+                new Vector3(40.2f, 2.22f, 69.75f), new Vector3(64f, 0.42f, 44.46f), new Vector3(17.12f, -1.34f, -14.51f),
+                new Vector3(49.8f, 2.18f, -52.73f), new Vector3(62.57f, 2.05f, 61.66f), new Vector3(-2.04f, 1.07f, -44.09f),
+                new Vector3(-19.1f, -1.7f, 45.15f), new Vector3(29.16f, -2.08f, -73.56f), new Vector3(-50.05f, -2.4f, -0.76f),
+                new Vector3(-11.25f, 2.53f, -20.29f), new Vector3(8.61f, -1.8f, -42.55f), new Vector3(-50.05f, -2.58f, 21.58f),
+                new Vector3(-19.1f, 0.49f, -57.74f), new Vector3(1.46f, -0.14f, 59.06f), new Vector3(26.73f, -1.84f, -25.09f),
+                new Vector3(56.24f, 1.94f, -66.86f), new Vector3(40.57f, 1.69f, -83.9f), new Vector3(6.47f, 0.7f, -25.09f),
+                new Vector3(44.91f, 1.98f, -48.75f), new Vector3(-50.05f, 0.53f, -16.79f), new Vector3(-2.04f, -0.46f, -36.3f),
+                new Vector3(17.12f, -0.14f, -53.93f), new Vector3(11.82f, -0.42f, -47.74f), new Vector3(13.94f, -0.53f, -52.9f),
+                new Vector3(39.15f, -1.59f, 12.1f), new Vector3(33.15f, 0.79f, -47.74f), new Vector3(-13.77f, 0.93f, 12.1f),
+                new Vector3(-39.42f, 1.17f, 32.74f), new Vector3(19.26f, 1.57f, -36.3f), new Vector3(33.15f, 2.02f, 2.82f),
+                new Vector3(22.37f, -1.63f, -51.87f), new Vector3(50.91f, -0.46f, -15.71f), new Vector3(-50.05f, 1.8f, -65.32f),
+                new Vector3(-27.63f, -1.98f, 12.1f), new Vector3(59.43f, -2.08f, -9.7f), new Vector3(-41.54f, 0.8f, 12.1f),
+                new Vector3(-30.82f, -2.08f, 41.73f), new Vector3(21.38f, 1.07f, -8.51f), new Vector3(23.52f, -2.23f, -31.21f),
+                new Vector3(-48.96f, 2.15f, -58.08f), new Vector3(-29.77f, -3f, 6.95f), new Vector3(-59.57f, 1.18f, -55.47f),
+                new Vector3(38.37f, 1.44f, -41.06f), new Vector3(9.49f, 0.2f, 33.25f), new Vector3(28.89f, 0.16f, -66.17f),
+                new Vector3(31.03f, 1.44f, -42.08f), new Vector3(12.89f, 2.09f, -37.46f), new Vector3(13.94f, 2.31f, 50.3f),
+                new Vector3(-4.23f, 1.68f, 47.16f), new Vector3(7.54f, 1.62f, 51.32f), new Vector3(22.37f, 0.43f, -43.57f),
+                new Vector3(22.37f, -0.29f, 30.5f), new Vector3(19.26f, 1.17f, -62.21f), new Vector3(9.68f, 2.4f, 76.97f),
+                new Vector3(23.52f, -1.44f, -58.08f), new Vector3(-6.32f, 2.22f, 82.34f), new Vector3(34.07f, 1.53f, -34.3f),
+                new Vector3(61.57f, 0.18f, 1.79f), new Vector3(28.89f, 0.16f, -4.38f), new Vector3(13.94f, 0.42f, -25.09f),
+                new Vector3(-18.05f, 2.09f, 22.95f), new Vector3(15.01f, 2.31f, -11.42f), new Vector3(-4.96f, 1.66f, 58.37f),
+                new Vector3(-42.78f, 1.59f, 25.24f), new Vector3(-7.37f, 0.43f, 28.68f), new Vector3(-23.4f, -0.29f, 30.5f),
+                new Vector3(-15.3f, 1.68f, 35.13f), new Vector3(-32.94f, 2.49f, 35.13f), new Vector3(-13.39f, -1.7f, 55.62f),
+                new Vector3(-10.9f, 2.16f, 71.12f)
+            };
+
+            // ✅ Shuffle the pool using Fisher-Yates algorithm
+            for (int i = randomPositionPool.Count - 1; i > 0; i--)
+            {
+                int randomIndex = Random.Range(0, i + 1);
+                Vector3 temp = randomPositionPool[i];
+                randomPositionPool[i] = randomPositionPool[randomIndex];
+                randomPositionPool[randomIndex] = temp;
+            }
+
+            randomPositionIndex = 0;
+            Debug.Log($"✅ Initialized random position pool with {randomPositionPool.Count} positions (shuffled)");
+        }
+
+        /// <summary>
+        /// ✅ NEW: Get next random position from shuffled pool
+        /// </summary>
+        private Vector3 GetNextRandomPosition()
+        {
+            if (randomPositionPool == null || randomPositionPool.Count == 0)
+            {
+                Debug.LogError("Random position pool is empty! Falling back to (0,0,0)");
+                return Vector3.zero;
+            }
+
+            if (randomPositionIndex >= randomPositionPool.Count)
+            {
+                Debug.LogWarning("Ran out of random positions! Wrapping around to start of pool.");
+                randomPositionIndex = 0;
+            }
+
+            Vector3 position = randomPositionPool[randomPositionIndex];
+            randomPositionIndex++;
+            return position;
+        }
+
         public void SysDataFromSO(List<CivSO> civSOList)
         {
             Debug.Log($"=== StarSysManager.SysDataFromSO: Creating systems for {civSOList.Count} civs ===");
@@ -298,6 +474,12 @@ namespace BOTF3D.Core
             {
                 Debug.LogError("StarSysManager: galaxyCenter is NULL! Cannot create systems.");
                 return;
+            }
+
+            // ✅ NEW: Initialize random positions if using RANDOM galaxy type
+            if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
+            {
+                InitializeRandomPositionPool();
             }
 
             StarSysData SysData = new StarSysData("null");
@@ -340,44 +522,71 @@ namespace BOTF3D.Core
 
             Debug.Log($"=== StarSysManager: Created {StarSysControllerList.Count} total systems ===");
         }
+
         public StarSysController InstantiateEmptyStarSysController()
         {
             StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
               Quaternion.identity);
             return starSysCon;
         }
+
         public void InstantiateSystem(StarSysData sysData, CivSO civSO, StarSysSO starSysSO)
         {
-            Debug.Log($"InstantiateSystem: Creating {sysData.SysName} for {civSO.CivShortName}");
+            // ✅ Determine position based on galaxy type
+            Vector3 systemLocalPosition;
+
             if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
-            { // do something random with system and fleetData.position
+            {
+                // ✅ RANDOM: Get next shuffled position from pool
+                systemLocalPosition = GetNextRandomPosition();
+                Debug.Log($"InstantiateSystem: RANDOM mode - Assigned '{sysData.SysName}' to position {systemLocalPosition}");
             }
             else if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RING)
             {
-                // do something ring or whatever with system and fleetData.position
+                // TODO: Implement ring galaxy layout
+                systemLocalPosition = sysData.GetPosition();
+                Debug.Log($"InstantiateSystem: RING mode - Using position {systemLocalPosition} for '{sysData.SysName}'");
+            }
+            else // CLASSIC/DEFAULT
+            {
+                // ✅ Use position from StarSysSO
+                systemLocalPosition = sysData.GetPosition();
+                Debug.Log($"InstantiateSystem: CLASSIC mode - Using SO position {systemLocalPosition} for '{sysData.SysName}'");
             }
 
-            StarSysController starSysCon = Instantiate(sysPrefab, new Vector3(0, 0, 0),
-            Quaternion.identity);
+            // ✅ Instantiate as child of galaxyCenter
+            StarSysController starSysCon = Instantiate(sysPrefab, galaxyCenter.transform);
+
+            // ✅ Set LOCAL position directly (no scale interference)
+            starSysCon.transform.localPosition = systemLocalPosition;
+            starSysCon.transform.localRotation = Quaternion.identity;
+            starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
 
             StarSysBuildManager buildManager = new StarSysBuildManager(starSysCon);
             buildManager.RegisterStarSysController(starSysCon);
             starSysCon.StarSysData = sysData;
             starSysCon.gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
-            starSysCon.transform.Translate(new Vector3(sysData.GetPosition().x,
-                sysData.GetPosition().y, sysData.GetPosition().z));
-            starSysCon.transform.SetParent(galaxyCenter.transform, true);
-            starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
+
             starSysCon.GalaxyEventCamera = galaxyCamera;
+
             Transform fogObsticleTransform = starSysCon.transform.Find("FogObstacle");
-            fogObsticleTransform.SetParent(galaxyCenter.transform, false);
-            fogObsticleTransform.Translate(new Vector3(sysData.GetPosition().x, -55f, sysData.GetPosition().z));
+            if (fogObsticleTransform != null)
+            {
+                // ✅ Parent to galaxyCenter with local positioning
+                fogObsticleTransform.SetParent(galaxyCenter.transform, false);
+                fogObsticleTransform.localPosition = new Vector3(systemLocalPosition.x, -55f, systemLocalPosition.z);
+            }
+
             starSysCon.name = sysData.GetSysName();
+
+            // ✅ Log world position for verification
+            Debug.Log($"  System world position: {starSysCon.transform.position}");
+
             // ✅ Set Dilithium Capacity based on system type
             sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
-            sysData.TotalSysPowerLoad = 0; // Will be updated as facilities are added
+            sysData.TotalSysPowerLoad = 0;
             sysData.TotalSysPowerOutput = starSysSO.PowerStations * sysData.BasePowerPerPlant;
-            sysData.CurrentPowerPlantCount = starSysSO.PowerStations; // Start with the number of power plants defined in the SO
+            sysData.CurrentPowerPlantCount = starSysSO.PowerStations;
             starSysCon.StarSysData.ShipsList.Clear();
             sysData.SysGameObject = starSysCon.gameObject;
 
@@ -389,34 +598,35 @@ namespace BOTF3D.Core
             else
             {
                 starSysFields.SysName.text = sysData.GetSysName();
-                //var sysThingy = fleetData
             }
-            // starSysFields.SysDescription.text = sysData.Description;// null just now but available for a hover tooltip later      
+
             MapLineFixed ourDropLine = starSysCon.GetComponentInChildren<MapLineFixed>();
             ourDropLine.GetLineRenderer();
 
-            // Drop line now shorter (star at -40, galaxy at -60)
-            Vector3 galaxyPlanePoint = new Vector3(starSysCon.transform.position.x,
-                        galaxyImage.transform.position.y, starSysCon.transform.position.z);
-            Vector3[] points = { starSysCon.transform.position, galaxyPlanePoint };
+            // ✅ Use WORLD position for galaxy plane calculations
+            Vector3 systemWorldPos = starSysCon.transform.position;
+            Vector3 galaxyPlanePoint = new Vector3(systemWorldPos.x, galaxyImage.transform.position.y, systemWorldPos.z);
+            Vector3[] points = { systemWorldPos, galaxyPlanePoint };
             ourDropLine.SetUpLine(points);
+
             StarSysChildFields starSysField = starSysCon.GetComponent<StarSysChildFields>();
             SpriteRenderer srInsignia = starSysField.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
             srInsignia.sprite = civSO.Insignia;
             if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
                 srInsignia.sortingOrder = 0;
-                srInsignia.enabled = false; // hide the insignia if not our system and no known systems yet
+                srInsignia.enabled = false;
             }
             srInsignia.gameObject.transform.position =
-                new Vector3(starSysCon.transform.position.x, galaxyPlanePoint.y + 1f, starSysCon.transform.position.z);
-            srInsignia.gameObject.layer = 4; // water layer (also used by fog of war for obstacles with shows to line of sight
+                new Vector3(systemWorldPos.x, galaxyPlanePoint.y + 1f, systemWorldPos.z);
+            srInsignia.gameObject.layer = 4;
 
             SpriteRenderer srStar = starSysField.StarSpriteGO.GetComponent<SpriteRenderer>();
             srStar.sprite = sysData.StarSprit;
             srStar.sortingOrder = 1;
             starSysCon.name = sysData.GetSysName();
             starSysCon.StarSysData = sysData;
+
             CivController[] controllers = CivManager.Instance.CivControllersInGame.ToArray();
             for (int i = 0; controllers.Length > 0; i++)
             {
@@ -426,14 +636,15 @@ namespace BOTF3D.Core
                     break;
                 }
             }
+
             starSysCon.gameObject.SetActive(true);
             StarSysControllerList.Add(starSysCon);
 
-            Debug.Log($"  ✅ System created: {starSysCon.name}, total systems: {StarSysControllerList.Count}");
+            Debug.Log($"  ✅ System created: {starSysCon.name}, systems total: {StarSysControllerList.Count}");
 
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
-                InstantiateStarSysUI(starSysCon); // ✅ Creates system UI panel with ship list
+                InstantiateStarSysUI(starSysCon);
             }
 
             List<StarSysController> listStarSysCon = new List<StarSysController> { starSysCon };
@@ -447,37 +658,29 @@ namespace BOTF3D.Core
 
             if (civSO.HasWarp)
             {
-                FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon); // fleet for first ships as game loads, not for ships instantiated by working shipyard in system
+                FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon);
                 ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
             }
-            if (true) //(GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum)) 
+
+            if (true)
             {
-                // ✅ MODIFIED: Use Dilithium capacity to limit starting power plants
                 int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
 
-                sysData.PowerPlants = AddSystemFacilities(
-                    startingPowerPlants,
-                    PowerPlantPrefab,
-                    (int)starSysCon.StarSysData.CurrentOwnerCivEnum,
-                    1,
-                    starSysCon);
-                // ✅ Update count
+                sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
-                sysData.PowerPlants = AddSystemFacilities(starSysSO.PowerStations, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 SetParentForFacilities(starSysCon.gameObject, sysData);
-                // ✅ NEW: Calculate initial power balance BEFORE initializing UI
+
                 if (StarSysMenuUIController.Instance != null)
                 {
                     StarSysMenuUIController.Instance.UpdateSystemPowerBalance(starSysCon);
                     Debug.Log($"  ✅ Initial power balance: Load={sysData.TotalSysPowerLoad}, Output={sysData.TotalSysPowerOutput}");
                 }
 
-                // initialize/wire the system UI from StarSysData (new helper on StarSysUIElement)
                 if (starSysCon.StarSysUIGameObject != null)
                 {
                     var uiElement = starSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
@@ -487,13 +690,16 @@ namespace BOTF3D.Core
                     }
                 }
             }
+
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
                 localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
             }
         }
+
+        // ... (rest of the methods remain the same - DetermineDilithiumCapacity, DetermineStartingPowerPlants, etc.)
         /// <summary>
-        /// Determine Dilithium capacity based on system type and owner
+        ///
         /// </summary>
         private int DetermineDilithiumCapacity(CivSO civSO, StarSysSO starSysSO)
         {
@@ -524,6 +730,7 @@ namespace BOTF3D.Core
             }
 
             // ✅ Non-habitable systems, black hole....
+            //#nullable enable
             return 0;
         }
         /// <summary>
@@ -887,17 +1094,35 @@ namespace BOTF3D.Core
         }
         private StarSysSO GetStarSObyInt(int sysInt)
         {
+            if (starSysSOList == null || starSysSOList.Count == 0)
+            {
+                Debug.LogError("❌ starSysSOList is null or empty! Cannot find star system.");
+                return null;
+            }
+
             StarSysSO result = null;
             for (int i = 0; i < starSysSOList.Count; i++)
             {
+                // Add null check
+                if (starSysSOList[i] == null)
+                {
+                    Debug.LogWarning($"⚠️ starSysSOList[{i}] is null, skipping");
+                    continue;
+                }
+
                 if (starSysSOList[i].StarSysInt == sysInt)
                 {
                     result = starSysSOList[i];
                     break;
                 }
             }
-            return result;
 
+            if (result == null)
+            {
+                Debug.LogWarning($"⚠️ No StarSysSO found with StarSysInt={sysInt}");
+            }
+
+            return result;
         }
         private PowerPlantSO GetPowrPlantSObyCivEnum(CivEnum civ)
         {
@@ -994,6 +1219,7 @@ namespace BOTF3D.Core
             return result;
 
         }
+
         public void UpdateStarSystemOwner(CivEnum civCurrent, CivEnum civNew)
         {
             foreach (var sysCon in StarSysControllerList)
@@ -1121,9 +1347,9 @@ namespace BOTF3D.Core
             // Final pass to process any items that were queued by InstantiateShipListUIGameObject
             shipManager.ProcessPendingShipUIs();
         }
-        public void InstantiateSysBuildListUI(StarSysController sysCon) // open the build queue UI
+        public void InstantiateSysBuildUI(StarSysController sysCon) // open the build queue UI
         {
-            Debug.Log($"InstantiateSysBuildListUI: Opening for system '{sysCon.name}'");
+            Debug.Log($"InstantiateSysBuildUI: Opening for system '{sysCon.name}'");
 
             var existingBuildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
             if (existingBuildUI != null)
@@ -1633,7 +1859,7 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Instantiates a star system UI and parents it to the scene's StarSysUI_ListContainer
+        ///
         /// </summary>
         public GameObject InstantiateStarSysUI(StarSysController sysCon)
         {
@@ -1853,4 +2079,5 @@ namespace BOTF3D.Core
         }
     }
 }
+
 

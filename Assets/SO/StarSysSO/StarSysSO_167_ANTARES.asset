@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_167_ANTARES
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 167
-  Position: {x: -160, y: 8, z: 100}
+  Position: {x: -13.77, y: 0.93, z: 12.1}
   SysName: ANTARES
   FirstOwner: 167
   CurrentOwner: 167
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: 2147bbaaf41b095448e74bc994ac8597, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: da655ae3b296c604a83f05a12823f84e, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_117_SIKARIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 117
-  Position: {x: 400, y: -2, z: 710}
+  Position: {x: 45.98, y: 0.05, z: 73.81}
   SysName: SIKARIA
   FirstOwner: 117
   CurrentOwner: 117
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

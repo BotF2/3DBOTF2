@@ -34,15 +34,6 @@ namespace BOTF3D.GamePlay
         public float HealthSpeed;
         public float TargetHealthFillAmount { get; set; } = 1.0f;
 
-        void Awake()
-        {
-            // if we use Unity physics
-            //rb = GetComponent<Rigidbody>();
-            //rb.useGravity = false; // space, microgravity set to zero
-            //rb.linearDamping = 0f; // no air drag
-            //rb.angularDamping = 0.5f; // small resistance to rotation
-        }
-
         private void Start()
         {
             theSource = GetComponent<AudioSource>();
@@ -50,7 +41,10 @@ namespace BOTF3D.GamePlay
 
             minRefireDelay = 1.5f;
             maxRefireDelay = 2.5f;
-            HealthSpeed = 10.0f; // HOW FAST THE HEALTH BAR LERPS TO NEW VALUE
+            HealthSpeed = 10.0f;
+
+            // ✅ ADD THIS DEBUG CHECK
+            Debug.Log($"Ship '{ShipData?.ShipName}' audio clips: Beam={clipBeamFire != null}, Torpedo={clipTorpedoFire != null}");
 
             // ✅ Initialize ShipData health values from ShipSO if not already set
             if (ShipData != null && ShipData.ShipSO != null)
@@ -66,6 +60,12 @@ namespace BOTF3D.GamePlay
                 {
                     Debug.Log($"📊 Ship '{ShipData.ShipName}' entering combat: Shields={ShipData.ShieldHealth}, Hull={ShipData.HullHealth}");
                 }
+            }
+            // TEMPORARY TEST - Remove after testing
+            if (BOTF3D.Audio.AudioManager.Instance != null && clipBeamFire != null)
+            {
+                Debug.Log("🧪 TESTING: Playing beam sound immediately");
+                BOTF3D.Audio.AudioManager.Instance.PlaySFX3DClip(clipBeamFire, transform.position);
             }
         }
         void Update()
@@ -307,6 +307,32 @@ namespace BOTF3D.GamePlay
                 }
             }
         }
+        /// <summary>
+        /// Set civilization-specific weapon audio clips
+        /// </summary>
+        public void SetWeaponAudioClips(AudioClip beamClip, AudioClip torpedoClip)
+        {
+            clipBeamFire = beamClip;
+            clipTorpedoFire = torpedoClip;
+
+            if (clipBeamFire != null)
+            {
+                Debug.Log($"✅ Set beam fire clip for '{ShipData.ShipName}' (Civ: {ShipData.CivEnum}): {clipBeamFire.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ Beam fire clip is NULL for '{ShipData.ShipName}' (Civ: {ShipData.CivEnum})");
+            }
+
+            if (clipTorpedoFire != null)
+            {
+                Debug.Log($"✅ Set torpedo fire clip for '{ShipData.ShipName}' (Civ: {ShipData.CivEnum}): {clipTorpedoFire.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ Torpedo fire clip is NULL for '{ShipData.ShipName}' (Civ: {ShipData.CivEnum})");
+            }
+        }
         public void SetShipOrder(CombatOrders order)
         {
             Order = order;
@@ -381,7 +407,6 @@ namespace BOTF3D.GamePlay
                 yield return new WaitForSecondsRealtime(refireDelay);
             }
         }
-
         internal void FireWeapons(bool beam)
         {
             Debug.Log($"🎯 FireWeapons called for '{ShipData.ShipName}', beam={beam}, target={ShipData.TargetThisShipController?.ShipData.ShipName ?? "NULL"}");
@@ -406,8 +431,34 @@ namespace BOTF3D.GamePlay
                     {
                         Debug.Log($"  💥 Firing BEAM from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.BeamDamage})");
 
+                        // ✅ Play beam fire sound through AudioManager (respects master volume)
+                        if (clipBeamFire != null)
+                        {
+                            if (BOTF3D.Audio.AudioManager.Instance != null)
+                            {
+                                BOTF3D.Audio.AudioManager.Instance.PlaySFX3DClip(clipBeamFire, transform.position);
+                                Debug.Log($"  🔊 Playing beam fire sound through AudioManager");
+                            }
+                            else
+                            {
+                                Debug.LogError($"  ❌ AudioManager.Instance is NULL!");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"  ⚠️ clipBeamFire is null for '{ShipData.ShipName}'");
+                        }
+
                         var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
                         beamWeaponGO = beamWeaponGo;
+
+                        // ✅ CRITICAL: Disable any AudioSource on the beam prefab to prevent duplicate sounds
+                        var beamAudioSources = beamWeaponGo.GetComponentsInChildren<AudioSource>(true);
+                        foreach (var audioSrc in beamAudioSources)
+                        {
+                            audioSrc.enabled = false;
+                            Debug.Log($"    🔇 Disabled AudioSource on beam weapon");
+                        }
 
                         // ✅ NEW: Track this beam weapon
                         activeBeamWeapons.Add(beamWeaponGo);
@@ -430,8 +481,34 @@ namespace BOTF3D.GamePlay
                     {
                         Debug.Log($"  🚀 Firing TORPEDO from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.TorpedoDamage})");
 
+                        // ✅ Play torpedo fire sound through AudioManager (respects master volume)
+                        if (clipTorpedoFire != null)
+                        {
+                            if (BOTF3D.Audio.AudioManager.Instance != null)
+                            {
+                                BOTF3D.Audio.AudioManager.Instance.PlaySFX3DClip(clipTorpedoFire, transform.position);
+                                Debug.Log($"  🔊 Playing torpedo fire sound through AudioManager");
+                            }
+                            else
+                            {
+                                Debug.LogError($"  ❌ AudioManager.Instance is NULL!");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"  ⚠️ clipTorpedoFire is null for '{ShipData.ShipName}'");
+                        }
+
                         var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
                         Debug.Log($"  🎯 Torpedo GameObject created: {torpedoGo.name}, active={torpedoGo.activeSelf}");
+
+                        // ✅ CRITICAL: Disable any AudioSource on the torpedo prefab to prevent duplicate sounds
+                        var torpedoAudioSources = torpedoGo.GetComponentsInChildren<AudioSource>(true);
+                        foreach (var audioSrc in torpedoAudioSources)
+                        {
+                            audioSrc.enabled = false;
+                            Debug.Log($"    🔇 Disabled AudioSource on torpedo");
+                        }
 
                         var torpedoScript = torpedoGo.GetComponent<Torpedo>();
                         if (torpedoScript == null)

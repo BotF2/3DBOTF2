@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_123_TAKTAK
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 123
-  Position: {x: 335, y: -28, z: 186}
+  Position: {x: 38.98, y: -2.89, z: 20.79}
   SysName: TAKTAK
   FirstOwner: 123
   CurrentOwner: 123
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 1

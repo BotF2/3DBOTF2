@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_134_TRABE
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 134
-  Position: {x: 335, y: -17, z: 827}
+  Position: {x: 38.98, y: -1.62, z: 87.31}
   SysName: TRABE
   FirstOwner: 134
   CurrentOwner: 134
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

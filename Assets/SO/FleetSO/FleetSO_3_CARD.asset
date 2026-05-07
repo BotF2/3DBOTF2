@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: FleetSO_3_CARD
   m_EditorClassIdentifier: 
   CivIndex: 3
-  Insignia: {fileID: 21300000, guid: fe3216cef2c7a434ebc99bee3423171a, type: 3}
+  Insignia: {fileID: 21300000, guid: 103b20c72ab923e4f9d6726e12bd0343, type: 3}
   CivOwnerEnum: 3
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 

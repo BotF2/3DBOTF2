@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_190_BOKARA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 190
-  Position: {x: 40, y: 17, z: 480}
+  Position: {x: 7.54, y: 1.62, z: 51.32}
   SysName: BOKARA
   FirstOwner: 190
   CurrentOwner: 190
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

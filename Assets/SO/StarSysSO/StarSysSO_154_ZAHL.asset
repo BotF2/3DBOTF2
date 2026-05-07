@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_154_ZAHL
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 154
-  Position: {x: -17, y: -4, z: 560}
+  Position: {x: 1.46, y: -0.14, z: 59.06}
   SysName: ZAHL
   FirstOwner: 154
   CurrentOwner: 154
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

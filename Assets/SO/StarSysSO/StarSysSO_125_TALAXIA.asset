@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_125_TALAXIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 125
-  Position: {x: -1, y: 29, z: 650}
+  Position: {x: 3.18, y: 2.57, z: 67.87}
   SysName: TALAXIA
   FirstOwner: 125
   CurrentOwner: 125
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

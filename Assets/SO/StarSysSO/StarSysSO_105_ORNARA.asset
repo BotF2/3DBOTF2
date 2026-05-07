@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_105_ORNARA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 105
-  Position: {x: -50, y: -2, z: -750}
+  Position: {x: -2.04, y: 0.17, z: -74.93}
   SysName: ORNARA
   FirstOwner: 105
   CurrentOwner: 105
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

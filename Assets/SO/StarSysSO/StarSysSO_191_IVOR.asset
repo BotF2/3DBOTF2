@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_191_IVOR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 191
-  Position: {x: 180, y: 1, z: -440}
+  Position: {x: 22.37, y: 0.43, z: -43.57}
   SysName: IVOR
   FirstOwner: 191
   CurrentOwner: 191
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

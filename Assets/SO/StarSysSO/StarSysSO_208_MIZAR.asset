@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_208_MIZAR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 208
-  Position: {x: -340, y: 28, z: 326}
+  Position: {x: -32.94, y: 2.49, z: 35.13}
   SysName: MIZAR
   FirstOwner: 208
   CurrentOwner: 208
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

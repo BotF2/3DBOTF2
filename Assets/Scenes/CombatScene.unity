@@ -3661,6 +3661,24 @@ MonoBehaviour:
   - {fileID: 9124248098745324454, guid: ff37a0f59d8dd1b40ab1c5a9b2d14e1d, type: 3}
   - {fileID: 2346474577054298038, guid: 162f3ab89e8dd804e888704c3f3c9683, type: 3}
   - {fileID: 9124248098745324454, guid: 8c68eb5989df7e84ea779ed32dfe13a6, type: 3}
+  BeamFireClips:
+  - {fileID: 8300000, guid: 97fc0e251bc73a84ea04f86f75437c54, type: 3}
+  - {fileID: 8300000, guid: 31c25b0f5bc17074fb0fb266b8c84ecc, type: 3}
+  - {fileID: 8300000, guid: 31c25b0f5bc17074fb0fb266b8c84ecc, type: 3}
+  - {fileID: 8300000, guid: 97fc0e251bc73a84ea04f86f75437c54, type: 3}
+  - {fileID: 8300000, guid: 31c25b0f5bc17074fb0fb266b8c84ecc, type: 3}
+  - {fileID: 8300000, guid: cb99134a3f2c5e34185a6b368ea40810, type: 3}
+  - {fileID: 8300000, guid: e954b04650179c84f88bbb5f4e1625d4, type: 3}
+  - {fileID: 8300000, guid: e954b04650179c84f88bbb5f4e1625d4, type: 3}
+  TorpedoFireClips:
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: bfbd2bd98f3648146a6e5a7a4c1abe17, type: 3}
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: 9b0668644f148b14b8e9828351fb8cc8, type: 3}
+  - {fileID: 8300000, guid: e954b04650179c84f88bbb5f4e1625d4, type: 3}
 --- !u!4 &1486523224
 Transform:
   m_ObjectHideFlags: 0

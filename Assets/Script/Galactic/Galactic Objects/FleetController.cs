@@ -966,7 +966,7 @@ namespace BOTF3D.GamePlay
                     break;
                 case GalaxyObjectType.Nebula:
                 case GalaxyObjectType.OmarianNebula:
-                case GalaxyObjectType.OrionNebula:
+                case GalaxyObjectType.ORIONNEBULA:
                     destinationNameText = "Nebula at";
                     break;
                 case GalaxyObjectType.Station:

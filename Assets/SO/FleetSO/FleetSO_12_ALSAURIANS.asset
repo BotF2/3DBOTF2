@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FleetSO_12_ALSAURIANS
   m_EditorClassIdentifier: 
   CivIndex: 12
-  Insignia: {fileID: 21300000, guid: cea9ed02eac178f4a8f0a0fc1f8c2ed9, type: 3}
+  Insignia: {fileID: 21300000, guid: 2262e7a8b18c95349b4d03d6674409ed, type: 3}
   CivOwnerEnum: 12
   Location: {x: 0, y: 0, z: 0}
   ShipsList: []

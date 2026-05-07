@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_115_SELAY
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 115
-  Position: {x: -190, y: -24, z: -850}
+  Position: {x: -16.96, y: -2.61, z: -85.94}
   SysName: SELAY
   FirstOwner: 115
   CurrentOwner: 115
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

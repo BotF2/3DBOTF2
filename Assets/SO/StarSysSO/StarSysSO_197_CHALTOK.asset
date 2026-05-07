@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_197_CHALTOK
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 197
-  Position: {x: 290, y: 9, z: -350}
+  Position: {x: 34.07, y: 1.53, z: -34.3}
   SysName: CHALTOK
   FirstOwner: 197
   CurrentOwner: 197
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

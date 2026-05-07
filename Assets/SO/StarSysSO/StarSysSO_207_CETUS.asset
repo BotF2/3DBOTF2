@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_207_CETUS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 207
-  Position: {x: -174, y: 11, z: 326}
+  Position: {x: -15.3, y: 1.68, z: 35.13}
   SysName: CETUS
   FirstOwner: 207
   CurrentOwner: 207
-  StarType: 0
+  StarType: 1
   StarSprit: {fileID: 21300000, guid: e4a5fe77159a4474faeb4032f0274153, type: 3}
   Dilitium: 1
   PowerStations: 0

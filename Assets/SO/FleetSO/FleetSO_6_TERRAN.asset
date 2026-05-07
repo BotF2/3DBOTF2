@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: FleetSO_6_TERRAN
   m_EditorClassIdentifier: 
   CivIndex: 6
-  Insignia: {fileID: 21300000, guid: f9196827056ebc147a7e26cac702d060, type: 3}
+  Insignia: {fileID: 21300000, guid: 282964b08cd7f8f4f9635a6402d702d4, type: 3}
   CivOwnerEnum: 6
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 

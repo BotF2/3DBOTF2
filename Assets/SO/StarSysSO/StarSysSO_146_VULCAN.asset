@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_146_VULCAN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 146
-  Position: {x: -50, y: 10, z: -450}
+  Position: {x: -2.04, y: 1.07, z: -44.09}
   SysName: VULCAN
   FirstOwner: 146
   CurrentOwner: 146
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

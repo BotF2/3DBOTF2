@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_133_TLANI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 133
-  Position: {x: -490, y: -28, z: -500}
+  Position: {x: -48.98, y: -2.89, z: -49.87}
   SysName: TLANI
   FirstOwner: 133
   CurrentOwner: 133
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

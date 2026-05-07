@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_166_TRANOME
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 166
-  Position: {x: 280, y: 6, z: -480}
+  Position: {x: 33.15, y: 0.79, z: -47.74}
   SysName: TRANOME
   FirstOwner: 166
   CurrentOwner: 166
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: 8dde1d2213e25844eb1e683d197a9291, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 95040997ff95dd34ea846765248d8abf, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

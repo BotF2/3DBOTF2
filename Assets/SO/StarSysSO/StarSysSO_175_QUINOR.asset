@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_175_QUINOR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 175
-  Position: {x: 530, y: -20, z: -110}
+  Position: {x: 59.43, y: -2.08, z: -9.7}
   SysName: QUINOR
   FirstOwner: 175
   CurrentOwner: 175
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

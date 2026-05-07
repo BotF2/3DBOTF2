@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_170_NEQUENCIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 170
-  Position: {x: 280, y: 23, z: 10}
+  Position: {x: 33.15, y: 2.02, z: 2.82}
   SysName: NEQUENCIA
   FirstOwner: 170
   CurrentOwner: 170
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: 7695679429410ca45958d63a887fc126, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 273bfa1105374de4790896227204089a, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

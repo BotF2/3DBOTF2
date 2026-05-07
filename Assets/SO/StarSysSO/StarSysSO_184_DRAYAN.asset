@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_184_DRAYAN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 184
-  Position: {x: 58, y: -2, z: 306}
+  Position: {x: 9.49, y: 0.2, z: 33.25}
   SysName: DRAYAN
   FirstOwner: 184
   CurrentOwner: 184
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

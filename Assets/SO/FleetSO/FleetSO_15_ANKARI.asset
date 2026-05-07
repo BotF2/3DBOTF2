@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FleetSO_15_ANKARI
   m_EditorClassIdentifier: 
   CivIndex: 15
-  Insignia: {fileID: 21300000, guid: 6d1d7ced7f1f10044a0b1f3284aea7f5, type: 3}
+  Insignia: {fileID: 21300000, guid: e8dbf97064d979e48a7683ca8fbdf261, type: 3}
   CivOwnerEnum: 15
   Location: {x: 0, y: 0, z: 0}
   ShipsList: []

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_177_CHINTOKA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 177
-  Position: {x: -320, y: -20, z: 390}
+  Position: {x: -30.82, y: -2.08, z: 41.73}
   SysName: CHINTOKA
   FirstOwner: 177
   CurrentOwner: 177
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

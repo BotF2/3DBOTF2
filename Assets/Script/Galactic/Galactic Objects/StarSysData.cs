@@ -89,7 +89,7 @@ namespace BOTF3D.Core
         {
             return this.starSysInt;
         }
-        public Vector3 GetPosition()
+        public Vector3 GetPosition(Vector3 vector3)
         {
             return this.position;
         }
@@ -132,6 +132,11 @@ namespace BOTF3D.Core
         public float CalculateTotalPower(float techMultiplier)
         {
             return CurrentPowerPlantCount * BasePowerPerPlant * techMultiplier;
+        }
+
+        public Vector3 GetPosition()
+        {
+            return this.position;
         }
     }
 }

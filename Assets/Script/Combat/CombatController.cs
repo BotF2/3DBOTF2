@@ -49,6 +49,10 @@ namespace BOTF3D.Combat
         public GameObject SideTwoTorpedoPrefab;
         public GameObject SideOneBeamPrefab;
         public GameObject SideTwoBeamPrefab;
+        public AudioClip SideOneBeamFireClip;
+        public AudioClip SideTwoBeamFireClip;
+        public AudioClip SideOneTorpedoFireClip;
+        public AudioClip SideTwoTorpedoFireClip;
         [Header("First Firing Delay Ranges")]
         [SerializeField] private float minFirstShotDelay = 0.2f;
         [SerializeField] private float maxFirstShotDelay = 0.9f;
@@ -1030,6 +1034,15 @@ namespace BOTF3D.Combat
                     boxCollider.size = new Vector3(width, height, length);
                 }
                 shipConList[i].SetWeaponPrefabs(); // Set the weapon prefabs for the ship controller
+                // ✅ Set civilization-specific weapon fire audio clips based on side
+                if (side1negSide2pos < 0) // Side One
+                {
+                    shipConList[i].SetWeaponAudioClips(SideOneBeamFireClip, SideOneTorpedoFireClip);
+                }
+                else // Side Two
+                {
+                    shipConList[i].SetWeaponAudioClips(SideTwoBeamFireClip, SideTwoTorpedoFireClip);
+                }
             }
         }
         /// <summary>
@@ -1201,17 +1214,12 @@ namespace BOTF3D.Combat
                 Debug.LogError("❌ CombatUIManager.Instance is NULL!");
             }
 
-            // ✅ Play warp-in sound
+            // ✅ Play warp-in sound through AudioManager
             if (warpInSound != null)
             {
-                AudioSource tempSource = gameObject.AddComponent<AudioSource>();
-                tempSource.playOnAwake = false;
-                tempSource.spatialBlend = 0f;
-                warpInSound.Play(tempSource);
-                AudioClip clip = warpInSound.GetClip();
-                float clipLength = clip != null ? clip.length : 2f;
-                Destroy(tempSource, clipLength / warpInSound.GetPitchWithVariation() + 0.5f);
-                Debug.Log("🔊 Playing warp-in sound from CombatController");
+                // ✅ Use AudioManager instead of direct AudioSource
+                AudioManager.Instance.PlaySoundData(warpInSound);
+                Debug.Log("🔊 Playing warp-in sound through AudioManager");
             }
             else
             {

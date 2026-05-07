@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_113_RISA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 113
-  Position: {x: -160, y: -1, z: -610}
+  Position: {x: -13.77, y: 0.16, z: -60.69}
   SysName: RISA
   FirstOwner: 113
   CurrentOwner: 113
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

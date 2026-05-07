@@ -27,7 +27,9 @@ namespace BOTF3D.Core
         public GameObject[] torpedoPrefabs;
         public GameObject[] beamWeaponPrefabs;
         int shipIndex = 0;
-
+        [Header("Weapon Audio Clips")]
+        public AudioClip[] beamFireClips;     // Index matches civ: 0=FED, 1=ROM, 2=KLING, 3=CARD, 4=DOM, 5=BORG, 6=TERRAN, 7+=Minor fallback
+        public AudioClip[] torpedoFireClips;  // Same indexing as beamFireClips
         private List<(ShipController shipController, GameObject uiParent)> pendingShipUIs = new List<(ShipController, GameObject)>();
         [Header("Ship ScriptableObjects - Ship Templates")]
         [SerializeField] public List<ShipSO> FedShipSOList;

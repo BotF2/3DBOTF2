@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_206_HYDRA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 206
-  Position: {x: -250, y: -5, z: 280}
+  Position: {x: -23.4, y: -0.29, z: 30.5}
   SysName: HYDRA
   FirstOwner: 206
   CurrentOwner: 206
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

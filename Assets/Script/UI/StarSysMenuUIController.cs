@@ -306,9 +306,9 @@ namespace BOTF3D.UI
                 }
 
                 setupCount++;
-            }
+            } // ✅ MOVED: End of foreach loop is HERE
 
-            Debug.Log($"SetupSystemUIData: Setup {setupCount} systems");
+            Debug.Log($"SetupSystemUIData: Configured {setupCount} systems");
         }
 
         /// <summary>

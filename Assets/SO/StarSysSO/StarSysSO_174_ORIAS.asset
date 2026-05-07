@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_174_ORIAS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 174
-  Position: {x: -290, y: -19, z: 100}
+  Position: {x: -27.63, y: -1.98, z: 12.1}
   SysName: ORIAS
   FirstOwner: 174
   CurrentOwner: 174
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

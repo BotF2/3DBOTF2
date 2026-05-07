@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_121_TAKARA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 121
-  Position: {x: -550, y: 1, z: -270}
+  Position: {x: -55.48, y: 0.47, z: -25.79}
   SysName: TAKARA
   FirstOwner: 121
   CurrentOwner: 121
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

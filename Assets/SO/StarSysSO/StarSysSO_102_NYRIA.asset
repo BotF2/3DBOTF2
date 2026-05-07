@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_102_NYRIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 102
-  Position: {x: 123, y: 2, z: 627}
+  Position: {x: 16.41, y: 0.49, z: 66.49}
   SysName: NYRIA
   FirstOwner: 102
   CurrentOwner: 102
-  StarType: 0
+  StarType: 1
   StarSprit: {fileID: 21300000, guid: e4a5fe77159a4474faeb4032f0274153, type: 3}
   Dilitium: 1
   PowerStations: 1

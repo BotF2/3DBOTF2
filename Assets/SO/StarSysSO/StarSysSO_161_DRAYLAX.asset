@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_161_DRAYLAX
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 161
-  Position: {x: -50, y: -8, z: -370}
+  Position: {x: -2.04, y: -0.46, z: -36.3}
   SysName: DRAYLAX
   FirstOwner: 161
   CurrentOwner: 161
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: a6276ba4ff804e7488b5917248e4d2e3, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 273bfa1105374de4790896227204089a, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

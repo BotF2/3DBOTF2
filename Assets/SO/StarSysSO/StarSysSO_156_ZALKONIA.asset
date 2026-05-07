@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_156_ZALKONIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 156
-  Position: {x: 500, y: 21, z: -670}
+  Position: {x: 56.24, y: 1.94, z: -66.86}
   SysName: ZALKONIA
   FirstOwner: 156
   CurrentOwner: 156
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

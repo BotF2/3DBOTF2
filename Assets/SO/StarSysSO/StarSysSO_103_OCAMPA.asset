@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_103_OCAMPA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 103
-  Position: {x: -20, y: 23, z: 710}
+  Position: {x: 1.14, y: 2.02, z: 73.81}
   SysName: OCAMPA
   FirstOwner: 103
   CurrentOwner: 103
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 1

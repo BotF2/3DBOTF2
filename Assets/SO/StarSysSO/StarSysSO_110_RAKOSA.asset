@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_110_RAKOSA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 110
-  Position: {x: 510, y: -9, z: 630}
+  Position: {x: 57.31, y: -0.79, z: 66.15}
   SysName: RAKOSA
   FirstOwner: 110
   CurrentOwner: 110
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
+  StarType: 2
+  StarSprit: {fileID: 21300000, guid: c5ded4b5d64550443aa56b3ef7aa8d9b, type: 3}
   Dilitium: 1
   PowerStations: 1
   Factories: 1

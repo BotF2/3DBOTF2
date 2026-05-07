@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_204_HYADES
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 204
-  Position: {x: -431, y: 17, z: 228}
+  Position: {x: -42.78, y: 1.59, z: 25.24}
   SysName: HYADES
   FirstOwner: 204
   CurrentOwner: 204
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

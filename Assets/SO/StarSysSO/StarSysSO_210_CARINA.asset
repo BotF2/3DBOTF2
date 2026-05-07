@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_210_CARINA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 210
-  Position: {x: -133, y: 25, z: 680}
+  Position: {x: -10.9, y: 2.16, z: 71.12}
   SysName: CARINA
   FirstOwner: 210
   CurrentOwner: 210
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

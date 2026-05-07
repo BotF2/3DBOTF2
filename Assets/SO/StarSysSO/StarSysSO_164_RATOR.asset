@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_164_RATOR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 164
-  Position: {x: 100, y: -9, z: -530}
+  Position: {x: 13.94, y: -0.53, z: -52.9}
   SysName: RATOR
   FirstOwner: 164
   CurrentOwner: 164
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: 4961162aaa4dc9e4ead35cb7f7fee312, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 2147bbaaf41b095448e74bc994ac8597, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

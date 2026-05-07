@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_106_PAKLED
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 106
-  Position: {x: -40, y: -12, z: -280}
+  Position: {x: -0.98, y: -1.17, z: -26.92}
   SysName: PAKLED
   FirstOwner: 106
   CurrentOwner: 106
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 1

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_178_CELTRIS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 178
-  Position: {x: 170, y: 10, z: -100}
+  Position: {x: 21.38, y: 1.07, z: -8.51}
   SysName: CELTRIS
   FirstOwner: 178
   CurrentOwner: 178
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

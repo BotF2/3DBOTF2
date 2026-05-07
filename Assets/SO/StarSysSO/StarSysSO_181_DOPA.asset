@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_181_DOPA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 181
-  Position: {x: -310, y: -29, z: 50}
+  Position: {x: -29.77, y: -3, z: 6.95}
   SysName: DOPA
   FirstOwner: 181
   CurrentOwner: 181
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_144_VORGON
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 144
-  Position: {x: 440, y: 25, z: -530}
+  Position: {x: 49.8, y: 2.18, z: -52.73}
   SysName: VORGON
   FirstOwner: 144
   CurrentOwner: 144
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

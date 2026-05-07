@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_205_DRACO
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 205
-  Position: {x: -100, y: 1, z: 260}
+  Position: {x: -7.37, y: 0.43, z: 28.68}
   SysName: DRACO
   FirstOwner: 205
   CurrentOwner: 205
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

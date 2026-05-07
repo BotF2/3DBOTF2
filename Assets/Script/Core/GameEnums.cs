@@ -231,7 +231,7 @@ namespace BOTF3D.Core
         SMALL,
         MEDIUM,
         LARGE,
-        PONDEROUS
+        EXTREME,
     }
     public enum TechLevel
     {
@@ -244,6 +244,16 @@ namespace BOTF3D.Core
     {
         SINGLEPLAYER,
         MULTIPLAYER
+    }
+    public enum EncounterType
+    {
+        FirstContact,
+        Diplomacy, // civ to civ and civs can be local player or AI
+        Combat,  //? is this a subtype of Diplomacy as seen by Diplomacy
+        FleetManagement, // thinking we can do this back in the fleetController
+        EnterSystem,
+        UninhabitedSystem,
+        StrangeGalacticObject,
     }
     public enum SystemData
     {
@@ -303,7 +313,7 @@ namespace BOTF3D.Core
         RedStar,
         Nebula,
         OmarianNebula,
-        OrionNebula,
+        ORIONNEBULA,
         UniComplex,
         Station,// this and above isHabitable = true
         TargetDestination,// isHabitable = false

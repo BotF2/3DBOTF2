@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_135_TRILL
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 135
-  Position: {x: -260, y: 25, z: -640}
+  Position: {x: -24.47, y: 2.16, z: -63.93}
   SysName: TRILL
   FirstOwner: 135
   CurrentOwner: 135
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 1

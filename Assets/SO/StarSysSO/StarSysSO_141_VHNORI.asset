@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_141_VHNORI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 141
-  Position: {x: 350, y: 24, z: 670}
+  Position: {x: 40.2, y: 2.22, z: 69.75}
   SysName: VHNORI
   FirstOwner: 141
   CurrentOwner: 141
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

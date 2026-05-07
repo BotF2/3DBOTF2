@@ -720,20 +720,57 @@ namespace BOTF3D.Audio
 
         public void PlaySFX3DClip(AudioClip clip, Vector3 position, float volumeMultiplier = 1f)
         {
-            if (clip == null) return;
+            if (clip == null)
+            {
+                Debug.LogWarning("⚠️ PlaySFX3DClip: clip is NULL!");
+                return;
+            }
 
             AudioSource source = GetAvailableSFXSource();
             if (source == null)
             {
-                Debug.LogWarning("No available SFX AudioSource in pool!");
+                Debug.LogWarning("❌ No available SFX AudioSource in pool!");
                 return;
             }
 
+            // ✅ Calculate final volume
+            float finalVolume = masterVolume * sfxVolume * volumeMultiplier;
+
+            // ✅ Configure 3D audio settings
             source.clip = clip;
-            source.volume = masterVolume * sfxVolume * volumeMultiplier;
+            source.volume = finalVolume;
             source.spatialBlend = 1f; // Full 3D
+            source.rolloffMode = AudioRolloffMode.Linear;
+            source.minDistance = 10f;    // Sound is full volume within 10 units
+            source.maxDistance = 500f;   // Sound fades to 0 at 500 units
+            source.dopplerLevel = 0f;    // Disable doppler for combat sounds
             source.transform.position = position;
+
+            // ✅ Find AudioListener
+            AudioListener listener = FindAnyObjectByType<AudioListener>(FindObjectsInactive.Include);
+
+            // ✅ Detailed logging
+            Debug.Log($"🔊 PlaySFX3DClip: '{clip.name}' at {position}");
+            Debug.Log($"   Volume: {finalVolume:F3} (master={masterVolume:F3} × sfx={sfxVolume:F3} × mult={volumeMultiplier:F3})");
+            Debug.Log($"   3D Settings: spatialBlend={source.spatialBlend}, minDist={source.minDistance}, maxDist={source.maxDistance}");
+            Debug.Log($"   AudioListener position: {(listener != null ? listener.transform.position.ToString() : "NONE FOUND")}");
+
+            if (finalVolume <= 0.001f)
+            {
+                Debug.LogError($"❌ VOLUME TOO LOW! Final volume is {finalVolume}");
+            }
+
+            if (listener == null)
+            {
+                Debug.LogError("❌ NO AUDIO LISTENER IN SCENE!");
+            }
+
             source.Play();
+
+            if (!source.isPlaying)
+            {
+                Debug.LogError($"❌ AudioSource.Play() called but isPlaying=false! Check clip: {clip.name}");
+            }
 
             StartCoroutine(ReturnToPool(source, sfxPool, clip.length));
         }
@@ -782,18 +819,25 @@ namespace BOTF3D.Audio
         #endregion
 
         #region Audio Source Pooling
-        private float GetCategoryVolume(AudioCategory category)
+        /// <summary>
+        /// Get volume for a specific audio category
+        /// </summary>
+        public float GetCategoryVolume(AudioCategory category)
         {
-            return category switch
+            switch (category)
             {
-                AudioCategory.Music => musicVolume,
-                AudioCategory.SFX => sfxVolume,
-                AudioCategory.UI => uiVolume,
-                AudioCategory.Weapon => sfxVolume, // Or add weaponVolume if needed
-                AudioCategory.Ambient => musicVolume,
-                AudioCategory.Voice => sfxVolume,
-                _ => 1f
-            };
+                case AudioCategory.Music:
+                    return musicVolume;
+                case AudioCategory.SFX:
+                case AudioCategory.Weapon:
+                case AudioCategory.Ambient:
+                    return sfxVolume;
+                case AudioCategory.UI:
+                case AudioCategory.Voice:
+                    return uiVolume;
+                default:
+                    return 1f;
+            }
         }
         private AudioSource GetAvailableSFXSource()
         {

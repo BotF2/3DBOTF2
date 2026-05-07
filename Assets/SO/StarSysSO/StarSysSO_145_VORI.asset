@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_145_VORI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 145
-  Position: {x: 560, y: 23, z: 580}
+  Position: {x: 62.57, y: 2.05, z: 61.66}
   SysName: VORI
   FirstOwner: 145
   CurrentOwner: 145
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 1

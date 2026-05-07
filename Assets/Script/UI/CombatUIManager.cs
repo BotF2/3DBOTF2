@@ -365,7 +365,7 @@ namespace BOTF3D.UI
             }
             else
             {
-                Debug.LogError("  ❌ Could not find PanelCombat_Menu!");
+                Debug.LogError("  ❌ Could not find PanelCombat_Menu! Was the name changed?");
             }
 
             if (currentCombat3DCanvas != null)
@@ -653,6 +653,44 @@ namespace BOTF3D.UI
         /// </summary>
         public void ShowCombatOverPanel()
         {
+            // ✅ If panel wasn't found during setup, try to find it again
+            if (panelCombatOver == null)
+            {
+                Debug.LogWarning("⚠️ Combat over panel is null - attempting to find it now...");
+
+                // Try in GameOverCanvas first
+                if (currentGameOverCanvas != null)
+                {
+                    panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
+                }
+
+                // Try in CombatUICanvas as backup
+                if (panelCombatOver == null && currentCombatUICanvas != null)
+                {
+                    panelCombatOver = FindUIElement(currentCombatUICanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
+                }
+
+                // Last resort: global search
+                if (panelCombatOver == null)
+                {
+                    Debug.LogWarning("  Searching entire scene for combat over panel...");
+
+                    string[] possibleNames = { "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver" };
+
+                    foreach (string name in possibleNames)
+                    {
+                        GameObject found = GameObject.Find(name);
+                        if (found != null)
+                        {
+                            panelCombatOver = found;
+                            Debug.Log($"  ✅ Found combat over panel by global search: '{found.name}'");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // ✅ Show panel if found
             if (panelCombatOver != null)
             {
                 panelCombatOver.SetActive(true);
@@ -660,7 +698,31 @@ namespace BOTF3D.UI
             }
             else
             {
-                Debug.LogError("❌ Cannot show combat over panel - it's null!");
+                Debug.LogError("❌ Cannot show combat over panel - not found in scene!");
+                Debug.LogError("   ACTION REQUIRED: Add a GameObject named 'PanelCombatEnd' to your CombatScene");
+                Debug.LogError("   It should be a child of GameOverCanvas or CombatUICanvas");
+
+                // ✅ TEMPORARY WORKAROUND: Just end combat without showing panel
+                Debug.LogWarning("   ⚠️ TEMPORARY: Ending combat without panel");
+                if (CurrentCombatController != null)
+                {
+                    // Wait 3 seconds then return to galaxy
+                    StartCoroutine(DelayedReturnToGalaxy(3f));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Temporary workaround to return to galaxy after delay when panel is missing
+        /// </summary>
+        private System.Collections.IEnumerator DelayedReturnToGalaxy(float delay)
+        {
+            Debug.Log($"  Waiting {delay} seconds before returning to galaxy...");
+            yield return new WaitForSecondsRealtime(delay);
+
+            if (CurrentCombatController != null)
+            {
+                CurrentCombatController.OnReturnToGalaxyButtonClicked();
             }
         }
 

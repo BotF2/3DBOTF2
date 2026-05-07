@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_209_REIL
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 209
-  Position: {x: -156, y: -14, z: 527}
+  Position: {x: -13.39, y: -1.7, z: 55.62}
   SysName: REIL
   FirstOwner: 209
   CurrentOwner: 209
-  StarType: 0
+  StarType: 5
   StarSprit: {fileID: 21300000, guid: 782d452083d14404d83e94f7ce7ee92e, type: 3}
   Dilitium: 1
   PowerStations: 0

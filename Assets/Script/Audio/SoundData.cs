@@ -1,4 +1,4 @@
-﻿using BOTF3D.Core;
+using BOTF3D.Core;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -126,6 +126,10 @@ namespace BOTF3D.Audio
         /// ⚠️ LEGACY METHOD - Use AudioManager.PlaySoundData() instead
         /// Direct play method for quick testing or special cases
         /// </summary>
+        /// <summary>
+        /// ⚠️ LEGACY METHOD - Use AudioManager.PlaySoundData() instead
+        /// Direct play method for quick testing or special cases
+        /// </summary>
         public AudioSource Play(AudioSource sourceParam = null)
         {
             AudioClip clipToPlay = GetClip();
@@ -149,7 +153,22 @@ namespace BOTF3D.Audio
             }
 
             source.clip = clipToPlay;
-            source.volume = volume;
+
+            // ✅ FIX: Apply master volume from AudioManager if available
+            float finalVolume = volume;
+            if (AudioManager.Instance != null)
+            {
+                finalVolume = AudioManager.Instance.GetMasterVolume() *
+                             AudioManager.Instance.GetCategoryVolume(category) *
+                             volume;
+                Debug.Log($"🔊 SoundData.Play() applying master volume: {AudioManager.Instance.GetMasterVolume()} × category × {volume} = {finalVolume}");
+            }
+            else
+            {
+                Debug.LogWarning($"⚠️ SoundData.Play(): AudioManager not found - playing at default volume {volume}");
+            }
+
+            source.volume = finalVolume;
             source.pitch = GetPitchWithVariation();
             source.loop = loop;
             source.spatialBlend = is3D ? 1f : 0f;

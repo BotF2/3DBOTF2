@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_186_YADALLA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 186
-  Position: {x: 260, y: 9, z: -430}
+  Position: {x: 31.03, y: 1.44, z: -42.08}
   SysName: YADALLA
   FirstOwner: 186
   CurrentOwner: 186
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

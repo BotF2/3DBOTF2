@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_180_PELOSA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 180
-  Position: {x: -490, y: 24, z: -580}
+  Position: {x: -48.96, y: 2.15, z: -58.08}
   SysName: PELOSA
   FirstOwner: 180
   CurrentOwner: 180
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

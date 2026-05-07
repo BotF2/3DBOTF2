@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_128_TANUGA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 128
-  Position: {x: -140, y: -22, z: -820}
+  Position: {x: -11.73, y: -2.22, z: -82.93}
   SysName: TANUGA
   FirstOwner: 128
   CurrentOwner: 128
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

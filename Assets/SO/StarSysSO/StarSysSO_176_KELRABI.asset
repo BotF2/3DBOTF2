@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_176_KELRABI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 176
-  Position: {x: -420, y: 6, z: 100}
+  Position: {x: -41.54, y: 0.8, z: 12.1}
   SysName: KELRABI
   FirstOwner: 176
   CurrentOwner: 176
-  StarType: 0
+  StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
   Dilitium: 1
   PowerStations: 0

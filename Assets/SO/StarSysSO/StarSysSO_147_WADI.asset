@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_147_WADI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 147
-  Position: {x: -210, y: -14, z: 424}
+  Position: {x: -19.1, y: -1.7, z: 45.15}
   SysName: WADI
   FirstOwner: 147
   CurrentOwner: 147
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

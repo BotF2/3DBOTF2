@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_203_PROVONSHA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 203
-  Position: {x: -77, y: 18, z: 555}
+  Position: {x: -4.96, y: 1.66, z: 58.37}
   SysName: PROVONSHA
   FirstOwner: 203
   CurrentOwner: 203
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 0

@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_151_XYRILLIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 151
-  Position: {x: 50, y: -18, z: -430}
+  Position: {x: 8.61, y: -1.8, z: -42.55}
   SysName: XYRILLIA
   FirstOwner: 151
   CurrentOwner: 151
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

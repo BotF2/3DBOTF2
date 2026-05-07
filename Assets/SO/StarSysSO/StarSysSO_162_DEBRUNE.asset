@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_162_DEBRUNE
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 162
-  Position: {x: 130, y: -3, z: -540}
+  Position: {x: 17.12, y: -0.14, z: -53.93}
   SysName: DEBRUNE
   FirstOwner: 162
   CurrentOwner: 162
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: d74b642487bf55541975a5b87cb4f9f4, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: f51b53b0642ca014391f74ed549f9763, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

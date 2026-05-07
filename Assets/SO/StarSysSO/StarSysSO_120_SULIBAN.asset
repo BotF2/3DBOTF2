@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: StarSysSO_120_SULIBAN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 120
-  Position: {x: 40, y: 28, z: -800}
+  Position: {x: 7.54, y: 2.43, z: -80.25}
   SysName: SULIBAN
   FirstOwner: 120
   CurrentOwner: 120
-  StarType: 0
+  StarType: 4
   StarSprit: {fileID: 21300000, guid: f46fc7ae4eec69d40aa8026ba9da085d, type: 3}
   Dilitium: 1
   PowerStations: 1

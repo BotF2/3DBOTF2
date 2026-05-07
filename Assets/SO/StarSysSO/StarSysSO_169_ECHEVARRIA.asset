@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: StarSysSO_169_ECHEVARRIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 169
-  Position: {x: 150, y: 16, z: -370}
+  Position: {x: 19.26, y: 1.57, z: -36.3}
   SysName: ECHEVARRIA
   FirstOwner: 169
   CurrentOwner: 169
-  StarType: 0
-  StarSprit: {fileID: 21300000, guid: b0fe532a866bede4183452f51792b62d, type: 3}
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 2147bbaaf41b095448e74bc994ac8597, type: 3}
   Dilitium: 1
   PowerStations: 0
   Factories: 0

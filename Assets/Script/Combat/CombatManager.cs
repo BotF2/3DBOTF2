@@ -33,6 +33,8 @@ namespace BOTF3D.Core
         [Header("Weapon Prefabs")]
         public List<GameObject> TorpedoPrefabs;
         public List<GameObject> BeamPrefabs;
+        public AudioClip[] BeamFireClips;
+        public AudioClip[] TorpedoFireClips;
 
         // ✅ Combat queue system
         private Queue<PendingCombat> combatQueue = new Queue<PendingCombat>();
@@ -335,6 +337,12 @@ namespace BOTF3D.Core
             aCombatController.SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideTwo);
             aCombatController.SideOneBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideOne);
             aCombatController.SideTwoBeamPrefab = GetBeamPrefabs(aCombatController, combatData.CivEnumSideTwo);
+            // ✅ ADD AUDIO CLIP ASSIGNMENT
+            aCombatController.SideOneBeamFireClip = GetBeamFireClip(combatData.CivEnumSideOne);
+            aCombatController.SideTwoBeamFireClip = GetBeamFireClip(combatData.CivEnumSideTwo);
+            aCombatController.SideOneTorpedoFireClip = GetTorpedoFireClip(combatData.CivEnumSideOne);
+            aCombatController.SideTwoTorpedoFireClip = GetTorpedoFireClip(combatData.CivEnumSideTwo);
+
 
             // Add to tracking list
             allCombatControllers.Add(aCombatController);
@@ -609,6 +617,63 @@ namespace BOTF3D.Core
                 }
             }
             return beamPrefab;
+        }
+        /// <summary>
+        /// Get civilization-specific beam fire audio clip
+        /// For 7 playable civs (FED=0 through TERRAN=6), use their index
+        /// For all other civs (index > 7), use the last clip (minor civ fallback)
+        /// </summary>
+        private AudioClip GetBeamFireClip(CivEnum civEnum)
+        {
+            if (BeamFireClips == null || BeamFireClips.Length == 0)
+            {
+                Debug.LogWarning($"⚠️ BeamFireClips array is null or empty!");
+                return null;
+            }
+
+            int civIndex = (int)civEnum;
+
+            // ✅ For playable civs (0-6), use their specific clip
+            if (civIndex >= 0 && civIndex < BeamFireClips.Length - 1)
+            {
+                AudioClip clip = BeamFireClips[civIndex];
+                Debug.Log($"✅ Assigned BeamFireClip for {civEnum} (index {civIndex}): {clip?.name ?? "NULL"}");
+                return clip;
+            }
+
+            // ✅ For minor civs (index > 7), use the last clip as fallback
+            AudioClip fallbackClip = BeamFireClips[BeamFireClips.Length - 1];
+            Debug.Log($"✅ Assigned fallback BeamFireClip for {civEnum} (index {civIndex}): {fallbackClip?.name ?? "NULL"}");
+            return fallbackClip;
+        }
+
+        /// <summary>
+        /// Get civilization-specific torpedo fire audio clip
+        /// For 7 playable civs (FED=0 through TERRAN=6), use their index
+        /// For all other civs (index > 7), use the last clip (minor civ fallback)
+        /// </summary>
+        private AudioClip GetTorpedoFireClip(CivEnum civEnum)
+        {
+            if (TorpedoFireClips == null || TorpedoFireClips.Length == 0)
+            {
+                Debug.LogWarning($"⚠️ TorpedoFireClips array is null or empty!");
+                return null;
+            }
+
+            int civIndex = (int)civEnum;
+
+            // ✅ For playable civs (0-6), use their specific clip
+            if (civIndex >= 0 && civIndex < TorpedoFireClips.Length - 1)
+            {
+                AudioClip clip = TorpedoFireClips[civIndex];
+                Debug.Log($"✅ Assigned TorpedoFireClip for {civEnum} (index {civIndex}): {clip?.name ?? "NULL"}");
+                return clip;
+            }
+
+            // ✅ For minor civs (index > 7), use the last clip as fallback
+            AudioClip fallbackClip = TorpedoFireClips[TorpedoFireClips.Length - 1];
+            Debug.Log($"✅ Assigned fallback TorpedoFireClip for {civEnum} (index {civIndex}): {fallbackClip?.name ?? "NULL"}");
+            return fallbackClip;
         }
 
         /// <summary>

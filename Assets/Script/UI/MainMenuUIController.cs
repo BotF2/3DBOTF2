@@ -234,57 +234,57 @@ namespace BOTF3D.UI
             SetupLanguageButtons();
 
             // ✅ Wire toggle events to update images AND background visibility
-            FedLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            FedLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.FED);
                     UpdateToggleBackgrounds(FedLocalPlayerToggle);
                 }
             });
-            RomLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            RomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.ROM);
                     UpdateToggleBackgrounds(RomLocalPlayerToggle);
                 }
             });
-            KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.KLING);
                     UpdateToggleBackgrounds(KlingLocalPlayerToggle);
                 }
             });
-            CardLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            CardLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.CARD);
                     UpdateToggleBackgrounds(CardLocalPlayerToggle);
                 }
             });
-            DomLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            DomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.DOM);
                     UpdateToggleBackgrounds(DomLocalPlayerToggle);
                 }
             });
-            BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.BORG);
                     UpdateToggleBackgrounds(BorgLocalPlayerToggle);
                 }
             });
-            TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) => 
-            { 
-                if (isOn) 
+            TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
+            {
+                if (isOn)
                 {
                     ShowCivImages(CivEnum.TERRAN);
                     UpdateToggleBackgrounds(TerranLocalPlayerToggle);
@@ -1234,7 +1234,7 @@ namespace BOTF3D.UI
                     PonderousGalaxyToggle.isOn = true;
                     PonderousGalaxyToggle.OnSelect(null);
                     PonderousGalaxyToggle = activeGalaxySizeToggle;
-                    SetGalaxySize((int)GalaxySize.PONDEROUS);
+                    SetGalaxySize((int)GalaxySize.EXTREME);
                     break;
                 default:
                     break;
