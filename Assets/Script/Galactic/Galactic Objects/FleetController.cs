@@ -935,7 +935,7 @@ namespace BOTF3D.GamePlay
                 if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, fleetCon.FleetData.CivController))
                 {
                     destinationType = GalaxyObjectType.Fleet;
-                    destinationNameText = fleetCon.FleetData.Name;
+                    destinationNameText = fleetCon.FleetData.FleetName;
                     Debug.Log($"  Destination is known fleet: '{destinationNameText}'");
                 }
                 else

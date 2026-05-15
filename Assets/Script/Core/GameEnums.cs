@@ -352,12 +352,12 @@ namespace BOTF3D.Core
     }
     public enum CombatOrders
     {
-        Engage, // default order
-        Rush,
-        Retreat,
-        Formation, // aka protect transports
-        TargetTransports,
         None,
+        Engage,           // Balanced attack in 2-3 ship groups, targets closest/slowest
+        Rush,             // Individual max speed, target center enemies only
+        Retreat,          // Turn 180° (2.5s vulnerable) then warp out (invulnerable)
+        Formation,        // Defensive wall, transports behind, blocks LOS
+        AttackTransports  // Swing wide to flank and hit transports
     }
     public enum StarSysFacilityType
     {

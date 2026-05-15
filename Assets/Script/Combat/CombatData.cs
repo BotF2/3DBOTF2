@@ -13,6 +13,8 @@ namespace BOTF3D.Core
         public CivEnum CivEnumSideTwo;
         public CivController sideOneCiv;
         public CivController sideTwoCiv;
+        public CombatOrders SideOneOrder;
+        public CombatOrders SideTwoOrder;
         public CombatType CombatType;
         public int CombatID;
         public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
@@ -67,10 +69,9 @@ namespace BOTF3D.Core
         int _zDestroyerDepth = 0;
         int _zCapitalDepth = 0;
         int _zUtilityDepth = 0;
+        internal float SideOneSpeedMultiplier;
+        internal float SideTwoSpeedMultiplier;
 
-        // ✅ NEW: Speed multipliers based on combat orders
-        public float SideOneSpeedMultiplier = 1.0f;
-        public float SideTwoSpeedMultiplier = 1.0f;
         public CombatData()
         {
             OrderSideOne = CombatOrders.None;

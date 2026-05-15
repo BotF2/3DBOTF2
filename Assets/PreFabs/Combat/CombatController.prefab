@@ -44,25 +44,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea8c4ed0f62685b419c5d823e09c3990, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Combat.CombatController
+  sideOneGroups: []
+  sideTwoGroups: []
   warpInSound: {fileID: 0}
   ShipCombatCanvas: {fileID: 0}
   spiralPositions: []
-  animators: []
-  sideOneA1Animator: {fileID: 0}
-  sideOneA2Animator: {fileID: 0}
-  sideOneA3Animator: {fileID: 0}
-  sideTwoA1Animator: {fileID: 0}
-  sideTwoA2Animator: {fileID: 0}
-  sideTwoA3Animator: {fileID: 0}
+  shipParents: []
+  sideOneA1Parent: {fileID: 0}
+  sideOneA2Parent: {fileID: 0}
+  sideOneA3Parent: {fileID: 0}
+  sideTwoA1Parent: {fileID: 0}
+  sideTwoA2Parent: {fileID: 0}
+  sideTwoA3Parent: {fileID: 0}
   WarpingIn: 0
   WarpingAnimationOver: 0
   SideOneTorpedoPrefab: {fileID: 0}
   SideTwoTorpedoPrefab: {fileID: 0}
   SideOneBeamPrefab: {fileID: 0}
   SideTwoBeamPrefab: {fileID: 0}
+  SideOneBeamFireClip: {fileID: 0}
+  SideTwoBeamFireClip: {fileID: 0}
+  SideOneTorpedoFireClip: {fileID: 0}
+  SideTwoTorpedoFireClip: {fileID: 0}
   minFirstShotDelay: 0.2
   maxFirstShotDelay: 0.9
   initialSpeed: 30
   stopDistance: 0
   isMoving: 0
   isClosing: 0
+  warpInDuration: 1.5
+  warpStretchDuration: 0.8

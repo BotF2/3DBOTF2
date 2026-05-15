@@ -4,8 +4,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-
-
 enum TurnDirection
 {
     up,
@@ -97,6 +95,32 @@ namespace BOTF3D.GamePlay
             Instance = this;
             // ❌ REMOVE: DontDestroyOnLoad(gameObject);
             // ✅ Camera should live in CombatScene only!
+
+            // ✅ CRITICAL: Ensure only ONE AudioListener exists in the scene
+            AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
+
+            if (listeners.Length > 1)
+            {
+                Debug.LogWarning($"⚠️ Found {listeners.Length} AudioListeners - removing duplicates...");
+
+                // Keep the first AudioListener, remove all others
+                for (int i = 1; i < listeners.Length; i++)
+                {
+                    Debug.Log($"   🗑️ Destroying AudioListener on '{listeners[i].gameObject.name}'");
+                    Destroy(listeners[i]);
+                }
+            }
+            else if (listeners.Length == 0)
+            {
+                // No listener exists - add one to this camera
+                gameObject.AddComponent<AudioListener>();
+                Debug.Log("✅ Added AudioListener to combat camera");
+            }
+            else
+            {
+                Debug.Log($"✅ Single AudioListener found on '{listeners[0].gameObject.name}'");
+            }
+
             Debug.Log("✅ ShipCombatCameraController: Instance assigned (scene-based)");
         }
         private void Start()
@@ -389,16 +413,3 @@ namespace BOTF3D.GamePlay
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

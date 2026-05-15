@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Anya BOTF
+// Ignore Spelling: Anya BOTF
 
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
@@ -468,7 +468,7 @@ namespace BOTF3D.UI
             cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
 
             // ✅ TEXT BINDINGS: Always update
-            uiFields.FleetNameText.text = fleetCon.FleetData.Name;
+            uiFields.FleetNameText.text = fleetCon.FleetData.FleetName;
             uiFields.DestinationName.gameObject.SetActive(true);
             destinationName = uiFields.DestinationName;
             uiFields.DestinationName.text = "";
@@ -825,7 +825,7 @@ namespace BOTF3D.UI
                         var name = ourTMPs[j].name;
                         switch (name)
                         {
-                            case "Destination Name Text":
+                            case "Destination FleetName Text":
                                 ourTMPs[j].text = "No Destination";
                                 break;
                             case "Destination Coordinates":

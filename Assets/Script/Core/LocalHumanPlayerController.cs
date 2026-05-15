@@ -100,8 +100,8 @@ public class LocalHumanPlayerController : NetworkBehaviour//, IPlayerController
     //        case CombatOrders.Formation:
     //            combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
     //            break;
-    //        case CombatOrders.TargetTransports:
-    //            combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
+    //        case CombatOrders.AttackTransports:
+    //            combatCon.SetCombatOrder(CombatOrders.AttackTransports, civ); // PlayerCiv);
 
     //            break;
     //    }

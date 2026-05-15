@@ -4,7 +4,6 @@ using BOTF3D.Audio;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
-using Mirror;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -30,19 +29,24 @@ namespace BOTF3D.Combat
         /// </summary>
 
         private CombatData combatData;
+        [Header("Combat Order System")]
+        public List<ShipGroup> sideOneGroups = new List<ShipGroup>();
+        public List<ShipGroup> sideTwoGroups = new List<ShipGroup>();
 
+        private bool groupsInitialized = false;
         public SoundData warpInSound;
         public Canvas ShipCombatCanvas;
         public CombatData CombatData { get { return combatData; } set { combatData = value; } }
         public int CombatID { get; private set; } // for specific combat instance
         public List<Vector2Int> spiralPositions = new List<Vector2Int>();
-        public List<Animator> animators; // Assign in Inspector or dynamically
-        public Animator sideOneA1Animator;
-        public Animator sideOneA2Animator;
-        public Animator sideOneA3Animator;
-        public Animator sideTwoA1Animator;
-        public Animator sideTwoA2Animator;
-        public Animator sideTwoA3Animator;
+        public List<GameObject> shipParents; // Parent GameObjects replacing animators
+        public GameObject sideOneA1Parent;
+        public GameObject sideOneA2Parent;
+        public GameObject sideOneA3Parent;
+        public GameObject sideTwoA1Parent;
+        public GameObject sideTwoA2Parent;
+        public GameObject sideTwoA3Parent;
+
         public bool WarpingIn = false;
         public bool WarpingAnimationOver = false;
         public GameObject SideOneTorpedoPrefab;
@@ -56,20 +60,24 @@ namespace BOTF3D.Combat
         [Header("First Firing Delay Ranges")]
         [SerializeField] private float minFirstShotDelay = 0.2f;
         [SerializeField] private float maxFirstShotDelay = 0.9f;
-        int _scoutsSide1;
-        int _scoutsSide2;
-        int _destroyersSide1;
-        int _destroyersSide2;
-        int _capitalsSide1;
-        int _capitalsSide2;
-        int _transportsSide1;
-        int _transportsSide2;
+        private List<ShipController> _hvyCruisersSide1 = new List<ShipController>();
+        private List<ShipController> _hvyCruisersSide2 = new List<ShipController>();
+        private List<ShipController> _ltCruisersSide1 = new List<ShipController>();
+        private List<ShipController> _ltCruisersSide2 = new List<ShipController>();
+        private List<ShipController> _cruisersSide1 = new List<ShipController>();
+        private List<ShipController> _cruisersSide2 = new List<ShipController>();
+        private List<ShipController> _destroyersSide1List = new List<ShipController>();
+        private List<ShipController> _destroyersSide2List = new List<ShipController>();
+        private List<ShipController> _scoutsSide1List = new List<ShipController>();
+        private List<ShipController> _scoutsSide2List = new List<ShipController>();
+        private List<ShipController> _transportsSide1List = new List<ShipController>();
+        private List<ShipController> _transportsSide2List = new List<ShipController>();
         List<Vector2Int> _spiralPositionsTran1 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsTran2 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide1 = new List<Vector2Int>();
         List<Vector2Int> _spiralPositionsOtherShipsSide2 = new List<Vector2Int>();
         public List<GameObject> HealthbarRenderers { get; private set; } = new List<GameObject>();
-        [Header("Move animators to move ships")]
+        [Header("Move parent GameObjects to move ships")]
         public float initialSpeed = 30f;     // starting velocity (units/sec)
         public float stopDistance;    // distance over which to stop
         private float deceleration;         // computed deceleration
@@ -80,17 +88,30 @@ namespace BOTF3D.Combat
         private bool combatEnded = false;
         private bool showingEndPanel = false;
 
+        [Header("Warp-In Animation")]
+        public float warpInDuration = 1.5f;  // Duration of position movement (until stretch starts)
+        public float warpStretchDuration = 0.8f;  // Duration of scale-back animation
+        private Vector3[] parentStartPositions;  // Starting positions for warp-in
+        private Vector3[] parentFinalPositions;  // Final positions after warp-in
+        private int _transportsSide1;
+        private int _transportsSide2;
+        private object _scoutsSide1;
+        private object _scoutsSide2;
+        private object _destroyersSide1;
+        private object _destroyersSide2;
+        private int _capitalsSide1;
+        private int _capitalsSide2;
 
         private void Awake()
         {
             CombatID = GetInstanceID(); // Unity object id for this combat instance
             Debug.Log($"✅ CombatController {CombatID}: Created");
 
-            // ✅ CRITICAL: Initialize animators list
+            // ✅ Initialize ship parents list
             // This list is used by BeginPhysicsLikeMovement() and LateUpdate()
-            if (animators == null)
+            if (shipParents == null)
             {
-                animators = new List<Animator>();
+                shipParents = new List<GameObject>();
             }
         }
         private void Start()
@@ -101,96 +122,93 @@ namespace BOTF3D.Combat
             stopDistance = 390f;
             CleanupOrphanedProjectiles();
 
-            // ✅ CRITICAL: Populate animators list with the 6 animator references
+            // ✅ Populate ship parents list with the 6 parent references
             // Order matters: [0-2] = Side One, [3-5] = Side Two
-            animators.Clear();
+            shipParents.Clear();
 
-            //if (sideOneA1Animator.TryGetComponent<S1A1Animator>(out var animScript)) ;
-            //animScript.RunAnimation();
-            //if (sideOneA2Animator.TryGetComponent<S1A2Animator>(out var animScript2)) ;
-            //animScript2.RunAnimation();
-            //if (sideOneA3Animator.TryGetComponent<S1A3Animator>(out var animScript3)) ;
-            //animScript3.RunAnimation();
-            //if (sideTwoA1Animator.TryGetComponent<S2A1Animator>(out var animScript4)) ;
-            //animScript4.RunAnimation();
-            //if (sideTwoA2Animator.TryGetComponent<S2A2Animator>(out var animScript5)) ;
-            //animScript5.RunAnimation();
-            //if (sideTwoA3Animator.TryGetComponent<S2A3Animator>(out var animScript6)) ;
-            //animScript6.RunAnimation();
+            if (sideOneA1Parent != null) shipParents.Add(sideOneA1Parent);
+            if (sideOneA2Parent != null) shipParents.Add(sideOneA2Parent);
+            if (sideOneA3Parent != null) shipParents.Add(sideOneA3Parent);
+            if (sideTwoA1Parent != null) shipParents.Add(sideTwoA1Parent);
+            if (sideTwoA2Parent != null) shipParents.Add(sideTwoA2Parent);
+            if (sideTwoA3Parent != null) shipParents.Add(sideTwoA3Parent);
 
-            if (sideOneA1Animator != null) animators.Add(sideOneA1Animator);
-            if (sideOneA2Animator != null) animators.Add(sideOneA2Animator);
-            if (sideOneA3Animator != null) animators.Add(sideOneA3Animator);
-            if (sideTwoA1Animator != null) animators.Add(sideTwoA1Animator);
-            if (sideTwoA2Animator != null) animators.Add(sideTwoA2Animator);
-            if (sideTwoA3Animator != null) animators.Add(sideTwoA3Animator);
+            Debug.Log($"✅ Populated shipParents list with {shipParents.Count} parent GameObjects");
 
-            Debug.Log($"✅ Populated animators list with {animators.Count} animators");
-            // ✅ TEMPORARY: Stop all AudioSources playing "Explosion" clips on scene load
-            //AudioSource[] allSources = FindObjectsOfType<AudioSource>(true);
-            //foreach (var source in allSources)
-            //{
-            //    if (source.clip != null && source.clip.name.Contains("Explosion"))
-            //    {
-            //        Debug.LogWarning($"⚠️ Stopping auto-play explosion on: {source.gameObject.name}");
-            //        source.Stop();
-            //        source.playOnAwake = false; // Prevent it from playing again
-            //    }
-            //}
+            // ✅ Store starting and final positions for warp-in animation
+            parentStartPositions = new Vector3[shipParents.Count];
+            parentFinalPositions = new Vector3[shipParents.Count];
+
+            for (int i = 0; i < shipParents.Count; i++)
+            {
+                if (shipParents[i] != null)
+                {
+                    // Store the current scene position as final position
+                    parentFinalPositions[i] = shipParents[i].transform.position;
+
+                    // Calculate start position (farther out for warp-in effect)
+                    // Side One (i < 3): starts even more negative
+                    // Side Two (i >= 3): starts even more positive
+                    bool isSideOne = (i < 3);
+                    float startOffset = isSideOne ? -600f : 600f;  // Extra distance for warp-in
+                    parentStartPositions[i] = parentFinalPositions[i] + new Vector3(startOffset, 0, 0);
+
+                    Debug.Log($"✅ Parent '{shipParents[i].gameObject.name}': Start={parentStartPositions[i]}, Final={parentFinalPositions[i]}");
+                }
+            }
 
         }
         void LateUpdate()
         {
-            if (WarpingIn && !WarpingAnimationOver)
+
+            if (WarpingAnimationOver && !WarpingIn)
             {
-                for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
+                // ✅ Initialize ship groups once after warp-in completes
+                if (!groupsInitialized)
                 {
-                    CombatData.SideOneShipCons[i].transform.localPosition = new Vector3(0, CombatData.SideOneShipCons[i].transform.position.y, CombatData.SideOneShipCons[i].transform.position.z);
+                    InitializeShipGroupsForEngage();
                 }
-                for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
-                {
-                    CombatData.SideTwoShipCons[i].transform.localPosition = new Vector3(0, CombatData.SideTwoShipCons[i].transform.position.y, CombatData.SideTwoShipCons[i].transform.position.z);
-                }
-            }
-            else if (WarpingAnimationOver && !WarpingIn)
-            {
-                // ✅ Stop moving if combat has ended
+
+                // ✅ NEW: Order-based movement system
                 if (isMoving && !combatEnded)
                 {
-                    // ✅ Use unscaledDeltaTime for combat movement
-                    float step = currentSpeed * Time.unscaledDeltaTime;
-
-                    for (int i = 0; i < animators.Count; i++)
+                    // Process each parent group (6 total: 3 per side)
+                    for (int i = 0; i < shipParents.Count; i++)
                     {
-                        // ✅ Apply order-based speed multiplier
-                        bool isSideOne = (i < 3);
-                        float speedMult = isSideOne ? CombatData.SideOneSpeedMultiplier : CombatData.SideTwoSpeedMultiplier;
-                        float adjustedStep = step * speedMult;
+                        var numChildren = shipParents[i].transform.childCount;
 
-                        var numChildren = animators[i].transform.childCount;
                         for (int j = 0; j < numChildren; j++)
                         {
-                            var child = animators[i].transform.GetChild(j);
+                            var child = shipParents[i].transform.GetChild(j);
 
-                            // ✅ CRITICAL: Don't move destroyed ships
                             if (child != null && child.TryGetComponent<ShipController>(out var shipController))
                             {
                                 if (shipController.ShipData != null &&
                                     !shipController.ShipData.Distroyed &&
                                     shipController.ShipData.ShieldHealth + shipController.ShipData.HullHealth > 0)
                                 {
-                                    child.transform.Translate(moveDirections[i] * adjustedStep, Space.Self);
+                                    // ✅ Get order state machine
+                                    var orderStateMachine = child.GetComponent<CombatOrderStateMachine>();
+
+                                    if (orderStateMachine != null && !orderStateMachine.IsWarpingOut())
+                                    {
+                                        // ✅ Use ship's max warp factor and order speed factor
+                                        float shipMaxSpeed = shipController.ShipData.maxWarpFactor;
+                                        float orderSpeedFactor = orderStateMachine.GetOrderSpeedFactor();
+                                        float effectiveSpeed = shipMaxSpeed * orderSpeedFactor;
+
+                                        // ✅ Calculate movement
+                                        float step = effectiveSpeed * Time.unscaledDeltaTime;
+
+                                        // ✅ Get movement direction (forward toward enemy)
+                                        Vector3 moveDirection = moveDirections[i];
+
+                                        // ✅ Apply movement
+                                        child.transform.Translate(moveDirection * step, Space.Self);
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    // ✅ Use unscaledDeltaTime for deceleration
-                    currentSpeed -= deceleration * Time.unscaledDeltaTime;
-                    if (currentSpeed <= 0f)
-                    {
-                        currentSpeed = 0f;
-                        isMoving = false;
                     }
                 }
             }
@@ -198,23 +216,25 @@ namespace BOTF3D.Combat
 
         void Update()
         {
-            // Check for combat end condition after animations complete
+            // ✅ Update group targets for Engage order
+            if (WarpingAnimationOver && !combatEnded)
+            {
+                if (CombatData.SideOneOrder == CombatOrders.Engage)
+                {
+                    UpdateGroupTargets();
+                }
+            }
             if (!combatEnded && WarpingAnimationOver && !WarpingIn)
             {
-                // Count surviving ships on each side (only active, non-destroyed ships)
                 int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
                 int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
 
-                // Check if one side has been eliminated
                 if (sideOneAlive == 0 || sideTwoAlive == 0)
                 {
                     Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
                     combatEnded = true;
-
-                    // Stop all weapon fire immediately
                     StopAllWeaponFire();
 
-                    // Show the combat end sequence
                     if (!showingEndPanel)
                     {
                         showingEndPanel = true;
@@ -246,6 +266,133 @@ namespace BOTF3D.Combat
         }
 
         // Add this coroutine for the end sequence with proper delays
+        /// <summary>
+        /// Manually animates the warp-in effect with position movement and warp stretch
+        /// Phase 1: Move parents from start to final positions while ships are stretched 5x on X axis
+        /// Phase 2: Scale ships back to normal over 0.8 seconds
+        /// </summary>
+        public IEnumerator AnimateWarpIn()
+        {
+            Debug.Log("=== Starting Manual Warp-In Animation ===");
+            AudioManager.Instance?.PlaySoundData(warpInSound);
+
+            // ✅ PHASE 1 SETUP: Set parents to start positions and stretch all child ships
+            List<List<Transform>> allChildShips = new List<List<Transform>>();
+
+            for (int i = 0; i < shipParents.Count; i++)
+            {
+                if (shipParents[i] != null)
+                {
+                    // Set parent to start position
+                    shipParents[i].transform.position = parentStartPositions[i];
+                    Debug.Log($"  Set {shipParents[i].gameObject.name} to start position: {parentStartPositions[i]}");
+
+                    // Collect and stretch all child ships
+                    List<Transform> childShips = new List<Transform>();
+                    for (int j = 0; j < shipParents[i].transform.childCount; j++)
+                    {
+                        Transform child = shipParents[i].transform.GetChild(j);
+                        if (child.TryGetComponent<ShipController>(out _))
+                        {
+                            // ✅ Stretch ship 5x on world X axis
+                            // Side One (i < 3): X scale = 5
+                            // Side Two (i >= 3): X scale = 5
+                            child.localScale = new Vector3(100f, 1f, 1f);
+                            childShips.Add(child);
+                        }
+                    }
+                    allChildShips.Add(childShips);
+                    Debug.Log($"    Stretched {childShips.Count} ships to 5x on X axis");
+                }
+                else
+                {
+                    allChildShips.Add(new List<Transform>());
+                }
+            }
+
+            // ✅ PHASE 1: Animate parent positions from start to final (ships stay stretched)
+            float elapsed = 0f;
+            while (elapsed < warpInDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / warpInDuration);
+
+                // Use ease-out curve for smooth deceleration
+                float smoothT = 1f - Mathf.Pow(1f - t, 3f);
+
+                for (int i = 0; i < shipParents.Count; i++)
+                {
+                    if (shipParents[i] != null)
+                    {
+                        shipParents[i].transform.position = Vector3.Lerp(
+                            parentStartPositions[i],
+                            parentFinalPositions[i],
+                            smoothT
+                        );
+                    }
+                }
+
+                yield return null;
+            }
+
+            // Ensure final positions are exact
+            for (int i = 0; i < shipParents.Count; i++)
+            {
+                if (shipParents[i] != null)
+                {
+                    shipParents[i].transform.position = parentFinalPositions[i];
+                }
+            }
+
+            Debug.Log("✅ Phase 1 complete: Parents at final position, ships still stretched");
+
+            // ✅ PHASE 2: Scale ships back from 5x to 1x on X axis over warpStretchDuration
+            elapsed = 0f;
+            while (elapsed < warpStretchDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / warpStretchDuration);
+
+                // Ease-in curve for smooth scale-back
+                float smoothT = Mathf.Pow(t, 2f);
+
+                // Lerp scale from 5 to 1
+                float currentXScale = Mathf.Lerp(5f, 1f, smoothT);
+
+                for (int i = 0; i < allChildShips.Count; i++)
+                {
+                    foreach (Transform ship in allChildShips[i])
+                    {
+                        if (ship != null)
+                        {
+                            ship.localScale = new Vector3(currentXScale, 1f, 1f);
+                        }
+                    }
+                }
+
+                yield return null;
+            }
+
+            // Ensure final scale is exact
+            for (int i = 0; i < allChildShips.Count; i++)
+            {
+                foreach (Transform ship in allChildShips[i])
+                {
+                    if (ship != null)
+                    {
+                        ship.localScale = Vector3.one;
+                    }
+                }
+            }
+
+            Debug.Log("✅ Phase 2 complete: Ships scaled back to normal");
+            Debug.Log("✅ Warp-in animation complete");
+
+            // Signal that warp-in is complete
+            WarpingIn = false;
+            WarpingAnimationOver = true;
+        }
+
         private IEnumerator ShowCombatEndSequence(bool sideOneWon)
         {
             // ✅ PHASE 1: Stop all movement and weapon fire
@@ -279,8 +426,196 @@ namespace BOTF3D.Combat
             Debug.Log("Combat End Phase 3: Returning to galaxy");
             EndCombat();
         }
+        /// <summary>
+        /// Initialize ship groups for Engage order.
+        /// Groups ships by similar speed into 2-3 ship groups.
+        /// Called after ships warp in and before combat starts.
+        /// </summary>
+        public void InitializeShipGroupsForEngage()
+        {
+            if (groupsInitialized) return;
 
-        // Add this public method for button handlers (optional)
+            Debug.Log("=== Initializing Ship Groups for Engage Order ===");
+
+            // Side One Groups
+            if (CombatData.SideOneOrder == CombatOrders.Engage)
+            {
+                sideOneGroups = CreateShipGroups(CombatData.SideOneShipCons);
+                AssignGroupsToShips(sideOneGroups);
+                Debug.Log($"  Side 1: Created {sideOneGroups.Count} groups");
+            }
+
+            // Side Two Groups
+            if (CombatData.SideTwoOrder == CombatOrders.Engage)
+            {
+                sideTwoGroups = CreateShipGroups(CombatData.SideTwoShipCons);
+                AssignGroupsToShips(sideTwoGroups);
+                Debug.Log($"  Side 2: Created {sideTwoGroups.Count} groups");
+            }
+
+            groupsInitialized = true;
+        }
+        /// <summary>
+        /// Create groups of 2-3 ships with similar speeds
+        /// </summary>
+        private List<ShipGroup> CreateShipGroups(List<ShipController> ships)
+        {
+            List<ShipGroup> groups = new List<ShipGroup>();
+
+            // Filter out transports and destroyed ships
+            var combatShips = ships.Where(s =>
+                s != null &&
+                !s.ShipData.Distroyed &&
+                s.ShipData.ShipType != ShipType.Transport
+            ).ToList();
+
+            if (combatShips.Count == 0) return groups;
+
+            // Sort by speed (maxWarpFactor)
+            combatShips = combatShips.OrderBy(s => s.ShipData.maxWarpFactor).ToList();
+
+            // Create groups of 2-3 ships
+            for (int i = 0; i < combatShips.Count; i += 3)
+            {
+                ShipGroup group = new ShipGroup();
+
+                // Add 2-3 ships to group
+                int groupSize = Mathf.Min(3, combatShips.Count - i);
+                for (int j = 0; j < groupSize; j++)
+                {
+                    if (i + j < combatShips.Count)
+                    {
+                        group.ships.Add(combatShips[i + j]);
+                    }
+                }
+
+                // Calculate group speed (slowest ship)
+                group.RecalculateGroupSpeed();
+
+                groups.Add(group);
+
+                Debug.Log($"    Group {groups.Count}: {group.ships.Count} ships, speed={group.groupSpeed:F1}");
+            }
+
+            return groups;
+        }
+        /// <summary>
+        /// Assign groups to ships (set their CombatOrderStateMachine.assignedGroup)
+        /// </summary>
+        private void AssignGroupsToShips(List<ShipGroup> groups)
+        {
+            int groupId = 0;
+            foreach (var group in groups)
+            {
+                foreach (var ship in group.ships)
+                {
+                    var orderStateMachine = ship.GetComponent<CombatOrderStateMachine>();
+                    if (orderStateMachine != null)
+                    {
+                        orderStateMachine.assignedGroup = group;
+                        orderStateMachine.groupId = groupId;
+                    }
+                }
+                groupId++;
+            }
+        }
+        /// <summary>
+        /// Update group targets for Engage order
+        /// Each group focuses fire on a common target
+        /// </summary>
+        private void UpdateGroupTargets()
+        {
+            // Update Side One groups
+            foreach (var group in sideOneGroups)
+            {
+                if (group.ships.Count == 0) continue;
+
+                // Find common target (closest enemy to group center)
+                Vector3 groupCenter = Vector3.zero;
+                int validShips = 0;
+
+                foreach (var ship in group.ships)
+                {
+                    if (ship != null && !ship.ShipData.Distroyed)
+                    {
+                        groupCenter += ship.transform.position;
+                        validShips++;
+                    }
+                }
+
+                if (validShips > 0)
+                {
+                    groupCenter /= validShips;
+
+                    // Find closest enemy to group center
+                    ShipController closestEnemy = FindClosestEnemyToPosition(groupCenter, CombatData.SideTwoShipCons);
+                    group.commonTarget = closestEnemy;
+
+                    // Assign to all ships in group
+                    foreach (var ship in group.ships)
+                    {
+                        if (ship != null && !ship.ShipData.Distroyed)
+                        {
+                            ship.ShipData.TargetThisShipController = closestEnemy;
+                        }
+                    }
+                }
+            }
+
+            // Update Side Two groups
+            foreach (var group in sideTwoGroups)
+            {
+                if (group.ships.Count == 0) continue;
+
+                Vector3 groupCenter = Vector3.zero;
+                int validShips = 0;
+
+                foreach (var ship in group.ships)
+                {
+                    if (ship != null && !ship.ShipData.Distroyed)
+                    {
+                        groupCenter += ship.transform.position;
+                        validShips++;
+                    }
+                }
+
+                if (validShips > 0)
+                {
+                    groupCenter /= validShips;
+
+                    ShipController closestEnemy = FindClosestEnemyToPosition(groupCenter, CombatData.SideOneShipCons);
+                    group.commonTarget = closestEnemy;
+
+                    foreach (var ship in group.ships)
+                    {
+                        if (ship != null && !ship.ShipData.Distroyed)
+                        {
+                            ship.ShipData.TargetThisShipController = closestEnemy;
+                        }
+                    }
+                }
+            }
+        }
+        private ShipController FindClosestEnemyToPosition(Vector3 position, List<ShipController> enemies)
+        {
+            ShipController closest = null;
+            float minDistance = float.MaxValue;
+
+            foreach (var enemy in enemies)
+            {
+                if (enemy == null || enemy.ShipData.Distroyed || enemy.ShipData.ShipType == ShipType.Transport)
+                    continue;
+
+                float distance = Vector3.Distance(position, enemy.transform.position);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closest = enemy;
+                }
+            }
+
+            return closest;
+        }
         public void OnReturnToGalaxyButtonClicked()
         {
             Debug.Log("Player clicked return to galaxy");
@@ -307,15 +642,17 @@ namespace BOTF3D.Combat
         {
             moveDirections.Clear();
 
-            for (int i = 0; i < animators.Count; i++)
+            for (int i = 0; i < shipParents.Count; i++)
             {
                 Vector3 dir; //= Vector3.zero;
-                if (animators[i].transform.childCount > 0)
+                if (shipParents[i].transform.childCount > 0)
                 {
                     // ✅ Base direction (towards enemy)
+                    // Side One (at negative X) moves toward positive X (+right)
+                    // Side Two (at positive X) moves toward negative X (-right)
                     bool isSideOne = (i < 3);
-                    dir = isSideOne ? -animators[i].transform.GetChild(0).transform.right.normalized
-                                    : animators[i].transform.GetChild(0).transform.right.normalized;
+                    dir = isSideOne ? shipParents[i].transform.GetChild(0).transform.right.normalized
+                                    : -shipParents[i].transform.GetChild(0).transform.right.normalized;
 
                     // ✅ Modify direction based on combat order
                     var ships = isSideOne ? CombatData.SideOneShipCons : CombatData.SideTwoShipCons;
@@ -327,22 +664,22 @@ namespace BOTF3D.Combat
                         case CombatOrders.Retreat:
                             // Reverse direction (run away)
                             dir = -dir;
-                            Debug.Log($"  Animator {i}: RETREAT - reversing direction");
+                            Debug.Log($"  Parent {i}: RETREAT - reversing direction");
                             break;
 
                         case CombatOrders.Formation:
                             // Slight spread pattern (maintain defensive formation)
                             float spreadAngle = (i % 3 - 1) * 15f; // -15°, 0°, +15°
                             dir = Quaternion.Euler(0, spreadAngle, 0) * dir;
-                            Debug.Log($"  Animator {i}: FORMATION - spread {spreadAngle}°");
+                            Debug.Log($"  Parent {i}: FORMATION - spread {spreadAngle}°");
                             break;
 
                         case CombatOrders.Rush:
                             // Direct aggressive approach (no modification needed, just faster)
-                            Debug.Log($"  Animator {i}: RUSH - full speed ahead");
+                            Debug.Log($"  Parent {i}: RUSH - full speed ahead");
                             break;
 
-                        case CombatOrders.TargetTransports:
+                        case CombatOrders.AttackTransports:
                         case CombatOrders.Engage:
                         default:
                             // Standard approach
@@ -358,24 +695,11 @@ namespace BOTF3D.Combat
             }
 
             // ✅ Apply speed multipliers based on orders
-            float sideOneSpeedMult = CombatOrderMatrix.GetSpeedMultiplier(CombatData.OrderSideOne);
-            float sideTwoSpeedMult = CombatOrderMatrix.GetSpeedMultiplier(CombatData.OrderSideTwo);
-
-            // Calculate advantage-based speed boost
-            int advantage = CombatOrderMatrix.GetAdvantage(CombatData.OrderSideOne, CombatData.OrderSideTwo);
-            if (advantage > 0)
-            {
-                sideOneSpeedMult *= 1.1f; // 10% bonus for advantageous tactics
-                Debug.Log("  ✅ Side One gets 10% speed bonus from tactical advantage!");
-            }
-            else if (advantage < 0)
-            {
-                sideTwoSpeedMult *= 1.1f; // 10% bonus for advantageous tactics
-                Debug.Log("  ✅ Side Two gets 10% speed bonus from tactical advantage!");
-            }
+            float sideOneSpeedMult = 1f;
+            float sideTwoSpeedMult = 1f;
 
             // Apply base speed with order modifiers
-            // (We'll apply this in LateUpdate based on which animator group)
+            // (We'll apply this in LateUpdate based on which parent group)
             CombatData.SideOneSpeedMultiplier = sideOneSpeedMult;
             CombatData.SideTwoSpeedMultiplier = sideTwoSpeedMult;
 
@@ -385,99 +709,60 @@ namespace BOTF3D.Combat
 
             Debug.Log($"📊 Movement started: Side1 speed={sideOneSpeedMult:F2}x, Side2 speed={sideTwoSpeedMult:F2}x");
         }
-        public void SetCombatOrder(CombatOrders order, CivEnum civEnum)
+
+        // Replace the SetShipOrders method (around line 604)
+        public void SetShipOrders(CombatOrders order, CivEnum civEnum)
         {
-            //**** ToDo: Create Event to update DiplomacyController state between the two civs involved in combat
-            if (CombatData.CivEnumSideOne == civEnum)
+            if (civEnum == CombatData.CivEnumSideOne)
             {
-                CombatData.OrderSideOne = order; // Set the combat order for Side One
-                for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
-                {
-                    CombatData.SideOneShipCons[i].SetShipOrder(order); // Set the combat order for each ship in Side One
-                }
+                CombatData.SideOneOrder = order;
+                Debug.Log($"Side One order set to: {order}");
             }
-            else if (CombatData.CivEnumSideTwo == civEnum)
+            else if (civEnum == CombatData.CivEnumSideTwo)
             {
-                CombatData.OrderSideTwo = order; // Set the combat order for Side One
-                for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
-                {
-                    CombatData.SideTwoShipCons[i].SetShipOrder(order); // Set the combat order for each ship in Side One
-                }
+                CombatData.SideTwoOrder = order;
+                Debug.Log($"Side Two order set to: {order}");
             }
-            else
+
+            // ✅ Log order summary (no artificial advantage calculation)
+            if (CombatData.SideOneOrder != CombatOrders.None && CombatData.SideTwoOrder != CombatOrders.None)
             {
-                Debug.LogWarning("Player does not belong to either combat side.");
+                string summary = CombatOrderHelper.GetOrderSummary(CombatData.SideOneOrder, CombatData.SideTwoOrder);
+                Debug.Log($"📊 Combat Orders: {summary}");
+                Debug.Log($"   Side 1: {CombatOrderHelper.GetOrderDescription(CombatData.SideOneOrder)}");
+                Debug.Log($"   Side 2: {CombatOrderHelper.GetOrderDescription(CombatData.SideTwoOrder)}");
             }
         }
-        public void SetShipOrders(CombatOrders order, CivEnum civOfOrder)
-        {
-            // Determine which list of ships to use based on the civOfOrder  
-            if (civOfOrder == CombatData.CivEnumSideOne)
-            {
-                CombatData.OrderSideOne = order;
 
-                // ✅ Apply order to all side one ships
-                foreach (var ship in CombatData.SideOneShipCons)
-                {
-                    if (ship != null)
-                    {
-                        ship.SetShipOrder(order);
-                    }
-                }
-            }
-            else if (civOfOrder == CombatData.CivEnumSideTwo)
-            {
-                CombatData.OrderSideTwo = order;
-
-                // ✅ Apply order to all side two ships
-                foreach (var ship in CombatData.SideTwoShipCons)
-                {
-                    if (ship != null)
-                    {
-                        ship.SetShipOrder(order);
-                    }
-                }
-            }
-
-            // ✅ Calculate and log combat advantage
-            int advantage = CombatOrderMatrix.GetAdvantage(CombatData.OrderSideOne, CombatData.OrderSideTwo);
-            Debug.Log($"📊 Combat Orders: Side 1={CombatData.OrderSideOne}, Side 2={CombatData.OrderSideTwo}");
-            Debug.Log($"   {CombatOrderMatrix.GetAdvantageDescription(advantage)} (Advantage: {advantage})");
-        }
-        /// <summary>
-        /// Give AI ships a random combat order
-        /// </summary>
+        // Replace the SetAIRandomOrder method (around line 623)
         public void SetAIRandomOrder(CivEnum aiCivEnum)
         {
-            // Check if this civ has transports (affects available orders)
-            bool hasTransports = false;
             int side = 0;
 
             if (aiCivEnum == CombatData.CivEnumSideOne)
             {
-                hasTransports = CombatOrderMatrix.HasTransports(CombatData, 1);
                 side = 1;
             }
             else if (aiCivEnum == CombatData.CivEnumSideTwo)
             {
-                hasTransports = CombatOrderMatrix.HasTransports(CombatData, 2);
                 side = 2;
             }
 
             // Build list of available orders
             var availableOrders = new System.Collections.Generic.List<CombatOrders>
-            {
-                CombatOrders.Engage,
-                CombatOrders.Formation,
-                CombatOrders.Rush,
-                CombatOrders.Retreat
-            };
+    {
+        CombatOrders.Engage,
+        CombatOrders.Formation,
+        CombatOrders.Rush,
+        CombatOrders.Retreat
+    };
 
-            // Only add TargetTransports if enemy has transports
-            bool enemyHasTransports = CombatOrderMatrix.HasTransports(CombatData, side == 1 ? 2 : 1);
+            // ✅ Only add AttackTransports if enemy has transports
+            bool enemyHasTransports = CombatOrderHelper.HasTransports(CombatData, side == 1 ? 2 : 1);
             if (enemyHasTransports)
             {
-                availableOrders.Add(CombatOrders.TargetTransports);
+                availableOrders.Add(CombatOrders.AttackTransports);
+                Debug.Log($"🎯 Enemy has transports - AttackTransports order available for AI");
             }
 
             // Pick random order
@@ -761,10 +1046,7 @@ namespace BOTF3D.Combat
             CombatData.SideOneShipCons.Clear();
             CombatData.SideTwoShipCons.Clear();
         }
-        public CivController SideOneCivCombatants()
-        {
-            return CombatData.sideOneCiv;
-        }
+
         public CivController SideTwoCivCombatants()
         {
             return CombatData.sideTwoCiv;
@@ -776,9 +1058,208 @@ namespace BOTF3D.Combat
             {
                 List<ShipController> sideOneShips = theCombatController.CombatData.SideOneShipCons;
                 List<ShipController> sideTwoShips = theCombatController.CombatData.SideTwoShipCons;
+
+                // ✅ Debug: Log which civilizations are on which side
+                Debug.Log($"📊 SIDE ASSIGNMENT:");
+                Debug.Log($"   Side 1 ({CombatData.CivEnumSideOne}): {sideOneShips.Count} ships → S1A1/S1A2/S1A3 animators (LEFT, X=-1000)");
+                Debug.Log($"   Side 2 ({CombatData.CivEnumSideTwo}): {sideTwoShips.Count} ships → S2A1/S2A2/S2A3 animators (RIGHT, X=+1000)");
+
                 PopulateShipGOAndAnimation(sideOneShips, -1); //sideOne is on the left, ships are -x axis world space attached to an animator...
                 PopulateShipGOAndAnimation(sideTwoShips, 1);
             }
+        }
+
+        private void SetLocalOtherShipPosition(GameObject shipGameOb, int indexOther, List<Vector2Int> spiralPositions)
+        {
+            // Map spiral to Y (vertical) and Z (depth) to create a wall formation
+            shipGameOb.transform.localPosition = new Vector3(
+                0,  // X stays at 0 - side offset handled by parent animator
+                spiralPositions[indexOther].y * 100,  // Y = vertical position
+                spiralPositions[indexOther].x * 100   // Z = depth position
+            );
+        }
+
+        private void SetLocalCombatShipPosition(GameObject shipGameOb, int index, List<Vector2Int> spiralPositions)
+        {
+            // ✅ ONLY set spiral formation position - NO rotation changes
+            // X = 0 (ship follows parent animator's world X position)
+            // Y and Z = spiral pattern for wall formation
+            shipGameOb.transform.localPosition = new Vector3(
+                0,  // X stays at 0 - side offset handled by parent animator
+                spiralPositions[index].y * 100,  // Y = vertical position (spiral's Y component)
+                spiralPositions[index].x * 100   // Z = depth position (spiral's X component)
+            );
+
+            // ✅ NO rotation manipulation - ship inherits parent's rotation naturally
+            Debug.Log($"    Combat ship '{shipGameOb.name}' local pos: (0, {spiralPositions[index].y * 100}, {spiralPositions[index].x * 100})");
+        }
+
+        private void SetLocalTransportPosition(GameObject shipGameOb, int indexTrans, List<Vector2Int> spiralPositions)
+        {
+            // ✅ ONLY set spiral formation position - NO rotation changes
+            // Transports positioned BEHIND the combat wall
+            shipGameOb.transform.localPosition = new Vector3(
+                0,                                    // ✅ Local X = 0 (animator handles world position)
+                spiralPositions[indexTrans].y * 100,  // Y = vertical position
+                spiralPositions[indexTrans].x * 100   // Z = depth position
+            );
+
+            // ✅ NO rotation manipulation - ship inherits parent's rotation naturally
+            Debug.Log($"    Transport '{shipGameOb.name}' local pos: (0, {spiralPositions[indexTrans].y * 100}, {spiralPositions[indexTrans].x * 100})");
+        }
+        /// <summary>
+        /// Count and categorize ships by type for both sides
+        /// </summary>
+        private void CountShips()
+        {
+            // Clear existing lists
+            _hvyCruisersSide1.Clear();
+            _hvyCruisersSide2.Clear();
+            _ltCruisersSide1.Clear();
+            _ltCruisersSide2.Clear();
+            _cruisersSide1.Clear();
+            _cruisersSide2.Clear();
+            _destroyersSide1List.Clear();
+            _destroyersSide2List.Clear();
+            _scoutsSide1List.Clear();
+            _scoutsSide2List.Clear();
+            _transportsSide1List.Clear();
+            _transportsSide2List.Clear();
+
+            // Reset counters
+            _transportsSide1 = 0;
+            _transportsSide2 = 0;
+            _capitalsSide1 = 0;
+            _capitalsSide2 = 0;
+
+            // Count Side One ships
+            foreach (var ship in CombatData.SideOneShipCons)
+            {
+                if (ship == null || ship.ShipData == null) continue;
+
+                switch (ship.ShipData.ShipType)
+                {
+                    case ShipType.HvyCruiser:
+                        _hvyCruisersSide1.Add(ship);
+                        _capitalsSide1++;
+                        break;
+                    case ShipType.LtCruiser:
+                        _ltCruisersSide1.Add(ship);
+                        _capitalsSide1++;
+                        break;
+                    case ShipType.Cruiser:
+                        _cruisersSide1.Add(ship);
+                        _capitalsSide1++;
+                        break;
+                    case ShipType.Destroyer:
+                        _destroyersSide1List.Add(ship);
+                        break;
+                    case ShipType.Scout:
+                        _scoutsSide1List.Add(ship);
+                        break;
+                    case ShipType.Transport:
+                        _transportsSide1List.Add(ship);
+                        _transportsSide1++;
+                        break;
+                }
+            }
+
+            // Count Side Two ships
+            foreach (var ship in CombatData.SideTwoShipCons)
+            {
+                if (ship == null || ship.ShipData == null) continue;
+
+                switch (ship.ShipData.ShipType)
+                {
+                    case ShipType.HvyCruiser:
+                        _hvyCruisersSide2.Add(ship);
+                        _capitalsSide2++;
+                        break;
+                    case ShipType.LtCruiser:
+                        _ltCruisersSide2.Add(ship);
+                        _capitalsSide2++;
+                        break;
+                    case ShipType.Cruiser:
+                        _cruisersSide2.Add(ship);
+                        _capitalsSide2++;
+                        break;
+                    case ShipType.Destroyer:
+                        _destroyersSide2List.Add(ship);
+                        break;
+                    case ShipType.Scout:
+                        _scoutsSide2List.Add(ship);
+                        break;
+                    case ShipType.Transport:
+                        _transportsSide2List.Add(ship);
+                        _transportsSide2++;
+                        break;
+                }
+            }
+
+            Debug.Log($"Ship count - Side 1: Capitals={_capitalsSide1}, Destroyers={_destroyersSide1List.Count}, Scouts={_scoutsSide1List.Count}, Transports={_transportsSide1}");
+            Debug.Log($"Ship count - Side 2: Capitals={_capitalsSide2}, Destroyers={_destroyersSide2List.Count}, Scouts={_scoutsSide2List.Count}, Transports={_transportsSide2}");
+        }
+
+        public CivController SideOneCivCombatants()
+        {
+            return CombatData.sideOneCiv;
+        }
+
+
+        /// <summary>
+        /// Sets the layer of a GameObject and all its children recursively
+        /// </summary>
+        private void SetLayerRecursively(GameObject obj, int layer)
+        {
+            if (obj == null) return;
+
+            obj.layer = layer;
+
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
+        }
+        private ShipSO GetShipSOForShip(ShipController shipCon)
+        {
+            List<ShipSO> daList = ShipManager.Instance.FedShipSOList;
+            {
+                CivEnum daCiv = shipCon.ShipData.CivEnum;
+                switch (daCiv)
+                {
+                    case CivEnum.FED:
+                        daList = ShipManager.Instance.FedShipSOList;
+                        break;
+                    case CivEnum.KLING:
+                        daList = ShipManager.Instance.KlingShipSOList;
+                        break;
+                    case CivEnum.ROM:
+                        daList = ShipManager.Instance.RomShipSOList;
+                        break;
+                    case CivEnum.CARD:
+                        daList = ShipManager.Instance.CardShipSOList;
+                        break;
+                    case CivEnum.DOM:
+                        daList = ShipManager.Instance.DomShipSOList;
+                        break;
+                    case CivEnum.BORG:
+                        daList = ShipManager.Instance.BorgShipSOList;
+                        break;
+                    case CivEnum.TERRAN:
+                        daList = ShipManager.Instance.TerranShipSOList;
+                        break;
+                    default:
+                        daList = ShipManager.Instance.FedShipSOList; break;
+                }
+                for (int j = 0; j < daList.Count; j++)
+                {
+                    if (daList[j].ShipName == shipCon.ShipData.ShipName)
+                    {
+                        return daList[j];
+                    }
+                }
+            }
+            return ShipManager.Instance.FedShipSOList.FirstOrDefault();
         }
         private void PopulateShipGOAndAnimation(List<ShipController> shipConList, int side1negSide2pos)
         {
@@ -800,231 +1281,167 @@ namespace BOTF3D.Combat
                     canvasRect.localScale = Vector3.one;
                 }
 
-                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={(ShipCombatCanvas.worldCamera != null ? ShipCombatCanvas.worldCamera.name : null)}");
+                Debug.Log($"✅ Canvas configured: RenderMode={ShipCombatCanvas.renderMode}, Camera={(ShipCombatCanvas.worldCamera != null ? ShipCombatCanvas.worldCamera.name : "NULL")}");
             }
             else
             {
                 Debug.LogError("❌ ShipCombatCanvas is NULL!");
                 return;
             }
-            int currentTransportIndex1 = -1;
-            int currentTransportIndex2 = -1;
-            int currentOtherShipIndex1 = -1;
-            int currentOtherShipIndex2 = -1;
 
-            if (_transportsSide1 > 0 && _spiralPositionsTran1.Count == 0)
+            // ✅ NEW: Generate formation positions for combat ships (by type priority)
+            List<ShipController> combatShipsSide1 = new List<ShipController>();
+            List<ShipController> combatShipsSide2 = new List<ShipController>();
+
+            // ✅ Build ordered combat ship lists (HvyCruiser → LtCruiser → Cruiser → Destroyer → Scout)
+            if (side1negSide2pos < 0) // Side 1
             {
-                _spiralPositionsTran1 = GenerateSpiralPositions(_transportsSide1);
+                combatShipsSide1.AddRange(_hvyCruisersSide1);
+                combatShipsSide1.AddRange(_ltCruisersSide1);
+                combatShipsSide1.AddRange(_cruisersSide1);
+                combatShipsSide1.AddRange(_destroyersSide1List);
+                combatShipsSide1.AddRange(_scoutsSide1List);
             }
-            if (_transportsSide2 > 0 && _spiralPositionsTran2.Count == 0)
+            else // Side 2
             {
-                _spiralPositionsTran2 = GenerateSpiralPositions(_transportsSide2);
+                combatShipsSide2.AddRange(_hvyCruisersSide2);
+                combatShipsSide2.AddRange(_ltCruisersSide2);
+                combatShipsSide2.AddRange(_cruisersSide2);
+                combatShipsSide2.AddRange(_destroyersSide2List);
+                combatShipsSide2.AddRange(_scoutsSide2List);
             }
-            if (_scoutsSide1 + _destroyersSide1 + _capitalsSide1 > 0 && _spiralPositionsOtherShipsSide1.Count == 0)
-            {
-                _spiralPositionsOtherShipsSide1 = GenerateSpiralPositions(_scoutsSide1 + _destroyersSide1 + _capitalsSide1);
-            }
-            if (_scoutsSide2 + _destroyersSide2 + _capitalsSide2 > 0 && _spiralPositionsOtherShipsSide2.Count == 0)
-            {
-                _spiralPositionsOtherShipsSide2 = GenerateSpiralPositions(_scoutsSide2 + _destroyersSide2 + _capitalsSide2);
-            }
+
+            // Generate spiral positions for combat ships (the "wall")
+            List<Vector2Int> combatPositionsSide1 = combatShipsSide1.Count > 0 ? GenerateSpiralPositions(combatShipsSide1.Count) : new List<Vector2Int>();
+            List<Vector2Int> combatPositionsSide2 = combatShipsSide2.Count > 0 ? GenerateSpiralPositions(combatShipsSide2.Count) : new List<Vector2Int>();
+
+            // Generate spiral positions for transports (behind the wall)
+            _spiralPositionsTran1 = _transportsSide1 > 0 ? GenerateTransportSpiralPositions(_transportsSide1) : new List<Vector2Int>();
+            _spiralPositionsTran2 = _transportsSide2 > 0 ? GenerateTransportSpiralPositions(_transportsSide2) : new List<Vector2Int>();
+
+            int combatShipIndex1 = 0;
+            int combatShipIndex2 = 0;
+            int transportIndex1 = 0;
+            int transportIndex2 = 0;
             int flipAnimation1 = -1;
             int flipAnimation2 = -1;
+
             for (int i = 0; i < shipConList.Count; i++)
             {
                 shipConList[i].transform.localScale = Vector3.one;
                 shipConList[i].name = shipConList[i].ShipData.ShipName;
                 shipConList[i].gameObject.SetActive(true);
-                //********** Health bar code here for now *************
-                GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab);
-                healthbarGO.SetActive(true);
-                healthbarGO.SetActive(true);
-                // ✅ Parent directly to ship (skip canvas entirely for world-space UI)
-                healthbarGO.transform.SetParent(shipConList[i].transform, false);
-                healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0);
-                healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-                healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0);
-                // ✅ Ensure health bar Canvas is on World Space
-                Canvas healthbarCanvas = healthbarGO.GetComponent<Canvas>();
-                if (healthbarCanvas == null)
-                {
-                    healthbarCanvas = healthbarGO.AddComponent<Canvas>();
-                }
 
-                healthbarCanvas.renderMode = RenderMode.WorldSpace;
-                healthbarCanvas.worldCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
-
-                // ✅ Add CanvasScaler for proper sizing
-                if (!healthbarGO.TryGetComponent<CanvasScaler>(out var canvasScaler))
-                {
-                    canvasScaler = healthbarGO.AddComponent<CanvasScaler>();
-                }
-                canvasScaler.dynamicPixelsPerUnit = 10;
-
-                // ✅ Set health bar layer to Default (NOT UI layer for world-space)
-                healthbarGO.layer = LayerMask.NameToLayer("Default");
-
-                // Set child layers recursively
-                SetLayerRecursively(healthbarGO, LayerMask.NameToLayer("Default"));
-
-                Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
-                for (int j = 0; j < healthbarImages.Length; j++)
-                {
-                    if (healthbarImages[j].gameObject.name == "HealthFill")
-                    {
-                        shipConList[i].HealthFillImage = healthbarImages[j];
-                        shipConList[i].HealthFillImage.fillAmount = 1f;
-                        shipConList[i].HealthFillImage.color = Color.green; // Start green
-                    }
-                    else if (healthbarImages[j].gameObject.name == "HealthBackground")
-                    {
-                        // NEW: Set up background as red damage indicator
-                        shipConList[i].HealthBackgroundImage = healthbarImages[j];
-                        shipConList[i].HealthBackgroundImage.fillAmount = 1f;
-                        shipConList[i].HealthBackgroundImage.color = Color.red;
-                    }
-                }
-
-                healthbarGO.SetActive(false); // Start hidden until warp-in completes
-                HealthbarRenderers.Add(healthbarGO);
-
-                // ✅ Add billboard component to face camera
-                var billboard = healthbarGO.GetComponent<BillboardCameraCombat>();
-                if (billboard == null)
-                {
-                    billboard = healthbarGO.AddComponent<BillboardCameraCombat>();
-                }
-
-                Debug.Log($"  ✅ Created health bar for {shipConList[i].ShipData.ShipName}");
                 GameObject shipGameOb = shipConList[i].gameObject;
-                shipGameOb.transform.SetPositionAndRotation(new Vector3(0, 0, 0),
-                    Quaternion.Euler(0, 0, 0)); // 90 * side1negSide2pos, 0));
-                if (shipGameOb.GetComponent<ShipController>() != null)
+                ShipType shipType = shipConList[i].ShipData.ShipType;
+
+                // ✅ Parent ship to parent GameObject - SetParent with worldPositionStays=false ensures clean local transform
+                if (shipType == ShipType.Transport)
                 {
-                    var shipType = shipGameOb.GetComponent<ShipController>().ShipData.ShipType;
-
-                    if (shipType == ShipType.Transport)
+                    // Transports go behind the combat ship wall
+                    if (side1negSide2pos < 0) // Side 1
                     {
-                        if (side1negSide2pos < 0)
+                        if (transportIndex1 < _spiralPositionsTran1.Count)
                         {
-                            currentTransportIndex1++;
-                            if (currentTransportIndex1 <= (_spiralPositionsTran1.Count - 1))
-                            {
-                                sideOneA3Animator.gameObject.SetActive(true);
-                                shipGameOb.transform.SetParent(sideOneA3Animator.gameObject.transform, false);
-                                SetLocalTransportPosition(shipGameOb, currentTransportIndex1, _spiralPositionsTran1);
-
-                            }
-                        }
-                        else
-                        {
-                            currentTransportIndex2++;
-                            if (currentTransportIndex2 <= (_spiralPositionsTran2.Count - 1))
-                            {
-                                sideTwoA3Animator.gameObject.SetActive(true);
-                                shipGameOb.transform.SetParent(sideTwoA3Animator.gameObject.transform, false);
-                                SetLocalTransportPosition(shipGameOb, currentTransportIndex2, _spiralPositionsTran2);
-
-                            }
+                            sideOneA3Parent.gameObject.SetActive(true);
+                            // ✅ SetParent with false = reset to local identity, then apply spiral position
+                            shipGameOb.transform.SetParent(sideOneA3Parent.gameObject.transform, false);
+                            SetLocalTransportPosition(shipGameOb, transportIndex1, _spiralPositionsTran1);
+                            transportIndex1++;
                         }
                     }
-                    else
+                    else // Side 2
                     {
-                        if (side1negSide2pos < 0)
+                        if (transportIndex2 < _spiralPositionsTran2.Count)
                         {
-                            currentOtherShipIndex1++;
-                            if (currentOtherShipIndex1 <= (_spiralPositionsOtherShipsSide1.Count - 1))
-                            {
-                                if (flipAnimation1 < 0)
-                                {
-                                    sideOneA1Animator.gameObject.SetActive(true);
-                                    shipGameOb.transform.SetParent(sideOneA1Animator.gameObject.transform, false);
-                                    SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-
-                                    flipAnimation1 = 1;
-                                }
-                                else
-                                {
-                                    sideOneA2Animator.gameObject.SetActive(true);
-                                    shipGameOb.transform.SetParent(sideOneA2Animator.gameObject.transform, false);
-                                    SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex1, _spiralPositionsOtherShipsSide1);
-
-                                    flipAnimation1 = -1;
-                                }
-                            }
-
-                        }
-                        else if (side1negSide2pos > 0)
-                        {
-                            currentOtherShipIndex2++;
-                            if (currentOtherShipIndex2 <= (_spiralPositionsOtherShipsSide2.Count - 1))
-                            {
-                                if (flipAnimation2 < 0)
-                                {
-                                    sideTwoA1Animator.gameObject.SetActive(true);
-                                    shipGameOb.transform.SetParent(sideTwoA1Animator.gameObject.transform, false);
-                                    SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-
-                                    flipAnimation2 = 1;
-                                }
-                                else
-                                {
-                                    sideTwoA2Animator.gameObject.SetActive(true);
-                                    shipGameOb.transform.SetParent(sideTwoA2Animator.gameObject.transform, false);
-                                    SetLocalOtherShipPosition(shipGameOb, currentOtherShipIndex2, _spiralPositionsOtherShipsSide2);
-
-                                    flipAnimation2 = -1;
-                                }
-                            }
+                            sideTwoA3Parent.gameObject.SetActive(true);
+                            shipGameOb.transform.SetParent(sideTwoA3Parent.gameObject.transform, false);
+                            SetLocalTransportPosition(shipGameOb, transportIndex2, _spiralPositionsTran2);
+                            transportIndex2++;
                         }
                     }
                 }
-                shipGameOb.transform.localRotation = Quaternion.Euler(0, 90 * side1negSide2pos, 0);
-                Rigidbody rigid = shipGameOb.GetComponent<Rigidbody>();
-                rigid.useGravity = false;
-                rigid.isKinematic = true; // kinematic until warp in is over
-                BoxCollider boxCollider = shipGameOb.AddComponent<BoxCollider>();
-                boxCollider.isTrigger = false;
-                boxCollider.includeLayers = 9;
-                //******** ship size here for now **************
-                boxCollider.transform.localScale = new Vector3(5, 5, 5); //size model to fit ShipCombatCameraController calculations and the view appearance;
-                float length = 1f;
-                float height = 1f;
-                float width = 1f;
-
-                ShipSO shipSO = GetShipSOForShip(shipConList[i]);  // You need to pass ShipSO to this method
-                GameObject mesheGO = shipSO != null ? shipSO.ShipFBX_ModelAsGOPrefab : null;
-
-                if (mesheGO == null)
+                else
                 {
-                    Debug.Log($"❌NEED FBX MODLE IN SO❌ Ship model prefab is NULL for {shipConList[i].ShipData.ShipName}");
-
-                    // ✅ Load fallback from ShipManager
-                    ShipSO fallbackSO = ShipManager.Instance.GetFallbackShipSO();
-                    mesheGO = fallbackSO != null ? fallbackSO.ShipFBX_ModelAsGOPrefab : null;
+                    // Combat ships form the protective wall
+                    if (side1negSide2pos < 0) // Side 1
+                    {
+                        if (combatShipIndex1 < combatPositionsSide1.Count)
+                        {
+                            // Alternate between parent 1 and 2 for variety
+                            if (flipAnimation1 < 0)
+                            {
+                                sideOneA1Parent.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideOneA1Parent.gameObject.transform, false);
+                                SetLocalCombatShipPosition(shipGameOb, combatShipIndex1, combatPositionsSide1);
+                                flipAnimation1 = 1;
+                            }
+                            else
+                            {
+                                sideOneA2Parent.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideOneA2Parent.gameObject.transform, false);
+                                SetLocalCombatShipPosition(shipGameOb, combatShipIndex1, combatPositionsSide1);
+                                flipAnimation1 = -1;
+                            }
+                            combatShipIndex1++;
+                        }
+                    }
+                    else // Side 2
+                    {
+                        if (combatShipIndex2 < combatPositionsSide2.Count)
+                        {
+                            if (flipAnimation2 < 0)
+                            {
+                                sideTwoA1Parent.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideTwoA1Parent.gameObject.transform, false);
+                                SetLocalCombatShipPosition(shipGameOb, combatShipIndex2, combatPositionsSide2);
+                                flipAnimation2 = 1;
+                            }
+                            else
+                            {
+                                sideTwoA2Parent.gameObject.SetActive(true);
+                                shipGameOb.transform.SetParent(sideTwoA2Parent.gameObject.transform, false);
+                                SetLocalCombatShipPosition(shipGameOb, combatShipIndex2, combatPositionsSide2);
+                                flipAnimation2 = -1;
+                            }
+                            combatShipIndex2++;
+                        }
+                    }
                 }
 
-                if (mesheGO == null)
+                // ✅ Continue with ship model setup
+                GameObject fbx = GetShipSOForShip(shipConList[i]).ShipFBX_ModelAsGOPrefab;
+                if (fbx == null)
                 {
-                    Debug.Log("❌ Fallback ship model also NULL - cannot spawn ship!");
-                    continue;  // Skip this ship
+                    Debug.LogError($"❌ Ship prefab is null for {shipConList[i].ShipData.ShipName}!");
+                    continue;
                 }
 
-                GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);
+                // ✅ Instantiate ship model at ship's current position/rotation
+                GameObject shipModel = Instantiate(fbx, shipGameOb.transform.position, shipGameOb.transform.rotation);
+                shipModel.transform.SetParent(shipGameOb.transform, false);
+                shipModel.transform.localPosition = Vector3.zero;
+                shipModel.transform.localRotation = Quaternion.identity;
 
-                //GameObject mesheGO = Resources.Load<GameObject>("FBX/" + shipConList[i].ShipData.ShipName.ToUpper().Replace("(CLONE)", ""));
-                //if (mesheGO == null)
-                //{
-                //    mesheGO = Resources.Load<GameObject>("FBX/FED_DESTROYER_I");
-                //}
-                //GameObject fbx = Instantiate(mesheGO, shipGameOb.transform, false);// fbx is as a prefab so instantiate it  
-                fbx.name = shipConList[i].ShipData.ShipName.Replace("(CLONE)", "_Model");
-                fbx.transform.SetParent(shipGameOb.transform, false);
-                // ✅ Disable stencil masking on ship materials
-                DisableStencilOnShipRenderers(fbx);
-                Renderer renderer = fbx.GetComponentInChildren<Renderer>();
+                // Disable stencil operations on ship renderers
+                DisableStencilOnShipRenderers(shipModel);
+
+                // Set ship layer
+                shipGameOb.layer = LayerMask.NameToLayer("Default");
+                SetLayerRecursively(shipGameOb, LayerMask.NameToLayer("Default"));
+
+                // Add collider for weapon targeting
+                BoxCollider boxCollider = shipGameOb.GetComponent<BoxCollider>();
+                if (boxCollider == null)
+                {
+                    boxCollider = shipGameOb.AddComponent<BoxCollider>();
+                }
+                boxCollider.isTrigger = true;
+
+                Renderer renderer = shipModel.GetComponentInChildren<Renderer>();
                 if (renderer != null)
                 {
+                    float width, height, length;
                     Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
                     Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
                     boxCollider.center = new Vector3(localCenter.x, localCenter.z, localCenter.y);
@@ -1033,7 +1450,9 @@ namespace BOTF3D.Combat
                     length = Math.Abs(localSize.y);
                     boxCollider.size = new Vector3(width, height, length);
                 }
-                shipConList[i].SetWeaponPrefabs(); // Set the weapon prefabs for the ship controller
+
+                shipConList[i].SetWeaponPrefabs();
+
                 // ✅ Set civilization-specific weapon fire audio clips based on side
                 if (side1negSide2pos < 0) // Side One
                 {
@@ -1044,685 +1463,211 @@ namespace BOTF3D.Combat
                     shipConList[i].SetWeaponAudioClips(SideTwoBeamFireClip, SideTwoTorpedoFireClip);
                 }
             }
+
+            Debug.Log($"✅ Formation complete - Side {(side1negSide2pos < 0 ? "1" : "2")}: {combatShipIndex1 + combatShipIndex2} combat ships, {transportIndex1 + transportIndex2} transports");
+            Debug.Log($"   Parent GameObjects will move during warp-in. Ships have spiral formation only.");
         }
+
         /// <summary>
-        /// Sets the layer of a GameObject and all its children recursively
+        /// Generate spiral positions for combat ships forming the protective wall
         /// </summary>
-        private void SetLayerRecursively(GameObject obj, int layer)
-        {
-            if (obj == null) return;
-
-            obj.layer = layer;
-
-            foreach (Transform child in obj.transform)
-            {
-                SetLayerRecursively(child.gameObject, layer);
-            }
-        }
-        private void SetLocalTransportPosition(GameObject shipGameOb, int indexTrans, List<Vector2Int> spiralPositions)
-        {
-            shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexTrans].x * 100, spiralPositions[indexTrans].y * 100);
-        }
-        private void SetLocalOtherShipPosition(GameObject shipGameOb, int indexOther, List<Vector2Int> spiralPositions)
-        {
-            shipGameOb.transform.localPosition = new Vector3(0, spiralPositions[indexOther].x * 100, spiralPositions[indexOther].y * 100);
-        }
-
-        private void CountShips()
-        {
-            _scoutsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
-            _scoutsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Scout);
-
-            _destroyersSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-            _destroyersSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
-            _capitalsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
-                                                         s.ShipData.ShipType == ShipType.LtCruiser ||
-                                                         s.ShipData.ShipType == ShipType.HvyCruiser);
-            _capitalsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Cruiser ||
-                                                       s.ShipData.ShipType == ShipType.LtCruiser ||
-                                                       s.ShipData.ShipType == ShipType.HvyCruiser);
-            _transportsSide1 = CombatData.SideOneShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
-            _transportsSide2 = CombatData.SideTwoShipCons.Count(s => s.ShipData.ShipType == ShipType.Transport);
-        }
-
-        void FindClosestPairsForTargets(List<ShipController> shipListFiring, List<ShipController> shipListTargets)
-        {
-            Debug.Log($"🎯 FindClosestPairsForTargets: {shipListFiring.Count} ships firing at {shipListTargets.Count} targets");
-
-            for (int i = 0; i < shipListFiring.Count; i++)
-            {
-                ShipController closestTarget = null;
-                float shortestDist = Mathf.Infinity;
-
-                // ✅ Get firing ship's combat order
-                CombatOrders firingOrder = shipListFiring[i].Order;
-
-                Debug.Log($"   Ship {i}: '{shipListFiring[i].ShipData.ShipName}' (Order={firingOrder}) searching for target...");
-
-                for (int j = 0; j < shipListTargets.Count; j++)
-                {
-                    var potentialTarget = shipListTargets[j];
-
-                    // ✅ ORDER-BASED TARGETING PRIORITY
-                    // If order is TargetTransports, prioritize transport ships
-                    if (firingOrder == CombatOrders.TargetTransports)
-                    {
-                        // Skip non-transport ships if transports are available
-                        if (potentialTarget.ShipData.ShipType != ShipType.Transport)
-                        {
-                            bool hasTransportTargets = shipListTargets.Any(s => s.ShipData.ShipType == ShipType.Transport);
-                            if (hasTransportTargets)
-                                continue; // Skip this ship, look for transports
-                        }
-                    }
-
-                    Vector3 origin = shipListFiring[i].transform.position;
-                    Vector3 targetPos = potentialTarget.transform.position;
-                    Vector3 dir = (targetPos - origin).normalized;
-                    Vector3 safeOrigin = origin + dir * 10f;
-                    float dist = Vector3.Distance(origin, targetPos);
-
-                    float distSqr = (shipListFiring[i].transform.position - potentialTarget.transform.position).sqrMagnitude;
-
-                    // ✅ Apply targeting priority bonus for transports when using TargetTransports order
-                    if (firingOrder == CombatOrders.TargetTransports && potentialTarget.ShipData.ShipType == ShipType.Transport)
-                    {
-                        distSqr *= 0.5f; // Make transports seem "closer" for priority targeting
-                    }
-
-                    if (distSqr < shortestDist)
-                    {
-                        shortestDist = distSqr;
-                        if (Physics.Raycast(safeOrigin, dir, out RaycastHit hit, dist, 9) == false)
-                        {
-                            if (dist < shortestDist)
-                            {
-                                shortestDist = dist;
-                                closestTarget = potentialTarget;
-                            }
-                        }
-                    }
-                }
-
-                if (closestTarget != null)
-                {
-                    shipListFiring[i].ShipData.TargetThisShipController = closestTarget;
-                    Debug.Log($"   ✅ Ship '{shipListFiring[i].ShipData.ShipName}' ({firingOrder}) targets '{closestTarget.ShipData.ShipName}' ({closestTarget.ShipData.ShipType})");
-                }
-                else
-                {
-                    Debug.LogWarning($"   ⚠️ Ship '{shipListFiring[i].ShipData.ShipName}' found NO valid target!");
-                }
-            }
-        }
-
-        private void FireWeaponsOrderOnShipControllers(List<ShipController> shipCons)
-        {
-            Debug.Log($"🔫 FireWeaponsOrderOnShipControllers called with {shipCons.Count} ships");
-
-            int weaponsStarted = 0;
-
-            // Implement logic to fire weapons on their enemy ships
-            for (int i = 0; i < shipCons.Count; i++)
-            {
-                string shipName = shipCons[i].ShipData.ShipName;
-                string targetName = shipCons[i].ShipData.TargetThisShipController?.ShipData.ShipName ?? "NULL";
-                int torpedoDmg = shipCons[i].ShipData.TorpedoDamage;
-                int beamDmg = shipCons[i].ShipData.BeamDamage;
-
-                Debug.Log($"   Ship [{i}]: '{shipName}' - Target={targetName}, TorpedoDmg={torpedoDmg}, BeamDmg={beamDmg}");
-
-                if (shipCons[i].ShipData.TargetThisShipController != null && (shipCons[i].ShipData.TorpedoDamage > 0 || shipCons[i].ShipData.BeamDamage > 0))
-                {
-                    float delay = UnityEngine.Random.Range(minFirstShotDelay, maxFirstShotDelay);
-                    Debug.Log($"   ✅ Starting fire loop for '{shipName}' with {delay}s delay");
-                    StartCoroutine(shipCons[i].ShipFireLoop(delay));
-                    weaponsStarted++;
-                }
-                else
-                {
-
-                }
-                if (shipCons[i].ShipData.TargetThisShipController == null)
-                    Debug.Log($"   ⚠️ '{shipName}' has NO TARGET assigned!");
-            }
-
-            Debug.Log($"🔫 Started {weaponsStarted} weapon fire loops out of {shipCons.Count} ships");
-        }
-
-        IEnumerator RealtimeTimerCoroutineWeaponDischarge(float delayInSeconds)
-        {
-            yield return new WaitForSecondsRealtime(delayInSeconds);
-        }
-
-        public void RunAnimation()
-        {
-            WarpingIn = true;
-            WarpingAnimationOver = false;
-
-            Debug.Log($"🎬 RunAnimation() called: WarpingIn={WarpingIn}, WarpingAnimationOver={WarpingAnimationOver}");
-            Debug.Log($"   ⏱️ Time.timeScale={Time.timeScale}, Time.deltaTime={Time.deltaTime}");
-
-            // ✅ CRITICAL: Ensure CombatUIManager knows about this controller BEFORE triggering animations
-            if (CombatUIManager.Instance != null)
-            {
-                CombatUIManager.Instance.CurrentCombatController = this;
-                Debug.Log("✅ Set CurrentCombatController in CombatUIManager before animations");
-            }
-            else
-            {
-                Debug.LogError("❌ CombatUIManager.Instance is NULL!");
-            }
-
-            // ✅ Play warp-in sound through AudioManager
-            if (warpInSound != null)
-            {
-                // ✅ Use AudioManager instead of direct AudioSource
-                AudioManager.Instance.PlaySoundData(warpInSound);
-                Debug.Log("🔊 Playing warp-in sound through AudioManager");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ warpInSound is not assigned on CombatController!");
-            }
-
-            // ✅ Log animator status
-            Debug.Log($"🎬 Animator count: {animators.Count}");
-            Debug.Log($"   sideOneA1Animator: {(sideOneA1Animator != null ? sideOneA1Animator.name : "NULL")}");
-            Debug.Log($"   sideOneA2Animator: {(sideOneA2Animator != null ? sideOneA2Animator.name : "NULL")}");
-            Debug.Log($"   sideOneA3Animator: {(sideOneA3Animator != null ? sideOneA3Animator.name : "NULL")}");
-            Debug.Log($"   sideTwoA1Animator: {(sideTwoA1Animator != null ? sideTwoA1Animator.name : "NULL")}");
-            Debug.Log($"   sideTwoA2Animator: {(sideTwoA2Animator != null ? sideTwoA2Animator.name : "NULL")}");
-            Debug.Log($"   sideTwoA3Animator: {(sideTwoA3Animator != null ? sideTwoA3Animator.name : "NULL")}");
-
-            // ✅ NEW: Trigger animations on animator GameObjects
-            Debug.Log("🎬 Triggering animator scripts...");
-
-            if (sideOneA1Animator != null)
-            {
-                var animScript = sideOneA1Animator.GetComponent<S1A1Animator>();
-                if (animScript != null)
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S1A1Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideOneA1Animator has no S1A1Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideOneA1Animator is NULL - cannot trigger animation");
-            }
-
-            if (sideOneA2Animator != null)
-            {
-                if (sideOneA2Animator.TryGetComponent<S1A2Animator>(out var animScript))
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S1A2Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideOneA2Animator has no S1A2Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideOneA2Animator is NULL - skipping");
-            }
-
-            if (sideOneA3Animator != null)
-            {
-                var animScript = sideOneA3Animator.GetComponent<S1A3Animator>();
-                if (animScript != null)
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S1A3Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideOneA3Animator has no S1A3Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideOneA3Animator is NULL - skipping");
-            }
-
-            if (sideTwoA1Animator != null)
-            {
-                if (sideTwoA1Animator.TryGetComponent<S2A1Animator>(out var animScript))
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S2A1Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideTwoA1Animator has no S2A1Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideTwoA1Animator is NULL - skipping");
-            }
-
-            if (sideTwoA2Animator != null)
-            {
-                var animScript = sideTwoA2Animator.GetComponent<S2A2Animator>();
-                if (animScript != null)
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S2A2Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideTwoA2Animator has no S2A2Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideTwoA2Animator is NULL - skipping");
-            }
-
-            if (sideTwoA3Animator != null)
-            {
-                if (sideTwoA3Animator.TryGetComponent<S2A3Animator>(out var animScript))
-                {
-                    animScript.RunAnimation();
-                    Debug.Log("   ✅ Triggered S2A3Animator");
-                }
-                else
-                {
-                    Debug.LogError("   ❌ sideTwoA3Animator has no S2A3Animator component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("   ⚠️ sideTwoA3Animator is NULL - skipping");
-            }
-
-            List<GameObject> shipGameObjects = new List<GameObject>();
-            for (int i = 0; i < CombatData.SideOneShipCons.Count; i++)
-            {
-                CombatData.SideOneShipCons[i].gameObject.SetActive(true);
-                shipGameObjects.Add(CombatData.SideOneShipCons[i].gameObject);
-                CombatData.SideOneShipCons[i].SetWarpInOver();
-            }
-            for (int i = 0; i < CombatData.SideTwoShipCons.Count; i++)
-            {
-                CombatData.SideTwoShipCons[i].gameObject.SetActive(true);
-                shipGameObjects.Add(CombatData.SideTwoShipCons[i].gameObject);
-                CombatData.SideTwoShipCons[i].SetWarpInOver();
-            }
-
-            Scene scene = SceneManager.GetSceneByName("CombatScene");
-            while (!scene.isLoaded)
-            {
-                System.Threading.Thread.Sleep(100);
-            }
-
-            GameObject[] cameraTargets = shipGameObjects.ToArray();
-            ShipCombatCameraController.Instance.SetTargets(cameraTargets);
-            StartCoroutine(WaitForAllAnimations());
-
-        }
         private List<Vector2Int> GenerateSpiralPositions(int count)
-        {    // output (0,0), (10,0), (10,10), (0,10), (-10,10), (-10,0), (-10,-10), (0,-10), ...
-            spiralPositions.Clear();
-
-            Vector2Int[] directions =
-            {
-                Vector2Int.right,   // Right
-                Vector2Int.up,      // Up
-                Vector2Int.left,    // Left
-                Vector2Int.down     // Down
-            };
-
-            Vector2Int pos = Vector2Int.zero;
-            spiralPositions.Add(pos);
-
-            int stepSize = 100;
-            int dirIndex = 0;
-
-            while (spiralPositions.Count < count)
-            {
-                // Go in two directions with the same step size
-                for (int i = 0; i < 2; i++)
-                {
-                    Vector2Int dir = directions[dirIndex % 4];
-                    for (int step = 0; step < stepSize && spiralPositions.Count < count; step++)
-                    {
-                        pos += dir;
-                        spiralPositions.Add(pos);
-                    }
-                    dirIndex++;
-                }
-                stepSize++;
-            }
-            return spiralPositions.ToList();
-        }
-        IEnumerator DelayedActionSomeSec()
         {
-            yield return _waitForSeconds2;
-            // Action to perform after the delay
-            EndCombat();
-        }
-        public IEnumerator WaitForAllAnimations()
-        {
-            ShipCombatCameraController.Instance.SetWarpingIn(true);
-            ShipCombatCameraController.Instance.SetWarpingInOver(false);
+            List<Vector2Int> positions = new List<Vector2Int>();
 
-            // ✅ Check if any animators have controllers assigned
-            bool hasValidAnimators = animators.Any(a => a != null && a.runtimeAnimatorController != null);
+            if (count <= 0) return positions;
 
-            if (hasValidAnimators)
+            // Start at center
+            positions.Add(new Vector2Int(0, 0));
+
+            if (count == 1) return positions;
+
+            // Generate square spiral pattern
+            int x = 0, y = 0;
+            int dx = 0, dy = -1;
+            int maxSteps = count;
+
+            for (int i = 1; i < count; i++)
             {
-                Debug.Log($"⏳ Waiting for animator-based warp-in... ({animators.Count} animators with controllers)");
-
-                // ✅ NEW: Wait one frame for animator scripts' Start() to run
-                yield return null;
-                Debug.Log("   Frame 1: Animator scripts initialized, beginning animation check...");
-
-                int frameCount = 0;
-                int maxFrames = 600; // Safety timeout (10 seconds at 60fps)
-
-                // Wait for animations to complete
-                while (AnyAnimatorIsPlaying())
+                // Move to next position in spiral
+                if (x == y || (x < 0 && x == -y) || (x > 0 && x == 1 - y))
                 {
-                    frameCount++;
-
-                    // ✅ Log every 30 frames (twice per second)
-                    if (frameCount % 30 == 0)
-                    {
-                        Debug.Log($"   Frame {frameCount}: Still waiting for animations...");
-                    }
-
-                    // ✅ Safety timeout
-                    if (frameCount > maxFrames)
-                    {
-                        Debug.LogWarning($"⚠️ Animation timeout after {maxFrames} frames - force continuing");
-                        break;
-                    }
-
-                    yield return null;
+                    // Change direction
+                    int temp = dx;
+                    dx = -dy;
+                    dy = temp;
                 }
 
-                Debug.Log($"✅ Animation check complete after {frameCount} frames");
-            }
-            else
-            {
-                yield return _waitForSeconds2;
+                x += dx;
+                y += dy;
+                positions.Add(new Vector2Int(x, y));
             }
 
-            Debug.Log("✅ Warp-in animation complete");
-
-            ShipCombatCameraController.Instance.SetWarpingIn(false);
-            ShipCombatCameraController.Instance.SetWarpingInOver(true);
-
-            // ✅ Start ship movement
-            BeginPhysicsLikeMovement();
-
-            // ✅ Show health bars
-            for (int i = 0; i < HealthbarRenderers.Count; i++)
-            {
-                HealthbarRenderers[i].SetActive(true);
-            }
-
-            WarpingAnimationOver = true;
-            WarpingIn = false;
-
-            // ✅ Wait for ships to move closer (2 seconds) before firing
-            Debug.Log("⏳ Ships moving to battle positions...");
-            yield return _waitForSeconds2;
-            Debug.Log("✅ Ships in position - starting weapon fire");
-
-            // ✅ Now assign targets and fire weapons
-            Debug.Log($"📊 Side One ships: {CombatData.SideOneShipCons.Count}, Side Two ships: {CombatData.SideTwoShipCons.Count}");
-
-            Debug.Log("🎯 Assigning targets for Side One ships...");
-            FindClosestPairsForTargets(CombatData.SideOneShipCons, CombatData.SideTwoShipCons);
-
-            Debug.Log("🎯 Assigning targets for Side Two ships...");
-            FindClosestPairsForTargets(CombatData.SideTwoShipCons, CombatData.SideOneShipCons);
-
-            Debug.Log("🔫 Starting weapon fire for Side One ships...");
-            FireWeaponsOrderOnShipControllers(CombatData.SideOneShipCons);
-
-            Debug.Log("🔫 Starting weapon fire for Side Two ships...");
-            FireWeaponsOrderOnShipControllers(CombatData.SideTwoShipCons);
-
-            Debug.Log("✅ All weapon systems initialized");
-        }
-
-        private bool AnyAnimatorIsPlaying()
-        {
-            bool anyPlaying = false;
-
-            for (int i = 0; i < animators.Count; i++)
-            {
-                Animator animator = animators[i];
-
-                if (animator == null)
-                {
-                    Debug.LogWarning($"   ⚠️ Animator [{i}] is null");
-                    continue;
-                }
-
-                if (animator.runtimeAnimatorController == null)
-                {
-                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) has NO CONTROLLER ASSIGNED!");
-                    continue;
-                }
-
-                // ✅ CHECK CULLING MODE
-                if (animator.cullingMode == AnimatorCullingMode.CullCompletely)
-                {
-                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) CullingMode is 'CullCompletely' - animations won't play!");
-                }
-
-                // ✅ CHECK IF ENABLED
-                if (!animator.enabled)
-                {
-                    Debug.LogError($"   ❌ Animator [{i}] ({animator.name}) is DISABLED!");
-                }
-
-                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-                bool isInTransition = animator.IsInTransition(0);
-                float normalizedTime = stateInfo.normalizedTime;
-
-                // ✅ Detailed logging for first frame
-                if (Time.frameCount % 30 == 0) // Log every 30 frames
-                {
-                    Debug.Log($"   Animator [{i}] '{animator.name}': State='{stateInfo.shortNameHash}', Time={normalizedTime:F3}, Transition={isInTransition}, Enabled={animator.enabled}, CullingMode={animator.cullingMode}");
-                }
-
-                if (normalizedTime < 1f && !isInTransition)
-                {
-                    anyPlaying = true;
-                }
-            }
-
-            return anyPlaying;
-        }
-
-        internal void GiveCombatOrders(CombatOrders order, CivEnum civEnumLocalPlayer)
-        {
-            if (civEnumLocalPlayer == CombatData.CivEnumSideOne || civEnumLocalPlayer == CombatData.CivEnumSideTwo)
-                NetworkClient.localPlayer.GetComponent<IPlayerController>().GiveCombatOrder(order, this, civEnumLocalPlayer);
-            else if (GameController.Instance.GameData.GameMode == GameMode.SINGLEPLAYER)
-            {
-                //var aiPlayer = PlayerManager.Instance.AllPlayerControllers.Find(p => p is AiPlayerController && (p as AiPlayerController));
-                //if (aiPlayer != null)
-                //    aiPlayer.GiveCombatOrder(order, this, aiPlayer.PlayerCiv);
-            }
+            return positions;
         }
 
         /// <summary>
-        /// Initialize combat with two fleets at a location
-        /// Called by SceneController after combat scene loads additively
+        /// Generate spiral positions for transports positioned behind combat ships
         /// </summary>
-        public void InitializeCombat(FleetController playerFleet, FleetController enemyFleet, StarSysController combatLocation)
+        private List<Vector2Int> GenerateTransportSpiralPositions(int count)
         {
-            Debug.Log($"=== InitializeCombat: Starting ===");
-            Debug.Log($"  Player fleet: {(playerFleet != null ? playerFleet.name : "NULL")}");
-            Debug.Log($"  Enemy fleet: {(enemyFleet != null ? enemyFleet.name : "NULL")}");
-            Debug.Log($"  Location: {(combatLocation != null ? combatLocation.name : "NULL")}");
-            // Reset closing flag for new combat
-            isClosing = false;
-            if (playerFleet == null || enemyFleet == null)
+            List<Vector2Int> positions = new List<Vector2Int>();
+
+            if (count <= 0) return positions;
+
+            // Transports form a tighter formation since they're behind the protective wall
+            // Start at center
+            positions.Add(new Vector2Int(0, 0));
+
+            if (count == 1) return positions;
+
+            // Generate compact spiral pattern
+            int x = 0, y = 0;
+            int dx = 0, dy = -1;
+
+            for (int i = 1; i < count; i++)
             {
-                Debug.LogError("InitializeCombat: One or both fleets are null! Cannot start combat.");
+                // Move to next position in spiral
+                if (x == y || (x < 0 && x == -y) || (x > 0 && x == 1 - y))
+                {
+                    // Change direction
+                    int temp = dx;
+                    dx = -dy;
+                    dy = temp;
+                }
+
+                x += dx;
+                y += dy;
+                positions.Add(new Vector2Int(x, y));
+            }
+
+            return positions;
+        }
+        /// <summary>
+        /// Disables stencil buffer operations on ship renderers to prevent rendering conflicts
+        /// </summary>
+        private void DisableStencilOnShipRenderers(GameObject shipModel)
+        {
+            if (shipModel == null) return;
+
+            Renderer[] renderers = shipModel.GetComponentsInChildren<Renderer>();
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null && renderer.material != null)
+                {
+                    // Disable stencil operations on materials
+                    renderer.material.SetInt("_StencilComp", 0);
+                    renderer.material.SetInt("_Stencil", 0);
+                    renderer.material.SetInt("_StencilOp", 0);
+                    renderer.material.SetInt("_StencilWriteMask", 0);
+                    renderer.material.SetInt("_StencilReadMask", 0);
+                }
+            }
+        }
+        /// <summary>
+        /// ✅ NEW: Create health bars for all ships AFTER warp animation completes
+        /// Called by CombatUIManager after warp-in finishes
+        /// This prevents health bars from interfering with warp animation visuals
+        /// </summary>
+        public void CreateHealthBarsForAllShips()
+        {
+            Debug.Log("🏥 Creating health bars for all ships...");
+
+            int healthbarCount = 0;
+
+            // Create health bars for Side One ships
+            foreach (var ship in CombatData.SideOneShipCons)
+            {
+                if (ship != null && !ship.ShipData.Distroyed)
+                {
+                    CreateHealthBarForShip(ship, -1); // -1 for side one (left side)
+                    healthbarCount++;
+                }
+            }
+
+            // Create health bars for Side Two ships
+            foreach (var ship in CombatData.SideTwoShipCons)
+            {
+                if (ship != null && !ship.ShipData.Distroyed)
+                {
+                    CreateHealthBarForShip(ship, 1); // 1 for side two (right side)
+                    healthbarCount++;
+                }
+            }
+
+            Debug.Log($"✅ Created {healthbarCount} health bars (visible immediately)");
+        }
+
+        /// <summary>
+        /// ✅ NEW: Create a health bar for a single ship
+        /// </summary>
+        private void CreateHealthBarForShip(ShipController ship, int side1negSide2pos)
+        {
+            if (ship == null || CombatManager.Instance == null || CombatManager.Instance.HealthbarPrefab == null)
+            {
+                Debug.LogWarning($"Cannot create health bar - missing ship or prefab");
                 return;
             }
 
-            // ✅ Initialize CombatData
-            if (CombatData == null)
+            GameObject healthbarGO = Instantiate(CombatManager.Instance.HealthbarPrefab);
+            healthbarGO.SetActive(true); // ✅ Active immediately (no warp animation to worry about)
+
+            // ✅ Parent directly to ship (world-space UI)
+            healthbarGO.transform.SetParent(ship.transform, false);
+            healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -1.5f, 0);
+            healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+            healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0);
+
+            // ✅ Ensure health bar Canvas is on World Space
+            Canvas healthbarCanvas = healthbarGO.GetComponent<Canvas>();
+            if (healthbarCanvas == null)
             {
-                CombatData = new CombatData();
-                Debug.Log("  Created new CombatData");
+                healthbarCanvas = healthbarGO.AddComponent<Canvas>();
             }
 
-            // ✅ Assign fleets to sides
-            CombatData.CivEnumSideOne = playerFleet.FleetData?.CivEnum ?? CivEnum.None;
-            CombatData.CivEnumSideTwo = enemyFleet.FleetData?.CivEnum ?? CivEnum.None;
+            healthbarCanvas.renderMode = RenderMode.WorldSpace;
+            healthbarCanvas.worldCamera = ShipCombatCameraController.Instance?.GetComponentInChildren<Camera>();
 
-            Debug.Log($"  Side One Civ: {CombatData.CivEnumSideOne}");
-            Debug.Log($"  Side Two Civ: {CombatData.CivEnumSideTwo}");
-
-            CombatData.sideOneCiv = playerFleet.FleetData?.CivController;
-            CombatData.sideTwoCiv = enemyFleet.FleetData?.CivController;
-
-            // Clear previous ship lists
-            CombatData.SideOneShipCons.Clear();
-            CombatData.SideTwoShipCons.Clear();
-
-            // ✅ Add player fleet ships to side one
-            if (playerFleet.FleetData?.ShipsList != null)
+            // ✅ Add CanvasScaler for proper sizing
+            if (!healthbarGO.TryGetComponent<CanvasScaler>(out var canvasScaler))
             {
-                Debug.Log($"  Player fleet has {playerFleet.FleetData.ShipsList.Count} ships");
+                canvasScaler = healthbarGO.AddComponent<CanvasScaler>();
+            }
+            canvasScaler.dynamicPixelsPerUnit = 10;
 
-                foreach (var ship in playerFleet.FleetData.ShipsList)
+            // ✅ Set health bar layer to Default (NOT UI layer for world-space)
+            healthbarGO.layer = LayerMask.NameToLayer("Default");
+            SetLayerRecursively(healthbarGO, LayerMask.NameToLayer("Default"));
+
+            // ✅ Set up health bar images
+            Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
+            foreach (var img in healthbarImages)
+            {
+                if (img.gameObject.name == "HealthFill")
                 {
-                    if (ship != null)
-                    {
-                        CombatData.SideOneShipCons.Add(ship);
-                        Debug.Log($"    Added player ship: {ship.name}");
-                    }
+                    ship.HealthFillImage = img;
+                    ship.HealthFillImage.fillAmount = 1f;
+                    ship.HealthFillImage.color = Color.green;
                 }
-            }
-            else
-            {
-                Debug.LogError("  ❌ Player fleet has NO ShipsList!");
-            }
-
-            // ✅ Add enemy fleet ships to side two
-            if (enemyFleet.FleetData?.ShipsList != null)
-            {
-                Debug.Log($"  Enemy fleet has {enemyFleet.FleetData.ShipsList.Count} ships");
-
-                foreach (var ship in enemyFleet.FleetData.ShipsList)
+                else if (img.gameObject.name == "HealthBackground")
                 {
-                    if (ship != null)
-                    {
-                        CombatData.SideTwoShipCons.Add(ship);
-                        Debug.Log($"    Added enemy ship: {ship.name}");
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogError("  ❌ Enemy fleet has NO ShipsList!");
-            }
-
-            Debug.Log($"  ✅ Side One: {CombatData.SideOneShipCons.Count} ships");
-            Debug.Log($"  ✅ Side Two: {CombatData.SideTwoShipCons.Count} ships");
-
-            // Set default orders
-            CombatData.OrderSideOne = CombatOrders.Engage;
-            CombatData.OrderSideTwo = CombatOrders.Engage;
-
-            // ✅ CRITICAL: Enable combat camera
-            if (ShipCombatCameraController.Instance != null)
-            {
-                var camera = ShipCombatCameraController.Instance.GetComponent<Camera>();
-                if (camera != null)
-                {
-                    camera.enabled = true;
-                    Debug.Log($"  ✅ Combat camera enabled: {camera.enabled}");
-                }
-                else
-                {
-                    Debug.LogError("  ❌ Combat camera component not found!");
-                }
-            }
-            else
-            {
-                Debug.LogError("  ❌ ShipCombatCameraController.Instance is NULL!");
-            }
-
-            // ✅ CRITICAL: Enable combat canvas
-            if (ShipCombatCanvas != null)
-            {
-                ShipCombatCanvas.gameObject.SetActive(true);
-                Debug.Log($"  ✅ Combat canvas activated");
-            }
-            else
-            {
-                Debug.LogError("  ❌ ShipCombatCanvas is NULL!");
-            }
-
-            if (CombatUIManager.Instance != null)
-            {
-                Debug.Log($"  ✅ CombatUIManager found and ready");
-            }
-            else
-            {
-                Debug.LogWarning("  ⚠️ CombatUIManager.Instance is NULL - UI will not show!");
-            }
-
-            // Populate ship data and UI
-            Debug.Log("  Calling PopulateShipData...");
-            PopulateShipData(this);
-
-            // ✅ DON'T call RunAnimation() here - it will be called by CombatUIManager.EnterShipCombatPhase()
-            // when the player clicks the button or the timer expires
-            Debug.Log("  ⏳ Waiting for player to start combat (button click or timer)...");
-
-            Debug.Log("=== InitializeCombat: Complete ===");
-        }
-
-        private ShipSO GetShipSOForShip(ShipController ship)
-        {
-            // ShipData has a ShipSO property that holds the SO with .fbx game object 'prefab' reference
-            return ship?.ShipData?.ShipSO;
-
-        }
-        /// <summary>
-        /// Prevents 3D ship materials from conflicting with UI masking
-        /// Call after instantiating ship FBX models
-        /// </summary>
-        private void DisableStencilOnShipRenderers(GameObject shipGameObject)
-        {
-            Renderer[] renderers = shipGameObject.GetComponentsInChildren<Renderer>(true);
-
-            foreach (var renderer in renderers)
-            {
-                if (renderer == null) continue;
-
-                foreach (var material in renderer.materials)
-                {
-                    if (material == null) continue;
-
-                    // Set render queue above UI to avoid masking
-                    material.renderQueue = 3001;
-
-                    Debug.Log($"    Set render queue for material '{material.name}' to 3001");
+                    ship.HealthBackgroundImage = img;
+                    ship.HealthBackgroundImage.fillAmount = 1f;
+                    ship.HealthBackgroundImage.color = Color.red;
                 }
             }
 
-            Debug.Log($"  ✅ Fixed {renderers.Length} renderers for '{shipGameObject.name}'");
+            // ✅ Add to tracking list
+            HealthbarRenderers.Add(healthbarGO);
+
+            // ✅ Add billboard component to face camera
+            var billboard = healthbarGO.GetComponent<BillboardCameraCombat>();
+            if (billboard == null)
+            {
+                billboard = healthbarGO.AddComponent<BillboardCameraCombat>();
+            }
+
+            Debug.Log($"  ✅ Created health bar for {ship.ShipData.ShipName}");
         }
     }
 }

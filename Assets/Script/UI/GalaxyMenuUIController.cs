@@ -223,7 +223,7 @@ namespace BOTF3D.UI
 
             // ✅ Get civilization short name (e.g., "FED" → "Federation")
             string civShortName = GetCivilizationShortName(localPlayerCiv);
-            Debug.Log($"  Civilization Short Name: '{civShortName}'");
+            Debug.Log($"  Civilization Short FleetName: '{civShortName}'");
 
             // ✅ Load Insignia Sprite
             LoadInsigniaSprite(civShortName);
@@ -443,7 +443,7 @@ namespace BOTF3D.UI
             Debug.Log($"  Parent Canvas: {canvas != null}");
             if (canvas != null)
             {
-                Debug.Log($"    Name: {canvas.name}");
+                Debug.Log($"    FleetName: {canvas.name}");
                 Debug.Log($"    Render Mode: {canvas.renderMode}");
                 Debug.Log($"    World Camera: {canvas.worldCamera?.name ?? "NULL"}");
                 Debug.Log($"    Enabled: {canvas.enabled}");
@@ -468,7 +468,7 @@ namespace BOTF3D.UI
             Debug.Log($"  Main Camera: {mainCam != null}");
             if (mainCam != null)
             {
-                Debug.Log($"    Name: {mainCam.name}");
+                Debug.Log($"    FleetName: {mainCam.name}");
                 Debug.Log($"    Enabled: {mainCam.enabled}");
                 Debug.Log($"    Scene: {mainCam.gameObject.scene.name}");
             }

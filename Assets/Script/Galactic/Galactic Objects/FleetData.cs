@@ -23,7 +23,7 @@ namespace BOTF3D.Core
         public GameObject ShipListUIParent { get; internal set; }
         public string CivLongName;
         public string CivShortName;
-        public string Name;
+        public string FleetName;
         private string description;
         public int FleetInt;
         public List<int> EncounterIDs;
@@ -51,7 +51,7 @@ namespace BOTF3D.Core
         }
         public FleetData(string name)
         {
-            Name = name;
+            FleetName = name;
         }
         public FleetData()
         {
@@ -86,7 +86,7 @@ namespace BOTF3D.Core
             return Position;
         }
 
-        public string GetFleetName() { return this.Name; }
+        public string GetFleetName() { return this.FleetName; }
 
         internal void PopulateShipsList()
         {

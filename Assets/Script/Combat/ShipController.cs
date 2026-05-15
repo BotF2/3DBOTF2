@@ -164,7 +164,7 @@ namespace BOTF3D.GamePlay
                     case CombatOrders.Retreat:
                         // try for warp out
                         break;
-                    case CombatOrders.TargetTransports:
+                    case CombatOrders.AttackTransports:
                         break;
                     case CombatOrders.Rush:
                         break;
@@ -277,10 +277,61 @@ namespace BOTF3D.GamePlay
             //}
             #endregion
         }
+        // ✅ Modify FireAtTarget to check for blocking
+        private void FireAtTarget(ShipController target)
+        {
+            if (target == null) return;
+
+            // ✅ Check if friendly ships block the shot
+            List<ShipController> friendlyShips = GetFriendlyShipsInCombat();
+
+            ShipController blockingShip = LineOfSightBlocker.GetBlockingShip(
+                transform.position,
+                target.transform.position,
+                friendlyShips,
+                blockingRadius: 15f
+            );
+
+            if (blockingShip != null)
+            {
+                // ✅ Shot blocked - hit the blocking ship instead!
+                Debug.Log($"🛡️ Shot blocked by {blockingShip.ShipData.ShipName}");
+                target = blockingShip; // Redirect damage
+            }
+
+            // ... fire beam/torpedo at target (possibly the blocker)
+        }
+
+        private List<ShipController> GetFriendlyShipsInCombat()
+        {
+            // Get all ships on same side in combat
+            // (from CombatData.SideOneShipCons or SideTwoShipCons)
+            return new List<ShipController>(); // TODO: implement
+        }
         public void SetWeaponPrefabs()
         {
+            if (ShipManager.Instance == null)
+            {
+                Debug.LogError($"❌ ShipManager.Instance is null - cannot set weapon prefabs for {ShipData.ShipName}");
+                return;
+            }
+
             GameObject[] torpedoPrefabs = ShipManager.Instance.torpedoPrefabs;
             GameObject[] beamPrefabs = ShipManager.Instance.beamWeaponPrefabs;
+
+            if (torpedoPrefabs == null || torpedoPrefabs.Length == 0)
+            {
+                Debug.LogError($"❌ ShipManager.Instance.torpedoPrefabs is null or empty!");
+                return;
+            }
+
+            if (beamPrefabs == null || beamPrefabs.Length == 0)
+            {
+                Debug.LogError($"❌ ShipManager.Instance.beamWeaponPrefabs is null or empty!");
+                return;
+            }
+
+            // Set torpedo prefab
             for (int i = 0; i < torpedoPrefabs.Length; i++)
             {
                 if ((int)this.ShipData.CivEnum > 7)
@@ -290,10 +341,10 @@ namespace BOTF3D.GamePlay
                 else if (torpedoPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper()))
                 {
                     torpedoPrefab = torpedoPrefabs[i];
-
                 }
             }
 
+            // Set beam prefab
             for (int i = 0; i < beamPrefabs.Length; i++)
             {
                 if ((int)ShipData.CivEnum > 7)
@@ -303,9 +354,23 @@ namespace BOTF3D.GamePlay
                 else if (beamPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper()))
                 {
                     beamWeaponPrefab = beamPrefabs[i];
-
                 }
             }
+
+            // ✅ Verify prefabs were set
+            if (torpedoPrefab == null)
+            {
+                Debug.LogWarning($"⚠️ No torpedo prefab found for {ShipData.CivEnum} - using fallback");
+                torpedoPrefab = torpedoPrefabs.FirstOrDefault();
+            }
+
+            if (beamWeaponPrefab == null)
+            {
+                Debug.LogWarning($"⚠️ No beam prefab found for {ShipData.CivEnum} - using fallback");
+                beamWeaponPrefab = beamPrefabs.FirstOrDefault();
+            }
+
+            Debug.Log($"✅ {ShipData.ShipName} ({ShipData.CivEnum}): Torpedo={torpedoPrefab?.name}, Beam={beamWeaponPrefab?.name}");
         }
         /// <summary>
         /// Set civilization-specific weapon audio clips
@@ -350,8 +415,8 @@ namespace BOTF3D.GamePlay
                 case CombatOrders.Formation:
                     Order = CombatOrders.Formation;
                     break;
-                case CombatOrders.TargetTransports:
-                    Order = CombatOrders.TargetTransports;
+                case CombatOrders.AttackTransports:
+                    Order = CombatOrders.AttackTransports;
                     break;
                 case CombatOrders.None:
                     Order = CombatOrders.None;
@@ -407,6 +472,93 @@ namespace BOTF3D.GamePlay
                 yield return new WaitForSecondsRealtime(refireDelay);
             }
         }
+        /// <summary>
+        /// Fire torpedo at target with proper initialization
+        /// </summary>
+        private void FireTorpedo(Transform targetTransform)
+        {
+            if (torpedoPrefab == null || targetTransform == null)
+            {
+                Debug.LogWarning($"{ShipData.ShipName}: Cannot fire torpedo - missing prefab or target");
+                return;
+            }
+
+            // Calculate fire position (slightly in front of ship)
+            Vector3 firePosition = transform.position + transform.forward * 5f;
+            Quaternion fireRotation = Quaternion.LookRotation(targetTransform.position - firePosition);
+
+            // Instantiate torpedo
+            GameObject torpedoGO = Instantiate(torpedoPrefab, firePosition, fireRotation);
+            Torpedo torpedo = torpedoGO.GetComponent<Torpedo>();
+
+            if (torpedo != null)
+            {
+                // Set target
+                torpedo.Target = targetTransform;
+                torpedo.OwnerCivEnum = ShipData.CivEnum;
+
+                // ✅ Initialize with ship's damage and sounds
+                torpedo.Initialize(
+                    ShipData.TorpedoDamage,    // From ShipSO
+                    clipTorpedoFire,            // From ShipController
+                    null                        // Optional impact sound (can add later)
+                );
+
+                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name}");
+            }
+            else
+            {
+                Debug.LogError($"Torpedo prefab missing Torpedo component!");
+                Destroy(torpedoGO);
+            }
+        }
+
+        /// <summary>
+        /// Fire beam at target with proper initialization
+        /// </summary>
+        private void FireBeam(Transform targetTransform)
+        {
+            if (beamWeaponPrefab == null || targetTransform == null)
+            {
+                Debug.LogWarning($"{ShipData.ShipName}: Cannot fire beam - missing prefab or target");
+                return;
+            }
+
+            // Instantiate beam weapon
+            GameObject beamGO = Instantiate(beamWeaponPrefab, transform.position, Quaternion.identity);
+            BeamWeapon beam = beamGO.GetComponent<BeamWeapon>();
+
+            if (beam != null)
+            {
+                // Set weapon and target transforms for rendering
+                beam.SetWeaponAndTarget(transform, targetTransform);
+
+                // ✅ Initialize with ship's damage and sounds
+                beam.Initialize(
+                    this,                       // Owner ship
+                    ShipData.BeamDamage,       // From ShipSO
+                    clipBeamFire,              // From ShipController
+                    null                        // Optional impact sound
+                );
+
+                // Fire immediately
+                ShipController targetShip = targetTransform.GetComponentInParent<ShipController>();
+                if (targetShip != null)
+                {
+                    beam.Fire(targetShip);
+                }
+
+                Debug.Log($"🔫 {ShipData.ShipName} fired beam at {targetTransform.name}");
+
+                // Destroy beam after brief display
+                Destroy(beamGO, 0.2f);
+            }
+            else
+            {
+                Debug.LogError($"Beam prefab missing BeamWeapon component!");
+                Destroy(beamGO);
+            }
+        }
         internal void FireWeapons(bool beam)
         {
             Debug.Log($"🎯 FireWeapons called for '{ShipData.ShipName}', beam={beam}, target={ShipData.TargetThisShipController?.ShipData.ShipName ?? "NULL"}");
@@ -416,7 +568,7 @@ namespace BOTF3D.GamePlay
                 if (this != null && transform != null)
                 {
                     // ✅ Apply accuracy multiplier from combat order
-                    float accuracyMult = CombatOrderMatrix.GetAccuracyMultiplier(Order);
+                    float accuracyMult = 1f;
                     bool hitSuccess = UnityEngine.Random.value < accuracyMult;
 
                     if (!hitSuccess)
@@ -429,57 +581,67 @@ namespace BOTF3D.GamePlay
                     // Modify FireWeapons to track beams (around line 406-421)
                     if (beam && ShipData.BeamDamage > 0)
                     {
-                        Debug.Log($"  💥 Firing BEAM from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.BeamDamage})");
+                        Debug.Log($"  💥 Firing BEAM from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (Damage={ShipData.BeamDamage})");
 
-                        // ✅ Play beam fire sound through AudioManager (respects master volume)
-                        if (clipBeamFire != null)
+                        // ✅ FIX: Add CivEnum check to prevent friendly fire
+                        if (ShipData.TargetThisShipController != null &&
+                            ShipData.CivEnum != ShipData.TargetThisShipController.ShipData.CivEnum)
                         {
-                            if (BOTF3D.Audio.AudioManager.Instance != null)
+                            // ✅ Play beam fire sound through AudioManager (respects master volume)
+                            if (clipBeamFire != null)
                             {
-                                BOTF3D.Audio.AudioManager.Instance.PlaySFX3DClip(clipBeamFire, transform.position);
-                                Debug.Log($"  🔊 Playing beam fire sound through AudioManager");
+                                if (BOTF3D.Audio.AudioManager.Instance != null)
+                                {
+                                    BOTF3D.Audio.AudioManager.Instance.PlaySFX3DClip(clipBeamFire, transform.position);
+                                    Debug.Log($"  🔊 Playing beam fire sound through AudioManager");
+                                }
+                                else
+                                {
+                                    Debug.LogError($"  ❌ AudioManager.Instance is NULL!");
+                                }
                             }
                             else
                             {
-                                Debug.LogError($"  ❌ AudioManager.Instance is NULL!");
+                                Debug.LogWarning($"  ⚠️ clipBeamFire is null for '{ShipData.ShipName}'");
                             }
+
+                            GameObject beamWeaponGO = Instantiate(beamWeaponPrefab, transform.position, Quaternion.identity);
+
+                            // ✅ CRITICAL: Disable any AudioSource on the beam prefab to prevent duplicate sounds
+                            var beamAudioSources = beamWeaponGO.GetComponentsInChildren<AudioSource>(true);
+                            foreach (var audioSrc in beamAudioSources)
+                            {
+                                audioSrc.enabled = false;
+                                Debug.Log($"    🔇 Disabled AudioSource on beam weapon");
+                            }
+
+                            // ✅ NEW: Track this beam weapon
+                            activeBeamWeapons.Add(beamWeaponGO);
+
+                            Debug.Log($"  ⚡ Beam GameObject created: {beamWeaponGO.name}");
+
+                            var lineRenderer = beamWeaponGO.GetComponent<LineRenderer>();
+                            var beamWeaponScript = beamWeaponGO.GetComponent<BeamWeapon>();
+                            beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
+                            beamWeaponScript.WeaponTransform = this.transform;
+                            beamWeaponScript.LineRenderer = lineRenderer;
+                            beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform);
+
+
+                            ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage);
+
+                            // ✅ Use coroutine with WaitForSecondsRealtime instead of Destroy(obj, time)
+                            Debug.Log($"  ⏱️ Starting DestroyBeamAfterDelay coroutine for {beamWeaponGO.name}...");
+                            StartCoroutine(DestroyBeamAfterDelay(beamWeaponGO, 0.5f));
                         }
                         else
                         {
-                            Debug.LogWarning($"  ⚠️ clipBeamFire is null for '{ShipData.ShipName}'");
+                            Debug.LogWarning($"  ⚠️ PREVENTED FRIENDLY FIRE: {ShipData.ShipName} tried to target friendly {ShipData.TargetThisShipController?.ShipData.ShipName}");
                         }
-
-                        var beamWeaponGo = Instantiate(beamWeaponPrefab, this.transform.position, Quaternion.identity);
-                        beamWeaponGO = beamWeaponGo;
-
-                        // ✅ CRITICAL: Disable any AudioSource on the beam prefab to prevent duplicate sounds
-                        var beamAudioSources = beamWeaponGo.GetComponentsInChildren<AudioSource>(true);
-                        foreach (var audioSrc in beamAudioSources)
-                        {
-                            audioSrc.enabled = false;
-                            Debug.Log($"    🔇 Disabled AudioSource on beam weapon");
-                        }
-
-                        // ✅ NEW: Track this beam weapon
-                        activeBeamWeapons.Add(beamWeaponGo);
-
-                        Debug.Log($"  ⚡ Beam GameObject created: {beamWeaponGo.name}");
-
-                        var lineRenderer = beamWeaponGo.GetComponent<LineRenderer>();
-                        var beamWeaponScript = beamWeaponGo.GetComponent<BeamWeapon>();
-                        beamWeaponScript.TargetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
-                        beamWeaponScript.WeaponTransform = this.transform;
-                        beamWeaponScript.LineRenderer = lineRenderer;
-                        beamWeaponScript.SetWeaponAndTarget(this.transform, ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform);
-                        ShipData.TargetThisShipController.TakeDamage(ShipData.BeamDamage);
-
-                        // ✅ Use coroutine with WaitForSecondsRealtime instead of Destroy(obj, time)
-                        Debug.Log($"  ⏱️ Starting DestroyBeamAfterDelay coroutine for {beamWeaponGo.name}...");
-                        StartCoroutine(DestroyBeamAfterDelay(beamWeaponGo, 0.5f));
                     }
                     else if (ShipData.TorpedoDamage > 0)
                     {
-                        Debug.Log($"  🚀 Firing TORPEDO from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (damage={ShipData.TorpedoDamage})");
+                        Debug.Log($"  🚀 Firing TORPEDO from '{ShipData.ShipName}' → '{ShipData.TargetThisShipController.ShipData.ShipName}' (Damage={ShipData.TorpedoDamage})");
 
                         // ✅ Play torpedo fire sound through AudioManager (respects master volume)
                         if (clipTorpedoFire != null)
@@ -499,25 +661,44 @@ namespace BOTF3D.GamePlay
                             Debug.LogWarning($"  ⚠️ clipTorpedoFire is null for '{ShipData.ShipName}'");
                         }
 
-                        var torpedoGo = Instantiate(torpedoPrefab, this.transform.position, Quaternion.identity);
-                        Debug.Log($"  🎯 Torpedo GameObject created: {torpedoGo.name}, active={torpedoGo.activeSelf}");
+                        // ✅ Calculate fire position and rotation
+                        Vector3 firePosition = transform.position;
+                        Transform targetTransform = ShipData.TargetThisShipController.ShipData.TargetOnThisShip.transform;
+                        Vector3 directionToTarget = (targetTransform.position - firePosition).normalized;
+                        Quaternion fireRotation = Quaternion.LookRotation(directionToTarget);
+
+                        GameObject torpedoGO = Instantiate(torpedoPrefab, firePosition, fireRotation);
+                        Torpedo torpedo = torpedoGO.GetComponent<Torpedo>();
+                        if (torpedo != null)
+                        {
+                            torpedo.Target = targetTransform;
+                            torpedo.OwnerCivEnum = ShipData.CivEnum;
+
+                            // ✅ Initialize with ship's damage and sounds
+                            torpedo.Initialize(
+                                ShipData.TorpedoDamage,
+                                clipTorpedoFire,
+                                null // optional impact sound
+                            );
+                        }
+                        Debug.Log($"  🎯 Torpedo GameObject created: {torpedoGO.name}, active={torpedoGO.activeSelf}");
 
                         // ✅ CRITICAL: Disable any AudioSource on the torpedo prefab to prevent duplicate sounds
-                        var torpedoAudioSources = torpedoGo.GetComponentsInChildren<AudioSource>(true);
+                        var torpedoAudioSources = torpedoGO.GetComponentsInChildren<AudioSource>(true);
                         foreach (var audioSrc in torpedoAudioSources)
                         {
                             audioSrc.enabled = false;
                             Debug.Log($"    🔇 Disabled AudioSource on torpedo");
                         }
 
-                        var torpedoScript = torpedoGo.GetComponent<Torpedo>();
+                        var torpedoScript = torpedoGO.GetComponent<Torpedo>();
                         if (torpedoScript == null)
                         {
                             Debug.LogError($"  ❌ Torpedo prefab has NO Torpedo component!");
                         }
                         else
                         {
-                            Debug.Log($"  ✅ Torpedo script found, setting damage and target...");
+                            Debug.Log($"  ✅ Torpedo script found, setting Damage and target...");
                             torpedoScript.TorpedoDamage = ShipData.TorpedoDamage;
                             torpedoScript.OwnerCivEnum = ShipData.CivEnum;
                             if (ShipData.TargetThisShipController != null)
@@ -530,7 +711,7 @@ namespace BOTF3D.GamePlay
                     }
                     else
                     {
-                        Debug.LogWarning($"  ⚠️ Ship '{ShipData.ShipName}' has no weapon damage! BeamDamage={ShipData.BeamDamage}, TorpedoDamage={ShipData.TorpedoDamage}");
+                        Debug.LogWarning($"  ⚠️ Ship '{ShipData.ShipName}' has no weapon Damage! BeamDamage={ShipData.BeamDamage}, TorpedoDamage={ShipData.TorpedoDamage}");
                     }
                 }
                 else
@@ -611,12 +792,12 @@ namespace BOTF3D.GamePlay
             // ✅ Ship must have health to take damage
             if (ShipData.ShieldHealth <= 0 && ShipData.HullHealth <= 0)
             {
-                Debug.LogWarning($"Ship '{ShipData.ShipName}' already destroyed, ignoring damage");
+                Debug.LogWarning($"Ship '{ShipData.ShipName}' already destroyed, ignoring Damage");
                 return;
             }
 
             // ✅ Apply defensive multiplier based on combat order
-            float defenseMult = CombatOrderMatrix.GetDefenseMultiplier(Order);
+            float defenseMult = 1;
             float adjustedDamage = weaponDamageInt * defenseMult;
 
             int oldShields = ShipData.ShieldHealth;
@@ -638,11 +819,11 @@ namespace BOTF3D.GamePlay
                     ShipData.HullHealth -= overflowDamage;
                     ShipData.HullHealth = Mathf.Max(ShipData.HullHealth, 0);
 
-                    Debug.Log($"  🛡️💥 '{ShipData.ShipName}' shields COLLAPSED! {shieldDamage} damage: {oldShields} shields → 0, overflow {overflowDamage} to hull");
+                    Debug.Log($"  🛡️💥 '{ShipData.ShipName}' shields COLLAPSED! {shieldDamage} Damage: {oldShields} shields → 0, overflow {overflowDamage} to hull");
                 }
                 else
                 {
-                    Debug.Log($"  🛡️ '{ShipData.ShipName}' shields absorbed {shieldDamage} damage: {oldShields} → {ShipData.ShieldHealth}");
+                    Debug.Log($"  🛡️ '{ShipData.ShipName}' shields absorbed {shieldDamage} Damage: {oldShields} → {ShipData.ShieldHealth}");
                 }
             }
             else
@@ -652,7 +833,7 @@ namespace BOTF3D.GamePlay
                 ShipData.HullHealth -= hullDamage;
                 ShipData.HullHealth = Mathf.Max(ShipData.HullHealth, 0);
 
-                Debug.Log($"  💔 '{ShipData.ShipName}' hull hit for {hullDamage} damage: {oldHull} → {ShipData.HullHealth}");
+                Debug.Log($"  💔 '{ShipData.ShipName}' hull hit for {hullDamage} Damage: {oldHull} → {ShipData.HullHealth}");
             }
 
             // ✅ Calculate health percentage
@@ -667,7 +848,7 @@ namespace BOTF3D.GamePlay
             if (ShipData.HullHealth <= 0)
             {
                 Debug.Log($"  ☠️☠️☠️ Ship '{ShipData.ShipName}' DESTROYED! ☠️☠️☠️");
-                Debug.Log($"  Final damage breakdown: Shields {oldShields}→{ShipData.ShieldHealth}, Hull {oldHull}→{ShipData.HullHealth}");
+                Debug.Log($"  Final Damage breakdown: Shields {oldShields}→{ShipData.ShieldHealth}, Hull {oldHull}→{ShipData.HullHealth}");
 
                 // ✅ Mark ship as destroyed and clean up
                 if (!ShipData.Distroyed)

@@ -336,7 +336,7 @@ namespace BOTF3D.Core
             newFleet.transform.localScale = new Vector3(0.7f, 0.7f, 1);
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             newFleet.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
-            fleetData.Name = "Fleet " + fleetInt.ToString();
+            fleetData.FleetName = "Fleet " + fleetInt.ToString();
             newFleet.FleetData.FleetInt = fleetInt;
             FleetControllersInGame.Add(newFleet);
             newFleet.FleetData.CurrentWarpFactor = 0f;
@@ -344,8 +344,8 @@ namespace BOTF3D.Core
             TextMeshProUGUI TheText = newFleet.gameObject.GetComponentInChildren<TextMeshProUGUI>();
             if (TheText != null)
             {
-                TheText.text = newFleet.FleetData.Name;
-                fleetData.Name = TheText.text;
+                TheText.text = newFleet.FleetData.FleetName;
+                fleetData.FleetName = TheText.text;
             }
 
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();

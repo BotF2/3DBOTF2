@@ -40,6 +40,7 @@ namespace BOTF3D.Core
         [SerializeField] public List<ShipSO> BorgShipSOList;
         [SerializeField] public List<ShipSO> TerranShipSOList;
         [SerializeField] public List<ShipSO> MinorShipSOList;
+        [SerializeField] public ShipSO Test;
 
         [Header("Ship Prefabs")]
         [SerializeField] private ShipController galaxyShipPrefab;
@@ -547,6 +548,7 @@ namespace BOTF3D.Core
             Debug.Log($"  Creating UI for ship '{shipCon.ShipData.ShipName}'");
 
             GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+            thisShipListUIGameObject.transform.localRotation = Quaternion.Euler(90f, 0f, 180f);
             thisShipListUIGameObject.SetActive(true);
             thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;
             shipIndex++;
@@ -1006,7 +1008,8 @@ namespace BOTF3D.Core
             var filtered = allCivShips.Where(s => s.TechLevel == techLevel).ToList();
 
             Debug.Log($"GetShipSOsForCivAndTech: Found {filtered.Count}/{allCivShips.Count} ships for {civ} at {techLevel}");
-            return filtered;
+            //return filtered;
+            return new List<ShipSO> { Test };
         }
 
         /// <summary>

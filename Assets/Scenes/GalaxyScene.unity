@@ -1264,6 +1264,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3043eaa54b28ed14e99fd6628bec615d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DragAndDropItemSlot
+--- !u!1 &117675329
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 117675331}
+  - component: {fileID: 117675330}
+  m_Layer: 0
+  m_Name: GalaxySceneInitializer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &117675330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 117675329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a03a295e324b5fd40b40eb8efa2bb20e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalaxySceneInitializer
+  galaxyCenter: {fileID: 564492290}
+  galaxyImage: {fileID: 1259275945}
+  canvasGalaxy: {fileID: 966764658}
+  fleetListContainer: {fileID: 1850390553}
+  systemListContainer: {fileID: 44498444}
+  galaxyCameraDragMoveZoom: {fileID: 889922729}
+  mainCamera: {fileID: 963194234}
+  createTestFleets: 1
+  testScouts: 6
+  testDestroyers: 6
+  testTransports: 2
+--- !u!4 &117675331
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 117675329}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &120795983
 GameObject:
   m_ObjectHideFlags: 0
@@ -23948,3 +24003,4 @@ SceneRoots:
   - {fileID: 342226119}
   - {fileID: 1900121749}
   - {fileID: 1805387345}
+  - {fileID: 117675331}

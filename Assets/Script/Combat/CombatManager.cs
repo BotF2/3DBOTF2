@@ -23,12 +23,12 @@ namespace BOTF3D.Core
         [SerializeField] private SoundData dropOutOfWarpSoundData;
 
         [Header("Animator References (Assigned in Inspector)")]
-        private Animator _sideOneA1Animator;
-        private Animator _sideOneA2Animator;
-        private Animator _sideOneA3Animator;
-        private Animator _sideTwoA1Animator;
-        private Animator _sideTwoA2Animator;
-        private Animator _sideTwoA3Animator;
+        private GameObject _sideOneA1Parent;
+        private GameObject _sideOneA2Parent;
+        private GameObject _sideOneA3Parent;
+        private GameObject _sideTwoA1Parent;
+        private GameObject _sideTwoA2Parent;
+        private GameObject _sideTwoA3Parent;
 
         [Header("Weapon Prefabs")]
         public List<GameObject> TorpedoPrefabs;
@@ -270,67 +270,67 @@ namespace BOTF3D.Core
             aCombatController.warpInSound = dropOutOfWarpSoundData;
 
             // Assign animators (found at runtime from scene)
-            if (_sideOneA1Animator != null)
+            if (_sideOneA1Parent != null)
             {
-                aCombatController.sideOneA1Animator = _sideOneA1Animator;
+                aCombatController.sideOneA1Parent = _sideOneA1Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideOneA1Animator is null! FindCombatSceneReferences() may have failed.");
+                Debug.LogError("❌ _sideOneA1Parent is null! FindCombatSceneReferences() may have failed.");
             }
 
-            if (_sideOneA2Animator != null)
+            if (_sideOneA2Parent != null)
             {
-                aCombatController.sideOneA2Animator = _sideOneA2Animator;
+                aCombatController.sideOneA2Parent = _sideOneA2Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideOneA2Animator is null!");
+                Debug.LogError("❌ _sideOneA2Parent is null!");
             }
 
-            if (_sideOneA3Animator != null)
+            if (_sideOneA3Parent != null)
             {
-                aCombatController.sideOneA3Animator = _sideOneA3Animator;
+                aCombatController.sideOneA3Parent = _sideOneA3Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideOneA3Animator is null!");
+                Debug.LogError("❌ _sideOneA3Parent is null!");
             }
 
-            if (_sideTwoA1Animator != null)
+            if (_sideTwoA1Parent != null)
             {
-                aCombatController.sideTwoA1Animator = _sideTwoA1Animator;
+                aCombatController.sideTwoA1Parent = _sideTwoA1Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideTwoA1Animator is null!");
+                Debug.LogError("❌ _sideTwoA1Parent is null!");
             }
 
-            if (_sideTwoA2Animator != null)
+            if (_sideTwoA2Parent != null)
             {
-                aCombatController.sideTwoA2Animator = _sideTwoA2Animator;
+                aCombatController.sideTwoA2Parent = _sideTwoA2Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideTwoA2Animator is null!");
+                Debug.LogError("❌ _sideTwoA2Parent is null!");
             }
 
-            if (_sideTwoA3Animator != null)
+            if (_sideTwoA3Parent != null)
             {
-                aCombatController.sideTwoA3Animator = _sideTwoA3Animator;
+                aCombatController.sideTwoA3Parent = _sideTwoA3Parent;
             }
             else
             {
-                Debug.LogError("❌ _sideTwoA3Animator is null!");
+                Debug.LogError("❌ _sideTwoA3Parent  is null!");
             }
             // Assign animators - only set the individual fields, don't populate the list
             // The list will be populated by CombatController.Start()
-            aCombatController.sideOneA1Animator = _sideOneA1Animator;
-            aCombatController.sideOneA2Animator = _sideOneA2Animator;
-            aCombatController.sideOneA3Animator = _sideOneA3Animator;
-            aCombatController.sideTwoA1Animator = _sideTwoA1Animator;
-            aCombatController.sideTwoA2Animator = _sideTwoA2Animator;
-            aCombatController.sideTwoA3Animator = _sideTwoA3Animator;
+            aCombatController.sideOneA1Parent = _sideOneA1Parent;
+            aCombatController.sideOneA2Parent = _sideOneA2Parent;
+            aCombatController.sideOneA3Parent = _sideOneA3Parent;
+            aCombatController.sideTwoA1Parent = _sideTwoA1Parent;
+            aCombatController.sideTwoA2Parent = _sideTwoA2Parent;
+            aCombatController.sideTwoA3Parent = _sideTwoA3Parent;
             // ✅ REMOVED: Don't add to animators list here - Start() will do it
             // Assign weapon prefabs
             aCombatController.SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, combatData.CivEnumSideOne);
@@ -418,23 +418,23 @@ namespace BOTF3D.Core
 
             // ✅ Final status report
             Debug.Log($"📊 Search Results:");
-            Debug.Log($"   S1A1 Animator: {(_sideOneA1Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
-            Debug.Log($"   S1A2 Animator: {(_sideOneA2Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
-            Debug.Log($"   S1A3 Animator: {(_sideOneA3Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
-            Debug.Log($"   S2A1 Animator: {(_sideTwoA1Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
-            Debug.Log($"   S2A2 Animator: {(_sideTwoA2Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
-            Debug.Log($"   S2A3 Animator: {(_sideTwoA3Animator != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S1A1 Parent: {(_sideOneA1Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S1A2 Parent: {(_sideOneA2Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S1A3 Parent: {(_sideOneA3Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S2A1 Parent: {(_sideTwoA1Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S2A2 Parent: {(_sideTwoA2Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
+            Debug.Log($"   S2A3 Parent: {(_sideTwoA3Parent != null ? "✅ FOUND" : "❌ NOT FOUND")}");
             Debug.Log($"   CombatUICanvas: {(CombatUICanvas != null ? $"✅ FOUND at '{GetGameObjectPath(CombatUICanvas)}'" : "❌ NOT FOUND")}");
             Debug.Log($"   Combat3DCanvas: {(Combat3DCanvas != null ? $"✅ FOUND" : "❌ NOT FOUND")}");
 
             // Validate all required references were found
-            bool allAnimatorsFound = _sideOneA1Animator != null && _sideOneA2Animator != null &&
-                                     _sideOneA3Animator != null && _sideTwoA1Animator != null &&
-                                     _sideTwoA2Animator != null && _sideTwoA3Animator != null;
+            bool allParentsFound = _sideOneA1Parent != null && _sideOneA2Parent != null &&
+                                   _sideOneA3Parent != null && _sideTwoA1Parent != null &&
+                                   _sideTwoA2Parent != null && _sideTwoA3Parent != null;
 
-            if (!allAnimatorsFound)
+            if (!allParentsFound)
             {
-                Debug.LogError("❌ Not all animators were found in CombatScene!");
+                Debug.LogError("❌ Not all parent references were found in CombatScene!");
             }
 
             if (CombatUICanvas == null)
@@ -451,7 +451,7 @@ namespace BOTF3D.Core
                 Debug.LogWarning("⚠️ Combat3DCanvas not found in CombatScene!");
             }
 
-            if (allAnimatorsFound && CombatUICanvas != null)
+            if (allParentsFound && CombatUICanvas != null)
             {
                 Debug.Log("✅ All combat scene references found successfully");
             }
@@ -510,45 +510,45 @@ namespace BOTF3D.Core
             switch (go.name)
             {
                 case "S1A1":
-                    if (_sideOneA1Animator == null)
+                    if (_sideOneA1Parent == null)
                     {
-                        _sideOneA1Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S1A1 animator at path: {GetGameObjectPath(go)}");
+                        _sideOneA1Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S1A1 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "S1A2":
-                    if (_sideOneA2Animator == null)
+                    if (_sideOneA2Parent == null)
                     {
-                        _sideOneA2Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S1A2 animator at path: {GetGameObjectPath(go)}");
+                        _sideOneA2Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S1A2 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "S1A3":
-                    if (_sideOneA3Animator == null)
+                    if (_sideOneA3Parent == null)
                     {
-                        _sideOneA3Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S1A3 animator at path: {GetGameObjectPath(go)}");
+                        _sideOneA3Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S1A3 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "S2A1":
-                    if (_sideTwoA1Animator == null)
+                    if (_sideTwoA1Parent == null)
                     {
-                        _sideTwoA1Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S2A1 animator at path: {GetGameObjectPath(go)}");
+                        _sideTwoA1Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S2A1 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "S2A2":
-                    if (_sideTwoA2Animator == null)
+                    if (_sideTwoA2Parent == null)
                     {
-                        _sideTwoA2Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S2A2 animator at path: {GetGameObjectPath(go)}");
+                        _sideTwoA2Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S2A2 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "S2A3":
-                    if (_sideTwoA3Animator == null)
+                    if (_sideTwoA3Parent == null)
                     {
-                        _sideTwoA3Animator = go.GetComponent<Animator>();
-                        Debug.Log($"     ✅ Found and assigned S2A3 animator at path: {GetGameObjectPath(go)}");
+                        _sideTwoA3Parent = go;
+                        Debug.Log($"     ✅ Found and assigned S2A3 parent at path: {GetGameObjectPath(go)}");
                     }
                     break;
                 case "CombatUICanvas":
@@ -796,12 +796,12 @@ namespace BOTF3D.Core
             CombatUICanvas = null;
             Combat3DCanvas = null;
             GameOverCanvas = null;
-            _sideOneA1Animator = null;
-            _sideOneA2Animator = null;
-            _sideOneA3Animator = null;
-            _sideTwoA1Animator = null;
-            _sideTwoA2Animator = null;
-            _sideTwoA3Animator = null;
+            _sideOneA1Parent = null;
+            _sideOneA2Parent = null;
+            _sideOneA3Parent = null;
+            _sideTwoA1Parent = null;
+            _sideTwoA2Parent = null;
+            _sideTwoA3Parent = null;
 
             Debug.Log("✅ Combat cleanup complete");
         }

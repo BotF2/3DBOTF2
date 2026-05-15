@@ -764,7 +764,7 @@ namespace BOTF3D.Audio
 
             if (finalVolume <= 0.001f)
             {
-                Debug.LogError($"❌ VOLUME TOO LOW! Final volume is {finalVolume}");
+                Debug.Log($"❌ VOLUME VERY LOW! Final volume is {finalVolume}");
             }
 
             if (listener == null)

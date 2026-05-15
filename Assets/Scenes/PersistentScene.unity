@@ -1586,6 +1586,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c9f2450e7c0e415428ff3d346ccf0b77, type: 2}
   - {fileID: 11400000, guid: 012b2d089cf552240a7ae8fb63ffda93, type: 2}
   - {fileID: 11400000, guid: 03791de61ebaaeb48be26ad950b7cccb, type: 2}
+  Test: {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
   galaxyShipPrefab: {fileID: 0}
   AllShipControllers: []
 --- !u!4 &465746041

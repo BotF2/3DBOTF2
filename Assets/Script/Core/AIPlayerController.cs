@@ -81,19 +81,19 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
         {
             case CombatOrders.Engage:
                 // run AI combat code to decide on new order based on data from combatcontroller
-                combatCon.SetCombatOrder(CombatOrders.Engage, civ); //PlayerCiv);
+                combatCon.SetShipOrders(CombatOrders.Engage, civ); //PlayerCiv);
                 break;
             case CombatOrders.Rush:
-                combatCon.SetCombatOrder(CombatOrders.Rush, civ);//PlayerCiv);
+                combatCon.SetShipOrders(CombatOrders.Rush, civ);//PlayerCiv);
                 break;
             case CombatOrders.Retreat:
-                combatCon.SetCombatOrder(CombatOrders.Retreat, civ); // PlayerCiv);
+                combatCon.SetShipOrders(CombatOrders.Retreat, civ); // PlayerCiv);
                 break;
             case CombatOrders.Formation:
-                combatCon.SetCombatOrder(CombatOrders.Formation, civ); // PlayerCiv);
+                combatCon.SetShipOrders(CombatOrders.Formation, civ); // PlayerCiv);
                 break;
-            case CombatOrders.TargetTransports:
-                combatCon.SetCombatOrder(CombatOrders.TargetTransports, civ); // PlayerCiv);
+            case CombatOrders.AttackTransports:
+                combatCon.SetShipOrders(CombatOrders.AttackTransports, civ); // PlayerCiv);
 
                 break;
         }
@@ -131,7 +131,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
         //        aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
         //        break;
         //    case SecretActionsEnum.GatherIntelligence:
-        //        aCombatCon.SetCombatOrder(CombatOrders.TargetTransports, PlayerCiv);
+        //        aCombatCon.SetCombatOrder(CombatOrders.AttackTransports, PlayerCiv);
 
         //        break;
         //}

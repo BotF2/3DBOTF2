@@ -32,8 +32,9 @@ namespace BOTF3D.Core
         // Update is called once per frame  
         public void RunAnimation()
         {
-            if (CombatUIManager.Instance.CurrentCombatController != null &&
-                !CombatUIManager.Instance.CurrentCombatController.WarpingIn)
+            // ✅ FIXED: Changed from !WarpingIn to WarpingIn to match other animators
+            if (CombatUIManager.Instance?.CurrentCombatController != null &&
+                CombatUIManager.Instance.CurrentCombatController.WarpingIn)  // ✅ FIXED
             {
                 if (anim != null)
                 {
@@ -41,10 +42,13 @@ namespace BOTF3D.Core
                     Debug.Log("✅ S2A3 animation triggered");
                 }
             }
-            // lets warp animation run
+            else
+            {
+                Debug.LogWarning($"⚠️ S2A3: Cannot trigger animation - WarpingIn={CombatUIManager.Instance?.CurrentCombatController?.WarpingIn}");
+            }
         }
         /// <summary>
-        /// ✅ Called by AnimationEvent in S2A1_Warp animation
+        /// ✅ Called by AnimationEvent in S2A3_Warp animation
         /// Audio is now handled centrally by CombatController, so this is just a stub
         /// </summary>
         public void PlayWarp()
