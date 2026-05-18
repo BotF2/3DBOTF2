@@ -3,66 +3,70 @@ using UnityEngine;
 
 namespace BOTF3D.Core
 {
-
+    /// <summary>
+    /// Handles Side 1 Area 3 parent GameObject for warp-in animation.
+    /// Replaces old Unity Animator system with manual GameObject control.
+    /// </summary>
     public class S1A3Animator : MonoBehaviour
     {
-        public Animator anim;
+        [Header("Parent GameObject Reference")]
+        public GameObject parentGameObject;  // Reference to the parent holding ships
+
+        private bool isWarpingIn = false;
 
         void Start()
         {
             Debug.Log($"🔵 S1A3Animator.Start() CALLED on GameObject '{gameObject.name}', active={gameObject.activeInHierarchy}");
 
-            anim = GetComponent<Animator>();
-            if (anim != null)
+            // Auto-assign parent if not set
+            if (parentGameObject == null)
             {
-                anim.enabled = true;
-
-                // ✅ CRITICAL: Use UnscaledTime so animations run even when Time.timeScale = 0
-                anim.updateMode = AnimatorUpdateMode.UnscaledTime;
-
-                anim.SetBool("WarpInS1A3", false);
-                Debug.Log("S1A3 animator initialized - waiting for RunAnimation()");
+                parentGameObject = gameObject;
+                Debug.Log($"  Auto-assigned parent GameObject: {parentGameObject.name}");
             }
             else
             {
-                Debug.LogError($"❌ S1A3Animator: No Animator component found on {gameObject.name}!");
+                Debug.Log($"  Using assigned parent GameObject: {parentGameObject.name}");
             }
+
+            Debug.Log("S1A3Animator initialized - waiting for RunAnimation()");
         }
 
         public void RunAnimation()
         {
-            // ✅ Fixed: Check if WarpingIn is TRUE (not false!)
+            // ✅ Check if WarpingIn is TRUE
             if (CombatUIManager.Instance?.CurrentCombatController != null &&
-                CombatUIManager.Instance.CurrentCombatController.WarpingIn)  // ✅ Changed from !WarpingIn
+                CombatUIManager.Instance.CurrentCombatController.WarpingIn)
             {
-                if (anim != null)
-                {
-                    anim.SetBool("WarpInS1A3", true);
-                    Debug.Log("✅ S1A3 animation triggered");
-                }
+                isWarpingIn = true;
+                Debug.Log("✅ S1A3 animation triggered - GameObject is ready for warp");
+
+                // The actual animation is handled by CombatController.AnimateWarpIn()
+                // This script just tracks state
             }
             else
             {
                 Debug.LogWarning($"⚠️ S1A3: Cannot trigger animation - WarpingIn={CombatUIManager.Instance?.CurrentCombatController?.WarpingIn}");
             }
         }
+
         /// <summary>
-        /// ✅ Called by AnimationEvent in S1A3_Warp animation
-        /// Audio is now handled centrally by CombatController, so this is just a stub
+        /// Called when warp audio should play (stub for compatibility)
+        /// Audio is now handled centrally by CombatController
         /// </summary>
         public void PlayWarp()
         {
-            // ✅ Empty method to satisfy Animation Event
-            // Audio is played by CombatController.RunAnimation() instead
-            Debug.Log("S1A3: PlayWarp AnimationEvent received (audio handled centrally)");
+            Debug.Log("S1A3: PlayWarp event received (audio handled centrally by CombatController)");
         }
+
         /// <summary>
-        /// Called by AnimationEvent in S1A3_Stop/End animations
-        /// Signals that warp-in animation has completed
+        /// Called when warp-in animation completes
+        /// Signals that ships are in position
         /// </summary>
         public void EndOfFiendWarp()
         {
             Debug.Log("S1A3: EndOfFiendWarp called - Warp animation complete");
+            isWarpingIn = false;
 
             if (CombatUIManager.Instance?.CurrentCombatController != null)
             {

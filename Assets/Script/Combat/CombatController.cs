@@ -147,13 +147,16 @@ namespace BOTF3D.Combat
                     parentFinalPositions[i] = shipParents[i].transform.position;
 
                     // Calculate start position (farther out for warp-in effect)
-                    // Side One (i < 3): starts even more negative
-                    // Side Two (i >= 3): starts even more positive
+                    // Use parent's local right direction (local +X) to move along the correct axis
+                    // even if parent is rotated in Unity scene
                     bool isSideOne = (i < 3);
                     float startOffset = isSideOne ? -600f : 600f;  // Extra distance for warp-in
-                    parentStartPositions[i] = parentFinalPositions[i] + new Vector3(startOffset, 0, 0);
 
-                    Debug.Log($"✅ Parent '{shipParents[i].gameObject.name}': Start={parentStartPositions[i]}, Final={parentFinalPositions[i]}");
+                    // ✅ Move along parent's local X axis (which may be rotated in world space)
+                    Vector3 moveDirection = shipParents[i].transform.right; // Parent's local +X direction
+                    parentStartPositions[i] = parentFinalPositions[i] + (moveDirection * startOffset);
+
+                    Debug.Log($"✅ Parent '{shipParents[i].gameObject.name}': Start={parentStartPositions[i]}, Final={parentFinalPositions[i]}, MoveDir={moveDirection}");
                 }
             }
 
@@ -1346,6 +1349,7 @@ namespace BOTF3D.Combat
                             sideOneA3Parent.gameObject.SetActive(true);
                             // ✅ SetParent with false = reset to local identity, then apply spiral position
                             shipGameOb.transform.SetParent(sideOneA3Parent.gameObject.transform, false);
+                            //shipGameOb.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
                             SetLocalTransportPosition(shipGameOb, transportIndex1, _spiralPositionsTran1);
                             transportIndex1++;
                         }
@@ -1356,6 +1360,7 @@ namespace BOTF3D.Combat
                         {
                             sideTwoA3Parent.gameObject.SetActive(true);
                             shipGameOb.transform.SetParent(sideTwoA3Parent.gameObject.transform, false);
+                            // shipGameOb.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
                             SetLocalTransportPosition(shipGameOb, transportIndex2, _spiralPositionsTran2);
                             transportIndex2++;
                         }
@@ -1373,6 +1378,7 @@ namespace BOTF3D.Combat
                             {
                                 sideOneA1Parent.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA1Parent.gameObject.transform, false);
+                                //shipGameOb.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
                                 SetLocalCombatShipPosition(shipGameOb, combatShipIndex1, combatPositionsSide1);
                                 flipAnimation1 = 1;
                             }
@@ -1380,6 +1386,7 @@ namespace BOTF3D.Combat
                             {
                                 sideOneA2Parent.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideOneA2Parent.gameObject.transform, false);
+                                // shipGameOb.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
                                 SetLocalCombatShipPosition(shipGameOb, combatShipIndex1, combatPositionsSide1);
                                 flipAnimation1 = -1;
                             }
@@ -1394,6 +1401,7 @@ namespace BOTF3D.Combat
                             {
                                 sideTwoA1Parent.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA1Parent.gameObject.transform, false);
+                                // shipGameOb.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
                                 SetLocalCombatShipPosition(shipGameOb, combatShipIndex2, combatPositionsSide2);
                                 flipAnimation2 = 1;
                             }
@@ -1401,6 +1409,7 @@ namespace BOTF3D.Combat
                             {
                                 sideTwoA2Parent.gameObject.SetActive(true);
                                 shipGameOb.transform.SetParent(sideTwoA2Parent.gameObject.transform, false);
+                                // shipGameOb.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
                                 SetLocalCombatShipPosition(shipGameOb, combatShipIndex2, combatPositionsSide2);
                                 flipAnimation2 = -1;
                             }
@@ -1417,11 +1426,17 @@ namespace BOTF3D.Combat
                     continue;
                 }
 
+                // ✅ Debug: Log rotation BEFORE instantiating model
+                Debug.Log($"    Ship '{shipConList[i].ShipData.ShipName}' localRotation before model: {shipGameOb.transform.localRotation.eulerAngles}");
+
                 // ✅ Instantiate ship model at ship's current position/rotation
                 GameObject shipModel = Instantiate(fbx, shipGameOb.transform.position, shipGameOb.transform.rotation);
                 shipModel.transform.SetParent(shipGameOb.transform, false);
                 shipModel.transform.localPosition = Vector3.zero;
                 shipModel.transform.localRotation = Quaternion.identity;
+
+                // ✅ Debug: Log rotation AFTER instantiating model
+                Debug.Log($"    Ship '{shipConList[i].ShipData.ShipName}' localRotation after model: {shipGameOb.transform.localRotation.eulerAngles}");
 
                 // Disable stencil operations on ship renderers
                 DisableStencilOnShipRenderers(shipModel);
@@ -1466,6 +1481,9 @@ namespace BOTF3D.Combat
 
             Debug.Log($"✅ Formation complete - Side {(side1negSide2pos < 0 ? "1" : "2")}: {combatShipIndex1 + combatShipIndex2} combat ships, {transportIndex1 + transportIndex2} transports");
             Debug.Log($"   Parent GameObjects will move during warp-in. Ships have spiral formation only.");
+
+            // ✅ DO NOT rotate parents - keep them at (0,0,0) so warp animation moves along world X axis
+            // Ship rotation is handled in CombatUIManager.SetupAnimatorsForWarpIn()
         }
 
         /// <summary>

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: FED_DESTROYER_I(CLONE)
   m_EditorClassIdentifier: Assembly-CSharp::ShipSO
-  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: b7a266de4a264a74982b319130174da5, type: 3}
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 44538324aa3a69e40b89b321bc24f1ce, type: 3}
   ShipName: FED_DESTROYER_I(CLONE)
   CivEnum: 0
   TechLevel: 0

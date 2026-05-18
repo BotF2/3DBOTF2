@@ -996,7 +996,7 @@ namespace BOTF3D.UI
                 return;
             }
 
-            Debug.Log("🔧 Setting ship rotations for warp-in (parent positions from Unity scene)...");
+            Debug.Log("🔧 Setting ship rotations for warp-in (respecting parent rotations from Unity scene)...");
 
             // ✅ DEBUG: Log parent states from Unity scene
             Debug.Log("📊 PARENT POSITIONS FROM UNITY SCENE:");
@@ -1009,12 +1009,13 @@ namespace BOTF3D.UI
 
             int correctionCount = 0;
 
-            // ✅ CRITICAL: Parents should be at (0,0,0) rotation so their local space = world space
-            // Then ships need to be rotated to face the direction they'll move
-            // Side 1 moves in +X direction, so rotate ships to face +X (Y=90°)
-            // Side 2 moves in -X direction, so rotate ships to face -X (Y=-90°)
-            Quaternion side1ShipRotation = Quaternion.Euler(0, 90, 0);  // Face +X
-            Quaternion side2ShipRotation = Quaternion.Euler(0, -90, 0); // Face -X
+            // ✅ CRITICAL: Ship rotation in Unity coordinate system
+            // Ships default to facing +Z (forward = 0,0,1) with rotation (0,0,0)
+            // Parents are at world rotation (0,0,0) so parent local space = world space
+            // Side 1 at X=-1000 needs to face +X toward enemy at X=+1000: Y rotation = 90°
+            // Side 2 at X=+1000 needs to face -X toward enemy at X=-1000: Y rotation = -90° (or 270°)
+            Quaternion side1ShipRotation = Quaternion.Euler(0, 90, 0);   // Face +X (toward enemy)
+            Quaternion side2ShipRotation = Quaternion.Euler(0, -90, 0);  // Face -X (toward enemy)
 
             CorrectAnimatorShipPositions(CurrentCombatController.sideOneA1Parent, "S1A1", side1ShipRotation, ref correctionCount);
             CorrectAnimatorShipPositions(CurrentCombatController.sideOneA2Parent, "S1A2", side1ShipRotation, ref correctionCount);
@@ -1081,16 +1082,21 @@ namespace BOTF3D.UI
                 // ✅ CRITICAL: Keep local X=0, preserve Y and Z for formation
                 shipTransform.localPosition = new Vector3(0f, currentLocalPos.y, currentLocalPos.z);
 
-                // ✅ Set ship rotation to inherit from parent
-                shipTransform.localRotation = parent.transform.rotation;
+                // ✅ CRITICAL: Set ship LOCAL rotation to the specified rotation
+                // Parent is at (0,0,0) rotation, so ship's local rotation = world rotation
+                Debug.Log($"    🔄 BEFORE rotation: {parentName}/{shipController.ShipData.ShipName} rotation={shipTransform.localRotation.eulerAngles}, forward={shipTransform.forward}");
+
+                shipTransform.localRotation = shipRotation;
+
+                Debug.Log($"    🔄 AFTER rotation: {parentName}/{shipController.ShipData.ShipName} rotation={shipTransform.localRotation.eulerAngles}, forward={shipTransform.forward}");
 
                 // ✅ DEBUG: Log ship's world rotation and forward direction
                 Vector3 shipWorldRot = shipTransform.eulerAngles;
                 Vector3 shipForward = shipTransform.forward;
 
-                Debug.Log($"    {parentName}/{shipController.ShipData.ShipName}: " +
+                Debug.Log($"    ✅ {parentName}/{shipController.ShipData.ShipName}: " +
                   $"Local pos=(0, {currentLocalPos.y:F2}, {currentLocalPos.z:F2}), " +
-                  $"Local rot={shipRotation.eulerAngles}, World rot={shipWorldRot}, Forward={shipForward}");
+                  $"Local rot={shipTransform.localRotation.eulerAngles}, World rot={shipWorldRot}, Forward={shipForward}");
 
                 correctionCount++;
             }
