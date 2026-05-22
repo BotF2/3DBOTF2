@@ -84,7 +84,8 @@ namespace BOTF3D.Combat
         private const float SIDE2_COMBAT_END_X = 400f;
         private const float SIDE2_TRANSPORT_START_X = 2200f;
         private const float SIDE2_TRANSPORT_END_X = 600f;
-        private const float WARP_DURATION = 3f; // seconds
+        private const float WARP_DURATION = 2.5f; // seconds - buffer for staggered arrivals
+        private const float CONTRACTION_DURATION = 0.4f; // seconds - quick contraction so early ships finish before late arrivals
 
         private void Awake()
         {
@@ -332,12 +333,29 @@ namespace BOTF3D.Combat
             public Vector3 startPosition;
             public Vector3 endPosition;
             public GameObject shipModel; // Reference to the child model for stretching
+            public float startDelay; // Random delay before ship starts warping in
+            public float travelDuration; // How long this ship takes to reach end position
+            public bool hasArrived; // Track if ship has reached end position
+            public bool isContracting; // Track if ship is currently contracting
+            public float contractionStartTime; // When contraction began
+            public float contractionProgress; // 0-1 progress through contraction
 
             public void Initialize(Vector3 start, Vector3 end, GameObject model, int shipSide)
             {
                 startPosition = start;
                 endPosition = end;
                 shipModel = model;
+
+                // ✅ Random start delay: 0-1.0 seconds (spread out ship starts)
+                startDelay = UnityEngine.Random.Range(0f, 1.0f);
+
+                // ✅ Constant travel duration: all ships move at same speed
+                travelDuration = 0.6f;
+
+                hasArrived = false;
+                isContracting = false;
+                contractionStartTime = 0f;
+                contractionProgress = 0f;
             }
         }
 
@@ -376,10 +394,10 @@ namespace BOTF3D.Combat
                 if (wd != null) allWarpData.Add(wd);
             }
 
-            Debug.Log($"  Animating {allWarpData.Count} ships over {WARP_DURATION} seconds");
+            Debug.Log($"  Animating {allWarpData.Count} ships - staggered start with individual contraction");
 
 
-            // ✅ Store original child model scales and stretch along ship's forward axis (local Z)
+            // ✅ Initial stretch: all ships start stretched (not yet visible)
             float warpStretchScale = 50f;
 
             foreach (var wd in allWarpData)
@@ -387,91 +405,97 @@ namespace BOTF3D.Combat
                 if (wd != null && wd.gameObject != null && wd.shipModel != null)
                 {
                     // ✅ Stretch the CHILD MODEL along its local Z-axis (ship's forward direction)
-                    // This preserves the parent-child relationship and rotation
                     wd.shipModel.transform.localScale = new Vector3(1f, 1f, warpStretchScale);
-
-                    ShipController shipController = wd.GetComponent<ShipController>();
-                    if (shipController != null)
-                    {
-                        Debug.Log($"  🔍 PRE-STRETCH: {shipController.ShipData.ShipName} model stretched {warpStretchScale}x along local Z (forward)");
-                    }
                 }
             }
 
             yield return null;
 
-            // Phase 1: Warp travel (child model stretched 5x along local Z) - 3 seconds
-            float warpTravelDuration = WARP_DURATION;
+            // ✅ Combined Phase: Ships warp in at random times, contract individually when arriving
+            // Total max duration: longest startDelay + longest travelDuration + CONTRACTION_DURATION
+            // = 0.5s + 1.2s + 1.0s = 2.7 seconds maximum
+            float maxPhaseDuration = WARP_DURATION + 1.5f; // Extra buffer to ensure all complete
             float elapsed = 0f;
 
-            while (elapsed < warpTravelDuration)
+            while (elapsed < maxPhaseDuration)
             {
                 elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / warpTravelDuration);
-                float smoothT = 1f - Mathf.Pow(1f - t, 3f);
+
+                bool allShipsComplete = true;
 
                 foreach (var wd in allWarpData)
                 {
-                    if (wd != null && wd.gameObject != null)
-                    {
-                        ShipController shipController = wd.GetComponent<ShipController>();
-                        if (shipController != null)
-                        {
-                            // Move parent ship
-                            shipController.transform.position = Vector3.Lerp(wd.startPosition, wd.endPosition, smoothT);
+                    if (wd == null || wd.gameObject == null) continue;
 
-                            // ✅ Maintain child model stretch along local Z
-                            // No need to manipulate rotation - child is already stretched correctly
+                    ShipController shipController = wd.GetComponent<ShipController>();
+                    if (shipController == null) continue;
+
+                    // ✅ Phase 1: Ship hasn't started yet (waiting for startDelay)
+                    if (elapsed < wd.startDelay)
+                    {
+                        // Ship stays at start position, still stretched
+                        allShipsComplete = false;
+                        continue;
+                    }
+
+                    // ✅ Phase 2: Ship is traveling to end position
+                    if (!wd.hasArrived)
+                    {
+                        float travelElapsed = elapsed - wd.startDelay;
+                        float travelT = Mathf.Clamp01(travelElapsed / wd.travelDuration);
+
+                        if (travelT < 1f)
+                        {
+                            // Still traveling
+                            float smoothT = 1f - Mathf.Pow(1f - travelT, 3f);
+                            shipController.transform.position = Vector3.Lerp(wd.startPosition, wd.endPosition, smoothT);
+                            allShipsComplete = false;
+                        }
+                        else
+                        {
+                            // Just arrived - snap to end position and start contraction
+                            shipController.transform.position = wd.endPosition;
+                            wd.hasArrived = true;
+                            wd.isContracting = true;
+                            wd.contractionStartTime = elapsed;
+                            wd.contractionProgress = 0f;
+
+                            Debug.Log($"  ✅ {shipController.ShipData.ShipName} arrived, starting contraction");
+                        }
+                    }
+
+                    // ✅ Phase 3: Ship is contracting from 5x to 1x
+                    if (wd.isContracting && wd.contractionProgress < 1f)
+                    {
+                        float contractionElapsed = elapsed - wd.contractionStartTime;
+                        wd.contractionProgress = Mathf.Clamp01(contractionElapsed / CONTRACTION_DURATION);
+
+                        float smoothContractionT = Mathf.Pow(wd.contractionProgress, 2f);
+                        float currentScale = Mathf.Lerp(warpStretchScale, 1f, smoothContractionT);
+
+                        if (wd.shipModel != null)
+                        {
+                            wd.shipModel.transform.localScale = new Vector3(1f, 1f, currentScale);
+                        }
+
+                        if (wd.contractionProgress < 1f)
+                        {
+                            allShipsComplete = false;
                         }
                     }
                 }
 
-                yield return null;
-            }
-
-            // Ensure final positions
-            foreach (var wd in allWarpData)
-            {
-                if (wd != null && wd.gameObject != null)
+                // Exit early if all ships finished
+                if (allShipsComplete)
                 {
-                    ShipController shipController = wd.GetComponent<ShipController>();
-                    if (shipController != null)
-                    {
-                        shipController.transform.position = wd.endPosition;
-                        // Child model stretch is already maintained
-                    }
-                }
-            }
-
-            Debug.Log("🎯 Ships at final position (child models stretched 5x along local Z) - starting contraction...");
-            yield return new WaitForSecondsRealtime(0.5f);
-
-            Debug.Log("🔄 Starting warp drop-out contraction...");
-
-            // Phase 2: Contraction from 5x to 1x on child models
-            float contractionDuration = 0.4f;
-            elapsed = 0f;
-
-            while (elapsed < contractionDuration)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / contractionDuration);
-                float smoothT = Mathf.Pow(t, 2f);
-                float currentScale = Mathf.Lerp(warpStretchScale, 1f, smoothT);
-
-                foreach (var wd in allWarpData)
-                {
-                    if (wd != null && wd.gameObject != null && wd.shipModel != null)
-                    {
-                        // ✅ Contract child model along local Z-axis
-                        wd.shipModel.transform.localScale = new Vector3(1f, 1f, currentScale);
-                    }
+                    Debug.Log($"✅ All ships complete at {elapsed:F2}s");
+                    break;
                 }
 
                 yield return null;
             }
 
-            Debug.Log("✅ Contraction complete");
+            Debug.Log("✅ Warp-in and contraction complete for all ships");
 
             // Final cleanup - reset parent AND child scales
             foreach (var wd in allWarpData)
