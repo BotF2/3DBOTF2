@@ -378,37 +378,29 @@ namespace BOTF3D.Combat
 
             Debug.Log($"  Animating {allWarpData.Count} ships over {WARP_DURATION} seconds");
 
-            // ✅ Store original rotations and apply stretch in world space
-            float warpStretchScale = 5f;
-            Dictionary<ShipController, Quaternion> originalRotations = new Dictionary<ShipController, Quaternion>();
+
+            // ✅ Store original child model scales and stretch along ship's forward axis (local Z)
+            float warpStretchScale = 50f;
 
             foreach (var wd in allWarpData)
             {
-                if (wd != null && wd.gameObject != null)
+                if (wd != null && wd.gameObject != null && wd.shipModel != null)
                 {
+                    // ✅ Stretch the CHILD MODEL along its local Z-axis (ship's forward direction)
+                    // This preserves the parent-child relationship and rotation
+                    wd.shipModel.transform.localScale = new Vector3(1f, 1f, warpStretchScale);
+
                     ShipController shipController = wd.GetComponent<ShipController>();
                     if (shipController != null)
                     {
-                        // Store original rotation
-                        originalRotations[shipController] = shipController.transform.rotation;
-
-                        // Temporarily remove rotation to scale in world space
-                        shipController.transform.rotation = Quaternion.identity;
-
-                        // Scale along world X-axis (direction of travel)
-                        shipController.transform.localScale = new Vector3(warpStretchScale, 1f, 1f);
-
-                        // Restore rotation
-                        shipController.transform.rotation = originalRotations[shipController];
-
-                        Debug.Log($"  🔍 PRE-STRETCH: {shipController.ShipData.ShipName} stretched along world X, rotation restored");
+                        Debug.Log($"  🔍 PRE-STRETCH: {shipController.ShipData.ShipName} model stretched {warpStretchScale}x along local Z (forward)");
                     }
                 }
             }
 
             yield return null;
 
-            // Phase 1: Warp travel (stretched 5x along world X) - 3 seconds
+            // Phase 1: Warp travel (child model stretched 5x along local Z) - 3 seconds
             float warpTravelDuration = WARP_DURATION;
             float elapsed = 0f;
 
@@ -425,14 +417,11 @@ namespace BOTF3D.Combat
                         ShipController shipController = wd.GetComponent<ShipController>();
                         if (shipController != null)
                         {
-                            // Move ship
+                            // Move parent ship
                             shipController.transform.position = Vector3.Lerp(wd.startPosition, wd.endPosition, smoothT);
 
-                            // Maintain stretch in world space
-                            Quaternion rot = shipController.transform.rotation;
-                            shipController.transform.rotation = Quaternion.identity;
-                            shipController.transform.localScale = new Vector3(warpStretchScale, 1f, 1f);
-                            shipController.transform.rotation = rot;
+                            // ✅ Maintain child model stretch along local Z
+                            // No need to manipulate rotation - child is already stretched correctly
                         }
                     }
                 }
@@ -449,22 +438,18 @@ namespace BOTF3D.Combat
                     if (shipController != null)
                     {
                         shipController.transform.position = wd.endPosition;
-
-                        Quaternion rot = shipController.transform.rotation;
-                        shipController.transform.rotation = Quaternion.identity;
-                        shipController.transform.localScale = new Vector3(warpStretchScale, 1f, 1f);
-                        shipController.transform.rotation = rot;
+                        // Child model stretch is already maintained
                     }
                 }
             }
 
-            Debug.Log("🎯 Ships at final position (stretched 5x along world X) - starting contraction...");
+            Debug.Log("🎯 Ships at final position (child models stretched 5x along local Z) - starting contraction...");
             yield return new WaitForSecondsRealtime(0.5f);
 
             Debug.Log("🔄 Starting warp drop-out contraction...");
 
-            // Phase 2: Contraction from 5x to 1x
-            float contractionDuration = 1f;
+            // Phase 2: Contraction from 5x to 1x on child models
+            float contractionDuration = 0.4f;
             elapsed = 0f;
 
             while (elapsed < contractionDuration)
@@ -476,17 +461,10 @@ namespace BOTF3D.Combat
 
                 foreach (var wd in allWarpData)
                 {
-                    if (wd != null && wd.gameObject != null)
+                    if (wd != null && wd.gameObject != null && wd.shipModel != null)
                     {
-                        ShipController shipController = wd.GetComponent<ShipController>();
-                        if (shipController != null)
-                        {
-                            // Contract in world space
-                            Quaternion rot = shipController.transform.rotation;
-                            shipController.transform.rotation = Quaternion.identity;
-                            shipController.transform.localScale = new Vector3(currentScale, 1f, 1f);
-                            shipController.transform.rotation = rot;
-                        }
+                        // ✅ Contract child model along local Z-axis
+                        wd.shipModel.transform.localScale = new Vector3(1f, 1f, currentScale);
                     }
                 }
 
@@ -495,7 +473,7 @@ namespace BOTF3D.Combat
 
             Debug.Log("✅ Contraction complete");
 
-            // Final cleanup
+            // Final cleanup - reset parent AND child scales
             foreach (var wd in allWarpData)
             {
                 if (wd != null && wd.gameObject != null)
@@ -504,7 +482,13 @@ namespace BOTF3D.Combat
                     if (shipController != null)
                     {
                         shipController.transform.position = wd.endPosition;
-                        shipController.transform.localScale = Vector3.one;
+                        shipController.transform.localScale = Vector3.one; // Parent stays at 1,1,1
+                    }
+
+                    // ✅ Ensure child model is also reset to 1,1,1
+                    if (wd.shipModel != null)
+                    {
+                        wd.shipModel.transform.localScale = Vector3.one;
                     }
 
                     Destroy(wd);
