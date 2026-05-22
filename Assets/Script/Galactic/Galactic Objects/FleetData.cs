@@ -1,4 +1,3 @@
-
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +14,7 @@ namespace BOTF3D.Core
         public CivController CivController;
         public CivEnum CivEnum;
         public Vector3 Position;
-        public List<ShipController> ShipsList;
+        public List<BOTF3D.Combat.ShipController> ShipsList;
         public float MaxWarpFactor = 3f;
         public float CurrentWarpFactor = 0f;
         public GameObject Destination;
@@ -57,19 +56,19 @@ namespace BOTF3D.Core
         {
 
         }
-        public List<ShipController> GetShipList()
+        public List<BOTF3D.Combat.ShipController> GetShipList()
         {
             return ShipsList;
         }
-        public void SetShipList(List<ShipController> newShipList)
+        public void SetShipList(List<BOTF3D.Combat.ShipController> newShipList)
         {
             ShipsList = newShipList;
         }
-        public void AddToShipList(ShipController shipController)
+        public void AddToShipList(BOTF3D.Combat.ShipController shipController)
         {
             ShipsList.Add(shipController);
         }
-        public void RemoveFromShipList(ShipController shipController)
+        public void RemoveFromShipList(BOTF3D.Combat.ShipController shipController)
         {
             ShipsList.Remove(shipController);
         }

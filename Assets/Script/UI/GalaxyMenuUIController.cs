@@ -1,3 +1,4 @@
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
@@ -811,7 +812,7 @@ namespace BOTF3D.UI
             shipDeployMenuUIController.ShowShipDeployMenuView();
 
             // Set up TopSlot with star system's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<BOTF3D.GamePlay.ShipController>().ToList());
+            shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<ShipController>().ToList());
 
             // Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
             shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
@@ -853,7 +854,7 @@ namespace BOTF3D.UI
             shipDeployMenuUIController.ShowShipDeployMenuView();
 
             // Set up TopSlot with original fleet's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList.Cast<BOTF3D.GamePlay.ShipController>().ToList());
+            shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList.Cast<ShipController>().ToList());
 
             // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
             shipDeployMenuUIController.SetUpBottomShipLists(newFleetController, true);

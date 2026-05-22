@@ -1,5 +1,5 @@
-using BOTF3D.Combat;
 using BOTF3D.Core;
+using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
 
-namespace BOTF3D.GamePlay
+namespace BOTF3D.Combat
 {
     public class ShipController : MonoBehaviour
     {
@@ -455,7 +455,9 @@ namespace BOTF3D.GamePlay
                 }
                 shotCount++;
                 Debug.Log($"🔫 '{ShipData.ShipName}' firing shot #{shotCount} (beam={beam})");
-
+                // Weapon firing logic (separate from ship rotation)
+                Vector3 fireDirection = (ShipData.TargetThisShipController.transform.position - transform.position).normalized;
+                // Fire weapon in calculated direction, ignore ship's transform.forward
                 // Fire the ship's beam weapons
                 FireWeapons(beam);
 

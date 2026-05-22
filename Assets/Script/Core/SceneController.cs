@@ -1,5 +1,6 @@
 // Ignore Spelling: BOTF
 
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;

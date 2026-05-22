@@ -1,5 +1,7 @@
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -501,8 +503,8 @@ namespace BOTF3D.GamePlay
                 clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
                 clickedFleetCon.FleetUIGameObject.SetActive(true);
                 Debug.Log($"✅ Target fleet UI parented to AFleetMenuView (bottom)");
+                List<BOTF3D.Combat.ShipController> combinedShipsList = new List<BOTF3D.Combat.ShipController>();
 
-                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
                 combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
                 combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
 

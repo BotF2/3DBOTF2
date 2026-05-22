@@ -1,3 +1,4 @@
+using BOTF3D.Combat;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System;

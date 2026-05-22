@@ -1,5 +1,6 @@
-﻿// Ignore Spelling: Unregister
+// Ignore Spelling: Unregister
 
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using Mirror;

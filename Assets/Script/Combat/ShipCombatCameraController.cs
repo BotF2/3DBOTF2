@@ -1,3 +1,4 @@
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using System.Collections.Generic;
 using System.Linq;

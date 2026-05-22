@@ -1,4 +1,5 @@
 // Ignore Spelling: Nums Revealer
+using BOTF3D.Combat;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using FischlWorks_FogWar;

@@ -1,5 +1,6 @@
 // Ignore Spelling: Sys Anya
 
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System;

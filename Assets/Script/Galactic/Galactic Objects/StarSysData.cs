@@ -1,4 +1,5 @@
 
+using BOTF3D.Combat;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,7 +30,7 @@ namespace BOTF3D.Core
         //public StartingTechLevel is a civ level value, not a system data value.
         public int TechUnits; // ResearchCenters centers provide tech output units that determines progress to a civ level StartingTechLevel enum.
         public Sprite StarSprit;
-        public List<ShipController> ShipsList = new List<ShipController>();
+        public List<BOTF3D.Combat.ShipController> ShipsList = new List<BOTF3D.Combat.ShipController>();
         [Header("Dilithium & Power")]
         public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitable or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
         public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.

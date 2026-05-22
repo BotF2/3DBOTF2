@@ -1,4 +1,5 @@
 // Ignore Spelling: Sys Habitalbe Unregister
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System;
@@ -344,13 +345,13 @@ namespace BOTF3D.GamePlay
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
 
                 // Create combined ship list
-                var combinedShipsList = new List<ShipController>();
+                var combinedShipsList = new List<BOTF3D.Combat.ShipController>();
                 combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
                 combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
 
                 Debug.Log($"Merge Fleet-to-System: {fleetLooking.FleetData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
 
-                shipDeployUI.SetUpTopShipLists(new List<ShipController>());
+                shipDeployUI.SetUpTopShipLists(new List<BOTF3D.Combat.ShipController>());
                 shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, fleetLooking, null, clickedSystemCon);
             }
             else if (starSysLooking != null && starSysLooking != this)
@@ -392,13 +393,13 @@ namespace BOTF3D.GamePlay
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
                 StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
 
-                var combinedShipsList = new List<ShipController>();
+                var combinedShipsList = new List<BOTF3D.Combat.ShipController>();
                 combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
                 combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
 
                 Debug.Log($"Merge System-to-System: {starSysLooking.StarSysData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
 
-                shipDeployUI.SetUpTopShipLists(new List<ShipController>());
+                shipDeployUI.SetUpTopShipLists(new List<BOTF3D.Combat.ShipController>());
                 shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, null, starSysLooking, clickedSystemCon);
             }
 
@@ -504,7 +505,7 @@ namespace BOTF3D.GamePlay
                 }
             }
 
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists();
+            ShipDeployMenuUIController.Instance.SetUpTopShipLists(clickedSystemCon.StarSysData.ShipsList);
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedSystemCon, deployNotMerge);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
 

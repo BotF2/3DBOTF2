@@ -1,11 +1,13 @@
 // Ignore Spelling: BOTF Kling Unregister sys
 
+using BOTF3D.Combat;
 using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+
 
 namespace BOTF3D.Core
 {
@@ -14,7 +16,7 @@ namespace BOTF3D.Core
         public static ShipManager Instance;
 
         [SerializeField]
-        private ShipController shipConPrefab;
+        private BOTF3D.Combat.ShipController shipConPrefab;
         [Header("Ship UI")]
         [SerializeField]
         private GameObject shipListUIPrefab; // prefab for the ship list UI in the galaxy menu
@@ -367,7 +369,7 @@ namespace BOTF3D.Core
                 }
 
                 // ✅ CRITICAL FIX: Use parentGO, NOT CombatManager!
-                ShipController shipCon = Instantiate(
+                BOTF3D.Combat.ShipController shipCon = Instantiate(
                     shipConPrefab,
                     new Vector3(0, 0, 0),
                     Quaternion.identity,
@@ -415,6 +417,9 @@ namespace BOTF3D.Core
                     shipCon.ShipData.CurrentFleetController = fleetCon;
 
                     if (!fleetCon.FleetData.ShipsList.Contains(shipCon))
+                        //// Replace all instances of ShipController with the fully qualified name
+                        //List<BOTF3D.Combat.ShipController> shipConList = new List<BOTF3D.Combat.ShipController>();
+                        //using CombatShipController = BOTF3D.Combat.ShipController;))
                         fleetCon.FleetData.ShipsList.Add(shipCon);
 
                     shipCon.ShipData.CurrentStarSysController = null;

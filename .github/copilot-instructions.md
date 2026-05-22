@@ -13,3 +13,8 @@
 ## Combat Weapon Mechanics
 - Beam weapons have reduced damage at longer distances.
 - Torpedoes have reduced accuracy at higher relative target velocities (faster relative movement = more likely to miss, up to complete miss).
+
+## Ship Rotation Mechanics
+- In `CombatController.SetupSingleShip`, the correct Y-axis rotation for ships is:
+  - Side 1 (facing +X right): `Quaternion.Euler(0, -90, 0)`
+  - Side 2 (facing -X left): `Quaternion.Euler(0, 90, 0)`

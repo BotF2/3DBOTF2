@@ -3,10 +3,9 @@ using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMP = TMPro;
 
 namespace BOTF3D.UI
 {
@@ -28,7 +27,7 @@ namespace BOTF3D.UI
         private GameObject panelCombatMenu;
         private GameObject panelShipCombat;
         private GameObject panelCombatOver;
-        private TMP.TextMeshProUGUI timerText;
+        private TextMeshProUGUI timerText;
         private Toggle engage, rush, retreat, formation, AttackTransports;
 
         // ✅ Combat state
@@ -56,7 +55,6 @@ namespace BOTF3D.UI
         {
             if (isTimerRunning)
             {
-                // ✅ Use unscaledDeltaTime instead of deltaTime
                 remainingTime -= Time.unscaledDeltaTime;
 
                 if (remainingTime > 0f)
@@ -74,13 +72,10 @@ namespace BOTF3D.UI
                     EnterShipCombatPhase();
                 }
             }
-            // ✅ Camera rotation is now handled by ShipCombatCameraController itself
-            // No need to duplicate the spacebar logic here
         }
 
         /// <summary>
         /// Called by CombatManager when a new combat starts for the local player
-        /// CRITICAL: Must work in both Editor AND builds!
         /// </summary>
         public void SetupForCombat(CombatController combatController, GameObject combatUICanvas, GameObject combat3DCanvas, GameObject gameOverCanvas)
         {
@@ -92,13 +87,12 @@ namespace BOTF3D.UI
             currentGameOverCanvas = gameOverCanvas;
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
 
-            // ✅ CRITICAL: Use coroutine to ensure scene is fully loaded (fixes build issues!)
+            // ✅ Setup UI after scene loads
             StartCoroutine(SetupCombatUIAfterSceneLoad());
         }
 
         /// <summary>
         /// Coroutine to setup combat UI after CombatScene fully loads
-        /// Waits 2 frames per copilot instructions for ownership normalization
         /// </summary>
         private IEnumerator SetupCombatUIAfterSceneLoad()
         {
@@ -110,19 +104,19 @@ namespace BOTF3D.UI
 
             Debug.Log("SetupCombatUIAfterSceneLoad: Scene stabilized - initializing UI...");
 
-            // ✅ CRITICAL: Ensure EventSystem exists in CombatScene
+            // ✅ Ensure EventSystem exists
             EnsureEventSystemExists();
 
-            // ✅ CRITICAL: Wait for ShipCombatCameraController to initialize
+            // ✅ Wait for ShipCombatCameraController
             yield return WaitForCombatCameraReady();
 
-            // ✅ CRITICAL: Configure all canvases for builds
+            // ✅ Configure canvases
             ConfigureCombatCanvases();
 
-            // ✅ Find and setup all UI elements
+            // ✅ Find and setup UI
             FindAndSetupUI();
 
-            // ✅ Force Canvas rebuild (critical for builds!)
+            // ✅ Force Canvas rebuild
             ForceCanvasRebuild();
 
             // ✅ Start timer
@@ -133,7 +127,7 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Wait for ShipCombatCameraController to be ready (up to 5 seconds)
+        /// Wait for ShipCombatCameraController to be ready
         /// </summary>
         private IEnumerator WaitForCombatCameraReady()
         {
@@ -155,7 +149,6 @@ namespace BOTF3D.UI
             else
             {
                 Debug.LogError($"  ❌ ShipCombatCameraController NOT FOUND after {timeout}s timeout!");
-                Debug.LogError("     ACTION REQUIRED: Ensure CombatScene has a GameObject with ShipCombatCameraController component");
             }
         }
 
@@ -189,14 +182,11 @@ namespace BOTF3D.UI
                     ? CurrentCombatController.CombatData.CivEnumSideTwo
                     : CurrentCombatController.CombatData.CivEnumSideOne;
 
-                // Generate random combat order for AI
-                System.Array combatOrderValues = System.Enum.GetValues(typeof(CombatOrders));
-                CombatOrders randomAIOrder = (CombatOrders)combatOrderValues.GetValue(Random.Range(0, combatOrderValues.Length));
-                CurrentCombatController.SetShipOrders(randomAIOrder, aiCivEnum);
+                CurrentCombatController.SetAIRandomOrder(aiCivEnum);
 
-                Debug.Log($"✅ Combat orders set - Player: {currentOrder}, AI: {randomAIOrder}");
+                Debug.Log($"✅ Combat orders set - Player: {currentOrder}");
 
-                // ✅ NOW trigger warp-in animation and wait for it to complete before starting combat movement
+                // ✅ Start the new simplified warp-in animation
                 StartCoroutine(StartCombatSequence());
             }
             else
@@ -206,7 +196,7 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// ✅ NEW: Sequence that triggers warp-in animation, waits for completion, then starts combat movement
+        /// ✅ NEW SIMPLIFIED: Start warp-in animation and combat
         /// </summary>
         private IEnumerator StartCombatSequence()
         {
@@ -218,23 +208,14 @@ namespace BOTF3D.UI
                 yield break;
             }
 
-            // ✅ STEP 1: Verify camera is ready
+            // ✅ Verify camera is ready
             if (ShipCombatCameraController.Instance == null)
             {
                 Debug.LogError("❌ Cannot start combat - ShipCombatCameraController not found!");
                 yield break;
             }
 
-            // ✅ STEP 1.5: CRITICAL - Set animator starting positions and ship rotations BEFORE animation starts
-            SetupAnimatorsForWarpIn();
-
-            // ✅ STEP 2: Set warping state
-            CurrentCombatController.WarpingIn = true;
-            CurrentCombatController.WarpingAnimationOver = false;
-            ShipCombatCameraController.Instance.SetWarpingIn(true);
-            Debug.Log("  ✅ Set WarpingIn = true");
-
-            // ✅ STEP 3: Set camera targets to all ships
+            // ✅ Set camera targets to all ships
             List<GameObject> allShips = new List<GameObject>();
             foreach (var ship in CurrentCombatController.CombatData.SideOneShipCons)
             {
@@ -257,114 +238,17 @@ namespace BOTF3D.UI
                 Debug.Log($"  ✅ Set camera targets: {allShips.Count} ships");
             }
 
-            // ✅ STEP 4: Start manual warp-in animation
-            Debug.Log("  ✅ Starting manual warp-in animation via CombatController");
-            yield return StartCoroutine(CurrentCombatController.AnimateWarpIn());
+            // ✅ Start warp-in animation (new simplified coroutine)
+            yield return CurrentCombatController.StartWarpInAnimation();
 
-            // ✅ STEP 6: Update camera state
-            CurrentCombatController.WarpingIn = false;
-            ShipCombatCameraController.Instance.SetWarpingIn(false);
-            ShipCombatCameraController.Instance.SetWarpingInOver(true);
-
-            // ✅ STEP 7: CREATE HEALTH BARS NOW (after warp animation, before combat starts)
-            Debug.Log("🏥 Creating health bars...");
-            CurrentCombatController.CreateHealthBarsForAllShips();
-
-            // ✅ STEP 8: Initialize ship groups for combat (targeting system)
-            CurrentCombatController.InitializeShipGroupsForEngage();
-            Debug.Log("  ✅ Ship groups initialized");
-
-            // ✅ STEP 9: NOW start combat movement
-            CurrentCombatController.BeginPhysicsLikeMovement();
-            Debug.Log("  ✅ Ship movement started");
-
-            // ✅ STEP 10: START WEAPON FIRING for all ships SIMULTANEOUSLY
-            yield return StartAllShipWeaponFire();
-
-            // ✅ STEP 11: Verify combat state
-            Debug.Log($"📊 Combat State Check:");
-            Debug.Log($"   isMoving: {CurrentCombatController.isMoving}");
-            Debug.Log($"   WarpingAnimationOver: {CurrentCombatController.WarpingAnimationOver}");
-            Debug.Log($"   Side 1 ships: {CurrentCombatController.CombatData.SideOneShipCons.Count}");
-            Debug.Log($"   Side 2 ships: {CurrentCombatController.CombatData.SideTwoShipCons.Count}");
-            Debug.Log($"   Health bars: {CurrentCombatController.HealthbarRenderers.Count}");
-
-            Debug.Log("🎬 Combat sequence complete - ships moving and firing!");
+            Debug.Log("🎬 Combat sequence complete - ships should be in formation and ready!");
         }
 
         /// <summary>
-        /// ✅ NEW: Start weapon firing with balanced delays for both sides
-        /// </summary>
-        private IEnumerator StartAllShipWeaponFire()
-        {
-            Debug.Log("🔫 Starting weapon fire for all ships with balanced timing...");
-
-            // ✅ Wait a brief moment for ships to be fully positioned
-            yield return new WaitForSecondsRealtime(0.5f);
-
-            int shipCount = 0;
-
-            // ✅ Generate matched delay pairs so both sides have equal timing distribution
-            List<float> side1Delays = new List<float>();
-            List<float> side2Delays = new List<float>();
-
-            int maxShips = Mathf.Max(
-                CurrentCombatController.CombatData.SideOneShipCons.Count,
-                CurrentCombatController.CombatData.SideTwoShipCons.Count
-            );
-
-            // Generate random delays, then assign the SAME delays to both sides
-            for (int i = 0; i < maxShips; i++)
-            {
-                float delay = UnityEngine.Random.Range(0.1f, 0.5f); // Shorter range for faster combat start
-                side1Delays.Add(delay);
-                side2Delays.Add(delay); // ✅ Same delay for both sides
-            }
-
-            // Shuffle each list independently so ships don't fire in perfect sync
-            // but the DISTRIBUTION of delays is the same
-            side1Delays = side1Delays.OrderBy(x => UnityEngine.Random.value).ToList();
-            side2Delays = side2Delays.OrderBy(x => UnityEngine.Random.value).ToList();
-
-            // Start firing for Side One ships
-            int index1 = 0;
-            foreach (var ship in CurrentCombatController.CombatData.SideOneShipCons)
-            {
-                if (ship != null && !ship.ShipData.Distroyed)
-                {
-                    float delay = index1 < side1Delays.Count ? side1Delays[index1] : 0f;
-                    ship.StartCoroutine(ship.ShipFireLoop(delay));
-                    Debug.Log($"  Side 1: {ship.ShipData.ShipName} starting in {delay:F2}s");
-                    shipCount++;
-                    index1++;
-                }
-            }
-
-            // Start firing for Side Two ships
-            int index2 = 0;
-            foreach (var ship in CurrentCombatController.CombatData.SideTwoShipCons)
-            {
-                if (ship != null && !ship.ShipData.Distroyed)
-                {
-                    float delay = index2 < side2Delays.Count ? side2Delays[index2] : 0f;
-                    ship.StartCoroutine(ship.ShipFireLoop(delay));
-                    Debug.Log($"  Side 2: {ship.ShipData.ShipName} starting in {delay:F2}s");
-                    shipCount++;
-                    index2++;
-                }
-            }
-
-            Debug.Log($"✅ Weapon fire started for {shipCount} ships with BALANCED timing");
-            yield return null;
-        }
-
-        /// <summary>
-        /// Ensures the persistent EventSystem is active (from DontDestroyOnLoad)
-        /// Destroys any EventSystem found in CombatScene to prevent conflicts
+        /// Ensures the persistent EventSystem is active
         /// </summary>
         private void EnsureEventSystemExists()
         {
-            // ✅ Find the persistent EventSystem (should be in DontDestroyOnLoad)
             UnityEngine.EventSystems.EventSystem[] allEventSystems =
                 FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
 
@@ -373,20 +257,17 @@ namespace BOTF3D.UI
 
             foreach (var es in allEventSystems)
             {
-                // Check if this EventSystem is in DontDestroyOnLoad
                 if (es.gameObject.scene.name == "DontDestroyOnLoad" || es.gameObject.scene.buildIndex == -1)
                 {
                     persistentEventSystem = es;
-                    Debug.Log($"✅ Found persistent EventSystem: '{es.gameObject.name}' in DontDestroyOnLoad");
+                    Debug.Log($"✅ Found persistent EventSystem: '{es.gameObject.name}'");
                 }
                 else
                 {
                     sceneEventSystems.Add(es);
-                    Debug.Log($"⚠️ Found scene EventSystem: '{es.gameObject.name}' in scene '{es.gameObject.scene.name}'");
                 }
             }
 
-            // ✅ If no persistent EventSystem exists, create one
             if (persistentEventSystem == null)
             {
                 Debug.LogWarning("⚠️ No persistent EventSystem found - creating one!");
@@ -397,59 +278,48 @@ namespace BOTF3D.UI
 
                 DontDestroyOnLoad(esGO);
 
-                Debug.Log("✅ Created persistent EventSystem in DontDestroyOnLoad");
+                Debug.Log("✅ Created persistent EventSystem");
             }
 
-            // ✅ Ensure persistent EventSystem is enabled
             if (!persistentEventSystem.enabled)
             {
                 persistentEventSystem.enabled = true;
-                Debug.Log("✅ Enabled persistent EventSystem");
             }
 
-            // ✅ CRITICAL: Destroy any EventSystems found in loaded scenes (prevents conflicts)
             foreach (var sceneES in sceneEventSystems)
             {
-                Debug.LogWarning($"🗑️ Destroying duplicate EventSystem '{sceneES.gameObject.name}' from scene to prevent conflicts");
+                Debug.LogWarning($"🗑️ Destroying duplicate EventSystem '{sceneES.gameObject.name}'");
                 Destroy(sceneES.gameObject);
             }
 
-            // ✅ Set as current EventSystem
             UnityEngine.EventSystems.EventSystem.current = persistentEventSystem;
-
-            Debug.Log($"✅ EventSystem configured: Active='{persistentEventSystem.gameObject.name}', Scene=DontDestroyOnLoad");
         }
 
         /// <summary>
-        /// Configures all combat canvases for reliable rendering in builds
+        /// Configures all combat canvases
         /// </summary>
         private void ConfigureCombatCanvases()
         {
             Debug.Log("ConfigureCombatCanvases: Starting...");
 
-            // ✅ Configure CombatUICanvas (2D UI overlay)
+            // ✅ Configure CombatUICanvas
             if (currentCombatUICanvas != null)
             {
                 Canvas canvas = currentCombatUICanvas.GetComponent<Canvas>();
                 if (canvas == null)
                 {
                     canvas = currentCombatUICanvas.AddComponent<Canvas>();
-                    Debug.Log("  Added Canvas component to CombatUICanvas");
                 }
 
-                // ✅ Use Overlay mode for most reliable rendering in builds
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 100; // Ensure it's on top
+                canvas.sortingOrder = 100;
 
-                // ✅ Ensure GraphicRaycaster exists
                 var raycaster = canvas.GetComponent<GraphicRaycaster>();
                 if (raycaster == null)
                 {
                     raycaster = canvas.gameObject.AddComponent<GraphicRaycaster>();
-                    Debug.Log("  Added GraphicRaycaster to CombatUICanvas");
                 }
 
-                // ✅ Ensure CanvasScaler exists for consistent UI sizing
                 var scaler = canvas.GetComponent<CanvasScaler>();
                 if (scaler == null)
                 {
@@ -463,77 +333,24 @@ namespace BOTF3D.UI
                 canvas.enabled = true;
                 currentCombatUICanvas.SetActive(true);
 
-                Debug.Log($"  ✅ CombatUICanvas configured: Mode={canvas.renderMode}, Order={canvas.sortingOrder}, Enabled={canvas.enabled}");
-            }
-            else
-            {
-                Debug.LogError("  ❌ currentCombatUICanvas is NULL!");
+                Debug.Log($"  ✅ CombatUICanvas configured");
             }
 
-            // ✅ Configure Combat3DCanvas (world-space 3D UI)
+            // ✅ Configure Combat3DCanvas
             if (currentCombat3DCanvas != null)
             {
                 Canvas canvas3D = currentCombat3DCanvas.GetComponent<Canvas>();
                 if (canvas3D == null)
                 {
                     canvas3D = currentCombat3DCanvas.AddComponent<Canvas>();
-                    Debug.Log("  Added Canvas component to Combat3DCanvas");
                 }
 
-                // ✅ Use World Space for 3D combat elements
                 canvas3D.renderMode = RenderMode.WorldSpace;
 
-                // ✅ Find combat camera - try multiple methods
-                Camera combatCamera = null;
-
-                if (ShipCombatCameraController.Instance != null)
-                {
-                    // Try getting from same GameObject first
-                    combatCamera = ShipCombatCameraController.Instance.GetComponent<Camera>();
-
-                    // If not found, try children
-                    if (combatCamera == null)
-                    {
-                        combatCamera = ShipCombatCameraController.Instance.GetComponentInChildren<Camera>();
-                        if (combatCamera != null)
-                        {
-                            Debug.Log($"  Found camera in children: {combatCamera.name}");
-                        }
-                    }
-                    else
-                    {
-                        Debug.Log($"  Found camera on same GameObject: {combatCamera.name}");
-                    }
-                }
-
-                // ✅ Fallback: search for any Camera tagged "MainCamera" in CombatScene
+                Camera combatCamera = ShipCombatCameraController.Instance?.GetComponentInChildren<Camera>();
                 if (combatCamera == null)
                 {
-                    Debug.LogWarning("  Camera not found via ShipCombatCameraController, searching for MainCamera tag...");
                     combatCamera = Camera.main;
-
-                    if (combatCamera != null)
-                    {
-                        Debug.Log($"  Found camera via MainCamera tag: {combatCamera.name}");
-                    }
-                }
-
-                // ✅ Last resort: find any active camera
-                if (combatCamera == null)
-                {
-                    Debug.LogWarning("  Still no camera found, searching all cameras...");
-                    Camera[] allCameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
-
-                    foreach (var cam in allCameras)
-                    {
-                        Debug.Log($"    Found camera: {cam.name}, Active: {cam.gameObject.activeInHierarchy}");
-                        if (cam.gameObject.activeInHierarchy)
-                        {
-                            combatCamera = cam;
-                            Debug.Log($"  Using active camera: {combatCamera.name}");
-                            break;
-                        }
-                    }
                 }
 
                 if (combatCamera != null)
@@ -541,22 +358,9 @@ namespace BOTF3D.UI
                     canvas3D.worldCamera = combatCamera;
                     Debug.Log($"  ✅ Set Combat3DCanvas camera to: {combatCamera.name}");
                 }
-                else
-                {
-                    Debug.LogError("  ❌ Combat camera not found - Combat3DCanvas may not render correctly");
-                    Debug.LogError("     ACTION REQUIRED: Ensure CombatScene has an active Camera component");
-                }
-
-                var raycaster3D = canvas3D.GetComponent<GraphicRaycaster>();
-                if (raycaster3D == null)
-                {
-                    raycaster3D = canvas3D.gameObject.AddComponent<GraphicRaycaster>();
-                }
 
                 canvas3D.enabled = true;
                 currentCombat3DCanvas.SetActive(true);
-
-                Debug.Log($"  ✅ Combat3DCanvas configured: Mode={canvas3D.renderMode}, Enabled={canvas3D.enabled}");
             }
 
             // ✅ Configure GameOverCanvas
@@ -569,7 +373,7 @@ namespace BOTF3D.UI
                 }
 
                 gameOverCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                gameOverCanvas.sortingOrder = 200; // Above everything else
+                gameOverCanvas.sortingOrder = 200;
 
                 var raycasterGameOver = gameOverCanvas.GetComponent<GraphicRaycaster>();
                 if (raycasterGameOver == null)
@@ -578,24 +382,18 @@ namespace BOTF3D.UI
                 }
 
                 gameOverCanvas.enabled = true;
-
-                Debug.Log($"  ✅ GameOverCanvas configured: Mode={gameOverCanvas.renderMode}, Order={gameOverCanvas.sortingOrder}");
             }
 
             Debug.Log("ConfigureCombatCanvases: Complete");
         }
 
         /// <summary>
-        /// Forces Unity to rebuild all canvases (critical for builds!)
+        /// Forces Unity to rebuild all canvases
         /// </summary>
         private void ForceCanvasRebuild()
         {
-            Debug.Log("ForceCanvasRebuild: Forcing Canvas update...");
-
-            // ✅ Force all canvases to rebuild
             Canvas.ForceUpdateCanvases();
 
-            // ✅ Also ensure all Image components are enabled
             if (currentCombatUICanvas != null)
             {
                 Image[] images = currentCombatUICanvas.GetComponentsInChildren<Image>(true);
@@ -603,23 +401,17 @@ namespace BOTF3D.UI
                 {
                     img.enabled = true;
                 }
-                Debug.Log($"  Enabled {images.Length} Image components in CombatUICanvas");
 
-                // ✅ Ensure all CanvasRenderers have alpha = 1
                 CanvasRenderer[] renderers = currentCombatUICanvas.GetComponentsInChildren<CanvasRenderer>(true);
                 foreach (var renderer in renderers)
                 {
                     renderer.SetAlpha(1f);
                 }
-                Debug.Log($"  Set alpha on {renderers.Length} CanvasRenderers");
             }
-
-            Debug.Log("ForceCanvasRebuild: Complete");
         }
 
         /// <summary>
-        /// Find all UI elements in the CombatUICanvas
-        /// Uses multiple search strategies for build reliability
+        /// Find all UI elements
         /// </summary>
         private void FindAndSetupUI()
         {
@@ -629,20 +421,15 @@ namespace BOTF3D.UI
                 return;
             }
 
-            Debug.Log("FindAndSetupUI: Starting comprehensive UI search...");
+            Debug.Log("FindAndSetupUI: Starting...");
 
             currentCombatUICanvas.SetActive(true);
 
-            // ✅ Find panels with multiple strategies
             panelCombatMenu = FindUIElement(currentCombatUICanvas, "PanelCombat_Menu", "Combat_Menu", "CombatMenu");
             if (panelCombatMenu != null)
             {
                 panelCombatMenu.SetActive(true);
                 Debug.Log($"  ✅ Found and activated: {panelCombatMenu.name}");
-            }
-            else
-            {
-                Debug.LogError("  ❌ Could not find PanelCombat_Menu! Was the name changed?");
             }
 
             if (currentCombat3DCanvas != null)
@@ -650,8 +437,7 @@ namespace BOTF3D.UI
                 panelShipCombat = FindUIElement(currentCombat3DCanvas, "PanelShipCombat", "ShipCombat", "Combat3D");
                 if (panelShipCombat != null)
                 {
-                    panelShipCombat.SetActive(false); // Start hidden
-                    Debug.Log($"  ✅ Found: {panelShipCombat.name}");
+                    panelShipCombat.SetActive(false);
                 }
             }
 
@@ -660,46 +446,27 @@ namespace BOTF3D.UI
                 panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver");
                 if (panelCombatOver != null)
                 {
-                    panelCombatOver.SetActive(false); // Start hidden
-                    Debug.Log($"  ✅ Found: {panelCombatOver.name}");
+                    panelCombatOver.SetActive(false);
                 }
             }
 
-            // ✅ Find timer text with robust search
-            timerText = FindComponentByName<TMP.TextMeshProUGUI>(currentCombatUICanvas, "Timer Text", "Timer", "TimerText");
-            if (timerText != null)
-            {
-                Debug.Log($"  ✅ Found timer text: {timerText.name}");
-            }
-            else
-            {
-                Debug.LogWarning("  ⚠️ Timer text not found!");
-            }
+            timerText = FindComponentByName<TextMeshProUGUI>(currentCombatUICanvas, "Timer Text", "Timer", "TimerText");
 
-            // ✅ Find and setup toggles
             SetupToggles();
-
-            // ✅ Find and setup buttons
             SetupButtons();
 
             Debug.Log("FindAndSetupUI: Complete");
         }
 
-        /// <summary>
-        /// Setup all combat order toggles
-        /// </summary>
         private void SetupToggles()
         {
             if (currentCombatUICanvas == null) return;
 
             Toggle[] toggles = currentCombatUICanvas.GetComponentsInChildren<Toggle>(true);
-            Debug.Log($"  Found {toggles.Length} toggles");
 
             foreach (var toggle in toggles)
             {
                 toggle.onValueChanged.RemoveAllListeners();
-
-                // ✅ Enable the toggle GameObject
                 toggle.gameObject.SetActive(true);
                 toggle.interactable = true;
 
@@ -708,50 +475,40 @@ namespace BOTF3D.UI
                     case "Toggle_ENGAGE":
                         engage = toggle;
                         engage.onValueChanged.AddListener(OnToggleENGAGE);
-                        engage.isOn = true; // Default order
-                        Debug.Log("    ✅ Wired Toggle_ENGAGE");
+                        engage.isOn = true;
                         break;
                     case "Toggle_RUSH":
                         rush = toggle;
                         rush.isOn = false;
                         rush.onValueChanged.AddListener(OnToggleRUSH);
-                        Debug.Log("    ✅ Wired Toggle_RUSH");
                         break;
                     case "Toggle_RETREAT":
                         retreat = toggle;
                         retreat.isOn = false;
                         retreat.onValueChanged.AddListener(OnToggleRETREAT);
-                        Debug.Log("    ✅ Wired Toggle_RETREAT");
                         break;
                     case "Toggle_FORMATION":
                         formation = toggle;
                         formation.isOn = false;
                         formation.onValueChanged.AddListener(OnToggleFORMATION);
-                        Debug.Log("    ✅ Wired Toggle_FORMATION");
                         break;
                     case "Toggle_TARGET_TRANSPORTS":
                         AttackTransports = toggle;
                         AttackTransports.isOn = false;
                         AttackTransports.onValueChanged.AddListener(OnToggleTARGET_TRANSPORTS);
-                        Debug.Log("    ✅ Wired Toggle_TARGET_TRANSPORTS");
                         break;
                 }
             }
         }
 
-        /// <summary>
-        /// Setup all combat buttons
-        /// </summary>
         private void SetupButtons()
         {
             if (currentCombatUICanvas == null) return;
 
             Button[] buttons = currentCombatUICanvas.GetComponentsInChildren<Button>(true);
-            Debug.Log($"  Found {buttons.Length} buttons");
 
             foreach (var button in buttons)
             {
-                // ✅ Enable the button
                 button.gameObject.SetActive(true);
                 button.interactable = true;
 
@@ -759,44 +516,26 @@ namespace BOTF3D.UI
                 {
                     button.onClick.RemoveAllListeners();
                     button.onClick.AddListener(EnterShipCombatPhase);
-                    Debug.Log($"    ✅ Wired {button.name} to EnterShipCombatPhase");
                 }
             }
         }
 
-        /// <summary>
-        /// Find a UI element with multiple name variants (for build robustness)
-        /// </summary>
         private GameObject FindUIElement(GameObject root, params string[] possibleNames)
         {
             if (root == null) return null;
 
             foreach (string name in possibleNames)
             {
-                // Strategy 1: Direct child search
                 Transform found = root.transform.Find(name);
-                if (found != null)
-                {
-                    Debug.Log($"    Found '{name}' via direct search");
-                    return found.gameObject;
-                }
+                if (found != null) return found.gameObject;
 
-                // Strategy 2: Deep recursive search
                 found = FindInHierarchyRecursive(root.transform, name);
-                if (found != null)
-                {
-                    Debug.Log($"    Found '{name}' via deep search");
-                    return found.gameObject;
-                }
+                if (found != null) return found.gameObject;
             }
 
-            Debug.LogWarning($"    Could not find UI element with names: {string.Join(", ", possibleNames)}");
             return null;
         }
 
-        /// <summary>
-        /// Find a component by GameObject name (with variants)
-        /// </summary>
         private T FindComponentByName<T>(GameObject root, params string[] possibleNames) where T : Component
         {
             if (root == null) return null;
@@ -809,78 +548,51 @@ namespace BOTF3D.UI
                 {
                     if (component.name == name || component.name.Contains(name))
                     {
-                        Debug.Log($"    Found component '{component.name}' (type: {typeof(T).Name})");
                         return component;
                     }
                 }
             }
 
-            Debug.LogWarning($"    Could not find {typeof(T).Name} with names: {string.Join(", ", possibleNames)}");
             return null;
         }
 
-        /// <summary>
-        /// Recursive search for GameObject by name
-        /// </summary>
         private Transform FindInHierarchyRecursive(Transform parent, string name)
         {
-            if (parent.name == name)
-                return parent;
+            if (parent.name == name) return parent;
 
             for (int i = 0; i < parent.childCount; i++)
             {
                 Transform found = FindInHierarchyRecursive(parent.GetChild(i), name);
-                if (found != null)
-                    return found;
+                if (found != null) return found;
             }
 
             return null;
         }
 
-        // ✅ Toggle callbacks
+        // Toggle callbacks
         private void OnToggleENGAGE(bool isOn)
         {
-            if (isOn)
-            {
-                currentOrder = CombatOrders.Engage;
-                Debug.Log("Order: Engage");
-            }
+            if (isOn) currentOrder = CombatOrders.Engage;
         }
 
         private void OnToggleRUSH(bool isOn)
         {
-            if (isOn)
-            {
-                currentOrder = CombatOrders.Rush;
-                Debug.Log("Order: Rush");
-            }
+            if (isOn) currentOrder = CombatOrders.Rush;
         }
 
         private void OnToggleRETREAT(bool isOn)
         {
-            if (isOn)
-            {
-                currentOrder = CombatOrders.Retreat;
-                Debug.Log("Order: Retreat");
-            }
+            if (isOn) currentOrder = CombatOrders.Retreat;
         }
 
         private void OnToggleFORMATION(bool isOn)
         {
-            if (isOn)
-            {
-                currentOrder = CombatOrders.Formation;
-                Debug.Log("Order: Formation");
-            }
+            if (isOn) currentOrder = CombatOrders.Formation;
         }
 
         private void OnToggleTARGET_TRANSPORTS(bool isOn)
         {
-            if (isOn)
-            {
-                currentOrder = CombatOrders.AttackTransports;
-                Debug.Log("Order: Target Transports");
-            }
+            if (isOn) currentOrder = CombatOrders.AttackTransports;
         }
 
         /// <summary>
@@ -888,44 +600,19 @@ namespace BOTF3D.UI
         /// </summary>
         public void ShowCombatOverPanel()
         {
-            // ✅ If panel wasn't found during setup, try to find it again
             if (panelCombatOver == null)
             {
-                Debug.LogWarning("⚠️ Combat over panel is null - attempting to find it now...");
-
-                // Try in GameOverCanvas first
                 if (currentGameOverCanvas != null)
                 {
                     panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
                 }
 
-                // Try in CombatUICanvas as backup
                 if (panelCombatOver == null && currentCombatUICanvas != null)
                 {
                     panelCombatOver = FindUIElement(currentCombatUICanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
                 }
-
-                // Last resort: global search
-                if (panelCombatOver == null)
-                {
-                    Debug.LogWarning("  Searching entire scene for combat over panel...");
-
-                    string[] possibleNames = { "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver" };
-
-                    foreach (string name in possibleNames)
-                    {
-                        GameObject found = GameObject.Find(name);
-                        if (found != null)
-                        {
-                            panelCombatOver = found;
-                            Debug.Log($"  ✅ Found combat over panel by global search: '{found.name}'");
-                            break;
-                        }
-                    }
-                }
             }
 
-            // ✅ Show panel if found
             if (panelCombatOver != null)
             {
                 panelCombatOver.SetActive(true);
@@ -933,26 +620,17 @@ namespace BOTF3D.UI
             }
             else
             {
-                Debug.LogError("❌ Cannot show combat over panel - not found in scene!");
-                Debug.LogError("   ACTION REQUIRED: Add a GameObject named 'PanelCombatEnd' to your CombatScene");
-                Debug.LogError("   It should be a child of GameOverCanvas or CombatUICanvas");
+                Debug.LogError("❌ Cannot show combat over panel - not found!");
 
-                // ✅ TEMPORARY WORKAROUND: Just end combat without showing panel
-                Debug.LogWarning("   ⚠️ TEMPORARY: Ending combat without panel");
                 if (CurrentCombatController != null)
                 {
-                    // Wait 3 seconds then return to galaxy
                     StartCoroutine(DelayedReturnToGalaxy(3f));
                 }
             }
         }
 
-        /// <summary>
-        /// Temporary workaround to return to galaxy after delay when panel is missing
-        /// </summary>
-        private System.Collections.IEnumerator DelayedReturnToGalaxy(float delay)
+        private IEnumerator DelayedReturnToGalaxy(float delay)
         {
-            Debug.Log($"  Waiting {delay} seconds before returning to galaxy...");
             yield return new WaitForSecondsRealtime(delay);
 
             if (CurrentCombatController != null)
@@ -982,50 +660,6 @@ namespace BOTF3D.UI
             formation = null;
             AttackTransports = null;
             isTimerRunning = false;
-        }
-
-        /// <summary>
-        /// ✅ REVERTED: Trust animation clips and Unity scene for animator positions
-        /// Only set ship rotations to face direction of travel
-        /// </summary>
-        public void SetupAnimatorsForWarpIn()
-        {
-            if (CurrentCombatController == null)
-            {
-                Debug.LogError("❌ Cannot setup animators - CurrentCombatController is null!");
-                return;
-            }
-
-            Debug.Log("🔧 Setting ship rotations for warp-in (respecting parent rotations from Unity scene)...");
-
-            // ✅ DEBUG: Log parent states from Unity scene
-            Debug.Log("📊 PARENT POSITIONS FROM UNITY SCENE:");
-            LogAnimatorState(CurrentCombatController.sideOneA1Parent, "S1A1");
-            LogAnimatorState(CurrentCombatController.sideOneA2Parent, "S1A2");
-            LogAnimatorState(CurrentCombatController.sideOneA3Parent, "S1A3");
-            LogAnimatorState(CurrentCombatController.sideTwoA1Parent, "S2A1");
-            LogAnimatorState(CurrentCombatController.sideTwoA2Parent, "S2A2");
-            LogAnimatorState(CurrentCombatController.sideTwoA3Parent, "S2A3");
-
-            int correctionCount = 0;
-
-            // ✅ CRITICAL: Ship rotation in Unity coordinate system
-            // Ships default to facing +Z (forward = 0,0,1) with rotation (0,0,0)
-            // Parents are at world rotation (0,0,0) so parent local space = world space
-            // Side 1 at X=-1000 needs to face +X toward enemy at X=+1000: Y rotation = 90°
-            // Side 2 at X=+1000 needs to face -X toward enemy at X=-1000: Y rotation = -90° (or 270°)
-            Quaternion side1ShipRotation = Quaternion.Euler(0, 90, 0);   // Face +X (toward enemy)
-            Quaternion side2ShipRotation = Quaternion.Euler(0, -90, 0);  // Face -X (toward enemy)
-
-            CorrectAnimatorShipPositions(CurrentCombatController.sideOneA1Parent, "S1A1", side1ShipRotation, ref correctionCount);
-            CorrectAnimatorShipPositions(CurrentCombatController.sideOneA2Parent, "S1A2", side1ShipRotation, ref correctionCount);
-            CorrectAnimatorShipPositions(CurrentCombatController.sideOneA3Parent, "S1A3", side1ShipRotation, ref correctionCount);
-
-            CorrectAnimatorShipPositions(CurrentCombatController.sideTwoA1Parent, "S2A1", side2ShipRotation, ref correctionCount);
-            CorrectAnimatorShipPositions(CurrentCombatController.sideTwoA2Parent, "S2A2", side2ShipRotation, ref correctionCount);
-            CorrectAnimatorShipPositions(CurrentCombatController.sideTwoA3Parent, "S2A3", side2ShipRotation, ref correctionCount);
-
-            Debug.Log($"✅ Setup complete: {correctionCount} ships rotated, parents use Unity scene positions/rotations");
         }
 
         /// <summary>
@@ -1102,78 +736,6 @@ namespace BOTF3D.UI
             }
 
             Debug.Log($"  {parentName}: Corrected {childCount} ships");
-        }
-
-        /// <summary>
-        /// ✅ DIAGNOSTIC: Log parent GameObject and ship positions WITHOUT changing anything
-        /// This helps verify Unity scene setup is correct
-        /// </summary>
-        public void CorrectAnimatorPositions()
-        {
-            if (CurrentCombatController == null)
-            {
-                Debug.LogError("❌ Cannot check parent positions - CurrentCombatController is null!");
-                return;
-            }
-
-            Debug.Log("🔍 Checking parent and ship positions (NO CHANGES MADE)...");
-
-            // ✅ Check Side One parents
-            CheckAnimatorShipPositions(CurrentCombatController.sideOneA1Parent, "S1A1");
-            CheckAnimatorShipPositions(CurrentCombatController.sideOneA2Parent, "S1A2");
-            CheckAnimatorShipPositions(CurrentCombatController.sideOneA3Parent, "S1A3");
-
-            // ✅ Check Side Two parents
-            CheckAnimatorShipPositions(CurrentCombatController.sideTwoA1Parent, "S2A1");
-            CheckAnimatorShipPositions(CurrentCombatController.sideTwoA2Parent, "S2A2");
-            CheckAnimatorShipPositions(CurrentCombatController.sideTwoA3Parent, "S2A3");
-
-            Debug.Log($"✅ Position check complete - see logs above");
-        }
-
-        /// <summary>
-        /// Checks and logs ship positions under a single parent GameObject WITHOUT modifying them
-        /// </summary>
-        private void CheckAnimatorShipPositions(GameObject parent, string parentName)
-        {
-            if (parent == null)
-            {
-                Debug.LogWarning($"  ⚠️ {parentName} parent is null - skipping");
-                return;
-            }
-
-            Debug.Log($"  {parentName} Parent:");
-            Debug.Log($"    World Pos: {parent.transform.position}");
-            Debug.Log($"    World Rot: {parent.transform.rotation.eulerAngles}");
-
-            int childCount = parent.transform.childCount;
-
-            if (childCount == 0)
-            {
-                Debug.Log($"    No ships (empty parent)");
-                return;
-            }
-
-            for (int i = 0; i < childCount; i++)
-            {
-                Transform shipTransform = parent.transform.GetChild(i);
-
-                if (shipTransform == null) continue;
-
-                ShipController shipController = shipTransform.GetComponent<ShipController>();
-
-                if (shipController == null)
-                {
-                    Debug.LogWarning($"      ⚠️ Child '{shipTransform.name}' has no ShipController");
-                    continue;
-                }
-
-                Debug.Log($"      Ship: {shipController.ShipData.ShipName}");
-                Debug.Log($"        Local Pos: {shipTransform.localPosition}");
-                Debug.Log($"        Local Rot: {shipTransform.localRotation.eulerAngles}");
-                Debug.Log($"        World Pos: {shipTransform.position}");
-                Debug.Log($"        World Rot: {shipTransform.rotation.eulerAngles}");
-            }
         }
     }
 }
