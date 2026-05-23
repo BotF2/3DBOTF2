@@ -137,6 +137,10 @@ namespace BOTF3D.Combat
             if (groupTarget == null || groupTarget.ShipData.Distroyed)
             {
                 groupTarget = FindClosestSlowestEnemy();
+                if (groupTarget != null)
+                {
+                    ShipController.ShipData.TargetThisShipController = groupTarget;
+                }
             }
         }
 

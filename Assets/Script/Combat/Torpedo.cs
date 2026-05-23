@@ -1,6 +1,5 @@
 using BOTF3D.Audio;
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
 using UnityEngine;
 
 namespace BOTF3D.Combat
@@ -22,7 +21,8 @@ namespace BOTF3D.Combat
 
         public Transform Target;
         public Rigidbody torpedoRigidbody;
-
+        Vector3 currentPosition;
+        Vector3 direction;
         [Header("Torpedo Identity")]
         public CivEnum OwnerCivEnum;
         public CivEnum TargetCivEnum;
@@ -42,6 +42,8 @@ namespace BOTF3D.Combat
 
         private bool hasCheckedAccuracy = false;
         private bool willMiss = false;
+        private float missDestructionTimer = 0f;
+        private const float MISS_FLYBY_TIME = 5f; // Seconds to fly past target before destruction
 
         private void Awake()
         {
@@ -94,6 +96,26 @@ namespace BOTF3D.Combat
 
         private void Update()
         {
+            // If torpedo will miss, continue flyby behavior even if target is destroyed
+            if (willMiss)
+            {
+                missDestructionTimer += Time.unscaledDeltaTime;
+                if (missDestructionTimer >= MISS_FLYBY_TIME)
+                {
+                    Debug.Log($"🚀 Missed torpedo flyby complete - self-destructing");
+                    Destroy(gameObject);
+                    return;
+                }
+
+                // Continue flying in miss direction
+                currentPosition = transform.position;
+                direction = transform.forward; // Use forward direction since we already calculated it
+                float speedThisFrame = Velocity * Time.unscaledDeltaTime;
+                transform.position += direction * speedThisFrame;
+                return;
+            }
+
+            // If target destroyed and torpedo hasn't determined hit/miss yet, destroy immediately
             if (Target == null)
             {
                 Debug.Log($"🚀 Torpedo target destroyed - self-destructing");
@@ -101,22 +123,14 @@ namespace BOTF3D.Combat
                 return;
             }
 
-            Vector3 currentPosition = transform.position;
+            currentPosition = transform.position;
             Vector3 targetPosition = Target.position;
-            Vector3 direction = (targetPosition - currentPosition).normalized;
+            direction = (targetPosition - currentPosition).normalized;
 
             // ✅ Velocity-based accuracy check (one-time check at launch)
             if (!hasCheckedAccuracy)
             {
                 PerformAccuracyCheck(ref direction, targetPosition, currentPosition);
-            }
-
-            // ✅ If torpedo will miss, fly in miss direction
-            if (willMiss)
-            {
-                float speedThisFrame = Velocity * Time.unscaledDeltaTime;
-                transform.position += direction * speedThisFrame;
-                return;
             }
 
             // ✅ Normal tracking behavior (will hit)
@@ -155,8 +169,11 @@ namespace BOTF3D.Combat
                 Vector3 missOffset = Random.insideUnitSphere * 50f;
                 direction = (targetPosition + missOffset - currentPosition).normalized;
 
-                // Auto-destroy after flying past
-                Destroy(gameObject, 3f);
+                // Set rotation to face miss direction
+                transform.rotation = Quaternion.LookRotation(direction);
+
+                // Timer will handle destruction after MISS_FLYBY_TIME seconds
+                missDestructionTimer = 0f;
             }
             else
             {
