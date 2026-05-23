@@ -1,5 +1,4 @@
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -42,34 +41,6 @@ namespace BOTF3D.Combat
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Get the speed multiplier for a given combat order.
-        /// Per copilot-instructions.md: "Combat orders should NOT use speed multipliers.
-        /// Ships have a max speed and operate at or below it."
-        /// Rush: 1.0 (max speed), Formation: ~0.8 (maintain formation), Retreat: 1.0 (after turning)
-        /// </summary>
-        public static float GetOrderSpeedFactor(CombatOrders order)
-        {
-            switch (order)
-            {
-                case CombatOrders.Rush:
-                    return 1.0f; // Max speed rush
-
-                case CombatOrders.Formation:
-                    return 0.8f; // Slower to maintain formation
-
-                case CombatOrders.Retreat:
-                    return 1.0f; // Max speed after turning around
-
-                case CombatOrders.AttackTransports:
-                    return 0.9f; // Slightly slower while flanking
-
-                case CombatOrders.Engage:
-                default:
-                    return 0.9f; // Standard engagement speed
-            }
         }
 
         /// <summary>
