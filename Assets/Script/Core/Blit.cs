@@ -26,7 +26,7 @@ namespace BOTF3D.Core
     [CreateAssetMenu(menuName = "Feature/Blit")]
     public class Blit : ScriptableRendererFeature
     {
-
+#if !UNITY_6000_0_OR_NEWER
         public class BlitPass : ScriptableRenderPass
         {
 
@@ -67,7 +67,7 @@ namespace BOTF3D.Core
             }
 
             [System.Obsolete]
-            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+            public override void Execute(ScriptableRenderContext context, in RenderingData renderingData)
             {
                 CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
 
@@ -81,61 +81,16 @@ namespace BOTF3D.Core
                     Blitter.BlitCameraTexture(cmd, source, m_TemporaryColorTexture, new Vector4(1, 1, 0, 0), 0);
                     Blitter.BlitCameraTexture(cmd, source, m_DestinationTexture, new Vector4(1, 1, 0, 0), 0);
                 }
-                //CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
-
-                //RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
-                //opaqueDesc.depthBufferBits = 0;
-
-                //if (settings.setInverseViewMatrix)
-                //{
-                //    Shader.SetGlobalMatrix("_InverseView", renderingData.cameraData.camera.cameraToWorldMatrix);
-                //}
-
-                //if (settings.dstType == Target.TextureID)
-                //{
-                //    if (settings.overrideGraphicsFormat)
-                //    {
-                //        opaqueDesc.graphicsFormat = settings.graphicsFormat;
-                //    }
-                //    //cmd.GetTemporaryRT(m_DestinationTexture.id, opaqueDesc, filterMode);
-                //    RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
-                //    descriptor.depthBufferBits = 0;
-                //    m_DestinationTexture = RTHandles.Alloc(descriptor, name: "m_DestinationTexture");
-                //}
-
-                ////Debug.Log($"src = {source},     dst = {_destination} ");
-                //// Can't read and write to same color _destination, use a TemporaryRT
-                //if (source == destination || (settings.srcType == settings.dstType && settings.srcType == Target.CameraColor))
-                //{
-                //    //cmd.GetTemporaryRT(m_TemporaryColorTexture.id, opaqueDesc, filterMode);
-                //    RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
-                //    descriptor.depthBufferBits = 0;
-                //    m_TemporaryColorTexture = RTHandles.Alloc(descriptor, name: "m_TemporaryColorTexture");
-                //    Blitter.BlitCameraTexture(cmd, source, m_TemporaryColorTexture, new Vector4(1, 1, 0, 0), 0);
-                //    // Blit(cmd, source, m_TemporaryColorTexture.Identifier(), blitMaterial, settings.blitMaterialPassIndex);
-                //    Blitter.BlitCameraTexture(cmd, source, m_TemporaryColorTexture, new Vector4(1, 1, 0, 0), 0);
-                //    //Blit(cmd, m_TemporaryColorTexture.Identifier(), destination);
-                //}
-                //else
-                //{
-                //    //Blitter.BlitCameraTexture(cmd, source, m_TemporaryColorTexture, new Vector4(1, 1, 0, 0), 0);
-                //    Blit(cmd, source, destination, blitMaterial, settings.blitMaterialPassIndex);
-                //}
-
-
 
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
             [System.Obsolete]
-            public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+            public override void OnCameraSetup(CommandBuffer cmd, in RenderingData renderingData)
             {
                 m_TemporaryColorTexture = RTHandles.Alloc("m_TemporaryColorTexture", name: "m_TemporaryColorTexture");
                 m_DestinationTexture = RTHandles.Alloc("m_DestinationTexture", name: "m_DestinationTexture");
-                //RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
-                //descriptor.depthBufferBits = 0; // Set depth if needed
-                //myRenderTarget = RTHandles.Alloc(descriptor, name: "_CustomRenderTexture");
             }
             public override void OnCameraCleanup(CommandBuffer cmd)
             {
@@ -147,15 +102,61 @@ namespace BOTF3D.Core
                 if (settings.dstType == Target.TextureID)
                 {
                     m_DestinationTexture?.Release();
-                    //cmd.ReleaseTemporaryRT(m_DestinationTexture.id);
                 }
                 if (source == destination || (settings.srcType == settings.dstType && settings.srcType == Target.CameraColor))
                 {
                     m_TemporaryColorTexture?.Release(); 
-                    //cmd.ReleaseTemporaryRT(m_TemporaryColorTexture.id);
                 }
             }
         }
+#else
+        // Unity 6000+ compatibility stub - methods are no longer overridable
+        public class BlitPass : ScriptableRenderPass
+        {
+            public Material blitMaterial = null;
+            public FilterMode filterMode { get; set; }
+
+            private BlitSettings settings;
+
+            RTHandle m_TemporaryColorTexture;
+            RTHandle m_DestinationTexture;
+            string m_ProfilerTag;
+
+            public BlitPass(RenderPassEvent renderPassEvent, BlitSettings settings, string tag)
+            {
+                this.renderPassEvent = renderPassEvent;
+                this.settings = settings;
+                blitMaterial = settings.blitMaterial;
+                m_ProfilerTag = tag;
+                m_TemporaryColorTexture = RTHandles.Alloc("_TemporaryColorTexture", name: "_TemporaryColorTexture");
+                if (settings.dstType == Target.TextureID)
+                {
+                    m_DestinationTexture = RTHandles.Alloc(settings.dstTextureId);
+                }
+            }
+
+            public void Setup(RTHandle source, RTHandle destination)
+            {
+                if (settings.requireDepthNormals)
+                    ConfigureInput(ScriptableRenderPassInput.Normal);
+            }
+
+            public override void OnCameraCleanup(CommandBuffer cmd)
+            {
+                m_TemporaryColorTexture?.Release();
+                m_DestinationTexture?.Release();
+            }
+
+            public override void FrameCleanup(CommandBuffer cmd)
+            {
+                if (settings.dstType == Target.TextureID)
+                {
+                    m_DestinationTexture?.Release();
+                }
+                m_TemporaryColorTexture?.Release();
+            }
+        }
+#endif
 
         [System.Serializable]
         public class BlitSettings
