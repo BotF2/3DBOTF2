@@ -438,39 +438,42 @@ namespace BOTF3D.Combat
         {
             Debug.Log($"🔫 ShipFireLoop started for '{ShipData.ShipName}' with {initialDelay}s delay");
 
-            // ✅ Use WaitForSecondsRealtime instead of WaitForSeconds
             yield return new WaitForSecondsRealtime(initialDelay);
 
             Debug.Log($"🔫 '{ShipData.ShipName}' starting weapon fire loop");
 
             bool beam = true;
             int shotCount = 0;
-            while (true) // ToDo: not true when ship weapons are offline?
+
+            while (true)
             {
-                // ✅ CRITICAL: Check if target still exists before firing
+                // ✅ Re-acquire target if current one is gone
                 if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed)
                 {
-                    Debug.Log($"🔫 '{ShipData.ShipName}' target destroyed or null - stopping fire loop");
-                    yield break; // Exit the coroutine
+                    // Ask CombatController to reassign a target
+                    CombatController cc = FindAnyObjectByType<CombatController>();
+                    if (cc != null)
+                    {
+                        cc.ReassignTarget(this);
+                    }
+
+                    // If still no target, combat is over for this ship
+                    if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed)
+                    {
+                        Debug.Log($"🔫 '{ShipData.ShipName}' no valid target remaining - stopping fire loop");
+                        yield break;
+                    }
                 }
+
                 shotCount++;
                 Debug.Log($"🔫 '{ShipData.ShipName}' firing shot #{shotCount} (beam={beam})");
-                // Weapon firing logic (separate from ship rotation)
+
                 Vector3 fireDirection = (ShipData.TargetThisShipController.transform.position - transform.position).normalized;
-                // Fire weapon in calculated direction, ignore ship's transform.forward
-                // Fire the ship's beam weapons
                 FireWeapons(beam);
 
-                if (beam)
-                    beam = false;
-                else
-                    beam = true;
+                beam = !beam;
 
-                // Wait for a random refire delay before next shot
                 float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
-                Debug.Log($"   Waiting {refireDelay}s before next shot...");
-
-                // ✅ Use WaitForSecondsRealtime instead of WaitForSeconds
                 yield return new WaitForSecondsRealtime(refireDelay);
             }
         }
@@ -771,7 +774,7 @@ namespace BOTF3D.Combat
             activeBeamWeapons.Clear();
 
             // ✅ ALSO: Find and destroy any beam weapons targeting THIS ship
-            var allBeams = FindObjectsByType<BeamWeapon>(FindObjectsSortMode.None);
+            var allBeams = FindObjectsByType<BeamWeapon>(FindObjectsInactive.Include);
             foreach (var beamWeapon in allBeams)
             {
                 if (beamWeapon.TargetTransform != null &&
