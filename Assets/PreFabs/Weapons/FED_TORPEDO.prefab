@@ -28,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 4}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7054183224101263011}
@@ -4939,7 +4939,8 @@ MonoBehaviour:
   OwnerCivEnum: 0
   TargetCivEnum: 0
   TorpedoDamage: 0
-  weaponData: {fileID: 0}
+  maxRelativeSpeed: 200
+  minAccuracy: 0.2
 --- !u!1 &7054183225177453139
 GameObject:
   m_ObjectHideFlags: 0
@@ -4968,7 +4969,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 60, y: 20, z: 60}
+  m_LocalScale: {x: 40, y: 10, z: 40}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7054183224101263011}
