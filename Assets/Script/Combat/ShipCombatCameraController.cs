@@ -31,7 +31,7 @@ namespace BOTF3D.GamePlay
 
         [Tooltip("Vertical offset applied to camera target point. Positive = ships appear lower in frame, Negative = ships appear higher.")]
         [Range(-100f, 100f)]
-        public float VerticalFramingOffset = 90f;
+        public float VerticalFramingOffset = 90f; // Are the ships to high or low? higher value moves ships down.
 
         [Tooltip("Field of view after warp-in. Higher value = wider = more scene visible.")]
         [Range(40f, 110f)]
