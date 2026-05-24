@@ -76,20 +76,20 @@ namespace BOTF3D.Combat
         private List<ShipController> _transportsSide2List = new List<ShipController>();
 
         // Warp animation constants
-        private const float SIDE1_COMBAT_START_X = -2000f;
-        private const float SIDE1_COMBAT_END_X = -400f;
-        private const float SIDE1_TRANSPORT_START_X = -2200f;
-        private const float SIDE1_TRANSPORT_END_X = -600f;
-        private const float SIDE2_COMBAT_START_X = 2000f;
-        private const float SIDE2_COMBAT_END_X = 400f;
-        private const float SIDE2_TRANSPORT_START_X = 2200f;
-        private const float SIDE2_TRANSPORT_END_X = 600f;
+        private const float SIDE1_COMBAT_START_X = -3000f;
+        private const float SIDE1_COMBAT_END_X = -200f;
+        private const float SIDE1_TRANSPORT_START_X = -3200f;
+        private const float SIDE1_TRANSPORT_END_X = -400f;
+        private const float SIDE2_COMBAT_START_X = 3000f;
+        private const float SIDE2_COMBAT_END_X = 200f;
+        private const float SIDE2_TRANSPORT_START_X = 3200f;
+        private const float SIDE2_TRANSPORT_END_X = 400f;
         private const float WARP_DURATION = 2.5f; // seconds - buffer for staggered arrivals
         private const float CONTRACTION_DURATION = 0.4f; // seconds - quick contraction so early ships finish before late arrivals
 
         private void Awake()
         {
-            CombatID = GetInstanceID();
+            CombatID = GetEntityId();
             Debug.Log($"✅ CombatController {CombatID}: Created");
         }
 
@@ -570,7 +570,13 @@ namespace BOTF3D.Combat
 
             SetupCameraTargets();
             CreateHealthBarsForAllShips();
+            // Initialize ship groups
             InitializeShipGroupsForEngage();
+
+            // ✅ Assign targets BEFORE weapon fire starts
+            AssignTargetsToAllShips();
+
+            // Start weapon firing
             yield return StartAllShipWeaponFire();
 
             isMoving = true;
@@ -820,6 +826,90 @@ else
                     }
                     return Vector3.zero;
             }
+        }
+        /// <summary>
+        /// Assign each ship a target on the opposing side.
+        /// Called once after warp-in completes, before weapon fire starts.
+        /// </summary>
+        private void AssignTargetsToAllShips()
+        {
+            Debug.Log("🎯 Assigning targets to all ships...");
+
+            int assigned = 0;
+
+            // Side One ships target Side Two ships
+            List<ShipController> side2Alive = CombatData.SideTwoShipCons
+                .Where(s => s != null && !s.ShipData.Distroyed)
+                .ToList();
+
+            foreach (var ship in CombatData.SideOneShipCons)
+            {
+                if (ship == null || ship.ShipData.Distroyed) continue;
+
+                if (side2Alive.Count == 0)
+                {
+                    Debug.LogWarning($"⚠️ No living Side 2 targets for {ship.ShipData.ShipName}");
+                    continue;
+                }
+
+                // Assign closest living enemy as target
+                ShipController target = side2Alive
+                    .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
+                    .First();
+
+                ship.ShipData.TargetThisShipController = target;
+                Debug.Log($"  ✅ Side1 {ship.ShipData.ShipName} → targets {target.ShipData.ShipName}");
+                assigned++;
+            }
+
+            // Side Two ships target Side One ships
+            List<ShipController> side1Alive = CombatData.SideOneShipCons
+                .Where(s => s != null && !s.ShipData.Distroyed)
+                .ToList();
+
+            foreach (var ship in CombatData.SideTwoShipCons)
+            {
+                if (ship == null || ship.ShipData.Distroyed) continue;
+
+                if (side1Alive.Count == 0)
+                {
+                    Debug.LogWarning($"⚠️ No living Side 1 targets for {ship.ShipData.ShipName}");
+                    continue;
+                }
+
+                // Assign closest living enemy as target
+                ShipController target = side1Alive
+                    .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
+                    .First();
+
+                ship.ShipData.TargetThisShipController = target;
+                Debug.Log($"  ✅ Side2 {ship.ShipData.ShipName} → targets {target.ShipData.ShipName}");
+                assigned++;
+            }
+
+            Debug.Log($"🎯 Target assignment complete: {assigned} ships assigned targets");
+        }
+
+        /// <summary>
+        /// Reassign a new living target to a ship when its current target is destroyed.
+        /// </summary>
+        public void ReassignTarget(ShipController ship)
+        {
+            bool isSideOne = CombatData.SideOneShipCons.Contains(ship);
+
+            List<ShipController> enemies = isSideOne
+                ? CombatData.SideTwoShipCons
+                : CombatData.SideOneShipCons;
+
+            ShipController newTarget = enemies
+                .Where(s => s != null && !s.ShipData.Distroyed)
+                .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
+                .FirstOrDefault();
+
+            ship.ShipData.TargetThisShipController = newTarget;
+
+            if (newTarget != null)
+                Debug.Log($"  🎯 Retargeted {ship.ShipData.ShipName} → {newTarget.ShipData.ShipName}");
         }
 
         /// <summary>

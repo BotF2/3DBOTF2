@@ -1,416 +1,338 @@
 using BOTF3D.Combat;
-using BOTF3D.Core;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-enum TurnDirection
-{
-    up,
-    right,
-    down,
-    left
-}
+enum TurnDirection { up, right, down, left }
+
 namespace BOTF3D.GamePlay
 {
     public class ShipCombatCameraController : MonoBehaviour
     {
         /// <summary>
-        /// multi-target camera controller for combat scene. 
-        /// https://lopespm.com/libraries/games/2018/12/27/camera-multi-target.html
+        /// Multi-target camera controller for combat scene.
+        /// Guarantees all ships remain in view at all times after warp-in.
         /// </summary>
 
         public static ShipCombatCameraController Instance { get; set; }
-        public float Pitch;
-        public float Yaw;
-        public float Roll;
-        public float PaddingLeft = 100f;
-        public float PaddingRight = 100f;
-        public float PaddingUp = 100f;
-        public float PaddingDown = 100f;
-        public float MoveSmoothTime = 0.19f;
-        [SerializeField]
-        private Camera _shipCamera;
+
+        [Header("Camera Angle")]
+        [Tooltip("Tilt down from horizontal. 0 = pure side view. Keep low (0-10) to avoid ships drifting to top of screen.")]
+        [Range(0f, 60f)]
+        public float Pitch = 10f;//At Pitch = 10f the camera will be 10° above the battle plane
+        [Tooltip("Yaw rotation of the camera view plane. 0 = looking along -Z.")]
+        public float Yaw = 0f;
+        public float Roll = 0f;
+
+        [Header("Framing")]
+        [Tooltip("Extra world-unit margin added around all ships so they are not right at the edge.")]
+        public float FramingMargin = 20f;
+
+        [Tooltip("Vertical offset applied to camera target point. Positive = ships appear lower in frame, Negative = ships appear higher.")]
+        [Range(-100f, 100f)]
+        public float VerticalFramingOffset = 90f; // Are the ships to high or low? higher value moves ships down.
+
+        [Tooltip("Field of view after warp-in. Higher value = wider = more scene visible.")]
+        [Range(40f, 110f)]
+        public float CombatFieldOfView = 60f;
+
+        [Tooltip("Field of view during warp-in animation.")]
+        [Range(60f, 120f)]
+        public float WarpFieldOfView = 95f;
+
+        [Header("Movement")]
+        [Tooltip("How quickly camera smooths to the calculated position. Lower = snappier.")]
+        [Range(0.05f, 1f)]
+        public float MoveSmoothTime = 0.15f;
+
+        [Tooltip("Mouse orbit speed when holding Space.")]
+        public float MouseRotationSpeed = 5f;
+
+        [Header("Auto-Rotation")]
+        [Tooltip("Seconds of idle before cinematic auto-rotation begins.")]
+        public float AutoRotationDelay = 8f;
+        [Tooltip("Degrees per frame for cinematic auto-orbit.")]
+        public float AutoRotationSpeed = 0.15f;
+
+        // ── Internals ──────────────────────────────────────────────────────────
+        [SerializeField] private Camera _shipCamera;
         private GameObject[] _targets = new GameObject[0];
-        private DebugProjection _debugProjection;
-        private Vector3 _velocity = Vector3.zero;
-        #region added to cameraMuliTararget
-        private Vector3 _cameraOffSet;
         private bool _warpingIn = false;
         public bool WarpingInOver = false;
-        private float _autoRotationTimer = 5f;
+        private float _autoRotationTimer;
         private float _rotationDirectionTimer = 4f;
-        public Vector3 _cameraTarget;
-        public float _mouseRotationSpeed = 5.0f;
-        private TurnDirection _turnDirection { get; set; } = TurnDirection.left;
+        private TurnDirection _turnDirection = TurnDirection.left;
         private Vector3 _axisOfRotation;
+        private Vector3 _cameraTarget;
+        private Vector3 _cameraOffset;
 
-        // ✅ Public accessors for CombatUIManager
-        public Vector3 CameraOffSet
-        {
-            get { return _cameraOffSet; }
-            set { _cameraOffSet = value; }
-        }
+        // ── Public API ─────────────────────────────────────────────────────────
+        public Vector3 CameraOffSet { get => _cameraOffset; set => _cameraOffset = value; }
 
-        public float MouseRotationSpeed
-        {
-            get { return _mouseRotationSpeed; }
-        }
+        public void SetTargets(GameObject[] targets) => _targets = targets;
+        public void SetWarpingIn(bool isWarping) => _warpingIn = isWarping;
+        public void SetWarpingInOver(bool isDone) => WarpingInOver = isDone;
+        public void SetAutoRotationTimer(float time) => _autoRotationTimer = time;
 
-        public void SetAutoRotationTimer(float time)
-        {
-            _autoRotationTimer = time;
-        }
-        #endregion
+        // ── Structs / Enums ────────────────────────────────────────────────────
         public struct PositionAndRotation
         {
             public Vector3 Position { get; }
             public Quaternion Rotation { get; }
             public PositionAndRotation(Vector3 position, Quaternion rotation)
-            {
-                Position = position;
-                Rotation = rotation;
-            }
+            { Position = position; Rotation = rotation; }
         }
-        enum DebugProjection { DISABLE, IDENTITY, ROTATED }
         enum ProjectionEdgeHits { TOP_BOTTOM, LEFT_RIGHT }
 
-        public void SetTargets(GameObject[] targets)
-        {
-            _targets = targets;
-        }
-
+        // ── Unity Lifecycle ────────────────────────────────────────────────────
         private void Awake()
         {
-            _debugProjection = DebugProjection.ROTATED;
-            _autoRotationTimer = 5f;
-
             if (Instance != null && Instance != this)
             {
-                Debug.Log("Duplicate ShipCombatCameraController found! Destroying duplicate.");
                 Destroy(gameObject);
                 return;
             }
-
             Instance = this;
-            // ❌ REMOVE: DontDestroyOnLoad(gameObject);
-            // ✅ Camera should live in CombatScene only!
+            _autoRotationTimer = AutoRotationDelay;
 
-            // ✅ CRITICAL: Ensure only ONE AudioListener exists in the scene
-            AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
-
-            if (listeners.Length > 1)
-            {
-                Debug.LogWarning($"⚠️ Found {listeners.Length} AudioListeners - removing duplicates...");
-
-                // Keep the first AudioListener, remove all others
-                for (int i = 1; i < listeners.Length; i++)
-                {
-                    Debug.Log($"   🗑️ Destroying AudioListener on '{listeners[i].gameObject.name}'");
-                    Destroy(listeners[i]);
-                }
-            }
-            else if (listeners.Length == 0)
-            {
-                // No listener exists - add one to this camera
+            // Ensure only one AudioListener
+            AudioListener[] listeners = FindObjectsByType<AudioListener>(FindObjectsInactive.Include);
+            for (int i = 1; i < listeners.Length; i++)
+                Destroy(listeners[i]);
+            if (listeners.Length == 0)
                 gameObject.AddComponent<AudioListener>();
-                Debug.Log("✅ Added AudioListener to combat camera");
-            }
-            else
-            {
-                Debug.Log($"✅ Single AudioListener found on '{listeners[0].gameObject.name}'");
-            }
-
-            Debug.Log("✅ ShipCombatCameraController: Instance assigned (scene-based)");
         }
+
         private void Start()
         {
             _warpingIn = false;
             WarpingInOver = false;
             if (_shipCamera == null)
-            {
                 _shipCamera = GetComponent<Camera>();
-            }
-            gameObject.transform.position = new Vector3(0, 500, -800);
-            _cameraOffSet = gameObject.transform.position - _cameraTarget;
+
+            // Park camera directly behind center along -Z axis (no vertical tilt)
+            transform.position = new Vector3(0f, 800f, -800f);
+            _cameraOffset = transform.position - _cameraTarget;
         }
 
         private void LateUpdate()
         {
             Scene scene = SceneManager.GetSceneByName("CombatScene");
-            if (!scene.isLoaded || _targets.Length == 0)
-            {
-                return;
-            }
+            if (!scene.isLoaded) return;
+
+            // ── Warp-in phase: wide FOV, no movement ──────────────────────────
             if (_warpingIn)
             {
-                _shipCamera.fieldOfView = 95f;
+                _shipCamera.fieldOfView = WarpFieldOfView;
+                return;
             }
-            else if (WarpingInOver)
+
+            // ── Post warp-in: keep all ships in frame ─────────────────────────
+            if (!WarpingInOver || _targets.Length == 0) return;
+
+            // Prune destroyed/null targets
+            _targets = _targets.Where(t => t != null).ToArray();
+            if (_targets.Length == 0) return;
+
+            // Always calculate the ideal position that fits all ships
+            PositionAndRotation ideal = CalculateIdealPosition(_targets);
+
+            // ── Manual orbit: Space + Mouse ───────────────────────────────────
+            if (Input.GetKey("space"))
             {
+                _autoRotationTimer = AutoRotationDelay;
 
-                if (_targets.Length == 0)
-                    return;
-                else
+                Quaternion yawDelta = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * MouseRotationSpeed, Vector3.up);
+                Quaternion pitchDelta = Quaternion.AngleAxis(-Input.GetAxis("Mouse Y") * MouseRotationSpeed, transform.right);
+
+                _cameraOffset = yawDelta * pitchDelta * _cameraOffset;
+                transform.position = Vector3.Lerp(transform.position, _cameraTarget + _cameraOffset, MoveSmoothTime);
+                transform.LookAt(_cameraTarget);
+            }
+            // ── Settle into ideal framing position ────────────────────────────
+            else if (_autoRotationTimer > 0f)
+            {
+                _autoRotationTimer -= Time.unscaledDeltaTime;
+
+                float smoothFactor = Mathf.Clamp01(Time.unscaledDeltaTime / MoveSmoothTime);
+                transform.position = Vector3.Lerp(transform.position, ideal.Position, smoothFactor);
+
+                // ✅ Always LookAt centroid - ships are always centered regardless of Pitch
+                transform.LookAt(_cameraTarget, Vector3.up);
+
+                _cameraOffset = transform.position - _cameraTarget;
+            }
+            // ── Cinematic auto-orbit (always re-validates framing) ────────────
+            else
+            {
+                if (_rotationDirectionTimer <= 0f)
                 {
-                    List<GameObject> theTargetList = _targets.ToList();
-                    for (int i = 0; i < theTargetList.Count; i++)
-                    {
-                        if (_targets[i] == null)
-                        {
-                            theTargetList.Remove(_targets[i]);
-                        }
-                    }
-                    _targets = theTargetList.ToArray();
+                    _rotationDirectionTimer = 4f;
+                    _autoRotationTimer = AutoRotationDelay;
+                    _turnDirection = _turnDirection == TurnDirection.left ? TurnDirection.up : _turnDirection + 1;
                 }
-                if (_targets.Length == 0)
-                    return;
-                else
+
+                _axisOfRotation = _turnDirection switch
                 {
-                    var targetPositionAndRotation = TargetPositionAndRotation(_targets);
+                    TurnDirection.up => Vector3.right,
+                    TurnDirection.right => Vector3.down,
+                    TurnDirection.down => Vector3.left,
+                    _ => Vector3.up,
+                };
 
-                    _cameraOffSet = gameObject.transform.position - _cameraTarget;
+                float dir = _rotationDirectionTimer > 2f ? 1f : -1f;
+                transform.RotateAround(_cameraTarget, _axisOfRotation, AutoRotationSpeed * dir);
+                transform.LookAt(_cameraTarget);
 
-                    if (Input.GetKey("space"))
-                    {
-                        //manually rotate the camera with space bar + mouse
-                        _autoRotationTimer = 5.0f;
-                        Quaternion cameraTurnAngleX = Quaternion.AngleAxis(Input.GetAxis("Mouse X") * _mouseRotationSpeed, Vector3.up);
-                        _cameraOffSet = cameraTurnAngleX * _cameraOffSet;
-                        Vector3 newPositionX = _cameraTarget + _cameraOffSet;
-                        gameObject.transform.position = Vector3.Slerp(gameObject.transform.position, newPositionX, MoveSmoothTime);
-                        Quaternion cameraTurnAngleY = Quaternion.AngleAxis(Input.GetAxis("Mouse Y") * 1.8f * _mouseRotationSpeed, Vector3.right);
-                        _cameraOffSet = cameraTurnAngleY * _cameraOffSet;
-                        Vector3 newPositionY = _cameraTarget + _cameraOffSet;
-                        gameObject.transform.position = Vector3.Slerp(gameObject.transform.position, newPositionY, MoveSmoothTime);
-                        gameObject.transform.LookAt(_cameraTarget);
-                    }
-                    else if (_autoRotationTimer > 0)
-                    {
-                        // ✅ Use manual lerp with unscaledDeltaTime instead of SmoothDamp
-                        float smoothFactor = Time.unscaledDeltaTime / MoveSmoothTime;
-                        transform.position = Vector3.Lerp(transform.position, targetPositionAndRotation.Position, smoothFactor);
-                        transform.rotation = Quaternion.Lerp(transform.rotation, targetPositionAndRotation.Rotation, smoothFactor);
-
-                        _autoRotationTimer -= Time.unscaledDeltaTime;  // ✅ Changed from Time.deltaTime
-                    }
-                    else
-                    {
-                        // autorotation code
-                        float Rotation = 0.2f;
-                        if (_rotationDirectionTimer <= 0)
-                        {
-                            _rotationDirectionTimer = 4f;
-                            _autoRotationTimer = 5f;
-
-                            if (_turnDirection != TurnDirection.left)
-                                _turnDirection++;
-                            else _turnDirection = TurnDirection.up;
-                        }
-                        switch (_turnDirection)
-                        {
-                            case TurnDirection.up:
-                                _axisOfRotation = Vector3.right;
-                                break;
-                            case TurnDirection.right:
-                                _axisOfRotation = Vector3.down;
-                                break;
-                            case TurnDirection.down:
-                                _axisOfRotation = Vector3.left;
-                                break;
-                            case TurnDirection.left:
-                                _axisOfRotation = Vector3.up;
-                                break;
-                            default:
-                                break;
-                        }
-                        if (_rotationDirectionTimer > 2f)
-                            transform.RotateAround(_cameraTarget, _axisOfRotation, Rotation);
-                        else
-                            transform.RotateAround(_cameraTarget, _axisOfRotation, -Rotation);
-
-                        _rotationDirectionTimer -= Time.unscaledDeltaTime;  // ✅ Changed from Time.deltaTime
-                    }
+                // ✅ After rotating, pull back to ideal distance so ships stay in frame
+                float idealDist = Vector3.Distance(_cameraTarget, ideal.Position);
+                float currentDist = Vector3.Distance(_cameraTarget, transform.position);
+                if (currentDist < idealDist)
+                {
+                    Vector3 dir3 = (transform.position - _cameraTarget).normalized;
+                    transform.position = _cameraTarget + dir3 * idealDist;
                 }
+
+                _rotationDirectionTimer -= Time.unscaledDeltaTime;
             }
         }
+
+        // ── Ship destroyed ─────────────────────────────────────────────────────
         public void OnShipDestroyed(ShipController shipController)
         {
-            List<GameObject> theTargetList = _targets.ToList();
-            theTargetList.Remove(shipController.gameObject);
-            _targets = theTargetList.ToArray();
+            _targets = _targets.Where(t => t != null && t != shipController.gameObject).ToArray();
         }
-        PositionAndRotation TargetPositionAndRotation(GameObject[] targets)
+
+        // ── Core framing algorithm ─────────────────────────────────────────────
+        /// <summary>
+        /// Projects each ship into camera local space and solves for the exact
+        /// distance that keeps every ship within the FOV. Ships are always centered.
+        /// Works correctly at any Pitch angle.
+        /// </summary>
+        private PositionAndRotation CalculateIdealPosition(GameObject[] targets)
         {
-            if (targets.Length == 0)
-                return new PositionAndRotation(transform.position, transform.rotation);
-            else
+            _shipCamera.fieldOfView = CombatFieldOfView;
+            Vector3 shipCentroid = CalculateCentroid(targets);
+
+            // Apply vertical offset to camera target to center ships in frame
+            _cameraTarget = shipCentroid + Vector3.up * VerticalFramingOffset;
+
+            // ── Step 1: Build camera direction axes from Pitch / Yaw ────────────
+            float pitchRad = Pitch * Mathf.Deg2Rad;
+            float yawRad = Yaw * Mathf.Deg2Rad;
+
+            // Unit vector pointing FROM centroid TOWARD camera (opposite of forward)
+            Vector3 camDir = new Vector3(
+                 Mathf.Sin(yawRad) * Mathf.Cos(pitchRad),
+                 Mathf.Sin(pitchRad),
+                -Mathf.Cos(yawRad) * Mathf.Cos(pitchRad)
+            ).normalized;
+
+            // Camera forward = toward centroid
+            Vector3 forward = -camDir;
+            Vector3 right = Vector3.Cross(forward, Vector3.up).normalized;
+            // Recalculate up so axes are orthonormal (handles non-zero pitch)
+            Vector3 up = Vector3.Cross(right, forward).normalized;
+
+            // ── Step 2: Compute FOV half-angles ─────────────────────────────────
+            float halfVertFovRad = _shipCamera.fieldOfView * Mathf.Deg2Rad * 0.5f;
+            float halfHorizFovRad = Mathf.Atan(Mathf.Tan(halfVertFovRad) * _shipCamera.aspect);
+
+            // ── Step 3: For each ship, find required camera distance D ──────────
+            // Key insight: when camera is at C + camDir * D:
+            //   depth  = D - dot(S - centroid, camDir)          [varies with D]
+            //   horiz  = dot(S - centroid, right)               [CONSTANT vs D]
+            //   vert   = dot(S - centroid, up)                  [CONSTANT vs D]
+            //
+            // For ship to be within FOV: |horiz| / depth <= tan(halfHorizFov)
+            // Solving for D: D >= |horiz| / tan(halfHorizFov) + dot(S-C, camDir)
+            // Same for vertical axis.
+            // So take the max required D across all ships.
+
+            float requiredD = 0f;
+
+            foreach (var t in targets)
             {
-                _cameraTarget = calculateCentroid(targets);
-                float halfVerticalFovRad = (_shipCamera.fieldOfView * Mathf.Deg2Rad) / 2f;
-                float halfHorizontalFovRad = Mathf.Atan(Mathf.Tan(halfVerticalFovRad) * _shipCamera.aspect);
+                if (t == null) continue;
 
-                var rotation = Quaternion.Euler(Pitch, Yaw, Roll);
-                var inverseRotation = Quaternion.Inverse(rotation);
-                var targetsList = targets.ToList();
-                targetsList.RemoveAll(t => t == null);
-                targets = targetsList.ToArray();
-                var targetsRotatedToCameraIdentity = targets.Select(target => inverseRotation * target.transform.position).ToArray();
-                if (targets.Length == 0)
-                    return new PositionAndRotation(transform.position, transform.rotation);
-                else
-                {
-                    float furthestPointDistanceFromCamera = targetsRotatedToCameraIdentity.Max(target => target.z);
-                    float projectionPlaneZ = furthestPointDistanceFromCamera + 3f;
+                // Calculate offset from ship centroid (not adjusted target)
+                Vector3 offset = t.transform.position - shipCentroid;
 
-                    ProjectionHits viewProjectionLeftAndRightEdgeHits =
-                        ViewProjectionEdgeHits(targetsRotatedToCameraIdentity, ProjectionEdgeHits.LEFT_RIGHT, projectionPlaneZ, halfHorizontalFovRad).AddPadding(PaddingRight, PaddingLeft);
-                    ProjectionHits viewProjectionTopAndBottomEdgeHits =
-                        ViewProjectionEdgeHits(targetsRotatedToCameraIdentity, ProjectionEdgeHits.TOP_BOTTOM, projectionPlaneZ, halfVerticalFovRad).AddPadding(PaddingUp, PaddingDown);
+                float depth_offset = Vector3.Dot(offset, camDir); // how far ship is along camDir
+                float horiz = Vector3.Dot(offset, right);
+                float vert = Vector3.Dot(offset, up);
 
-                    var requiredCameraPerpedicularDistanceFromProjectionPlane =
-                        Mathf.Max(
-                            RequiredCameraPerpedicularDistanceFromProjectionPlane(viewProjectionTopAndBottomEdgeHits, halfVerticalFovRad),
-                            RequiredCameraPerpedicularDistanceFromProjectionPlane(viewProjectionLeftAndRightEdgeHits, halfHorizontalFovRad)
-                    );
+                // Required D to keep this ship horizontally in frame (with margin)
+                float dForHoriz = (Mathf.Abs(horiz) + FramingMargin) / Mathf.Tan(halfHorizFovRad)
+                                  + depth_offset;
 
-                    Vector3 cameraPositionIdentity = new Vector3(
-                        (viewProjectionLeftAndRightEdgeHits.Max + viewProjectionLeftAndRightEdgeHits.Min) / 2f,
-                        (viewProjectionTopAndBottomEdgeHits.Max + viewProjectionTopAndBottomEdgeHits.Min) / 2f,
-                        projectionPlaneZ - requiredCameraPerpedicularDistanceFromProjectionPlane);
+                // Required D to keep this ship vertically in frame (with margin)
+                float dForVert = (Mathf.Abs(vert) + FramingMargin) / Mathf.Tan(halfVertFovRad)
+                                  + depth_offset;
 
-                    DebugDrawProjectionRays(cameraPositionIdentity,
-                        viewProjectionLeftAndRightEdgeHits,
-                        viewProjectionTopAndBottomEdgeHits,
-                        requiredCameraPerpedicularDistanceFromProjectionPlane,
-                        targetsRotatedToCameraIdentity,
-                        projectionPlaneZ,
-                        halfHorizontalFovRad,
-                        halfVerticalFovRad);
-
-                    return new PositionAndRotation(rotation * cameraPositionIdentity, rotation);
-                }
+                requiredD = Mathf.Max(requiredD, dForHoriz, dForVert);
             }
+
+            // Enforce a sensible minimum so camera doesn't clip into ships
+            requiredD = Mathf.Max(requiredD, 200f);
+
+            // ── Step 4: Build final position and always LookAt centroid ──────────
+            Vector3 cameraPos = _cameraTarget + camDir * requiredD;
+            Quaternion lookAt = Quaternion.LookRotation(forward, up);
+
+            return new PositionAndRotation(cameraPos, lookAt);
         }
 
-        private static float RequiredCameraPerpedicularDistanceFromProjectionPlane(ProjectionHits viewProjectionEdgeHits, float halfFovRad)
+        private static float RequiredDistance(ProjectionHits hits, float halfFovRad)
         {
-            float distanceBetweenEdgeProjectionHits = viewProjectionEdgeHits.Max - viewProjectionEdgeHits.Min;
-            return (distanceBetweenEdgeProjectionHits / 2f) / Mathf.Tan(halfFovRad);
+            return (hits.Max - hits.Min) * 0.5f / Mathf.Tan(halfFovRad);
         }
 
-        private ProjectionHits ViewProjectionEdgeHits(IEnumerable<Vector3> targetsRotatedToCameraIdentity, ProjectionEdgeHits alongAxis, float projectionPlaneZ, float halfFovRad)
+        private ProjectionHits ProjectionEdgeHitsAlongAxis(
+            IEnumerable<Vector3> positions,
+            ProjectionEdgeHits axis,
+            float projPlaneZ,
+            float halfFovRad,
+            float margin)
         {
-            float[] projectionHits = targetsRotatedToCameraIdentity
-                .SelectMany(target => TargetProjectionHits(target, alongAxis, projectionPlaneZ, halfFovRad))
+            float[] hits = positions
+                .SelectMany(p => SingleTargetHits(p, axis, projPlaneZ, halfFovRad))
                 .ToArray();
-            return new ProjectionHits(projectionHits.Max(), projectionHits.Min());
+
+            return new ProjectionHits(hits.Max() + margin, hits.Min() - margin);
         }
 
-        private float[] TargetProjectionHits(Vector3 target, ProjectionEdgeHits alongAxis, float projectionPlaneDistance, float halfFovRad)
+        private float[] SingleTargetHits(Vector3 target, ProjectionEdgeHits axis, float projPlaneDist, float halfFovRad)
         {
-            float distanceFromProjectionPlane = projectionPlaneDistance - target.z;
-            float projectionHalfSpan = Mathf.Tan(halfFovRad) * distanceFromProjectionPlane;
+            float d = projPlaneDist - target.z;
+            float span = Mathf.Tan(halfFovRad) * d;
 
-            if (alongAxis == ProjectionEdgeHits.LEFT_RIGHT)
+            return axis == ProjectionEdgeHits.LEFT_RIGHT
+                ? new[] { target.x + span, target.x - span }
+                : new[] { target.y + span, target.y - span };
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+        public Vector3 CalculateCentroid(GameObject[] objects)
+        {
+            if (objects == null || objects.Length == 0) return transform.position;
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (var obj in objects)
             {
-                return new[] { target.x + projectionHalfSpan, target.x - projectionHalfSpan };
+                if (obj != null) { sum += obj.transform.position; count++; }
             }
-            else
-            {
-                return new[] { target.y + projectionHalfSpan, target.y - projectionHalfSpan };
-            }
-        }
-        private void DebugDrawProjectionRays(Vector3 cameraPositionIdentity, ProjectionHits viewProjectionLeftAndRightEdgeHits,
-            ProjectionHits viewProjectionTopAndBottomEdgeHits, float requiredCameraPerpedicularDistanceFromProjectionPlane,
-            IEnumerable<Vector3> targetsRotatedToCameraIdentity, float projectionPlaneZ, float halfHorizontalFovRad,
-            float halfVerticalFovRad)
-        {
-
-            if (_debugProjection == DebugProjection.DISABLE)
-                return;
-
-            DebugDrawProjectionRay(
-                cameraPositionIdentity,
-                new Vector3((viewProjectionLeftAndRightEdgeHits.Max - viewProjectionLeftAndRightEdgeHits.Min) / 2f,
-                    (viewProjectionTopAndBottomEdgeHits.Max - viewProjectionTopAndBottomEdgeHits.Min) / 2f,
-                    requiredCameraPerpedicularDistanceFromProjectionPlane), new Color32(31, 119, 180, 255));
-            DebugDrawProjectionRay(
-                cameraPositionIdentity,
-                new Vector3((viewProjectionLeftAndRightEdgeHits.Max - viewProjectionLeftAndRightEdgeHits.Min) / 2f,
-                    -(viewProjectionTopAndBottomEdgeHits.Max - viewProjectionTopAndBottomEdgeHits.Min) / 2f,
-                    requiredCameraPerpedicularDistanceFromProjectionPlane), new Color32(31, 119, 180, 255));
-            DebugDrawProjectionRay(
-                cameraPositionIdentity,
-                new Vector3(-(viewProjectionLeftAndRightEdgeHits.Max - viewProjectionLeftAndRightEdgeHits.Min) / 2f,
-                    (viewProjectionTopAndBottomEdgeHits.Max - viewProjectionTopAndBottomEdgeHits.Min) / 2f,
-                    requiredCameraPerpedicularDistanceFromProjectionPlane), new Color32(31, 119, 180, 255));
-            DebugDrawProjectionRay(
-                cameraPositionIdentity,
-                new Vector3(-(viewProjectionLeftAndRightEdgeHits.Max - viewProjectionLeftAndRightEdgeHits.Min) / 2f,
-                    -(viewProjectionTopAndBottomEdgeHits.Max - viewProjectionTopAndBottomEdgeHits.Min) / 2f,
-                    requiredCameraPerpedicularDistanceFromProjectionPlane), new Color32(31, 119, 180, 255));
-
-            foreach (var target in targetsRotatedToCameraIdentity)
-            {
-                float distanceFromProjectionPlane = projectionPlaneZ - target.z;
-                float halfHorizontalProjectionVolumeCircumcircleDiameter = Mathf.Sin(Mathf.PI - ((Mathf.PI / 2f) + halfHorizontalFovRad)) / (distanceFromProjectionPlane);
-                float projectionHalfHorizontalSpan = Mathf.Sin(halfHorizontalFovRad) / halfHorizontalProjectionVolumeCircumcircleDiameter;
-                float halfVerticalProjectionVolumeCircumcircleDiameter = Mathf.Sin(Mathf.PI - ((Mathf.PI / 2f) + halfVerticalFovRad)) / (distanceFromProjectionPlane);
-                float projectionHalfVerticalSpan = Mathf.Sin(halfVerticalFovRad) / halfVerticalProjectionVolumeCircumcircleDiameter;
-
-                DebugDrawProjectionRay(target,
-                    new Vector3(projectionHalfHorizontalSpan, 0f, distanceFromProjectionPlane),
-                    new Color32(214, 39, 40, 255));
-                DebugDrawProjectionRay(target,
-                    new Vector3(-projectionHalfHorizontalSpan, 0f, distanceFromProjectionPlane),
-                    new Color32(214, 39, 40, 255));
-                DebugDrawProjectionRay(target,
-                    new Vector3(0f, projectionHalfVerticalSpan, distanceFromProjectionPlane),
-                    new Color32(214, 39, 40, 255));
-                DebugDrawProjectionRay(target,
-                    new Vector3(0f, -projectionHalfVerticalSpan, distanceFromProjectionPlane),
-                    new Color32(214, 39, 40, 255));
-            }
-        }
-        private void DebugDrawProjectionRay(Vector3 start, Vector3 direction, Color color)
-        {
-            Quaternion rotation = _debugProjection == DebugProjection.IDENTITY ? Quaternion.identity : transform.rotation;
-            Debug.DrawRay(rotation * start, rotation * direction, color);
+            return count > 0 ? sum / count : transform.position;
         }
 
-        public Vector3 calculateCentroid(GameObject[] centerPoints)
-        {
-            if (centerPoints.Length == 0)
-                return transform.position;
-            else
-            {
-                var centroid = new Vector3(0, 0, 0);
-                var numPoints = centerPoints.Count();
-                if (centroid == null || numPoints == 0)
-                    return transform.position;
-                else
-                {
-                    foreach (var point in centerPoints)
-                    {
-                        if (point != null && point.transform != null)
-                            centroid += point.transform.position;
-                    }
+        // Keep old name for any callers
+        public Vector3 calculateCentroid(GameObject[] objects) => CalculateCentroid(objects);
 
-                    centroid /= numPoints;
-
-                    return centroid;
-                }
-            }
-        }
-        internal void SetWarpingIn(bool isWarping)
+        private struct ProjectionHits
         {
-            _warpingIn = isWarping;
-        }
-        internal void SetWarpingInOver(bool isWarpingDone)
-        {
-            WarpingInOver = isWarpingDone;
+            public float Max, Min;
+            public ProjectionHits(float max, float min) { Max = max; Min = min; }
         }
     }
 }
