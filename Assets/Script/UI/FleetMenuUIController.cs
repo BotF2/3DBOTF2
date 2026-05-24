@@ -164,18 +164,32 @@ namespace BOTF3D.UI
             for (int j = 0; j < FleetManager.Instance.FleetControllerList.Count; j++)
             {
                 FleetController fleetCon = FleetManager.Instance.FleetControllerList[j];
-                if (fleetCon == null) continue;
+                if (fleetCon == null || fleetCon.FleetUIGameObject == null) continue;
 
-                if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject) &&
-                    GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+                if (GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
                 {
-                    // wire up individual fleet UI
+                    // wire up individual fleet UI (handles both new and existing)
                     SetupFleetUIElements(fleetCon, fleetCon.FleetUIGameObject);
-                    listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
+
+                    // Ensure it is in the tracking list and parented correctly if shown in the list
+                    if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject))
+                    {
+                        listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
+                    }
+
                     fleetCon.FleetUIGameObject.SetActive(true);
-                    if (fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform == null)
-                        fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>().OriginalParentTransform = FleetListContainer.transform;
-                    fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
+
+                    var childController = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
+                    if (childController != null && childController.OriginalParentTransform == null)
+                    {
+                        childController.OriginalParentTransform = FleetListContainer.transform;
+                    }
+
+                    // Parent to the scrollable list container if it's not already there
+                    if (fleetCon.FleetUIGameObject.transform.parent != FleetListContainer.transform)
+                    {
+                        fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
+                    }
                 }
             }
         }
@@ -233,7 +247,7 @@ namespace BOTF3D.UI
             theFleetCon.FleetUIGameObject.transform.SetParent(AFleetMenuView.transform, false);
             theFleetCon.FleetUIGameObject.SetActive(true);
 
-            // ✅ CRITICAL FIX: ALWAYS re-wire buttons when opening detail view!
+            // ✅ CRITICAL: ALWAYS re-wire buttons and sync ships when opening detail view!
             SetupFleetUIElements(theFleetCon, theFleetCon.FleetUIGameObject);
 
             // ✅ Set activeFleetController so SetAsDestination() can find it!
@@ -385,13 +399,33 @@ namespace BOTF3D.UI
                 return;
             }
 
+            // ✅ 1. Set ShipListUIParent immediately (before any ship UI creation)
+            if (uiFields.FleetShipContentGO != null)
+            {
+                fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+
+                // Ensure Grid Layout Group for 2D UI layout
+                var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+                if (grid == null)
+                {
+                    grid = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
+                    grid.cellSize = new Vector2(100, 100); // Default cell size
+                    grid.spacing = new Vector2(5, 5);
+                }
+
+                var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+                if (fitter == null)
+                {
+                    fitter = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                }
+            }
+
             // ✅ ONE-TIME SETUP: Only do this if fleet is NEW (not in tracking list)
             if (!listOfFleetUiGos.Contains(fleetCon.FleetUIGameObject))
             {
                 Debug.Log($"SetupFleetUIElements: First-time setup for fleet '{fleetCon.name}'");
 
-                newFleetUIGO.SetActive(true);
-                fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
                 listOfFleetUiGos.Add(fleetCon.FleetUIGameObject);
 
                 var fleetAndStarSys = fleetCon.FleetUIGameObject.GetComponent<FleetAndSystemChildController>();
@@ -403,22 +437,47 @@ namespace BOTF3D.UI
                     }
                 }
 
-                // Set ShipListUIParent (one-time)
-                fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
-                Debug.Log($"  Set ShipListUIParent for fleet '{fleetCon.name}' to {(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
-
                 // Set mini map position (one-time)
                 float x = fleetCon.FleetData.Position.x * 0.12f;
                 float z = fleetCon.FleetData.Position.z * 0.12f;
                 RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
-                dot.anchoredPosition = new Vector2(x, z);
+                if (dot != null)
+                    dot.anchoredPosition = new Vector2(x, z);
             }
             else
             {
-                Debug.Log($"SetupFleetUIElements: Re-wiring buttons for existing fleet '{fleetCon.name}'");
+                Debug.Log($"SetupFleetUIElements: Re-wiring existing fleet '{fleetCon.name}'");
             }
 
-            // ✅ BUTTON WIRING: ALWAYS runs (moved OUTSIDE the if block)
+            // ✅ 2, 3 & 4. Sync ships (Always run for both new and existing fleets to catch any missing UIs)
+            if (uiFields.FleetShipContentGO != null && fleetCon.FleetData?.ShipsList != null)
+            {
+                foreach (var shipCon in fleetCon.FleetData.ShipsList)
+                {
+                    if (shipCon == null) continue;
+
+                    // 2. Create the UI item if it doesn't exist yet
+                    if (shipCon.ShipListUIGameObject == null)
+                    {
+                        ShipManager.Instance?.InstantiateShipListUIGameObject(shipCon, fleetCon.gameObject);
+                        Debug.Log($"  Created missing ship UI for '{shipCon.ShipData?.ShipName}'");
+                    }
+
+                    // 3. Re-parent if it drifted to the wrong container
+                    if (shipCon.ShipListUIGameObject != null &&
+                        shipCon.ShipListUIGameObject.transform.parent != uiFields.FleetShipContentGO.transform)
+                    {
+                        shipCon.ShipListUIGameObject.transform.SetParent(uiFields.FleetShipContentGO.transform, false);
+                        shipCon.ShipListUIGameObject.SetActive(true);
+                        Debug.Log($"  Re-parented ship UI '{shipCon.ShipData?.ShipName}' to FleetShipContent");
+                    }
+                }
+
+                // 4. Flush any items that landed in the pending queue
+                ShipManager.Instance?.ProcessPendingShipUIs();
+            }
+
+            // ✅ BUTTON WIRING: ALWAYS runs
             uiFields.DestinationDragTarget.gameObject.SetActive(true);
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
             uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));

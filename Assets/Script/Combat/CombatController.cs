@@ -105,7 +105,7 @@ namespace BOTF3D.Combat
             // Update group targets for Engage order
             if (WarpingAnimationOver && !combatEnded)
             {
-                if (CombatData.SideOneOrder == CombatOrders.Engage)
+                if (CombatData.SideOneOrder == CombatOrders.Engage || CombatData.SideTwoOrder == CombatOrders.Engage)
                 {
                     UpdateGroupTargets();
                 }
@@ -137,6 +137,8 @@ namespace BOTF3D.Combat
             // Order-based movement system (after warp completes)
             if (WarpingAnimationOver && !WarpingIn && isMoving && !combatEnded)
             {
+                UpdateEngageGroups();
+
                 // Process each ship individually
                 foreach (var ship in CombatData.SideOneShipCons)
                 {
@@ -153,6 +155,37 @@ namespace BOTF3D.Combat
                         MoveShipBasedOnOrder(ship);
                     }
                 }
+            }
+            else if (isMoving && !combatEnded)
+            {
+                // Diagnostic logging to see why it stopped
+                // Debug.Log($"Waiting for Warp: AnimationOver={WarpingAnimationOver}, WarpingIn={WarpingIn}");
+            }
+        }
+
+        private void UpdateEngageGroups()
+        {
+            if (sideOneGroups != null) foreach (var g in sideOneGroups) UpdateGroupTarget(g, true);
+            if (sideTwoGroups != null) foreach (var g in sideTwoGroups) UpdateGroupTarget(g, false);
+        }
+
+        private void UpdateGroupTarget(ShipGroup group, bool isSideOne)
+        {
+            group.ships.RemoveAll(s => s == null || s.ShipData.Distroyed);
+            if (group.ships.Count == 0) return;
+
+            if (group.commonTarget == null || group.commonTarget.ShipData.Distroyed)
+            {
+                Vector3 center = Vector3.zero;
+                foreach (var s in group.ships) center += s.transform.position;
+                center /= group.ships.Count;
+
+                List<ShipController> enemies = isSideOne ? CombatData.SideTwoShipCons : CombatData.SideOneShipCons;
+                group.commonTarget = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                                            .OrderBy(s => Vector3.Distance(center, s.transform.position))
+                                            .FirstOrDefault();
+                
+                foreach (var s in group.ships) s.ShipData.TargetThisShipController = group.commonTarget;
             }
         }
 
@@ -221,8 +254,12 @@ namespace BOTF3D.Combat
                 endX = isTransport ? SIDE2_TRANSPORT_END_X : SIDE2_COMBAT_END_X;
             }
 
+            // Side 1 (left) faces +X (right), Side 2 (right) faces -X (left)
+            // Use the spiral position to spread ships in Y and Z
             Vector3 startPosition = new Vector3(startX, spiralPos.y * spacing, spiralPos.x * spacing);
             Vector3 endPosition = new Vector3(endX, spiralPos.y * spacing, spiralPos.x * spacing);
+
+            if (side == 2) Debug.Log($"🚀 Side 2 Ship {ship.ShipData.ShipName} Warp: Start={startPosition}, End={endPosition}");
 
             // ✅ FIX: Remove parent FIRST (before moving to scene)
             ship.transform.SetParent(null, true); // worldPositionStays = true
@@ -246,15 +283,14 @@ namespace BOTF3D.Combat
             // Set ship transform
             ship.transform.position = startPosition;
 
-            // ✅ FIX: Correct rotation - Side 1 faces +X (right), Side 2 faces -X (left)
-            // Quaternion.Euler rotates around Y-axis to point in the correct direction
+            // ✅ Reverted to prior rotation settings for Blender mesh import alignment
             if (side == 1)
             {
-                ship.transform.rotation = Quaternion.Euler(0, -90, 0); // Face +X (right)
+                ship.transform.rotation = Quaternion.Euler(0, -90, 0); // Side 1
             }
             else
             {
-                ship.transform.rotation = Quaternion.Euler(0, 90, 0); // Face -X (left)
+                ship.transform.rotation = Quaternion.Euler(0, 90, 0); // Side 2
             }
 
             ship.transform.localScale = Vector3.one;
@@ -292,6 +328,13 @@ namespace BOTF3D.Combat
                     boxCollider = ship.gameObject.AddComponent<BoxCollider>();
                 }
                 boxCollider.isTrigger = true;
+
+                // ✅ Ensure CombatOrderStateMachine is present
+                if (ship.GetComponent<CombatOrderStateMachine>() == null)
+                {
+                    ship.gameObject.AddComponent<CombatOrderStateMachine>();
+                    Debug.Log($"  ➕ Added CombatOrderStateMachine to {ship.ShipData.ShipName}");
+                }
 
                 // Set collider bounds from renderer
                 Renderer renderer = shipModel.GetComponentInChildren<Renderer>();
@@ -515,8 +558,9 @@ namespace BOTF3D.Combat
                         wd.shipModel.transform.localScale = Vector3.one;
                     }
 
+                    shipController.SetWarpInOver();
                     Destroy(wd);
-                }
+}
             }
 
             Debug.Log("✅ Warp-in animation complete");
@@ -530,12 +574,12 @@ namespace BOTF3D.Combat
             yield return StartAllShipWeaponFire();
 
             isMoving = true;
-            Debug.Log("✅ Order-based movement enabled");
+            Debug.Log($"✅ Combat Controller {CombatID}: Order-based movement ENABLED. Side 1 order: {CombatData.SideOneOrder}, Side 2 order: {CombatData.SideTwoOrder}");
         }
 
         /// <summary>
         /// Setup camera to track all ships and enable dynamic framing
-        /// </summary>
+/// </summary>
         private void SetupCameraTargets()
         {
             if (ShipCombatCameraController.Instance == null)
@@ -721,21 +765,23 @@ namespace BOTF3D.Combat
 
                 if (targetPosition != Vector3.zero)
                 {
-                    Vector3 directionToTarget = (targetPosition - ship.transform.position).normalized;
+                    Vector3 toTarget = targetPosition - ship.transform.position;
+                    
+                    // If order is Engage or Rush, move mainly forward (X axis)
+                    CombatOrders order = CombatData.SideOneShipCons.Contains(ship) ? CombatData.SideOneOrder : CombatData.SideTwoOrder;
+                    if (order == CombatOrders.Engage || order == CombatOrders.Rush)
+                    {
+                        // Project direction onto world X axis, but keep some Y/Z for intercept
+                        toTarget.y *= 0.1f; 
+                        toTarget.z *= 0.1f;
+                    }
 
-                    // ✅ OPTIONAL: Rotate ship to face target (purely visual)
-                    // Comment this out if you don't want ships to rotate
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
-                    ship.transform.rotation = Quaternion.Slerp(
-                        ship.transform.rotation,
-                        targetRotation,
-                        Time.unscaledDeltaTime * 2f
-                    );
+                    Vector3 directionToTarget = toTarget.normalized;
 
                     // ✅ Move toward target
                     ship.transform.position += directionToTarget * step;
                 }
-                else
+else
                 {
                     // Default straight-line movement
                     bool isSideOne = CombatData.SideOneShipCons.Contains(ship);
@@ -756,21 +802,17 @@ namespace BOTF3D.Combat
             switch (order)
             {
                 case CombatOrders.AttackTransports:
-                    // ✅ Find enemy transports and flank around combat ships
                     return GetFlankingPositionToTransports(ship, isSideOne);
 
                 case CombatOrders.Formation:
-                    // Maintain position relative to group
-                    return GetFormationPosition(ship);
+                    return GetFormationPosition(ship, isSideOne);
 
                 case CombatOrders.Retreat:
-                    // Move away from enemy
                     return GetRetreatPosition(ship, isSideOne);
 
                 case CombatOrders.Rush:
                 case CombatOrders.Engage:
                 default:
-                    // Move toward closest enemy
                     ShipController target = ship.ShipData.TargetThisShipController;
                     if (target != null && !target.ShipData.Distroyed)
                     {
@@ -781,42 +823,118 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
-        /// Calculate flanking position to get line of sight on transports
+        /// Calculate flanking position to get line of sight on transports.
+        /// Swings wide outside the main combat area.
         /// </summary>
         private Vector3 GetFlankingPositionToTransports(ShipController ship, bool isSideOne)
         {
-            // Get enemy transports
             var enemyShips = isSideOne ? CombatData.SideTwoShipCons : CombatData.SideOneShipCons;
-            var enemyTransports = enemyShips.Where(s =>
-                s != null &&
-                !s.ShipData.Distroyed &&
-                s.ShipData.ShipType == ShipType.Transport
-            ).ToList();
+            var enemyTransports = enemyShips.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType == ShipType.Transport).ToList();
 
-            if (enemyTransports.Count == 0)
-            {
-                // No transports, attack normally
-                return Vector3.zero;
-            }
+            if (enemyTransports.Count == 0) return Vector3.zero;
 
-            // Find closest transport
-            ShipController closestTransport = enemyTransports
-                .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
-                .FirstOrDefault();
-
+            ShipController closestTransport = enemyTransports.OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position)).FirstOrDefault();
             if (closestTransport == null) return Vector3.zero;
 
-            // ✅ Calculate flanking vector (go around sides or over/under)
-            Vector3 toTransport = closestTransport.transform.position - ship.transform.position;
+            // Use StateMachine to track flank direction and path
+            var stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+            float flankZ = 0;
+            if (stateMachine != null)
+            {
+                // If not assigned a flank side, pick one based on current Z
+                if (ship.transform.position.z > 0) flankZ = 300f; // Wide Left
+                else flankZ = -300f; // Wide Right
+            }
 
-            // Add offset to flank (try going above/below and to the side)
-            Vector3 flankOffset = new Vector3(
-                0,                          // X: Don't offset horizontally (closing distance)
-                UnityEngine.Random.Range(-50f, 50f),  // Y: Randomly go up or down
-                UnityEngine.Random.Range(-50f, 50f)   // Z: Randomly go left or right
-            );
+            // Pathing: 1. Move to wide waypoint. 2. Dive for transport.
+            float currentX = ship.transform.position.x;
+            float targetX = closestTransport.transform.position.x;
+            
+            // If we haven't reached the "wide" Z yet, prioritize moving out
+            if (Mathf.Abs(ship.transform.position.z) < 250f)
+            {
+                return new Vector3(currentX, 0, flankZ);
+            }
 
-            return closestTransport.transform.position + flankOffset;
+            return closestTransport.transform.position;
+        }
+
+        /// <summary>
+        /// Get formation position: Ships form a wall in YZ plane.
+        /// Combat ships in front, Transports behind.
+        /// </summary>
+        private Vector3 GetFormationPosition(ShipController ship, bool isSideOne)
+        {
+            var stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+            if (stateMachine == null) return ship.transform.position;
+
+            bool isTransport = ship.ShipData.ShipType == ShipType.Transport;
+            float sideSign = isSideOne ? 1 : -1;
+            float formationX = isSideOne ? SIDE1_COMBAT_END_X : SIDE2_COMBAT_END_X;
+            
+            if (isTransport)
+            {
+                // Transports stay 100 units behind the wall
+                formationX -= sideSign * 100f;
+            }
+
+            // Simple grid based on slot
+            int slot = stateMachine.formationSlot;
+            if (slot == -1) 
+            {
+                stateMachine.formationSlot = Random.Range(0, 25);
+                slot = stateMachine.formationSlot;
+            }
+
+            int row = slot / 5;
+            int col = slot % 5;
+            float spacing = 40f;
+            Vector3 basePos = new Vector3(formationX, (row - 2) * spacing, (col - 2) * spacing);
+
+            // ✅ Dynamic Blocking: If a combat ship, check if it can block a shot to a transport
+            if (!isTransport)
+            {
+                Vector3 blockingPos = FindInterceptPosition(ship, isSideOne);
+                if (blockingPos != Vector3.zero) return blockingPos;
+            }
+
+            return basePos;
+        }
+
+        private Vector3 FindInterceptPosition(ShipController ship, bool isSideOne)
+        {
+            var friendlyShips = isSideOne ? CombatData.SideOneShipCons : CombatData.SideTwoShipCons;
+            var enemyShips = isSideOne ? CombatData.SideTwoShipCons : CombatData.SideOneShipCons;
+
+            var transports = friendlyShips.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType == ShipType.Transport).ToList();
+            if (transports.Count == 0) return Vector3.zero;
+
+            foreach (var enemy in enemyShips)
+            {
+                if (enemy == null || enemy.ShipData.Distroyed) continue;
+                if (enemy.ShipData.TargetThisShipController == null) continue;
+
+                // If enemy is targeting one of our transports
+                if (transports.Contains(enemy.ShipData.TargetThisShipController))
+                {
+                    ShipController targetTransport = enemy.ShipData.TargetThisShipController;
+                    Vector3 lineStart = enemy.transform.position;
+                    Vector3 lineEnd = targetTransport.transform.position;
+                    
+                    // Closest point on the threat line to this ship
+                    Vector3 lineDir = (lineEnd - lineStart).normalized;
+                    float projection = Vector3.Dot(ship.transform.position - lineStart, lineDir);
+                    projection = Mathf.Clamp(projection, 0, Vector3.Distance(lineStart, lineEnd));
+                    Vector3 interceptPoint = lineStart + lineDir * projection;
+
+                    // If we are close enough to intercept, move there
+                    if (Vector3.Distance(ship.transform.position, interceptPoint) < 100f)
+                    {
+                        return interceptPoint;
+                    }
+                }
+            }
+            return Vector3.zero;
         }
 
         /// <summary>
@@ -828,16 +946,7 @@ namespace BOTF3D.Combat
             float retreatX = isSideOne ? SIDE1_COMBAT_START_X : SIDE2_COMBAT_START_X;
             return new Vector3(retreatX, ship.transform.position.y, ship.transform.position.z);
         }
-
-        /// <summary>
-        /// Get formation position relative to group
-        /// </summary>
-        private Vector3 GetFormationPosition(ShipController ship)
-        {
-            // Maintain current position (or implement formation logic)
-            return ship.transform.position;
-        }
-        /// <summary>
+/// <summary>
         /// Create health bars for all ships AFTER warp animation completes
         /// </summary>
         public void CreateHealthBarsForAllShips()
@@ -1223,15 +1332,33 @@ namespace BOTF3D.Combat
         /// </summary>
         public void SetShipOrders(CombatOrders order, CivEnum civEnum)
         {
+            List<ShipController> sideShips = null;
             if (civEnum == CombatData.CivEnumSideOne)
             {
                 CombatData.SideOneOrder = order;
+                sideShips = CombatData.SideOneShipCons;
                 Debug.Log($"Side One order set to: {order}");
             }
             else if (civEnum == CombatData.CivEnumSideTwo)
             {
                 CombatData.SideTwoOrder = order;
+                sideShips = CombatData.SideTwoShipCons;
                 Debug.Log($"Side Two order set to: {order}");
+            }
+
+            // Propagate order to individual ships
+            if (sideShips != null)
+            {
+                foreach (var ship in sideShips)
+                {
+                    if (ship != null)
+                    {
+                        ship.Order = order;
+                        // Ensure state machine is aware
+                        var stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+                        if (stateMachine != null) stateMachine.CurrentOrder = order;
+                    }
+                }
             }
 
             // Log order summary
@@ -1239,8 +1366,6 @@ namespace BOTF3D.Combat
             {
                 string summary = CombatOrderHelper.GetOrderSummary(CombatData.SideOneOrder, CombatData.SideTwoOrder);
                 Debug.Log($"📊 Combat Orders: {summary}");
-                Debug.Log($"   Side 1: {CombatOrderHelper.GetOrderDescription(CombatData.SideOneOrder)}");
-                Debug.Log($"   Side 2: {CombatOrderHelper.GetOrderDescription(CombatData.SideTwoOrder)}");
             }
         }
 

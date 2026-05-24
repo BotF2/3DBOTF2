@@ -247,10 +247,53 @@ namespace BOTF3D.UI
                     continue;
                 }
 
-                // ✅ Set ShipListUIParent if not already set
-                if (sysUIFieldElement.shipContent != null && sysCon.StarSysData.ShipListUIParent == null)
+                // ✅ Set ShipListUIParent and Ensure Layout
+                if (sysUIFieldElement.shipContent != null)
                 {
                     sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
+
+                    // Ensure Grid Layout Group for 2D UI layout
+                    var grid = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+                    if (grid == null)
+                    {
+                        grid = sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.GridLayoutGroup>();
+                        grid.cellSize = new Vector2(100, 100); // Default cell size
+                        grid.spacing = new Vector2(5, 5);
+                    }
+
+                    var fitter = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+                    if (fitter == null)
+                    {
+                        fitter = sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                        fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                    }
+
+                    // ✅ SYNC SHIPS (Always run to ensure UIs are present and correctly parented)
+                    if (sysCon.StarSysData.ShipsList != null)
+                    {
+                        foreach (var shipCon in sysCon.StarSysData.ShipsList)
+                        {
+                            if (shipCon == null) continue;
+
+                            // Create missing UI
+                            if (shipCon.ShipListUIGameObject == null)
+                            {
+                                ShipManager.Instance?.InstantiateShipListUIGameObject(shipCon, sysCon.gameObject);
+                                Debug.Log($"  Created missing ship UI for '{shipCon.ShipData?.ShipName}' in system '{sysCon.name}'");
+                            }
+
+                            // Ensure correct parent
+                            if (shipCon.ShipListUIGameObject != null &&
+                                shipCon.ShipListUIGameObject.transform.parent != sysUIFieldElement.shipContent)
+                            {
+                                shipCon.ShipListUIGameObject.transform.SetParent(sysUIFieldElement.shipContent, false);
+                                shipCon.ShipListUIGameObject.SetActive(true);
+                                Debug.Log($"  Re-parented ship UI '{shipCon.ShipData?.ShipName}' to StarSys shipContent");
+                            }
+                        }
+                        // Rescue any queued items
+                        ShipManager.Instance?.ProcessPendingShipUIs();
+                    }
                 }
 
                 // ✅ FIRST TIME ONLY: Wire buttons and set original parent

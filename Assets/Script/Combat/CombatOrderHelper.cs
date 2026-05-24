@@ -6,20 +6,62 @@ namespace BOTF3D.Combat
 {
     /// <summary>
     /// Helper utilities for combat orders.
-    /// Does NOT apply artificial advantage/disadvantage modifiers.
-    /// Advantages emerge from actual combat mechanics:
-    /// - Rush: Ships move at max speed (per copilot-instructions.md)
-    /// - Retreat: Ships turn around then warp out
-    /// - Formation: Ships maintain formation with overlapping fire, protect transports
-    /// - AttackTransports: Ships flank to bypass LOS blocking
-    /// - Engage: Baseline neutral order
+    /// Implements "Rock Paper Scissors Lizard Spock" tactical matrix:
+    /// - Engage beats Rush, Retreat. Loses to Formation, Attack Transports.
+    /// - Rush beats Retreat, Formation. Loses to Engage, Attack Transports.
+    /// - Retreat beats Formation, Attack Transports. Loses to Engage, Rush.
+    /// - Formation beats Engage, Attack Transports. Loses to Rush, Retreat.
+    /// - Attack Transports beats Engage, Rush. Loses to Retreat, Formation.
     /// </summary>
     public static class CombatOrderHelper
     {
+        private const float ADVANTAGE_MULTIPLIER = 1.25f;
+        private const float DISADVANTAGE_MULTIPLIER = 0.75f;
+
+        /// <summary>
+        /// Get the tactical multiplier based on the interaction between two orders.
+        /// Applied to damage and accuracy.
+        /// </summary>
+        public static float GetOrderMultiplier(CombatOrders attackerOrder, CombatOrders targetOrder)
+        {
+            if (attackerOrder == targetOrder || attackerOrder == CombatOrders.None || targetOrder == CombatOrders.None)
+                return 1.0f;
+
+            switch (attackerOrder)
+            {
+                case CombatOrders.Engage:
+                    if (targetOrder == CombatOrders.Rush || targetOrder == CombatOrders.Retreat) return ADVANTAGE_MULTIPLIER;
+                    if (targetOrder == CombatOrders.Formation || targetOrder == CombatOrders.AttackTransports) return DISADVANTAGE_MULTIPLIER;
+                    break;
+
+                case CombatOrders.Rush:
+                    if (targetOrder == CombatOrders.Retreat || targetOrder == CombatOrders.Formation) return ADVANTAGE_MULTIPLIER;
+                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.AttackTransports) return DISADVANTAGE_MULTIPLIER;
+                    break;
+
+                case CombatOrders.Retreat:
+                    if (targetOrder == CombatOrders.Formation || targetOrder == CombatOrders.AttackTransports) return ADVANTAGE_MULTIPLIER;
+                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.Rush) return DISADVANTAGE_MULTIPLIER;
+                    break;
+
+                case CombatOrders.Formation:
+                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.AttackTransports) return ADVANTAGE_MULTIPLIER;
+                    if (targetOrder == CombatOrders.Rush || targetOrder == CombatOrders.Retreat) return DISADVANTAGE_MULTIPLIER;
+                    break;
+
+                case CombatOrders.AttackTransports:
+                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.Rush) return ADVANTAGE_MULTIPLIER;
+                    if (targetOrder == CombatOrders.Retreat || targetOrder == CombatOrders.Formation) return DISADVANTAGE_MULTIPLIER;
+                    break;
+            }
+
+            return 1.0f;
+        }
+
         /// <summary>
         /// Check if a side has transport ships
         /// </summary>
-        public static bool HasTransports(CombatData combatData, int side)
+public static bool HasTransports(CombatData combatData, int side)
         {
             if (combatData == null)
             {
