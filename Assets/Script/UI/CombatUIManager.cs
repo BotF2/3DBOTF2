@@ -463,42 +463,87 @@ namespace BOTF3D.UI
             if (currentCombatUICanvas == null) return;
 
             Toggle[] toggles = currentCombatUICanvas.GetComponentsInChildren<Toggle>(true);
+            if (toggles.Length == 0) return;
 
+            // Find or create ToggleGroup
+            ToggleGroup group = currentCombatUICanvas.GetComponentInChildren<ToggleGroup>(true);
+            if (group == null)
+            {
+                Transform parent = toggles[0].transform.parent;
+                group = (parent != null) ? parent.gameObject.GetComponent<ToggleGroup>() : null;
+                if (group == null) group = (parent != null) ? parent.gameObject.AddComponent<ToggleGroup>() : currentCombatUICanvas.gameObject.AddComponent<ToggleGroup>();
+            }
+            group.allowSwitchOff = false;
+
+            // Phase 1: Reset everything and ensure raycast targets
             foreach (var toggle in toggles)
             {
                 toggle.onValueChanged.RemoveAllListeners();
-                toggle.gameObject.SetActive(true);
-                toggle.interactable = true;
+                toggle.group = null; // Unlink group to allow reset
+                toggle.interactable = true; 
+                toggle.isOn = false;
+                
+                // Configure checkmark graphic
+                if (toggle.graphic != null)
+                {
+                    // Ensure the GameObject is active; Unity Toggle will control the component
+                    toggle.graphic.gameObject.SetActive(true);
+                    toggle.graphic.enabled = false; // Hide initially
+                    if (toggle.graphic is UnityEngine.UI.Graphic g) g.raycastTarget = false;
+                }
 
+                var images = toggle.GetComponentsInChildren<UnityEngine.UI.Image>(true);
+                foreach (var img in images)
+                {
+                    // Background images should be raycast targets
+                    if (toggle.graphic != img && !img.gameObject.name.Contains("Checkmark"))
+                    {
+                        img.raycastTarget = true;
+                    }
+                    else
+                    {
+                        img.raycastTarget = false;
+                    }
+                }
+            }
+
+            // Phase 2: Link group and set default
+            foreach (var toggle in toggles)
+            {
+                toggle.group = group;
+                
                 switch (toggle.name)
                 {
                     case "Toggle_ENGAGE":
                         engage = toggle;
+                        // Set isOn to false first to ensure the value change triggers when set to true
+                        engage.isOn = false; 
+                        engage.isOn = true; 
+                        currentOrder = CombatOrders.Engage;
+                        // Manual activation for the default to be safe
+                        if (engage.graphic != null) engage.graphic.enabled = true;
                         engage.onValueChanged.AddListener(OnToggleENGAGE);
-                        engage.isOn = true;
                         break;
                     case "Toggle_RUSH":
                         rush = toggle;
-                        rush.isOn = false;
                         rush.onValueChanged.AddListener(OnToggleRUSH);
                         break;
                     case "Toggle_RETREAT":
                         retreat = toggle;
-                        retreat.isOn = false;
                         retreat.onValueChanged.AddListener(OnToggleRETREAT);
                         break;
                     case "Toggle_FORMATION":
                         formation = toggle;
-                        formation.isOn = false;
                         formation.onValueChanged.AddListener(OnToggleFORMATION);
                         break;
                     case "Toggle_TARGET_TRANSPORTS":
                         AttackTransports = toggle;
-                        AttackTransports.isOn = false;
                         AttackTransports.onValueChanged.AddListener(OnToggleTARGET_TRANSPORTS);
                         break;
                 }
             }
+
+            Debug.Log($"✅ Setup {toggles.Length} toggles. Default order: {currentOrder}");
         }
 
         private void SetupButtons()

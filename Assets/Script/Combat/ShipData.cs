@@ -36,11 +36,23 @@ namespace BOTF3D.Core
         }
         public ShipData(ShipSO shipSO)
         {
-            this.ShipSO = shipSO;  // ✅ Store reference
-            ShipName = shipSO.ShipName;
-            // ... populate from SO ..
+            if (shipSO == null) return;
+
+            this.ShipSO = shipSO;
+            this.ShipName = shipSO.ShipName;
+            this.CivEnum = shipSO.CivEnum;
+            this.TechLevel = shipSO.TechLevel;
+            this.ShipType = shipSO.ShipType;
+            this.ShipSprite = shipSO.shipSprite;
+            this.maxWarpFactor = shipSO.maxWarpFactor;
+            this.ShieldHealth = shipSO.ShieldMaxHealth;
+            this.HullHealth = shipSO.HullMaxHealth;
+            this.TorpedoDamage = shipSO.TorpedoDamage;
+            this.BeamDamage = shipSO.BeamDamage;
+            this.BuildDuration = shipSO.BuildDuration;
+            this.ShipDescription = shipSO.ShipDescription;
         }
-        public ShipData()
+public ShipData()
         {
 
         }

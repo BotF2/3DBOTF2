@@ -552,8 +552,8 @@ namespace BOTF3D.Core
 
             Debug.Log($"  Creating UI for ship '{shipCon.ShipData.ShipName}'");
 
-            GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, new Vector3(0, 0, 0), Quaternion.identity);
-            thisShipListUIGameObject.transform.localRotation = Quaternion.Euler(90f, 0f, 180f);
+            GameObject thisShipListUIGameObject = (GameObject)Instantiate(shipListUIPrefab, Vector3.zero, Quaternion.identity);
+            thisShipListUIGameObject.transform.localRotation = Quaternion.identity;
             thisShipListUIGameObject.SetActive(true);
             thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;
             shipIndex++;
