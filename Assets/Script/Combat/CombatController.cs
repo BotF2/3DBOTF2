@@ -184,7 +184,7 @@ namespace BOTF3D.Combat
                 group.commonTarget = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
                                             .OrderBy(s => Vector3.Distance(center, s.transform.position))
                                             .FirstOrDefault();
-                
+
                 foreach (var s in group.ships) s.ShipData.TargetThisShipController = group.commonTarget;
             }
         }
@@ -209,33 +209,53 @@ namespace BOTF3D.Combat
 
             Debug.Log("=== Ship Setup Complete ===");
         }
-        /// <summary>
-        /// Setup ships for one side
-        /// </summary>
         private void SetupShips(List<ShipController> shipList, int side)
         {
+            // ✅ DIAGNOSTIC: Log what we received
+            Debug.Log($"=== SetupShips Side {side}: {shipList.Count} total ships ===");
+            foreach (var s in shipList)
+            {
+                if (s == null) Debug.LogWarning($"  ⚠️ NULL ship in Side {side} list!");
+                else Debug.Log($"  Ship: {s.ShipData?.ShipName ?? "NO DATA"} Type: {s.ShipData?.ShipType}");
+            }
+
             // Separate combat ships from transports
-            List<ShipController> combatShips = shipList.Where(s => s.ShipData.ShipType != ShipType.Transport).ToList();
-            List<ShipController> transportShips = shipList.Where(s => s.ShipData.ShipType == ShipType.Transport).ToList();
+            List<ShipController> combatShips = shipList
+                .Where(s => s != null && s.ShipData != null && s.ShipData.ShipType != ShipType.Transport)
+                .ToList();
+            List<ShipController> transportShips = shipList
+                .Where(s => s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.Transport)
+                .ToList();
+
+            Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports");
 
             // Generate spiral positions for wall formation
             List<Vector2Int> combatSpiralPositions = GenerateSpiralPositions(combatShips.Count);
-            List<Vector2Int> transportSpiralPositions = GenerateSpiralPositions(transportShips.Count);
+
+            // ✅ Offset transport spiral so they don't overlap combat ships at (0,0)
+            // Transports are placed behind the combat line (higher X-index offset in spiral)
+            int transportSpiralOffset = Mathf.CeilToInt(Mathf.Sqrt(combatShips.Count)) + 1;
+            List<Vector2Int> transportSpiralPositions = GenerateSpiralPositions(transportShips.Count + transportSpiralOffset)
+                .Skip(transportSpiralOffset)
+                .ToList();
 
             // Setup combat ships
             for (int i = 0; i < combatShips.Count; i++)
             {
+                Debug.Log($"  Combat ship [{i}] {combatShips[i].ShipData.ShipName} → spiral {combatSpiralPositions[i]}");
                 SetupSingleShip(combatShips[i], side, false, combatSpiralPositions[i]);
             }
 
             // Setup transport ships
             for (int i = 0; i < transportShips.Count; i++)
             {
+                Debug.Log($"  Transport [{i}] {transportShips[i].ShipData.ShipName} → spiral {transportSpiralPositions[i]}");
                 SetupSingleShip(transportShips[i], side, true, transportSpiralPositions[i]);
             }
 
             Debug.Log($"Side {side}: Setup {combatShips.Count} combat ships + {transportShips.Count} transports");
         }
+
         /// <summary>
         /// Setup a single ship with model, position, and rotation
         /// </summary>
@@ -560,7 +580,7 @@ namespace BOTF3D.Combat
 
                     shipController.SetWarpInOver();
                     Destroy(wd);
-}
+                }
             }
 
             Debug.Log("✅ Warp-in animation complete");
@@ -585,7 +605,7 @@ namespace BOTF3D.Combat
 
         /// <summary>
         /// Setup camera to track all ships and enable dynamic framing
-/// </summary>
+        /// </summary>
         private void SetupCameraTargets()
         {
             if (ShipCombatCameraController.Instance == null)
@@ -772,13 +792,13 @@ namespace BOTF3D.Combat
                 if (targetPosition != Vector3.zero)
                 {
                     Vector3 toTarget = targetPosition - ship.transform.position;
-                    
+
                     // If order is Engage or Rush, move mainly forward (X axis)
                     CombatOrders order = CombatData.SideOneShipCons.Contains(ship) ? CombatData.SideOneOrder : CombatData.SideTwoOrder;
                     if (order == CombatOrders.Engage || order == CombatOrders.Rush)
                     {
                         // Project direction onto world X axis, but keep some Y/Z for intercept
-                        toTarget.y *= 0.1f; 
+                        toTarget.y *= 0.1f;
                         toTarget.z *= 0.1f;
                     }
 
@@ -787,7 +807,7 @@ namespace BOTF3D.Combat
                     // ✅ Move toward target
                     ship.transform.position += directionToTarget * step;
                 }
-else
+                else
                 {
                     // Default straight-line movement
                     bool isSideOne = CombatData.SideOneShipCons.Contains(ship);
@@ -939,7 +959,7 @@ else
             // Pathing: 1. Move to wide waypoint. 2. Dive for transport.
             float currentX = ship.transform.position.x;
             float targetX = closestTransport.transform.position.x;
-            
+
             // If we haven't reached the "wide" Z yet, prioritize moving out
             if (Mathf.Abs(ship.transform.position.z) < 250f)
             {
@@ -961,7 +981,7 @@ else
             bool isTransport = ship.ShipData.ShipType == ShipType.Transport;
             float sideSign = isSideOne ? 1 : -1;
             float formationX = isSideOne ? SIDE1_COMBAT_END_X : SIDE2_COMBAT_END_X;
-            
+
             if (isTransport)
             {
                 // Transports stay 100 units behind the wall
@@ -970,7 +990,7 @@ else
 
             // Simple grid based on slot
             int slot = stateMachine.formationSlot;
-            if (slot == -1) 
+            if (slot == -1)
             {
                 stateMachine.formationSlot = Random.Range(0, 25);
                 slot = stateMachine.formationSlot;
@@ -1010,7 +1030,7 @@ else
                     ShipController targetTransport = enemy.ShipData.TargetThisShipController;
                     Vector3 lineStart = enemy.transform.position;
                     Vector3 lineEnd = targetTransport.transform.position;
-                    
+
                     // Closest point on the threat line to this ship
                     Vector3 lineDir = (lineEnd - lineStart).normalized;
                     float projection = Vector3.Dot(ship.transform.position - lineStart, lineDir);
@@ -1036,7 +1056,7 @@ else
             float retreatX = isSideOne ? SIDE1_COMBAT_START_X : SIDE2_COMBAT_START_X;
             return new Vector3(retreatX, ship.transform.position.y, ship.transform.position.z);
         }
-/// <summary>
+        /// <summary>
         /// Create health bars for all ships AFTER warp animation completes
         /// </summary>
         public void CreateHealthBarsForAllShips()
