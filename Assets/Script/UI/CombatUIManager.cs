@@ -47,10 +47,14 @@ namespace BOTF3D.UI
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
-
+            // FindUIElement(currentCombatUICanvas, "PanelCombat_Menu");
             Debug.Log("✅ CombatUIManager initialized (persistent)");
         }
-
+        IEnumerator Start()
+        {
+            yield return null;
+            FindUIElement(currentCombatUICanvas, "PanelCombat_Menu"); // find it now lest it be null on loading combat
+        }
         private void Update()
         {
             if (isTimerRunning)
@@ -250,7 +254,7 @@ namespace BOTF3D.UI
         private void EnsureEventSystemExists()
         {
             UnityEngine.EventSystems.EventSystem[] allEventSystems =
-                FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
+                FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include);
 
             UnityEngine.EventSystems.EventSystem persistentEventSystem = null;
             List<UnityEngine.EventSystems.EventSystem> sceneEventSystems = new List<UnityEngine.EventSystems.EventSystem>();
@@ -425,7 +429,7 @@ namespace BOTF3D.UI
 
             currentCombatUICanvas.SetActive(true);
 
-            panelCombatMenu = FindUIElement(currentCombatUICanvas, "PanelCombat_Menu", "Combat_Menu", "CombatMenu");
+            panelCombatMenu = FindUIElement(currentCombatUICanvas, "PanelCombat_Menu");
             if (panelCombatMenu != null)
             {
                 panelCombatMenu.SetActive(true);
@@ -434,7 +438,7 @@ namespace BOTF3D.UI
 
             if (currentCombat3DCanvas != null)
             {
-                panelShipCombat = FindUIElement(currentCombat3DCanvas, "PanelShipCombat", "ShipCombat", "Combat3D");
+                panelShipCombat = FindUIElement(currentCombat3DCanvas, "PanelShipCombat");
                 if (panelShipCombat != null)
                 {
                     panelShipCombat.SetActive(false);
@@ -443,14 +447,14 @@ namespace BOTF3D.UI
 
             if (currentGameOverCanvas != null)
             {
-                panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver");
+                panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd");
                 if (panelCombatOver != null)
                 {
                     panelCombatOver.SetActive(false);
                 }
             }
 
-            timerText = FindComponentByName<TextMeshProUGUI>(currentCombatUICanvas, "Timer Text", "Timer", "TimerText");
+            timerText = FindComponentByName<TextMeshProUGUI>(currentCombatUICanvas, "Timer Text");
 
             SetupToggles();
             SetupButtons();
@@ -480,9 +484,9 @@ namespace BOTF3D.UI
             {
                 toggle.onValueChanged.RemoveAllListeners();
                 toggle.group = null; // Unlink group to allow reset
-                toggle.interactable = true; 
+                toggle.interactable = true;
                 toggle.isOn = false;
-                
+
                 // Configure checkmark graphic
                 if (toggle.graphic != null)
                 {
@@ -511,14 +515,14 @@ namespace BOTF3D.UI
             foreach (var toggle in toggles)
             {
                 toggle.group = group;
-                
+
                 switch (toggle.name)
                 {
                     case "Toggle_ENGAGE":
                         engage = toggle;
                         // Set isOn to false first to ensure the value change triggers when set to true
-                        engage.isOn = false; 
-                        engage.isOn = true; 
+                        engage.isOn = false;
+                        engage.isOn = true;
                         currentOrder = CombatOrders.Engage;
                         // Manual activation for the default to be safe
                         if (engage.graphic != null) engage.graphic.enabled = true;
@@ -557,7 +561,7 @@ namespace BOTF3D.UI
                 button.gameObject.SetActive(true);
                 button.interactable = true;
 
-                if (button.name == "ButtonEnterCombat" || button.name.Contains("Enter") || button.name.Contains("Start"))
+                if (button.name == "ButtonEnterCombat")
                 {
                     button.onClick.RemoveAllListeners();
                     button.onClick.AddListener(EnterShipCombatPhase);
@@ -565,23 +569,21 @@ namespace BOTF3D.UI
             }
         }
 
-        private GameObject FindUIElement(GameObject root, params string[] possibleNames)
+        private GameObject FindUIElement(GameObject root, string name)
         {
             if (root == null) return null;
 
-            foreach (string name in possibleNames)
-            {
-                Transform found = root.transform.Find(name);
-                if (found != null) return found.gameObject;
+            Transform found = root.transform.Find(name);
+            if (found != null) return found.gameObject;
 
-                found = FindInHierarchyRecursive(root.transform, name);
-                if (found != null) return found.gameObject;
-            }
+            found = FindInHierarchyRecursive(root.transform, name);
+            if (found != null) return found.gameObject;
+
 
             return null;
         }
 
-        private T FindComponentByName<T>(GameObject root, params string[] possibleNames) where T : Component
+        private T FindComponentByName<T>(GameObject root, string name) where T : Component
         {
             if (root == null) return null;
 
@@ -589,12 +591,9 @@ namespace BOTF3D.UI
 
             foreach (var component in components)
             {
-                foreach (string name in possibleNames)
+                if (component.name == name || component.name.Contains(name))
                 {
-                    if (component.name == name || component.name.Contains(name))
-                    {
-                        return component;
-                    }
+                    return component;
                 }
             }
 
@@ -649,12 +648,12 @@ namespace BOTF3D.UI
             {
                 if (currentGameOverCanvas != null)
                 {
-                    panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
+                    panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd");
                 }
 
                 if (panelCombatOver == null && currentCombatUICanvas != null)
                 {
-                    panelCombatOver = FindUIElement(currentCombatUICanvas, "PanelCombatEnd", "CombatEnd", "GameOver", "CombatOver", "PanelCombatOver");
+                    panelCombatOver = FindUIElement(currentCombatUICanvas, "PanelCombatEnd");
                 }
             }
 
