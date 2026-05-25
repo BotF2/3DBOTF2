@@ -261,25 +261,24 @@ namespace BOTF3D.Combat
         /// </summary>
         private void SetupSingleShip(ShipController ship, int side, bool isTransport, Vector2Int spiralPos)
         {
-            // Calculate start and end positions
+            // Calculate start and end X positions
             float startX, endX;
             if (side == 1)
             {
                 startX = isTransport ? SIDE1_TRANSPORT_START_X : SIDE1_COMBAT_START_X;
                 endX = isTransport ? SIDE1_TRANSPORT_END_X : SIDE1_COMBAT_END_X;
             }
-            else
+            else // side == 2
             {
                 startX = isTransport ? SIDE2_TRANSPORT_START_X : SIDE2_COMBAT_START_X;
                 endX = isTransport ? SIDE2_TRANSPORT_END_X : SIDE2_COMBAT_END_X;
             }
 
-            // Side 1 (left) faces +X (right), Side 2 (right) faces -X (left)
-            // Use the spiral position to spread ships in Y and Z
+            // Side 1 enters from left (-X) moving right (+X direction)
+            // Side 2 enters from right (+X) moving left (-X direction)
+            // Use the spiral position to spread ships in Y (vertical) and Z (depth)
             Vector3 startPosition = new Vector3(startX, spiralPos.y * spacing, spiralPos.x * spacing);
             Vector3 endPosition = new Vector3(endX, spiralPos.y * spacing, spiralPos.x * spacing);
-
-            if (side == 2) Debug.Log($"🚀 Side 2 Ship {ship.ShipData.ShipName} Warp: Start={startPosition}, End={endPosition}");
 
             // ✅ FIX: Remove parent FIRST (before moving to scene)
             ship.transform.SetParent(null, true); // worldPositionStays = true
@@ -522,8 +521,6 @@ namespace BOTF3D.Combat
                             wd.isContracting = true;
                             wd.contractionStartTime = elapsed;
                             wd.contractionProgress = 0f;
-
-                            Debug.Log($"  ✅ {shipController.ShipData.ShipName} arrived, starting contraction");
                         }
                     }
 
