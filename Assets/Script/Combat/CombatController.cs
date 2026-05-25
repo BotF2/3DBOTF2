@@ -31,11 +31,16 @@ namespace BOTF3D.Combat
         private bool combatEnded = false;
         private bool showingEndPanel = false;
 
+        // Turn-based combat system
+        [Header("Turn-Based Combat")]
+        public TurnBasedCombatResolver TurnResolver;
+        public bool UseTurnBasedCombat = true; // Toggle for testing
+
         // Ship groups for combat orders
         [Header("Combat Order System")]
         public List<ShipGroup> sideOneGroups = new List<ShipGroup>();
         public List<ShipGroup> sideTwoGroups = new List<ShipGroup>();
-        private bool groupsInitialized = false;
+        public bool groupsInitialized = false;
 
         // Combat UI and resources
         public Canvas ShipCombatCanvas;
@@ -91,6 +96,12 @@ namespace BOTF3D.Combat
         {
             CombatID = GetEntityId();
             Debug.Log($"✅ CombatController {CombatID}: Created");
+
+            // Add turn-based resolver component (will initialize later when CombatData is set)
+            if (UseTurnBasedCombat)
+            {
+                TurnResolver = gameObject.AddComponent<TurnBasedCombatResolver>();
+            }
         }
 
         private void Start()
@@ -102,6 +113,9 @@ namespace BOTF3D.Combat
 
         void Update()
         {
+            // Skip real-time combat logic if using turn-based
+            if (UseTurnBasedCombat) return;
+
             // Update group targets for Engage order
             if (WarpingAnimationOver && !combatEnded)
             {
@@ -134,6 +148,15 @@ namespace BOTF3D.Combat
 
         void LateUpdate()
         {
+            // In turn-based combat, only move during Resolution phase
+            if (UseTurnBasedCombat && TurnResolver != null)
+            {
+                if (TurnResolver.CurrentPhase != CombatPhase.Resolution)
+                {
+                    return; // Only move during Resolution phase
+                }
+            }
+
             // Order-based movement system (after warp completes)
             if (WarpingAnimationOver && !WarpingIn && isMoving && !combatEnded)
             {
@@ -280,6 +303,15 @@ namespace BOTF3D.Combat
             Vector3 startPosition = new Vector3(startX, spiralPos.y * spacing, spiralPos.x * spacing);
             Vector3 endPosition = new Vector3(endX, spiralPos.y * spacing, spiralPos.x * spacing);
 
+            // Debug: Log Side 2 ships to verify they're coming from +X
+            if (side == 2)
+            {
+                Debug.Log($"🚀 Side 2 Ship '{ship.ShipData.ShipName}' Warp Path:");
+                Debug.Log($"   Start: {startPosition} (X={startPosition.x}, Y={startPosition.y}, Z={startPosition.z})");
+                Debug.Log($"   End:   {endPosition} (X={endPosition.x}, Y={endPosition.y}, Z={endPosition.z})");
+                Debug.Log($"   Motion: X changes by {endPosition.x - startPosition.x}, should be moving from +X to -X");
+            }
+
             // ✅ FIX: Remove parent FIRST (before moving to scene)
             ship.transform.SetParent(null, true); // worldPositionStays = true
 
@@ -302,14 +334,16 @@ namespace BOTF3D.Combat
             // Set ship transform
             ship.transform.position = startPosition;
 
-            // ✅ Reverted to prior rotation settings for Blender mesh import alignment
+            // Set ship rotation to face travel direction
+            // Side 1 travels toward +X, so face +X (rotate +90° on Y from default +Z forward)
+            // Side 2 travels toward -X, so face -X (rotate -90° on Y from default +Z forward)
             if (side == 1)
             {
-                ship.transform.rotation = Quaternion.Euler(0, -90, 0); // Side 1
+                ship.transform.rotation = Quaternion.Euler(0, 90, 0); // Side 1 faces +X (right)
             }
             else
             {
-                ship.transform.rotation = Quaternion.Euler(0, 90, 0); // Side 2
+                ship.transform.rotation = Quaternion.Euler(0, -90, 0); // Side 2 faces -X (left)
             }
 
             ship.transform.localScale = Vector3.one;
@@ -332,8 +366,9 @@ namespace BOTF3D.Combat
                 shipModel.transform.SetParent(ship.transform, false);
                 shipModel.transform.localPosition = Vector3.zero;
 
-                // ✅ Apply constant rotation offset to correct FBX orientation
-                shipModel.transform.localRotation = Quaternion.Euler(0, 0, 0); // Adjust as needed
+                // ✅ Flip child model 180° because FBX models face backwards
+                // Parent rotation handles side-facing, child flip corrects FBX orientation
+                shipModel.transform.localRotation = Quaternion.Euler(0, 180, 0);
 
                 shipModel.transform.localScale = Vector3.one;
 
@@ -459,15 +494,37 @@ namespace BOTF3D.Combat
             Debug.Log($"  Animating {allWarpData.Count} ships - staggered start with individual contraction");
 
 
-            // ✅ Initial stretch: all ships start stretched (not yet visible)
+            // ✅ Initial stretch: all ships start stretched along travel direction
             float warpStretchScale = 50f;
 
             foreach (var wd in allWarpData)
             {
                 if (wd != null && wd.gameObject != null && wd.shipModel != null)
                 {
-                    // ✅ Stretch the CHILD MODEL along its local Z-axis (ship's forward direction)
-                    wd.shipModel.transform.localScale = new Vector3(1f, 1f, warpStretchScale);
+                    ShipController shipController = wd.GetComponent<ShipController>();
+                    if (shipController != null)
+                    {
+                        // Ships travel along world X-axis, but parent is rotated 90° on Y
+                        // Side 1: rotation (0, -90, 0) → parent's +Z points toward world +X
+                        // Side 2: rotation (0, 90, 0) → parent's +Z points toward world -X
+                        // Child model has localRotation (0,0,0), so inherits parent rotation
+
+                        // When parent is rotated 90° on Y:
+                        // - Parent's local X → World Z
+                        // - Parent's local Y → World Y
+                        // - Parent's local Z → World X (travel direction!)
+
+                        // So stretching child's local Z = stretching along travel direction
+                        // This SHOULD be working... let's check the model's actual orientation
+
+                        Vector3 travelDirection = (wd.endPosition - wd.startPosition).normalized;
+                        bool travelingPositiveX = travelDirection.x > 0;
+
+                        Debug.Log($"🔍 {shipController.ShipData.ShipName}: Travel={travelDirection}, Parent.forward={shipController.transform.forward}, Model.forward={wd.shipModel.transform.forward}");
+
+                        // Stretch along local Z (should align with travel direction)
+                        wd.shipModel.transform.localScale = new Vector3(1f, 1f, warpStretchScale);
+                    }
                 }
             }
 
@@ -587,17 +644,31 @@ namespace BOTF3D.Combat
 
             SetupCameraTargets();
             CreateHealthBarsForAllShips();
-            // Initialize ship groups
-            InitializeShipGroupsForEngage();
 
-            // ✅ Assign targets BEFORE weapon fire starts
-            AssignTargetsToAllShips();
-
-            // Start weapon firing
-            yield return StartAllShipWeaponFire();
-
-            isMoving = true;
-            Debug.Log($"✅ Combat Controller {CombatID}: Order-based movement ENABLED. Side 1 order: {CombatData.SideOneOrder}, Side 2 order: {CombatData.SideTwoOrder}");
+            // Choose combat mode
+            if (UseTurnBasedCombat)
+            {
+                // Initialize turn-based resolver now that CombatData is set
+                if (TurnResolver != null)
+                {
+                    TurnResolver.Initialize(this);
+                    Debug.Log("🎮 Starting Turn-Based Combat");
+                    TurnResolver.BeginOrderSelection();
+                }
+                else
+                {
+                    Debug.LogError("❌ TurnResolver is null! Cannot start turn-based combat.");
+                }
+            }
+            else
+            {
+                // Original real-time combat
+                InitializeShipGroupsForEngage();
+                AssignTargetsToAllShips();
+                yield return StartAllShipWeaponFire();
+                isMoving = true;
+                Debug.Log($"✅ Combat Controller {CombatID}: Order-based movement ENABLED. Side 1 order: {CombatData.SideOneOrder}, Side 2 order: {CombatData.SideTwoOrder}");
+            }
         }
 
         /// <summary>
@@ -848,7 +919,7 @@ namespace BOTF3D.Combat
         /// Assign each ship a target on the opposing side.
         /// Called once after warp-in completes, before weapon fire starts.
         /// </summary>
-        private void AssignTargetsToAllShips()
+        public void AssignTargetsToAllShips()
         {
             Debug.Log("🎯 Assigning targets to all ships...");
 
@@ -1158,7 +1229,7 @@ namespace BOTF3D.Combat
         /// Start weapon firing for all ships with balanced delays
         /// Ships don't need to be active - coroutine runs on CombatController
         /// </summary>
-        private IEnumerator StartAllShipWeaponFire()
+        public IEnumerator StartAllShipWeaponFire()
         {
             Debug.Log("🔫 Starting weapon fire for all ships with balanced timing...");
 
@@ -1520,7 +1591,7 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Stop all weapon fire
         /// </summary>
-        private void StopAllWeaponFire()
+        public void StopAllWeaponFire()
         {
             // Nullify all targets to stop firing loops immediately
             foreach (var ship in CombatData.SideOneShipCons)

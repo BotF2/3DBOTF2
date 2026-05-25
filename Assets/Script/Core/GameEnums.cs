@@ -353,11 +353,20 @@ namespace BOTF3D.Core
     public enum CombatOrders
     {
         None,
-        Engage,           // Balanced attack in 2-3 ship groups, targets closest/slowest
-        Rush,             // Individual max speed, target center enemies only
-        Retreat,          // Turn 180° (2.5s vulnerable) then warp out (invulnerable)
-        Formation,        // Defensive wall, transports behind, blocks LOS
-        AttackTransports  // Swing wide to flank and hit transports
+        Engage,           // Balanced attack - focus fire in groups
+        Rush,             // All-out attack - max damage this turn
+        Retreat,          // Escape - vulnerable this turn, gone next turn
+        Formation,        // Defensive wall - protects transports, reduces damage
+        AttackTransports  // Flanking strike - bypass combat ships to hit transports
+    }
+
+    public enum CombatPhase
+    {
+        Warping,         // Ships warping into combat (animation)
+        OrderSelection,  // Player + AI selecting orders
+        Resolution,      // Animating movement + calculating damage
+        Results,         // Showing turn results
+        Victory          // Combat ended - one side won
     }
     public enum StarSysFacilityType
     {

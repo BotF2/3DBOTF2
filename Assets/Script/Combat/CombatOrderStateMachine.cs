@@ -107,6 +107,17 @@ namespace BOTF3D.Combat
             if (ShipController == null || ShipController.ShipData == null || ShipController.ShipData.Distroyed)
                 return;
 
+            // In turn-based combat, only execute orders during Resolution phase
+            var combatController = BOTF3D.UI.CombatUIManager.Instance?.CurrentCombatController;
+            if (combatController != null && combatController.UseTurnBasedCombat)
+            {
+                // Only move/fight during Resolution phase
+                if (combatController.TurnResolver.CurrentPhase != CombatPhase.Resolution)
+                {
+                    return;
+                }
+            }
+
             // Sync order from controller
             CurrentOrder = ShipController.Order;
 
@@ -209,9 +220,11 @@ namespace BOTF3D.Combat
             float formationSpeed = ShipController.ShipData.maxWarpFactor * 0.65f;
             transform.position = Vector3.MoveTowards(transform.position, targetPos, formationSpeed * Time.unscaledDeltaTime);
             
-            // In formation, stay facing forward
+            // In formation, stay facing forward toward enemy
             bool isSideOne = transform.position.x < 0;
-            transform.rotation = Quaternion.Euler(0, isSideOne ? -90 : 90, 0);
+            // Side 1 (left, negative X) faces +X (toward right/enemy) = +90°
+            // Side 2 (right, positive X) faces -X (toward left/enemy) = -90°
+            transform.rotation = Quaternion.Euler(0, isSideOne ? 90 : -90, 0);
         }
 
         private Vector3 CalculateFormationWallPosition(int slot)

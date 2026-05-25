@@ -178,20 +178,41 @@ namespace BOTF3D.UI
                     Debug.Log("✅ Ship combat panel activated");
                 }
 
-                // Apply current order
-                CurrentCombatController.SetShipOrders(currentOrder, CivEnumLocalPlayer);
+                // Handle turn-based vs real-time combat
+                if (CurrentCombatController.UseTurnBasedCombat)
+                {
+                    // Store the selected order for Turn 1 (will be submitted after warp-in)
+                    Debug.Log($"🎮 Turn-based combat: Player selected {currentOrder} for Turn 1");
 
-                // ✅ Give AI a random order for the other side
-                CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
-                    ? CurrentCombatController.CombatData.CivEnumSideTwo
-                    : CurrentCombatController.CombatData.CivEnumSideOne;
+                    // Set orders on controller so they're available during warp positioning
+                    CurrentCombatController.SetShipOrders(currentOrder, CivEnumLocalPlayer);
 
-                CurrentCombatController.SetAIRandomOrder(aiCivEnum);
+                    // AI picks its order too
+                    CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
+                        ? CurrentCombatController.CombatData.CivEnumSideTwo
+                        : CurrentCombatController.CombatData.CivEnumSideOne;
+                    CurrentCombatController.SetAIRandomOrder(aiCivEnum);
 
-                Debug.Log($"✅ Combat orders set - Player: {currentOrder}");
+                    // ✅ Start combat sequence (warp-in, then turn-based begins)
+                    StartCoroutine(StartCombatSequence());
+                }
+                else
+                {
+                    // Original real-time combat
+                    CurrentCombatController.SetShipOrders(currentOrder, CivEnumLocalPlayer);
 
-                // ✅ Start the new simplified warp-in animation
-                StartCoroutine(StartCombatSequence());
+                    // ✅ Give AI a random order for the other side
+                    CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
+                        ? CurrentCombatController.CombatData.CivEnumSideTwo
+                        : CurrentCombatController.CombatData.CivEnumSideOne;
+
+                    CurrentCombatController.SetAIRandomOrder(aiCivEnum);
+
+                    Debug.Log($"✅ Combat orders set - Player: {currentOrder}");
+
+                    // ✅ Start the new simplified warp-in animation
+                    StartCoroutine(StartCombatSequence());
+                }
             }
             else
             {
@@ -637,6 +658,30 @@ namespace BOTF3D.UI
         private void OnToggleTARGET_TRANSPORTS(bool isOn)
         {
             if (isOn) currentOrder = CombatOrders.AttackTransports;
+        }
+
+        /// <summary>
+        /// Show order selection UI for next turn (turn-based combat)
+        /// </summary>
+        public void ShowOrderSelectionForNextTurn()
+        {
+            Debug.Log("🎮 Showing order selection for next turn");
+
+            // Show combat menu again
+            if (panelCombatMenu != null)
+            {
+                panelCombatMenu.SetActive(true);
+            }
+
+            // Hide 3D combat view temporarily
+            if (panelShipCombat != null)
+            {
+                panelShipCombat.SetActive(false);
+            }
+
+            // Reset timer
+            remainingTime = 10f;
+            isTimerRunning = true;
         }
 
         /// <summary>
