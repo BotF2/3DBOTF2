@@ -93,6 +93,10 @@ namespace BOTF3D.Core
             diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyCon);
             diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
             InstantiateDiplomacyUIGameObject(diplomacyCon);
+            
+            // ✅ Open via GalaxyMenuUIController to ensure other menus close correctly
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyCon.gameObject);
+            
             DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(diplomacyCon.DiplomacyUIGameObject,
                 diplomacyCon.gameObject, shipsToSeeInLocalPayerDiploUI);
 
@@ -167,6 +171,9 @@ namespace BOTF3D.Core
                     ourDiplomacyController.DiplomacyData.CivEnumSideOne = civPartyTwo.CivData.CivEnum; // local player civ
                     ourDiplomacyController.DiplomacyData.CivEnumSideTwo = civPartyOne.CivData.CivEnum;
                 }
+                // ✅ Open via GalaxyMenuUIController to ensure other menus close correctly
+                GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, ourDiplomacyController.gameObject);
+
                 DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject,
                     ourDiplomacyController.gameObject, shipList);
             }

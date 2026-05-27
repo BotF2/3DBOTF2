@@ -211,15 +211,8 @@ namespace BOTF3D.UI
                 FindFleetUIContainers();
             }
 
-            // ✅ Hide any open star system UIs first (mutual exclusion)
-            if (StarSysMenuUIController.Instance != null)
-            {
-                Debug.Log("  Hiding any open star system UIs before showing fleet UI");
-                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
-            }
-
-            // ✅ NO LONGER CALL SetupFleetUIData() - it only wires new fleets
-            // SetupFleetUIData();
+            // Menu system handles cleanup when transitioning between menus
+            // Don't call MoveBack here - it deactivates UIs
 
             if (theFleetCon.FleetUIGameObject == null)
             {
@@ -680,43 +673,44 @@ namespace BOTF3D.UI
         // New: run the cleanup logic *after* a commit has completed.
         public void CancelShipManageAfterCommit()
         {
-            if (tempFleetController == null)
+            if (tempFleetController != null)
             {
-                Debug.Log("CancelShipManageAfterCommit (Fleet): No temp fleet to process");
-                return;
-            }
+                Debug.Log($"CancelShipManageAfterCommit (Fleet): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
 
-            Debug.Log($"CancelShipManageAfterCommit (Fleet): tempFleetController '{tempFleetController.name}' has {tempFleetController.FleetData.ShipsList.Count} ships");
+                // Only destroy the fleet if it has NO ships
+                if (tempFleetController.FleetData.ShipsList.Count == 0)
+                {
+                    Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
 
-            // Only destroy the fleet if it has NO ships
-            if (tempFleetController.FleetData.ShipsList.Count == 0)
-            {
-                Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
+                    if (FleetManager.Instance.TempFogRevealerFleet != null)
+                        FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
+                    FleetManager.Instance.TempFogRevealerFleet = null;
 
-                if (FleetManager.Instance.TempFogRevealerFleet != null)
-                    FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
-                FleetManager.Instance.TempFogRevealerFleet = null;
+                    FleetManager.Instance.DestroyFleetController(tempFleetController);
+                    tempFleetController = null;
+                }
+                else
+                {
+                    Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
 
-                FleetManager.Instance.DestroyFleetController(tempFleetController);
-                tempFleetController = null;
+                    // ✅ NEW: Ensure the fleet has proper UI setup before keeping it
+                    if (tempFleetController.FleetData.ShipListUIParent == null)
+                    {
+                        var uiFields = tempFleetController.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                        if (uiFields != null && uiFields.FleetShipContentGO != null)
+                        {
+                            tempFleetController.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                            Debug.Log($"  Set ShipListUIParent for kept fleet '{tempFleetController.name}'");
+                        }
+                    }
+
+                    // Fleet has ships, so finalize it and keep it
+                    tempFleetController = null; // Clear temp reference but don't destroy
+                }
             }
             else
             {
-                Debug.Log($"Keeping fleet '{tempFleetController.name}' with {tempFleetController.FleetData.ShipsList.Count} ships");
-
-                // ✅ NEW: Ensure the fleet has proper UI setup before keeping it
-                if (tempFleetController.FleetData.ShipListUIParent == null)
-                {
-                    var uiFields = tempFleetController.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-                    if (uiFields != null && uiFields.FleetShipContentGO != null)
-                    {
-                        tempFleetController.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
-                        Debug.Log($"  Set ShipListUIParent for kept fleet '{tempFleetController.name}'");
-                    }
-                }
-
-                // Fleet has ships, so finalize it and keep it
-                tempFleetController = null; // Clear temp reference but don't destroy
+                Debug.Log("CancelShipManageAfterCommit (Fleet): No temp fleet to process, proceeding to UI cleanup");
             }
 
             var galaxyUI = GalaxyMenuUIController.Instance;

@@ -15,10 +15,9 @@ namespace BOTF3D.UI
         public GameObject ShipDeployPanel;
         public GameObject TopSlot;
         public GameObject BottomSlot;
-        [SerializeField]
-        private Button saveCloseButton;
+        public Button saveCloseButton;
         public FleetController TopFleet;
-        public FleetController BottomFleet;
+public FleetController BottomFleet;
         public StarSysController TopStarSyst;
         public StarSysController BottomStarSyst;
 
@@ -45,7 +44,26 @@ namespace BOTF3D.UI
                 Debug.Log("ShipDeployMenuUIController: Instance cleared");
             }
         }
+        /// <summary>
+        /// Show the ship deploy menu scoped to a specific fleet
+        /// Sets up the fleet's ships in the bottom slot for deployment
+        /// </summary>
+        public void ShowShipDeployMenu(FleetController fleet)
+        {
+            if (fleet == null)
+            {
+                Debug.LogError("ShowShipDeployMenu: fleet is null");
+                return;
+            }
 
+            Debug.Log($"ShowShipDeployMenu: opening for fleet '{fleet.name}'");
+
+            // Set up the bottom slot with the fleet's ships
+            SetUpBottomShipLists(fleet, deployNotMerge: true);
+
+            // Show the panel
+            ShowShipDeployMenuView();
+        }
         public void ShowShipDeployMenuView()
         {
             if (ShipDeployPanel == null)
@@ -63,30 +81,71 @@ namespace BOTF3D.UI
             ShipDeployPanel.SetActive(true);
             // Bring panel to front
             transform.SetAsLastSibling();
+
+            // ✅ Fallback: Try to find the button if it's not assigned
+            if (saveCloseButton == null)
+            {
+                saveCloseButton = ShipDeployPanel.transform.Find("SaveClose")?.GetComponent<Button>();
+                if (saveCloseButton == null)
+                {
+                    saveCloseButton = ShipDeployPanel.transform.Find("SaveCloseButton")?.GetComponent<Button>();
+                }
+                
+                if (saveCloseButton != null)
+                {
+                    Debug.Log($"  Found '{saveCloseButton.name}' via search in ShipDeployPanel");
+                }
+            }
+
             if (saveCloseButton != null)
             {
                 saveCloseButton.onClick.RemoveAllListeners();
                 saveCloseButton.onClick.AddListener(() => OnSaveCloseButtonClicked());
                 Debug.Log($"✅ ShipDeployMenuUIController: '{saveCloseButton.name}' wired to OnSaveCloseButtonClicked()");
             }
+            else
+            {
+                Debug.LogWarning("  ⚠️ Save/Close button not found or assigned! User won't be able to close Ship Deploy UI.");
+            }
             Debug.Log($"ShowShipDeployMenuView: opened. TopSlot children={TopSlot?.transform.childCount ?? 0}, BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
         }
         /// <summary>
         /// Called when Save + Close button is clicked
         /// </summary>
-        private void OnSaveCloseButtonClicked()
+        public void OnSaveCloseButtonClicked()
         {
             Debug.Log("=== OnSaveCloseButtonClicked: User clicked Save + Close ===");
 
-            // ✅ Just delegate to GalaxyMenuUIController - it handles everything!
-            if (GalaxyMenuUIController.Instance != null)
+            // ✅ CRITICAL: Delegate to the active controller's commit logic!
+            // This ensures ships are moved and temp fleets are finalized/cleaned up.
+            
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI == null)
             {
-                GalaxyMenuUIController.Instance.CloseShipDeployMenu();
-                Debug.Log("  Delegated to GalaxyMenuUIController.CloseShipDeployMenu()");
+                Debug.LogError("  ❌ GalaxyMenuUIController.Instance is NULL!");
+                HideShipDeployMenuView();
+                return;
+            }
+
+            // Determine which controller "owns" this session based on which one is looking for deploy/merge
+            bool isFleetActive = galaxyUI.FleetLookingForShipDeploy != null || galaxyUI.FleetLookingForShipMerge != null;
+            bool isSysActive = galaxyUI.StarSystLookingForShipDeploy != null || galaxyUI.StarSystLookingForShipMerge != null;
+
+            if (isFleetActive && FleetMenuUIController.Instance != null)
+            {
+                Debug.Log("  Delegating to FleetMenuUIController.ClickCancelShipManageButton()");
+                FleetMenuUIController.Instance.ClickCancelShipManageButton();
+            }
+            else if (isSysActive && StarSysMenuUIController.Instance != null)
+            {
+                Debug.Log("  Delegating to StarSysMenuUIController.ClickCancelShipManageButton()");
+                StarSysMenuUIController.Instance.ClickCancelShipManageButton();
             }
             else
             {
-                Debug.LogError("  ❌ GalaxyMenuUIController.Instance is NULL!");
+                // Fallback: Just hide the UI if we can't find an owner (shouldn't happen in normal flow)
+                Debug.LogWarning("  ⚠️ No active owner found for Ship Deploy. Just hiding menu.");
+                galaxyUI.CloseShipDeployMenu();
             }
         }
         public void HideShipDeployMenuView()

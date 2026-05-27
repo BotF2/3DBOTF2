@@ -27,8 +27,8 @@ namespace BOTF3D.Combat
         private CombatData combatData;
 
         [Header("Resolution Settings")]
-        public float ResolutionAnimationDuration = 5f;
-        public float ResultsDisplayDuration = 3f;
+        public float ResolutionAnimationDuration = 10f; // Combat action duration
+        public float ResultsDisplayDuration = 2f;       // Quick results display
 
         [Header("Turn Results")]
         public TurnResult LastTurnResult;

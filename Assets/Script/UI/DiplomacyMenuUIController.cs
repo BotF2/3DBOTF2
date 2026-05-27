@@ -256,20 +256,21 @@ namespace BOTF3D.UI
             ADiplomacyMenuView.gameObject.SetActive(true);
             DiplomacyMenuView.gameObject.SetActive(true);
             diplomacyListContainter.gameObject.SetActive(true);
-            // diplomacyUIGO.GetComponent<DiplomacyMenuUIController>() = this;
             CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideOne);
             CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideTwo);
             CivController notLocalPlayerCiv;
             CivController localPlayerCiv;
             StarSysController homeSysController;
             diplomacyCon.DiplomacyUIGameObject.SetActive(true);
-            diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
 
+            // ✅ FIX: Parent to container then move to the TOP of the list so newest is first
+            diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+            diplomacyCon.DiplomacyUIGameObject.transform.SetAsFirstSibling();
 
             if (!DiplomacyManager.Instance.DiplomacyControllers.Contains(diplomacyCon))
-                DiplomacyManager.Instance.DiplomacyControllers.Add(diplomacyCon);// add to list so GalaxyMenuUI has it
+                DiplomacyManager.Instance.DiplomacyControllers.Add(diplomacyCon);
             if (!ListOfDiplomacyUiGos.Contains(diplomacyCon.DiplomacyUIGameObject))
-                ListOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject); // add to list of DiplomacyUI Game Objects for GalaxyMenuUI
+                ListOfDiplomacyUiGos.Add(diplomacyCon.DiplomacyUIGameObject);
             if (GameController.Instance.AreWeLocalPlayer(partyOne.CivData.CivEnum))
             {
                 notLocalPlayerCiv = partyTwo;
@@ -285,30 +286,35 @@ namespace BOTF3D.UI
                 //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController);
             }
             Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
+            bool foundRaceImage = false;       // ✅ Declared OUTSIDE the loop
+            bool foundInsigniaImage = false;   // ✅ Declared OUTSIDE the loop
             for (int q = 0; q < listOfImages.Length; q++)
             {
-                // int techLevelInt = (int)CivManager.Instance.LocalPlayerCivContoller.CivData.StartingTechLevel / 100; // Early Tech level = 100, Supreme = 900;
-                bool foundRaceImage = false;
-                bool foundInsigniaImage = false;
                 listOfImages[q].enabled = true;
-                var name = listOfImages[q].name.ToString();
+                var name = listOfImages[q].name;
                 switch (name)
                 {
                     case "RaceImage":
                         listOfImages[q].sprite = notLocalPlayerCiv.CivData.CivRaceSprite;
                         foundRaceImage = true;
+                        Debug.Log($"  ✅ RaceImage set for {notLocalPlayerCiv.CivData.CivShortName}");
                         break;
-                    case "InsigniaTheirCiv (TMP)":
+                    case "InsigniaTheirCiv":   // ✅ FIX: removed erroneous " (TMP)" suffix
                         listOfImages[q].sprite = notLocalPlayerCiv.CivData.InsigniaSprite;
                         foundInsigniaImage = true;
+                        Debug.Log($"  ✅ InsigniaTheirCiv set for {notLocalPlayerCiv.CivData.CivShortName}");
                         break;
                     default:
                         break;
                 }
                 if (foundRaceImage && foundInsigniaImage)
                 {
-                    break;
+                    break; // ✅ Now reachable: both found, stop searching
                 }
+            }
+            if (!foundInsigniaImage)
+            {
+                Debug.LogWarning($"  ⚠️ InsigniaTheirCiv Image not found in DiplomacyUIGameObject for {notLocalPlayerCiv.CivData.CivShortName}. Check the GameObject name in the prefab.");
             }
             RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>();
             for (int i = 0; i < rectTransforms.Length; i++)

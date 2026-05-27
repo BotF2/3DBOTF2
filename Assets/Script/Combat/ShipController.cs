@@ -114,9 +114,19 @@ namespace BOTF3D.Combat
 
         internal void FireWeapons(bool beam)
         {
-            if (ShipData == null || ShipData.Distroyed || ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed) return;
+            // ✅ Safety checks: Don't fire if destroyed, no target, or a transport
+            if (ShipData == null || ShipData.Distroyed || ShipData.ShipType == ShipType.Transport) return;
+            if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed) return;
 
             ShipController target = ShipData.TargetThisShipController;
+            
+            // ✅ Friendly fire check (primary target)
+            if (target.ShipData.CivEnum == this.ShipData.CivEnum)
+            {
+                Debug.LogWarning($"⚠️ {ShipData.ShipName} attempted to fire on friendly {target.ShipData.ShipName} - Aborting.");
+                return;
+            }
+
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return;
 
@@ -128,7 +138,15 @@ namespace BOTF3D.Combat
             ShipController blocker = LineOfSightBlocker.GetBlockingShip(transform.position, target.transform.position, potentialBlockers);
             if (blocker != null && blocker != target && blocker != this)
             {
-                // Shot is blocked! Hit the blocker instead.
+                // ✅ Friendly fire check (blocker)
+                // If a friendly ship is in the way, stop the shot to avoid hitting them
+                if (blocker.ShipData.CivEnum == this.ShipData.CivEnum)
+                {
+                    Debug.Log($"🚫 {ShipData.ShipName} holding fire - {blocker.ShipData.ShipName} is in the way!");
+                    return;
+                }
+
+                // Shot is blocked by an enemy! Hit the blocker instead.
                 target = blocker;
             }
 
@@ -159,10 +177,18 @@ namespace BOTF3D.Combat
 
         public IEnumerator ShipFireLoop(float initialDelay)
         {
+            // ✅ Transports don't fire weapons
+            if (ShipData != null && ShipData.ShipType == ShipType.Transport)
+            {
+                yield break;
+            }
+
             if (initialDelay > 0)
                 yield return new WaitForSecondsRealtime(initialDelay);
 
-            bool beam = true;
+            // Fire ONE torpedo salvo at start, then beams only
+            bool hasFiredTorpedo = false;
+
             while (true)
             {
                 if (ShipData == null || ShipData.Distroyed) yield break;
@@ -174,8 +200,17 @@ namespace BOTF3D.Combat
                     continue;
                 }
 
-                FireWeapons(beam);
-                beam = !beam;
+                // First shot: torpedo if available
+                if (!hasFiredTorpedo && ShipData.TorpedoDamage > 0)
+                {
+                    FireWeapons(false); // Fire torpedo
+                    hasFiredTorpedo = true;
+                }
+                else
+                {
+                    // All subsequent shots: beams only
+                    FireWeapons(true); // Fire beam
+                }
 
                 float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
                 yield return new WaitForSecondsRealtime(refireDelay);
@@ -281,6 +316,14 @@ namespace BOTF3D.Combat
         public void TakeDamage(int weaponDamageInt)
         {
             if (ShipData == null || ShipData.Distroyed) return;
+
+            // ✅ Ships are invulnerable during warp-out
+            var orderStateMachine = GetComponent<CombatOrderStateMachine>();
+            if (orderStateMachine != null && orderStateMachine.IsWarpingOut())
+            {
+                Debug.Log($"🛡️ {ShipData.ShipName} is warping out - invulnerable to damage!");
+                return;
+            }
 
             if (ShipData.ShieldHealth > 0)
             {

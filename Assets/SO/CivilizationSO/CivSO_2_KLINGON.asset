@@ -22,7 +22,7 @@ MonoBehaviour:
   RuthlessEnum: 2
   GreedyEnum: 0
   CivImage: {fileID: 21300000, guid: b126cfe016a216d4ab3fc9d194dc64ed, type: 3}
-  Insignia: {fileID: 21300000, guid: 314213c0075b78447b6dd9514ca2fe63, type: 3}
+  Insignia: {fileID: 21300000, guid: 6afc8123fa0e8a541a227321e6ab0fdd, type: 3}
   Population: 0
   Credits: 0
   TechPoints: 0

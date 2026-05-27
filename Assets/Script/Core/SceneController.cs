@@ -127,21 +127,21 @@ namespace BOTF3D.GamePlay
             {
                 shipControllers1 = starSysCon.StarSysData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
-                combatType = CombatType.StarSystemCombat;
+                combatType = CombatType.SystemVsFleet;
                 Debug.Log($"  Player fleet null and '{starSysCon.name}' in combat with {enemyFleet.name}");
             }
             else if (starSysCon == null)
             {
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
-                combatType = CombatType.DeepSpaceCombat;
+                combatType = CombatType.FleetVsFleet;
                 Debug.Log($"  Star system null and '{playerFleet.name}' in combat with '{playerFleet.name}' and enemy fleet '{enemyFleet.name}' ShipControllers");
             }
             else if (enemyFleet == null)
             {
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = starSysCon.StarSysData.ShipsList;
-                combatType = CombatType.StarSystemCombat;
+                combatType = CombatType.FleetVsSystem;
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }
             // Start combat scene load coroutine

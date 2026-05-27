@@ -18,7 +18,22 @@ namespace BOTF3D.GamePlay
         //Fields
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
-        public GameObject FleetUIGameObject; //The instantiated fleet UI for this fleet. a prefab clone, not a class but a game object
+        [SerializeField]
+        private GameObject _fleetUIGameObject;
+
+        public GameObject FleetUIGameObject
+        {
+            get => _fleetUIGameObject;
+            set
+            {
+                if (value != null && (value == this.gameObject || value.transform.IsChildOf(this.transform)))
+                {
+                    Debug.LogError($"❌ FleetUIGameObject on '{name}' cannot be set to its own 3D GameObject or a child of it! This would deactivate the fleet from the galaxy map. Assignment blocked.");
+                    return;
+                }
+                _fleetUIGameObject = value;
+            }
+        }
         public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
@@ -356,17 +371,7 @@ namespace BOTF3D.GamePlay
 
         private void HandleNormalClick(FleetController clickedFleetCon)
         {
-            // ✅ CRITICAL: Clean up any fleet UIs from previous operations before opening new UI
-            if (FleetMenuUIController.Instance != null)
-            {
-                FleetMenuUIController.Instance.MoveBackAnyaFleetUIGO();
-                Debug.Log("HandleNormalClick: Cleaned up fleet UIs before opening new UI");
-            }
-            if (StarSysMenuUIController.Instance != null)
-            {
-                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
-                Debug.Log("HandleNormalClick: Cleaned up star system UIs before opening new UI");
-            }
+            // Menu system will handle cleanup when transitioning between menus
             if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
             {
                 GalaxyUI.OpenMenu(Menu.AFleetMenu, this.gameObject);
@@ -411,9 +416,13 @@ namespace BOTF3D.GamePlay
 
                 // Parent both fleet UIs
                 if (fleetLooking.FleetUIGameObject != null)
+                {
                     fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.SetActive(true);
+                }
 
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
                 FleetUIGameObject.transform.SetAsLastSibling();
 
                 ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
@@ -452,6 +461,7 @@ namespace BOTF3D.GamePlay
                 }
 
                 clickedFleetCon.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
+                clickedFleetCon.FleetUIGameObject.SetActive(true);
                 FleetUIGameObject.transform.SetAsLastSibling();
 
                 ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
@@ -877,7 +887,7 @@ namespace BOTF3D.GamePlay
                 }
                 if (ShipDeployMenuUIController.Instance != null)
                 {
-                    ShipDeployMenuUIController.Instance.ShipDeployPanel.SetActive(false);
+                    ShipDeployMenuUIController.Instance.OnSaveCloseButtonClicked();
                 }
                 fleetCon.FleetUIGameObject.SetActive(false);
 

@@ -1,34 +1,37 @@
-using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.GamePlay;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace BOTF3D.UI
 {
+    /// <summary>
+    /// Refactored GalaxyMenuUIController - orchestrates specialized managers for galaxy menu operations.
+    /// Reduced from 2,103 lines to ~500 lines by delegating to:
+    /// - GalaxyUIStateManager (menu state, transitions)
+    /// - GalaxyCivDisplayManager (civ insignias, portraits)
+    /// - GalaxyShipDeployManager (ship deployment operations)
+    /// - GalaxyListPopulator (UI list management)
+    /// - GalaxyCameraManager (camera setup)
+    /// </summary>
     public class GalaxyMenuUIController : MonoBehaviour
     {
         public static GalaxyMenuUIController Instance;
-        [SerializeField]
-        private Camera galaxyEventCamera;
-        [SerializeField]
-        private Canvas parentCanvas;
-        [SerializeField]
-        Button homeSystemButton;
-        [SerializeField]
-        Sprite insigniaSprite;
-        [SerializeField] private GameObject insigniaGO;
-        [SerializeField]
-        private Sprite raceSprite;
-        [SerializeField] private GameObject raceGO;
-        [SerializeField]
-        TextMeshProUGUI civShortNameText;
 
-        // ✅ Civilization Sprites - Assign in Inspector
+        #region Serialized Fields (Inspector References)
+
+        [Header("Camera & Canvas")]
+        [SerializeField] private Camera galaxyEventCamera;
+        [SerializeField] private Canvas parentCanvas;
+
+        [Header("UI Elements")]
+        [SerializeField] private Button homeSystemButton;
+        [SerializeField] private GameObject insigniaGO;
+        [SerializeField] private GameObject raceGO;
+        [SerializeField] private TextMeshProUGUI civShortNameText;
+
         [Header("Civilization Insignias")]
         [SerializeField] private Sprite federationInsignia;
         [SerializeField] private Sprite romulanInsignia;
@@ -46,107 +49,149 @@ namespace BOTF3D.UI
         [SerializeField] private Sprite dominionRace;
         [SerializeField] private Sprite borgRace;
         [SerializeField] private Sprite terranRace;
+
+        [Header("Menu Views")]
+        [SerializeField] private GameObject sysBuildMenu;
+        [SerializeField] private GameObject diplomacyNoContacts;
+        [SerializeField] private GameObject intelMenuView;
+        [SerializeField] private GameObject encyclopediaMenuView;
+        [SerializeField] private GameObject habitableSysMenu;
+        [SerializeField] private GameObject closeMenuButton;
+        [SerializeField] private Button saveShipDelployButton;
+
+        [Header("Background Panels")]
+        [SerializeField] private GameObject sysBackground;
+        [SerializeField] private GameObject fleetsBackground;
+        [SerializeField] private GameObject diplomacyBackground;
+        [SerializeField] private GameObject intelBackground;
+        [SerializeField] private GameObject encyclopediaBackground;
+
+        [Header("Buttons")]
+        [SerializeField] private GameObject selectOtherSysOrFleetButtonGO;
+        [SerializeField] private GameObject InteractionButtonGO;
+        [SerializeField] private GameObject tradeButtonGO;
+        [SerializeField] private GameObject engagementButtonGO;
+        [SerializeField] private GameObject techButtonGO;
+        [SerializeField] private GameObject aidButtonGO;
+        [SerializeField] private GameObject allianceButtonGO;
+        [SerializeField] private GameObject gatherIntelButtonGO;
+        [SerializeField] private GameObject theftButtonGO;
+        [SerializeField] private GameObject disinformationButtonGO;
+        [SerializeField] private GameObject sabatogeButtonGO;
+        [SerializeField] private GameObject combatButtonGO;
+        [SerializeField] private GameObject closeDiplomacyButtonGO;
+
+        [Header("Data Lists")]
+        [SerializeField] private List<StarSysController> sysControllers;
+        [SerializeField] private List<FleetController> fleetControllers;
+        [SerializeField] private List<DiplomacyController> diplomacyControllers;
+        [SerializeField] private List<GameObject> listOfStarSysUiGos;
+        [SerializeField] private List<GameObject> listOfSysShipUiGos;
+        [SerializeField] private List<GameObject> listOfFleetUiGos;
+        [SerializeField] private List<GameObject> listOfDiplomacyUiGos;
+
+        [Header("Prefabs")]
+        [SerializeField] private GameObject fleetUI_Prefab;
+
+        #endregion
+
+        #region Specialized Managers
+
+        private GalaxyUIStateManager uiStateManager;
+        private GalaxyCivDisplayManager civDisplayManager;
+        private GalaxyShipDeployManager shipDeployManager;
+        private GalaxyListPopulator listPopulator;
+        private GalaxyCameraManager cameraManager;
+
+        #endregion
+
+        #region References to Other UI Controllers
+
         private FleetMenuUIController fleetMenuUIController => FleetMenuUIController.Instance;
         private StarSysMenuUIController starSysMenuUIController => StarSysMenuUIController.Instance;
         private DiplomacyMenuUIController diplomacyMenuUIController => DiplomacyMenuUIController.Instance;
         private ShipDeployMenuUIController shipDeployMenuUIController => ShipDeployMenuUIController.Instance;
 
-        [SerializeField]
-        private GameObject sysBuildMenu;
-        [SerializeField]
-        private GameObject diplomacyNoContacts;
-        [SerializeField]
-        private GameObject intelMenuView;
-        [SerializeField]
-        private GameObject encyclopediaMenuView;
-        [SerializeField]
-        private GameObject habitableSysMenu;
-        [SerializeField]
-        private GameObject aNull;
-        [SerializeField]
-        private GameObject closeMenuButton;
-        [SerializeField] private Button saveShipDelployButton;
-        [SerializeField]
-        private GameObject sysBackground;
-        [SerializeField]
-        private GameObject fleetsBackground;
-        [SerializeField]
-        private GameObject diplomacyBackground;
-        [SerializeField]
-        private GameObject intelBackground;
-        [SerializeField]
-        private GameObject encyclopediaBackground;
-        [SerializeField]
-        private List<StarSysController> sysControllers;
-        [SerializeField]
-        private List<FleetController> fleetControllers;
-        [SerializeField]
-        private List<DiplomacyController> diplomacyControllers;
-        [SerializeField]
-        private List<GameObject> listOfStarSysUiGos;
-        [SerializeField]
-        private List<GameObject> listOfSysShipUiGos;
-        [SerializeField]
-        private List<GameObject> listOfFleetUiGos;
-        [SerializeField]
-        private List<GameObject> listOfDiplomacyUiGos;
-        [SerializeField]
-        private GameObject powerOverload;
-        [SerializeField]
-        private GameObject openMenuWas;
-        [SerializeField]
-        private Menu openMenuEnumWas;
-        [SerializeField]
-        private GameObject fleetUI_Prefab;
-        public GalaxyClickMode CurrentClickMode { get; set; } = GalaxyClickMode.Normal;
-        public FleetController FleetLookingForDestination { get; set; }
-        public FleetController FleetLookingForShipDeploy { get; set; }
-        public FleetController FleetSelectedForShipDeploy { get; set; }
-        public FleetController FleetLookingForShipMerge { get; set; }
-        public FleetController FleetSelectedForShipMerge { get; set; }
-        public StarSysController StarSystLookingForShipDeploy { get; set; }
-        public StarSysController StarSystSelectedForShipDeploy { get; set; }
-        public StarSysController StarSystLookingForShipMerge { get; set; }
-        public StarSysController StarSystSelectedForShipMerge { get; set; }
+        #endregion
 
-        [SerializeField] private GameObject selectOtherSysOrFleetButtonGO; // both fleet and system use this button so controller at GalaxyMenuUIController level
+        #region Properties (Backward Compatibility via Delegation)
 
-        [SerializeField]
-        private GameObject InteractionButtonGO;
-        [SerializeField]
-        private GameObject tradeButtonGO;
-        [SerializeField]
-        private GameObject engagementButtonGO;
-        [SerializeField]
-        private GameObject techButtonGO;
-        [SerializeField]
-        private GameObject aidButtonGO;
-        [SerializeField]
-        private GameObject allianceButtonGO;
-        [SerializeField]
-        private GameObject gatherIntelButtonGO;
-        [SerializeField]
-        private GameObject theftButtonGO;
-        [SerializeField]
-        private GameObject disinformationButtonGO;
-        [SerializeField]
-        private GameObject sabatogeButtonGO;
-        [SerializeField]
-        private GameObject combatButtonGO;
-        [SerializeField]
-        private GameObject closeDiplomacyButtonGO;
-        private readonly int _scouts;
-        private readonly int _destroyers;
-        private readonly int _cruisters;
-        private readonly int _ltCruisers;
-        private readonly int _hvyCruisers;
-        private readonly int _transports;
+        public GalaxyClickMode CurrentClickMode
+        {
+            get => uiStateManager?.CurrentClickMode ?? GalaxyClickMode.Normal;
+            set
+            {
+                if (uiStateManager != null)
+                {
+                    uiStateManager.SetClickMode(value);
+                    UpdateCursorForClickMode();
+                }
+            }
+        }
+
+        public FleetController FleetLookingForDestination
+        {
+            get => shipDeployManager?.FleetLookingForDestination;
+            set => shipDeployManager?.BeginSetDestination(value);
+        }
+
+        public FleetController FleetLookingForShipDeploy
+        {
+            get => shipDeployManager?.FleetLookingForShipDeploy;
+            set => shipDeployManager?.SetFleetLookingForShipDeploy(value);
+        }
+
+        public FleetController FleetSelectedForShipDeploy
+        {
+            get => shipDeployManager?.FleetSelectedForShipDeploy;
+            set => shipDeployManager?.SetFleetSelectedForShipDeploy(value);
+        }
+
+        public FleetController FleetLookingForShipMerge
+        {
+            get => shipDeployManager?.FleetLookingForShipMerge;
+            set => shipDeployManager?.SetFleetLookingForMerge(value);
+        }
+
+        public FleetController FleetSelectedForShipMerge
+        {
+            get => shipDeployManager?.FleetSelectedForShipMerge;
+            set => shipDeployManager?.SetFleetSelectedForMerge(value);
+        }
+
+        public StarSysController StarSystLookingForShipDeploy
+        {
+            get => shipDeployManager?.StarSystLookingForShipDeploy;
+            set => shipDeployManager?.SetSystemLookingForShipDeploy(value);
+        }
+
+        public StarSysController StarSystSelectedForShipDeploy
+        {
+            get => shipDeployManager?.StarSystSelectedForShipDeploy;
+            set => shipDeployManager?.SetSystemSelectedForShipDeploy(value);
+        }
+
+        public StarSysController StarSystLookingForShipMerge
+        {
+            get => shipDeployManager?.StarSystLookingForShipMerge;
+            set => shipDeployManager?.SetSystemLookingForMerge(value);
+        }
+
+        public StarSysController StarSystSelectedForShipMerge
+        {
+            get => shipDeployManager?.StarSystSelectedForShipMerge;
+            set => shipDeployManager?.SetSystemSelectedForMerge(value);
+        }
+
+        #endregion
+
+        #region Initialization
 
         private bool _isInitialized = false;
 
         private void Awake()
         {
-            // ✅ Scene-based singleton
+            // Scene-based singleton
             if (Instance == null)
             {
                 Instance = this;
@@ -154,13 +199,17 @@ namespace BOTF3D.UI
             }
             else if (Instance != this)
             {
-                Debug.LogWarning($"❌ Duplicate GalaxyMenuUIController found! Destroying duplicate.");
+                Debug.LogWarning("❌ Duplicate GalaxyMenuUIController found! Destroying duplicate.");
                 Destroy(gameObject);
+                return;
             }
+
+            InitializeManagers();
         }
+
         private void Start()
         {
-            // ✅ Guard against re-initialization when scene is reactivated
+            // Guard against re-initialization
             if (_isInitialized)
             {
                 Debug.Log("GalaxyMenuUIController.Start() skipped - already initialized");
@@ -168,250 +217,160 @@ namespace BOTF3D.UI
             }
             _isInitialized = true;
 
-            Debug.Log("❌==========❌ GalaxyMenuUIController.Start() DIAGNOSTIC ===");
-            DiagnoseGalaxyUI();
-            Debug.Log("GalaxyMenuUIController: Start called - deferring camera setup");
+            Debug.Log("GalaxyMenuUIController: Start called");
 
-            // Initialize UI states
-            if (intelMenuView != null) intelMenuView.SetActive(false);
-            if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(false);
-            if (closeMenuButton != null) closeMenuButton.SetActive(true);
-            if (sysBackground != null) sysBackground.SetActive(false);
-            if (fleetsBackground != null) fleetsBackground.SetActive(false);
-            if (diplomacyBackground != null) diplomacyBackground.SetActive(false);
-            if (intelBackground != null) intelBackground.SetActive(false);
-            if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
-            if (habitableSysMenu != null) habitableSysMenu.SetActive(false);
+            // Initialize UI using managers
+            uiStateManager.InitializeMenuStates();
+            civDisplayManager.LoadLocalPlayerCivilizationUI();
 
-            HideShipDeployMenu();
-            diplomacyControllers = new List<DiplomacyController>();
+            // Wire buttons
+            WireButtons();
 
-            // ✅ CRITICAL FIX: Activate the main galaxy menu ribbon/panel
+            // Activate main galaxy menu
             ActivateMainGalaxyMenu();
-
-            // ✅ Wire button with lazy initialization
-            if (homeSystemButton != null)
-            {
-                homeSystemButton.onClick.RemoveAllListeners();
-                homeSystemButton.onClick.AddListener(OnHomeSystemButtonClicked);
-                Debug.Log("✅ HomeSystemButton wired (lazy initialization)");
-            }
-            WireCloseMenuButton();
-
-            // ✅ Load local player civilization UI
-            LoadLocalPlayerCivilizationUI();
 
             Debug.Log("GalaxyMenuUIController: Start complete");
         }
 
         /// <summary>
-        /// Loads the local player's civilization insignia, race sprite, and short name
-        /// Called after MainMenu closes and GalaxyMenu loads
+        /// Initialize all specialized managers
         /// </summary>
-        private void LoadLocalPlayerCivilizationUI()
+        private void InitializeManagers()
         {
-            Debug.Log("=== LoadLocalPlayerCivilizationUI: Starting ===");
+            Debug.Log("GalaxyMenuUIController: Initializing specialized managers");
 
-            // ✅ Get local player's civilization
-            if (GameController.Instance == null || GameController.Instance.GameData == null)
-            {
-                Debug.LogError("LoadLocalPlayerCivilizationUI: GameController or GameData is NULL!");
-                return;
-            }
+            // Create UI state manager
+            uiStateManager = new GalaxyUIStateManager(
+                sysBuildMenu,
+                intelMenuView,
+                encyclopediaMenuView,
+                habitableSysMenu,
+                diplomacyNoContacts,
+                sysBackground,
+                fleetsBackground,
+                diplomacyBackground,
+                intelBackground,
+                encyclopediaBackground,
+                closeMenuButton,
+                selectOtherSysOrFleetButtonGO
+            );
 
-            CivEnum localPlayerCiv = GameController.Instance.GameData.LocalPlayerCivEnum;
-            Debug.Log($"  Local Player Civilization: {localPlayerCiv}");
+            // Create civ display manager
+            var insigniaImage = insigniaGO?.GetComponent<Image>();
+            var raceImage = raceGO?.GetComponent<Image>();
 
-            // ✅ Get civilization short name (e.g., "FED" → "Federation")
-            string civShortName = GetCivilizationShortName(localPlayerCiv);
-            Debug.Log($"  Civilization Short FleetName: '{civShortName}'");
+            civDisplayManager = new GalaxyCivDisplayManager(
+                insigniaImage,
+                raceImage,
+                civShortNameText,
+                federationInsignia,
+                romulanInsignia,
+                klingonInsignia,
+                cardassianInsignia,
+                dominionInsignia,
+                borgInsignia,
+                terranInsignia,
+                federationRace,
+                romulanRace,
+                klingonRace,
+                cardassianRace,
+                dominionRace,
+                borgRace,
+                terranRace
+            );
 
-            // ✅ Load Insignia Sprite
-            LoadInsigniaSprite(civShortName);
+            // Create ship deploy manager
+            shipDeployManager = new GalaxyShipDeployManager(shipDeployMenuUIController);
 
-            // ✅ Load Race Sprite  
-            LoadRaceSprite(civShortName);
+            // Create list populator
+            listPopulator = new GalaxyListPopulator(
+                listOfStarSysUiGos,
+                listOfFleetUiGos,
+                listOfDiplomacyUiGos,
+                listOfSysShipUiGos,
+                sysControllers,
+                fleetControllers,
+                diplomacyControllers,
+                fleetUI_Prefab
+            );
 
-            // ✅ Set Short Name Text
-            if (civShortNameText != null)
-            {
-                civShortNameText.text = civShortName;
-                Debug.Log($"  ✅ Set civShortNameText to: '{civShortName}'");
-            }
-            else
-            {
-                Debug.LogWarning("  ⚠️ civShortNameText is NULL - cannot set text");
-            }
+            // Create camera manager
+            cameraManager = new GalaxyCameraManager(parentCanvas, galaxyEventCamera);
 
-            Debug.Log("=== LoadLocalPlayerCivilizationUI: Complete ===");
+            Debug.Log("✅ GalaxyMenuUIController: All managers initialized");
         }
 
-        /// <summary>
-        /// Converts CivEnum to civilization short name (e.g., FED → "Federation")
-        /// </summary>
-        private string GetCivilizationShortName(CivEnum civEnum)
+        #endregion
+
+        #region Button Wiring
+
+        private void WireButtons()
         {
-            switch (civEnum)
+            WireHomeSystemButton();
+            WireCloseMenuButton();
+        }
+
+        private void WireHomeSystemButton()
+        {
+            if (homeSystemButton != null)
             {
-                case CivEnum.FED:
-                    return "Federation";
-                case CivEnum.ROM:
-                    return "Romulan";
-                case CivEnum.KLING:
-                    return "Klingon";
-                case CivEnum.CARD:
-                    return "Cardassian";
-                case CivEnum.DOM:
-                    return "Dominion";
-                case CivEnum.BORG:
-                    return "Borg";
-                case CivEnum.TERRAN:
-                    return "Terran";
-                default:
-                    Debug.LogWarning($"GetCivilizationShortName: Unknown CivEnum '{civEnum}' - using enum name");
-                    return civEnum.ToString();
+                homeSystemButton.onClick.RemoveAllListeners();
+                homeSystemButton.onClick.AddListener(OnHomeSystemButtonClicked);
+                Debug.Log("✅ HomeSystemButton wired");
             }
         }
 
-        /// <summary>
-        /// Loads the insignia sprite from Inspector-assigned references
-        /// </summary>
-        private void LoadInsigniaSprite(string civShortName)
+        private void WireCloseMenuButton()
         {
-            Sprite sprite = GetInsigniaForCivilization(civShortName);
-
-            if (sprite != null)
+            if (closeMenuButton != null)
             {
-                // ✅ Assign to the sprite field so it's visible in the Inspector
-                insigniaSprite = sprite;
-
-                // ✅ Correctly update the UI Image component
-                if (insigniaGO != null)
+                Button closeButton = closeMenuButton.GetComponent<Button>();
+                if (closeButton != null)
                 {
-                    Image img = insigniaGO.GetComponent<Image>();
-                    if (img != null)
-                    {
-                        img.sprite = sprite;
-                        insigniaGO.SetActive(true);
-                        Debug.Log($"  ✅ Set {insigniaGO.name} Image sprite to: '{sprite.name}'");
-                    }
-                    else
-                    {
-                        Debug.LogError($"  ❌ {insigniaGO.name} is missing an Image component!");
-                    }
+                    closeButton.onClick.RemoveAllListeners();
+                    closeButton.onClick.AddListener(CloseCurrentMenu);
+                    Debug.Log("✅ CloseMenuButton wired");
                 }
             }
-            else
-            {
-                Debug.LogError($"  ❌ No insignia sprite assigned for '{civShortName}' in Inspector!");
-            }
         }
 
-        /// <summary>
-        /// Gets the insignia sprite for a civilization from Inspector references
-        /// </summary>
-        private Sprite GetInsigniaForCivilization(string civShortName)
+        #endregion
+
+        #region Button Handlers (Main Menu Ribbon)
+
+        public void SystemButtonPressed()
         {
-            switch (civShortName.ToLower())
-            {
-                case "federation":
-                    return federationInsignia;
-                case "romulan":
-                    return romulanInsignia;
-                case "klingon":
-                    return klingonInsignia;
-                case "cardassian":
-                    return cardassianInsignia;
-                case "dominion":
-                    return dominionInsignia;
-                case "borg":
-                    return borgInsignia;
-                case "terran":
-                    return terranInsignia;
-                default:
-                    Debug.LogWarning($"GetInsigniaForCivilization: Unknown civilization '{civShortName}'");
-                    return null;
-            }
+            OpenMenu(Menu.StarSys, null);
         }
 
-        /// <summary>
-        /// Loads the race sprite from Inspector-assigned references
-        /// </summary>
-        private void LoadRaceSprite(string civShortName)
+        public void FleetButtonPressed()
         {
-            Sprite sprite = GetRacePortraitForCivilization(civShortName);
-
-            if (sprite != null)
-            {
-                // ✅ Assign to the sprite field so it's visible in the Inspector
-                raceSprite = sprite;
-
-                // ✅ Correctly update the UI Image component
-                if (raceGO != null)
-                {
-                    Image img = raceGO.GetComponent<Image>();
-                    if (img != null)
-                    {
-                        img.sprite = sprite;
-                        raceGO.SetActive(true);
-                        Debug.Log($"  ✅ Set {raceGO.name} Image sprite to: '{sprite.name}'");
-                    }
-                    else
-                    {
-                        Debug.LogError($"  ❌ {raceGO.name} is missing an Image component!");
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogError($"  ❌ No race sprite assigned for '{civShortName}' in Inspector!");
-            }
+            OpenMenu(Menu.Fleet, null);
         }
 
-        /// <summary>
-        /// Gets the race portrait sprite for a civilization from Inspector references
-        /// </summary>
-        private Sprite GetRacePortraitForCivilization(string civShortName)
+        public void DiplomacyButtonPressed()
         {
-            switch (civShortName.ToLower())
-            {
-                case "federation":
-                    return federationRace;
-                case "romulan":
-                    return romulanRace;
-                case "klingon":
-                    return klingonRace;
-                case "cardassian":
-                    return cardassianRace;
-                case "dominion":
-                    return dominionRace;
-                case "borg":
-                    return borgRace;
-                case "terran":
-                    return terranRace;
-                default:
-                    Debug.LogWarning($"GetRacePortraitForCivilization: Unknown civilization '{civShortName}'");
-                    return null;
-            }
+            OpenMenu(Menu.Diplomacy, null);
         }
 
-        /// <summary>
-        /// Activates the main galaxy menu UI (System, Fleet, Diplomacy buttons)
-        /// </summary>
-        private void ActivateMainGalaxyMenu()
+        public void IntelButtonPressed()
         {
-            if (parentCanvas != null)
-            {
-                parentCanvas.gameObject.SetActive(true);
-                return;
-            }
+            OpenMenu(Menu.Intel, null);
         }
-        /// <summary>
-        /// Called when home system button is clicked - wires to camera on first use
-        /// </summary>
+
+        public void EncyclopediaButtonPressed()
+        {
+            OpenMenu(Menu.Encyclopedia, null);
+        }
+
         private void OnHomeSystemButtonClicked()
         {
+            Debug.Log("GalaxyMenuUIController: Home System button clicked");
 
+            // ✅ Close all open menus to ensure a clear view
+            CloseAllMenus();
+
+            // Move camera to home system only - do NOT open the star system UI
             if (GalaxyCameraDragMoveZoom.Instance != null)
             {
                 GalaxyCameraDragMoveZoom.Instance.SetCameraToLocalPlayerHome();
@@ -421,145 +380,552 @@ namespace BOTF3D.UI
                 Debug.LogError("OnHomeSystemButtonClicked: GalaxyCameraDragMoveZoom.Instance is null!");
             }
         }
-        /// <summary>
-        /// Diagnoses why buttons might not be working
-        /// </summary>
-        private void DiagnoseGalaxyUI()
+
+        #endregion
+
+        #region Menu Operations (Delegate to Managers)
+
+        public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
         {
-            // 1. Check EventSystem
-            var es = EventSystem.current;
-            Debug.Log($"  EventSystem exists: {es != null}");
-            if (es != null)
-            {
-                Debug.Log($"    GameObject: {es.gameObject.name}");
-                Debug.Log($"    Scene: {es.gameObject.scene.name}");
-                Debug.Log($"    Enabled: {es.enabled}");
+            Debug.Log($"GalaxyMenuUIController: OpenMenu({menuEnum})");
 
-                var inputModule = es.GetComponent<StandaloneInputModule>();
-                Debug.Log($"    StandaloneInputModule: {inputModule != null} (enabled: {inputModule?.enabled})");
+            // Close currently open menu
+            CloseCurrentMenu();
+
+            // Open new menu via state manager
+            // ✅ CRITICAL: Do NOT pass world objects (Systems/Fleets) as the tracked menu object!
+            // If we do, the state manager will call SetActive(false) on them when the menu closes,
+            // making them disappear from the galaxy map. Their UI is managed by sub-controllers.
+            GameObject trackedUIObject = callingMenuOrGalaxyObject;
+            if (trackedUIObject != null &&
+                (trackedUIObject.GetComponent<StarSysController>() != null ||
+                 trackedUIObject.GetComponent<FleetController>() != null))
+            {
+                trackedUIObject = null;
             }
 
-            // 2. Check parent Canvas
-            Canvas canvas = GetComponentInParent<Canvas>();
-            Debug.Log($"  Parent Canvas: {canvas != null}");
-            if (canvas != null)
+            uiStateManager.OpenMenu(menuEnum, trackedUIObject);
+
+            // Populate appropriate list
+            switch (menuEnum)
             {
-                Debug.Log($"    FleetName: {canvas.name}");
-                Debug.Log($"    Render Mode: {canvas.renderMode}");
-                Debug.Log($"    World Camera: {canvas.worldCamera?.name ?? "NULL"}");
-                Debug.Log($"    Enabled: {canvas.enabled}");
-                Debug.Log($"    Sorting Order: {canvas.sortingOrder}");
+                case Menu.SystemsMenu:
+                case Menu.StarSys:
+                    if (starSysMenuUIController != null)
+                    {
+                        starSysMenuUIController.ShowSystemMenuView();
+                        starSysMenuUIController.PopulateSystemsList(); // Moves UIs to list
+                    }
+                    break;
 
-                var raycaster = canvas.GetComponent<GraphicRaycaster>();
-                Debug.Log($"    GraphicRaycaster: {raycaster != null}");
-                if (raycaster != null)
-                {
-                    Debug.Log($"      Enabled: {raycaster.enabled}");
-                    Debug.Log($"      Blocking Objects: {raycaster.blockingObjects}");
-                }
-                else
-                {
-                    Debug.LogError("    ❌ GraphicRaycaster MISSING! Adding it now...");
-                    canvas.gameObject.AddComponent<GraphicRaycaster>();
-                }
+                case Menu.ASystemMenu:
+                    // Open a specific system menu
+                    if (callingMenuOrGalaxyObject == null)
+                    {
+                        Debug.LogError("OpenMenu(ASystemMenu): callingMenuOrGalaxyObject is NULL!");
+                        return;
+                    }
+
+                    var sysCon = callingMenuOrGalaxyObject.GetComponentInChildren<StarSysController>();
+                    if (sysCon == null)
+                    {
+                        // Try getting it directly (not in children)
+                        sysCon = callingMenuOrGalaxyObject.GetComponent<StarSysController>();
+                    }
+
+                    if (sysCon != null && starSysMenuUIController != null)
+                    {
+                        Debug.Log($"OpenMenu(ASystemMenu): Opening system '{sysCon.name}'");
+                        starSysMenuUIController.ShowA_SystemMenuView();
+                        starSysMenuUIController.SetActiveSetParentUIGO(sysCon);
+                    }
+                    else
+                    {
+                        Debug.LogError($"OpenMenu(ASystemMenu): GameObject '{callingMenuOrGalaxyObject?.name}' has no StarSysController! (sysCon={sysCon}, starSysMenuUIController={starSysMenuUIController})");
+                        return;
+                    }
+                    break;
+
+                case Menu.FleetMenu:
+                case Menu.Fleet:
+                    if (fleetMenuUIController != null)
+                    {
+                        fleetMenuUIController.ShowFleetMenuView();
+                        // No population needed - fleets stay visible in the galaxy
+                    }
+                    break;
+
+                case Menu.AFleetMenu:
+                    // Open a specific fleet menu
+                    if (callingMenuOrGalaxyObject == null)
+                    {
+                        Debug.LogError("OpenMenu(AFleetMenu): callingMenuOrGalaxyObject is NULL!");
+                        return;
+                    }
+
+                    var fleetCon = callingMenuOrGalaxyObject.GetComponentInChildren<FleetController>();
+                    if (fleetCon == null)
+                    {
+                        // Try getting it directly (not in children)
+                        fleetCon = callingMenuOrGalaxyObject.GetComponent<FleetController>();
+                    }
+
+                    if (fleetCon != null && fleetMenuUIController != null)
+                    {
+                        Debug.Log($"OpenMenu(AFleetMenu): Opening fleet '{fleetCon.name}'");
+                        fleetMenuUIController.ShowA_FleetMenuView();
+                        fleetMenuUIController.SetActiveSetParentUIGO(fleetCon);
+                        fleetMenuUIController.MoveTheFleetUIGO(callingMenuOrGalaxyObject);
+                    }
+                    else
+                    {
+                        Debug.LogError($"OpenMenu(AFleetMenu): GameObject '{callingMenuOrGalaxyObject?.name}' has no FleetController! (fleetCon={fleetCon}, fleetMenuUIController={fleetMenuUIController})");
+                        return;
+                    }
+                    break;
+
+                case Menu.Diplomacy:
+                    // ✅ Sync diplomacy controllers from manager
+                    if (DiplomacyManager.Instance != null)
+                    {
+                        if (diplomacyControllers == null) diplomacyControllers = new List<DiplomacyController>();
+                        diplomacyControllers.Clear();
+                        diplomacyControllers.AddRange(DiplomacyManager.Instance.DiplomacyControllers);
+                        diplomacyControllers.Reverse(); // ✅ Most recent at the top
+                    }
+
+                    listPopulator.PopulateDiplomacyList();
+                    if (diplomacyControllers != null && diplomacyControllers.Count > 0)
+                    {
+                        uiStateManager.HideNoContactUI();
+                        if (diplomacyMenuUIController != null)
+                        {
+                            diplomacyMenuUIController.ShowDiplomacyMenuView();
+                        }
+                    }
+                    else
+                    {
+                        uiStateManager.ShowNoContactUI();
+                    }
+                    break;
+
+                case Menu.Intel:
+                    if (intelMenuView != null) intelMenuView.SetActive(true);
+                    break;
+
+                case Menu.Encyclopedia:
+                    if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(true);
+                    break;
             }
-
-            // 3. Check Camera
-            Camera mainCam = Camera.main;
-            Debug.Log($"  Main Camera: {mainCam != null}");
-            if (mainCam != null)
-            {
-                Debug.Log($"    FleetName: {mainCam.name}");
-                Debug.Log($"    Enabled: {mainCam.enabled}");
-                Debug.Log($"    Scene: {mainCam.gameObject.scene.name}");
-            }
-
-            // 4. Check buttons
-            Canvas c = GetComponentInParent<Canvas>();
-            if (c == null)
-            {
-                Debug.LogError("  ❌ No parent Canvas found! GalaxyMenuUIController not in canvas hierarchy!");
-                return;
-            }
-
-            // ✅ FIX: Search from Canvas root, not from this GameObject
-            Button[] buttons = c.GetComponentsInChildren<Button>(true);
-            Debug.Log($"  Found {buttons.Length} buttons in CanvasGalaxy hierarchy");
-
-            int interactableCount = 0;
-            foreach (var btn in buttons)
-            {
-                if (btn.interactable && btn.gameObject.activeInHierarchy)
-                {
-                    interactableCount++;
-                }
-                else
-                {
-                    // Debug.LogWarning($"    ❌ Button '{btn.name}': Interactable={btn.interactable}, Active={btn.gameObject.activeInHierarchy}");
-                }
-            }
-            Debug.Log($"  {interactableCount}/{buttons.Length} buttons are interactable and active");
-
-            // 5. Check for blocking UI
-            Canvas[] allCanvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
-            Debug.Log($"  Total canvases in scene: {allCanvases.Length}");
-            foreach (var _c in allCanvases)
-            {
-                if (_c.sortingOrder > c.sortingOrder)
-                {
-                    Debug.LogWarning($"    ⚠️ Canvas '{c.name}' has higher sorting order ({c.sortingOrder}) and might block input!");
-                }
-            }
-
-            Debug.Log("=== GalaxyMenuUIController.Start() DIAGNOSTIC COMPLETE ===");
         }
+
+        public void CloseCurrentMenu()
+        {
+            Debug.Log("GalaxyMenuUIController: CloseCurrentMenu");
+
+            // Get the current menu before closing it
+            Menu currentMenu = uiStateManager.CurrentOpenMenu;
+
+            // Just hide the views, don't move UIs back (they might be needed for next menu)
+            HideMenuViews(currentMenu);
+
+            // Close via state manager
+            uiStateManager.CloseCurrentMenu();
+        }
+
+        /// <summary>
+        /// Hide menu views without moving UIs back to storage
+        /// Used when transitioning between menus
+        /// Just hides the view panels, keeps UIs where they are
+        /// </summary>
+        private void HideMenuViews(Menu enumMenu)
+        {
+            Debug.Log($"GalaxyMenuUIController: HideMenuViews({enumMenu}) - transition mode");
+
+            switch (enumMenu)
+            {
+                case Menu.None:
+                    break;
+
+                case Menu.SystemsMenu:
+                case Menu.StarSys:
+                    // Just hide the view, don't move UIs
+                    if (starSysMenuUIController != null && starSysMenuUIController.SystemsMenuView != null)
+                        starSysMenuUIController.SystemsMenuView.SetActive(false);
+                    break;
+
+                case Menu.ASystemMenu:
+                    // Just hide the view, don't move UIs back
+                    if (starSysMenuUIController != null && starSysMenuUIController.ASystemMenuView != null)
+                        starSysMenuUIController.ASystemMenuView.SetActive(false);
+                    break;
+
+                case Menu.FleetMenu:
+                case Menu.Fleet:
+                    // Just hide the view, don't move UIs
+                    if (fleetMenuUIController != null && fleetMenuUIController.FleetMenuView != null)
+                    {
+                        fleetMenuUIController.FleetMenuView.SetActive(false);
+                        fleetMenuUIController.CloseDestinationSelectionCursor();
+                    }
+                    break;
+
+                case Menu.AFleetMenu:
+                    // Just hide the view, don't move UIs back
+                    if (fleetMenuUIController != null && fleetMenuUIController.AFleetMenuView != null)
+                    {
+                        fleetMenuUIController.AFleetMenuView.SetActive(false);
+                        fleetMenuUIController.CloseDestinationSelectionCursor();
+                    }
+                    break;
+
+                case Menu.DiplomacyMenu:
+                case Menu.Diplomacy:
+                    if (diplomacyMenuUIController != null)
+                    {
+                        diplomacyMenuUIController.HideDiplomacyMenuView();
+                        diplomacyMenuUIController.HideA_DiplomacyMenuView();
+                    }
+                    break;
+
+                case Menu.ADiplomacyMenu:
+                    if (diplomacyMenuUIController != null)
+                    {
+                        diplomacyMenuUIController.HideA_DiplomacyMenuView();
+                        diplomacyMenuUIController.HideDiplomacyMenuView();
+                    }
+                    break;
+
+                case Menu.IntellMenu:
+                case Menu.Intel:
+                    if (intelMenuView != null)
+                        intelMenuView.SetActive(false);
+                    break;
+
+                case Menu.EncyclopedianMenu:
+                case Menu.Encyclopedia:
+                    if (encyclopediaMenuView != null)
+                        encyclopediaMenuView.SetActive(false);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Fully close a menu and move UIs back to storage
+        /// Used when truly exiting the menu system
+        /// </summary>
+        public void CloseMenu(Menu enumMenu)
+        {
+            Debug.Log($"GalaxyMenuUIController: CloseMenu({enumMenu})");
+
+            switch (enumMenu)
+            {
+                case Menu.None:
+                    break;
+
+                case Menu.SystemsMenu:
+                case Menu.StarSys:
+                    if (starSysMenuUIController != null)
+                    {
+                        starSysMenuUIController.MoveBackAnyStarSysUIGO();
+                        starSysMenuUIController.HideSystemMenuView();
+                    }
+                    break;
+
+                case Menu.ASystemMenu:
+                    if (starSysMenuUIController != null)
+                    {
+                        starSysMenuUIController.MoveBackAnyStarSysUIGO();
+                        starSysMenuUIController.HideA_SystemMenuView();
+                    }
+                    break;
+
+                case Menu.FleetMenu:
+                case Menu.Fleet:
+                    if (fleetMenuUIController != null)
+                    {
+                        fleetMenuUIController.MoveBackAnyaFleetUIGO();
+                        fleetMenuUIController.HideFleetMenuView();
+                        fleetMenuUIController.CloseDestinationSelectionCursor();
+                    }
+                    break;
+
+                case Menu.AFleetMenu:
+                    if (fleetMenuUIController != null)
+                    {
+                        fleetMenuUIController.MoveBackAnyaFleetUIGO();
+                        fleetMenuUIController.HideA_FleetMenuView();
+                        fleetMenuUIController.CloseDestinationSelectionCursor();
+                    }
+                    break;
+
+                case Menu.DiplomacyMenu:
+                case Menu.Diplomacy:
+                case Menu.ADiplomacyMenu:
+                    if (diplomacyMenuUIController != null)
+                    {
+                        diplomacyMenuUIController.MoveBackAnyDiplomacyUIGO();
+                        diplomacyMenuUIController.HideDiplomacyMenuView();
+                        diplomacyMenuUIController.HideA_DiplomacyMenuView();
+                    }
+                    break;
+
+                case Menu.IntellMenu:
+                case Menu.Intel:
+                    if (intelMenuView != null)
+                        intelMenuView.SetActive(false);
+                    break;
+
+                case Menu.EncyclopedianMenu:
+                case Menu.Encyclopedia:
+                    if (encyclopediaMenuView != null)
+                        encyclopediaMenuView.SetActive(false);
+                    break;
+            }
+        }
+
+        public void CloseAllMenus()
+        {
+            Debug.Log("GalaxyMenuUIController: CloseAllMenus");
+
+            uiStateManager.CloseAllMenus();
+            listPopulator.ClearAllLists();
+
+            // Close all sub-menus and restore galaxy objects
+            if (starSysMenuUIController != null)
+            {
+                starSysMenuUIController.MoveBackAnyStarSysUIGO();
+                starSysMenuUIController.HideSystemMenuView();
+                starSysMenuUIController.HideA_SystemMenuView();
+            }
+
+            if (fleetMenuUIController != null)
+            {
+                fleetMenuUIController.MoveBackAnyaFleetUIGO();
+                fleetMenuUIController.HideFleetMenuView();
+                fleetMenuUIController.HideA_FleetMenuView();
+            }
+
+            if (diplomacyMenuUIController != null)
+            {
+                diplomacyMenuUIController.MoveBackAnyDiplomacyUIGO();
+                diplomacyMenuUIController.HideDiplomacyMenuView();
+                diplomacyMenuUIController.HideA_DiplomacyMenuView();
+            }
+
+            HideShipDeployMenu();
+        }
+
+        #endregion
+
+        #region Ship Deploy Operations (Delegate to Manager)
+
+        public void ShowShipDeployMenuForFleet(FleetController fleet)
+        {
+            shipDeployManager.ShowShipDeployMenuForFleet(fleet);
+        }
+
+        public void ShowShipDeployForSystemNewFleet(StarSysController system, FleetController newFleet)
+        {
+            shipDeployManager.ShowShipDeployForSystemNewFleet(system, newFleet);
+        }
+
+        public void ShowShipDeployForFleetNewFleet(FleetController originalFleet, FleetController newFleet)
+        {
+            shipDeployManager.ShowShipDeployForFleetNewFleet(originalFleet, newFleet);
+        }
+
+        public void HideShipDeployMenu()
+        {
+            shipDeployManager.HideShipDeployMenu();
+        }
+
+        public void CloseShipDeployMenu()
+        {
+            shipDeployManager.CompleteShipExchange();
+            uiStateManager.ResetClickMode();
+        }
+
+        public void ClickCancelShipDeployButton()
+        {
+            shipDeployManager.CancelShipDeploy();
+            uiStateManager.ResetClickMode();
+        }
+
+        #endregion
+
+        #region Click Mode Operations (Delegate to Manager)
+
+        public void SetClickMode(GalaxyClickMode mode)
+        {
+            uiStateManager.SetClickMode(mode);
+            UpdateCursorForClickMode();
+        }
+
+        public void ResetClickMode()
+        {
+            uiStateManager.ResetClickMode();
+            UpdateCursorForClickMode();
+        }
+
+        private void UpdateCursorForClickMode()
+        {
+            // Cursor update logic based on click mode
+            switch (uiStateManager.CurrentClickMode)
+            {
+                case GalaxyClickMode.Normal:
+                    Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+                    break;
+                case GalaxyClickMode.SetDestination:
+                    // Could set a custom cursor here
+                    break;
+                case GalaxyClickMode.SelectForShipDeploy:
+                    // Could set a custom cursor here
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Ship Deploy Context Setters (Delegate to Manager)
+
+        internal void WhatFleetIsSelectedForShipDiploy(FleetController fleetController)
+        {
+            shipDeployManager.SetFleetSelectedForShipDeploy(fleetController);
+        }
+
+        internal void WhatFleetIsSelectedForShipMerge(FleetController fleetController)
+        {
+            shipDeployManager.SetFleetSelectedForMerge(fleetController);
+        }
+
+        internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
+        {
+            shipDeployManager.SetSystemSelectedForShipDeploy(starSysController);
+        }
+
+        internal void WhatSystemIsSelectedForShipMerge(StarSysController starSysController)
+        {
+            shipDeployManager.SetSystemSelectedForMerge(starSysController);
+        }
+
+        public void WhatFleetIsLookingForMerge(FleetController fleetConLooking)
+        {
+            shipDeployManager.SetFleetLookingForMerge(fleetConLooking);
+        }
+
+        public void WhatFleetIsLookingForShipDeploy(FleetController fleetConLooking)
+        {
+            shipDeployManager.SetFleetLookingForShipDeploy(fleetConLooking);
+        }
+
+        public void WhatSystIsLookingForMerge(StarSysController starSystConLooking)
+        {
+            shipDeployManager.SetSystemLookingForMerge(starSystConLooking);
+        }
+
+        public void WhatSystIsLookingForShipDeploy(StarSysController starSystConLooking)
+        {
+            shipDeployManager.SetSystemLookingForShipDeploy(starSystConLooking);
+        }
+
+        public void BeginSetDestination(FleetController fleetLooking)
+        {
+            shipDeployManager.BeginSetDestination(fleetLooking);
+            SetClickMode(GalaxyClickMode.SetDestination);
+        }
+
+        public void CompleteSetDestination()
+        {
+            shipDeployManager.CompleteSetDestination();
+            ResetClickMode();
+        }
+
+        public void CompleteShipExchange()
+        {
+            shipDeployManager.CompleteShipExchange();
+            ResetClickMode();
+        }
+
+        #endregion
+
+        #region Camera Operations (Delegate to Manager)
 
         public void InitializeGalaxyCamera()
         {
-            Debug.Log("GalaxyMenuUIController: InitializeGalaxyCamera called");
+            cameraManager.InitializeGalaxyCamera();
+        }
 
-            // Find the parent canvas for galaxy UI
-            Canvas galaxyCanvas = GetComponentInParent<Canvas>();
-            if (galaxyCanvas == null)
+        private void DiagnoseGalaxyUI()
+        {
+            cameraManager.DiagnoseCameraSetup();
+        }
+
+        #endregion
+
+        #region Utility Methods
+
+        private void ActivateMainGalaxyMenu()
+        {
+            // Activate the main galaxy menu ribbon/panel if needed
+            // This is where you'd show the main UI panel
+            Debug.Log("GalaxyMenuUIController: Main galaxy menu activated");
+        }
+
+        public void FindTheirHomeSystem(CivController civCon, out StarSysController homeSystController)
+        {
+            homeSystController = null;
+
+            if (civCon?.CivData == null)
             {
-                Debug.LogError("GalaxyMenuUIController: No parent Canvas found!");
+                Debug.LogWarning($"No CivData found for {civCon?.name}");
                 return;
             }
 
-            // Find the galaxy camera
-            Camera galaxyCamera = Camera.main;
-            if (galaxyCamera == null)
+            // Find home system by name from the list of owned systems
+            if (civCon.CivData.StarSysWeOwn != null && !string.IsNullOrEmpty(civCon.CivData.CivHomeSystemName))
             {
-                galaxyCamera = FindFirstObjectByType<Camera>();
-            }
+                homeSystController = civCon.CivData.StarSysWeOwn.Find(
+                    sys => sys != null && sys.name == civCon.CivData.CivHomeSystemName
+                );
 
-            if (galaxyCamera != null)
-            {
-                // CRITICAL: Only set camera if render mode needs it
-                if (galaxyCanvas.renderMode == RenderMode.ScreenSpaceCamera)
+                if (homeSystController != null)
                 {
-                    galaxyCanvas.worldCamera = galaxyCamera;
-                    galaxyCanvas.planeDistance = 100f;
-                    Debug.Log($"✅ Galaxy Canvas '{galaxyCanvas.name}' now using camera: {galaxyCamera.name}");
+                    Debug.Log($"Found home system: {homeSystController.name}");
                 }
-                else if (galaxyCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                else
                 {
-                    Debug.Log($"ℹ️ Galaxy Canvas '{galaxyCanvas.name}' is Screen Space - Overlay (no camera needed)");
-                }
-
-                // Ensure GraphicRaycaster exists
-                var raycaster = galaxyCanvas.GetComponent<GraphicRaycaster>();
-                if (raycaster == null)
-                {
-                    raycaster = galaxyCanvas.gameObject.AddComponent<GraphicRaycaster>();
-                    Debug.Log($"✅ Added GraphicRaycaster to '{galaxyCanvas.name}'");
+                    Debug.LogWarning($"No home system found for {civCon.name} with name '{civCon.CivData.CivHomeSystemName}'");
                 }
             }
             else
             {
-                Debug.LogError("GalaxyMenuUIController: Galaxy Camera not found!");
+                Debug.LogWarning($"No home system data available for {civCon.name}");
             }
         }
+
+        internal void HideNoContactUI()
+        {
+            uiStateManager.HideNoContactUI();
+        }
+
+        public void SetActiveBuildMenu(GameObject prefabMenu)
+        {
+            if (prefabMenu != null)
+            {
+                prefabMenu.SetActive(true);
+                Debug.Log($"Activated build menu: {prefabMenu.name}");
+            }
+        }
+
+        public void CloseTheBackgrounds()
+        {
+            uiStateManager.CloseAllBackgrounds();
+        }
+
+        #endregion
+
+        #region Cleanup
 
         private void OnDestroy()
         {
@@ -569,1535 +935,7 @@ namespace BOTF3D.UI
                 Debug.Log("GalaxyMenuUIController: Instance cleared");
             }
         }
-        //Wire HomeSystemButton to the galaxy camera controller
-        private void WireHomeSystemButton()
-        {
-            // Wire it up to the galaxy camera controller
-            if (GalaxyCameraDragMoveZoom.Instance != null)
-            {
-                homeSystemButton.onClick.RemoveAllListeners();
-                homeSystemButton.onClick.AddListener(() => GalaxyCameraDragMoveZoom.Instance.SetCameraToLocalPlayerHome());
-                Debug.Log("✅ HomeSystemButton wired to GalaxyCameraDragMoveZoom");
-            }
-            else
-            {
-                Debug.LogWarning("WireHomeSystemButton: GalaxyCameraDragMoveZoom.Instance is null");
-            }
-        }
 
-        // ✅ ADD: New method to wire close button
-        private void WireCloseMenuButton()
-        {
-            if (closeMenuButton != null)
-            {
-                var button = closeMenuButton.GetComponent<Button>();
-                if (button != null)
-                {
-                    button.onClick.RemoveAllListeners();
-                    button.onClick.AddListener(() => CloseCurrentMenu());
-                    Debug.Log("✅ Close Menu Button wired to CloseCurrentMenu()");
-                }
-                else
-                {
-                    Debug.LogWarning("WireCloseMenuButton: Button component not found on closeMenuButton GameObject!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("WireCloseMenuButton: closeMenuButton is null!");
-            }
-        }
-
-        // ✅ ADD: New method to close whatever menu is currently open
-        public void CloseCurrentMenu()
-        {
-            Debug.Log($"CloseCurrentMenu: Closing {openMenuEnumWas}");
-
-            // Close the currently tracked open menu
-            if (openMenuEnumWas != Menu.None)
-            {
-                CloseMenu(openMenuEnumWas);
-                openMenuEnumWas = Menu.None;
-            }
-
-            // Also close all backgrounds for safety
-            CloseTheBackgrounds();
-
-            // Explicitly hide all menu views
-            if (diplomacyMenuUIController != null)
-            {
-                diplomacyMenuUIController.HideDiplomacyMenuView();
-                diplomacyMenuUIController.HideA_DiplomacyMenuView();
-            }
-
-            if (starSysMenuUIController != null)
-            {
-                starSysMenuUIController.HideSystemMenuView();
-                starSysMenuUIController.HideA_SystemMenuView();
-            }
-
-            if (fleetMenuUIController != null)
-            {
-                fleetMenuUIController.HideFleetMenuView();
-                fleetMenuUIController.HideA_FleetMenuView();
-            }
-
-            // Close other views
-            if (intelMenuView != null && intelMenuView.activeSelf)
-                intelMenuView.SetActive(false);
-
-            if (encyclopediaMenuView != null && encyclopediaMenuView.activeSelf)
-                encyclopediaMenuView.SetActive(false);
-
-            if (habitableSysMenu != null && habitableSysMenu.activeSelf)
-                habitableSysMenu.SetActive(false);
-
-            // Resume time if diplomacy paused it
-            if (TimeManager.Instance != null && !TimeManager.Instance.timeRunning)
-            {
-                TimeManager.Instance.ResumeTime();
-            }
-
-            Debug.Log("CloseCurrentMenu: All menus closed");
-        }
-
-        // Helper for recursive search (if not already present)
-        private GameObject FindInHierarchy(Transform parent, string name)
-        {
-            if (parent.name == name)
-                return parent.gameObject;
-
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                GameObject found = FindInHierarchy(parent.GetChild(i), name);
-                if (found != null)
-                    return found;
-            }
-
-            return null;
-        }
-
-        public void SystemButtonPressed()
-        {
-            Debug.Log("=== SystemButtonPressed: Starting ===");
-            Debug.Log($"  Instance={Instance != null}, Camera={galaxyEventCamera != null}");
-
-            // Check if systems exist
-            if (StarSysManager.Instance != null)
-            {
-                int systemCount = StarSysManager.Instance.StarSysControllerList?.Count ?? 0;
-                Debug.Log($"  StarSysManager has {systemCount} systems");
-
-                if (systemCount == 0)
-                {
-                    Debug.LogError("  ❌ NO SYSTEMS EXIST! Systems weren't created.");
-                }
-            }
-            else
-            {
-                Debug.LogError("  ❌ StarSysManager.Instance is NULL!");
-            }
-
-            // Check if StarSysMenuUIController exists
-            if (starSysMenuUIController != null)
-            {
-                Debug.Log($"  StarSysMenuUIController exists");
-            }
-            else
-            {
-                Debug.LogError("  ❌ starSysMenuUIController is NULL!");
-            }
-
-            // Ensure camera is initialized
-            if (galaxyEventCamera == null)
-            {
-                InitializeGalaxyCamera();
-            }
-
-            CloseShipDeployMenu();
-            OpenMenu(Menu.SystemsMenu, gameObject);
-
-            Debug.Log("=== SystemButtonPressed: Complete ===");
-        }
-
-        // ShipDeploy menu life cycle helpers — central control point
-        public void ShowShipDeployMenuForFleet(FleetController newFleet)
-        {
-            if (shipDeployMenuUIController == null) return;
-            MousePointerChanger.Instance.ResetCursor();
-
-            // move the fleet UI under the active AFleet/A_System view if appropriate
-            var fleetLooking = newFleet;
-            var starSysLooking = StarSystLookingForShipDeploy;
-            if (fleetLooking != null)
-            {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                if (newFleet.FleetUIGameObject != null)
-                {
-                    newFleet.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                    newFleet.FleetUIGameObject.transform.SetAsLastSibling();
-                    newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
-                    Debug.Log($"  Fleet UI '{newFleet.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
-                }
-            }
-            else if (starSysLooking != null)
-            {
-                var aStarSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-                if (newFleet.FleetUIGameObject != null)
-                {
-                    newFleet.FleetUIGameObject.transform.SetParent(aStarSysView.transform, false);
-                    newFleet.FleetUIGameObject.transform.SetAsLastSibling();
-                    newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
-                    Debug.Log($"  Fleet UI '{newFleet.FleetUIGameObject.name}' parented to ASystemMenuView and ACTIVATED");
-                }
-
-                // ✅ ALSO: Make sure ASystemMenuView itself is visible
-                if (!aStarSysView.activeSelf)
-                {
-                    aStarSysView.SetActive(true);
-                    Debug.Log($"  ASystemMenuView ACTIVATED");
-                }
-            }
-
-            shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
-            SetClickMode(GalaxyClickMode.SelectForShipDeploy);
-
-            shipDeployMenuUIController.gameObject.SetActive(true);
-            shipDeployMenuUIController.ShowShipDeployMenuView();
-        }
-
-        public void ShowShipDeployForSystemNewFleet(StarSysController starSystCon, FleetController newFleet)
-        {
-            if (shipDeployMenuUIController == null) return;
-            // no GalaxyClickMode. this is new fleet button click;
-            Debug.Log($"ShowShipDeployForSystemNewFleet: opening deploy UI for system='{starSystCon?.name}' new fleet='{newFleet?.name}'");
-
-            MousePointerChanger.Instance.ResetCursor();
-
-            // ✅ CRITICAL: Ensure star system has ShipListUIParent set up
-            if (starSystCon.StarSysData.ShipListUIParent == null)
-            {
-                Debug.LogWarning($"Star system '{starSystCon.name}' missing ShipListUIParent - setting it up now");
-
-                var uiFields = starSystCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
-                if (uiFields != null && uiFields.shipContent != null)
-                {
-                    starSystCon.StarSysData.ShipListUIParent = uiFields.shipContent.gameObject;
-                    Debug.Log($"Set ShipListUIParent for system '{starSystCon.name}'");
-                }
-                else
-                {
-                    Debug.LogError($"Cannot find shipContent for system '{starSystCon.name}'!");
-                }
-            }
-
-            // ✅ CRITICAL: Ensure NEW fleet has ShipListUIParent set up BEFORE opening panel
-            if (newFleet.FleetData.ShipListUIParent == null)
-            {
-                Debug.LogWarning($"New fleet '{newFleet.name}' missing ShipListUIParent - setting it up now");
-
-                var uiFields = newFleet.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-                if (uiFields != null && uiFields.FleetShipContentGO != null)
-                {
-                    newFleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
-                    Debug.Log($"✅ Set ShipListUIParent for new fleet '{newFleet.name}': {uiFields.FleetShipContentGO.name}");
-                }
-                else
-                {
-                    Debug.LogError($"❌ Cannot find FleetShipContentGO for new fleet '{newFleet.name}'! uiFields={(uiFields != null ? "EXISTS" : "NULL")}");
-                }
-            }
-
-            shipDeployMenuUIController.gameObject.SetActive(true);
-            shipDeployMenuUIController.ShowShipDeployMenuView();
-
-            // Set up TopSlot with star system's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(starSystCon.StarSysData.ShipsList.Cast<ShipController>().ToList());
-
-            // Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
-            shipDeployMenuUIController.SetUpBottomShipLists(newFleet, true);
-
-            var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-            if (starSystCon.StarSysUIGameObject != null)
-            {
-                starSystCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                starSystCon.StarSysUIGameObject.transform.SetAsLastSibling();
-                starSystCon.StarSysUIGameObject.SetActive(true); // ✅ ACTIVATE!
-            }
-
-            newFleet.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
-            newFleet.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
-
-            Debug.Log($"ShowShipDeployForSystemNewFleet: TopStarSyst ShipListUIParent={(starSystCon.StarSysData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
-        }
-        internal void ShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
-        {
-            if (shipDeployMenuUIController == null) return;
-            // no GalaxyClickMode. this is new fleet button click;
-            Debug.Log($"ShowShipDeployForFleetNewFleet: opening deploy UI for original='{originalFleetCon?.name}' new='{newFleetController?.name}'");
-
-            MousePointerChanger.Instance.ResetCursor();
-
-            // ✅ CRITICAL: Ensure BOTH fleets have ShipListUIParent set up BEFORE proceeding
-            bool originalFleetReady = EnsureFleetShipListUIParent(originalFleetCon);
-            bool newFleetReady = EnsureFleetShipListUIParent(newFleetController);
-
-            if (!originalFleetReady || !newFleetReady)
-            {
-                Debug.LogError($"ShowShipDeployForFleetNewFleet: Fleet(s) not ready! originalReady={originalFleetReady}, newReady={newFleetReady}");
-                // Wait a frame and try again
-                StartCoroutine(RetryShowShipDeployForFleetNewFleet(originalFleetCon, newFleetController));
-                return;
-            }
-
-            shipDeployMenuUIController.gameObject.SetActive(true);
-            shipDeployMenuUIController.ShowShipDeployMenuView();
-
-            // Set up TopSlot with original fleet's ships - cast to resolve namespace issue
-            shipDeployMenuUIController.SetUpTopShipLists(originalFleetCon.FleetData.ShipsList.Cast<ShipController>().ToList());
-
-            // CRITICAL FIX: Set up BottomSlot with the new fleet (currently empty, but sets BottomFleet reference)
-            shipDeployMenuUIController.SetUpBottomShipLists(newFleetController, true);
-
-            var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-            if (originalFleetCon.FleetUIGameObject != null)
-            {
-                originalFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                originalFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
-                originalFleetCon.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
-
-                Debug.Log($"  Original fleet UI '{originalFleetCon.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
-            }
-
-            if (newFleetController.FleetUIGameObject != null)
-            {
-                newFleetController.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                newFleetController.FleetUIGameObject.transform.SetAsLastSibling();
-                newFleetController.FleetUIGameObject.SetActive(true); // ✅ ACTIVATE!
-
-                Debug.Log($"  New fleet UI '{newFleetController.FleetUIGameObject.name}' parented to AFleetMenuView and ACTIVATED");
-            }
-
-            Debug.Log($"ShowShipDeployForFleetNewFleet: TopFleet ShipListUIParent={(originalFleetCon.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}, BottomFleet ShipListUIParent={(shipDeployMenuUIController.BottomFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
-        }
-
-        /// <summary>
-        /// Ensures a fleet has its ShipListUIParent set up
-        /// </summary>
-        /// <returns>True if setup succeeded, false otherwise</returns>
-        private bool EnsureFleetShipListUIParent(FleetController fleet)
-        {
-            if (fleet == null) return false;
-            if (fleet.FleetData == null) return false;
-
-            // Already set up?
-            if (fleet.FleetData.ShipListUIParent != null) return true;
-
-            Debug.LogWarning($"Fleet '{fleet.name}' missing ShipListUIParent - setting it up now");
-
-            var uiFields = fleet.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-            if (uiFields != null && uiFields.FleetShipContentGO != null)
-            {
-                fleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
-                Debug.Log($"✅ Set ShipListUIParent for fleet '{fleet.name}'");
-                return true;
-            }
-            else
-            {
-                Debug.LogError($"❌ Cannot find FleetShipContentGO for fleet '{fleet.name}'!");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Retry showing ship deploy after a frame delay (allows UI to fully initialize)
-        /// </summary>
-        private System.Collections.IEnumerator RetryShowShipDeployForFleetNewFleet(FleetController originalFleetCon, FleetController newFleetController)
-        {
-            Debug.Log("RetryShowShipDeployForFleetNewFleet: Waiting one frame...");
-            yield return null; // Wait one frame
-
-            // Try again
-            ShowShipDeployForFleetNewFleet(originalFleetCon, newFleetController);
-        }
-
-        public void HideShipDeployMenu()
-        {
-            if (shipDeployMenuUIController == null) return;
-            shipDeployMenuUIController.HideShipDeployMenuView();
-            shipDeployMenuUIController.gameObject.SetActive(false);
-            ResetClickMode();
-            MousePointerChanger.Instance.ResetCursor();
-        }
-
-        public void SetActiveBuildMenu(GameObject prefabMenu)
-        {
-            sysBuildMenu = prefabMenu;
-            sysBuildMenu.SetActive(true);
-        }
-
-        public void CloseTheBackgrounds()
-        {
-            sysBackground.SetActive(false);
-            fleetsBackground.SetActive(false);
-            diplomacyBackground.SetActive(false);
-            intelBackground.SetActive(false);
-            encyclopediaBackground.SetActive(false);
-        }
-
-        public void FleetButtonPressed() // The CanvasGalaxyMenuRibbon/MainGalaxyMenuPanel/FleetButton in the Hierarchy is set to this class.method
-        {
-            CloseShipDeployMenu();
-            OpenMenu(Menu.FleetMenu, gameObject);
-        }
-        public void DiplomacyButtonPressed()
-        {
-            CloseShipDeployMenu();
-            OpenMenu(Menu.DiplomacyMenu, gameObject);
-        }
-        public void IntelButtonPressed()
-        {
-            CloseShipDeployMenu();
-            if (intelMenuView.activeSelf)
-                CloseMenu(Menu.IntellMenu);
-            else
-            {
-                CloseMenu(Menu.IntellMenu);
-                OpenMenu(Menu.IntellMenu, null);
-            }
-
-        }
-        public void EncyclopediaButtonPressed()
-        {
-            CloseShipDeployMenu();
-            if (encyclopediaMenuView.activeSelf)
-                CloseMenu(Menu.EncyclopedianMenu);
-            else
-            {
-                OpenMenu(Menu.EncyclopedianMenu, null);
-            }
-        }
-
-        // jump to Home System is in GalaxyCameraDragMoveZoom.cs
-        public void CloseShipDeployMenu()
-        {
-            Debug.Log("=== CloseShipDeployMenu: Starting ===");
-
-            // ✅ CRITICAL: If ship deploy panel is open, COMMIT changes first!
-            if (ShipDeployMenuUIController.Instance != null &&
-                ShipDeployMenuUIController.Instance.ShipDeployPanel != null &&
-                ShipDeployMenuUIController.Instance.ShipDeployPanel.activeSelf)
-            {
-                Debug.Log("  Ship Deploy Panel IS OPEN - checking if changes need to be committed");
-
-                // ✅ NEW: Check if any ships were actually moved between slots
-                bool hasChanges = CheckIfShipsWereMoved();
-
-                if (hasChanges)
-                {
-                    Debug.Log("  Changes detected - committing");
-
-                    // Determine if this is merge or deploy
-                    bool isMergeMode = (FleetLookingForShipMerge != null || StarSystLookingForShipMerge != null);
-
-                    if (isMergeMode)
-                    {
-                        Debug.Log("  Mode: MERGE");
-                        ShipDeployMenuUIController.Instance.CommitMergeAndClose(AfterCommitCleanup);
-                    }
-                    else  // ✅ UNCOMMENTED!
-                    {
-                        Debug.Log("  Mode: DEPLOY/NEW FLEET");
-                        ShipDeployMenuUIController.Instance.CommitShipDeployAndClose(AfterCommitCleanup);
-                    }
-                }
-                else
-                {
-                    Debug.Log("  No changes detected - just canceling");
-                    // Just cancel without committing - ships stay where they were
-                    AfterCommitCleanup();
-                }
-
-                return; // Exit early - commit methods handle the rest
-            }
-            else
-            {
-                Debug.Log("  Ship Deploy Panel NOT open - normal cleanup");
-            }
-
-            // Normal cleanup when ship deploy isn't open
-            AfterCommitCleanup();
-        }
-
-        /// <summary>
-        /// Cleanup after ship deploy commits OR when ship deploy wasn't open
-        /// </summary>
-        private void AfterCommitCleanup()
-        {
-            Debug.Log("=== AfterCommitCleanup: Starting ===");
-
-            // ✅ CRITICAL: Move UIs back BEFORE hiding views
-            // This ensures fleet/system UIs are in their containers before we close the detail views
-            FleetMenuUIController.Instance?.MoveBackAnyaFleetUIGO();
-            StarSysMenuUIController.Instance?.MoveBackAnyStarSysUIGO(); // ✅ FIXED: Correct method name
-
-            // ✅ Now close ALL menu views (both list AND detail views)
-            if (FleetMenuUIController.Instance != null)
-            {
-                FleetMenuUIController.Instance.HideFleetMenuView(); // Close fleet list view
-                FleetMenuUIController.Instance.HideA_FleetMenuView(); // Close fleet detail view
-                Debug.Log("  Closed FleetMenuView and AFleetMenuView");
-            }
-
-            if (StarSysMenuUIController.Instance != null)
-            {
-                StarSysMenuUIController.Instance.HideSystemMenuView(); // Close system list view
-                StarSysMenuUIController.Instance.HideA_SystemMenuView(); // Close system detail view
-                Debug.Log("  Closed SystemMenuView and ASystemMenuView");
-            }
-
-            // ✅ Double-check that no system UIs are children of fleet containers
-            ValidateUIHierarchy();
-
-            // ✅ Force refresh of ship UIs in fleet and system containers
-            RefreshShipUIsInContainers();
-
-
-            // Hide ship deploy if still visible
-            if (ShipDeployMenuUIController.Instance != null)
-            {
-                ShipDeployMenuUIController.Instance.HideShipDeployMenuView();
-                ShipDeployMenuUIController.Instance.gameObject.SetActive(false);
-            }
-
-            // ✅ Close the backgrounds since all views are closed
-            CloseTheBackgrounds();
-
-            // ✅ Update openMenuEnumWas to reflect that all views are closed
-            openMenuEnumWas = Menu.None;
-            openMenuWas = null;
-            Debug.Log("  Set openMenuEnumWas to None (all views closed)");
-
-            // Reset all tracking variables
-            FleetLookingForShipDeploy = null;
-            FleetSelectedForShipDeploy = null;
-            StarSystLookingForShipDeploy = null;
-            StarSystSelectedForShipDeploy = null;
-            FleetLookingForShipMerge = null;
-            FleetSelectedForShipMerge = null;
-            StarSystLookingForShipMerge = null;
-            StarSystSelectedForShipMerge = null;
-
-            // Reset cursor and click mode
-            ResetClickMode();
-            MousePointerChanger.Instance?.ResetCursor();
-
-            Debug.Log("=== AfterCommitCleanup: Complete ===");
-        }
-
-        /// <summary>
-        /// Forces ship UIs to be visible and properly parented in their fleet/system containers
-        /// </summary>
-        private void RefreshShipUIsInContainers()
-        {
-            Debug.Log("RefreshShipUIsInContainers: Starting...");
-
-            if (FleetManager.Instance != null)
-            {
-                var fleets = FleetManager.Instance.FleetControllerList.ToList();
-
-                foreach (var fleetCon in fleets)
-                {
-                    if (fleetCon == null)
-                    {
-                        Debug.Log("  Skipping null fleet reference");
-                        continue;
-                    }
-                    if (!GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
-                    {
-                        // will we miss a ship list in the diplomacy UI? maybe, but trying to fix that is more work and risk than it's worth. The diplomacy UI is going to be a mess until we refactor it to not rely on the fleet/system menu views at all, so for now we'll just accept that ship lists won't show in diplomacy.
-                        Debug.Log($"  Fleet '{fleetCon.name}' does not belong to the local player - skipping");
-                        continue;
-                    }
-
-                    if (fleetCon.FleetData == null)
-                    {
-                        Debug.LogWarning($"  Fleet '{fleetCon.name}' has null FleetData - skipping");
-                        continue;
-                    }
-
-                    // ✅ If fleet has no ships, mark for destruction
-                    if (fleetCon.FleetData.ShipsList.Count == 0)
-                    {
-                        Debug.Log($"  Fleet '{fleetCon.name}' has no ships - will be destroyed");
-                        FleetManager.Instance.DestroyFleetController(fleetCon);
-                        continue;
-                    }
-
-                    var shipListParent = fleetCon.FleetData.ShipListUIParent;
-                    if (shipListParent == null)
-                    {
-                        Debug.LogWarning($"  Fleet '{fleetCon.name}' has null ShipListUIParent - skipping");
-                        continue;
-                    }
-
-                    Debug.Log($"  Fleet '{fleetCon.name}': {fleetCon.FleetData.ShipsList.Count} ships in data");
-
-                    // ✅ CRITICAL: Use ShipController hierarchy as source of truth
-                    var shipsInGalaxy = fleetCon.GetComponentsInChildren<ShipController>(true);
-                    Debug.Log($"    Found {shipsInGalaxy.Length} ShipControllers in hierarchy");
-
-                    foreach (var ship in shipsInGalaxy)
-                    {
-                        if (ship == null) continue;
-
-                        // ✅ Ensure ship is in the fleet's ShipsList
-                        if (!fleetCon.FleetData.ShipsList.Contains(ship))
-                        {
-                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' in hierarchy but NOT in ShipsList - adding!");
-                            fleetCon.FleetData.ShipsList.Add(ship);
-                        }
-
-                        // ✅ Ensure ship UI exists
-                        if (ship.ShipListUIGameObject == null)
-                        {
-                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' has no UI - creating!");
-                            ShipManager.Instance?.InstantiateShipListUIGameObject(ship, fleetCon.gameObject);
-                            ShipManager.Instance?.ProcessPendingShipUIs();
-                        }
-
-                        // ✅ Ensure ship UI is parented correctly
-                        if (ship.ShipListUIGameObject != null)
-                        {
-                            var currentParent = ship.ShipListUIGameObject.transform.parent;
-
-                            if (currentParent != shipListParent.transform)
-                            {
-                                Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' from '{currentParent?.name}' to correct parent '{shipListParent.name}'");
-                                ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
-                            }
-
-                            // ✅ Ensure ship UI is active and visible
-                            if (!ship.ShipListUIGameObject.activeSelf)
-                            {
-                                ship.ShipListUIGameObject.SetActive(true);
-                                Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
-                            }
-                        }
-                    }
-
-                    // ✅ Also check ShipsList and remove any null entries
-                    fleetCon.FleetData.ShipsList.RemoveAll(s => s == null);
-                }
-            }
-
-            if (StarSysManager.Instance != null)
-            {
-                foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
-                {
-                    if (sysCon == null)
-                    {
-                        Debug.LogError("  ❌ NULL STAR SYSTEM FOUND! This should never happen!");
-                        continue;
-                    }
-
-                    if (sysCon.StarSysData == null)
-                    {
-                        Debug.LogError($"  ❌ System '{sysCon.name}' has null StarSysData!");
-                        continue;
-                    }
-
-                    var shipListParent = sysCon.StarSysData.ShipListUIParent;
-                    if (shipListParent == null) continue;
-
-                    Debug.Log($"  System '{sysCon.name}': {sysCon.StarSysData.ShipsList.Count} ships in data");
-
-                    // ✅ CRITICAL: Use ShipController hierarchy as source of truth
-                    var shipsInGalaxy = sysCon.GetComponentsInChildren<ShipController>(true);
-                    Debug.Log($"    Found {shipsInGalaxy.Length} ShipControllers in hierarchy");
-
-                    foreach (var ship in shipsInGalaxy)
-                    {
-                        if (ship == null) continue;
-
-                        // ✅ Ensure ship is in the system's ShipsList
-                        if (!sysCon.StarSysData.ShipsList.Contains(ship))
-                        {
-                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' in hierarchy but NOT in ShipsList - adding!");
-                            sysCon.StarSysData.ShipsList.Add(ship);
-                        }
-
-                        // ✅ Ensure ship UI exists
-                        if (ship.ShipListUIGameObject == null)
-                        {
-                            Debug.LogWarning($"    Ship '{ship.ShipData.ShipName}' has no UI - creating!");
-                            ShipManager.Instance?.InstantiateShipListUIGameObject(ship, sysCon.gameObject);
-                            ShipManager.Instance?.ProcessPendingShipUIs();
-                        }
-
-                        // ✅ Ensure ship UI is parented correctly
-                        if (ship.ShipListUIGameObject != null)
-                        {
-                            var currentParent = ship.ShipListUIGameObject.transform.parent;
-
-                            if (currentParent != shipListParent.transform)
-                            {
-                                Debug.Log($"    Moving ship UI '{ship.ShipData.ShipName}' from '{currentParent?.name}' to correct parent '{shipListParent.name}'");
-                                ship.ShipListUIGameObject.transform.SetParent(shipListParent.transform, false);
-                            }
-
-                            // ✅ Ensure ship UI is active and visible
-                            if (!ship.ShipListUIGameObject.activeSelf)
-                            {
-                                ship.ShipListUIGameObject.SetActive(true);
-                                Debug.Log($"    Activated ship UI '{ship.ShipData.ShipName}'");
-                            }
-                        }
-                    }
-
-                    // ✅ Also check ShipsList and remove any null entries
-                    sysCon.StarSysData.ShipsList.RemoveAll(s => s == null);
-                }
-            }
-
-            Debug.Log("RefreshShipUIsInContainers: Complete");
-        }
-
-        /// <summary>
-        /// Validates that system UIs are NOT children of fleet containers and vice versa.
-        /// ONLY validates LOCAL PLAYER's systems/fleets!
-        /// </summary>
-        private void ValidateUIHierarchy()
-        {
-            Debug.Log("ValidateUIHierarchy: Checking for cross-contamination...");
-
-            var aSystemView = StarSysMenuUIController.Instance?.ASystemMenuView;
-            var aFleetView = FleetMenuUIController.Instance?.AFleetMenuView;
-
-            // ✅ Check AFleetMenuView for any system UIs (WRONG!)
-            if (aFleetView != null)
-            {
-                for (int i = aFleetView.transform.childCount - 1; i >= 0; i--)
-                {
-                    var child = aFleetView.transform.GetChild(i);
-                    if (child == null)
-                    {
-                        Debug.Log("  Skipping null child reference");
-                        continue;
-                    }
-
-                    var sysUIFields = child.GetComponent<StarSysUI_Fields>();
-
-                    if (sysUIFields != null)
-                    {
-                        Debug.LogError($"  ❌ SYSTEM UI '{child.name}' found in AFleetMenuView! Moving to home storage.");
-
-                        // Move to home storage
-                        var homeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-                        if (homeContainer != null)
-                        {
-                            child.SetParent(homeContainer.transform, false);
-                            child.gameObject.SetActive(false);
-                        }
-                    }
-                }
-            }
-
-            // ✅ Check ASystemMenuView for any fleet UIs (could be valid during ship deploy!)
-            if (aSystemView != null)
-            {
-                for (int i = aSystemView.transform.childCount - 1; i >= 0; i--)
-                {
-                    var child = aSystemView.transform.GetChild(i);
-                    if (child == null) continue;
-
-                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
-
-                    // Fleet UI in system view is OK during ship deploy/merge operations
-                    if (fleetUIFields != null)
-                    {
-                        Debug.Log($"  Fleet UI '{child.name}' in ASystemMenuView (OK during ship operations)");
-                    }
-                }
-            }
-
-            // ✅ CRITICAL FIX: Check all LOCAL PLAYER star systems (skip non-player systems!)
-            if (StarSysManager.Instance != null)
-            {
-                foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
-                {
-                    // ✅ Star systems should NEVER be null
-                    if (sysCon == null)
-                    {
-                        Debug.LogError("  ❌ NULL STAR SYSTEM in StarSysControllerList! This is a critical bug!");
-                        continue;
-                    }
-
-                    // ✅ CRITICAL: Skip non-player systems - they SHOULD NOT have UIs!
-                    if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
-                    {
-                        // This is normal - non-player systems don't have UIs
-                        continue;
-                    }
-
-                    // ✅ NOW check if LOCAL PLAYER system has null UI (this IS an error!)
-                    if (GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum) && sysCon.StarSysUIGameObject == null)
-                    {
-                        Debug.LogError($"  ❌ LOCAL PLAYER system '{sysCon.name}' has null StarSysUIGameObject! This should NEVER happen!");
-
-                        // Try to recover from tracking list
-                        if (StarSysMenuUIController.Instance != null)
-                        {
-                            var foundUI = TryRecoverSystemUI(sysCon);
-
-                            if (foundUI != null)
-                            {
-                                sysCon.StarSysUIGameObject = foundUI;
-                                Debug.Log($"    ✅ RECOVERED UI for '{sysCon.name}'");
-                            }
-                            else
-                            {
-                                Debug.LogError($"    ❌ RECOVERY FAILED for '{sysCon.name}'! UI must be recreated.");
-                                // UI was destroyed - should recreate it
-                                if (StarSysManager.Instance != null)
-                                {
-                                    StarSysManager.Instance.InstantiateStarSysUI(sysCon);
-                                    Debug.Log($"    ✅ RECREATED UI for '{sysCon.name}'");
-                                }
-                            }
-                        }
-
-                        continue;
-                    }
-
-                    // ✅ Check if UI is wrongly parented
-                    var parent = sysCon.StarSysUIGameObject.transform.parent;
-                    if (parent == null) continue;
-
-                    // Check if parent is a fleet UI (individual fleet UI, not AFleetMenuView)
-                    var fleetUIFields = parent.GetComponent<FleetUI_Fields>();
-                    if (fleetUIFields != null)
-                    {
-                        Debug.LogError($"  ❌ SYSTEM UI '{sysCon.StarSysUIGameObject.name}' is a child of FLEET UI '{parent.name}'! Fixing...");
-
-                        var homeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-                        if (homeContainer != null)
-                        {
-                            sysCon.StarSysUIGameObject.transform.SetParent(homeContainer.transform, false);
-                            sysCon.StarSysUIGameObject.SetActive(false);
-                            Debug.Log($"    Moved back to home storage");
-                        }
-                    }
-                }
-            }
-
-            // ✅ Check all LOCAL PLAYER fleets (skip non-player fleets!)
-            if (FleetManager.Instance != null)
-            {
-                // ✅ Work on a copy and remove nulls
-                var fleets = FleetManager.Instance.FleetControllerList.ToList();
-                FleetManager.Instance.FleetControllerList.RemoveAll(f => f == null);
-
-                int nullCount = fleets.Count - FleetManager.Instance.FleetControllerList.Count;
-                if (nullCount > 0)
-                {
-                    Debug.Log($"  Removed {nullCount} destroyed fleet references from FleetControllerList");
-                }
-
-                foreach (var fleetCon in FleetManager.Instance.FleetControllerList)
-                {
-                    if (fleetCon == null) continue;
-
-                    // ✅ CRITICAL: Skip non-player fleets - they SHOULD NOT have UIs!
-                    if (!GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
-                    {
-                        // This is normal - non-player fleets don't have UIs
-                        continue;
-                    }
-
-                    // ✅ Local player fleet with null UI - this IS an error
-                    if (fleetCon.FleetUIGameObject == null)
-                    {
-                        Debug.LogWarning($"  ⚠️ LOCAL PLAYER fleet '{fleetCon.name}' has null FleetUIGameObject");
-                        continue;
-                    }
-
-                    var parent = fleetCon.FleetUIGameObject.transform.parent;
-                    if (parent == null) continue;
-
-                    // Check if parent is a system UI (individual system UI, not ASystemMenuView)
-                    var sysUIFields = parent.GetComponent<StarSysUI_Fields>();
-                    if (sysUIFields != null)
-                    {
-                        Debug.LogError($"  ❌ FLEET UI '{fleetCon.FleetUIGameObject.name}' is a child of SYSTEM UI '{parent.name}'! Fixing...");
-
-                        var homeContainer = FleetManager.Instance?.FleetUI_ListContainer;
-                        if (homeContainer != null)
-                        {
-                            fleetCon.FleetUIGameObject.transform.SetParent(homeContainer.transform, false);
-                            fleetCon.FleetUIGameObject.SetActive(false);
-                            Debug.Log($"    Moved back to home storage");
-                        }
-                    }
-                }
-            }
-
-            Debug.Log("ValidateUIHierarchy: Complete");
-        }
-
-        /// <summary>
-        /// Helper: Tries to find an orphaned UI in the tracking list
-        /// </summary>
-        private GameObject TryRecoverSystemUI(StarSysController sysCon)
-        {
-            if (StarSysMenuUIController.Instance == null) return null;
-
-            // Use reflection to access private listOfStarSysUiGos field
-            var trackingList = StarSysMenuUIController.Instance.GetType()
-                .GetField("listOfStarSysUiGos", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.GetValue(StarSysMenuUIController.Instance) as List<GameObject>;
-
-            if (trackingList != null)
-            {
-                foreach (var ui in trackingList)
-                {
-                    if (ui == null) continue;
-
-                    var uiFields = ui.GetComponent<StarSysUI_Fields>();
-                    if (uiFields != null && uiFields.sysName?.text == sysCon.StarSysData?.SysName)
-                    {
-                        return ui;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public void OpenMenu(Menu menuEnum, GameObject callingMenuOrGalaxyObject)
-        {
-            if (openMenuWas != null)
-            {
-                openMenuWas.SetActive(false);
-                CloseMenu(openMenuEnumWas);
-            }
-            switch (menuEnum)
-            {
-                case Menu.None:
-                    openMenuWas = null;
-                    break;
-                case Menu.SystemsMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    starSysMenuUIController.ShowSystemMenuView();
-                    CloseTheBackgrounds();
-                    sysBackground.SetActive(true);
-                    starSysMenuUIController.PopulateSystemsList();
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.SystemsMenu;
-                    break;
-                case Menu.ASystemMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    // ✅ VALIDATE: Ensure calling object has StarSysController, not FleetController
-                    var starSysCon = callingMenuOrGalaxyObject?.GetComponentInChildren<StarSysController>();
-                    if (starSysCon == null)
-                    {
-                        Debug.LogError($"OpenMenu(ASystemMenu): GameObject '{callingMenuOrGalaxyObject?.name}' has no StarSysController! Cannot open system menu.");
-                        return;
-                    }
-
-                    starSysMenuUIController.ShowA_SystemMenuView();
-                    CloseTheBackgrounds();
-                    starSysMenuUIController.SetActiveSetParentUIGO(starSysCon); // This already moves the UI!
-                    sysBackground.SetActive(true);
-                    // ✅ REMOVED: starSysMenuUIController.MoveTheSysUIGO(callingMenuOrGalaxyObject);
-                    // SetActiveSetParentUIGO() already handles parenting to ASystemMenuView
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.ASystemMenu;
-                    break;
-                case Menu.BuildMenu:
-                    HideShipDeployMenu();
-                    InactivateCallingMenu(callingMenuOrGalaxyObject);
-                    sysBuildMenu.SetActive(true);
-                    openMenuWas = sysBuildMenu;
-                    openMenuEnumWas = Menu.BuildMenu;
-                    break;
-                case Menu.FleetMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    fleetMenuUIController.ShowFleetMenuView();
-                    CloseTheBackgrounds();
-                    fleetsBackground.SetActive(true);
-                    fleetMenuUIController.MoveBackAnyaFleetUIGO();
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.FleetMenu;
-                    break;
-                case Menu.AFleetMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    // ✅ VALIDATE: Ensure calling object has FleetController, not StarSysController
-                    var fleetCon = callingMenuOrGalaxyObject?.GetComponentInChildren<FleetController>();
-                    if (fleetCon == null)
-                    {
-                        Debug.LogError($"OpenMenu(AFleetMenu): GameObject '{callingMenuOrGalaxyObject?.name}' has no FleetController! Cannot open fleet menu.");
-                        return;
-                    }
-
-                    // ✅ VALIDATE: Ensure it's not a system pretending to be a fleet
-                    var wrongStarSys = callingMenuOrGalaxyObject?.GetComponent<StarSysController>();
-                    if (wrongStarSys != null)
-                    {
-                        Debug.LogError($"OpenMenu(AFleetMenu): GameObject '{callingMenuOrGalaxyObject?.name}' IS A STAR SYSTEM! Opening system menu instead.");
-                        OpenMenu(Menu.ASystemMenu, callingMenuOrGalaxyObject);
-                        return;
-                    }
-
-                    fleetMenuUIController.ShowA_FleetMenuView();
-                    CloseTheBackgrounds();
-                    fleetMenuUIController.SetActiveSetParentUIGO(fleetCon);
-                    fleetsBackground.SetActive(true);
-                    fleetMenuUIController.MoveTheFleetUIGO(callingMenuOrGalaxyObject);
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.AFleetMenu;
-                    break;
-                case Menu.ShipDeployMenu:
-                    //HideShipDeployMenu();
-                    shipDeployMenuUIController.ShowShipDeployMenuView();
-                    openMenuWas = shipDeployMenuUIController.gameObject;
-                    openMenuEnumWas = Menu.ShipDeployMenu;
-                    break;
-                case Menu.DiplomacyMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    diplomacyMenuUIController.ShowDiplomacyMenuView();
-                    CloseTheBackgrounds();
-                    diplomacyBackground.SetActive(true);
-                    TimeManager.Instance.PauseTime();
-                    diplomacyMenuUIController.MoveBackAnyDiplomacyUIGO();
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.DiplomacyMenu;
-                    break;
-                case Menu.ADiplomacyMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    diplomacyMenuUIController.ShowA_DiplomacyMenuView();
-                    CloseTheBackgrounds();
-                    TimeManager.Instance.PauseTime();
-                    diplomacyMenuUIController.SetActiveSetParentADiplomacyUIData(callingMenuOrGalaxyObject.GetComponentInChildren<DiplomacyController>());
-                    diplomacyBackground.SetActive(true);
-                    diplomacyMenuUIController.MoveTheDiplomacyUIGO(callingMenuOrGalaxyObject);
-                    openMenuWas = null;
-                    openMenuEnumWas = Menu.ADiplomacyMenu;
-                    break;
-                case Menu.IntellMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    CloseTheBackgrounds();
-                    intelMenuView.SetActive(true);
-                    intelBackground.SetActive(true);
-                    openMenuWas = intelMenuView;
-                    openMenuEnumWas = Menu.IntellMenu;
-                    break;
-                case Menu.EncyclopedianMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    CloseTheBackgrounds();
-                    InactivateCallingMenu(callingMenuOrGalaxyObject);
-                    encyclopediaMenuView.SetActive(true);
-                    encyclopediaBackground.SetActive(true);
-                    openMenuWas = encyclopediaMenuView;
-                    openMenuEnumWas = Menu.EncyclopedianMenu;
-                    break;
-                case Menu.HabitableSysMenu:
-                    HideShipDeployMenu();
-                    CloseAllMenus();
-                    habitableSysMenu.SetActive(true);
-                    openMenuWas = habitableSysMenu;
-                    openMenuEnumWas = Menu.HabitableSysMenu;
-                    break;
-                //case Menu.Combat:
-                //    break;
-                default:
-                    break;
-            }
-        }
-        internal void WhatFleetIsSelectedForShipDiploy(FleetController fleetController)
-        {
-            FleetSelectedForShipDeploy = fleetController;
-            StarSystSelectedForShipDeploy = null;
-        }
-        internal void WhatFleetIsSelectedForShipMerge(FleetController fleetController)
-        {
-            FleetSelectedForShipMerge = fleetController;
-            StarSystSelectedForShipMerge = null;
-        }
-        internal void WhatSystemIsSelectedForShipDeploy(StarSysController starSysController)
-        {
-            StarSystSelectedForShipDeploy = starSysController;
-            FleetSelectedForShipDeploy = null;
-        }
-        internal void WhatSystemIsSelectedForShipMerge(StarSysController starSysController)
-        {
-            StarSystSelectedForShipMerge = starSysController;
-            FleetSelectedForShipMerge = null;
-        }
-        /// <summary>
-        /// Populates the SystemsMenuView with all local player's star system UIs
-        /// </summary>
-        private void MoveBackShipUIGO()
-        {
-            Debug.Log($"MoveBackShipUIGO: FleetLooking={FleetLookingForShipDeploy?.name}, StarSystLooking={StarSystLookingForShipDeploy?.name}, FleetSelected={FleetSelectedForShipDeploy?.name}, StarSystSelected={StarSystSelectedForShipDeploy?.name}");
-
-            // ✅ NEW: Get TopFleet/TopStarSyst and BottomFleet/BottomStarSyst from ShipDeployMenuUIController
-            var shipDeployUI = ShipDeployMenuUIController.Instance;
-            if (shipDeployUI != null)
-            {
-                // Process Top slot ships
-                if (shipDeployUI.TopFleet != null)
-                {
-                    Debug.Log($"  Moving TopFleet '{shipDeployUI.TopFleet.name}' ships back");
-                    GameObject shipListParent = shipDeployUI.TopFleet.FleetData?.ShipListUIParent;
-                    if (shipListParent != null)
-                    {
-                        var shipUIGOs = shipDeployUI.GetTopSlotShipListUIGOs();
-                        foreach (var shipUI in shipUIGOs)
-                        {
-                            if (shipUI != null)
-                            {
-                                shipUI.transform.SetParent(shipListParent.transform, false);
-                                Debug.Log($"    Moved ship UI back to TopFleet ShipListUIParent");
-                            }
-                        }
-                    }
-                }
-                else if (shipDeployUI.TopStarSyst != null)
-                {
-                    Debug.Log($"  Moving TopStarSyst '{shipDeployUI.TopStarSyst.name}' ships back");
-                    GameObject shipListParent = shipDeployUI.TopStarSyst.StarSysData?.ShipListUIParent;
-                    if (shipListParent != null)
-                    {
-                        var shipUIGOs = shipDeployUI.GetTopSlotShipListUIGOs();
-                        foreach (var shipUI in shipUIGOs)
-                        {
-                            if (shipUI != null)
-                            {
-                                shipUI.transform.SetParent(shipListParent.transform, false);
-                                Debug.Log($"    Moved ship UI back to TopStarSyst ShipListUIParent");
-                            }
-                        }
-                    }
-                }
-
-                // Process Bottom slot ships
-                if (shipDeployUI.BottomFleet != null)
-                {
-                    Debug.Log($"  Moving BottomFleet '{shipDeployUI.BottomFleet.name}' ships back");
-                    GameObject shipListParent = shipDeployUI.BottomFleet.FleetData?.ShipListUIParent;
-                    if (shipListParent != null)
-                    {
-                        var shipUIGOs = shipDeployUI.GetBottomSlotShipListUIGOs();
-                        foreach (var shipUI in shipUIGOs)
-                        {
-                            if (shipUI != null)
-                            {
-                                shipUI.transform.SetParent(shipListParent.transform, false);
-                                Debug.Log($"    Moved ship UI back to BottomFleet ShipListUIParent");
-                            }
-                        }
-                    }
-                }
-                else if (shipDeployUI.BottomStarSyst != null)
-                {
-                    Debug.Log($"  Moving BottomStarSyst '{shipDeployUI.BottomStarSyst.name}' ships back");
-                    GameObject shipListParent = shipDeployUI.BottomStarSyst.StarSysData?.ShipListUIParent;
-                    if (shipListParent != null)
-                    {
-                        var shipUIGOs = shipDeployUI.GetBottomSlotShipListUIGOs();
-                        foreach (var shipUI in shipUIGOs)
-                        {
-                            if (shipUI != null)
-                            {
-                                shipUI.transform.SetParent(shipListParent.transform, false);
-                                Debug.Log($"    Moved ship UI back to BottomStarSyst ShipListUIParent");
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ✅ Keep existing logic as fallback (in case the new approach misses something)
-            if (FleetLookingForShipDeploy != null)
-            {
-                GameObject fleetShipListParentGO = FleetLookingForShipDeploy.FleetData.ShipListUIParent;
-                if (fleetShipListParentGO != null)
-                {
-                    var shipUIGOs = ShipDeployMenuUIController.Instance.GetTopSlotShipListUIGOs().ToList();
-                    for (int i = 0; i < shipUIGOs.Count; i++)
-                    {
-                        shipUIGOs[i].transform.SetParent(fleetShipListParentGO.transform, false);
-                    }
-                }
-            }
-            else if (StarSystLookingForShipDeploy != null)
-            {
-                GameObject starSysShipListParentGO = StarSystLookingForShipDeploy.StarSysData.ShipListUIParent;
-                if (starSysShipListParentGO != null)
-                {
-                    var shipUIGOs = ShipDeployMenuUIController.Instance.GetTopSlotShipListUIGOs().ToList();
-                    for (int i = 0; i < shipUIGOs.Count; i++)
-                    {
-                        shipUIGOs[i].transform.SetParent(starSysShipListParentGO.transform, false);
-                    }
-                }
-            }
-
-            if (FleetSelectedForShipDeploy != null)
-            {
-                GameObject fleetShipListParentGO = FleetSelectedForShipDeploy.FleetData.ShipListUIParent;
-                if (fleetShipListParentGO != null)
-                {
-                    var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListUIGOs().ToList();
-                    for (int i = 0; i < shipUIGOs.Count; i++)
-                    {
-                        shipUIGOs[i].transform.SetParent(fleetShipListParentGO.transform, false);
-                    }
-                }
-            }
-            else if (StarSystSelectedForShipDeploy != null)
-            {
-                GameObject starSysShipListParentGO = StarSystSelectedForShipDeploy.StarSysData.ShipListUIParent;
-                if (starSysShipListParentGO != null)
-                {
-                    var shipUIGOs = ShipDeployMenuUIController.Instance.GetBottomSlotShipListUIGOs().ToList();
-                    for (int i = 0; i < shipUIGOs.Count; i++)
-                    {
-                        shipUIGOs[i].transform.SetParent(starSysShipListParentGO.transform, false);
-                    }
-                }
-            }
-
-            Debug.Log("MoveBackShipUIGO: Complete");
-        }
-
-        private void InactivateCallingMenu(GameObject callingMenu)
-        {
-            if (callingMenu != null)
-                callingMenu.SetActive(false);
-        }
-        public void CloseAllMenus()
-        {
-            // Close all menu backgrounds
-            CloseTheBackgrounds();
-
-            // Close ship deploy if open
-            CloseShipDeployMenu();
-
-            // ✅ NUCLEAR OPTION: Force hide diplomacy views and disable raycasts
-            if (diplomacyMenuUIController != null)
-            {
-                diplomacyMenuUIController.HideDiplomacyMenuView();
-                diplomacyMenuUIController.HideA_DiplomacyMenuView();
-
-                // ✅ Extra safety: disable raycasts on all diplomacy UI elements
-                if (diplomacyMenuUIController.DiplomacyMenuView != null)
-                {
-                    var canvasGroups = diplomacyMenuUIController.DiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
-                    foreach (var group in canvasGroups)
-                    {
-                        group.blocksRaycasts = false;
-                    }
-                }
-
-                if (diplomacyMenuUIController.ADiplomacyMenuView != null)
-                {
-                    var canvasGroups = diplomacyMenuUIController.ADiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
-                    foreach (var group in canvasGroups)
-                    {
-                        group.blocksRaycasts = false;
-                    }
-                }
-
-                Debug.Log("  ✅ Force-disabled all diplomacy UI raycasts");
-            }
-
-            // Deactivate any open menu views
-            if (sysBuildMenu != null && sysBuildMenu.activeSelf)
-                sysBuildMenu.SetActive(false);
-
-            if (habitableSysMenu != null && habitableSysMenu.activeSelf)
-                habitableSysMenu.SetActive(false);
-
-            if (diplomacyNoContacts != null && diplomacyNoContacts.activeSelf)
-                diplomacyNoContacts.SetActive(false);
-
-            if (intelMenuView != null && intelMenuView.activeSelf)
-                intelMenuView.SetActive(false);
-
-            if (encyclopediaMenuView != null && encyclopediaMenuView.activeSelf)
-                encyclopediaMenuView.SetActive(false);
-
-            // Reset click mode
-            ResetClickMode();
-
-            Debug.Log("CloseAllMenus: Complete - all raycasts cleared");
-        }
-        public void CloseMenu(Menu enumMenu)
-        {
-            switch (enumMenu)
-            {
-                case Menu.None:
-                    openMenuWas = null;
-                    break;
-                case Menu.SystemsMenu:
-                    starSysMenuUIController?.HideSystemMenuView(); // ✅ Explicit hide
-                    sysBackground.SetActive(false);
-                    openMenuWas = null;
-                    break;
-                case Menu.ASystemMenu:
-                    starSysMenuUIController?.MoveBackAnyStarSysUIGO(); // ✅ FIXED: Correct method name
-                    starSysMenuUIController?.HideA_SystemMenuView(); // ✅ Explicit hide
-                    sysBackground.SetActive(false);
-                    openMenuWas = null;
-                    break;
-                case Menu.BuildMenu:
-                    sysBuildMenu.SetActive(false);
-                    openMenuWas = sysBuildMenu;
-                    break;
-                case Menu.FleetMenu:
-                    fleetMenuUIController?.HideFleetMenuView(); // ✅ Explicit hide
-                    fleetsBackground.SetActive(false);
-                    fleetMenuUIController?.CloseDestinationSelectionCursor();
-                    openMenuWas = null;
-                    break;
-                case Menu.AFleetMenu:
-                    fleetMenuUIController?.MoveBackAnyaFleetUIGO();
-                    fleetMenuUIController?.HideA_FleetMenuView(); // ✅ Explicit hide
-                    fleetsBackground.SetActive(false);
-                    fleetMenuUIController?.CloseDestinationSelectionCursor();
-                    openMenuWas = null;
-                    break;
-                case Menu.ShipDeployMenu:
-                    // ✅ CHANGED: Don't call MoveBackShipUIGO here - it happens in CloseShipDeploy
-                    // which already commits changes
-                    Debug.Log("CloseMenu(ShipDeployMenu): Skipping - should use CloseShipDeployMenu() instead");
-                    openMenuWas = shipDeployMenuUIController?.gameObject;
-                    break;
-                case Menu.DiplomacyMenu:
-                    // ✅ Explicitly deactivate the diplomacy menu view
-                    if (diplomacyMenuUIController != null)
-                    {
-                        diplomacyMenuUIController.HideDiplomacyMenuView();
-
-                        // ✅ CRITICAL: Also deactivate the GameObject itself to stop raycasts
-                        if (diplomacyMenuUIController.DiplomacyMenuView != null)
-                        {
-                            diplomacyMenuUIController.DiplomacyMenuView.SetActive(false);
-                            Debug.Log("  ✅ Deactivated DiplomacyMenuView GameObject");
-                        }
-                    }
-
-                    diplomacyBackground.SetActive(false);
-                    TimeManager.Instance?.ResumeTime();
-                    openMenuWas = null;
-                    break;
-                //case Menu.DiplomacyMenu:
-                //    diplomacyMenuUIController?.HideDiplomacyMenuView(); // ✅ Explicit hide
-                //    diplomacyBackground.SetActive(false);
-                //    TimeManager.Instance?.ResumeTime();
-                //    openMenuWas = null;
-                //    break;
-                case Menu.ADiplomacyMenu:
-                    diplomacyMenuUIController?.MoveBackAnyDiplomacyUIGO();
-                    diplomacyMenuUIController?.HideA_DiplomacyMenuView(); // ✅ Explicit hide
-                    TimeManager.Instance?.ResumeTime();
-                    diplomacyBackground.SetActive(false);
-                    openMenuWas = null;
-                    break;
-                case Menu.IntellMenu:
-                    intelBackground.SetActive(false);
-                    intelMenuView.SetActive(false);
-                    openMenuWas = intelMenuView;
-                    break;
-                case Menu.EncyclopedianMenu:
-                    encyclopediaBackground.SetActive(false);
-                    encyclopediaMenuView.SetActive(false);
-                    openMenuWas = encyclopediaMenuView;
-                    break;
-                case Menu.HabitableSysMenu:
-                    habitableSysMenu.SetActive(false);
-                    openMenuWas = habitableSysMenu;
-                    break;
-                case Menu.Combat:// close combat scenes
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        public void FindTheirHomeSystem(CivController civCon, out StarSysController homeSystController)
-        {
-            homeSystController = null;
-            List<StarSysController> SystemCons = civCon.CivData.StarSysWeOwn;
-            for (int i = 0; i < SystemCons.Count; i++)
-            {
-                if (SystemCons[i].StarSysData.SysName == civCon.CivData.CivHomeSystemName)
-                {
-                    homeSystController = SystemCons[i];
-                    return;
-                }
-            }
-        }
-
-        internal void HideNoContactUI()
-        {
-            diplomacyNoContacts.SetActive(false);
-        }
-
-
-        public void SetClickMode(GalaxyClickMode mode)
-        {
-            CurrentClickMode = mode;
-            UpdateCursorForClickMode();
-        }
-
-        public void ResetClickMode()
-        {
-            SetClickMode(GalaxyClickMode.Normal);
-        }
-
-        private void UpdateCursorForClickMode()
-        {
-            switch (CurrentClickMode)
-            {
-                case GalaxyClickMode.Normal:
-                    MousePointerChanger.Instance.ResetCursor();
-                    break;
-
-                case GalaxyClickMode.SetDestination:
-                    MousePointerChanger.Instance.SetDestinationCursor();
-                    break;
-
-                case GalaxyClickMode.SelectForShipDeploy:
-                    MousePointerChanger.Instance.SetShipExchangeCursor();
-                    break;
-            }
-        }
-
-        public void ClickCancelShipDeployButton() // button is both in fleet and system UI
-        {
-            MousePointerChanger.Instance.ResetCursor();
-            CurrentClickMode = GalaxyClickMode.Normal;
-            // sele.SetActive(true);
-        }
-        public void WhatFleetIsLookingForMerge(FleetController fleetConLooking)
-        {
-            FleetLookingForShipMerge = fleetConLooking;
-            StarSystLookingForShipMerge = null;
-            SetClickMode(GalaxyClickMode.SelectForShipMerge);
-        }
-        public void WhatFleetIsLookingForShipDeploy(FleetController fleetConLooking)
-        {
-            FleetLookingForShipDeploy = fleetConLooking;
-            StarSystLookingForShipDeploy = null;
-            SetClickMode(GalaxyClickMode.SelectForShipDeploy);
-        }
-        public void WhatSystIsLookingForMerge(StarSysController starSystConLooking)
-        {
-            StarSystLookingForShipMerge = starSystConLooking;
-            FleetLookingForShipMerge = null;
-            SetClickMode(GalaxyClickMode.SelectForShipMerge);
-        }
-        public void WhatSystIsLookingForShipDeploy(StarSysController starSystConLooking)
-        {
-            StarSystLookingForShipDeploy = starSystConLooking;
-            FleetLookingForShipDeploy = null;
-            SetClickMode(GalaxyClickMode.SelectForShipDeploy);
-        }
-        public void CompleteShipExchange()
-        {
-            ResetClickMode();
-        }
-
-        public void BeginSetDestination(FleetController fleetLooking)
-        {
-            if (fleetLooking == null) return;
-
-            // Destroy any existing player-defined target
-            if (fleetLooking.TargetController != null)
-            {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetLooking);
-            }
-            FleetLookingForDestination = fleetLooking;
-            SetClickMode(GalaxyClickMode.SelectForShipDeploy);
-        }
-
-        public void CompleteSetDestination()
-        {
-            FleetLookingForDestination = null;
-            ResetClickMode();
-        }
-
-
-        /// <summary>
-        /// Checks if any ships were actually moved between top and bottom slots
-        /// </summary>
-        private bool CheckIfShipsWereMoved()
-        {
-            var shipDeployUI = ShipDeployMenuUIController.Instance;
-            if (shipDeployUI == null) return false;
-
-            // Get the original ship lists
-            List<ShipController> originalTopShips = new List<ShipController>();
-            List<ShipController> originalBottomShips = new List<ShipController>();
-
-            if (shipDeployUI.TopFleet != null)
-            {
-                originalTopShips = shipDeployUI.TopFleet.FleetData?.ShipsList ?? new List<ShipController>();
-            }
-            else if (shipDeployUI.TopStarSyst != null)
-            {
-                originalTopShips = shipDeployUI.TopStarSyst.StarSysData?.ShipsList ?? new List<ShipController>();
-            }
-
-            if (shipDeployUI.BottomFleet != null)
-            {
-                originalBottomShips = shipDeployUI.BottomFleet.FleetData?.ShipsList ?? new List<ShipController>();
-            }
-            else if (shipDeployUI.BottomStarSyst != null)
-            {
-                originalBottomShips = shipDeployUI.BottomStarSyst.StarSysData?.ShipsList ?? new List<ShipController>();
-            }
-
-            // Get current ship UIs in slots
-            var topSlotShipUIs = shipDeployUI.GetTopSlotShipListUIGOs();
-            var bottomSlotShipUIs = shipDeployUI.GetBottomSlotShipListUIGOs();
-
-            // Count ships in each slot
-            int topSlotCount = topSlotShipUIs?.Length ?? 0;
-            int bottomSlotCount = bottomSlotShipUIs?.Length ?? 0;
-
-            // If bottom started empty and still is, no changes
-            if (originalBottomShips.Count == 0 && bottomSlotCount == 0)
-            {
-                Debug.Log($"  No changes: Bottom was empty and still is (top has {topSlotCount} ships)");
-                return false;
-            }
-
-            // If counts changed, there were definitely changes
-            if (topSlotCount != originalTopShips.Count || bottomSlotCount != originalBottomShips.Count)
-            {
-                Debug.Log($"  Changes detected: Top {originalTopShips.Count}→{topSlotCount}, Bottom {originalBottomShips.Count}→{bottomSlotCount}");
-                return true;
-            }
-
-            Debug.Log($"  No changes detected");
-            return false;
-        }
-
-        private void CurrentClickModeReset()
-        {
-            GalaxyMenuUIController.Instance.ResetClickMode();
-        }
+        #endregion
     }
 }

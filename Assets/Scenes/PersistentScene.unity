@@ -1140,8 +1140,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shipConPrefab: {fileID: 5225383146866348849, guid: 74ecdfcbc551f7e43bcbddbec91a8686, type: 3}
+  galaxyShipPrefab: {fileID: 0}
   shipListUIPrefab: {fileID: 1097691733155681692, guid: 80e448e987f83f14a9351c9b3de176b4, type: 3}
-  ShipControllerList: []
   targetGOPrefab: {fileID: 3986111191651871830, guid: 9f5ec565b8469c841a29976acdadf913, type: 3}
   torpedoPrefabs:
   - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
@@ -1587,8 +1587,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 012b2d089cf552240a7ae8fb63ffda93, type: 2}
   - {fileID: 11400000, guid: 03791de61ebaaeb48be26ad950b7cccb, type: 2}
   Test: {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
-  galaxyShipPrefab: {fileID: 0}
-  AllShipControllers: []
+  ShipControllerList: []
 --- !u!4 &465746041
 Transform:
   m_ObjectHideFlags: 0

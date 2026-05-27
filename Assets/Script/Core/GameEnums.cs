@@ -380,8 +380,9 @@ namespace BOTF3D.Core
     public enum CombatType
     {
         None,
-        DeepSpaceCombat,
-        StarSystemCombat,
+        FleetVsFleet,
+        FleetVsSystem,
+        SystemVsFleet,
         StarSystemInvasion
     }
     public enum GalaxyClickMode
@@ -408,7 +409,12 @@ namespace BOTF3D.Core
         EncyclopedianMenu,
         FirstContactMenu,
         HabitableSysMenu,
-        Combat
+        Combat,
+        StarSys,
+        Fleet,
+        Diplomacy,
+        Intel,
+        Encyclopedia
     }
     public enum BuildMenuType
     {

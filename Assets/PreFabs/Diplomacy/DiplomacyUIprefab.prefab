@@ -8204,7 +8204,7 @@ GameObject:
   - component: {fileID: 3230266859630099960}
   - component: {fileID: 6694612342930575672}
   m_Layer: 5
-  m_Name: InsigniaTheirCiv (TMP)
+  m_Name: InsigniaTheirCiv
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

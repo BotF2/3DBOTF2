@@ -223,7 +223,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                         var pos = mouse.position.ReadValue();
                         Vector3 currentPos = new Vector3(pos.x, pos.y, 0f);
                         Vector3 delta = (currentPos - lastMousePosition) / mouseSpeed;
-                        MoveCamera(delta.x, delta.y);
+                        MoveCamera(delta.x, -delta.y);
                         lastMousePosition = currentPos;
                     }
                 }
@@ -242,7 +242,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                     if (!EventSystem.current.IsPointerOverGameObject())
                     {
                         Vector3 delta = (Input.mousePosition - lastMousePosition) / mouseSpeed;
-                        MoveCamera(delta.x, delta.y);
+                        MoveCamera(delta.x, -delta.y);
                         lastMousePosition = Input.mousePosition;
                     }
                 }
@@ -349,7 +349,7 @@ public class GalaxyCameraDragMoveZoom : MonoBehaviour
                 {
                     lastCameraPosition = transform.position;
                     transform.position = new Vector3(listStarSystems[i].transform.position.x,
-                        listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z - 350f);
+                        listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z - 200f);
                     transform.rotation = Quaternion.Euler(homeXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
                     homePosition = transform.position;
                     foundHomePosition = true;

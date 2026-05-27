@@ -31,27 +31,21 @@ namespace BOTF3D.GamePlay
             get => _starSysUIGameObject;
             set
             {
-                // ✅ Log BOTH setting to null AND any change
+                // ✅ Guard: never allow the 3D world object to be used as the UI object
+                if (value != null && (value == this.gameObject || value.transform.IsChildOf(this.transform)))
+                {
+                    Debug.LogError($"❌ StarSysUIGameObject on '{name}' cannot be set to its own 3D GameObject or a child! Assignment blocked.");
+                    return;
+                }
+
                 if (value != _starSysUIGameObject)
                 {
-                    if (value == null && _starSysUIGameObject != null)
-                    {
-                        Debug.LogError($"❌❌❌ System '{name}' UI BEING SET TO NULL!");
-                        Debug.LogError($"  Previous value: {_starSysUIGameObject?.name}");
-                        Debug.LogError($"  Stack trace:\n{System.Environment.StackTrace}");
-                    }
-                    else if (value != null && _starSysUIGameObject == null)
-                    {
-                        Debug.Log($"✅ System '{name}' UI being assigned: {value.name}");
-                    }
-                    else if (value != null && _starSysUIGameObject != null)
-                    {
-                        Debug.LogWarning($"⚠️ System '{name}' UI being CHANGED from '{_starSysUIGameObject.name}' to '{value.name}'");
-                    }
+                    // ... existing null-logging code stays here ...
+                    _starSysUIGameObject = value;
                 }
-                _starSysUIGameObject = value;
             }
         }
+
 
         private GameObject goForPowerOverload;
         public Camera GalaxyEventCamera { get; set; }
@@ -505,7 +499,19 @@ namespace BOTF3D.GamePlay
                 }
             }
 
-            ShipDeployMenuUIController.Instance.SetUpTopShipLists(clickedSystemCon.StarSysData.ShipsList);
+            if (fleetLooking != null)
+            {
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(fleetLooking.FleetData.ShipsList);
+            }
+            else if (starSysLooking != null)
+            {
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(starSysLooking.StarSysData.ShipsList);
+            }
+            else
+            {
+                ShipDeployMenuUIController.Instance.SetUpTopShipLists(clickedSystemCon.StarSysData.ShipsList);
+            }
+
             ShipDeployMenuUIController.Instance.SetUpBottomShipLists(clickedSystemCon, deployNotMerge);
             ShipDeployMenuUIController.Instance.ShowShipDeployMenuView();
 

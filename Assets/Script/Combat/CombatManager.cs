@@ -4,21 +4,19 @@ using BOTF3D.GamePlay;
 using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace BOTF3D.Core
 {
+    /// <summary>
+    /// Main combat manager - orchestrates combat flow using specialized sub-managers.
+    /// Refactored to delegate responsibilities to focused manager classes.
+    /// </summary>
     public class CombatManager : MonoBehaviour
     {
         public static CombatManager Instance { get; private set; }
 
         [Header("Combat Prefabs & Assets")]
-        public GameObject CombatUICanvas;
-        public GameObject Combat3DCanvas;
-        public GameObject GameOverCanvas { get; private set; }
         public GameObject HealthbarPrefab;
         [SerializeField] private CombatController combatConPrefab;
         [SerializeField] private SoundData dropOutOfWarpSoundData;
@@ -31,22 +29,20 @@ namespace BOTF3D.Core
         public AudioClip[] BeamFireClips;
         public AudioClip[] TorpedoFireClips;
 
-        // Weapon prefab properties (assigned from lists based on civ)
-        public GameObject SideOneTorpedoPrefab { get; private set; }
-        public GameObject SideTwoTorpedoPrefab { get; private set; }
-        public GameObject SideOneBeamPrefab { get; private set; }
-        public GameObject SideTwoBeamPrefab { get; private set; }
-        public AudioClip SideOneBeamFireClip { get; private set; }
-        public AudioClip SideTwoBeamFireClip { get; private set; }
-        public AudioClip SideOneTorpedoFireClip { get; private set; }
-        public AudioClip SideTwoTorpedoFireClip { get; private set; }
+        // Specialized managers
+        private CombatQueueManager queueManager;
+        private CombatSceneLoader sceneLoader;
+        private WeaponAssetProvider weaponProvider;
+        private CombatInstantiator combatInstantiator;
 
-        // Combat queue system
-        private Queue<PendingCombat> combatQueue = new Queue<PendingCombat>();
-        public CombatController ActiveCombatController { get; private set; }
-        private List<CombatController> allCombatControllers = new List<CombatController>();
-        private bool isProcessingCombat = false;
-        private CombatController _cachedCombatConPrefab; // Cache the prefab reference
+        // Cached prefab reference
+        private CombatController _cachedCombatConPrefab;
+
+        // Public accessors for backwards compatibility
+        public CombatController ActiveCombatController => queueManager?.ActiveCombatController;
+        public GameObject CombatUICanvas => sceneLoader?.CombatUICanvas;
+        public GameObject Combat3DCanvas => sceneLoader?.Combat3DCanvas;
+        public GameObject GameOverCanvas => sceneLoader?.GameOverCanvas;
 
         private void Awake()
         {
@@ -62,10 +58,9 @@ namespace BOTF3D.Core
             // Cache the prefab BEFORE DontDestroyOnLoad
             _cachedCombatConPrefab = combatConPrefab;
 
-            // Verify it's actually assigned
             if (_cachedCombatConPrefab == null)
             {
-                Debug.LogError("❌ combatConPrefab is NULL in Awake! Check Inspector assignment in the scene.");
+                Debug.LogError("❌ combatConPrefab is NULL in Awake! Check Inspector assignment.");
                 Debug.LogError($"   CombatManager is on GameObject: {gameObject.name}");
                 Debug.LogError($"   In scene: {gameObject.scene.name}");
             }
@@ -83,7 +78,43 @@ namespace BOTF3D.Core
                 combatConPrefab = _cachedCombatConPrefab;
             }
 
-            Debug.Log("✅ CombatManager initialized.");
+            // Initialize specialized managers
+            InitializeManagers();
+
+            Debug.Log("✅ CombatManager initialized with specialized sub-managers.");
+        }
+
+        /// <summary>
+        /// Initialize all specialized manager classes
+        /// </summary>
+        private void InitializeManagers()
+        {
+            // Queue manager for sequential combat processing
+            queueManager = new CombatQueueManager(this);
+            queueManager.OnCombatControllerRequested += HandleCombatControllerRequest;
+            queueManager.OnCombatSetupNeeded += SetUpLocalPlayer;
+
+            // Scene loader for finding combat scene objects
+            sceneLoader = new CombatSceneLoader();
+
+            // Weapon asset provider for civ-specific weapons
+            weaponProvider = new WeaponAssetProvider(
+                TorpedoPrefabs,
+                BeamPrefabs,
+                BeamFireClips,
+                TorpedoFireClips
+            );
+
+            // Combat instantiator for creating combat controllers
+            combatInstantiator = new CombatInstantiator(
+                combatConPrefab,
+                transform,
+                dropOutOfWarpSoundData,
+                sceneLoader,
+                weaponProvider
+            );
+
+            Debug.Log("✅ Specialized managers initialized");
         }
 
         /// <summary>
@@ -91,348 +122,27 @@ namespace BOTF3D.Core
         /// </summary>
         public void RequestCombat(List<ShipController> sideOneShips, List<ShipController> sideTwoShips, CombatType combatType)
         {
-            var pendingCombat = new PendingCombat
-            {
-                SideOneShips = sideOneShips,
-                SideTwoShips = sideTwoShips,
-                CombatType = combatType
-            };
-
-            combatQueue.Enqueue(pendingCombat);
-            Debug.Log($"⏸️ Combat queued. Total in queue: {combatQueue.Count}");
-
-            // Start processing if not already doing so
-            if (!isProcessingCombat)
-            {
-                StartCoroutine(ProcessCombatQueue());
-            }
+            queueManager.RequestCombat(sideOneShips, sideTwoShips, combatType);
         }
 
         /// <summary>
-        /// Process one combat at a time from the queue
+        /// Handle combat controller creation request from queue manager
         /// </summary>
-        private IEnumerator ProcessCombatQueue()
-        {
-            isProcessingCombat = true;
-
-            while (combatQueue.Count > 0)
-            {
-                var pendingCombat = combatQueue.Dequeue();
-                Debug.Log($"🎮 Starting combat. Remaining in queue: {combatQueue.Count}");
-
-                yield return null;
-
-                CombatController combatController = null;
-                yield return StartCoroutine(InstantiateCombatControllerCoroutine(
-                    pendingCombat.SideOneShips,
-                    pendingCombat.SideTwoShips,
-                    (controller) => combatController = controller
-                ));
-
-                if (combatController != null)
-                {
-                    combatController.CombatData.CombatType = pendingCombat.CombatType;
-
-                    // Set ActiveCombatController FIRST
-                    ActiveCombatController = combatController;
-
-                    // Setup local player UI
-                    SetUpLocalPlayer();
-
-                    // Wait for combat to finish
-                    while (ActiveCombatController != null && !ActiveCombatController.isClosing)
-                    {
-                        yield return null;
-                    }
-
-                    Debug.Log("✅ Combat finished. Processing next in queue...");
-                    yield return new WaitForSeconds(0.5f);
-                }
-            }
-
-            isProcessingCombat = false;
-            Debug.Log("✅ Combat queue empty.");
-        }
-
-        /// <summary>
-        /// Coroutine version of InstantiateCombatController
-        /// </summary>
-        private IEnumerator InstantiateCombatControllerCoroutine(
-            List<ShipController> sideOneShipCons,
-            List<ShipController> sideTwoShipCons,
+        private void HandleCombatControllerRequest(
+            List<ShipController> sideOneShips,
+            List<ShipController> sideTwoShips,
             System.Action<CombatController> callback)
         {
-            // Wait one more frame to ensure scene objects are fully initialized
-            yield return null;
+            // Find scene references
+            sceneLoader.FindCombatSceneReferences();
 
-            var controller = InstantiateCombatController(sideOneShipCons, sideTwoShipCons);
+            // Create combat controller
+            CombatController controller = combatInstantiator.InstantiateCombatController(
+                sideOneShips,
+                sideTwoShips
+            );
+
             callback?.Invoke(controller);
-        }
-
-        /// <summary>
-        /// Instantiate a new CombatController with simplified setup (no animators)
-        /// </summary>
-        public CombatController InstantiateCombatController(List<ShipController> sideOneShipCons, List<ShipController> sideTwoShipCons)
-        {
-            if (combatConPrefab == null)
-            {
-                Debug.LogError("InstantiateCombatController: combatConPrefab is null! Assign it in Inspector.");
-                return null;
-            }
-
-            FindCombatSceneReferences();
-
-            if (CombatUICanvas == null)
-            {
-                Debug.LogError("❌ Cannot instantiate combat - CombatUICanvas not found!");
-                return null;
-            }
-
-            Debug.Log("📦 Instantiating NEW CombatController...");
-
-            // Create combat data
-            CombatData combatData = new CombatData
-            {
-                SideOneShipCons = sideOneShipCons,
-                SideTwoShipCons = sideTwoShipCons,
-                CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum,
-                CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
-                OrderSideOne = CombatOrders.Engage,
-                OrderSideTwo = CombatOrders.Engage
-            };
-
-            // Instantiate new controller
-            CombatController aCombatController = Instantiate(combatConPrefab, Vector3.zero, Quaternion.identity);
-            aCombatController.transform.SetParent(transform, false);
-            aCombatController.name = $"CombatController_{aCombatController.CombatID}";
-
-            // Set combat data
-            combatData.CombatID = aCombatController.CombatID;
-            aCombatController.CombatData = combatData;
-            aCombatController.isMoving = false;
-            aCombatController.isClosing = false;
-            aCombatController.WarpingIn = true;
-            aCombatController.WarpingAnimationOver = false;
-            aCombatController.ShipCombatCanvas = Combat3DCanvas.GetComponent<Canvas>();
-            aCombatController.warpInSound = dropOutOfWarpSoundData;
-
-            // Assign weapon prefabs based on civs
-            CivEnum sideOneCiv = sideOneShipCons[0].ShipData.CivEnum;
-            CivEnum sideTwoCiv = sideTwoShipCons[0].ShipData.CivEnum;
-
-            SideOneTorpedoPrefab = GetTorpedoPrefabs(aCombatController, sideOneCiv);
-            SideTwoTorpedoPrefab = GetTorpedoPrefabs(aCombatController, sideTwoCiv);
-            SideOneBeamPrefab = GetBeamPrefabs(aCombatController, sideOneCiv);
-            SideTwoBeamPrefab = GetBeamPrefabs(aCombatController, sideTwoCiv);
-
-            aCombatController.SideOneTorpedoPrefab = SideOneTorpedoPrefab;
-            aCombatController.SideTwoTorpedoPrefab = SideTwoTorpedoPrefab;
-            aCombatController.SideOneBeamPrefab = SideOneBeamPrefab;
-            aCombatController.SideTwoBeamPrefab = SideTwoBeamPrefab;
-
-            // Assign audio clips based on civs
-            SideOneBeamFireClip = GetBeamFireClip(sideOneCiv);
-            SideTwoBeamFireClip = GetBeamFireClip(sideTwoCiv);
-            SideOneTorpedoFireClip = GetTorpedoFireClip(sideOneCiv);
-            SideTwoTorpedoFireClip = GetTorpedoFireClip(sideTwoCiv);
-
-            aCombatController.SideOneBeamFireClip = SideOneBeamFireClip;
-            aCombatController.SideTwoBeamFireClip = SideTwoBeamFireClip;
-            aCombatController.SideOneTorpedoFireClip = SideOneTorpedoFireClip;
-            aCombatController.SideTwoTorpedoFireClip = SideTwoTorpedoFireClip;
-
-            Debug.Log($"✅ CombatController instantiated: {aCombatController.name}");
-
-            // Populate ship data and setup positions
-            aCombatController.PopulateShipData(aCombatController);
-
-            // Add to tracking list
-            allCombatControllers.Add(aCombatController);
-
-            return aCombatController;
-        }
-
-        /// <summary>
-        /// Find combat scene references (canvases only - no animators)
-        /// </summary>
-        private void FindCombatSceneReferences()
-        {
-            Debug.Log("=== Finding CombatScene References ===");
-
-            Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-            if (!combatScene.isLoaded)
-            {
-                Debug.LogError("❌ CombatScene is not loaded!");
-                return;
-            }
-
-            GameObject[] rootObjects = combatScene.GetRootGameObjects();
-            Debug.Log($"🔍 Found {rootObjects.Length} root objects in CombatScene");
-
-            // Only search for canvases now (no more animators)
-            foreach (GameObject root in rootObjects)
-            {
-                CheckAndAssignCanvases(root);
-                SearchChildrenForCanvases(root.transform);
-            }
-
-            // Validate
-            if (CombatUICanvas == null)
-            {
-                Debug.LogError("❌ CombatUICanvas not found!");
-            }
-            else
-            {
-                Debug.Log($"✅ CombatUICanvas found: {CombatUICanvas.name}");
-            }
-
-            if (Combat3DCanvas == null)
-            {
-                Debug.LogError("❌ Combat3DCanvas not found!");
-            }
-            else
-            {
-                Debug.Log($"✅ Combat3DCanvas found: {Combat3DCanvas.name}");
-            }
-
-            if (GameOverCanvas == null)
-            {
-                Debug.LogError("❌ GameOverCanvas not found!");
-            }
-            else
-            {
-                Debug.Log($"✅ GameOverCanvas found: {GameOverCanvas.name}");
-            }
-        }
-
-        private void CheckAndAssignCanvases(GameObject obj)
-        {
-            if (obj.name == "CombatUICanvas" && CombatUICanvas == null)
-            {
-                CombatUICanvas = obj;
-            }
-            else if (obj.name == "Combat3DCanvas" && Combat3DCanvas == null)
-            {
-                Combat3DCanvas = obj;
-            }
-            else if (obj.name == "GameOverCanvas" && GameOverCanvas == null)
-            {
-                GameOverCanvas = obj;
-            }
-        }
-
-        private void SearchChildrenForCanvases(Transform parent)
-        {
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                GameObject child = parent.GetChild(i).gameObject;
-                CheckAndAssignCanvases(child);
-                SearchChildrenForCanvases(child.transform);
-            }
-        }
-
-        /// <summary>
-        /// Get full hierarchy path of a GameObject for debugging
-        /// </summary>
-        private string GetGameObjectPath(GameObject obj)
-        {
-            string path = obj.name;
-            Transform current = obj.transform.parent;
-
-            while (current != null)
-            {
-                path = current.name + "/" + path;
-                current = current.parent;
-            }
-
-            return path;
-        }
-
-        private GameObject GetTorpedoPrefabs(CombatController aCombatController, CivEnum civEnum)
-        {
-            GameObject torpedoPrefab = TorpedoPrefabs[TorpedoPrefabs.Count - 1]; // default to minor civ prefab
-
-            for (int i = 0; i < TorpedoPrefabs.Count; i++)
-            {
-                if (i == (int)civEnum)
-                {
-                    torpedoPrefab = TorpedoPrefabs[i];
-                    return torpedoPrefab; // Return the prefab for the specific civ
-                }
-            }
-            return torpedoPrefab; // Return the default prefab if no match found
-        }
-
-        private GameObject GetBeamPrefabs(CombatController aCombatController, CivEnum civEnum)
-        {
-            GameObject beamPrefab = BeamPrefabs[BeamPrefabs.Count - 1];
-            for (int i = 0; i < BeamPrefabs.Count; i++)
-            {
-                if (i == (int)civEnum)
-                {
-                    beamPrefab = BeamPrefabs[i];
-                    return beamPrefab;
-                }
-            }
-            return beamPrefab;
-        }
-
-        /// <summary>
-        /// Get civilization-specific beam fire audio clip
-        /// For 7 playable civs (FED=0 through TERRAN=6), use their index
-        /// For all other civs (index > 7), use the last clip (minor civ fallback)
-        /// </summary>
-        private AudioClip GetBeamFireClip(CivEnum civEnum)
-        {
-            if (BeamFireClips == null || BeamFireClips.Length == 0)
-            {
-                Debug.LogWarning($"⚠️ BeamFireClips array is null or empty!");
-                return null;
-            }
-
-            int civIndex = (int)civEnum;
-
-            // For playable civs (0-6), use their specific clip
-            if (civIndex >= 0 && civIndex < BeamFireClips.Length - 1)
-            {
-                AudioClip clip = BeamFireClips[civIndex];
-                Debug.Log($"✅ Assigned BeamFireClip for {civEnum} (index {civIndex}): {clip?.name ?? "NULL"}");
-                return clip;
-            }
-
-            // For minor civs (index > 7), use the last clip as fallback
-            AudioClip fallbackClip = BeamFireClips[BeamFireClips.Length - 1];
-            Debug.Log($"✅ Assigned fallback BeamFireClip for {civEnum} (index {civIndex}): {fallbackClip?.name ?? "NULL"}");
-            return fallbackClip;
-        }
-
-        /// <summary>
-        /// Get civilization-specific torpedo fire audio clip
-        /// For 7 playable civs (FED=0 through TERRAN=6), use their index
-        /// For all other civs (index > 7), use the last clip (minor civ fallback)
-        /// </summary>
-        private AudioClip GetTorpedoFireClip(CivEnum civEnum)
-        {
-            if (TorpedoFireClips == null || TorpedoFireClips.Length == 0)
-            {
-                Debug.LogWarning($"⚠️ TorpedoFireClips array is null or empty!");
-                return null;
-            }
-
-            int civIndex = (int)civEnum;
-
-            // For playable civs (0-6), use their specific clip
-            if (civIndex >= 0 && civIndex < TorpedoFireClips.Length - 1)
-            {
-                AudioClip clip = TorpedoFireClips[civIndex];
-                Debug.Log($"✅ Assigned TorpedoFireClip for {civEnum} (index {civIndex}): {clip?.name ?? "NULL"}");
-                return clip;
-            }
-
-            // For minor civs (index > 7), use the last clip as fallback
-            AudioClip fallbackClip = TorpedoFireClips[TorpedoFireClips.Length - 1];
-            Debug.Log($"✅ Assigned fallback TorpedoFireClip for {civEnum} (index {civIndex}): {fallbackClip?.name ?? "NULL"}");
-            return fallbackClip;
         }
 
         /// <summary>
@@ -440,23 +150,22 @@ namespace BOTF3D.Core
         /// </summary>
         public void OnCombatEnded(CombatController controller)
         {
-            Debug.Log($"🏁 Combat {controller.CombatID} ended");
-
-            allCombatControllers.Remove(controller);
-
-            if (ActiveCombatController == controller)
-            {
-                ActiveCombatController = null;
-            }
-
+            queueManager.OnCombatEnded(controller);
+            combatInstantiator.RemoveCombatController(controller);
             Destroy(controller.gameObject);
         }
 
+        /// <summary>
+        /// End combat time pause
+        /// </summary>
         public void EndCombatTimePause()
         {
-            TimeManager.Instance.ResumeTime(); // Resume the game when combat UI is closed
+            TimeManager.Instance.ResumeTime();
         }
 
+        /// <summary>
+        /// Setup local player UI after combat starts
+        /// </summary>
         public void SetUpLocalPlayer()
         {
             StartCoroutine(SetUpLocalPlayerAfterSceneLoad());
@@ -471,7 +180,7 @@ namespace BOTF3D.Core
             yield return null;
             yield return null;
 
-            GameObject thisCombatUIGameObject = CombatUICanvas;
+            GameObject thisCombatUIGameObject = sceneLoader.CombatUICanvas;
 
             if (thisCombatUIGameObject == null)
             {
@@ -482,7 +191,12 @@ namespace BOTF3D.Core
             // Use persistent CombatUIManager
             if (CombatUIManager.Instance != null && ActiveCombatController != null)
             {
-                CombatUIManager.Instance.SetupForCombat(ActiveCombatController, thisCombatUIGameObject, Combat3DCanvas, GameOverCanvas);
+                CombatUIManager.Instance.SetupForCombat(
+                    ActiveCombatController,
+                    thisCombatUIGameObject,
+                    sceneLoader.Combat3DCanvas,
+                    sceneLoader.GameOverCanvas
+                );
                 Debug.Log("✅ CombatUIManager configured for local player");
             }
             else
@@ -491,12 +205,17 @@ namespace BOTF3D.Core
             }
         }
 
+        /// <summary>
+        /// Set diplomacy controller (legacy method for diplomacy-triggered combat)
+        /// </summary>
         internal void SetDiplomacyController(DiplomacyController diplomacyController)
         {
-            // inquiry the CivRelationsManager's Dictionary for current fleet/system ships data
             var sideOneShips = new List<ShipController>();
             var sideTwoShips = new List<ShipController>();
-            var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(diplomacyController.DiplomacyData.CivEnumSideOne, diplomacyController.DiplomacyData.CivEnumSideTwo);
+            var intelCon = IntelligenceManager.Instance.ReturnAnIntelligenceController(
+                diplomacyController.DiplomacyData.CivEnumSideOne,
+                diplomacyController.DiplomacyData.CivEnumSideTwo
+            );
 
             if (intelCon != null)
             {
@@ -507,46 +226,63 @@ namespace BOTF3D.Core
                     {
                         sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
                         if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
-                            InstantiateCombatController(sideOneShips, sideTwoShips);
+                        {
+                            RequestCombat(sideOneShips, sideTwoShips, CombatType.FleetVsFleet);
+                        }
                     }
                     else if (intelCon.IntelligenceData.LastSeenStarSysController != null)
                     {
                         sideTwoShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
                         if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
-                            InstantiateCombatController(sideOneShips, sideTwoShips);
+                        {
+                            RequestCombat(sideOneShips, sideTwoShips, CombatType.FleetVsSystem);
+                        }
                     }
                 }
                 else if (intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData != null)
                 {
                     sideTwoShips = intelCon.IntelligenceData.LastSeenFleetOfSideTwo.FleetData.ShipsList;
                     sideOneShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
+
+                    if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
+                    {
+                        RequestCombat(sideOneShips, sideTwoShips, CombatType.SystemVsFleet);
+                    }
                 }
             }
         }
 
+        /// <summary>
+        /// Remove a ship controller from all combat tracking (legacy method)
+        /// </summary>
         internal void RemoveThisShipController(ShipController shipController)
         {
+            var allCombatControllers = combatInstantiator.GetAllCombatControllers();
+
             for (int i = 0; i < allCombatControllers.Count; i++)
             {
                 for (int j = 0; j < allCombatControllers[i].CombatData.SideOneShipCons.Count; j++)
                 {
                     if (allCombatControllers[i].CombatData.SideOneShipCons[j] == shipController)
                     {
-                        bool v = allCombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
-                        Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-                        combatScene.GetRootGameObjects().ToList().ForEach(go => Destroy(go));
-                        ShipCombatCameraController.Instance.WarpingInOver = false;
+                        bool removed = allCombatControllers[i].CombatData.SideOneShipCons.Remove(shipController);
+                        if (removed)
+                        {
+                            Debug.Log($"Removed {shipController.ShipData.ShipName} from Side One");
+                        }
                         break;
                     }
                 }
+
                 for (int j = 0; j < allCombatControllers[i].CombatData.SideTwoShipCons.Count; j++)
                 {
                     if (allCombatControllers[i].CombatData.SideTwoShipCons[j] == shipController)
                     {
-                        bool v = allCombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
-                        Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-                        combatScene.GetRootGameObjects().ToList().ForEach(go => Destroy(go));
-                        ShipCombatCameraController.Instance.WarpingInOver = false;
+                        bool removed = allCombatControllers[i].CombatData.SideTwoShipCons.Remove(shipController);
+                        if (removed)
+                        {
+                            Debug.Log($"Removed {shipController.ShipData.ShipName} from Side Two");
+                        }
                         break;
                     }
                 }
@@ -565,28 +301,10 @@ namespace BOTF3D.Core
             UnityEditor.Selection.activeObject = null;
 #endif
 
-            // Unload scene
-            if (SceneManager.GetSceneByName("CombatScene").isLoaded)
-            {
-                SceneManager.UnloadSceneAsync("CombatScene");
-            }
-
-            // Clear references
-            CombatUICanvas = null;
-            Combat3DCanvas = null;
-            GameOverCanvas = null;
+            // Clear scene loader references
+            sceneLoader.ClearReferences();
 
             Debug.Log("✅ Combat cleanup complete");
-        }
-
-        /// <summary>
-        /// Data structure for queued combats
-        /// </summary>
-        public class PendingCombat
-        {
-            public List<ShipController> SideOneShips;
-            public List<ShipController> SideTwoShips;
-            public CombatType CombatType;
         }
     }
 }

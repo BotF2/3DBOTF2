@@ -31,7 +31,7 @@ namespace BOTF3D.UI
         private Toggle engage, rush, retreat, formation, AttackTransports;
 
         // ✅ Combat state
-        private float remainingTime = 10f;
+        private float remainingTime = 15f; // Order selection time
         private bool isTimerRunning = false;
         private CombatOrders currentOrder = CombatOrders.Engage;
         public CivEnum CivEnumLocalPlayer;
@@ -680,7 +680,7 @@ namespace BOTF3D.UI
             }
 
             // Reset timer
-            remainingTime = 10f;
+            remainingTime = 15f;
             isTimerRunning = true;
         }
 
