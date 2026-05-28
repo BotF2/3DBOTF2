@@ -1,5 +1,12 @@
 using TMPro;
 using UnityEngine;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 
 [CreateAssetMenu(fileName = "ThemeSO", menuName = "ThemeSO")]

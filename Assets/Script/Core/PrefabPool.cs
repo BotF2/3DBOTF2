@@ -1,6 +1,13 @@
 //csharp Assets/Script/Utils/PrefabPool.cs
 using System.Collections.Generic;
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core.Utils
 {
@@ -17,7 +24,7 @@ namespace BOTF3D.Core.Utils
 
         public PrefabPool(T prefab, Transform poolParent = null)
         {
-            _prefab = prefab;
+_prefab = prefab;
             if (poolParent != null)
             {
                 _poolParent = poolParent;
@@ -54,7 +61,7 @@ namespace BOTF3D.Core.Utils
         {
             if (instance == null) return;
 
-            // Reset common transform state — keep world position but reparent under pool parent
+            // Reset common transform state ï¿½ keep world position but reparent under pool parent
             instance.transform.SetParent(_poolParent, true);
             instance.gameObject.SetActive(false);
 

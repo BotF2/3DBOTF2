@@ -1,8 +1,14 @@
 using BOTF3D.Combat;
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
+
 using Mirror;
 using UnityEngine;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 public class RemoteHumanPlayerController : NetworkBehaviour, IPlayerController
 {

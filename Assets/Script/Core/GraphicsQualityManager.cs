@@ -1,12 +1,21 @@
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
     /// <summary>
     /// Manages graphics quality and resolution settings for high definition display
     /// </summary>
-    public class GraphicsQualityManager : MonoBehaviour
+    public class GraphicsQualityManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         [Header("Resolution Settings")]
         [SerializeField] private bool forceHighDefinition = true;
         [SerializeField] private int targetWidth = 1920;
@@ -22,6 +31,7 @@ namespace BOTF3D.Core
 
         private void Awake()
         {
+            ServiceLocator.Register<GraphicsQualityManager>(this);
             ApplyGraphicsSettings();
         }
 
@@ -109,5 +119,10 @@ namespace BOTF3D.Core
             Resolution native = Screen.currentResolution;
             SetResolution(native.width, native.height, true);
         }
+    
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<GraphicsQualityManager>(); }
     }
 }

@@ -8,11 +8,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Scene = UnityEngine.SceneManagement.Scene;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
 
-namespace BOTF3D.GamePlay
+
+
+namespace BOTF3D.Core
 {
-    public class SceneController : MonoBehaviour
+    public class SceneController : MonoBehaviour, IManager
     {
+        public void Initialize() { }
+        public void UpdateState() { }
         public static SceneController Instance { get; private set; }
 
         private static string previousSceneName;
@@ -24,6 +31,7 @@ namespace BOTF3D.GamePlay
 
         private void Awake()
         {
+            ServiceLocator.Register<SceneController>(this);
             if (Instance == null)
             {
                 Instance = this;
@@ -624,11 +632,16 @@ namespace BOTF3D.GamePlay
 
             Debug.Log("=== UnloadCombatScene: Complete ===");
         }
-    }
+    
 
-    /// <summary>
-    /// Stores combat context so we can return to galaxy with correct state
-    /// </summary>
+    
+        public void Cleanup() { }
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<SceneController>();
+        }
+}
+
     public static class CombatContext
     {
         public static FleetController PlayerFleet { get; set; }

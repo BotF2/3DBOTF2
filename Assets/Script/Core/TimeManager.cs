@@ -3,11 +3,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
-    public class TimeManager : MonoBehaviour
+    public class TimeManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static TimeManager Instance;
 
         public event Action<TrekRandomEventSO> onRandomSpecialEvent; // 
@@ -33,6 +41,7 @@ namespace BOTF3D.Core
 
         void Awake()
         {
+            ServiceLocator.Register<TimeManager>(this);
             if (Instance == null)
                 Instance = this;
             else if (Instance != this)
@@ -118,8 +127,8 @@ namespace BOTF3D.Core
         /// <summary>
         /// Refresh the build UI for a specific system
         /// </summary>
-        private void RefreshSystemBuildUI(GamePlay.StarSysController sysCon)
-        {
+        private void RefreshSystemBuildUI(StarSysController sysCon)
+{
             // Check if this system's build UI is currently open
             if (StarSysMenuUIController.Instance != null &&
                 StarSysMenuUIController.Instance.ActiveStarSysController == sysCon)
@@ -247,6 +256,11 @@ namespace BOTF3D.Core
 
             isPausing = false;
         }
-    }
-}
+    
 
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<TimeManager>();
+        }
+}
+}

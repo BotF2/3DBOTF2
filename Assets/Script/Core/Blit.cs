@@ -2,6 +2,13 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {

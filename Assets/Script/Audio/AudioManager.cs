@@ -24,8 +24,10 @@ namespace BOTF3D.Audio
     //Background music  OGG Vorbis
     //Voice lines       WAV or OGG  Vorbis
     /// </summary>
-    public class AudioManager : MonoBehaviour
+    public class AudioManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static AudioManager Instance { get; private set; }
 
         [Header("Music")]
@@ -99,6 +101,7 @@ namespace BOTF3D.Audio
 
         void Awake()
         {
+            ServiceLocator.Register<AudioManager>(this);
             // ✅ Singleton Pattern
             if (Instance == null)
             {
@@ -962,6 +965,10 @@ namespace BOTF3D.Audio
             }
         }
 #endif
+    
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<AudioManager>(); }
     }
 }
-

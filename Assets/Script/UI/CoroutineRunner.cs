@@ -1,10 +1,19 @@
-﻿using BOTF3D.UI;
+using BOTF3D.UI;
 using System.Collections;
 using UnityEngine;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 [DisallowMultipleComponent]
 public class CoroutineRunner : MonoBehaviour
 {
+        public void Initialize() { }
+        public void UpdateState() { }
     private static CoroutineRunner instance;
     private GameObject goForFlash;
     public static CoroutineRunner Instance

@@ -1,5 +1,12 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
@@ -61,9 +68,9 @@ namespace BOTF3D.Core
             }
 
             // Fallback: Search for ShipCombatCameraController
-            if (cameraShip == null && BOTF3D.GamePlay.ShipCombatCameraController.Instance != null)
+            if (cameraShip == null && BOTF3D.Combat.ShipCombatCameraController.Instance != null)
             {
-                cameraShip = BOTF3D.GamePlay.ShipCombatCameraController.Instance.GetComponent<Camera>();
+                cameraShip = BOTF3D.Combat.ShipCombatCameraController.Instance.GetComponent<Camera>();
 
                 if (cameraShip != null)
                 {

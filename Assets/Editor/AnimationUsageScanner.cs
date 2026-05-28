@@ -160,7 +160,7 @@ public static class AnimationUsageScanner
         using (var sw = new StreamWriter(reportPath, false))
         {
             sw.WriteLine("Animation Usage Scan Report");
-            sw.WriteLine("Generated: " + DateTime.Now);
+sw.WriteLine("Generated: " + DateTime.Now);
             sw.WriteLine("Scan duration: " + (DateTime.Now - start).TotalSeconds + "s");
             sw.WriteLine();
             sw.WriteLine($"Total animation-related assets found: {animPaths.Count}");

@@ -1,5 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 /// <summary>
 /// Enables drag-and-drop behavior for a ship list item within a Unity UI, allowing the item to be moved and
 /// repositioned by the user.

@@ -16,7 +16,6 @@
   <Project Path="Unity.Mathematics.csproj" />
   <Project Path="Unity.Multiplayer.Center.Editor.csproj" />
   <Project Path="Unity.Services.Vivox.Editor.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.Addressables.Editor.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Editor.csproj" />
   <Project Path="Unity.InferenceEngine.Microsoft.Msagl.csproj" />
@@ -28,6 +27,7 @@
   <Project Path="Unity.AI.MCP.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
   <Project Path="Unity.AI.Assistant.UI.Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Mirror.Components.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Editor.csproj" />

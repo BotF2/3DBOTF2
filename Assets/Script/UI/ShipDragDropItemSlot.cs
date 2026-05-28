@@ -1,5 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 /// <summary>
 /// Attached to the Ship Drag Drop Item Slot, top and bottom UI view areas, GameObject to handle drop events

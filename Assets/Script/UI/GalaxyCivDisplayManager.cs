@@ -2,6 +2,12 @@ using BOTF3D.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.UI
 {
@@ -9,8 +15,10 @@ namespace BOTF3D.UI
     /// Manages civilization-specific UI display (insignias, race portraits, names).
     /// Handles loading and assigning sprites for the local player's civilization.
     /// </summary>
-    public class GalaxyCivDisplayManager
+    public class GalaxyCivDisplayManager : IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         // UI components
         private readonly Image insigniaImage;
         private readonly Image raceImage;

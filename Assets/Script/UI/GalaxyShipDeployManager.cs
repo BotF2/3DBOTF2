@@ -1,7 +1,13 @@
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
+
 using System.Linq;
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.UI
 {
@@ -9,8 +15,10 @@ namespace BOTF3D.UI
     /// Manages ship deployment operations between fleets and systems.
     /// Handles showing/hiding deploy menus, tracking deploy state.
     /// </summary>
-    public class GalaxyShipDeployManager
+    public class GalaxyShipDeployManager : IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         // Ship deploy state
         public FleetController FleetLookingForShipDeploy { get; set; }
         public FleetController FleetSelectedForShipDeploy { get; set; }

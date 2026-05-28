@@ -1,5 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.UI
 {
@@ -7,8 +14,10 @@ namespace BOTF3D.UI
     /// Manages galaxy camera setup and event system configuration.
     /// Handles camera assignment to canvas and event system.
     /// </summary>
-    public class GalaxyCameraManager
+    public class GalaxyCameraManager : IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         private readonly Canvas parentCanvas;
         private Camera galaxyEventCamera;
 

@@ -1,17 +1,26 @@
-using BOTF3D.GamePlay;
+
 using BOTF3D.UI;
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
-    public class TechManager : MonoBehaviour
+    public class TechManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static TechManager Instance;
 
         [SerializeField] private int techPointsPerResearchCenterPerTurn = 1;
 
         private void Awake()
         {
+            ServiceLocator.Register<TechManager>(this);
             if (Instance == null)
             {
                 Instance = this;
@@ -361,5 +370,11 @@ namespace BOTF3D.Core
                 }
             }
         }
-    }
+    
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<TechManager>();
+        }
+}
 }

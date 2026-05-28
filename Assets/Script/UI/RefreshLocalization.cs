@@ -2,6 +2,13 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.UI
 {

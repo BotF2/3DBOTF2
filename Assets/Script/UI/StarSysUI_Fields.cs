@@ -6,6 +6,12 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 /// <summary>
 /// Represents the collection of class fields for elements in a star system UI panel, providing references to buttons, text fields,
 /// images, and sliders used to display and interact with star system data in the game interface.
@@ -16,6 +22,8 @@ using UnityEngine.UI;
 /// </summary>
 public class StarSysUI_Fields : MonoBehaviour
 {
+        public void Initialize() { }
+        public void UpdateState() { }
     [Serializable]
     public class FacilityUI
     {

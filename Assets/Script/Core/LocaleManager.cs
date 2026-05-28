@@ -4,6 +4,13 @@ using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
@@ -11,8 +18,10 @@ namespace BOTF3D.Core
     /// Manages language localization using Unity's Localization package.
     /// Supports English, German, French, and other languages.
     /// </summary>
-    public class LocaleManager : MonoBehaviour
+    public class LocaleManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static LocaleManager Instance;
 
         [Header("Current Language")]
@@ -29,6 +38,7 @@ namespace BOTF3D.Core
 
         private void Awake()
         {
+            ServiceLocator.Register<LocaleManager>(this);
             if (Instance == null)
             {
                 Instance = this;
@@ -182,5 +192,10 @@ namespace BOTF3D.Core
         {
             return LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en";
         }
+    
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<LocaleManager>(); }
     }
 }

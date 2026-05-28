@@ -3,11 +3,19 @@
 using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
-    public class GameManager : MonoBehaviour
+    public class GameManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static GameManager Instance { get; private set; } // a static singleton, no other script can instantiate a GameManager, must us the singleton
 
         public MainMenuUIController mainMenuUIController;

@@ -1,13 +1,20 @@
 using BOTF3D.Combat;
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
+
 using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 public class GalaxySceneInitializer : MonoBehaviour
 {
+        public void Initialize() { }
+        public void UpdateState() { }
     [Header("Assign All Galaxy Scene References")]
     public GameObject galaxyCenter;
     public GameObject galaxyImage;

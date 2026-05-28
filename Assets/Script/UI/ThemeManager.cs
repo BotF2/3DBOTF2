@@ -2,6 +2,12 @@ using BOTF3D.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 public enum ThemeEnum
 {
@@ -17,8 +23,10 @@ public enum ThemeEnum
 namespace BOTF3D.UI
 {
 
-    public class ThemeManager : MonoBehaviour
+    public class ThemeManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static ThemeManager Instance;
 
         [Header("Theme ScriptableObjects")]
@@ -53,6 +61,7 @@ namespace BOTF3D.UI
 
         private void Awake()
         {
+            ServiceLocator.Register<ThemeManager>(this);
             if (Instance == null)
             {
                 Instance = this;
@@ -215,5 +224,10 @@ namespace BOTF3D.UI
             }
             return CurrentTheme;
         }
+    
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<ThemeManager>(); }
     }
 }

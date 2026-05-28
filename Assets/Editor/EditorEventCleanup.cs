@@ -1,3 +1,8 @@
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;

@@ -4,11 +4,19 @@ using BOTF3D.Core;
 using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
 
-namespace BOTF3D.GamePlay
+
+
+namespace BOTF3D.UI
 {
     public class FactoryBuildItemDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
     {
+        public void Initialize() { }
+        public void UpdateState() { }
         private RectTransform rectTransform;
         private CanvasGroup canvasGroup;
         public Transform originalParent;

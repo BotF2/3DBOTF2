@@ -3,6 +3,13 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 public class FleetUI_Fields : MonoBehaviour
 {
