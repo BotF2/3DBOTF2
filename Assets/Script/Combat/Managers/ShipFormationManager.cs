@@ -68,8 +68,9 @@ namespace BOTF3D.Combat
 
             if (isTransport)
             {
-                // Transports stay 100 units behind the wall
-                formationX -= sideSign * 100f;
+                // Transports hold their warp-in end position, 200 units behind the combat wall
+                formationX = isSideOne ? WarpAnimationController.SIDE1_TRANSPORT_END_X
+                                       : WarpAnimationController.SIDE2_TRANSPORT_END_X;
             }
 
             // Simple grid based on slot

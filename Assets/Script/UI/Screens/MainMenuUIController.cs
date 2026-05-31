@@ -987,6 +987,7 @@ namespace BOTF3D.UI
         }
         public void UpdateMapSelection()
         {
+            if (MapToggleGroup == null) return;
             activeMapToggle = MapToggleGroup.ActiveToggles().ToArray().FirstOrDefault();
             if (activeMapToggle != null)
             {
@@ -995,14 +996,16 @@ namespace BOTF3D.UI
         }
         public void UpdateGalaxySizeSelection()
         {
+            if (GalaxySizeToggleGroup == null) return;
             activeGalaxySizeToggle = GalaxySizeToggleGroup.ActiveToggles().ToArray().FirstOrDefault();
-            if (activeMapToggle != null)
+            if (activeGalaxySizeToggle != null)
             {
                 ActiveGalaxySizeToggle();
             }
         }
         public void UpdateTechLevelSelection()
         {
+            if (TechLevelToggleGroup == null) return;
             activeTechLevelToggle = TechLevelToggleGroup.ActiveToggles().ToArray().FirstOrDefault();
             if (activeTechLevelToggle != null)
             {
@@ -1217,6 +1220,8 @@ namespace BOTF3D.UI
         }
         public void ActiveGalaxySizeToggle()
         {
+            if (activeGalaxySizeToggle == null) return;
+
             switch (activeGalaxySizeToggle.name.ToUpper())
             {
                 case "TOGGLE_SMALL":

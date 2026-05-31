@@ -1,0 +1,1 @@
+{"api_base": "https://openrouter.ai/api/v1","model": "anthropic/claude-3.5-sonnet","permissions": {"allow": ["Read","Write","Edit"]},"context": {"include": ["Assets/**/*.cs","Packages/**/*.json","ProjectSettings/**/*.asset"]}}

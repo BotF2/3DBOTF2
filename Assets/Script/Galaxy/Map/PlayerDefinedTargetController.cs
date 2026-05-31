@@ -21,6 +21,8 @@ namespace BOTF3D.Galaxy
         public Canvas CanvasToolTip;
         private Rigidbody rb;
 
+        public bool IsDragging { get; private set; }
+
         void Start()
         {
             galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
@@ -35,28 +37,35 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
-            Ray ray = galaxyEventCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            // We know we hit this object because OnMouseDown fired
+            if (PlayerTargetData != null && GameController.Instance.AreWeLocalPlayer(PlayerTargetData.CivOwnerEnum))
             {
-                GameObject galaxyGo = hit.collider.gameObject;
-                if (galaxyGo.tag != "GalaxyImage")
+                IsDragging = true;
+                PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(true, this);
+                GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(true);
+                
+                // Set click mode to avoid other objects intercepting destination clicks
+                if (GalaxyMenuUIController.Instance != null)
                 {
-                    // What a player defined target does with a hit
-                    PlayerDefinedTargetController clickedPlayerTargetCon = galaxyGo.GetComponentInChildren<PlayerDefinedTargetController>();
-
-                    if (GameController.Instance.AreWeLocalPlayer(clickedPlayerTargetCon.PlayerTargetData.CivOwnerEnum))
-                    {
-                        PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(true, this);
-                        GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(true);
-                    }
+                    GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.Normal);
                 }
             }
         }
         private void OnMouseUp()
         {
-            PlayerTargetData.FleetController.PlayerTargetAsNewDestination(this.gameObject);
+            IsDragging = false;
+            if (PlayerTargetData != null && PlayerTargetData.FleetController != null)
+            {
+                PlayerTargetData.FleetController.PlayerTargetAsNewDestination(this.gameObject);
+                
+                // Restore destination mode so we can still see the cursor if needed, 
+                // but usually setting a destination completes the process.
+                if (GalaxyMenuUIController.Instance != null)
+                {
+                    GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SetDestination);
+                }
+            }
+            
             PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(false, this);
             GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(false);
         }

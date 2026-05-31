@@ -37,57 +37,69 @@ namespace BOTF3D.Combat
 
             // Side One ships target Side Two ships
             List<ShipController> side2Alive = combatData.SideTwoShipCons
-                .Where(s => s != null && !s.ShipData.Distroyed)
+                .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy)
                 .ToList();
 
-            foreach (var ship in combatData.SideOneShipCons)
+            List<ShipController> side1Attackers = combatData.SideOneShipCons
+                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                .ToList();
+
+            if (side1Attackers.Count > 0 && side2Alive.Count > 0)
             {
-                if (ship == null || ship.ShipData.Distroyed) continue;
+                bool canTargetTransports = (combatData.SideOneOrder == CombatOrders.AttackTransports);
+                List<ShipController> s1ValidTargets = side2Alive
+                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport)
+                    .ToList();
 
-                // Skip transports - they don't fire
-                if (ship.ShipData.ShipType == ShipType.Transport) continue;
-
-                if (side2Alive.Count == 0)
+                if (s1ValidTargets.Count > 0)
                 {
-                    Debug.LogWarning($"⚠️ No living Side 2 targets for {ship.ShipData.ShipName}");
-                    continue;
+                    Vector3 s1Center = side1Attackers.Aggregate(Vector3.zero, (sum, s) => sum + s.transform.position) / side1Attackers.Count;
+                    s1ValidTargets = s1ValidTargets.OrderBy(t => Vector3.Distance(s1Center, t.transform.position)).ToList();
+
+                    for (int i = 0; i < side1Attackers.Count; i++)
+                    {
+                        ShipController target = s1ValidTargets[i % s1ValidTargets.Count];
+                        side1Attackers[i].ShipData.TargetThisShipController = target;
+                        Debug.Log($"  ✅ Side1 {side1Attackers[i].ShipData.ShipName} → targets {target.ShipData.ShipName}");
+                        assigned++;
+                    }
                 }
-
-                ShipController target = side2Alive
-                    .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
-                    .First();
-
-                ship.ShipData.TargetThisShipController = target;
-                Debug.Log($"  ✅ Side1 {ship.ShipData.ShipName} → targets {target.ShipData.ShipName}");
-                assigned++;
             }
+            else if (side2Alive.Count == 0)
+                Debug.LogWarning("⚠️ No living Side 2 targets");
 
             // Side Two ships target Side One ships
             List<ShipController> side1Alive = combatData.SideOneShipCons
-                .Where(s => s != null && !s.ShipData.Distroyed)
+                .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy)
                 .ToList();
 
-            foreach (var ship in combatData.SideTwoShipCons)
+            List<ShipController> side2Attackers = combatData.SideTwoShipCons
+                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                .ToList();
+
+            if (side2Attackers.Count > 0 && side1Alive.Count > 0)
             {
-                if (ship == null || ship.ShipData.Distroyed) continue;
+                bool canTargetTransports = (combatData.SideTwoOrder == CombatOrders.AttackTransports);
+                List<ShipController> s2ValidTargets = side1Alive
+                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport)
+                    .ToList();
 
-                // Skip transports - they don't fire
-                if (ship.ShipData.ShipType == ShipType.Transport) continue;
-
-                if (side1Alive.Count == 0)
+                if (s2ValidTargets.Count > 0)
                 {
-                    Debug.LogWarning($"⚠️ No living Side 1 targets for {ship.ShipData.ShipName}");
-                    continue;
+                    Vector3 s2Center = side2Attackers.Aggregate(Vector3.zero, (sum, s) => sum + s.transform.position) / side2Attackers.Count;
+                    s2ValidTargets = s2ValidTargets.OrderBy(t => Vector3.Distance(s2Center, t.transform.position)).ToList();
+
+                    for (int i = 0; i < side2Attackers.Count; i++)
+                    {
+                        ShipController target = s2ValidTargets[i % s2ValidTargets.Count];
+                        side2Attackers[i].ShipData.TargetThisShipController = target;
+                        Debug.Log($"  ✅ Side2 {side2Attackers[i].ShipData.ShipName} → targets {target.ShipData.ShipName}");
+                        assigned++;
+                    }
                 }
-
-                ShipController target = side1Alive
-                    .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
-                    .First();
-
-                ship.ShipData.TargetThisShipController = target;
-                Debug.Log($"  ✅ Side2 {ship.ShipData.ShipName} → targets {target.ShipData.ShipName}");
-                assigned++;
             }
+            else if (side1Alive.Count == 0)
+                Debug.LogWarning("⚠️ No living Side 1 targets");
 
             Debug.Log($"🎯 Target assignment complete: {assigned} ships assigned targets");
         }
@@ -103,9 +115,16 @@ namespace BOTF3D.Combat
                 ? combatData.SideTwoShipCons
                 : combatData.SideOneShipCons;
 
+            CombatOrders myOrder = isSideOne ? combatData.SideOneOrder : combatData.SideTwoOrder;
+            bool canTargetTransports = (myOrder == CombatOrders.AttackTransports);
+
+            List<ShipController> myShips = isSideOne ? combatData.SideOneShipCons : combatData.SideTwoShipCons;
+
             ShipController newTarget = enemies
-                .Where(s => s != null && !s.ShipData.Distroyed)
-                .OrderBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
+                .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy &&
+                            (canTargetTransports || s.ShipData.ShipType != ShipType.Transport))
+                .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
+                .ThenBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
                 .FirstOrDefault();
 
             ship.ShipData.TargetThisShipController = newTarget;

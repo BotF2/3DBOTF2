@@ -34,8 +34,10 @@ namespace BOTF3D.Combat
 
         [Header("Weapon Prefabs")]
         public GameObject targetGOPrefab;
+        public GameObject explosionPrefab;
+        public GameObject torpedoHitExplosionPrefab;
         public GameObject[] torpedoPrefabs;
-        public GameObject[] beamWeaponPrefabs;
+public GameObject[] beamWeaponPrefabs;
 
         [Header("Weapon Audio Clips")]
         public AudioClip[] beamFireClips;

@@ -1,5 +1,5 @@
 using BOTF3D.Core;
-
+using BOTF3D.Galaxy;
 using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,10 +7,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
 
 
 
@@ -39,11 +35,12 @@ namespace BOTF3D.Combat
                 GameLogger.Log(GameLogger.LogCategory.Combat, $"Ship {ShipData.ShipName} event received: Destroyed.", this);
             }
         }
-private ShipData shipData;
+        private ShipData shipData;
         public ShipData ShipData { get { return shipData; } set { shipData = value; } }
         public string Name;
         public GameObject torpedoPrefab;
         public GameObject beamWeaponPrefab;
+        public GameObject explosionPrefab;
         public GameObject ShipListUIGameObject;
         public AudioClip clipTorpedoFire;
         public AudioClip clipBeamFire;
@@ -143,10 +140,12 @@ private ShipData shipData;
         {
             // ✅ Safety checks: Don't fire if destroyed, no target, or a transport
             if (ShipData == null || ShipData.Distroyed || ShipData.ShipType == ShipType.Transport) return;
-            if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed) return;
+            if (ShipData.TargetThisShipController == null ||
+                ShipData.TargetThisShipController.ShipData.Distroyed ||
+                !ShipData.TargetThisShipController.gameObject.activeInHierarchy) return;
 
             ShipController target = ShipData.TargetThisShipController;
-            
+
             // ✅ Friendly fire check (primary target)
             if (target.ShipData.CivEnum == this.ShipData.CivEnum)
             {
@@ -172,6 +171,13 @@ private ShipData shipData;
                     Debug.Log($"🚫 {ShipData.ShipName} holding fire - {blocker.ShipData.ShipName} is in the way!");
                     return;
                 }
+
+                // Don't redirect to a transport unless this ship has AttackTransports order
+                bool myOrderIsAT = combatController.CombatData.SideOneShipCons.Contains(this)
+                    ? combatController.CombatData.SideOneOrder == CombatOrders.AttackTransports
+                    : combatController.CombatData.SideTwoOrder == CombatOrders.AttackTransports;
+                if (blocker.ShipData.ShipType == ShipType.Transport && !myOrderIsAT)
+                    return;
 
                 // Shot is blocked by an enemy! Hit the blocker instead.
                 target = blocker;
@@ -220,9 +226,19 @@ private ShipData shipData;
             {
                 if (ShipData == null || ShipData.Distroyed) yield break;
 
-                if (ShipData.TargetThisShipController == null || ShipData.TargetThisShipController.ShipData.Distroyed)
+                if (ShipData.TargetThisShipController == null ||
+                    ShipData.TargetThisShipController.ShipData.Distroyed ||
+                    !ShipData.TargetThisShipController.gameObject.activeInHierarchy)
                 {
-                    // Wait until a new target is assigned
+                    // Stop permanently if no active enemies remain on the other side
+                    var cc = CombatUIManager.Instance?.CurrentCombatController;
+                    if (cc != null)
+                    {
+                        bool isSide1 = cc.CombatData.SideOneShipCons.Contains(this);
+                        var enemies = isSide1 ? cc.CombatData.SideTwoShipCons : cc.CombatData.SideOneShipCons;
+                        if (!enemies.Any(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy))
+                            yield break;
+                    }
                     yield return new WaitForSecondsRealtime(0.5f);
                     continue;
                 }
@@ -251,9 +267,11 @@ private ShipData shipData;
         {
             if (torpedoPrefab == null || targetTransform == null) return;
 
-            // Calculate fire position (slightly in front of ship)
-            Vector3 firePosition = transform.position + transform.forward * 5f;
-            Quaternion fireRotation = Quaternion.LookRotation(targetTransform.position - firePosition);
+            // Spawn torpedo in the direction of the target so it always appears in front,
+            // regardless of which way transform.forward points vs the visual model nose.
+            Vector3 toTarget = (targetTransform.position - transform.position).normalized;
+            Vector3 firePosition = transform.position + toTarget * 15f;
+            Quaternion fireRotation = Quaternion.LookRotation(toTarget);
 
             // Instantiate torpedo
             GameObject torpedoGO = Instantiate(torpedoPrefab, firePosition, fireRotation);
@@ -263,17 +281,16 @@ private ShipData shipData;
             {
                 torpedo.Target = targetTransform;
                 torpedo.OwnerCivEnum = ShipData.CivEnum;
-                
+
                 // ✅ Apply combat order multiplier to base damage
                 int calculatedDamage = Mathf.RoundToInt(ShipData.TorpedoDamage * damageMultiplier);
 
-                torpedo.Initialize(
-                    calculatedDamage,
-                    clipTorpedoFire,
-                    null
-                );
+                // Torpedo must outrun the firing ship; Rush ships move at maxWarpFactor * 28 units/sec
+                // We ensure torpedo is significantly faster (min 400 or maxWarpFactor * 60)
+                float torpedoVelocity = Mathf.Max(400f, ShipData.maxWarpFactor * 60f);
+                torpedo.Initialize(calculatedDamage, clipTorpedoFire, null, torpedoVelocity);
 
-                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Base Damage: {ShipData.TorpedoDamage}, Multiplier: {damageMultiplier:F2})");
+                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Base Damage: {ShipData.TorpedoDamage}, Multiplier: {damageMultiplier:F2}, Velocity: {torpedoVelocity})");
             }
             else
             {
@@ -297,7 +314,7 @@ private ShipData shipData;
             {
                 // Set weapon and target transforms for rendering
                 beam.SetWeaponAndTarget(transform, targetTransform);
-                
+
                 // Track active beam
                 activeBeamWeapons.Add(beamGO);
 
@@ -321,7 +338,10 @@ private ShipData shipData;
                 Debug.Log($"   {ShipData.ShipName} fired beam at {targetTransform.name} (Base Damage: {ShipData.BeamDamage}, Multiplier: {damageMultiplier:F2})");
 
                 // Destroy beam after brief display
-                StartCoroutine(DestroyBeamAfterDelay(beamGO, 0.2f));
+                if (gameObject.activeInHierarchy)
+                    StartCoroutine(DestroyBeamAfterDelay(beamGO, 0.2f));
+                else
+                    Destroy(beamGO);
             }
             else
             {
@@ -344,12 +364,29 @@ private ShipData shipData;
         {
             if (ShipData == null || ShipData.Distroyed) return;
 
+            // No damage after combat has ended
+            if (CombatUIManager.Instance?.CurrentCombatController?.CombatEnded == true) return;
+
             // ✅ Ships are invulnerable during warp-out
             var orderStateMachine = GetComponent<CombatOrderStateMachine>();
             if (orderStateMachine != null && orderStateMachine.IsWarpingOut())
             {
-                Debug.Log($"🛡️ {ShipData.ShipName} is warping out - invulnerable to damage!");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🛡️ {ShipData.ShipName} is warping out - invulnerable to damage!", this);
                 return;
+            }
+
+            // Shield overlap: nearby friendly ships provide overlapping shield coverage
+            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            if (cc != null)
+            {
+                const float SHIELD_OVERLAP_RANGE = 55f;
+                bool isSideOne = cc.CombatData.SideOneShipCons.Contains(this);
+                var friendlies = isSideOne ? cc.CombatData.SideOneShipCons : cc.CombatData.SideTwoShipCons;
+                int nearby = friendlies.Count(s => s != null && s != this && !s.ShipData.Distroyed
+                                                && s.gameObject.activeInHierarchy
+                                                && Vector3.Distance(transform.position, s.transform.position) <= SHIELD_OVERLAP_RANGE);
+                float overlapMultiplier = Mathf.Max(0.5f, 1f - (nearby * 0.1f));
+                weaponDamageInt = Mathf.RoundToInt(weaponDamageInt * overlapMultiplier);
             }
 
             if (ShipData.ShieldHealth > 0)
@@ -369,9 +406,17 @@ private ShipData shipData;
             if (ShipData.HullHealth <= 0)
             {
                 ShipData.Distroyed = true;
+                if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
                 if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
                 if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
                 if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
+
+                if (explosionPrefab != null)
+                {
+                    Instantiate(explosionPrefab, transform.position, transform.rotation);
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"💥..💥Ship Explosion {ShipData.ShipName}", this);
+                }
+                CombatUIManager.Instance?.CurrentCombatController?.PlayExplosionSound(transform.position);
 
                 DestroyAllActiveBeams();
                 Destroy(gameObject);
@@ -392,17 +437,27 @@ private ShipData shipData;
             if (ShipManager.Instance == null) return;
             GameObject[] torpedoPrefabs = ShipManager.Instance.torpedoPrefabs;
             GameObject[] beamPrefabs = ShipManager.Instance.beamWeaponPrefabs;
+            explosionPrefab = ShipManager.Instance.explosionPrefab;
+
+            string civKey = ShipData.CivEnum.ToString().ToUpper();
 
             for (int i = 0; i < torpedoPrefabs.Length; i++)
-            {
-                if (torpedoPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper())) torpedoPrefab = torpedoPrefabs[i];
-            }
+                if (torpedoPrefabs[i] != null && torpedoPrefabs[i].name.Contains(civKey)) torpedoPrefab = torpedoPrefabs[i];
             for (int i = 0; i < beamPrefabs.Length; i++)
+                if (beamPrefabs[i] != null && beamPrefabs[i].name.Contains(civKey)) beamWeaponPrefab = beamPrefabs[i];
+
+            if (torpedoPrefab == null)
             {
-                if (beamPrefabs[i].name.Contains(ShipData.CivEnum.ToString().ToUpper())) beamWeaponPrefab = beamPrefabs[i];
+                torpedoPrefab = torpedoPrefabs.FirstOrDefault();
+                Debug.LogWarning($"⚠️ {ShipData.ShipName}: no torpedo prefab matched '{civKey}', using fallback '{torpedoPrefab?.name}'");
             }
-            if (torpedoPrefab == null) torpedoPrefab = torpedoPrefabs.FirstOrDefault();
-            if (beamWeaponPrefab == null) beamWeaponPrefab = beamPrefabs.FirstOrDefault();
+            if (beamWeaponPrefab == null)
+            {
+                beamWeaponPrefab = beamPrefabs.FirstOrDefault();
+                Debug.LogWarning($"⚠️ {ShipData.ShipName}: no beam prefab matched '{civKey}', using fallback '{beamWeaponPrefab?.name}'");
+            }
+
+            Debug.Log($"🔧 {ShipData.ShipName} ({civKey}): torpedo={torpedoPrefab?.name ?? "NULL"}, beam={beamWeaponPrefab?.name ?? "NULL"}");
         }
 
         public void SetWeaponAudioClips(AudioClip beamClip, AudioClip torpedoClip)

@@ -37,6 +37,7 @@ namespace BOTF3D.Combat
         public bool isMoving = false;
         public bool isClosing = false;
         private bool combatEnded = false;
+        public bool CombatEnded => combatEnded;
         private bool showingEndPanel = false;
         public bool groupsInitialized => shipGroupManager?.groupsInitialized ?? false;
         // Turn-based combat system
@@ -103,14 +104,18 @@ namespace BOTF3D.Combat
             // Check for combat end condition
             if (!combatEnded && WarpingAnimationOver && !WarpingIn)
             {
-                int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
-                int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShieldHealth + s.ShipData.HullHealth > 0);
+                int sideOneAlive = CombatData.SideOneShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+                int sideTwoAlive = CombatData.SideTwoShipCons.Count(s => s != null && s.ShipData != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
 
                 if (sideOneAlive == 0 || sideTwoAlive == 0)
-                {
+{
                     Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
                     combatEnded = true;
                     targetingSystem.StopAllWeaponFire();
+
+                    // Destroy all torpedoes still in flight so they can't hit ships during the end sequence
+                    foreach (var t in FindObjectsOfType<Torpedo>())
+                        Destroy(t.gameObject);
 
                     if (!showingEndPanel)
                     {
@@ -246,29 +251,9 @@ namespace BOTF3D.Combat
 
         private void SetupSideFlankingPositions(List<ShipController> ships, CombatOrders order, bool isSideOne)
         {
-            if (order != CombatOrders.AttackTransports) return;
+            if (order != CombatOrders.AttackTransports && order != CombatOrders.Rush) return;
 
-            float centerY = 0f;
-            float centerZ = 0f;
-            int count = 0;
-
-            foreach (var ship in ships)
-            {
-                if (ship != null && !ship.ShipData.Distroyed)
-                {
-                    centerY += ship.transform.position.y;
-                    centerZ += ship.transform.position.z;
-                    count++;
-                }
-            }
-
-            if (count > 0)
-            {
-                centerY /= count;
-                centerZ /= count;
-            }
-
-            Debug.Log($"🎯 Setting up flanking for Side {(isSideOne ? "One" : "Two")}, center: Y={centerY:F1}, Z={centerZ:F1}");
+            float baseYRotation = isSideOne ? 90f : -90f;
 
             foreach (var ship in ships)
             {
@@ -279,13 +264,8 @@ namespace BOTF3D.Combat
 
                 if (isFlankingShip)
                 {
-                    bool isAboveCenter = ship.transform.position.y > centerY;
-                    float baseYRotation = isSideOne ? 90f : -90f;
-                    float flankRotation = isAboveCenter ? 40f : -40f;
-
-                    ship.transform.rotation = Quaternion.Euler(0, baseYRotation + flankRotation, 0);
-
-                    Debug.Log($"  🛸 {ship.ShipData.ShipName} ({ship.ShipData.ShipType}): Flanking rotation {baseYRotation + flankRotation}°");
+                    ship.transform.rotation = Quaternion.Euler(0, baseYRotation, 0);
+                    Debug.Log($"  🛸 {ship.ShipData.ShipName} ({ship.ShipData.ShipType}): Forward rotation {baseYRotation}°");
                 }
             }
         }
@@ -436,16 +416,18 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Set ship orders for a side
         /// </summary>
-        public void SetShipOrders(CombatOrders order, CivEnum civEnum)
+        public void SetShipOrders(CombatOrders order, CivEnum civEnum, int side = 0)
         {
             List<ShipController> sideShips = null;
-            if (civEnum == CombatData.CivEnumSideOne)
+
+            // If side is specified (1 or 2), use it. Otherwise fallback to CivEnum (ambiguous in mirror matches)
+            if (side == 1 || (side == 0 && civEnum == CombatData.CivEnumSideOne))
             {
                 CombatData.SideOneOrder = order;
                 sideShips = CombatData.SideOneShipCons;
                 Debug.Log($"Side One order set to: {order}");
             }
-            else if (civEnum == CombatData.CivEnumSideTwo)
+            else if (side == 2 || (side == 0 && civEnum == CombatData.CivEnumSideTwo))
             {
                 CombatData.SideTwoOrder = order;
                 sideShips = CombatData.SideTwoShipCons;
@@ -518,7 +500,7 @@ namespace BOTF3D.Combat
 
             Debug.Log($"🤖 AI ({aiCivEnum}) selected order: {randomOrder}");
 
-            SetShipOrders(randomOrder, aiCivEnum);
+            SetShipOrders(randomOrder, aiCivEnum, side);
         }
 
         /// <summary>
@@ -537,7 +519,7 @@ namespace BOTF3D.Combat
             Debug.Log("Combat End Phase 1: Stopping movement and weapons");
             isMoving = false;
 
-            yield return new WaitForSecondsRealtime(1f);
+            yield return new WaitForSecondsRealtime(0.5f);
 
             Debug.Log("Combat End Phase 2: Showing victory panel");
             if (CombatUIManager.Instance != null)
@@ -551,11 +533,11 @@ namespace BOTF3D.Combat
                 Debug.Log($"💀 Defeated: {loser}");
             }
 
-            yield return new WaitForSecondsRealtime(5f);
+            yield return new WaitForSecondsRealtime(2f);
 
             Debug.Log("Combat End Phase 3: Returning to galaxy");
             EndCombat();
-        }
+}
 
         public void OnReturnToGalaxyButtonClicked()
         {

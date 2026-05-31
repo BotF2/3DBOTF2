@@ -1,0 +1,20 @@
+{
+  "model": "anthropic/claude-3.5-sonnet",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit"
+    ]
+  },
+  "context": {
+    "include": [
+      "Assets/**/*.cs",
+      "Packages/**/*.json",
+      "ProjectSettings/**/*.asset"
+    ]
+  },
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api/v1"
+  }
+}

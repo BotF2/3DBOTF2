@@ -41,16 +41,7 @@ namespace BOTF3D.UI
             yield return LocalizationSettings.InitializationOperation;
 
             var localizers = GetComponentsInChildren<LocalizeStringEvent>(true);
-
-            Debug.Log($"[RefreshLocalization] {gameObject.name} - Refreshing {localizers.Length} strings");
-
-            foreach (var loc in localizers)
-            {
-                if (loc != null && loc.StringReference != null && !loc.StringReference.IsEmpty)
-                {
-                    loc.RefreshString();
-                }
-            }
+            Debug.Log($"[RefreshLocalization] {gameObject.name} - Found {localizers.Length} localizers on panel.");
         }
     }
 }

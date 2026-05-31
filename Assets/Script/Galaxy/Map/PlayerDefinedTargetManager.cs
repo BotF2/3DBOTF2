@@ -194,14 +194,21 @@ namespace BOTF3D.Galaxy
             playerController.PlayerTargetData.CivOwnerEnum = playerController.PlayerTargetData.FleetController.FleetData.CivEnum;
 
             playerDefinedTargetCon.transform.SetParent(GalaxyCenter.transform, true);
-            playerDefinedTargetCon.transform.Translate(new Vector3(position.x + 20f, position.y, position.z));
+            
+            // Set initial position near the fleet (position is already defined at line 181)
+            playerDefinedTargetCon.transform.position = new Vector3(position.x + 20f, position.y, position.z);
 
-            playerDefinedTargetCon.transform.localScale = new Vector3(1f, 1f, 1f);
+            playerDefinedTargetCon.transform.localScale = Vector3.one;
 
             playerDefinedTargetCon.gameObject.SetActive(true);
 
-            // ✅ NOTE: Already added on line 60, removing duplicate
-            // PlayerTargetConList.Add(playerDefinedTargetCon);
+            // Start dragging immediately
+            // We use reflection or direct assignment if it's public. I just made it public but with private setter.
+            // Wait, I should add a public method to set it or just make the setter internal.
+            // Actually, I can just call the OnMouseDown logic or similar.
+            // Since it's a private setter, I'll use a public method or change it to public setter.
+            // Let's use a public method 'StartDragging()' in the controller for consistency.
+            playerController.gameObject.SendMessage("OnMouseDown");
 
             Canvas[] canvasArray = playerDefinedTargetCon.GetComponentsInChildren<Canvas>();
             for (int j = 0; j < canvasArray.Length; j++)

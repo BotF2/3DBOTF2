@@ -782,6 +782,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -912,7 +913,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 943eac7281cfde645a725ab77e1c1184, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  FleetUIGameObject: {fileID: 0}
+  _fleetUIGameObject: {fileID: 0}
   GalaxyCanvasGo: {fileID: 0}
   Name: 
   intName: 1
@@ -1198,7 +1199,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1522052619731621048, guid: 8e57fa8d4bc5cfa4aa421ae1a8e48faf, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 1522052619731621048, guid: 8e57fa8d4bc5cfa4aa421ae1a8e48faf, type: 3}
       propertyPath: m_LocalPosition.z

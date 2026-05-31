@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1526668811385938295}
   - component: {fileID: 5210347203216739679}
   - component: {fileID: -9011507843168755453}
+  - component: {fileID: 4765357143111872478}
   m_Layer: 0
   m_Name: FED_BEAM
   m_TagString: Untagged
@@ -164,3 +165,11 @@ MonoBehaviour:
   minEffectiveRange: 50
   maxEffectiveRange: 300
   minDamageMultiplier: 0.2
+--- !u!33 &4765357143111872478
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9124248098745324454}
+  m_Mesh: {fileID: 0}

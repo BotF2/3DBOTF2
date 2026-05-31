@@ -36,8 +36,8 @@ namespace BOTF3D.Combat
         private CombatData combatData;
 
         [Header("Resolution Settings")]
-        public float ResolutionAnimationDuration = 10f; // Combat action duration
-        public float ResultsDisplayDuration = 2f;       // Quick results display
+        public float ResolutionAnimationDuration = 15f; // Combat time limit (seconds)
+public float ResultsDisplayDuration = 2f;       // Quick results display
 
         [Header("Turn Results")]
         public TurnResult LastTurnResult;
@@ -89,34 +89,12 @@ namespace BOTF3D.Combat
             }
             else
             {
-                // For subsequent turns, reset and wait for new selections
-                SideOneOrderLocked = false;
-                SideTwoOrderLocked = false;
-                SideOneSelectedOrder = CombatOrders.None;
-                SideTwoSelectedOrder = CombatOrders.None;
-
-                // Show order selection UI to player
-                ShowOrderSelectionUI();
-
-                // If AI controls side one, auto-select
-                if (IsAIControlled(combatData.CivEnumSideOne))
-                {
-                    SelectAIOrder(1);
-                }
-
-                // If AI controls side two, auto-select (DEACTIVATED per request)
-                /*
-                if (IsAIControlled(combatData.CivEnumSideTwo))
-                {
-                    SelectAIOrder(2);
-                }
-                */
-
-                // Check if both locked already (AI vs AI or AI already picked)
-                if (SideOneOrderLocked && SideTwoOrderLocked)
-                {
-                    StartCoroutine(ResolveTurn());
-                }
+                // Mid-combat re-order disabled during development: hold original orders.
+                SideOneSelectedOrder = combatData.SideOneOrder;
+                SideTwoSelectedOrder = combatData.SideTwoOrder;
+                SideOneOrderLocked = true;
+                SideTwoOrderLocked = true;
+                StartCoroutine(ResolveTurn());
             }
         }
 
@@ -238,8 +216,8 @@ namespace BOTF3D.Combat
             ApplyOrderMultipliers();
 
             // Apply orders to combat controller (for positioning/animation)
-            combatController.SetShipOrders(SideOneSelectedOrder, combatData.CivEnumSideOne);
-            combatController.SetShipOrders(SideTwoSelectedOrder, combatData.CivEnumSideTwo);
+            combatController.SetShipOrders(SideOneSelectedOrder, combatData.CivEnumSideOne, 1);
+            combatController.SetShipOrders(SideTwoSelectedOrder, combatData.CivEnumSideTwo, 2);
 
             // Record starting HP for damage calculation
             int side1StartHP = (int)GetTotalHP(1);
@@ -315,6 +293,10 @@ namespace BOTF3D.Combat
             while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
+                // Early exit when one side is eliminated (destroyed OR warped out)
+                int s1 = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy);
+                int s2 = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy);
+                if (s1 == 0 || s2 == 0) break;
                 yield return null;
             }
 
@@ -438,8 +420,8 @@ namespace BOTF3D.Combat
         /// </summary>
         private bool IsCombatOver()
         {
-            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed);
-            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed);
+            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
 
             bool retreat = LastTurnResult.SideOneRetreated || LastTurnResult.SideTwoRetreated;
 
@@ -451,15 +433,19 @@ namespace BOTF3D.Combat
         /// </summary>
         private IEnumerator ShowVictoryScreen()
         {
-            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed);
-            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed);
+            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
 
             string winner = sideOneAlive > 0 ? "Side One" : "Side Two";
             Debug.Log($"🏆 {winner} WINS!");
 
-            // TODO: Show victory UI
+            // ✅ Show combat end panel via manager
+            if (BOTF3D.UI.CombatUIManager.Instance != null)
+            {
+                BOTF3D.UI.CombatUIManager.Instance.ShowCombatOverPanel();
+            }
 
-            yield return new WaitForSecondsRealtime(3f);
+            yield return new WaitForSecondsRealtime(2f);
 
             // End combat
             combatController.EndCombat();

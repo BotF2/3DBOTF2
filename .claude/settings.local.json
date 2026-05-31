@@ -1,9 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)",
-      "Bash(awk '/^--- !u!4 &367888226/{found=1} found{print; if\\(/^---/ && NR>1\\) exit}' CombatScene.unity)",
-      "Bash(awk '/^--- !u!4 &703515328/{found=1} found{print; if\\(/^---/ && NR>1\\) exit}' CombatScene.unity)"
+      "Bash(xargs -I {} basename {})"
     ]
   }
 }

@@ -146,8 +146,11 @@ namespace BOTF3D.Galaxy
             {
                 if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && FleetData.CurrentWarpFactor > 0f)
                 {
+                    // Calculate distance for this frame
+                    distanceToDestination = Vector3.Distance(transform.position, FleetData.Destination.transform.position);
+
                     // Always move the fleet (physics)
-                    MoveToDesitinationGO(GetDirection(), distanceToDestination);
+                    MoveToDesitinationGO(GetDirection());
                     if (!gotMapSizeFromGameManager)
                         GetMapSise();
                     // Throttle visual updates (line rendering, UI)
@@ -224,6 +227,7 @@ namespace BOTF3D.Galaxy
             if (FleetData != null)
             {
                 bool weAreLocalPlayer = gameController.AreWeLocalPlayer(this.FleetData.CivEnum);
+                float initialWarpFactor = this.FleetData.CurrentWarpFactor;
 
                 bool isOurDestination = false;
                 if (this.FleetData.Destination == collider.gameObject) // it is our destination
@@ -321,9 +325,10 @@ namespace BOTF3D.Galaxy
                         // not our destination ignore for now
                     }
                 }
-                else if (collider.gameObject.TryGetComponent(component: out PlayerDefinedTargetController _))
+                else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController targetCon))
                 {
-                    if (isOurDestination)
+                    // Only destroy the target if it is our destination, the fleet was moving, AND it's not currently being dragged
+                    if (isOurDestination && initialWarpFactor > 0f && !targetCon.IsDragging)
                     {
                         ClickCancelDestinationButton(); // we stop, cancel destination & remove the player defined target
                     }
@@ -624,7 +629,7 @@ namespace BOTF3D.Galaxy
         }
         public void PlayerTargetAsNewDestination(GameObject destinationGo)
         {
-            this.FleetData.Destination = destinationGo;
+            SetAsDestinationInUI(destinationGo);
         }
 
 
@@ -648,9 +653,9 @@ namespace BOTF3D.Galaxy
             return (this.FleetData.Destination.transform.position - transform.position).normalized;
         }
 
-        void MoveToDesitinationGO(Vector3 direction, float distance)
+        void MoveToDesitinationGO(Vector3 direction)
         {
-            float distanceToDestination = Vector3.Distance(transform.position, this.FleetData.Destination.transform.position);
+            // distanceToDestination field is now updated in FixedUpdate
             float howFast = this.FleetData.CurrentWarpFactor;
             if (howFast > this.FleetData.MaxWarpFactor)
             {

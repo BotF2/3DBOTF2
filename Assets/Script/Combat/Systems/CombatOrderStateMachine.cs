@@ -25,6 +25,7 @@ namespace BOTF3D.Combat
         [Header("Ship References")]
         public ShipController ShipController;
         public CombatOrders CurrentOrder = CombatOrders.Engage;
+        public int Side; // 1 for SideOne, 2 for SideTwo
 
         [Header("State Tracking")]
         private OrderState currentState;
@@ -46,16 +47,18 @@ namespace BOTF3D.Combat
         private bool hasCompletedTurn;
         private Quaternion retreatStartRotation;
         private Quaternion retreatTargetRotation;
-        private const float RETREAT_TURN_TIME = 2.5f; // Vulnerable turn period
+        private Vector3 retreatMoveDirection; // Direction ship drifts toward while turning
+        private const float RETREAT_TURN_TIME = 7.0f;
+        private const float RETREAT_DRIFT_SPEED = 3f;  // maxWarpFactor multiplier for turn-phase drift
         private bool isWarpingOut = false;
         private bool weaponsCutOff = false;
-        private bool retreatTurnIsHorizontal; // True = Y-axis turn, False = X or Z-axis turn
-        private float retreatTurnAngle; // Always 100°
+        private const float RETREAT_TURN_DEGREES = 180f;
         private Vector3 warpOutVelocity; // Acceleration during warp-out
         private float warpOutTimer;
         private const float WARP_OUT_DURATION = 1.5f; // Time to stretch and accelerate away
         private const float WARP_OUT_SPEED_MULTIPLIER = 40f; // 40x max warp speed
         private Transform shipModel; // Reference to child model for stretching
+        private float meshZMin = 0f; // Minimum Z coordinate of the mesh for pivot correction
 
         [Header("Formation Settings - Defensive Wall")]
         public Vector3 formationPosition;
@@ -97,12 +100,43 @@ namespace BOTF3D.Combat
             isTransport = (ShipController.ShipData.ShipType == ShipType.Transport);
             currentState = OrderState.Idle;
 
-            // Find ship model (first child with MeshRenderer or SkinnedMeshRenderer)
+            // Find ship model (first child with a renderer in its hierarchy)
             foreach (Transform child in transform)
             {
-                if (child.GetComponent<MeshRenderer>() != null || child.GetComponent<SkinnedMeshRenderer>() != null)
+                if (child.name.Contains("Target")) continue; // Skip target GO
+                
+                Renderer rMain = child.GetComponentInChildren<Renderer>();
+                if (rMain != null)
                 {
                     shipModel = child;
+                    
+                    // Calculate local bounds relative to the ShipController's forward axis
+                    Renderer[] renderers = shipModel.GetComponentsInChildren<Renderer>();
+                    if (renderers.Length > 0)
+                    {
+                        float minZ = 0f;
+                        float maxZ = 0f;
+                        
+                        foreach (var r in renderers)
+                        {
+                            // We need the point furthest from the pivot along the ShipController's Z axis
+                            Bounds b = r.bounds;
+                            Vector3 p1 = transform.InverseTransformPoint(b.min);
+                            Vector3 p2 = transform.InverseTransformPoint(b.max);
+                            
+                            minZ = Mathf.Min(minZ, p1.z, p2.z);
+                            maxZ = Mathf.Max(maxZ, p1.z, p2.z);
+                        }
+                        
+                        // We want the coordinate of the "tail" in ShipController local space.
+                        // Usually this is negative (behind the nose pivot at 0,0,0).
+                        if (Mathf.Abs(minZ) > Mathf.Abs(maxZ))
+                            meshZMin = minZ;
+                        else
+                            meshZMin = maxZ;
+
+                        Debug.Log($"[CombatOrderStateMachine] {gameObject.name} initialized shipModel: {shipModel.name}, tailZ (ShipController LS): {meshZMin}");
+                    }
                     break;
                 }
             }
@@ -113,21 +147,16 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return null;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
-            
-            // Try center first
-            ShipController target = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport && Mathf.Abs(s.transform.position.z) < RUSH_CENTER_RANGE)
-                          .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
-                          .FirstOrDefault();
+            List<ShipController> myShips = isSideOne ? combatController.CombatData.SideOneShipCons : combatController.CombatData.SideTwoShipCons;
 
-            // Fallback to any combat ship
-            if (target == null)
-            {
-                target = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
-                          .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
-                          .FirstOrDefault();
-            }
+            var validEnemies = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport).ToList();
+
+            ShipController target = validEnemies
+                .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
+                .ThenBy(s => Vector3.Distance(transform.position, s.transform.position))
+                .FirstOrDefault();
 
             return target;
         }
@@ -156,8 +185,17 @@ namespace BOTF3D.Combat
                 ResetOrderState();
             }
 
+            // Guard: non-Retreat ships must never be in retreat states
+            if (CurrentOrder != CombatOrders.Retreat &&
+                (currentState == OrderState.TurningToRetreat || currentState == OrderState.WarpingOut || isWarpingOut))
+            {
+                Debug.LogWarning($"⚠️ {ShipController.ShipData.ShipName} in retreat state but order is {CurrentOrder} — resetting");
+                ResetOrderState();
+            }
+
             // Ensure we have a target if we are a combat ship
-            if (!isTransport && (ShipController.ShipData.TargetThisShipController == null || ShipController.ShipData.TargetThisShipController.ShipData.Distroyed))
+            var currentTarget = ShipController.ShipData.TargetThisShipController;
+            if (!isTransport && (currentTarget == null || currentTarget.ShipData.Distroyed || !currentTarget.gameObject.activeInHierarchy))
             {
                 ShipController.ShipData.TargetThisShipController = FindFallbackEnemy();
             }
@@ -246,12 +284,9 @@ namespace BOTF3D.Combat
 
             currentState = OrderState.RushingCenter;
 
-            // Target only enemies near center
-            ShipController target = FindCenterEnemy();
+            ShipController target = FindFallbackEnemy();
             if (target != null)
-            {
                 ShipController.ShipData.TargetThisShipController = target;
-            }
         }
         #endregion
 
@@ -281,7 +316,7 @@ namespace BOTF3D.Combat
             transform.position = Vector3.MoveTowards(transform.position, targetPos, formationSpeed * Time.unscaledDeltaTime);
             
             // In formation, stay facing forward toward enemy
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             // Side 1 (left, negative X) faces +X (toward right/enemy) = +90°
             // Side 2 (right, positive X) faces -X (toward left/enemy) = -90°
             transform.rotation = Quaternion.Euler(0, isSideOne ? 90 : -90, 0);
@@ -292,7 +327,7 @@ namespace BOTF3D.Combat
             // Wall formation in YZ plane
             int col = slot % 5;
             int row = slot / 5;
-            float sideSign = transform.position.x < 0 ? -1 : 1;
+            float sideSign = Side == 1 ? -1 : 1;
             float startX = sideSign * 400f; // Hold at warp-in end line
             
             return new Vector3(startX, (row - 2) * FORMATION_SPACING, (col - 2) * FORMATION_SPACING);
@@ -316,7 +351,7 @@ namespace BOTF3D.Combat
                     isFlankingLeft = Random.value > 0.5f;
                     hasChosenFlankPath = true;
                     
-                    float sideSign = transform.position.x < 0 ? 1 : -1;
+                    float sideSign = Side == 1 ? 1 : -1;
                     Vector3 flankDir = isFlankingLeft ? Vector3.forward : Vector3.back;
                     flankTargetPosition = transform.position + flankDir * FLANK_WIDTH + Vector3.right * sideSign * 300f;
                 }
@@ -338,11 +373,15 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return null;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
-            
-            return enemies.Where(s => s != null && !s.ShipData.Distroyed && Mathf.Abs(s.transform.position.z) < RUSH_CENTER_RANGE)
-                          .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
+            List<ShipController> myShips = isSideOne ? combatController.CombatData.SideOneShipCons : combatController.CombatData.SideTwoShipCons;
+
+            return enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy
+                                  && s.ShipData.ShipType != ShipType.Transport
+                                  && Mathf.Abs(s.transform.position.z) < RUSH_CENTER_RANGE)
+                          .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
+                          .ThenBy(s => Vector3.Distance(transform.position, s.transform.position))
                           .FirstOrDefault();
         }
 
@@ -351,10 +390,10 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return null;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
-            
-            return enemies.Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType == ShipType.Transport)
+
+            return enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType == ShipType.Transport)
                           .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
                           .FirstOrDefault();
         }
@@ -366,7 +405,7 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             CombatOrders myOrder = isSideOne ? combatController.CombatData.SideOneOrder : combatController.CombatData.SideTwoOrder;
             CombatOrders enemyOrder = isSideOne ? combatController.CombatData.SideTwoOrder : combatController.CombatData.SideOneOrder;
 
@@ -402,7 +441,7 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return null;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
 
             return enemies.FirstOrDefault(e => e != null && !e.ShipData.Distroyed && e.ShipData.TargetThisShipController == ShipController);
@@ -422,7 +461,7 @@ namespace BOTF3D.Combat
             var combatController = CombatUIManager.Instance?.CurrentCombatController;
             if (combatController == null) return Vector3.zero;
 
-            bool isSideOne = transform.position.x < 0;
+            bool isSideOne = Side == 1;
 
             // Get friendly transports and enemy ships
             List<ShipController> friendlyShips = isSideOne ? combatController.CombatData.SideOneShipCons : combatController.CombatData.SideTwoShipCons;
@@ -474,48 +513,35 @@ namespace BOTF3D.Combat
 
         private void ExecuteRetreat()
         {
-            // ✅ Initialize retreat turn
+            // Initialize retreat turn: 180° on Y axis over RETREAT_TURN_TIME seconds
             if (currentState != OrderState.TurningToRetreat && currentState != OrderState.WarpingOut)
             {
                 currentState = OrderState.TurningToRetreat;
                 stateTimer = 0f;
                 retreatStartRotation = transform.rotation;
 
-                // ✅ Randomly choose turn direction: 50% horizontal (Y-axis), 50% vertical (X or Z-axis)
-                retreatTurnIsHorizontal = Random.value > 0.5f;
-                retreatTurnAngle = 100f; // Always 100° turn
+                float turnSign = Random.value > 0.5f ? 1f : -1f;
+                retreatTargetRotation = Quaternion.Euler(
+                    transform.eulerAngles.x,
+                    transform.eulerAngles.y + RETREAT_TURN_DEGREES * turnSign,
+                    transform.eulerAngles.z
+                );
 
-                if (retreatTurnIsHorizontal)
-                {
-                    // Y-axis turn (left or right)
-                    float turnDirection = Random.value > 0.5f ? 1f : -1f;
-                    retreatTargetRotation = Quaternion.Euler(
-                        transform.eulerAngles.x,
-                        transform.eulerAngles.y + (retreatTurnAngle * turnDirection),
-                        transform.eulerAngles.z
-                    );
-                    Debug.Log($"🔄 {ShipController.ShipData.ShipName} turning {(turnDirection > 0 ? "right" : "left")} 100° on Y-axis");
-                }
-                else
-                {
-                    // Vertical turn on Y-axis (up or down doesn't make sense, so use X-axis pitch)
-                    float turnDirection = Random.value > 0.5f ? 1f : -1f;
-                    retreatTargetRotation = Quaternion.Euler(
-                        transform.eulerAngles.x + (retreatTurnAngle * turnDirection),
-                        transform.eulerAngles.y,
-                        transform.eulerAngles.z
-                    );
-                    Debug.Log($"🔄 {ShipController.ShipData.ShipName} turning {(turnDirection > 0 ? "up" : "down")} 100° on X-axis");
-                }
+                // Direction the ship will face once the turn completes
+                retreatMoveDirection = retreatTargetRotation * Vector3.forward;
             }
 
-            // ✅ Phase 1: Turning (vulnerable, no movement)
+            // ✅ Phase 1: Turning (vulnerable, slow drift toward retreat direction)
             if (currentState == OrderState.TurningToRetreat)
             {
                 stateTimer += Time.unscaledDeltaTime;
                 float turnProgress = stateTimer / RETREAT_TURN_TIME;
 
                 transform.rotation = Quaternion.Slerp(retreatStartRotation, retreatTargetRotation, turnProgress);
+
+                // Drift slowly along the x-axis in the direction the ship will warp out
+                transform.position += retreatMoveDirection * ShipController.ShipData.maxWarpFactor
+                                      * RETREAT_DRIFT_SPEED * Time.unscaledDeltaTime;
 
                 if (stateTimer >= RETREAT_TURN_TIME)
                 {
@@ -527,6 +553,9 @@ namespace BOTF3D.Combat
 
                     // Lock rotation - no more turning during warp-out
                     transform.rotation = retreatTargetRotation;
+
+                    // Stop weapon fire loops before the object is deactivated
+                    ShipController.StopAllCoroutines();
 
                     Debug.Log($"🌀 {ShipController.ShipData.ShipName} starting warp-out animation");
                 }
@@ -554,26 +583,40 @@ namespace BOTF3D.Combat
                     // Stretch increases as ship accelerates (1x → 50x scale on local Z)
                     float stretchFactor = Mathf.Lerp(1f, 50f, warpProgress);
                     shipModel.localScale = new Vector3(1f, 1f, stretchFactor);
+
+                    // ✅ Offset model forward so it stretches in facing direction
+                    // Since pivot is at nose (0), and mesh is at Z < 0, 
+                    // scaling Z pushes the tail back. We move the model forward by 
+                    // the elongation amount to keep the tail fixed at its starting point.
+                    float offset = meshZMin * (1f - stretchFactor);
+                    shipModel.localPosition = new Vector3(0f, 0f, offset);
                 }
 
-                // ✅ Warp-out complete - destroy ship (it escaped)
+                // ✅ Warp-out complete - ship escaped, return to fleet
                 if (warpOutTimer >= WARP_OUT_DURATION)
                 {
                     Debug.Log($"✅ {ShipController.ShipData.ShipName} warped out successfully!");
 
-                    // Mark as destroyed (but don't apply damage - it escaped)
-                    ShipController.ShipData.Distroyed = true;
-
-                    // Remove from combat
-                    var combatController = CombatUIManager.Instance?.CurrentCombatController;
-                    if (combatController != null)
+                    // Return to fleet — ship survived retreat, keep reference valid in FleetData.ShipsList
+                    var fleet = ShipController.ShipData?.CurrentFleetController;
+                    if (fleet != null)
                     {
-                        combatController.CombatData.SideOneShipCons.Remove(ShipController);
-                        combatController.CombatData.SideTwoShipCons.Remove(ShipController);
+                        ShipController.transform.SetParent(fleet.transform, false);
+                        ShipController.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        ShipController.transform.localScale = Vector3.one;
+                        fleet.UpdateMaxWarp();
                     }
 
-                    // Destroy game object
-                    Destroy(gameObject);
+                    // Reset model stretching and position before deactivating
+                    if (shipModel != null)
+                    {
+                        shipModel.localScale = Vector3.one;
+                        shipModel.localPosition = Vector3.zero;
+                    }
+
+                    // Deactivate rather than destroy — reference stays alive for fleet UI
+                    // Note: We leave it in SideOneShipCons/SideTwoShipCons so CombatController.EndCombat can find its fleet
+                    gameObject.SetActive(false);
                 }
             }
         }

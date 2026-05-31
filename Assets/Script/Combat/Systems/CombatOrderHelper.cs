@@ -34,34 +34,6 @@ namespace BOTF3D.Combat
             if (attackerOrder == targetOrder || attackerOrder == CombatOrders.None || targetOrder == CombatOrders.None)
                 return 1.0f;
 
-            switch (attackerOrder)
-            {
-                case CombatOrders.Engage:
-                    if (targetOrder == CombatOrders.Rush || targetOrder == CombatOrders.Retreat) return ADVANTAGE_MULTIPLIER;
-                    if (targetOrder == CombatOrders.Formation || targetOrder == CombatOrders.AttackTransports) return DISADVANTAGE_MULTIPLIER;
-                    break;
-
-                case CombatOrders.Rush:
-                    if (targetOrder == CombatOrders.Retreat || targetOrder == CombatOrders.Formation) return ADVANTAGE_MULTIPLIER;
-                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.AttackTransports) return DISADVANTAGE_MULTIPLIER;
-                    break;
-
-                case CombatOrders.Retreat:
-                    if (targetOrder == CombatOrders.Formation || targetOrder == CombatOrders.AttackTransports) return ADVANTAGE_MULTIPLIER;
-                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.Rush) return DISADVANTAGE_MULTIPLIER;
-                    break;
-
-                case CombatOrders.Formation:
-                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.AttackTransports) return ADVANTAGE_MULTIPLIER;
-                    if (targetOrder == CombatOrders.Rush || targetOrder == CombatOrders.Retreat) return DISADVANTAGE_MULTIPLIER;
-                    break;
-
-                case CombatOrders.AttackTransports:
-                    if (targetOrder == CombatOrders.Engage || targetOrder == CombatOrders.Rush) return ADVANTAGE_MULTIPLIER;
-                    if (targetOrder == CombatOrders.Retreat || targetOrder == CombatOrders.Formation) return DISADVANTAGE_MULTIPLIER;
-                    break;
-            }
-
             return 1.0f;
         }
 

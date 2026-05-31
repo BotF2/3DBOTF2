@@ -62,6 +62,8 @@ public GameObject HealthbarPrefab;
 
             Instance = this;
 
+            gameConfig?.ApplyLogSettings();
+
             // Cache the prefab BEFORE DontDestroyOnLoad
             _cachedCombatConPrefab = combatConPrefab;
 

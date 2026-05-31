@@ -128,11 +128,14 @@ namespace BOTF3D.Combat
             AddShipCollider(ship, shipModel);
 
             // Ensure CombatOrderStateMachine is present
-            if (ship.GetComponent<CombatOrderStateMachine>() == null)
+            CombatOrderStateMachine stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+            if (stateMachine == null)
             {
-                ship.gameObject.AddComponent<CombatOrderStateMachine>();
+                stateMachine = ship.gameObject.AddComponent<CombatOrderStateMachine>();
                 Debug.Log($"  ➕ Added CombatOrderStateMachine to {ship.ShipData.ShipName}");
             }
+            stateMachine.Side = side;
+            stateMachine.ShipController = ship;
 
             // Store warp data for animation
             WarpData warpData = ship.gameObject.AddComponent<WarpData>();
@@ -192,6 +195,7 @@ namespace BOTF3D.Combat
             }
 
             GameObject shipModel = Object.Instantiate(fbx);
+            shipModel.name = fbx.name + "_Model"; // Ensure CleanupShips can find it
             shipModel.transform.SetParent(ship.transform, false);
             shipModel.transform.localPosition = Vector3.zero;
 

@@ -191,8 +191,8 @@ namespace BOTF3D.UI
                     Debug.Log($"🎮 Turn-based combat: Side 1: {currentOrder}, Side 2: {currentOrderSideTwo}");
 
                     // Set orders on controller so they're available during warp positioning
-                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne);
-                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo);
+                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne, 1);
+                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo, 2);
 
                     // Notify TurnResolver of the selections (for Turn 2+)
                     if (CurrentCombatController.TurnResolver != null)
@@ -216,8 +216,8 @@ namespace BOTF3D.UI
                 else
                 {
                     // Original real-time combat
-                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne);
-                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo);
+                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne, 1);
+                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo, 2);
 
                     // ✅ Random AI order is deactivated per request
                     // CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
@@ -742,27 +742,46 @@ namespace BOTF3D.UI
         /// </summary>
         public void ShowCombatOverPanel()
         {
+            Debug.Log("🏁 CombatUIManager: ShowCombatOverPanel called");
+
             if (panelCombatOver == null)
             {
+                // 1. Try GameOverCanvas
                 if (currentGameOverCanvas != null)
                 {
                     panelCombatOver = FindUIElement(currentGameOverCanvas, "PanelCombatEnd");
                 }
 
+                // 2. Try CombatUICanvas
                 if (panelCombatOver == null && currentCombatUICanvas != null)
                 {
                     panelCombatOver = FindUIElement(currentCombatUICanvas, "PanelCombatEnd");
+                }
+
+                // 3. Last resort: Global search (expensive but safer if references failed)
+                if (panelCombatOver == null)
+                {
+                    GameObject found = GameObject.Find("PanelCombatEnd");
+                    if (found != null) panelCombatOver = found;
                 }
             }
 
             if (panelCombatOver != null)
             {
                 panelCombatOver.SetActive(true);
-                Debug.Log("✅ Combat over panel shown");
+                
+                // Ensure parent canvases are enabled
+                Canvas parentCanvas = panelCombatOver.GetComponentInParent<Canvas>();
+                if (parentCanvas != null) parentCanvas.enabled = true;
+
+                Debug.Log($"✅ Combat over panel '{panelCombatOver.name}' shown in {parentCanvas?.name ?? "unknown canvas"}");
+                
+                // If it's the GameOverCanvas, ensure it's active
+                if (currentGameOverCanvas != null) currentGameOverCanvas.SetActive(true);
             }
             else
             {
-                Debug.LogError("❌ Cannot show combat over panel - not found!");
+                Debug.LogError("❌ Cannot show combat over panel - NOT FOUND in any canvas or scene!");
 
                 if (CurrentCombatController != null)
                 {

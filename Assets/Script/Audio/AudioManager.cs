@@ -277,7 +277,17 @@ namespace BOTF3D.Audio
             sfxVolume = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f);
             uiVolume = PlayerPrefs.GetFloat(UI_VOLUME_KEY, 1f);
 
-            Debug.Log($"📊 Loaded volumes: Master={masterVolume}, Music={musicVolume}, SFX={sfxVolume}, UI={uiVolume}");
+            // Safety check: if master is 0 but was never set, default to 1
+            if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY) || masterVolume < 0.001f)
+            {
+                if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY))
+                {
+                    masterVolume = 1f;
+                    Debug.Log("AudioManager: No master volume found in PlayerPrefs, defaulting to 1f");
+                }
+            }
+
+            Debug.Log($"📊 Loaded volumes: Master={masterVolume:F3}, Music={musicVolume:F3}, SFX={sfxVolume:F3}, UI={uiVolume:F3}");
             // ✅ Apply music volume immediately if sources exist
             UpdateMusicVolume();
         }

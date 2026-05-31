@@ -36,6 +36,10 @@ namespace BOTF3D.Galaxy
         {
             ourPlayerTargetGO = playerCon.gameObject;
             playerTargetDrag = value;
+            if (value)
+            {
+                lastMousePosition = Input.mousePosition;
+            }
         }
         void DragPlayerTargetWithLeftMouse(GameObject playerTargetGO)
         {

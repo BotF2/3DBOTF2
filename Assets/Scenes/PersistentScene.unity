@@ -1143,6 +1143,8 @@ MonoBehaviour:
   galaxyShipPrefab: {fileID: 0}
   shipListUIPrefab: {fileID: 1097691733155681692, guid: 80e448e987f83f14a9351c9b3de176b4, type: 3}
   targetGOPrefab: {fileID: 3986111191651871830, guid: 9f5ec565b8469c841a29976acdadf913, type: 3}
+  explosionPrefab: {fileID: 1095849975592326347, guid: d1fcf255ded2f0746885a1ee26887b53, type: 3}
+  torpedoHitExplosionPrefab: {fileID: 9012772365313581655, guid: 89cf8ff4cdef7734ebe204f8b37c7e05, type: 3}
   torpedoPrefabs:
   - {fileID: 7054183224101263012, guid: 31f76a165db9003408ffa00ccf1e0a2b, type: 3}
   - {fileID: 3912758670790259718, guid: cc2c0058e724b7b4e9de90526d3c4bff, type: 3}
@@ -1161,8 +1163,10 @@ MonoBehaviour:
   - {fileID: 3520991220717468901, guid: cde5ad04fdad01c46ad80976e1b27aec, type: 3}
   - {fileID: 9124248098745324454, guid: 8c68eb5989df7e84ea779ed32dfe13a6, type: 3}
   - {fileID: 9124248098745324454, guid: ff37a0f59d8dd1b40ab1c5a9b2d14e1d, type: 3}
-  beamFireClips: []
-  torpedoFireClips: []
+  beamFireClips:
+  - {fileID: 8300000, guid: 97fc0e251bc73a84ea04f86f75437c54, type: 3}
+  torpedoFireClips:
+  - {fileID: 8300000, guid: b66b45b26fe9ab54dbd3adef080ac7f7, type: 3}
   FedShipSOList:
   - {fileID: 11400000, guid: 88fa1cb5f8a477f4ba14ad5c904bc7d9, type: 2}
   - {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
@@ -3355,6 +3359,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 57ea33ba1ee35954c9449fef61f1b65d, type: 2}
   - {fileID: 11400000, guid: f5a51a85ee726eb418829c800b43e515, type: 2}
   - {fileID: 11400000, guid: cb1adfa03f63756438637a24bbb2a5e8, type: 2}
+  - {fileID: 11400000, guid: 411c1fb0d8523c34eb166662551e73b3, type: 2}
   soundEmitterPrefab: {fileID: 0}
   collectionCheck: 1
   defaultCapacity: 12
