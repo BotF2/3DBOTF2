@@ -48,7 +48,7 @@ namespace BOTF3D.Combat
         private Quaternion retreatStartRotation;
         private Quaternion retreatTargetRotation;
         private Vector3 retreatMoveDirection; // Direction ship drifts toward while turning
-        private const float RETREAT_TURN_TIME = 7.0f;
+        private const float RETREAT_TURN_TIME = 10.0f;
         private const float RETREAT_DRIFT_SPEED = 3f;  // maxWarpFactor multiplier for turn-phase drift
         private bool isWarpingOut = false;
         private bool weaponsCutOff = false;

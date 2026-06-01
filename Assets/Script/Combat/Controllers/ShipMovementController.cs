@@ -34,8 +34,8 @@ namespace BOTF3D.Combat
         private const float AT_FULL_CYCLE = 1000f;  // AT_FORWARD_LEG + FORWARD_LEG (return)
 
         // Speed multipliers on ship.maxWarpFactor  (tune via testing)
-        private const float ENGAGE_SPEED = 12f;
-        private const float RUSH_SPEED = 18f;
+        private const float ENGAGE_SPEED = 9f;
+        private const float RUSH_SPEED = 14f;
         private const float AT_HEAVY_SPEED = 8f;
         private const float AT_SCOUT_SPEED = 16f;
         private const float TRANSPORT_AVOID_SPEED = 3f;
@@ -76,8 +76,12 @@ namespace BOTF3D.Combat
                         break;
                     }
                 case CombatOrders.Rush:
-                    MovePhased(ship, isSideOne, ship.ShipData.maxWarpFactor * RUSH_SPEED, FULL_CYCLE, shipsWillPass, holdAtEnd);
-                    break;
+                    {
+                        // Apply slight speed variation (±10%) so Rush ships spread out over time
+                        float speedVariation = UnityEngine.Random.Range(0.9f, 1.1f);
+                        MovePhased(ship, isSideOne, ship.ShipData.maxWarpFactor * RUSH_SPEED * speedVariation, FULL_CYCLE, shipsWillPass, holdAtEnd);
+                        break;
+                    }
 
                 case CombatOrders.AttackTransports:
                     {

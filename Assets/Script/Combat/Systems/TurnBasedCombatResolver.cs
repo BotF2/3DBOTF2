@@ -219,6 +219,10 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             combatController.SetShipOrders(SideOneSelectedOrder, combatData.CivEnumSideOne, 1);
             combatController.SetShipOrders(SideTwoSelectedOrder, combatData.CivEnumSideTwo, 2);
 
+            // Position Formation ships in formation before combat starts
+            PositionFormationShips(SideOneSelectedOrder, combatData.SideOneShipCons, 1);
+            PositionFormationShips(SideTwoSelectedOrder, combatData.SideTwoShipCons, 2);
+
             // Record starting HP for damage calculation
             int side1StartHP = (int)GetTotalHP(1);
             int side2StartHP = (int)GetTotalHP(2);
@@ -469,6 +473,53 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             // TODO: Check if this civ is AI or human player
             // For now, assume Side Two is AI in single-player
             return civEnum == combatData.CivEnumSideTwo;
+        }
+
+        /// <summary>
+        /// Position ships in formation grid immediately if Formation order is selected
+        /// </summary>
+        private void PositionFormationShips(CombatOrders order, List<ShipController> ships, int side)
+        {
+            if (order != CombatOrders.Formation || ships == null) return;
+
+            const float FORMATION_SPACING = 35f;
+            float formationX = side == 1 ? WarpAnimationController.SIDE1_COMBAT_END_X : WarpAnimationController.SIDE2_COMBAT_END_X;
+
+            int slotIndex = 0;
+            foreach (var ship in ships)
+            {
+                if (ship == null || ship.ShipData.Distroyed) continue;
+
+                bool isTransport = ship.ShipData.ShipType == ShipType.Transport;
+                if (isTransport)
+                {
+                    // Transports stay at their warp-in position
+                    formationX = side == 1 ? WarpAnimationController.SIDE1_TRANSPORT_END_X : WarpAnimationController.SIDE2_TRANSPORT_END_X;
+                }
+                else
+                {
+                    formationX = side == 1 ? WarpAnimationController.SIDE1_COMBAT_END_X : WarpAnimationController.SIDE2_COMBAT_END_X;
+                }
+
+                // Calculate grid position (5 columns)
+                int col = slotIndex % 5;
+                int row = slotIndex / 5;
+                Vector3 formationPos = new Vector3(formationX, (row - 2) * FORMATION_SPACING, (col - 2) * FORMATION_SPACING);
+
+                // Move ship to formation position
+                ship.transform.position = formationPos;
+
+                // Assign formation slot to the state machine
+                var osm = ship.GetComponent<CombatOrderStateMachine>();
+                if (osm != null)
+                {
+                    osm.formationSlot = slotIndex;
+                }
+
+                slotIndex++;
+            }
+
+            Debug.Log($"📐 Positioned {slotIndex} ships in Formation (Side {side}) with {FORMATION_SPACING} unit spacing");
         }
     }
 

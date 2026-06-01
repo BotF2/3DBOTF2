@@ -164,11 +164,17 @@ namespace BOTF3D.Civilization
             }
             return diplomacyController;
         }
-        public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo, List<ShipController> shipList)
+        public void OpenDiplomacyUI(CivController civPartyOne, CivController civPartyTwo, List<ShipController> shipList, FleetController fleetOne = null, FleetController fleetTwo = null, StarSysController sysCon = null)
         {
             DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
             if (ourDiplomacyController != null)
             {
+                // ✅ Update participants in data to ensure Combat button works with current encounter
+                // We assign them based on the party order passed in
+                ourDiplomacyController.DiplomacyData.FleetControllerCivOne = fleetOne;
+                ourDiplomacyController.DiplomacyData.FleetContollerCivTwo = fleetTwo;
+                ourDiplomacyController.DiplomacyData.StarSysController = sysCon;
+
                 if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
                 {
                     ourDiplomacyController.DiplomacyData.CivEnumSideOne = civPartyOne.CivData.CivEnum; // local player civ
@@ -201,11 +207,14 @@ namespace BOTF3D.Civilization
                 civPartyTwo = fleetCon1.FleetData.CivController;
             }
             DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
-            if (civPartyOne.CivData.PlayedByAI)
-                ourDiplomacyController.DoAIDiplomacy();
-            else if (civPartyTwo.CivData.PlayedByAI)
+            if (ourDiplomacyController != null)
             {
-                ourDiplomacyController.DoAIDiplomacy();
+                if (civPartyOne.CivData.PlayedByAI)
+                    ourDiplomacyController.DoAIDiplomacy();
+                else if (civPartyTwo.CivData.PlayedByAI)
+                {
+                    ourDiplomacyController.DoAIDiplomacy();
+                }
             }
 
         }
@@ -224,14 +233,17 @@ namespace BOTF3D.Civilization
                 civPartyTwo = fleetCon.FleetData.CivController;
             }
             DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
-            if (civPartyOne.CivData.PlayedByAI)
-                ourDiplomacyController.DoAIDiplomacy();
-            else if (civPartyTwo.CivData.PlayedByAI)
+            if (ourDiplomacyController != null)
             {
-                ourDiplomacyController.DoAIDiplomacy();
+                if (civPartyOne.CivData.PlayedByAI)
+                    ourDiplomacyController.DoAIDiplomacy();
+                else if (civPartyTwo.CivData.PlayedByAI)
+                {
+                    ourDiplomacyController.DoAIDiplomacy();
+                }
             }
         }
-        public DiplomacyController ReturnADiplomacyController(CivController civPartyOne, CivController civPartyTwo)
+public DiplomacyController ReturnADiplomacyController(CivController civPartyOne, CivController civPartyTwo)
         {
             DiplomacyController diplomacyController = null;
             for (int i = 0; i < DiplomacyControllers.Count; i++)
@@ -329,7 +341,10 @@ namespace BOTF3D.Civilization
                 else
                 {
                     DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
-                    UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon); // Will we need this? Is it all done in Diplomacy and FleetControllers?
+                    UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
+                    // ✅ Open UI and ensure participants are updated so Combat button works
+                    OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
+                    Destroy(sysConEmpty.gameObject);
                 }
             }
         }
@@ -395,8 +410,14 @@ namespace BOTF3D.Civilization
         private void UpdateDiplomacyEncoutnerType(FleetController fleetA, FleetController fleetB)
         { // *** Will we need this?
             var diplomacyCon = ReturnADiplomacyController(fleetA.FleetData.CivEnum, fleetB.FleetData.CivEnum); // not mono behavior
-            diplomacyCon.DiplomacyData.EncounterType = EncounterType.Diplomacy;
-
+            if (diplomacyCon != null)
+            {
+                diplomacyCon.DiplomacyData.EncounterType = EncounterType.Diplomacy;
+                // ✅ Update participants so Combat button works with these fleets
+                diplomacyCon.DiplomacyData.FleetControllerCivOne = fleetA;
+                diplomacyCon.DiplomacyData.FleetContollerCivTwo = fleetB;
+                diplomacyCon.DiplomacyData.StarSysController = null;
+            }
         }
 
         internal void ResolveEncounterOtherCivSystem(FleetController reportingPlayerfleet, StarSysController otherCivSysCon)
@@ -497,33 +518,29 @@ namespace BOTF3D.Civilization
 
         public void FeetToSysNotSameCivNotFirstEncounter(FleetController fleetA, StarSysController sysCon)
         {
-            var diplomacyData = EntereDiplomacyData(fleetA, sysCon); // not mono behavior
-            diplomacyData.EncounterType = EncounterType.Diplomacy;
-
-            // Instantiate a DiplomacyController MonoBehaviour from prefab (or add component)
-            DiplomacyController diplomacyController = null;
-            if (diplomacControllerPrefab != null)
+            CivController civPartyOne;
+            CivController civPartyTwo;
+            if (fleetA.FleetData.CivEnum < sysCon.StarSysData.CurrentOwnerCivEnum)
             {
-                GameObject dipGo = Instantiate(diplomacControllerPrefab, Vector3.zero, Quaternion.identity);
-                dipGo.SetActive(true);
-                dipGo.layer = 5;
-                dipGo.transform.SetParent(this.transform, false);
-                diplomacyController = dipGo.GetComponent<DiplomacyController>();
-                if (diplomacyController == null)
-                    diplomacyController = dipGo.AddComponent<DiplomacyController>();
+                civPartyOne = fleetA.FleetData.CivController;
+                civPartyTwo = sysCon.StarSysData.CurrentCivController;
             }
             else
             {
-                GameObject dipGo = new GameObject("DiplomacyController");
-                dipGo.transform.SetParent(this.transform, false);
-                diplomacyController = dipGo.AddComponent<DiplomacyController>();
+                civPartyOne = sysCon.StarSysData.CurrentCivController;
+                civPartyTwo = fleetA.FleetData.CivController;
             }
 
-            diplomacyController.DiplomacyData = diplomacyData;
-            if (!DiplomacyControllers.Contains(diplomacyController))
-                DiplomacyControllers.Add(diplomacyController);
-            //DiplomacyControllers.Add(diplomacyController);
-            //GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyController.DiplomacyUIGameObject);
+            DiplomacyController diplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
+            if (diplomacyController != null)
+            {
+                diplomacyController.DiplomacyData.EncounterType = EncounterType.Diplomacy;
+                // ✅ Open UI and update participants so Combat button works
+                OpenDiplomacyUI(civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList, 
+                    (fleetA.FleetData.CivController == civPartyOne ? fleetA : null),
+                    (fleetA.FleetData.CivController == civPartyTwo ? fleetA : null),
+                    sysCon);
+            }
         }
 
         internal void ResolveDiplomacyForClickSystemWeKnow(CivController localPlayerCivContoller, StarSysController starSysController)
@@ -545,9 +562,9 @@ namespace BOTF3D.Civilization
             //have we met before?
             if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
             {   // not First Contact, just by clicking on the system
-                DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, starSysController.StarSysData.ShipsList);
+                DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, starSysController.StarSysData.ShipsList, null, null, starSysController);
             }
-            else
+else
             {
                 // no first contact just on clicking on the system
                 // maybe some data if you are high tech level?
@@ -573,9 +590,9 @@ namespace BOTF3D.Civilization
             //have we met before?
             if (DiplomacyManager.Instance.FoundADiplomacyController(civPartyOne, civPartyTwo))
             {   // not First Contact, just by clicking on the system
-                DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, fleetController.FleetData.ShipsList);
+                DiplomacyManager.Instance.OpenDiplomacyUI(civPartyOne, civPartyTwo, fleetController.FleetData.ShipsList, null, fleetController, null);
             }
-            else
+else
             {
                 // no first contact just on clicking on the system
                 // maybe some data if you are high tech level?

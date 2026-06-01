@@ -256,6 +256,14 @@ namespace BOTF3D.Combat
                 }
 
                 float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
+
+                // Apply delay multiplier for retreating ships
+                var osm = GetComponent<CombatOrderStateMachine>();
+                if (osm != null && osm.CurrentOrder == CombatOrders.Retreat)
+                {
+                    refireDelay *= 1.2f;
+                }
+
                 yield return new WaitForSecondsRealtime(refireDelay);
             }
         }
@@ -379,13 +387,13 @@ namespace BOTF3D.Combat
             var cc = CombatUIManager.Instance?.CurrentCombatController;
             if (cc != null)
             {
-                const float SHIELD_OVERLAP_RANGE = 55f;
+                const float SHIELD_OVERLAP_RANGE = 40f;
                 bool isSideOne = cc.CombatData.SideOneShipCons.Contains(this);
                 var friendlies = isSideOne ? cc.CombatData.SideOneShipCons : cc.CombatData.SideTwoShipCons;
                 int nearby = friendlies.Count(s => s != null && s != this && !s.ShipData.Distroyed
                                                 && s.gameObject.activeInHierarchy
                                                 && Vector3.Distance(transform.position, s.transform.position) <= SHIELD_OVERLAP_RANGE);
-                float overlapMultiplier = Mathf.Max(0.5f, 1f - (nearby * 0.1f));
+                float overlapMultiplier = Mathf.Max(0.5f, 1f - (nearby * 0.2f));
                 weaponDamageInt = Mathf.RoundToInt(weaponDamageInt * overlapMultiplier);
             }
 

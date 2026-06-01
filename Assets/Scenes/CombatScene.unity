@@ -1093,7 +1093,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 164970913}
-  - component: {fileID: 164970912}
+  - component: {fileID: 164970914}
   m_Layer: 0
   m_Name: CombatCameraParent
   m_TagString: Untagged
@@ -1101,31 +1101,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &164970912
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164970911}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e863d8a08e474307802eaf34f998943, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Pitch: 0
-  Yaw: 0
-  Roll: 0
-  FramingMargin: 20
-  VerticalFramingOffset: 90
-  CombatFieldOfView: 60
-  WarpFieldOfView: 95
-  MoveSmoothTime: 0.19
-  MouseRotationSpeed: 5
-  AutoRotationDelay: 8
-  AutoRotationSpeed: 0.15
-  _shipCamera: {fileID: 1467798002}
-  WarpingInOver: 0
 --- !u!4 &164970913
 Transform:
   m_ObjectHideFlags: 0
@@ -1142,6 +1117,32 @@ Transform:
   - {fileID: 1467798004}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &164970914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164970911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e863d8a08e474307802eaf34f998943, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Combat.ShipCombatCameraController
+  Pitch: 10
+  Yaw: 0
+  Roll: 0
+  FramingMargin: 5
+  VerticalFramingOffset: 100
+  ZoomMultiplier: 0.8
+  CombatFieldOfView: 50
+  WarpFieldOfView: 95
+  MoveSmoothTime: 0.15
+  MouseRotationSpeed: 5
+  AutoRotationDelay: 8
+  AutoRotationSpeed: 0.15
+  _shipCamera: {fileID: 0}
+  WarpingInOver: 0
 --- !u!1 &182629717
 GameObject:
   m_ObjectHideFlags: 0
@@ -4268,7 +4269,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 807690123}
-  - component: {fileID: 807690122}
   m_Layer: 0
   m_Name: CameraMultiTarget
   m_TagString: Untagged
@@ -4276,31 +4276,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &807690122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 807690121}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e863d8a08e474307802eaf34f998943, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Pitch: 0
-  Yaw: 0
-  Roll: 0
-  FramingMargin: 20
-  VerticalFramingOffset: 90
-  CombatFieldOfView: 60
-  WarpFieldOfView: 95
-  MoveSmoothTime: 0.19
-  MouseRotationSpeed: 5
-  AutoRotationDelay: 8
-  AutoRotationSpeed: 0.15
-  _shipCamera: {fileID: 1467798002}
-  WarpingInOver: 0
 --- !u!4 &807690123
 Transform:
   m_ObjectHideFlags: 0

@@ -34,16 +34,19 @@ namespace BOTF3D.Combat
         public float Yaw = 0f;
         public float Roll = 0f;
 
-        [Header("Framing")]
         [Tooltip("Extra world-unit margin added around all ships so they are not right at the edge.")]
-        public float FramingMargin = 20f;
+        public float FramingMargin = 5f;
 
         [Tooltip("Vertical offset applied to camera target point. Positive = ships appear lower in frame, Negative = ships appear higher.")]
-        [Range(-100f, 100f)]
+        [Range(-100f, 250f)]
         public float VerticalFramingOffset = 90f; // Are the ships to high or low? higher value moves ships down.
 
+        [Tooltip("Arbitrary zoom multiplier applied after all calculations. < 1.0 zooms in, > 1.0 zooms out.")]
+        [Range(0.1f, 2f)]
+        public float ZoomMultiplier = 1.0f;
+
         [Tooltip("Field of view after warp-in. Higher value = wider = more scene visible.")]
-        [Range(40f, 110f)]
+        [Range(20f, 110f)]
         public float CombatFieldOfView = 60f;
 
         [Tooltip("Field of view during warp-in animation.")]
@@ -118,7 +121,7 @@ namespace BOTF3D.Combat
             _warpingIn = false;
             WarpingInOver = false;
             if (_shipCamera == null)
-                _shipCamera = GetComponent<Camera>();
+                _shipCamera = GetComponentInChildren<Camera>();
 
             // Park camera directly behind center along -Z axis (no vertical tilt)
             transform.position = new Vector3(0f, 800f, -800f);
@@ -265,8 +268,8 @@ namespace BOTF3D.Combat
             {
                 if (t == null) continue;
 
-                // Calculate offset from ship centroid (not adjusted target)
-                Vector3 offset = t.transform.position - shipCentroid;
+                // Calculate offset from the actual camera look-at target
+                Vector3 offset = t.transform.position - _cameraTarget;
 
                 float depth_offset = Vector3.Dot(offset, camDir); // how far ship is along camDir
                 float horiz = Vector3.Dot(offset, right);
@@ -283,8 +286,11 @@ namespace BOTF3D.Combat
                 requiredD = Mathf.Max(requiredD, dForHoriz, dForVert);
             }
 
+            // Apply zoom multiplier
+            requiredD *= ZoomMultiplier;
+
             // Enforce a sensible minimum so camera doesn't clip into ships
-            requiredD = Mathf.Max(requiredD, 200f);
+            requiredD = Mathf.Max(requiredD, 50f);
 
             // ── Step 4: Build final position and always LookAt centroid ──────────
             Vector3 cameraPos = _cameraTarget + camDir * requiredD;
