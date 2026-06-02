@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs -I {} basename {})"
+      "Bash(xargs -I {} basename {})",
+      "Bash(mkdir -p \"Assets/Tests\")",
+      "Bash(mkdir -p \"Assets/Script/Combat/Debug\")",
+      "Bash(mkdir -p \"Assets/Script/Combat/Testing\")"
     ]
   }
 }

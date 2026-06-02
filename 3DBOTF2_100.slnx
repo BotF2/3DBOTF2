@@ -27,7 +27,7 @@
   <Project Path="Unity.AI.MCP.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
   <Project Path="Unity.AI.Assistant.UI.Editor.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="BOTF3D.csproj" />
   <Project Path="Mirror.Components.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Editor.csproj" />
@@ -66,6 +66,7 @@
   <Project Path="Unity.Addressables.DocExampleCode.Editor.Tests.csproj" />
   <Project Path="Unity.Services.Multiplayer.Editor.Shared.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="UnityEngine.TestRunner.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
   <Project Path="Unity.AI.ModelSelector.csproj" />
@@ -205,6 +206,7 @@
   <Project Path="Unity.Services.Core.Scheduler.csproj" />
   <Project Path="Unity.AI.Toolkit.Async.csproj" />
   <Project Path="glTFast.dots.csproj" />
+  <Project Path="BOTF3D.Tests.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Adapters.Utp2.csproj" />
   <Project Path="Unity.PlasticSCM.Editor.Entities.csproj" />
   <Project Path="Analytics.csproj" />

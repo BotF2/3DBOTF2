@@ -245,6 +245,9 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
             Debug.Log($"💥 Turn {CurrentTurn} Damage: Side1 dealt {LastTurnResult.SideOneDamageDealt}, Side2 dealt {LastTurnResult.SideTwoDamageDealt}");
 
+            // Record this turn for debugging/replay
+            RecordTurnResult(LastTurnResult);
+
             // Remove multipliers
             RemoveOrderMultipliers();
 
@@ -520,6 +523,20 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             }
 
             Debug.Log($"📐 Positioned {slotIndex} ships in Formation (Side {side}) with {FORMATION_SPACING} unit spacing");
+        }
+
+        /// <summary>
+        /// Record turn result to combat recorder for debugging/replay
+        /// </summary>
+        private void RecordTurnResult(TurnResult result)
+        {
+            if (combatController == null) return;
+
+            var recorder = combatController.GetComponent<BOTF3D.Combat.Testing.CombatRecorder>();
+            if (recorder != null && recorder.IsRecording)
+            {
+                recorder.RecordTurn(result);
+            }
         }
     }
 

@@ -522,7 +522,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &104728350
 RectTransform:
   m_ObjectHideFlags: 0
@@ -772,7 +772,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &132207735
 RectTransform:
   m_ObjectHideFlags: 0
@@ -918,7 +918,7 @@ RectTransform:
   m_GameObject: {fileID: 135468568}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1515804352}
@@ -931,7 +931,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: -453}
+  m_AnchoredPosition: {x: 0, y: -294}
   m_SizeDelta: {x: 1920, y: 1000}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &135468570
@@ -959,7 +959,7 @@ GameObject:
   - component: {fileID: 142383903}
   - component: {fileID: 142383902}
   m_Layer: 5
-  m_Name: SideOnenNumHVYCruisers (TMP)
+  m_Name: SideOneNumHVYCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1155,7 +1155,7 @@ GameObject:
   - component: {fileID: 182629720}
   - component: {fileID: 182629719}
   m_Layer: 5
-  m_Name: SideOnenNumDestroyers (TMP)
+  m_Name: SideOneNumDestroyers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1570,7 +1570,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &265721083
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1777,7 +1777,7 @@ GameObject:
   - component: {fileID: 320546900}
   - component: {fileID: 320546899}
   m_Layer: 5
-  m_Name: SideOneCruisers (TMP)
+  m_Name: SideOneCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2138,8 +2138,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 100, y: -50}
-  m_SizeDelta: {x: 600, y: 80}
+  m_AnchoredPosition: {x: 340, y: -50}
+  m_SizeDelta: {x: 1000, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &389904563
 MonoBehaviour:
@@ -2161,7 +2161,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Combat Orders
+  m_text: Combat Orders (right side)_
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -2390,7 +2390,7 @@ GameObject:
   - component: {fileID: 470503070}
   - component: {fileID: 470503069}
   m_Layer: 5
-  m_Name: SideOneTotal (TMP)
+  m_Name: SideTwoTotal_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2532,7 +2532,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &512008020
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2666,7 +2666,7 @@ GameObject:
   - component: {fileID: 514461929}
   - component: {fileID: 514461928}
   m_Layer: 5
-  m_Name: SideOnenNumHVYCruisers (TMP)
+  m_Name: SideTwoNumHVYCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2803,7 +2803,7 @@ GameObject:
   - component: {fileID: 542403421}
   - component: {fileID: 542403420}
   m_Layer: 5
-  m_Name: SideOnenNumScouts (TMP)
+  m_Name: SideOneNumScouts
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2954,7 +2954,7 @@ RectTransform:
   m_GameObject: {fileID: 572159912}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 105442570}
@@ -3070,7 +3070,7 @@ GameObject:
   - component: {fileID: 600266625}
   - component: {fileID: 600266624}
   m_Layer: 5
-  m_Name: SideOneScouts (TMP)
+  m_Name: SideTwoScouts_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3395,7 +3395,7 @@ GameObject:
   - component: {fileID: 657347955}
   - component: {fileID: 657347954}
   m_Layer: 5
-  m_Name: SideOnenNumDestroyers (TMP)
+  m_Name: SideTwoNumDestroyers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4135,7 +4135,7 @@ GameObject:
   - component: {fileID: 799877768}
   - component: {fileID: 799877767}
   m_Layer: 5
-  m_Name: SideOneLightCruisers (TMP)
+  m_Name: SideOneLightCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4303,7 +4303,7 @@ GameObject:
   - component: {fileID: 912055895}
   - component: {fileID: 912055894}
   m_Layer: 5
-  m_Name: SideOneHeavyCruisers (TMP)
+  m_Name: SideOneHeavyCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4812,7 +4812,7 @@ GameObject:
   - component: {fileID: 989422184}
   - component: {fileID: 989422183}
   m_Layer: 5
-  m_Name: SideOneLightCruisers (TMP)
+  m_Name: SideTwoLightCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5306,7 +5306,7 @@ GameObject:
   - component: {fileID: 1130749978}
   - component: {fileID: 1130749977}
   m_Layer: 5
-  m_Name: SideOnenNumCruisers (TMP)
+  m_Name: SideOneNumCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5988,8 +5988,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 100, y: -50}
-  m_SizeDelta: {x: 600, y: 80}
+  m_AnchoredPosition: {x: 340, y: -50}
+  m_SizeDelta: {x: 1000, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1277356384
 MonoBehaviour:
@@ -6011,7 +6011,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Combat Orders 2
+  m_text: 'Combat Orders (Left Side)
 
 '
   m_isRightToLeft: 0
@@ -6105,7 +6105,7 @@ GameObject:
   - component: {fileID: 1289576337}
   - component: {fileID: 1289576336}
   m_Layer: 5
-  m_Name: SideOneDestroyers (TMP)
+  m_Name: SideOneDestroyers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6365,7 +6365,7 @@ GameObject:
   - component: {fileID: 1346411838}
   - component: {fileID: 1346411837}
   m_Layer: 5
-  m_Name: SideOnenNumTransports (TMP) (1)
+  m_Name: SideOneNumTransports
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6507,7 +6507,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1352298786
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6719,7 +6719,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1402457779
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7115,7 +7115,7 @@ GameObject:
   - component: {fileID: 1446375869}
   - component: {fileID: 1446375868}
   m_Layer: 5
-  m_Name: SideOneDestroyers (TMP)
+  m_Name: SideTwoDestroyers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7867,7 +7867,7 @@ GameObject:
   - component: {fileID: 1551985909}
   - component: {fileID: 1551985908}
   m_Layer: 5
-  m_Name: SideOneTotal (TMP)
+  m_Name: SideOneTotal_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8004,7 +8004,7 @@ GameObject:
   - component: {fileID: 1558117321}
   - component: {fileID: 1558117320}
   m_Layer: 5
-  m_Name: SideOneHeavyCruisers (TMP)
+  m_Name: SideTwoHeavyCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8141,7 +8141,7 @@ GameObject:
   - component: {fileID: 1577293502}
   - component: {fileID: 1577293501}
   m_Layer: 5
-  m_Name: SideOneTransports (TMP)
+  m_Name: SideTwoTransports_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8278,7 +8278,7 @@ GameObject:
   - component: {fileID: 1605483893}
   - component: {fileID: 1605483892}
   m_Layer: 5
-  m_Name: SideOneCruisers (TMP)
+  m_Name: SideTwoCruisers_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8801,7 +8801,7 @@ GameObject:
   - component: {fileID: 1715804529}
   - component: {fileID: 1715804528}
   m_Layer: 5
-  m_Name: SideOnenNumTotal (TMP)
+  m_Name: SideOneNumTotal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9219,7 +9219,7 @@ GameObject:
   - component: {fileID: 1791461028}
   - component: {fileID: 1791461027}
   m_Layer: 5
-  m_Name: SideOneScouts (TMP)
+  m_Name: SideOneScouts_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9358,7 +9358,7 @@ GameObject:
   - component: {fileID: 1804247696}
   - component: {fileID: 1804247695}
   m_Layer: 5
-  m_Name: SideOneTransports (TMP)
+  m_Name: SideOneTransports_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9495,7 +9495,7 @@ GameObject:
   - component: {fileID: 1806267114}
   - component: {fileID: 1806267113}
   m_Layer: 5
-  m_Name: SideOnenNumTotal (TMP)
+  m_Name: SideTwoNumTotal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10080,7 +10080,7 @@ GameObject:
   - component: {fileID: 1901018635}
   - component: {fileID: 1901018634}
   m_Layer: 5
-  m_Name: SideOnenNumScouts (TMP)
+  m_Name: SideTwoNumScouts
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10541,7 +10541,7 @@ GameObject:
   - component: {fileID: 1947887871}
   - component: {fileID: 1947887870}
   m_Layer: 5
-  m_Name: SideOnenNumCruisers (TMP)
+  m_Name: SideTwoNumCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10681,7 +10681,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1964039858
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10730,7 +10730,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1981219748
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10756,6 +10756,7 @@ RectTransform:
   - {fileID: 470503068}
   - {fileID: 1806267112}
   - {fileID: 1577293500}
+  - {fileID: 2023825677}
   m_Father: {fileID: 1342304810}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -10850,7 +10851,7 @@ GameObject:
   - component: {fileID: 2023505819}
   - component: {fileID: 2023505818}
   m_Layer: 5
-  m_Name: SideOnenNumLtCruisers (TMP)
+  m_Name: SideOneNumLtCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10974,6 +10975,143 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2023505816}
+  m_CullTransparentMesh: 1
+--- !u!1 &2023825676
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2023825677}
+  - component: {fileID: 2023825679}
+  - component: {fileID: 2023825678}
+  m_Layer: 5
+  m_Name: SideTwoNumTransports
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2023825677
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2023825676}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1981219748}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: -545, y: -450}
+  m_SizeDelta: {x: 150, y: 50}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2023825678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2023825676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 0
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 36
+  m_fontSizeBase: 36
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 1
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 256
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &2023825679
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2023825676}
   m_CullTransparentMesh: 1
 --- !u!1 &2037104980
 GameObject:
@@ -11305,7 +11443,7 @@ GameObject:
   - component: {fileID: 2092991731}
   - component: {fileID: 2092991730}
   m_Layer: 5
-  m_Name: SideOnenNumLtCruisers (TMP)
+  m_Name: SideTwoNumLtCruisers
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

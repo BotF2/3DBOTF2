@@ -70,6 +70,10 @@ namespace BOTF3D.Combat
         private ShipMovementController shipMovementController;
         private ShipFormationManager formationManager;
 
+        // === DEBUG & TESTING ===
+        private BOTF3D.Combat.Testing.CombatRecorder combatRecorder;
+        private BOTF3D.Combat.Debugging.CombatDebugUI combatDebugUI;
+
         private void Awake()
         {
             CombatID = GetEntityId();
@@ -80,11 +84,35 @@ namespace BOTF3D.Combat
             {
                 TurnResolver = gameObject.AddComponent<TurnBasedCombatResolver>();
             }
+
+            // Add debug & testing components
+            InitializeDebugTools();
+
+            // Show welcome message with debug tools info
+            BOTF3D.Combat.Testing.CombatTestingHelper.ShowWelcomeMessage();
         }
 
         private void Start()
         {
             CleanupOrphanedProjectiles();
+        }
+
+        /// <summary>
+        /// Initialize debug and testing tools (recorder, debug UI)
+        /// </summary>
+        private void InitializeDebugTools()
+        {
+            // Add combat recorder
+            combatRecorder = gameObject.AddComponent<BOTF3D.Combat.Testing.CombatRecorder>();
+            combatRecorder.RecordingName = $"combat_{CombatID}";
+            combatRecorder.IsRecording = true;
+            combatRecorder.AutoSaveOnEnd = true;
+
+            // Add debug UI
+            combatDebugUI = gameObject.AddComponent<BOTF3D.Combat.Debugging.CombatDebugUI>();
+            combatDebugUI.ShowOnStart = false; // Press F1 to show
+
+            Debug.Log("🐛 Debug tools initialized (F1 for debug UI)");
         }
 
         void Update()
@@ -201,6 +229,16 @@ namespace BOTF3D.Combat
             healthBarManager = new HealthBarManager(CombatData);
             shipGroupManager = new ShipGroupManager(CombatData);
             shipMovementController = new ShipMovementController(CombatData, formationManager);
+
+            // Initialize debug tools with combat controller reference
+            if (combatRecorder != null)
+            {
+                combatRecorder.Initialize(this);
+            }
+            if (combatDebugUI != null)
+            {
+                combatDebugUI.Initialize(this);
+            }
         }
 
         /// <summary>

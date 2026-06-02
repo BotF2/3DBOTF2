@@ -1,13 +1,11 @@
 using BOTF3D.Combat;
 using BOTF3D.Core;
-
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
-
 
 namespace BOTF3D.UI
 {
@@ -34,6 +32,12 @@ namespace BOTF3D.UI
         private TextMeshProUGUI timerText;
         private Toggle engage, rush, retreat, formation, AttackTransports;
         private Toggle engage2, rush2, retreat2, formation2, AttackTransports2;
+
+        // ✅ Civilization & Ship Count Fields
+        private TextMeshProUGUI sideOneCivName, sideTwoCivName;
+        private TextMeshProUGUI sideOneTechLevel, sideTwoTechLevel;
+        private TextMeshProUGUI s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1Total;
+        private TextMeshProUGUI s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total;
 
         // ✅ Combat state
         private float remainingTime = 15f; // Order selection time
@@ -117,7 +121,7 @@ namespace BOTF3D.UI
             // ✅ Ensure EventSystem exists
             EnsureEventSystemExists();
 
-            // ✅ Wait for ShipCombatCameraController
+            // ✅ Wait for ShipCombatCameraController ready
             yield return WaitForCombatCameraReady();
 
             // ✅ Configure canvases
@@ -125,6 +129,9 @@ namespace BOTF3D.UI
 
             // ✅ Find and setup UI
             FindAndSetupUI();
+
+            // ✅ Update menu data with current combat info
+            UpdateCombatMenuData();
 
             // ✅ Force Canvas rebuild
             ForceCanvasRebuild();
@@ -496,8 +503,101 @@ namespace BOTF3D.UI
 
             SetupToggles();
             SetupButtons();
+            FindAndSetupCivDataUI();
 
             Debug.Log("FindAndSetupUI: Complete");
+        }
+
+        /// <summary>
+        /// Finds and assigns UI components for Civ names, tech levels, and ship counts
+        /// </summary>
+        private void FindAndSetupCivDataUI()
+        {
+            if (panelCombatMenu == null) return;
+
+            GameObject sideOnePanel = FindUIElement(panelCombatMenu, "SideOne");
+            GameObject sideTwoPanel = FindUIElement(panelCombatMenu, "SideTwo");
+
+            // Setup Side One
+            if (sideOnePanel != null)
+            {
+                sideOneCivName = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneCivName");
+                sideOneTechLevel = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneTechLevel");
+                s1Scouts = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumScouts");
+                s1Destroyers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumDestroyers");
+                s1Cruisers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumCruisers");
+                s1LtCruisers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumLtCruisers");
+                s1HvyCruisers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumHVYCruisers");
+                s1Transports = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumTransports");
+                s1Total = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumTotal");
+                Debug.Log("  ✅ Side One Civ UI found");
+            }
+
+            // Setup Side Two
+            if (sideTwoPanel != null)
+            {
+                sideTwoCivName = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoCivName");
+                sideTwoTechLevel = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoTechLevel");
+                
+                // Using clean names for Side Two as renamed by user
+                s2Scouts = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumScouts");
+                s2Destroyers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumDestroyers");
+                s2Cruisers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumCruisers");
+                s2LtCruisers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumLtCruisers");
+                s2HvyCruisers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumHVYCruisers");
+                s2Transports = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumTransports");
+                s2Total = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumTotal");
+                Debug.Log("  ✅ Side Two Civ UI found");
+            }
+        }
+
+        /// <summary>
+        /// Populates the combat menu with data from the current combat
+        /// </summary>
+        private void UpdateCombatMenuData()
+        {
+            if (CurrentCombatController == null || CurrentCombatController.CombatData == null)
+            {
+                Debug.LogWarning("UpdateCombatMenuData: No active combat data to display");
+                return;
+            }
+
+            var data = CurrentCombatController.CombatData;
+
+            // Update Side One Data
+            if (sideOneCivName != null) sideOneCivName.text = data.sideOneCiv?.CivShortName ?? data.CivEnumSideOne.ToString();
+            if (sideOneTechLevel != null) sideOneTechLevel.text = data.sideOneCiv?.CivData?.CurrentTechLevel.ToString() ?? "Unknown";
+            UpdateShipCounts(data.SideOneShipCons, s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1Total);
+
+            // Update Side Two Data
+            if (sideTwoCivName != null) sideTwoCivName.text = data.sideTwoCiv?.CivShortName ?? data.CivEnumSideTwo.ToString();
+            if (sideTwoTechLevel != null) sideTwoTechLevel.text = data.sideTwoCiv?.CivData?.CurrentTechLevel.ToString() ?? "Unknown";
+            UpdateShipCounts(data.SideTwoShipCons, s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total);
+            
+            Debug.Log("📊 Combat Menu data updated");
+        }
+
+        private void UpdateShipCounts(List<ShipController> ships, TextMeshProUGUI scouts, TextMeshProUGUI destroyers, TextMeshProUGUI cruisers, TextMeshProUGUI ltCruisers, TextMeshProUGUI hvyCruisers, TextMeshProUGUI transports, TextMeshProUGUI total)
+        {
+            if (ships == null) return;
+
+            // Filter for valid ships
+            var activeShips = ships.Where(s => s != null && s.ShipData != null).ToList();
+
+            int nScouts = activeShips.Count(s => s.ShipData.ShipType == ShipType.Scout);
+            int nDestroyers = activeShips.Count(s => s.ShipData.ShipType == ShipType.Destroyer);
+            int nCruisers = activeShips.Count(s => s.ShipData.ShipType == ShipType.Cruiser);
+            int nLtCruisers = activeShips.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
+            int nHvyCruisers = activeShips.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
+            int nTransports = activeShips.Count(s => s.ShipData.ShipType == ShipType.Transport);
+
+            if (scouts != null) scouts.text = nScouts.ToString();
+            if (destroyers != null) destroyers.text = nDestroyers.ToString();
+            if (cruisers != null) cruisers.text = nCruisers.ToString();
+            if (ltCruisers != null) ltCruisers.text = nLtCruisers.ToString();
+            if (hvyCruisers != null) hvyCruisers.text = nHvyCruisers.ToString();
+            if (transports != null) transports.text = nTransports.ToString();
+            if (total != null) total.text = activeShips.Count.ToString();
         }
 
         private void SetupToggles()
@@ -825,6 +925,14 @@ namespace BOTF3D.UI
             retreat2 = null;
             formation2 = null;
             AttackTransports2 = null;
+
+            sideOneCivName = null;
+            sideTwoCivName = null;
+            sideOneTechLevel = null;
+            sideTwoTechLevel = null;
+            s1Scouts = s1Destroyers = s1Cruisers = s1LtCruisers = s1HvyCruisers = s1Transports = s1Total = null;
+            s2Scouts = s2Destroyers = s2Cruisers = s2LtCruisers = s2HvyCruisers = s2Transports = s2Total = null;
+
             isTimerRunning = false;
         }
 
