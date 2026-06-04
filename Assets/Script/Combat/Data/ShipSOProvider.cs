@@ -2,11 +2,6 @@ using BOTF3D.Core;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.UI;
-using BOTF3D.Audio;
 
 
 

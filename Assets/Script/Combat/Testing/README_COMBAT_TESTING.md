@@ -98,6 +98,18 @@ combatRecorder.IsRecording = false;
 
 **What it does:** Unity Editor window for quickly setting up and testing combat scenarios without playing through the full game.
 
+**IMPORTANT: Prerequisites**
+The Combat Scenario Editor requires game managers to be initialized. You cannot use it from an empty scene.
+
+**Proper Setup:**
+1. Load **PersistentScene** in Hierarchy (Unity Editor)
+2. Open **MainMenuScene** additively (right-click scene → Open Scene Additive)
+3. Press **Play** (Unity Editor)
+4. In the **Game window** (running game), click "New Game" or "Load Game" button
+5. Wait for the **galaxy map** to appear (gameplay view with stars/planets)
+6. Now in Unity Editor, open **BOTF → Combat Scenario Editor**
+7. Verify status shows **"✅ Game Managers Ready"** (green)
+
 **How to open:**
 - Unity Editor → **BOTF** menu → **Combat Scenario Editor**
 
@@ -126,7 +138,14 @@ combatRecorder.IsRecording = false;
 **Pre-made scenarios:**
 The editor includes a "Quick Test" scenario (1 Scout, 1 Destroyer, 1 Cruiser, 1 Transport vs 2 Scouts, 1 Destroyer, 1 Battleship).
 
-**Note:** Full integration with the combat system requires the `CombatScenarioRunner` component (not yet implemented). Currently, the editor validates your scenario setup and shows a summary dialog.
+**How it works:**
+The editor uses `CombatScenarioRunner` to:
+1. Create ships based on your scenario configuration
+2. Request combat through `CombatManager`
+3. Set initial combat orders
+4. Load the Combat Scene automatically
+
+The combat will start a few seconds after clicking "Start Combat". Press F1 during combat to see the debug overlay.
 
 **Location:** `Assets/Editor/CombatScenarioEditor.cs`
 

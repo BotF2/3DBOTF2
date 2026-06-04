@@ -1,14 +1,10 @@
 using BOTF3D.Core;
-
+using BOTF3D.Galaxy;
 using BOTF3D.UI;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
 
 
 
@@ -156,7 +152,7 @@ namespace BOTF3D.Combat
             }
             else
             {
-                Debug.LogError($"  ❌ Parent '{parentGO.name}' is neither StarSys nor Fleet!");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"  ❌ Parent '{parentGO.name}' is neither StarSys nor Fleet!");
             }
         }
 
@@ -165,11 +161,11 @@ namespace BOTF3D.Combat
         /// </summary>
         private void FallbackToCanvas(ShipController shipCon)
         {
-            var canvas = Object.FindFirstObjectByType<Canvas>();
+            var canvas = Object.FindAnyObjectByType<Canvas>();
             if (canvas != null)
             {
                 shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
-                Debug.Log($"  Temporarily parented to canvas: {canvas.name}");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"  Temporarily parented to canvas: {canvas.name}");
             }
         }
 

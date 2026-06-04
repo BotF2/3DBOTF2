@@ -519,10 +519,11 @@ namespace BOTF3D.UI
             GameObject sideTwoPanel = FindUIElement(panelCombatMenu, "SideTwo");
 
             // Setup Side One
+            sideOneCivName = FindComponentByName<TextMeshProUGUI>(panelCombatMenu, "SideOneCivName");
+            sideOneTechLevel = FindComponentByName<TextMeshProUGUI>(panelCombatMenu, "SideOneTechLevel");
+
             if (sideOnePanel != null)
             {
-                sideOneCivName = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneCivName");
-                sideOneTechLevel = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneTechLevel");
                 s1Scouts = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumScouts");
                 s1Destroyers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumDestroyers");
                 s1Cruisers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumCruisers");
@@ -534,11 +535,11 @@ namespace BOTF3D.UI
             }
 
             // Setup Side Two
+            sideTwoCivName = FindComponentByName<TextMeshProUGUI>(panelCombatMenu, "SideTwoCivName");
+            sideTwoTechLevel = FindComponentByName<TextMeshProUGUI>(panelCombatMenu, "SideTwoTechLevel");
+
             if (sideTwoPanel != null)
             {
-                sideTwoCivName = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoCivName");
-                sideTwoTechLevel = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoTechLevel");
-                
                 // Using clean names for Side Two as renamed by user
                 s2Scouts = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumScouts");
                 s2Destroyers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumDestroyers");
@@ -566,15 +567,27 @@ namespace BOTF3D.UI
 
             // Update Side One Data
             if (sideOneCivName != null) sideOneCivName.text = data.sideOneCiv?.CivShortName ?? data.CivEnumSideOne.ToString();
-            if (sideOneTechLevel != null) sideOneTechLevel.text = data.sideOneCiv?.CivData?.CurrentTechLevel.ToString() ?? "Unknown";
+            if (sideOneTechLevel != null) sideOneTechLevel.text = GetTechLevelRoman(data.sideOneCiv?.CivData?.CurrentTechLevel ?? TechLevel.EARLY);
             UpdateShipCounts(data.SideOneShipCons, s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1Total);
 
             // Update Side Two Data
             if (sideTwoCivName != null) sideTwoCivName.text = data.sideTwoCiv?.CivShortName ?? data.CivEnumSideTwo.ToString();
-            if (sideTwoTechLevel != null) sideTwoTechLevel.text = data.sideTwoCiv?.CivData?.CurrentTechLevel.ToString() ?? "Unknown";
+            if (sideTwoTechLevel != null) sideTwoTechLevel.text = GetTechLevelRoman(data.sideTwoCiv?.CivData?.CurrentTechLevel ?? TechLevel.EARLY);
             UpdateShipCounts(data.SideTwoShipCons, s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total);
             
             Debug.Log("📊 Combat Menu data updated");
+        }
+
+        private string GetTechLevelRoman(TechLevel level)
+        {
+            switch (level)
+            {
+                case TechLevel.EARLY: return "I";
+                case TechLevel.DEVELOPED: return "II";
+                case TechLevel.ADVANCED: return "III";
+                case TechLevel.SUPREME: return "IV";
+                default: return "I";
+            }
         }
 
         private void UpdateShipCounts(List<ShipController> ships, TextMeshProUGUI scouts, TextMeshProUGUI destroyers, TextMeshProUGUI cruisers, TextMeshProUGUI ltCruisers, TextMeshProUGUI hvyCruisers, TextMeshProUGUI transports, TextMeshProUGUI total)

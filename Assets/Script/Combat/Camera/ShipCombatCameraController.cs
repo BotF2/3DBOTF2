@@ -1,13 +1,8 @@
-using BOTF3D.Combat;
+using BOTF3D.Core;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using BOTF3D.Core;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.UI;
-using BOTF3D.Audio;
 
 
 
@@ -39,7 +34,7 @@ namespace BOTF3D.Combat
 
         [Tooltip("Vertical offset applied to camera target point. Positive = ships appear lower in frame, Negative = ships appear higher.")]
         [Range(-100f, 250f)]
-        public float VerticalFramingOffset = 90f; // Are the ships to high or low? higher value moves ships down.
+        public float VerticalFramingOffset = 0f;
 
         [Tooltip("Arbitrary zoom multiplier applied after all calculations. < 1.0 zooms in, > 1.0 zooms out.")]
         [Range(0.1f, 2f)]

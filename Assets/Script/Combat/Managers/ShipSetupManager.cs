@@ -187,10 +187,16 @@ namespace BOTF3D.Combat
         /// </summary>
         private GameObject InstantiateShipModel(ShipController ship)
         {
-            GameObject fbx = GetShipSOForShip(ship).ShipFBX_ModelAsGOPrefab;
+            ShipSO shipSO = GetShipSOForShip(ship);
+            if (shipSO == null)
+            {
+                Debug.LogError($"❌ Cannot instantiate model for {ship.ShipData.ShipName} — no ShipSO found");
+                return null;
+            }
+            GameObject fbx = shipSO.ShipFBX_ModelAsGOPrefab;
             if (fbx == null)
             {
-                Debug.LogError($"❌ Ship FBX prefab is null for {ship.ShipData.ShipName}!");
+                Debug.LogError($"❌ Ship FBX prefab is null for {ship.ShipData.ShipName} (ShipSO: {shipSO.ShipName})!");
                 return null;
             }
 
@@ -227,7 +233,9 @@ namespace BOTF3D.Combat
                 Renderer renderer = shipModel.GetComponentInChildren<Renderer>();
                 if (renderer != null)
                 {
-                    GameObject fbx = GetShipSOForShip(ship).ShipFBX_ModelAsGOPrefab;
+                    ShipSO so = GetShipSOForShip(ship);
+                    if (so?.ShipFBX_ModelAsGOPrefab == null) return;
+                    GameObject fbx = so.ShipFBX_ModelAsGOPrefab;
                     Vector3 localCenter = fbx.transform.InverseTransformPoint(renderer.bounds.center);
                     Vector3 localSize = fbx.transform.InverseTransformVector(renderer.bounds.size);
                     boxCollider.center = new Vector3(localCenter.x, localCenter.z, localCenter.y);
@@ -256,30 +264,33 @@ namespace BOTF3D.Combat
         /// </summary>
         private ShipSO GetShipSOForShip(ShipController shipCon)
         {
-            List<ShipSO> daList = ShipManager.Instance.FedShipSOList;
-            CivEnum daCiv = shipCon.ShipData.CivEnum;
+            // Prefer the direct SO reference stored during initialization — avoids name-mismatch issues
+            if (shipCon.ShipData?.ShipSO != null)
+                return shipCon.ShipData.ShipSO;
 
+            // Fallback: name-based lookup (for ships that pre-date the ShipSO reference)
+            CivEnum daCiv = shipCon.ShipData.CivEnum;
+            List<ShipSO> daList;
             switch (daCiv)
             {
-                case CivEnum.FED: daList = ShipManager.Instance.FedShipSOList; break;
-                case CivEnum.KLING: daList = ShipManager.Instance.KlingShipSOList; break;
-                case CivEnum.ROM: daList = ShipManager.Instance.RomShipSOList; break;
-                case CivEnum.CARD: daList = ShipManager.Instance.CardShipSOList; break;
-                case CivEnum.DOM: daList = ShipManager.Instance.DomShipSOList; break;
-                case CivEnum.BORG: daList = ShipManager.Instance.BorgShipSOList; break;
+                case CivEnum.FED:    daList = ShipManager.Instance.FedShipSOList;    break;
+                case CivEnum.KLING:  daList = ShipManager.Instance.KlingShipSOList;  break;
+                case CivEnum.ROM:    daList = ShipManager.Instance.RomShipSOList;    break;
+                case CivEnum.CARD:   daList = ShipManager.Instance.CardShipSOList;   break;
+                case CivEnum.DOM:    daList = ShipManager.Instance.DomShipSOList;    break;
+                case CivEnum.BORG:   daList = ShipManager.Instance.BorgShipSOList;   break;
                 case CivEnum.TERRAN: daList = ShipManager.Instance.TerranShipSOList; break;
-                default: daList = ShipManager.Instance.FedShipSOList; break;
+                default:             daList = ShipManager.Instance.FedShipSOList;    break;
             }
 
             for (int j = 0; j < daList.Count; j++)
             {
-                if (daList[j].ShipName == shipCon.ShipData.ShipName)
-                {
+                if (daList[j] != null && daList[j].ShipName == shipCon.ShipData.ShipName)
                     return daList[j];
-                }
             }
 
-            return ShipManager.Instance.FedShipSOList.FirstOrDefault();
+            Debug.LogError($"❌ GetShipSOForShip: No ShipSO match for '{shipCon.ShipData.ShipName}' ({daCiv}) — check ShipManager lists and ShipSO ShipName fields");
+            return null;
         }
 
         /// <summary>

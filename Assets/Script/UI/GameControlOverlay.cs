@@ -53,12 +53,7 @@ namespace BOTF3D.UI
         private bool isInCombat = false;
         private bool isTogglingPause = false; // ✅ Add debounce flag
 
-        // Cached references to avoid reflection look-ups every frame
-        private object audioManagerInstance;
-        private object timeManagerInstance;
-        private MethodInfo audioGetMasterVolumeMethod;
-        private MethodInfo audioSetMasterVolumeMethod;
-        private PropertyInfo timeCurrentStardateProperty; // For reading stardate
+        // Cached references are no longer needed for singletons
         private int lastToggleFrame = -999;
         private void Awake()
         {
@@ -76,14 +71,13 @@ namespace BOTF3D.UI
                 return;
             }
 
-            CacheManagerReferences();
             InitializeUI();
         }
 
         private void Start()
         {
-            // Retry caching managers in case they weren't ready in Awake
-            StartCoroutine(RetryCachingManagers());
+            // Retry checking managers in case they weren't ready in Awake
+            StartCoroutine(CheckManagersReady());
 
             // Delay visibility update to ensure we're in the correct scene
             StartCoroutine(DelayedVisibilityUpdate());
@@ -106,12 +100,6 @@ namespace BOTF3D.UI
         /// </summary>
         private void Update()
         {
-            // Re-cache managers if they weren't available at startup
-            if (audioManagerInstance == null || timeManagerInstance == null)
-            {
-                CacheManagerReferences();
-            }
-
             // Update stardate display every frame (lightweight property read)
             UpdateStardateDisplay();
 
@@ -154,6 +142,8 @@ namespace BOTF3D.UI
 
         public void OnPauseButtonClicked()
         {
+            if (TimeManager.Instance == null) return;
+
             if (!TimeManager.Instance.timeRunning)
             {
                 TimeManager.Instance.ResumeTime();
@@ -266,26 +256,35 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Retry caching managers if they weren't available in Awake
+        /// Check if managers are ready
         /// </summary>
-        private System.Collections.IEnumerator RetryCachingManagers()
+        private System.Collections.IEnumerator CheckManagersReady()
         {
             int retries = 0;
             int maxRetries = 10; // Try for ~1 second
 
-            while ((audioManagerInstance == null || timeManagerInstance == null) && retries < maxRetries)
+            while ((AudioManager.Instance == null || TimeManager.Instance == null) && retries < maxRetries)
             {
                 yield return new WaitForSeconds(0.1f); // Wait 100ms
-                CacheManagerReferences();
                 retries++;
             }
 
-            if (audioManagerInstance == null)
+            if (AudioManager.Instance == null)
             {
                 Debug.LogError("❌ GameControlOverlay: Failed to find AudioManager after retries - volume control will not work");
             }
+            else
+            {
+                // Refresh volume slider once AudioManager is ready
+                if (masterVolumeSlider != null)
+                {
+                    float currentVolume = GetMasterVolume();
+                    masterVolumeSlider.value = currentVolume;
+                    UpdateVolumeText(currentVolume);
+                }
+            }
 
-            if (timeManagerInstance == null)
+            if (TimeManager.Instance == null)
             {
                 Debug.LogError("❌ GameControlOverlay: Failed to find TimeManager after retries - pause and stardate will not work");
             }
@@ -298,84 +297,6 @@ namespace BOTF3D.UI
         {
             yield return null; // Wait one frame
             UpdateOverlayVisibility();
-        }
-
-        /// <summary>
-        /// Cache references to AudioManager and TimeManager using reflection to avoid assembly issues
-        /// </summary>
-        private void CacheManagerReferences()
-        {
-            // Find AudioManager
-            var audioManagerType = System.Type.GetType("BOTF3D.Audio.AudioManager, Assembly-CSharp");
-            if (audioManagerType != null)
-            {
-                // Try to get Instance as a property first
-                var instanceProperty = audioManagerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                if (instanceProperty != null)
-                {
-                    audioManagerInstance = instanceProperty.GetValue(null);
-                }
-                else
-                {
-                    // If not a property, try as a field
-                    var instanceField = audioManagerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
-                    if (instanceField != null)
-                    {
-                        audioManagerInstance = instanceField.GetValue(null);
-                    }
-                }
-
-                if (audioManagerInstance != null)
-                {
-                    audioGetMasterVolumeMethod = audioManagerType.GetMethod("GetMasterVolume");
-                    audioSetMasterVolumeMethod = audioManagerType.GetMethod("SetMasterVolume");
-                    Debug.Log("✅ GameControlOverlay: AudioManager cached successfully");
-                }
-                else
-                {
-                    // ✅ Change to Info level since this is expected during startup
-                    Debug.Log("⏳ GameControlOverlay: AudioManager not ready yet - will retry");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ GameControlOverlay: AudioManager type not found");
-            }
-
-            // Find TimeManager
-            var timeManagerType = System.Type.GetType("BOTF3D.Core.TimeManager, Assembly-CSharp");
-            if (timeManagerType != null)
-            {
-                // Try to get Instance as a property first
-                var instanceProperty = timeManagerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                if (instanceProperty != null)
-                {
-                    timeManagerInstance = instanceProperty.GetValue(null);
-                }
-                else
-                {
-                    // If not a property, try as a field
-                    var instanceField = timeManagerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
-                    if (instanceField != null)
-                    {
-                        timeManagerInstance = instanceField.GetValue(null);
-                    }
-                }
-                if (timeManagerInstance != null)
-                {
-                    timeCurrentStardateProperty = timeManagerType.GetProperty("currentStardate");
-                    Debug.Log("✅ GameControlOverlay: TimeManager cached successfully");
-                }
-                else
-                {
-                    // ✅ Change to Info level
-                    Debug.Log("⏳ GameControlOverlay: TimeManager not ready yet - will retry");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ GameControlOverlay: TimeManager type not found");
-            }
         }
 
         private void InitializeUI()
@@ -418,17 +339,6 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning("GameControlOverlay: pauseButton not assigned in Inspector!");
             }
-            // ✅ Initialize pause button
-            if (pauseButton != null)
-            {
-                pauseButton.onClick.AddListener(TogglePause);
-                //UpdatePauseButtonText();
-                Debug.Log("GameControlOverlay: Pause button initialized");
-            }
-            else
-            {
-                Debug.LogWarning("GameControlOverlay: pauseButton not assigned in Inspector!");
-            }
 
             // ✅ Initialize toggle overlay button (optional)
             if (toggleOverlayButton != null)
@@ -442,25 +352,25 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Get master volume from AudioManager using reflection
+        /// Get master volume from AudioManager
         /// </summary>
         private float GetMasterVolume()
         {
-            if (audioManagerInstance != null && audioGetMasterVolumeMethod != null)
+            if (AudioManager.Instance != null)
             {
-                return (float)audioGetMasterVolumeMethod.Invoke(audioManagerInstance, null);
+                return AudioManager.Instance.GetMasterVolume();
             }
             return PlayerPrefs.GetFloat("MasterVolume", 1f);
         }
 
         /// <summary>
-        /// Set master volume on AudioManager using reflection
+        /// Set master volume on AudioManager
         /// </summary>
         private void SetMasterVolume(float volume)
         {
-            if (audioManagerInstance != null && audioSetMasterVolumeMethod != null)
+            if (AudioManager.Instance != null)
             {
-                audioSetMasterVolumeMethod.Invoke(audioManagerInstance, new object[] { volume });
+                AudioManager.Instance.SetMasterVolume(volume);
             }
         }
 
@@ -588,10 +498,6 @@ namespace BOTF3D.UI
             if (isPaused)
             {
                 isPaused = false;
-                //if (timeManagerInstance != null && timeResumeMethod != null)
-                //{
-                //    timeResumeMethod.Invoke(timeManagerInstance, null);
-                //}
                 Time.timeScale = 1f;
                 Debug.Log("GameControlOverlay: Force unpaused");
             }
@@ -635,9 +541,9 @@ namespace BOTF3D.UI
             if (!stardateText.gameObject.activeInHierarchy) return;
 
             // Get current stardate from TimeManager
-            if (timeManagerInstance != null && timeCurrentStardateProperty != null)
+            if (TimeManager.Instance != null)
             {
-                int currentStardate = (int)timeCurrentStardateProperty.GetValue(timeManagerInstance);
+                int currentStardate = TimeManager.Instance.currentStardate;
                 stardateText.text = $"Stardate: {currentStardate}";
             }
             else
