@@ -216,7 +216,15 @@ public GameObject HealthbarPrefab;
                 yield break;
             }
 
-            // Use persistent CombatUIManager
+            // CombatUIManager and ActiveCombatController may not be ready yet when
+            // loading directly via the Scenario Editor. Retry for up to 3 seconds.
+            float timeout = 3f;
+            while ((CombatUIManager.Instance == null || ActiveCombatController == null) && timeout > 0f)
+            {
+                yield return null;
+                timeout -= Time.unscaledDeltaTime;
+            }
+
             if (CombatUIManager.Instance != null && ActiveCombatController != null)
             {
                 CombatUIManager.Instance.SetupForCombat(
@@ -229,7 +237,7 @@ public GameObject HealthbarPrefab;
             }
             else
             {
-                GameLogger.LogError(GameLogger.LogCategory.Combat, "❌ CombatUIManager.Instance or ActiveCombatController is null!", this);
+                GameLogger.LogError(GameLogger.LogCategory.Combat, "❌ CombatUIManager.Instance or ActiveCombatController is null after retry!", this);
             }
         }
 
@@ -339,7 +347,7 @@ public GameObject HealthbarPrefab;
 #endif
 
             // Clear scene loader references
-            sceneLoader.ClearReferences();
+            sceneLoader?.ClearReferences();
 
             GameLogger.Log(GameLogger.LogCategory.Combat, "✅ Combat cleanup complete", this);
         }

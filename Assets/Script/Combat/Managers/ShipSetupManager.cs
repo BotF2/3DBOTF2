@@ -57,6 +57,26 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
+        /// Shifts spiral positions so their integer centroid is (0,0).
+        /// Ensures the formation is always centered regardless of ship count.
+        /// </summary>
+        private static List<Vector2Int> CenterSpiralPositions(List<Vector2Int> positions)
+        {
+            if (positions == null || positions.Count == 0) return positions;
+            float cx = 0f, cy = 0f;
+            foreach (var p in positions) { cx += p.x; cy += p.y; }
+            cx /= positions.Count;
+            cy /= positions.Count;
+            int ox = Mathf.RoundToInt(cx);
+            int oy = Mathf.RoundToInt(cy);
+            if (ox == 0 && oy == 0) return positions;
+            var centered = new List<Vector2Int>(positions.Count);
+            foreach (var p in positions)
+                centered.Add(new Vector2Int(p.x - ox, p.y - oy));
+            return centered;
+        }
+
+        /// <summary>
         /// Setup ships for one side (combat ships + transports)
         /// </summary>
         private void SetupShips(List<ShipController> shipList, int side)
@@ -73,14 +93,17 @@ namespace BOTF3D.Combat
 
             Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports");
 
-            // Generate spiral positions
-            List<Vector2Int> combatSpiralPositions = formationManager.GenerateSpiralPositions(combatShips.Count);
+            // Generate spiral positions and zero-center them so the formation
+            // centroid is always at (0,0) regardless of ship count.
+            List<Vector2Int> combatSpiralPositions = CenterSpiralPositions(
+                formationManager.GenerateSpiralPositions(combatShips.Count));
 
             // Offset transport spiral so they don't overlap combat ships
             int transportSpiralOffset = Mathf.CeilToInt(Mathf.Sqrt(combatShips.Count)) + 1;
-            List<Vector2Int> transportSpiralPositions = formationManager.GenerateSpiralPositions(transportShips.Count + transportSpiralOffset)
-                .Skip(transportSpiralOffset)
-                .ToList();
+            List<Vector2Int> transportSpiralPositions = CenterSpiralPositions(
+                formationManager.GenerateSpiralPositions(transportShips.Count + transportSpiralOffset)
+                    .Skip(transportSpiralOffset)
+                    .ToList());
 
             // Setup combat ships
             for (int i = 0; i < combatShips.Count; i++)
