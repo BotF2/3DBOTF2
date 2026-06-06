@@ -48,14 +48,14 @@ namespace BOTF3D.Combat
         private Quaternion retreatStartRotation;
         private Quaternion retreatTargetRotation;
         private Vector3 retreatMoveDirection; // Direction ship drifts toward while turning
-        private const float RETREAT_TURN_TIME = 10.0f;
+        private const float RETREAT_TURN_TIME = 8.0f;
         private const float RETREAT_DRIFT_SPEED = 3f;  // maxWarpFactor multiplier for turn-phase drift
         private bool isWarpingOut = false;
         private bool weaponsCutOff = false;
         private const float RETREAT_TURN_DEGREES = 180f;
         private Vector3 warpOutVelocity; // Acceleration during warp-out
         private float warpOutTimer;
-        private const float WARP_OUT_DURATION = 1.5f; // Time to stretch and accelerate away
+        private const float WARP_OUT_DURATION = 1.2f; // Time to stretch and accelerate away
         private const float WARP_OUT_SPEED_MULTIPLIER = 40f; // 40x max warp speed
         private Transform shipModel; // Reference to child model for stretching
         private float meshZMin = 0f; // Minimum Z coordinate of the mesh for pivot correction
@@ -151,14 +151,28 @@ namespace BOTF3D.Combat
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
             List<ShipController> myShips = isSideOne ? combatController.CombatData.SideOneShipCons : combatController.CombatData.SideTwoShipCons;
 
-            var validEnemies = enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport).ToList();
+            CombatOrders myOrder    = isSideOne ? combatController.CombatData.SideOneOrder : combatController.CombatData.SideTwoOrder;
+            CombatOrders enemyOrder = isSideOne ? combatController.CombatData.SideTwoOrder : combatController.CombatData.SideOneOrder;
 
-            ShipController target = validEnemies
+            var validEnemies = enemies
+                .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport)
+                .ToList();
+
+            // Formation focus fire: FOCUS_FIRE_RATIO of ships converge on the lowest-HP enemy;
+            // the rest spread normally so the advantage is tuned rather than absolute.
+            if (myOrder == CombatOrders.Formation &&
+                (enemyOrder == CombatOrders.Engage || enemyOrder == CombatOrders.Rush) &&
+                Random.value < CombatTargetingSystem.FOCUS_FIRE_RATIO)
+            {
+                return validEnemies
+                    .OrderBy(e => e.ShipData.ShieldHealth + e.ShipData.HullHealth)
+                    .FirstOrDefault();
+            }
+
+            return validEnemies
                 .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
                 .ThenBy(s => Vector3.Distance(transform.position, s.transform.position))
                 .FirstOrDefault();
-
-            return target;
         }
 
         void Update()

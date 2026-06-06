@@ -43,7 +43,7 @@ ParticleSystem:
   m_GameObject: {fileID: 1095849975592326347}
   serializedVersion: 8
   lengthInSec: 1
-  simulationSpeed: 0
+  simulationSpeed: 1
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -52,7 +52,7 @@ ParticleSystem:
   looping: 0
   prewarm: 0
   playOnAwake: 1
-  useUnscaledTime: 0
+  useUnscaledTime: 1
   autoRandomSeed: 1
   startDelay:
     serializedVersion: 2
@@ -117,8 +117,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 5
-      minScalar: 5
+      scalar: 1
+      minScalar: 0.5
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -288,7 +288,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 15
+      scalar: 1
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -341,7 +341,7 @@ ParticleSystem:
     startSizeY:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 15
+      scalar: 1
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -394,7 +394,7 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 15
+      scalar: 1
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -981,8 +981,8 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 200
-        minScalar: 30
+        scalar: 30
+        minScalar: 15
         maxCurve:
           serializedVersion: 2
           m_Curve:
@@ -4877,7 +4877,7 @@ ParticleSystemRenderer:
   m_MeshDistribution: 0
   m_SortMode: 0
   m_MinParticleSize: 0
-  m_MaxParticleSize: 0.5
+  m_MaxParticleSize: 0.05
   m_CameraVelocityScale: 0
   m_VelocityScale: 0
   m_LengthScale: 2
@@ -4916,5 +4916,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8cd7619e445b03b48a350f3e54e806e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Combat.VFXController
-  duration: 2
+  duration: 1.5
   destroyOnFinish: 1

@@ -88,13 +88,13 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 50
+    widthMultiplier: 0.1
     widthCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
         time: 0.002632141
-        value: 0.02752304
+        value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -173,3 +173,11 @@ MonoBehaviour:
   minEffectiveRange: 50
   maxEffectiveRange: 300
   minDamageMultiplier: 0.2
+  longRangeThreshold: 500
+  longRangePenalty: 0.5
+  minBeamWidth: 0.12
+  maxBeamWidth: 0.6
+  minCameraDistance: 200
+  maxCameraDistance: 800
+
+

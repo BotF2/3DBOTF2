@@ -660,9 +660,6 @@ namespace BOTF3D.UI
                     // Side One / Player
                     case "Toggle_ENGAGE":
                         engage = toggle;
-                        engage.isOn = true;
-                        currentOrder = CombatOrders.Engage;
-                        if (engage.graphic != null) engage.graphic.enabled = true;
                         engage.onValueChanged.AddListener(OnToggleENGAGE);
                         break;
                     case "Toggle_RUSH":
@@ -685,9 +682,6 @@ namespace BOTF3D.UI
                     // Side Two
                     case "Toggle_ENGAGE2":
                         engage2 = toggle;
-                        engage2.isOn = true;
-                        currentOrderSideTwo = CombatOrders.Engage;
-                        if (engage2.graphic != null) engage2.graphic.enabled = true;
                         engage2.onValueChanged.AddListener(OnToggleENGAGE2);
                         break;
                     case "Toggle_RUSH2":
@@ -709,7 +703,106 @@ namespace BOTF3D.UI
                 }
             }
 
+            // Phase 3: Apply the initial order from CombatData if already set by scenario runner,
+            // otherwise fall back to Engage as default.
+            CombatOrders initialSideOne = CombatOrders.Engage;
+            CombatOrders initialSideTwo = CombatOrders.Engage;
+
+            if (CurrentCombatController != null && CurrentCombatController.CombatData != null)
+            {
+                if (CurrentCombatController.CombatData.SideOneOrder != CombatOrders.None)
+                    initialSideOne = CurrentCombatController.CombatData.SideOneOrder;
+                if (CurrentCombatController.CombatData.SideTwoOrder != CombatOrders.None)
+                    initialSideTwo = CurrentCombatController.CombatData.SideTwoOrder;
+            }
+
+            ApplyToggleForOrder(initialSideOne, false);
+            ApplyToggleForOrder(initialSideTwo, true);
+
             Debug.Log($"✅ Setup {toggles.Length} toggles. Side 1 order: {currentOrder}, Side 2 order: {currentOrderSideTwo}");
+        }
+
+        /// <summary>
+        /// Activates the toggle matching the given order for one side and updates the tracked order field.
+        /// Pass isSideTwo=false for Side One, isSideTwo=true for Side Two.
+        /// </summary>
+        private void ApplyToggleForOrder(CombatOrders order, bool isSideTwo)
+        {
+            Toggle target = null;
+
+            if (!isSideTwo)
+            {
+                currentOrder = order;
+                switch (order)
+                {
+                    case CombatOrders.Engage:          target = engage; break;
+                    case CombatOrders.Rush:            target = rush; break;
+                    case CombatOrders.Retreat:         target = retreat; break;
+                    case CombatOrders.Formation:       target = formation; break;
+                    case CombatOrders.AttackTransports:target = AttackTransports; break;
+                    default:                           target = engage; currentOrder = CombatOrders.Engage; break;
+                }
+            }
+            else
+            {
+                currentOrderSideTwo = order;
+                switch (order)
+                {
+                    case CombatOrders.Engage:          target = engage2; break;
+                    case CombatOrders.Rush:            target = rush2; break;
+                    case CombatOrders.Retreat:         target = retreat2; break;
+                    case CombatOrders.Formation:       target = formation2; break;
+                    case CombatOrders.AttackTransports:target = AttackTransports2; break;
+                    default:                           target = engage2; currentOrderSideTwo = CombatOrders.Engage; break;
+                }
+            }
+
+            if (target != null)
+            {
+                target.isOn = true;
+                if (target.graphic != null) target.graphic.enabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Pre-loads the scenario-selected orders into the UI state and activates the matching toggles.
+        /// Call this after SetShipOrders so the UI reflects the editor selection before Enter Combat.
+        /// </summary>
+        public void PreloadOrdersFromScenario(CombatOrders sideOneOrder, CombatOrders sideTwoOrder)
+        {
+            if (sideOneOrder != CombatOrders.None)
+                ApplyToggleForOrder(sideOneOrder, false);
+
+            if (sideTwoOrder != CombatOrders.None)
+                ApplyToggleForOrder(sideTwoOrder, true);
+
+            Debug.Log($"✅ CombatUIManager: Preloaded scenario orders - Side 1: {currentOrder}, Side 2: {currentOrderSideTwo}");
+        }
+
+        /// <summary>
+        /// Syncs all Combat Scenario Editor fields — orders, civilization names, and tech levels —
+        /// into the Combat UI so the panel matches the editor before the player clicks Enter Combat.
+        /// </summary>
+        public void PreloadScenarioData(
+            CombatOrders s1Order, CombatOrders s2Order,
+            CivEnum      s1Civ,   TechLevel    s1Tech,
+            CivEnum      s2Civ,   TechLevel    s2Tech)
+        {
+            // Orders → toggles
+            if (s1Order != CombatOrders.None) ApplyToggleForOrder(s1Order, false);
+            if (s2Order != CombatOrders.None) ApplyToggleForOrder(s2Order, true);
+
+            // Civilization names
+            if (sideOneCivName != null) sideOneCivName.text = s1Civ.ToString();
+            if (sideTwoCivName  != null) sideTwoCivName.text  = s2Civ.ToString();
+
+            // Tech levels  (field names differ from parameter names — no shadowing)
+            if (sideOneTechLevel != null) sideOneTechLevel.text = GetTechLevelRoman(s1Tech);
+            if (sideTwoTechLevel != null) sideTwoTechLevel.text = GetTechLevelRoman(s2Tech);
+
+            Debug.Log($"✅ CombatUIManager: Scenario synced — " +
+                      $"S1: {s1Civ} {GetTechLevelRoman(s1Tech)} {s1Order} | " +
+                      $"S2: {s2Civ} {GetTechLevelRoman(s2Tech)} {s2Order}");
         }
 
         private void SetupButtons()

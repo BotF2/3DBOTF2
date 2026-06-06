@@ -40,6 +40,9 @@ namespace BOTF3D.Combat
         private const float AT_SCOUT_SPEED = 16f;
         private const float TRANSPORT_AVOID_SPEED = 3f;
 
+        // Rush pullback: after the initial rush-in, ships pull back this far then hold
+        private const float RUSH_PULLBACK_DIST = 100f;
+
         public ShipMovementController(CombatData data, ShipFormationManager formation)
         {
             combatData = data;
@@ -79,7 +82,8 @@ namespace BOTF3D.Combat
                     {
                         // Apply slight speed variation (±10%) so Rush ships spread out over time
                         float speedVariation = UnityEngine.Random.Range(0.9f, 1.1f);
-                        MovePhased(ship, isSideOne, ship.ShipData.maxWarpFactor * RUSH_SPEED * speedVariation, FULL_CYCLE, shipsWillPass, holdAtEnd);
+                        float rushSpeed = ship.ShipData.maxWarpFactor * RUSH_SPEED * speedVariation;
+                        MoveRush(ship, isSideOne, rushSpeed, shipsWillPass, holdAtEnd);
                         break;
                     }
 
@@ -97,6 +101,55 @@ namespace BOTF3D.Combat
                 default:
                     break;
             }
+        }
+
+        // Rush movement: charge in at full rush speed, then pull back 100 units at half speed and hold.
+        private void MoveRush(ShipController ship, bool isSideOne, float maxSpeed, bool doRotation, bool holdAtEnd)
+        {
+            var t = GetOrInit(ship, isSideOne, FULL_CYCLE);
+            float dt = Time.unscaledDeltaTime;
+
+            // ── Phase 1: initial rush-in (normal phased forward leg) ──────────
+            if (!t.rushPullbackStarted)
+            {
+                // Drive the standard phased forward leg
+                MovePhased(ship, isSideOne, maxSpeed, FULL_CYCLE, doRotation, holdAtEnd: true);
+
+                // Once forward leg is complete, begin pullback
+                if (t.travelDist >= FORWARD_LEG)
+                    t.rushPullbackStarted = true;
+
+                return;
+            }
+
+            // ── Phase 2: pull back 100 units at half rush speed ───────────────
+            if (!t.rushPullbackDone)
+            {
+                float pullSpeed = maxSpeed * 0.5f;
+                float step = pullSpeed * dt;
+                float remaining = RUSH_PULLBACK_DIST - t.rushPullbackDist;
+
+                if (remaining <= step)
+                {
+                    // Snap to final hold position
+                    step = remaining;
+                    t.rushPullbackDone = true;
+                    t.currentSpeed = 0f;
+                }
+                else
+                {
+                    t.currentSpeed = pullSpeed;
+                }
+
+                // Pull back = move toward own start (opposite of initial rush direction)
+                int sign = isSideOne ? -1 : 1;   // reversed: side 1 pulls left, side 2 pulls right
+                ship.transform.position += Vector3.right * sign * step;
+                t.rushPullbackDist += step;
+                return;
+            }
+
+            // ── Phase 3: hold position ────────────────────────────────────────
+            t.currentSpeed = 0f;
         }
 
         // Standard phase movement: Accel → Cruise+Rotate → Decel → reverse
@@ -286,6 +339,11 @@ namespace BOTF3D.Combat
         public bool cruiseRotStarted = false;
         public Quaternion rotFrom;
         public Quaternion rotTo;
+
+        // Rush pullback state
+        public bool rushPullbackStarted = false;   // true once the first forward leg completes
+        public bool rushPullbackDone = false;       // true once the 100-unit pullback is finished
+        public float rushPullbackDist = 0f;        // units pulled back so far
     }
 
     /// <summary>

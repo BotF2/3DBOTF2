@@ -43,6 +43,11 @@ namespace BOTF3D.Combat
         [Range(1f, 3f)]
         public float ZoomPullbackWithTransports = 1.0f;
 
+        [Tooltip("Closest the camera will ever get, regardless of ship count or proximity. " +
+                 "Calibrated so two ships 100 units apart still look comfortable. Increase to zoom out more.")]
+        [Range(50f, 2000f)]
+        public float MinimumCameraDistance = 200f;
+
         [Header("FOV")]
         [Range(20f, 110f)]
         public float CombatFieldOfView = 60f;
@@ -227,7 +232,9 @@ namespace BOTF3D.Combat
                                && sc.ShipData?.ShipType == ShipType.Transport);
             float pullback = hasTransports ? ZoomPullbackWithTransports : ZoomPullbackCombatOnly;
             float requiredDist = ComputeRequiredDistance(_smoothedCentroid) * Mathf.Max(pullback, 1f);
-            requiredDist = Mathf.Max(requiredDist, 50f);
+            // Never let the camera get closer than MinimumCameraDistance regardless of how
+            // few ships remain or how close together they are.
+            requiredDist = Mathf.Max(requiredDist, MinimumCameraDistance);
 
             Vector3 desiredPos = _smoothedCentroid + _cameraDir * requiredDist;
             float currentDist = (_shipCamera.transform.position - _smoothedCentroid).magnitude;

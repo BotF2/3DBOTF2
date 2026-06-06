@@ -50,6 +50,11 @@ namespace BOTF3D.Combat
         public CombatOrders Order;
         [SerializeField] private float minRefireDelay;
         [SerializeField] private float maxRefireDelay;
+
+        // Ships in Formation stay at x=±200, giving a ~400-unit gap between sides.
+        // Torpedoes require a closer launch window so Formation-vs-Retreat never gets a
+        // torpedo salvo at the start of the weapon-fire phase.
+        private const float TorpedoMaxRange = 350f;
         public Image HealthFillImage;
         public Image HealthBackgroundImage;
         public float HealthSpeed;
@@ -243,11 +248,24 @@ namespace BOTF3D.Combat
                     continue;
                 }
 
-                // First shot: torpedo if available
+                // First shot: torpedo if available and within launch range.
+                // Torpedo range is limited so Formation-vs-Retreat ships (400 u apart at start)
+                // never receive a torpedo salvo; beams fire instead until ships close in.
                 if (!hasFiredTorpedo && ShipData.TorpedoDamage > 0)
                 {
-                    FireWeapons(false); // Fire torpedo
-                    hasFiredTorpedo = true;
+                    float distToTarget = Vector3.Distance(
+                        transform.position,
+                        ShipData.TargetThisShipController.transform.position);
+
+                    if (distToTarget <= TorpedoMaxRange)
+                    {
+                        FireWeapons(false); // torpedo
+                        hasFiredTorpedo = true;
+                    }
+                    else
+                    {
+                        FireWeapons(true); // beam while out of torpedo range
+                    }
                 }
                 else
                 {
@@ -264,7 +282,36 @@ namespace BOTF3D.Combat
                     refireDelay *= 1.2f;
                 }
 
-                yield return new WaitForSecondsRealtime(refireDelay);
+                // While waiting for the next beam, poll torpedo range every 0.25 s so
+                // the torpedo fires as soon as ships close into range, regardless of orders.
+                if (!hasFiredTorpedo && ShipData.TorpedoDamage > 0)
+                {
+                    float elapsed = 0f;
+                    while (elapsed < refireDelay && !hasFiredTorpedo)
+                    {
+                        float step = Mathf.Min(0.25f, refireDelay - elapsed);
+                        yield return new WaitForSecondsRealtime(step);
+                        elapsed += step;
+
+                        // Ship may have been destroyed during the yield
+                        if (this == null || ShipData == null || ShipData.Distroyed) yield break;
+
+                        var tgt = ShipData.TargetThisShipController;
+                        if (tgt != null && !tgt.ShipData.Distroyed && tgt.gameObject.activeInHierarchy &&
+                            Vector3.Distance(transform.position, tgt.transform.position) <= TorpedoMaxRange)
+                        {
+                            FireWeapons(false); // torpedo — triggered by range crossing
+                            hasFiredTorpedo = true;
+                            float remaining = refireDelay - elapsed;
+                            if (remaining > 0f)
+                                yield return new WaitForSecondsRealtime(remaining);
+                        }
+                    }
+                }
+                else
+                {
+                    yield return new WaitForSecondsRealtime(refireDelay);
+                }
             }
         }
 
@@ -393,7 +440,8 @@ namespace BOTF3D.Combat
                 int nearby = friendlies.Count(s => s != null && s != this && !s.ShipData.Distroyed
                                                 && s.gameObject.activeInHierarchy
                                                 && Vector3.Distance(transform.position, s.transform.position) <= SHIELD_OVERLAP_RANGE);
-                float overlapMultiplier = Mathf.Max(0.5f, 1f - (nearby * 0.2f));
+                // Each nearby friendly reduces damage by 10% (was 20%), capped at 25% max reduction (was 50%)
+                float overlapMultiplier = Mathf.Max(0.75f, 1f - (nearby * 0.1f));
                 weaponDamageInt = Mathf.RoundToInt(weaponDamageInt * overlapMultiplier);
             }
 

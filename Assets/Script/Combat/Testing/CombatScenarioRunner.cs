@@ -1,5 +1,6 @@
 using BOTF3D.Civilization;
 using BOTF3D.Core;
+using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -201,12 +202,26 @@ namespace BOTF3D.Combat.Testing
             // STEP 5: Wait for combat controller to be created
             yield return new WaitUntil(() => CombatManager.Instance.ActiveCombatController != null);
 
-            // STEP 6: Set initial orders
+            // STEP 6: Set initial orders on the controller (writes to CombatData and each ship's state machine)
             var combatController = CombatManager.Instance.ActiveCombatController;
             combatController.SetShipOrders(scenario.sideOneOrder, scenario.sideOneCiv, 1);
             combatController.SetShipOrders(scenario.sideTwoOrder, scenario.sideTwoCiv, 2);
 
             GameLogger.Log(GameLogger.LogCategory.Combat, $"✅ Orders set - Side 1: {scenario.sideOneOrder}, Side 2: {scenario.sideTwoOrder}");
+
+            // STEP 7: Sync Combat UI — orders, civ names, and tech levels — from the scenario editor
+            if (CombatUIManager.Instance != null)
+            {
+                CombatUIManager.Instance.PreloadScenarioData(
+                    scenario.sideOneOrder, scenario.sideTwoOrder,
+                    scenario.sideOneCiv,   scenario.sideOneTechLevel,
+                    scenario.sideTwoCiv,   scenario.sideTwoTechLevel);
+                GameLogger.Log(GameLogger.LogCategory.Combat, "✅ Combat UI synced from scenario editor");
+            }
+            else
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat, "⚠️ CombatUIManager.Instance not found - UI will not reflect scenario settings");
+            }
         }
 
         /// <summary>
@@ -365,7 +380,18 @@ namespace BOTF3D.Combat.Testing
                 return null;
             }
 
-            GameLogger.Log(GameLogger.LogCategory.Combat, $"  Creating {civEnum} {shipType} using ShipSO: {shipSO.ShipName} (FBX: {shipSO.ShipFBX_ModelAsGOPrefab?.name ?? "NULL"})");
+            // Unity's ?. operator does not prevent UnassignedReferenceException on serialized fields;
+            // use != null instead so the check goes through Unity's overloaded equality operator.
+            string fbxName = shipSO.ShipFBX_ModelAsGOPrefab != null ? shipSO.ShipFBX_ModelAsGOPrefab.name : "NULL";
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"  Creating {civEnum} {shipType} using ShipSO: {shipSO.ShipName} (FBX: {fbxName})");
+
+            if (shipSO.ShipFBX_ModelAsGOPrefab == null)
+            {
+                GameLogger.LogError(GameLogger.LogCategory.Combat,
+                    $"❌ {civEnum} {shipType} ShipSO '{shipSO.ShipName}' has no FBX model prefab assigned. " +
+                    $"Open the ShipSO asset in the Inspector and assign ShipFBX_ModelAsGOPrefab.");
+                return null;
+            }
 
             // Create temporary parent (DontDestroyOnLoad prevents it from being in a scene, avoiding UI parent check)
             GameObject tempParent = new GameObject($"TestShipParent_{civEnum}_{shipType}_{index}");
