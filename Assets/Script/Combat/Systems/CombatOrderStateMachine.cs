@@ -22,6 +22,8 @@ namespace BOTF3D.Combat
     {
         public void Initialize() { }
         public void Cleanup() { }
+        // Skip all execution if this ship has been captured
+        private bool IsCaptured => ShipController?.ShipData?.IsCaptured == true;
         [Header("Ship References")]
         public ShipController ShipController;
         public CombatOrders CurrentOrder = CombatOrders.Engage;
@@ -155,7 +157,7 @@ namespace BOTF3D.Combat
             CombatOrders enemyOrder = isSideOne ? combatController.CombatData.SideTwoOrder : combatController.CombatData.SideOneOrder;
 
             var validEnemies = enemies
-                .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport)
+                .Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport)
                 .ToList();
 
             // Formation focus fire: FOCUS_FIRE_RATIO of ships converge on the lowest-HP enemy;
@@ -177,7 +179,7 @@ namespace BOTF3D.Combat
 
         void Update()
         {
-            if (ShipController == null || ShipController.ShipData == null || ShipController.ShipData.Distroyed)
+            if (ShipController == null || ShipController.ShipData == null || ShipController.ShipData.Distroyed || IsCaptured)
                 return;
 
             // In turn-based combat, only execute orders during Resolution phase
@@ -209,7 +211,7 @@ namespace BOTF3D.Combat
 
             // Ensure we have a target if we are a combat ship
             var currentTarget = ShipController.ShipData.TargetThisShipController;
-            if (!isTransport && (currentTarget == null || currentTarget.ShipData.Distroyed || !currentTarget.gameObject.activeInHierarchy))
+            if (!isTransport && (currentTarget == null || currentTarget.ShipData.Distroyed || currentTarget.ShipData.IsCaptured || !currentTarget.gameObject.activeInHierarchy))
             {
                 ShipController.ShipData.TargetThisShipController = FindFallbackEnemy();
             }
@@ -235,6 +237,14 @@ namespace BOTF3D.Combat
 
                 case CombatOrders.AttackTransports:
                     ExecuteAttackTransports();
+                    break;
+
+                case CombatOrders.Capture:
+                    ExecuteCapture();
+                    break;
+
+                case CombatOrders.Scuttle:
+                    // No movement — ship will be destroyed before weapon fire by TurnBasedCombatResolver
                     break;
             }
 
@@ -348,6 +358,48 @@ namespace BOTF3D.Combat
         }
         #endregion
 
+        #region Capture Order - Board Enemy Ships
+        private void ExecuteCapture()
+        {
+            if (isTransport)
+            {
+                ExecuteTransportBehavior();
+                return;
+            }
+
+            currentState = OrderState.MovingWithGroup;
+
+            // Prefer retreating or scuttling ships as targets (they are capturable)
+            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            if (combatController != null)
+            {
+                bool isSideOne = Side == 1;
+                var enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
+
+                var captureTarget = enemies
+                    .Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy
+                             && s.ShipData.ShipType != ShipType.Transport
+                             && (s.Order == CombatOrders.Retreat || s.Order == CombatOrders.Scuttle))
+                    .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
+                    .FirstOrDefault();
+
+                if (captureTarget != null)
+                {
+                    ShipController.ShipData.TargetThisShipController = captureTarget;
+                    return;
+                }
+            }
+
+            // No priority target — fall back to group coordination like Engage
+            if (groupTarget == null || groupTarget.ShipData.Distroyed || groupTarget.ShipData.IsCaptured)
+            {
+                groupTarget = assignedGroup?.commonTarget;
+                if (groupTarget != null)
+                    ShipController.ShipData.TargetThisShipController = groupTarget;
+            }
+        }
+        #endregion
+
         #region Attack Transports Order - Wide Flanking
         private void ExecuteAttackTransports()
         {
@@ -391,7 +443,7 @@ namespace BOTF3D.Combat
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
             List<ShipController> myShips = isSideOne ? combatController.CombatData.SideOneShipCons : combatController.CombatData.SideTwoShipCons;
 
-            return enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy
+            return enemies.Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy
                                   && s.ShipData.ShipType != ShipType.Transport
                                   && Mathf.Abs(s.transform.position.z) < RUSH_CENTER_RANGE)
                           .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
@@ -407,7 +459,7 @@ namespace BOTF3D.Combat
             bool isSideOne = Side == 1;
             List<ShipController> enemies = isSideOne ? combatController.CombatData.SideTwoShipCons : combatController.CombatData.SideOneShipCons;
 
-            return enemies.Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType == ShipType.Transport)
+            return enemies.Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType == ShipType.Transport)
                           .OrderBy(s => Vector3.Distance(transform.position, s.transform.position))
                           .FirstOrDefault();
         }
@@ -676,6 +728,13 @@ namespace BOTF3D.Combat
                     bool isFlankingShip = ShipController.ShipData.ShipType == ShipType.Scout ||
                                          ShipController.ShipData.ShipType == ShipType.Destroyer;
                     return isFlankingShip ? 1.5f : 0.5f;
+
+                case CombatOrders.Capture:
+                    if (isTransport) return 0f;
+                    return assignedGroup != null ? assignedGroup.groupSpeed / ShipController.ShipData.maxWarpFactor : 1.0f;
+
+                case CombatOrders.Scuttle:
+                    return 0f; // No movement — ships self-destruct before combat begins
 
                 default:
                     return 1.0f;

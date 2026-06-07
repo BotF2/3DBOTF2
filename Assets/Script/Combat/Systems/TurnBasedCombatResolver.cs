@@ -89,12 +89,11 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             }
             else
             {
-                // Mid-combat re-order disabled during development: hold original orders.
-                SideOneSelectedOrder = combatData.SideOneOrder;
-                SideTwoSelectedOrder = combatData.SideTwoOrder;
-                SideOneOrderLocked = true;
-                SideTwoOrderLocked = true;
-                StartCoroutine(ResolveTurn());
+                // Reset locks so the UI can receive fresh order selections for this turn
+                SideOneOrderLocked = false;
+                SideTwoOrderLocked = false;
+
+                ShowOrderSelectionUI();
             }
         }
 
@@ -212,9 +211,6 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             CurrentPhase = CombatPhase.Resolution;
             Debug.Log($"⚔️ Turn {CurrentTurn}: Resolving {SideOneSelectedOrder} vs {SideTwoSelectedOrder}");
 
-            // Apply tactical multipliers to ship stats for this turn
-            ApplyOrderMultipliers();
-
             // Apply orders to combat controller (for positioning/animation)
             combatController.SetShipOrders(SideOneSelectedOrder, combatData.CivEnumSideOne, 1);
             combatController.SetShipOrders(SideTwoSelectedOrder, combatData.CivEnumSideTwo, 2);
@@ -222,6 +218,9 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             // Position Formation ships in formation before combat starts
             PositionFormationShips(SideOneSelectedOrder, combatData.SideOneShipCons, 1);
             PositionFormationShips(SideTwoSelectedOrder, combatData.SideTwoShipCons, 2);
+
+            // Scuttle phase: ships self-destruct BEFORE weapons fire (success based on hull integrity)
+            yield return StartCoroutine(ProcessScuttleOrders());
 
             // Record starting HP for damage calculation
             int side1StartHP = (int)GetTotalHP(1);
@@ -247,9 +246,6 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
             // Record this turn for debugging/replay
             RecordTurnResult(LastTurnResult);
-
-            // Remove multipliers
-            RemoveOrderMultipliers();
 
             // Check for combat end
             if (IsCombatOver())
@@ -300,101 +296,21 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
-                // Early exit when one side is eliminated (destroyed OR warped out)
-                int s1 = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy);
-                int s2 = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy);
+                // Early exit when one side is eliminated (destroyed, captured, OR warped out)
+                int s1 = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy);
+                int s2 = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy);
                 if (s1 == 0 || s2 == 0) break;
                 yield return null;
             }
+
+            // Capture vs Retreat: ships that didn't complete their warp-out are caught
+            CaptureIncompletedRetreaters();
 
             // Stop movement and weapon fire
             combatController.isMoving = false;
             combatController.StopAllWeaponFire();
 
             Debug.Log("✅ Ship combat animation complete");
-        }
-
-        /// <summary>
-        /// Apply tactical multipliers to ship damage stats for this turn
-        /// </summary>
-        private void ApplyOrderMultipliers()
-        {
-            // Get tactical multipliers from order matchup
-            float sideOneMultiplier = CombatOrderHelper.GetOrderMultiplier(SideOneSelectedOrder, SideTwoSelectedOrder);
-            float sideTwoMultiplier = CombatOrderHelper.GetOrderMultiplier(SideTwoSelectedOrder, SideOneSelectedOrder);
-
-            Debug.Log($"⚔️ Applying multipliers: Side1={sideOneMultiplier:F2}x, Side2={sideTwoMultiplier:F2}x");
-
-            // Temporarily boost damage for side with advantage
-            foreach (var ship in combatData.SideOneShipCons)
-            {
-                if (ship != null && !ship.ShipData.Distroyed)
-                {
-                    // Store original damage on ShipController GameObject
-                    if (!ship.gameObject.TryGetComponent<TempDamageMultiplier>(out var temp))
-                    {
-                        temp = ship.gameObject.AddComponent<TempDamageMultiplier>();
-                        temp.originalBeamDamage = ship.ShipData.BeamDamage;
-                        temp.originalTorpedoDamage = ship.ShipData.TorpedoDamage;
-                    }
-
-                    // Apply multiplier
-                    ship.ShipData.BeamDamage = Mathf.RoundToInt(temp.originalBeamDamage * sideOneMultiplier);
-                    ship.ShipData.TorpedoDamage = Mathf.RoundToInt(temp.originalTorpedoDamage * sideOneMultiplier);
-                }
-            }
-
-            foreach (var ship in combatData.SideTwoShipCons)
-            {
-                if (ship != null && !ship.ShipData.Distroyed)
-                {
-                    // Store original damage on ShipController GameObject
-                    if (!ship.gameObject.TryGetComponent<TempDamageMultiplier>(out var temp))
-                    {
-                        temp = ship.gameObject.AddComponent<TempDamageMultiplier>();
-                        temp.originalBeamDamage = ship.ShipData.BeamDamage;
-                        temp.originalTorpedoDamage = ship.ShipData.TorpedoDamage;
-                    }
-
-                    ship.ShipData.BeamDamage = Mathf.RoundToInt(temp.originalBeamDamage * sideTwoMultiplier);
-                    ship.ShipData.TorpedoDamage = Mathf.RoundToInt(temp.originalTorpedoDamage * sideTwoMultiplier);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Remove tactical multipliers and restore original damage
-        /// </summary>
-        private void RemoveOrderMultipliers()
-        {
-            foreach (var ship in combatData.SideOneShipCons)
-            {
-                if (ship != null && ship.gameObject.TryGetComponent<TempDamageMultiplier>(out var temp))
-                {
-                    ship.ShipData.BeamDamage = temp.originalBeamDamage;
-                    ship.ShipData.TorpedoDamage = temp.originalTorpedoDamage;
-                    Destroy(temp);
-                }
-            }
-
-            foreach (var ship in combatData.SideTwoShipCons)
-            {
-                if (ship != null && ship.gameObject.TryGetComponent<TempDamageMultiplier>(out var temp))
-                {
-                    ship.ShipData.BeamDamage = temp.originalBeamDamage;
-                    ship.ShipData.TorpedoDamage = temp.originalTorpedoDamage;
-                    Destroy(temp);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Helper component to store original damage values
-        /// </summary>
-        private class TempDamageMultiplier : MonoBehaviour
-        {
-            public int originalBeamDamage;
-            public int originalTorpedoDamage;
         }
 
         // Damage calculation methods removed - damage now happens naturally from weapon fire during AnimateShipPositioning()
@@ -427,8 +343,8 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         /// </summary>
         private bool IsCombatOver()
         {
-            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
-            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
 
             bool retreat = LastTurnResult.SideOneRetreated || LastTurnResult.SideTwoRetreated;
 
@@ -440,11 +356,14 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         /// </summary>
         private IEnumerator ShowVictoryScreen()
         {
-            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
-            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
 
             string winner = sideOneAlive > 0 ? "Side One" : "Side Two";
             Debug.Log($"🏆 {winner} WINS!");
+
+            // Apply post-combat rewards for any captured ships
+            ApplyCaptureRewards();
 
             // ✅ Show combat end panel via manager
             if (BOTF3D.UI.CombatUIManager.Instance != null)
@@ -536,6 +455,140 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             if (recorder != null && recorder.IsRecording)
             {
                 recorder.RecordTurn(result);
+            }
+        }
+
+        /// <summary>
+        /// Scuttle phase: before weapon fire, Scuttle-order ships attempt self-destruct.
+        /// Success chance = current HP / max HP (undamaged = ~100%; damaged = lower chance).
+        /// Failed scuttles leave the ship alive and capturable by an enemy Capture order.
+        /// </summary>
+        private IEnumerator ProcessScuttleOrders()
+        {
+            bool hasScuttle = SideOneSelectedOrder == CombatOrders.Scuttle || SideTwoSelectedOrder == CombatOrders.Scuttle;
+            if (!hasScuttle) yield break;
+
+            // Ships are visible — pause before detonation so the player sees them
+            Debug.Log("💣 Scuttle order detected — 1s before detonation");
+            float preTimer = 0f;
+            while (preTimer < 1f)
+            {
+                preTimer += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            ProcessScuttleSide(combatData.SideOneShipCons, SideOneSelectedOrder);
+            ProcessScuttleSide(combatData.SideTwoShipCons, SideTwoSelectedOrder);
+
+            // Let explosion particles and audio finish before weapon fire starts
+            float postTimer = 0f;
+            while (postTimer < 2f)
+            {
+                postTimer += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
+        private void ProcessScuttleSide(List<ShipController> ships, CombatOrders order)
+        {
+            if (order != CombatOrders.Scuttle) return;
+
+            // Iterate a snapshot so destruction during iteration is safe
+            foreach (var ship in ships.ToList())
+            {
+                if (ship == null || ship.ShipData.Distroyed || ship.ShipData.IsCaptured) continue;
+
+                int maxHP = ship.ShipData.ShipSO != null
+                    ? ship.ShipData.ShipSO.ShieldMaxHealth + ship.ShipData.ShipSO.HullMaxHealth
+                    : ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
+
+                int currentHP = ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
+                float successChance = maxHP > 0 ? (float)currentHP / maxHP : 0f;
+
+                if (Random.value <= successChance)
+                {
+                    Debug.Log($"💥 {ship.ShipData.ShipName} scuttled successfully (HP {currentHP}/{maxHP}, chance {successChance:P0})");
+                    ship.SelfDestruct();
+                }
+                else
+                {
+                    Debug.Log($"⚠️ {ship.ShipData.ShipName} scuttle FAILED (HP {currentHP}/{maxHP}, chance {successChance:P0}) — vulnerable to capture");
+                }
+            }
+        }
+
+        /// <summary>
+        /// After combat animation ends, retreating ships that haven't completed warp-out
+        /// are captured when the enemy side has the Capture order.
+        /// </summary>
+        private void CaptureIncompletedRetreaters()
+        {
+            bool side1Capture = SideTwoSelectedOrder == CombatOrders.Capture && SideOneSelectedOrder == CombatOrders.Retreat;
+            bool side2Capture = SideOneSelectedOrder == CombatOrders.Capture && SideTwoSelectedOrder == CombatOrders.Retreat;
+
+            if (side1Capture)
+                CaptureStillTurningShips(combatData.SideOneShipCons);
+            if (side2Capture)
+                CaptureStillTurningShips(combatData.SideTwoShipCons);
+        }
+
+        private void CaptureStillTurningShips(List<ShipController> retreatShips)
+        {
+            foreach (var ship in retreatShips)
+            {
+                if (ship == null || ship.ShipData.Distroyed || ship.ShipData.IsCaptured) continue;
+                if (!ship.gameObject.activeInHierarchy) continue; // warped out — escaped
+
+                var osm = ship.GetComponent<CombatOrderStateMachine>();
+                if (osm != null && !osm.IsWarpingOut())
+                {
+                    // Still turning — ran out of time, caught by capture ships
+                    ship.ShipData.IsCaptured = true;
+                    combatData.CapturedShips.Add(ship);
+                    Debug.Log($"🎯 {ship.ShipData.ShipName} captured while attempting retreat!");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Grant post-combat rewards for each captured ship to the capturing civilization:
+        ///   - Shipyard build time reduction = half of captured ship's BuildDuration
+        ///   - Small tech point bonus (5 pts per ship)
+        /// Captured ships are destroyed after combat and never returned to the galaxy map.
+        /// </summary>
+        private void ApplyCaptureRewards()
+        {
+            if (combatData.CapturedShips == null || combatData.CapturedShips.Count == 0) return;
+
+            const int TECH_BONUS_PER_CAPTURE = 5;
+
+            foreach (var ship in combatData.CapturedShips)
+            {
+                if (ship?.ShipData == null) continue;
+
+                // Determine which side captured this ship (it was on the OTHER side)
+                bool capturedFromSideTwo = combatData.SideTwoShipCons.Contains(ship);
+                CivController capturingCiv = capturedFromSideTwo ? combatData.sideOneCiv : combatData.sideTwoCiv;
+
+                if (capturingCiv?.CivData == null) continue;
+
+                // Shipyard bonus: reduce next ship build by half of the captured ship's BuildDuration
+                int buildBonus = ship.ShipData.BuildDuration / 2;
+                if (buildBonus > 0)
+                {
+                    capturingCiv.CivData.PendingBuildTimeReduction += buildBonus;
+                    Debug.Log($"⚙️ {capturingCiv.CivData.CivShortName}: +{buildBonus} shipyard build-time reduction from captured {ship.ShipData.ShipName}");
+                }
+
+                // Tech bonus
+                capturingCiv.CivData.AddTechPoints(TECH_BONUS_PER_CAPTURE);
+                Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: +{TECH_BONUS_PER_CAPTURE} tech pts from captured {ship.ShipData.ShipName}");
+
+                // Captured ship is destroyed — remove from its fleet so it never returns to the map
+                if (ship.ShipData.CurrentFleetController != null)
+                    ship.ShipData.CurrentFleetController.RemoveShipFromFleet(ship);
+                if (CombatManager.Instance != null)
+                    CombatManager.Instance.RemoveThisShipController(ship);
             }
         }
     }

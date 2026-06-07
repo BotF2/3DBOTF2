@@ -45,6 +45,7 @@ namespace BOTF3D.Civilization
         //public List<CivEnum> CivEnumsWeKnow;
         public float IntelPoints;
         private object SystemsOwned;
+        public int PendingBuildTimeReduction = 0; // Consumed by next ship build at any owned shipyard; set from captured-ship BuildDuration / 2
 
         /// <summary>
         /// Get power efficiency multiplier based on tech level

@@ -242,6 +242,16 @@ namespace BOTF3D.Galaxy
                 controller.StarSysData.CurrentOwnerCivEnum
             );
 
+            // Apply any pending build-time reduction earned from captured ships
+            var civ = controller.StarSysData.CurrentCivController;
+            if (civ?.CivData?.PendingBuildTimeReduction > 0)
+            {
+                int reduction = Mathf.Min(civ.CivData.PendingBuildTimeReduction, buildTime - 1);
+                buildTime -= reduction;
+                civ.CivData.PendingBuildTimeReduction -= reduction;
+                Debug.Log($"⚙️ {civ.CivData.CivShortName}: build time reduced by {reduction} (capture bonus). New duration: {buildTime}");
+            }
+
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
 

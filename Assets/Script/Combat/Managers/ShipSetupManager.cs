@@ -228,8 +228,7 @@ namespace BOTF3D.Combat
             shipModel.transform.SetParent(ship.transform, false);
             shipModel.transform.localPosition = Vector3.zero;
 
-            // Flip child model 180° because FBX models face backwards
-            shipModel.transform.localRotation = Quaternion.Euler(0, 180, 0);
+            shipModel.transform.localRotation = Quaternion.identity;
             shipModel.transform.localScale = Vector3.one;
 
             DisableStencilOnShipRenderers(shipModel);

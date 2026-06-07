@@ -143,8 +143,8 @@ namespace BOTF3D.Combat
 
         internal void FireWeapons(bool beam)
         {
-            // ✅ Safety checks: Don't fire if destroyed, no target, or a transport
-            if (ShipData == null || ShipData.Distroyed || ShipData.ShipType == ShipType.Transport) return;
+            // ✅ Safety checks: Don't fire if destroyed, captured, no target, or a transport
+            if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured || ShipData.ShipType == ShipType.Transport) return;
             if (ShipData.TargetThisShipController == null ||
                 ShipData.TargetThisShipController.ShipData.Distroyed ||
                 !ShipData.TargetThisShipController.gameObject.activeInHierarchy) return;
@@ -188,23 +188,13 @@ namespace BOTF3D.Combat
                 target = blocker;
             }
 
-            // Calculate Combat Order Multiplier (RPS logic)
-            CombatOrders myOrder = combatController.CombatData.SideOneShipCons.Contains(this)
-                ? combatController.CombatData.SideOneOrder
-                : combatController.CombatData.SideTwoOrder;
-            CombatOrders targetOrder = combatController.CombatData.SideOneShipCons.Contains(target)
-                ? combatController.CombatData.SideOneOrder
-                : combatController.CombatData.SideTwoOrder;
-
-            float rpsMultiplier = CombatOrderHelper.GetOrderMultiplier(myOrder, targetOrder);
-
             if (beam && ShipData.BeamDamage > 0)
             {
-                FireBeam(target.transform, rpsMultiplier);
+                FireBeam(target.transform);
             }
             else if (!beam && ShipData.TorpedoDamage > 0)
             {
-                FireTorpedo(target.transform, rpsMultiplier);
+                FireTorpedo(target.transform);
             }
         }
 
@@ -229,10 +219,11 @@ namespace BOTF3D.Combat
 
             while (true)
             {
-                if (ShipData == null || ShipData.Distroyed) yield break;
+                if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured) yield break;
 
                 if (ShipData.TargetThisShipController == null ||
                     ShipData.TargetThisShipController.ShipData.Distroyed ||
+                    ShipData.TargetThisShipController.ShipData.IsCaptured ||
                     !ShipData.TargetThisShipController.gameObject.activeInHierarchy)
                 {
                     // Stop permanently if no active enemies remain on the other side
@@ -318,7 +309,7 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Fire torpedo at target with proper initialization and combat order multiplier
         /// </summary>
-        private void FireTorpedo(Transform targetTransform, float damageMultiplier)
+        private void FireTorpedo(Transform targetTransform)
         {
             if (torpedoPrefab == null || targetTransform == null) return;
 
@@ -328,7 +319,6 @@ namespace BOTF3D.Combat
             Vector3 firePosition = transform.position + toTarget * 15f;
             Quaternion fireRotation = Quaternion.LookRotation(toTarget);
 
-            // Instantiate torpedo
             GameObject torpedoGO = Instantiate(torpedoPrefab, firePosition, fireRotation);
             Torpedo torpedo = torpedoGO.GetComponent<Torpedo>();
 
@@ -337,15 +327,11 @@ namespace BOTF3D.Combat
                 torpedo.Target = targetTransform;
                 torpedo.OwnerCivEnum = ShipData.CivEnum;
 
-                // ✅ Apply combat order multiplier to base damage
-                int calculatedDamage = Mathf.RoundToInt(ShipData.TorpedoDamage * damageMultiplier);
-
                 // Torpedo must outrun the firing ship; Rush ships move at maxWarpFactor * 28 units/sec
-                // We ensure torpedo is significantly faster (min 400 or maxWarpFactor * 60)
                 float torpedoVelocity = Mathf.Max(400f, ShipData.maxWarpFactor * 60f);
-                torpedo.Initialize(calculatedDamage, clipTorpedoFire, null, torpedoVelocity);
+                torpedo.Initialize(ShipData.TorpedoDamage, clipTorpedoFire, null, torpedoVelocity);
 
-                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Base Damage: {ShipData.TorpedoDamage}, Multiplier: {damageMultiplier:F2}, Velocity: {torpedoVelocity})");
+                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Damage: {ShipData.TorpedoDamage}, Velocity: {torpedoVelocity})");
             }
             else
             {
@@ -357,42 +343,26 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Fire beam at target with proper initialization and combat order multiplier
         /// </summary>
-        private void FireBeam(Transform targetTransform, float damageMultiplier)
+        private void FireBeam(Transform targetTransform)
         {
             if (beamWeaponPrefab == null || targetTransform == null) return;
 
-            // Instantiate beam weapon
             GameObject beamGO = Instantiate(beamWeaponPrefab, transform.position, Quaternion.identity);
             BeamWeapon beam = beamGO.GetComponent<BeamWeapon>();
 
             if (beam != null)
             {
-                // Set weapon and target transforms for rendering
                 beam.SetWeaponAndTarget(transform, targetTransform);
-
-                // Track active beam
                 activeBeamWeapons.Add(beamGO);
 
-                // ✅ Apply combat order multiplier to base damage
-                int calculatedBaseDamage = Mathf.RoundToInt(ShipData.BeamDamage * damageMultiplier);
+                beam.Initialize(this, ShipData.BeamDamage, clipBeamFire, null);
 
-                beam.Initialize(
-                    this,
-                    calculatedBaseDamage,
-                    clipBeamFire,
-                    null
-                );
-
-                // Fire immediately (applies distance falloff inside beam.Fire)
                 ShipController targetShip = targetTransform.GetComponentInParent<ShipController>();
                 if (targetShip != null)
-                {
                     beam.Fire(targetShip);
-                }
 
-                Debug.Log($"   {ShipData.ShipName} fired beam at {targetTransform.name} (Base Damage: {ShipData.BeamDamage}, Multiplier: {damageMultiplier:F2})");
+                Debug.Log($"   {ShipData.ShipName} fired beam at {targetTransform.name} (Damage: {ShipData.BeamDamage})");
 
-                // Destroy beam after brief display
                 if (gameObject.activeInHierarchy)
                     StartCoroutine(DestroyBeamAfterDelay(beamGO, 0.2f));
                 else
@@ -417,7 +387,7 @@ namespace BOTF3D.Combat
 
         public void TakeDamage(int weaponDamageInt)
         {
-            if (ShipData == null || ShipData.Distroyed) return;
+            if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured) return;
 
             // No damage after combat has ended
             if (CombatUIManager.Instance?.CurrentCombatController?.CombatEnded == true) return;
@@ -461,6 +431,26 @@ namespace BOTF3D.Combat
 
             if (ShipData.HullHealth <= 0)
             {
+                // Check capture condition: enemy has Capture, this ship has Retreat or failed Scuttle
+                var ccc = CombatUIManager.Instance?.CurrentCombatController;
+                if (ccc != null)
+                {
+                    bool isSideOne = ccc.CombatData.SideOneShipCons.Contains(this);
+                    CombatOrders myOrder = isSideOne ? ccc.CombatData.SideOneOrder : ccc.CombatData.SideTwoOrder;
+                    CombatOrders enemyOrder = isSideOne ? ccc.CombatData.SideTwoOrder : ccc.CombatData.SideOneOrder;
+
+                    bool vulnerableToCapture = myOrder == CombatOrders.Retreat || myOrder == CombatOrders.Scuttle;
+                    if (enemyOrder == CombatOrders.Capture && vulnerableToCapture)
+                    {
+                        ShipData.IsCaptured = true;
+                        ShipData.HullHealth = 0;
+                        cc.CombatData.CapturedShips.Add(this);
+                        DestroyAllActiveBeams();
+                        Debug.Log($"🎯 {ShipData.ShipName} CAPTURED by {cc.CombatData.CivEnumSideOne}/{cc.CombatData.CivEnumSideTwo}!");
+                        return;
+                    }
+                }
+
                 ShipData.Distroyed = true;
                 if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
                 if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
@@ -520,6 +510,31 @@ namespace BOTF3D.Combat
         {
             clipBeamFire = beamClip;
             clipTorpedoFire = torpedoClip;
+        }
+
+        /// <summary>
+        /// Force-destroy this ship (Scuttle order: called before weapon fire begins).
+        /// Identical to normal destruction path minus the capture check.
+        /// </summary>
+        public void SelfDestruct()
+        {
+            if (ShipData == null || ShipData.Distroyed) return;
+
+            ShipData.ShieldHealth = 0;
+            ShipData.HullHealth = 0;
+            ShipData.Distroyed = true;
+
+            if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
+            if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
+            if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
+            if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
+
+            if (explosionPrefab != null)
+                Instantiate(explosionPrefab, transform.position, transform.rotation);
+            CombatUIManager.Instance?.CurrentCombatController?.PlayExplosionSound(transform.position);
+
+            DestroyAllActiveBeams();
+            Destroy(gameObject);
         }
 
         public void SetWarpInOver() => WarpingInOver = true;

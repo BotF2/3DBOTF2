@@ -230,16 +230,6 @@ namespace BOTF3D.Combat.Debugging
                 sb.AppendLine($"  S2 Damage: {result.SideTwoDamageDealt}");
             }
 
-            // Multipliers
-            if (combatData.SideOneOrder != CombatOrders.None && combatData.SideTwoOrder != CombatOrders.None)
-            {
-                float s1Mult = CombatOrderHelper.GetOrderMultiplier(combatData.SideOneOrder, combatData.SideTwoOrder);
-                float s2Mult = CombatOrderHelper.GetOrderMultiplier(combatData.SideTwoOrder, combatData.SideOneOrder);
-                sb.AppendLine();
-                sb.AppendLine($"S1 Multiplier: {s1Mult:F2}x");
-                sb.AppendLine($"S2 Multiplier: {s2Mult:F2}x");
-            }
-
             debugText.text = sb.ToString();
         }
 

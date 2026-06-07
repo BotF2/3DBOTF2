@@ -13,28 +13,6 @@ namespace BOTF3D.Tests
     public class CombatOrderTests
     {
         [Test]
-        public void OrderMultiplier_SameOrders_ReturnsNeutral()
-        {
-            // Arrange & Act
-            float result = CombatOrderHelper.GetOrderMultiplier(CombatOrders.Engage, CombatOrders.Engage);
-
-            // Assert
-            Assert.AreEqual(1.0f, result, "Same orders should have neutral multiplier");
-        }
-
-        [Test]
-        public void OrderMultiplier_NoneOrder_ReturnsNeutral()
-        {
-            // Arrange & Act
-            float result1 = CombatOrderHelper.GetOrderMultiplier(CombatOrders.None, CombatOrders.Rush);
-            float result2 = CombatOrderHelper.GetOrderMultiplier(CombatOrders.Engage, CombatOrders.None);
-
-            // Assert
-            Assert.AreEqual(1.0f, result1, "None order should have neutral multiplier");
-            Assert.AreEqual(1.0f, result2, "Against None order should have neutral multiplier");
-        }
-
-        [Test]
         public void OrderDescription_AllOrders_ReturnsValidStrings()
         {
             // Arrange

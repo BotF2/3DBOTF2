@@ -133,24 +133,13 @@ namespace BOTF3D.UI
         /// </summary>
         private string GetTacticalFeedback(TurnResult result)
         {
-            float side1Multiplier = CombatOrderHelper.GetOrderMultiplier(result.SideOneOrder, result.SideTwoOrder);
-            float side2Multiplier = CombatOrderHelper.GetOrderMultiplier(result.SideTwoOrder, result.SideOneOrder);
-
-            if (side1Multiplier > 1.0f)
-            {
-                return $"Side 1's {result.SideOneOrder} countered Side 2's {result.SideTwoOrder}! (+25% damage)";
-            }
-            else if (side2Multiplier > 1.0f)
-            {
-                return $"Side 2's {result.SideTwoOrder} countered Side 1's {result.SideOneOrder}! (+25% damage)";
-            }
-            else if (result.SideOneOrder == result.SideTwoOrder)
+            if (result.SideOneOrder == result.SideTwoOrder)
             {
                 return $"Both sides chose {result.SideOneOrder} - evenly matched!";
             }
             else
             {
-                return "No tactical advantage this turn.";
+                return $"Side 1: {result.SideOneOrder} vs Side 2: {result.SideTwoOrder}";
             }
         }
 

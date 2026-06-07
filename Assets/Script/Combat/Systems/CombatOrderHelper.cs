@@ -22,21 +22,6 @@ namespace BOTF3D.Combat
     /// </summary>
     public static class CombatOrderHelper
     {
-        private const float ADVANTAGE_MULTIPLIER = 1.25f;
-        private const float DISADVANTAGE_MULTIPLIER = 0.75f;
-
-        /// <summary>
-        /// Get the tactical multiplier based on the interaction between two orders.
-        /// Applied to damage and accuracy.
-        /// </summary>
-        public static float GetOrderMultiplier(CombatOrders attackerOrder, CombatOrders targetOrder)
-        {
-            if (attackerOrder == targetOrder || attackerOrder == CombatOrders.None || targetOrder == CombatOrders.None)
-                return 1.0f;
-
-            return 1.0f;
-        }
-
         /// <summary>
         /// Check if a side has transport ships
         /// </summary>
@@ -117,6 +102,12 @@ public static bool HasTransports(CombatData combatData, int side)
 
                 case CombatOrders.Engage:
                     return "Standard combat engagement.";
+
+                case CombatOrders.Capture:
+                    return "Board enemy ships. Retreating and failed-scuttle ships are captured instead of destroyed. Grants shipyard bonus and tech points per capture.";
+
+                case CombatOrders.Scuttle:
+                    return "Self-destruct at combat start to deny captures. Undamaged ships succeed reliably; damaged ships may fail and remain capturable.";
 
                 default:
                     return "No order set.";

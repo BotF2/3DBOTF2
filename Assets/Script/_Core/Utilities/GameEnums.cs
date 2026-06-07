@@ -364,7 +364,9 @@ namespace BOTF3D.Core
         Rush,             // All-out attack - max damage this turn
         Retreat,          // Escape - vulnerable this turn, gone next turn
         Formation,        // Defensive wall - protects transports, reduces damage
-        AttackTransports  // Flanking strike - bypass combat ships to hit transports
+        AttackTransports, // Flanking strike - bypass combat ships to hit transports
+        Capture,          // Board enemy ships; retreating/failed-scuttle ships captured instead of destroyed
+        Scuttle           // Self-destruct at combat start; undamaged = high success; damaged = may fail, leaving ship capturable
     }
 
     public enum CombatPhase

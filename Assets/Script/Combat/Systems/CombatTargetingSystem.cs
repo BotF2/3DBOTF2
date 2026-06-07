@@ -8,8 +8,8 @@ using UnityEngine;
 namespace BOTF3D.Combat
 {
     /// <summary>
-    /// Handles target assignment and retargeting for ships in combat.
-    /// Manages both initial targeting and dynamic retargeting when targets are destroyed.
+    /// Handles target assignment and re-targeting for ships in combat.
+    /// Manages both initial targeting and dynamic re-targeting when targets are destroyed.
     /// </summary>
     public class CombatTargetingSystem
     {
@@ -196,11 +196,11 @@ namespace BOTF3D.Combat
                 }
 
                 if (focusTarget != null)
-                    Debug.Log($"  🎯 Formation focus retarget: {focusCount}/{activeAllies.Count} Side {(isSideOne ? 1 : 2)} ships → {focusTarget.ShipData.ShipName}");
+                    Debug.Log($"  🎯 Formation focus re-target: {focusCount}/{activeAllies.Count} Side {(isSideOne ? 1 : 2)} ships → {focusTarget.ShipData.ShipName}");
                 return;
             }
 
-            // Normal spread retargeting
+            // Normal spread re-targeting
             ShipController newTarget = validEnemies
                 .OrderBy(e => myShips.Count(s => s != null && s.ShipData != null && s.ShipData.TargetThisShipController == e))
                 .ThenBy(t => Vector3.Distance(ship.transform.position, t.transform.position))
@@ -209,7 +209,7 @@ namespace BOTF3D.Combat
             ship.ShipData.TargetThisShipController = newTarget;
 
             if (newTarget != null)
-                Debug.Log($"  🎯 Retargeted {ship.ShipData.ShipName} → {newTarget.ShipData.ShipName}");
+                Debug.Log($"  🎯 Re-targeted {ship.ShipData.ShipName} → {newTarget.ShipData.ShipName}");
         }
 
         /// <summary>

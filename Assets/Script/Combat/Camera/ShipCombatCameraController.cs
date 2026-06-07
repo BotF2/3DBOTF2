@@ -145,10 +145,26 @@ namespace BOTF3D.Combat
                 _shipCamera.transform.localRotation = Quaternion.identity;
             }
 
-            // Park camera off to the side during warp-in
-            transform.position = new Vector3(0f, 800f, -800f);
+            // Pre-position camera centred on the combat area so ships are framed during warp-in.
+            // Ships stop at ±200 (combat) / ±400 (transports) on the X-axis; centroid is the origin.
             if (_shipCamera != null)
-                _shipCamera.transform.position = transform.position;
+                _shipCamera.fieldOfView = WarpFieldOfView;
+
+            Vector3 combatCentre = Vector3.zero;
+            Vector3 startDir = PitchYawToDir(Pitch, Yaw);
+            float halfFovRad = WarpFieldOfView * 0.5f * Mathf.Deg2Rad;
+            // Fit ships out to ±400 (transport positions) with a 10% margin
+            float startDist = Mathf.Max(MinimumCameraDistance, 400f / Mathf.Tan(halfFovRad) * 1.1f);
+            Vector3 startPos = combatCentre + startDir * startDist;
+
+            transform.position = startPos;
+            if (_shipCamera != null)
+            {
+                _shipCamera.transform.position = startPos;
+                Vector3 lookDir = (combatCentre - startPos).normalized;
+                if (lookDir != Vector3.zero)
+                    _shipCamera.transform.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
+            }
         }
 
         private void LateUpdate()

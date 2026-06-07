@@ -4,7 +4,12 @@
       "Bash(xargs -I {} basename {})",
       "Bash(mkdir -p \"Assets/Tests\")",
       "Bash(mkdir -p \"Assets/Script/Combat/Debug\")",
-      "Bash(mkdir -p \"Assets/Script/Combat/Testing\")"
+      "Bash(mkdir -p \"Assets/Script/Combat/Testing\")",
+      "Bash(grep -n 'Sprit Render\\\\|Sprite Particle\\\\|m_LocalScale\\\\|m_Name.*Torpedo\\\\|m_Name.*torpedo\\\\|Sprite Render' __TRACKED_VAR__.prefab)",
+      "Bash(grep -n 'Sprit Render' __TRACKED_VAR__.prefab -A 20)",
+      "Bash(grep -n 'Sprite Particle\\\\|m_Name.*Particle\\\\|m_Name.*Sprit' __TRACKED_VAR__.prefab -A 20)",
+      "Bash(grep -n 'Sprit Particle System' __TRACKED_VAR__.prefab -A 25)",
+      "Bash(xargs grep -l \"CombatUIManager\")"
     ]
   }
 }
