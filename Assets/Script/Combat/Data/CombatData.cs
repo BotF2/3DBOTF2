@@ -20,6 +20,7 @@ namespace BOTF3D.Combat
         public List<ShipController> SideOneShipCons = new List<ShipController>();  // updated to current combat
         public List<ShipController> SideTwoShipCons = new List<ShipController>();
         public List<ShipController> CapturedShips = new List<ShipController>(); // Ships captured this combat (for post-combat rewards)
+        public List<ShipData> DestroyedShips = new List<ShipData>(); // ShipData snapshots of ships destroyed this combat
 
         public GameObject cameraEmpty;
         [SerializeField]

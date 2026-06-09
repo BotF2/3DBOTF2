@@ -67,6 +67,10 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject closeMenuButton;
         [SerializeField] private Button saveShipDelployButton;
 
+        [Header("Combat Report")]
+        [SerializeField] private Button reportButton;
+        [SerializeField] private GameObject reportView;
+
         [Header("Background Panels")]
         [SerializeField] private GameObject sysBackground;
         [SerializeField] private GameObject fleetsBackground;
@@ -316,6 +320,7 @@ namespace BOTF3D.UI
         {
             WireHomeSystemButton();
             WireCloseMenuButton();
+            WireReportButton();
         }
 
         private void WireHomeSystemButton()
@@ -342,9 +347,55 @@ namespace BOTF3D.UI
             }
         }
 
+        private void WireReportButton()
+        {
+            if (reportButton != null)
+            {
+                reportButton.onClick.RemoveAllListeners();
+                reportButton.onClick.AddListener(OnReportButtonClicked);
+                Debug.Log("✅ ReportButton wired");
+            }
+
+            // Ensure the report view starts hidden
+            if (reportView != null)
+                reportView.SetActive(false);
+        }
+
         #endregion
 
         #region Button Handlers (Main Menu Ribbon)
+
+        private void OnReportButtonClicked()
+        {
+            if (reportView == null) return;
+
+            bool opening = !reportView.activeSelf;
+            reportView.SetActive(opening);
+
+            if (opening)
+                PopulateReportView();
+        }
+
+        private void PopulateReportView()
+        {
+            if (reportView == null) return;
+
+            string report = CombatUIManager.LastCombatReport;
+            if (string.IsNullOrEmpty(report))
+                report = "No combat report available.";
+
+            TextMeshProUGUI[] tmps = reportView.GetComponentsInChildren<TextMeshProUGUI>(true);
+            foreach (var tmp in tmps)
+            {
+                if (tmp.name == "Report(TMP)" || tmp.name == "Report")
+                {
+                    tmp.text = report;
+                    return;
+                }
+            }
+
+            Debug.LogWarning("PopulateReportView: Report(TMP) text component not found inside Report View.");
+        }
 
         public void SystemButtonPressed()
         {

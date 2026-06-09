@@ -369,9 +369,10 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             if (BOTF3D.UI.CombatUIManager.Instance != null)
             {
                 BOTF3D.UI.CombatUIManager.Instance.ShowCombatOverPanel();
+                BOTF3D.UI.CombatUIManager.Instance.SetCombatOutcomeText(combatData);
             }
 
-            yield return new WaitForSecondsRealtime(2f);
+            yield return new WaitForSecondsRealtime(4f);
 
             // End combat
             combatController.EndCombat();
@@ -508,6 +509,7 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 if (Random.value <= successChance)
                 {
                     Debug.Log($"💥 {ship.ShipData.ShipName} scuttled successfully (HP {currentHP}/{maxHP}, chance {successChance:P0})");
+                    ship.ShipData.IsScuttled = true;
                     ship.SelfDestruct();
                 }
                 else
@@ -569,6 +571,7 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 // Determine which side captured this ship (it was on the OTHER side)
                 bool capturedFromSideTwo = combatData.SideTwoShipCons.Contains(ship);
                 CivController capturingCiv = capturedFromSideTwo ? combatData.sideOneCiv : combatData.sideTwoCiv;
+                CivController capturedCiv  = capturedFromSideTwo ? combatData.sideTwoCiv : combatData.sideOneCiv;
 
                 if (capturingCiv?.CivData == null) continue;
 
@@ -580,9 +583,16 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                     Debug.Log($"⚙️ {capturingCiv.CivData.CivShortName}: +{buildBonus} shipyard build-time reduction from captured {ship.ShipData.ShipName}");
                 }
 
-                // Tech bonus
-                capturingCiv.CivData.AddTechPoints(TECH_BONUS_PER_CAPTURE);
-                Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: +{TECH_BONUS_PER_CAPTURE} tech pts from captured {ship.ShipData.ShipName}");
+                // Tech bonus only when the captured ship's civ is at or above the capturing civ's tech level
+                if (capturedCiv?.CivData != null && capturedCiv.CivData.CurrentTechLevel >= capturingCiv.CivData.CurrentTechLevel)
+                {
+                    capturingCiv.CivData.AddTechPoints(TECH_BONUS_PER_CAPTURE);
+                    Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: +{TECH_BONUS_PER_CAPTURE} tech pts from captured {ship.ShipData.ShipName}");
+                }
+                else
+                {
+                    Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: no tech pts from {ship.ShipData.ShipName} (captured civ tech level too low)");
+                }
 
                 // Captured ship is destroyed — remove from its fleet so it never returns to the map
                 if (ship.ShipData.CurrentFleetController != null)

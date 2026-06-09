@@ -1,8 +1,10 @@
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -30,6 +32,7 @@ namespace BOTF3D.UI
         private GameObject panelShipCombat;
         private GameObject panelCombatOver;
         private TextMeshProUGUI timerText;
+        private TextMeshProUGUI combatOutcomeText;
         private Toggle engage, rush, retreat, formation, AttackTransports, capture, scuttle;
         private Toggle engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2;
 
@@ -587,7 +590,7 @@ namespace BOTF3D.UI
             if (sideTwoCivName != null) sideTwoCivName.text = data.sideTwoCiv?.CivShortName ?? data.CivEnumSideTwo.ToString();
             if (sideTwoTechLevel != null) sideTwoTechLevel.text = GetTechLevelRoman(data.sideTwoCiv?.CivData?.CurrentTechLevel ?? TechLevel.EARLY);
             UpdateShipCounts(data.SideTwoShipCons, s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total);
-            
+
             Debug.Log("📊 Combat Menu data updated");
         }
 
@@ -780,14 +783,14 @@ namespace BOTF3D.UI
                 ClearSideToggleGraphics(false);
                 switch (order)
                 {
-                    case CombatOrders.Engage:          target = engage; break;
-                    case CombatOrders.Rush:            target = rush; break;
-                    case CombatOrders.Retreat:         target = retreat; break;
-                    case CombatOrders.Formation:       target = formation; break;
-                    case CombatOrders.AttackTransports:target = AttackTransports; break;
-                    case CombatOrders.Capture:         target = capture; break;
-                    case CombatOrders.Scuttle:         target = scuttle; break;
-                    default:                           target = engage; currentOrder = CombatOrders.Engage; break;
+                    case CombatOrders.Engage: target = engage; break;
+                    case CombatOrders.Rush: target = rush; break;
+                    case CombatOrders.Retreat: target = retreat; break;
+                    case CombatOrders.Formation: target = formation; break;
+                    case CombatOrders.AttackTransports: target = AttackTransports; break;
+                    case CombatOrders.Capture: target = capture; break;
+                    case CombatOrders.Scuttle: target = scuttle; break;
+                    default: target = engage; currentOrder = CombatOrders.Engage; break;
                 }
             }
             else
@@ -796,14 +799,14 @@ namespace BOTF3D.UI
                 ClearSideToggleGraphics(true);
                 switch (order)
                 {
-                    case CombatOrders.Engage:          target = engage2; break;
-                    case CombatOrders.Rush:            target = rush2; break;
-                    case CombatOrders.Retreat:         target = retreat2; break;
-                    case CombatOrders.Formation:       target = formation2; break;
-                    case CombatOrders.AttackTransports:target = AttackTransports2; break;
-                    case CombatOrders.Capture:         target = capture2; break;
-                    case CombatOrders.Scuttle:         target = scuttle2; break;
-                    default:                           target = engage2; currentOrderSideTwo = CombatOrders.Engage; break;
+                    case CombatOrders.Engage: target = engage2; break;
+                    case CombatOrders.Rush: target = rush2; break;
+                    case CombatOrders.Retreat: target = retreat2; break;
+                    case CombatOrders.Formation: target = formation2; break;
+                    case CombatOrders.AttackTransports: target = AttackTransports2; break;
+                    case CombatOrders.Capture: target = capture2; break;
+                    case CombatOrders.Scuttle: target = scuttle2; break;
+                    default: target = engage2; currentOrderSideTwo = CombatOrders.Engage; break;
                 }
             }
 
@@ -822,7 +825,7 @@ namespace BOTF3D.UI
         {
             Toggle[] side = isSideTwo
                 ? new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 }
-                : new[] { engage,  rush,  retreat,  formation,  AttackTransports,  capture,  scuttle  };
+                : new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
 
             foreach (var t in side)
             {
@@ -853,8 +856,8 @@ namespace BOTF3D.UI
         /// </summary>
         public void PreloadScenarioData(
             CombatOrders s1Order, CombatOrders s2Order,
-            CivEnum      s1Civ,   TechLevel    s1Tech,
-            CivEnum      s2Civ,   TechLevel    s2Tech)
+            CivEnum s1Civ, TechLevel s1Tech,
+            CivEnum s2Civ, TechLevel s2Tech)
         {
             // Orders → toggles
             if (s1Order != CombatOrders.None) ApplyToggleForOrder(s1Order, false);
@@ -862,7 +865,7 @@ namespace BOTF3D.UI
 
             // Civilization names
             if (sideOneCivName != null) sideOneCivName.text = s1Civ.ToString();
-            if (sideTwoCivName  != null) sideTwoCivName.text  = s2Civ.ToString();
+            if (sideTwoCivName != null) sideTwoCivName.text = s2Civ.ToString();
 
             // Tech levels  (field names differ from parameter names — no shadowing)
             if (sideOneTechLevel != null) sideOneTechLevel.text = GetTechLevelRoman(s1Tech);
@@ -1078,13 +1081,13 @@ namespace BOTF3D.UI
             if (panelCombatOver != null)
             {
                 panelCombatOver.SetActive(true);
-                
+
                 // Ensure parent canvases are enabled
                 Canvas parentCanvas = panelCombatOver.GetComponentInParent<Canvas>();
                 if (parentCanvas != null) parentCanvas.enabled = true;
 
                 Debug.Log($"✅ Combat over panel '{panelCombatOver.name}' shown in {parentCanvas?.name ?? "unknown canvas"}");
-                
+
                 // If it's the GameOverCanvas, ensure it's active
                 if (currentGameOverCanvas != null) currentGameOverCanvas.SetActive(true);
             }
@@ -1109,6 +1112,85 @@ namespace BOTF3D.UI
             }
         }
 
+        public static string LastCombatReport { get; private set; } = string.Empty;
+
+        public void SetCombatOutcomeText(CombatData combatData)
+        {
+            if (combatData == null) return;
+
+            if (combatOutcomeText == null && panelCombatOver != null)
+                combatOutcomeText = FindComponentByName<TextMeshProUGUI>(panelCombatOver, "CombatOutcome");
+
+            string report = BuildOutcomeReport(combatData);
+            LastCombatReport = report;
+
+            if (combatOutcomeText != null)
+                combatOutcomeText.text = report;
+        }
+
+        private string BuildOutcomeReport(CombatData combatData)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("<b>Combat Report</b>");
+            sb.AppendLine();
+            AppendSideReport(sb,
+                combatData.sideOneCiv, combatData.CivEnumSideOne,
+                combatData.SideOneShipCons, combatData.CapturedShips, combatData.DestroyedShips);
+            sb.AppendLine();
+            AppendSideReport(sb,
+                combatData.sideTwoCiv, combatData.CivEnumSideTwo,
+                combatData.SideTwoShipCons, combatData.CapturedShips, combatData.DestroyedShips);
+            return sb.ToString().TrimEnd();
+        }
+
+        private void AppendSideReport(StringBuilder sb, CivController civ, CivEnum civEnum,
+            List<ShipController> ships, List<ShipController> allCaptured, List<ShipData> allDestroyed)
+        {
+            string civName = civ?.CivData?.CivLongName ?? civEnum.ToString();
+            sb.AppendLine($"<b>{civName}</b>");
+
+            var surviving = ships.Where(s => s != null && s.gameObject.activeInHierarchy
+                                              && !s.ShipData.Distroyed && !s.ShipData.IsCaptured).ToList();
+            var destroyed = allDestroyed != null
+                ? allDestroyed.Where(sd => sd != null && sd.CivEnum == civEnum && !sd.IsScuttled).ToList()
+                : new List<ShipData>();
+            var scuttled = allDestroyed != null
+                ? allDestroyed.Where(sd => sd != null && sd.CivEnum == civEnum && sd.IsScuttled).ToList()
+                : new List<ShipData>();
+            var retreated = ships.Where(s => s != null && !s.gameObject.activeInHierarchy
+                                              && !s.ShipData.Distroyed && !s.ShipData.IsCaptured).ToList();
+            var captured = allCaptured != null
+                ? allCaptured.Where(s => s != null && ships.Contains(s)).ToList()
+                : new List<ShipController>();
+
+            sb.AppendLine($"  Surviving: {ShipGroupSummaryOrDash(surviving)}");
+            sb.AppendLine($"  Combat Losses: {ShipDataGroupSummaryOrDash(destroyed)}");
+            sb.AppendLine($"  Scuttled:  {ShipDataGroupSummaryOrDash(scuttled)}");
+            sb.AppendLine($"  Retreated: {ShipGroupSummaryOrDash(retreated)}");
+            sb.Append($"  Captured:  {ShipGroupSummaryOrDash(captured)}");
+            sb.AppendLine();
+        }
+
+        private static string ShipGroupSummaryOrDash(List<ShipController> ships)
+        {
+            if (!ships.Any()) return "—";
+            var groups = ships
+                .GroupBy(s => new { s.ShipData.ShipType, s.ShipData.TechLevel })
+                .OrderBy(g => g.Key.ShipType.ToString())
+                .Select(g => $"{g.Key.ShipType} ({g.Key.TechLevel}) x{g.Count()}");
+            return string.Join(", ", groups);
+        }
+
+        private static string ShipDataGroupSummaryOrDash(List<ShipData> ships)
+        {
+            if (!ships.Any()) return "—";
+            var groups = ships
+                .GroupBy(s => new { s.ShipType, s.TechLevel })
+                .OrderBy(g => g.Key.ShipType.ToString())
+                .Select(g => $"{g.Key.ShipType} ({g.Key.TechLevel}) x{g.Count()}");
+            return string.Join(", ", groups);
+        }
+
         /// <summary>
         /// Clean up when combat ends
         /// </summary>
@@ -1123,6 +1205,7 @@ namespace BOTF3D.UI
             panelCombatMenu = null;
             panelShipCombat = null;
             panelCombatOver = null;
+            combatOutcomeText = null;
             timerText = null;
             engage = null;
             rush = null;

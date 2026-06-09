@@ -36,6 +36,7 @@ namespace BOTF3D.Combat
         public StarSysController CurrentStarSysController;
         public bool Distroyed = false;
         public bool IsCaptured = false; // Set when captured; ship takes no damage, fires no weapons, grants rewards at combat end
+        public bool IsScuttled = false; // Set before SelfDestruct() so the report distinguishes scuttled from combat-destroyed
         public Vector3 Position; // <-- Will we need to save a combat position?
 
 

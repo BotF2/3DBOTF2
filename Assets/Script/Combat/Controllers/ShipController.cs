@@ -9,7 +9,6 @@ using UnityEngine.UI;
 using Quaternion = UnityEngine.Quaternion;
 
 
-
 namespace BOTF3D.Combat
 {
     public class ShipController : MonoBehaviour, IController
@@ -452,6 +451,7 @@ namespace BOTF3D.Combat
                 }
 
                 ShipData.Distroyed = true;
+                cc?.CombatData?.DestroyedShips.Add(ShipData);
                 if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
                 if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
                 if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
@@ -523,6 +523,7 @@ namespace BOTF3D.Combat
             ShipData.ShieldHealth = 0;
             ShipData.HullHealth = 0;
             ShipData.Distroyed = true;
+            CombatUIManager.Instance?.CurrentCombatController?.CombatData?.DestroyedShips.Add(ShipData);
 
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
             if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
