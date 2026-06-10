@@ -70,6 +70,9 @@ namespace BOTF3D.Combat
         private ShipMovementController shipMovementController;
         private ShipFormationManager formationManager;
 
+        // Fleet refs captured before combat starts, used for reliable end-of-combat cleanup
+        private List<FleetController> _involvedFleets = new List<FleetController>();
+
         // === DEBUG & TESTING ===
         private BOTF3D.Combat.Testing.CombatRecorder combatRecorder;
         private BOTF3D.Combat.Debugging.CombatDebugUI combatDebugUI;
@@ -198,6 +201,9 @@ namespace BOTF3D.Combat
 
             Debug.Log("=== Starting Ship Setup ===");
 
+            // Capture fleet refs before any ship deaths can occur during combat
+            CaptureInvolvedFleets();
+
             // Initialize all managers
             InitializeManagers();
 
@@ -205,6 +211,30 @@ namespace BOTF3D.Combat
             shipSetupManager.SetupAllShips();
 
             Debug.Log("=== Ship Setup Complete ===");
+        }
+
+        private void CaptureInvolvedFleets()
+        {
+            _involvedFleets.Clear();
+            if (CombatData?.SideOneShipCons != null)
+            {
+                foreach (var ship in CombatData.SideOneShipCons)
+                {
+                    if (ship?.ShipData?.CurrentFleetController != null &&
+                        !_involvedFleets.Contains(ship.ShipData.CurrentFleetController))
+                        _involvedFleets.Add(ship.ShipData.CurrentFleetController);
+                }
+            }
+            if (CombatData?.SideTwoShipCons != null)
+            {
+                foreach (var ship in CombatData.SideTwoShipCons)
+                {
+                    if (ship?.ShipData?.CurrentFleetController != null &&
+                        !_involvedFleets.Contains(ship.ShipData.CurrentFleetController))
+                        _involvedFleets.Add(ship.ShipData.CurrentFleetController);
+                }
+            }
+            Debug.Log($"  Captured {_involvedFleets.Count} fleet refs for end-of-combat cleanup");
         }
 
         /// <summary>
@@ -618,78 +648,24 @@ namespace BOTF3D.Combat
                 CleanupShips(CombatData.SideTwoShipCons);
             }
 
-            // Get all fleets involved
-            var allCombatFleets = new List<FleetController>();
+            // Use pre-captured fleet refs (collected at combat start, before any ship deaths)
+            Debug.Log($"  Processing {_involvedFleets.Count} fleets for end-of-combat cleanup");
 
-            if (CombatData != null)
-            {
-                if (CombatData.SideOneShipCons != null)
-                {
-                    foreach (var ship in CombatData.SideOneShipCons)
-                    {
-                        if (ship != null && ship.ShipData != null && ship.ShipData.CurrentFleetController != null)
-                        {
-                            if (!allCombatFleets.Contains(ship.ShipData.CurrentFleetController))
-                            {
-                                allCombatFleets.Add(ship.ShipData.CurrentFleetController);
-                            }
-                        }
-                    }
-                }
-
-                if (CombatData.SideTwoShipCons != null)
-                {
-                    foreach (var ship in CombatData.SideTwoShipCons)
-                    {
-                        if (ship != null && ship.ShipData != null && ship.ShipData.CurrentFleetController != null)
-                        {
-                            if (!allCombatFleets.Contains(ship.ShipData.CurrentFleetController))
-                            {
-                                allCombatFleets.Add(ship.ShipData.CurrentFleetController);
-                            }
-                        }
-                    }
-                }
-            }
-
-            Debug.Log($"  Found {allCombatFleets.Count} unique fleets in combat");
-
-            // Destroy empty fleets
-            foreach (var fleet in allCombatFleets)
+            foreach (var fleet in _involvedFleets)
             {
                 if (fleet == null) continue;
 
                 int shipCount = fleet.FleetData?.ShipsList?.Count ?? 0;
-                Debug.Log($"  🚢 Fleet '{fleet.name}': {shipCount} ships remaining");
+                Debug.Log($"  Fleet '{fleet.name}': {shipCount} ships remaining");
 
                 if (shipCount == 0)
                 {
-                    Debug.LogWarning($"  💀 Fleet '{fleet.name}' has NO SHIPS - DESTROYING FLEET");
-
-                    if (FleetManager.Instance != null)
-                    {
-                        FleetManager.Instance.DestroyFleetController(fleet);
-                    }
-
-                    if (fleet != null && fleet.gameObject != null)
-                    {
-                        if (fleet.FleetUIGameObject != null)
-                        {
-                            DestroyImmediate(fleet.FleetUIGameObject);
-                        }
-
-                        if (fleet.DropLine != null && fleet.DropLine.gameObject != null)
-                        {
-                            DestroyImmediate(fleet.DropLine.gameObject);
-                        }
-
-                        DestroyImmediate(fleet.gameObject);
-                        Debug.LogWarning($"    ✅ Fleet '{fleet.name}' destroyed");
-                    }
+                    Debug.Log($"  Fleet '{fleet.name}' has no ships remaining - destroying");
+                    FleetManager.Instance?.DestroyFleetController(fleet);
                 }
                 else
                 {
-                    Debug.Log($"  ✅ Fleet '{fleet.name}' survived with {shipCount} ships");
+                    Debug.Log($"  Fleet '{fleet.name}' survived with {shipCount} ships");
                     fleet.UpdateMaxWarp();
                 }
             }
@@ -782,7 +758,7 @@ namespace BOTF3D.Combat
                     ship.transform.SetParent(ship.ShipData.CurrentFleetController.transform, false);
                     ship.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                     ship.transform.localScale = Vector3.one;
-                    ship.gameObject.SetActive(false);
+                    ship.gameObject.SetActive(true);
 
                     Debug.Log($"    ✅ Ship cleaned and returned to fleet");
                 }

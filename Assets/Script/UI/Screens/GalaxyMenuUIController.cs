@@ -590,6 +590,10 @@ namespace BOTF3D.UI
 
             // Close via state manager
             uiStateManager.CloseCurrentMenu();
+
+            // Always close the report view when the close button is pressed
+            if (reportView != null)
+                reportView.SetActive(false);
         }
 
         /// <summary>
@@ -749,6 +753,10 @@ namespace BOTF3D.UI
 
             uiStateManager.CloseAllMenus();
             listPopulator.ClearAllLists();
+
+            // Always close the report view
+            if (reportView != null)
+                reportView.SetActive(false);
 
             // Close all sub-menus and restore galaxy objects
             if (starSysMenuUIController != null)

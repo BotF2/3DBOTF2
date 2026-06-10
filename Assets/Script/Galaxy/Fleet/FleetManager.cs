@@ -805,12 +805,14 @@ namespace BOTF3D.Galaxy
 
         internal void DestroyFleetController(FleetController fleetController)
         {
+            if (fleetController == null) return;
             RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
             if (FleetControllersInGame.Contains(fleetController))
                 FleetControllersInGame.Remove(fleetController);
-            RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
-            Destroy(fleetController.FleetUIGameObject);
-            Destroy(fleetController.DropLine.gameObject);
+            if (fleetController.FleetUIGameObject != null)
+                Destroy(fleetController.FleetUIGameObject);
+            if (fleetController.DropLine != null)
+                Destroy(fleetController.DropLine.gameObject);
             Destroy(fleetController.gameObject);
         }
 

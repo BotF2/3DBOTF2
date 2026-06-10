@@ -32,7 +32,7 @@ MonoBehaviour:
     m_SubscriptSize: 0.5
     m_UnderlineOffset: -12.870001
     m_UnderlineThickness: 1.8000001
-    m_StrikethroughOffset: 0
+    m_StrikethroughOffset: 33.6
     m_StrikethroughThickness: 1.8000001
     m_TabWidth: 27
   m_Material: {fileID: 2633055560549712350}
@@ -287,10 +287,10 @@ Texture2D:
     m_WrapV: 0
     m_WrapW: 0
   m_LightmapFormat: 0
-  m_ColorSpace: 1
+  m_ColorSpace: 0
   m_PlatformBlob: 
   image data: 1
-  _typelessdata: cd
+  _typelessdata: 00
   m_StreamData:
     serializedVersion: 2
     offset: 0

@@ -836,10 +836,8 @@ namespace BOTF3D.Galaxy
             this.FleetData.ShipsList.Remove(shipController);
             if (this.FleetData.ShipsList.Count == 0)
             {
-                // no ships left, remove fleet
+                // Fleet is empty. EndCombat() calls DestroyFleetController() which also cleans up FleetUIGameObject and DropLine.
                 FleetManager.Instance.RemoveFleetNumInUse(this.FleetData.CivEnum, this.FleetData.FleetInt);
-                FleetData.ShipsList.Remove(shipController);
-                Destroy(this.gameObject);
             }
             else
             {

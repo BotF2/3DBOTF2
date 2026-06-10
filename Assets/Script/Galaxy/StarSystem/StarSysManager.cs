@@ -178,22 +178,15 @@ namespace BOTF3D.Galaxy
                     }
                 }
 #else
-                // ✅ In builds, load from Resources folder
+                // In builds the list must be populated in the GalaxyScene Inspector.
+                // Run  BOTF > Fix > Populate StarSysSO List in GalaxyScene  once in the
+                // Unity editor to assign all StarSysSO assets and save the scene.
+                // That bakes them into the build via scene serialization (no Resources folder needed).
                 starSysSOList = new List<StarSysSO>();
-                StarSysSO[] loadedStars = Resources.LoadAll<StarSysSO>("StarSysSO");
-                
-                if (loadedStars != null && loadedStars.Length > 0)
-                {
-                    starSysSOList.AddRange(loadedStars);
-                    // Sort by StarSysInt
-                    starSysSOList = starSysSOList.OrderBy(s => s.StarSysInt).ToList();
-                    Debug.Log($"✅ Loaded {starSysSOList.Count} StarSysSO assets from Resources folder");
-                }
-                else
-                {
-                    Debug.LogError("❌ No StarSysSO assets found in Resources/StarSysSO folder!");
-                    Debug.LogError("   ACTION: Move StarSysSO assets to Assets/Resources/StarSysSO/");
-                }
+                Debug.LogError(
+                    "❌ StarSysManager: starSysSOList is empty in a build!\n" +
+                    "   FIX: In the Unity Editor run  BOTF > Fix > Populate StarSysSO List in GalaxyScene\n" +
+                    "   then rebuild the game. Galaxy map cannot be created without these assets.");
 #endif
             }
             else

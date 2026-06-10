@@ -10,7 +10,9 @@
       "Bash(grep -n 'Sprite Particle\\\\|m_Name.*Particle\\\\|m_Name.*Sprit' __TRACKED_VAR__.prefab -A 20)",
       "Bash(grep -n 'Sprit Particle System' __TRACKED_VAR__.prefab -A 25)",
       "Bash(xargs grep -l \"CombatUIManager\")",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Script\\\\UI\" -File -Recurse | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Script\\\\UI\" -File -Recurse | ForEach-Object { $_.FullName })",
+      "PowerShell(winget install --id=astral-sh.uv -e)",
+      "Bash(findstr \"guid\")"
     ]
   }
 }

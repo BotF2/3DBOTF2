@@ -673,6 +673,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &286953998
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 286954000}
+  - component: {fileID: 286953999}
+  m_Layer: 0
+  m_Name: RuntimeScenarioEditorUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &286953999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286953998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9207c245cc11aa7499cbba8174677f1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.Combat.Testing.RuntimeScenarioEditorUI
+  ShowOnStart: 0
+--- !u!4 &286954000
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286953998}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &322160390
 GameObject:
   m_ObjectHideFlags: 0
@@ -1644,6 +1689,71 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 547280254}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &555950544
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 555950546}
+  - component: {fileID: 555950545}
+  m_Layer: 0
+  m_Name: CombatScenarioRunnor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &555950545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555950544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f4e3b2c8d9a1f6e4c5d7a8b9c0d1e2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.Combat.Testing.CombatScenarioRunner
+  AutoStartOnPlay: 0
+  TestScenario:
+    name: Test Scenario
+    sideOneCiv: 0
+    sideOneTechLevel: 0
+    sideOneOrder: 1
+    sideTwoCiv: 2
+    sideTwoTechLevel: 0
+    sideTwoOrder: 1
+    s1Scouts: 1
+    s1Destroyers: 1
+    s1Cruisers: 0
+    s1LtCruisers: 0
+    s1HvyCruisers: 0
+    s1Transports: 0
+    s2Scouts: 1
+    s2Destroyers: 1
+    s2Cruisers: 0
+    s2LtCruisers: 0
+    s2HvyCruisers: 0
+    s2Transports: 0
+--- !u!4 &555950546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 555950544}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -4174,3 +4284,5 @@ SceneRoots:
   - {fileID: 269962741}
   - {fileID: 585587490}
   - {fileID: 2135167133}
+  - {fileID: 286954000}
+  - {fileID: 555950546}
