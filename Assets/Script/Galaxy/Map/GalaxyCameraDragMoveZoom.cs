@@ -164,6 +164,7 @@ public static GalaxyCameraDragMoveZoom Instance;
 
     private void DoZoom()
     {
+        if (IMGUIBlocker.IsMouseOver()) return;
         float scrollValue = 0f;
         if (uiControls != null)
         {
@@ -212,6 +213,7 @@ public static GalaxyCameraDragMoveZoom Instance;
 
     void DrageCameraWithLeftMouse()
     {
+        if (IMGUIBlocker.IsMouseOver()) return;
         var mouse = Mouse.current;
         if (mouse != null)
         {
@@ -258,6 +260,7 @@ public static GalaxyCameraDragMoveZoom Instance;
 
     void RotateCamerWithRightMouse()
     {
+        if (IMGUIBlocker.IsMouseOver()) return;
         var mouse = Mouse.current;
         var kb = Keyboard.current;
         bool spacePressed = kb != null ? kb.spaceKey.isPressed : Input.GetKey(KeyCode.Space);
@@ -312,6 +315,7 @@ public static GalaxyCameraDragMoveZoom Instance;
 
     void KeyboardInputs()
     {
+        if (GUIUtility.keyboardControl != 0) return; // IMGUI text field has focus
         float inputZ = 0f;
         float inputX = 0f;
 

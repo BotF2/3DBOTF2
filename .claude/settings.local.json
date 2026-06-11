@@ -12,7 +12,30 @@
       "Bash(xargs grep -l \"CombatUIManager\")",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Script\\\\UI\" -File -Recurse | ForEach-Object { $_.FullName })",
       "PowerShell(winget install --id=astral-sh.uv -e)",
-      "Bash(findstr \"guid\")"
+      "Bash(findstr \"guid\")",
+      "Bash(claude mcp *)",
+      "Bash(npx -y @modelcontextprotocol/server-sse http://localhost:9876/mcp)",
+      "Bash(uvx --version)",
+      "Bash(timeout 15 uvx blender-mcp)",
+      "Bash(timeout 30 uvx --native-tls blender-mcp)",
+      "Bash(timeout 10 uvx --system-certs blender-mcp)",
+      "Bash(timeout 30 uvx --system-certs blender-mcp)",
+      "Bash(timeout 20 uvx --system-certs --from blender-mcp==1.1.4 blender-mcp)",
+      "Bash(curl -s https://pypi.org/pypi/blender-mcp/json)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d['releases'].keys\\(\\)\\)\\)\")",
+      "Bash(curl -s https://pypi.org/pypi/blender-mcp/json -o /tmp/bmcp.json)",
+      "Read(//tmp/**)",
+      "Bash(curl -sk https://pypi.org/pypi/blender-mcp/json -o bmcp.json)",
+      "Bash(timeout 15 uvx --system-certs --from blender-mcp==1.1.0 blender-mcp)",
+      "mcp__blender__get_scene_info",
+      "mcp__blender__execute_blender_code",
+      "mcp__blender__get_viewport_screenshot",
+      "mcp__blender__get_object_info",
+      "mcp__blender__get_polyhaven_status",
+      "mcp__blender__get_polyhaven_categories",
+      "mcp__blender__search_polyhaven_assets",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\FBX\\\\FED_SCOUT_I.fbx\"\\); $text = [System.Text.Encoding]::ASCII.GetString\\($bytes[0..4000]\\); $text -replace '[^\\\\x20-\\\\x7E\\\\n]', '' | Select-String -Pattern 'UpAxis|FrontAxis|CoordAxis|UpAxisSign|FrontAxisSign|Blender|Creator|Version|OriginalUp' -AllMatches | Select-Object -First 30)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\FBX\\\\FED_DESTROYER_I.fbx\"\\); $text = [System.Text.Encoding]::ASCII.GetString\\($bytes[0..4000]\\); $text -replace '[^\\\\x20-\\\\x7E\\\\n]', '' | Select-String -Pattern 'UpAxis|FrontAxis|CoordAxis|UpAxisSign|FrontAxisSign|Blender|Creator|Version|OriginalUp' -AllMatches | Select-Object -First 30)"
     ]
   }
 }

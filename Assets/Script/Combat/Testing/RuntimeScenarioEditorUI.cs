@@ -103,6 +103,7 @@ namespace BOTF3D.Combat.Testing
         {
             if (!_visible) return;
             _windowRect = GUI.Window(9999, _windowRect, DrawWindow, "  Combat Scenario Editor      [F10 to close]");
+            IMGUIBlocker.Register(_windowRect);
         }
 
         private void DrawWindow(int id)
