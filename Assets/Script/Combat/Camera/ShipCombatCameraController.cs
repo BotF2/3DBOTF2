@@ -46,7 +46,7 @@ namespace BOTF3D.Combat
         [Tooltip("Closest the camera will ever get, regardless of ship count or proximity. " +
                  "Calibrated so two ships 100 units apart still look comfortable. Increase to zoom out more.")]
         [Range(50f, 2000f)]
-        public float MinimumCameraDistance = 200f;
+        public float MinimumCameraDistance = 150f;
 
         [Header("FOV")]
         [Range(20f, 110f)]
