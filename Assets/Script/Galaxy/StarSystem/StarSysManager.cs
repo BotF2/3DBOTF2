@@ -563,6 +563,7 @@ namespace BOTF3D.Galaxy
             // ✅ Set LOCAL position directly (no scale interference)
             starSysCon.transform.localPosition = systemLocalPosition;
             starSysCon.transform.localRotation = Quaternion.identity;
+            sysData.SetPosition(systemLocalPosition);
             starSysCon.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
 
             StarSysBuildManager buildManager = new StarSysBuildManager(starSysCon);

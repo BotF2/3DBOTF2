@@ -330,9 +330,9 @@ namespace BOTF3D.UI
                 {
                     case "MiniMap":
                         rectTransforms[i].gameObject.SetActive(true);
-                        float x = homeSysController.StarSysData.GetPosition().x * 0.12f;
-                        //float y = 0f;
-                        float z = homeSysController.StarSysData.GetPosition().z * 0.12f;
+                        Vector3 homeSysPos = homeSysController.transform.position;
+                        float x = homeSysPos.x * 0.12f;
+                        float z = homeSysPos.z * 0.12f;
 
                         // Get the first child's RectTransform
                         if (rectTransforms[i].childCount > 0)

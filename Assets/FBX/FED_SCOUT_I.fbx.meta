@@ -3,7 +3,27 @@ guid: d6054b507edb8ea4b833fa016e7cbc38
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BridgeOffWhite
+    second: {fileID: 2100000, guid: 4cd1f224fe89614499deac4c7c243f1a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BussardRed
+    second: {fileID: 2100000, guid: 4185fbe13f3318b48b7c7b13bfd11a2f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HullPanel
+    second: {fileID: 2100000, guid: c1fb7f9b2c222c346865c62f3f28586f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: NacelleBlue
+    second: {fileID: 2100000, guid: 05a8204cfccde6248b1074a6d8621d65, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -91,7 +111,7 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    globalScale: 0.099999994
+    globalScale: 10
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0

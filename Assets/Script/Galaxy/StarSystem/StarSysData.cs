@@ -145,5 +145,10 @@ namespace BOTF3D.Galaxy
         {
             return this.position;
         }
+
+        public void SetPosition(Vector3 pos)
+        {
+            this.position = pos;
+        }
     }
 }

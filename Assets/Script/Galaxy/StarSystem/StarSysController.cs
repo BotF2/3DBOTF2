@@ -439,9 +439,8 @@ namespace BOTF3D.Galaxy
                     var lookingSysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                     if (lookingSysUIFields != null && lookingSysUIFields.redDot != null)
                     {
-                        lookingSysUIFields.redDot.anchoredPosition = new Vector2(
-                            starSysLooking.StarSysData.GetPosition().x * 0.12f,
-                            starSysLooking.StarSysData.GetPosition().z * 0.12f);
+                        Vector3 lookingPos = starSysLooking.transform.position;
+                        lookingSysUIFields.redDot.anchoredPosition = new Vector2(lookingPos.x * 0.12f, lookingPos.z * 0.12f);
                         Debug.Log($"Updated mini map for LOOKING system '{starSysLooking.name}'");
                     }
                 }
@@ -462,9 +461,8 @@ namespace BOTF3D.Galaxy
                 var thisSysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (thisSysUIFields != null && thisSysUIFields.redDot != null)
                 {
-                    thisSysUIFields.redDot.anchoredPosition = new Vector2(
-                        this.StarSysData.GetPosition().x * 0.12f,
-                        this.StarSysData.GetPosition().z * 0.12f);
+                    Vector3 thisPos = this.transform.position;
+                    thisSysUIFields.redDot.anchoredPosition = new Vector2(thisPos.x * 0.12f, thisPos.z * 0.12f);
                     Debug.Log($"Updated mini map for clicked system '{this.name}'");
                 }
             }
@@ -498,9 +496,8 @@ namespace BOTF3D.Galaxy
                 var sysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (sysUIFields != null && sysUIFields.redDot != null)
                 {
-                    sysUIFields.redDot.anchoredPosition = new Vector2(
-                        this.StarSysData.GetPosition().x * 0.12f,
-                        this.StarSysData.GetPosition().z * 0.12f);
+                    Vector3 sysPos = this.transform.position;
+                    sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
                     Debug.Log($"Updated mini map for system '{this.name}' in fleet-to-system deploy");
                 }
             }

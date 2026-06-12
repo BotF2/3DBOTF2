@@ -464,9 +464,8 @@ namespace BOTF3D.Galaxy
                         var sysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                         if (sysUIFields != null && sysUIFields.redDot != null)
                         {
-                            sysUIFields.redDot.anchoredPosition = new Vector2(
-                                starSysLooking.StarSysData.GetPosition().x * 0.12f,
-                                starSysLooking.StarSysData.GetPosition().z * 0.12f);
+                            Vector3 sysPos = starSysLooking.transform.position;
+                            sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
                         }
                     }
                 }

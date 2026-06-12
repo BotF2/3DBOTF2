@@ -321,19 +321,18 @@ namespace BOTF3D.UI
                         }
                     }
 
-                    // Position red dot on mini-map
-                    if (sysUIFieldElement.redDot != null)
-                    {
-                        sysUIFieldElement.redDot.anchoredPosition = new Vector2(
-                            sysCon.StarSysData.GetPosition().x * 0.12f,
-                            sysCon.StarSysData.GetPosition().z * 0.12f);
-                    }
-
                     // Wire all buttons (BuildButton, ShipButton, etc.)
                     WireSystemUIButtons(sysCon, sysUIFieldElement);
 
                     // Add to tracking list
                     listOfStarSysUiGos.Add(sysCon.StarSysUIGameObject);
+                }
+
+                // Position red dot on mini-map — always refresh using live transform position
+                if (sysUIFieldElement.redDot != null)
+                {
+                    Vector3 sysPos = sysCon.transform.position;
+                    sysUIFieldElement.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
                 }
 
                 // ✅ CRITICAL: Calculate power balance BEFORE updating UI
