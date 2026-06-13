@@ -415,6 +415,10 @@ namespace BOTF3D.UI
         public void IntelButtonPressed()
         {
             OpenMenu(Menu.Intel, null);
+
+            var playerCiv = CivManager.Instance?.LocalPlayerCivController;
+            if (playerCiv != null)
+                IntelligenceUIController.Instance?.Show(playerCiv);
         }
 
         public void EncyclopediaButtonPressed()

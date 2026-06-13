@@ -339,10 +339,64 @@ public GameObject[] beamWeaponPrefabs;
 
         #region Ship Building Operations
 
+        /// <summary>
+        /// Build duration computed by formula: BaseCruiserBuildDuration × ShipTypeProfile.BuildMult
+        /// × ShipBuildTimeMultiplier / TechBuildSpeedMultiplier. No longer reads ShipSO.BuildDuration.
+        /// </summary>
         public int GetShipBuildDuration(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
         {
-            ShipSO shipSO = GetShipSO(shipType, techLevel, civEnum);
-            return shipSO?.BuildDuration ?? 1;
+            CivData civData = CivManager.Instance?.GetCivDataByCivEnum(civEnum);
+            if (civData == null || TechManager.Instance == null)
+            {
+                ShipSO fallback = GetShipSO(shipType, techLevel, civEnum);
+                return fallback?.BuildDuration ?? 10;
+            }
+            var profile = ShipTypeProfiles.Get(shipType);
+            float techSpeed = TechManager.Instance.GetShipyardSpeedMultiplier(techLevel);
+            return Mathf.Max(1, Mathf.RoundToInt(
+                civData.BaseCruiserBuildDuration * profile.BuildMult * civData.ShipBuildTimeMultiplier / techSpeed
+            ));
+        }
+
+        /// <summary>
+        /// Computes ALL combat stats from the three-multiplier formula:
+        ///   Stat = CivBase × ShipTypeProfile × TechMultiplier
+        /// Replaces ApplyCivProfileToShip + ApplyTechLevelToShip.
+        /// </summary>
+        public void ComputeShipStats(ShipData shipData, CivData civData)
+        {
+            if (shipData == null || civData == null || TechManager.Instance == null) return;
+
+            var    profile      = ShipTypeProfiles.Get(shipData.ShipType);
+            float  techMult     = TechManager.Instance.GetTechMultiplier(shipData.TechLevel);
+            float  techWarpMult = TechManager.Instance.GetTechWarpMultiplier(shipData.TechLevel);
+            float  techSpeed    = TechManager.Instance.GetShipyardSpeedMultiplier(shipData.TechLevel);
+
+            shipData.BeamDamage    = Mathf.Max(1, Mathf.RoundToInt(civData.BaseCruiserBeamDmg   * profile.WeaponMult * techMult));
+            shipData.TorpedoDamage = Mathf.Max(1, Mathf.RoundToInt(civData.BaseCruiserTorpDmg   * profile.WeaponMult * techMult));
+            shipData.ShieldHealth  = Mathf.Max(1, Mathf.RoundToInt(civData.BaseCruiserShieldHP  * profile.ShieldMult * techMult));
+            shipData.HullHealth    = Mathf.Max(1, Mathf.RoundToInt(civData.BaseCruiserHullHP    * profile.HullMult   * techMult));
+            shipData.maxWarpFactor = civData.BaseCruiserWarpFactor * profile.WarpMult * techWarpMult;
+            shipData.BuildDuration = Mathf.Max(1, Mathf.RoundToInt(
+                civData.BaseCruiserBuildDuration * profile.BuildMult * civData.ShipBuildTimeMultiplier / techSpeed
+            ));
+            shipData.DilithiumCost = profile.DilithiumCost;
+
+            Debug.Log($"ComputeShipStats: {shipData.ShipName} ({shipData.ShipType} @ {shipData.TechLevel}) — " +
+                      $"Beam:{shipData.BeamDamage} Torp:{shipData.TorpedoDamage} " +
+                      $"Shield:{shipData.ShieldHealth} Hull:{shipData.HullHealth} " +
+                      $"Warp:{shipData.maxWarpFactor:F1} Build:{shipData.BuildDuration} Dil:{shipData.DilithiumCost}");
+        }
+
+        /// <summary>Kept for any code that still calls it; now delegates to ComputeShipStats.</summary>
+        public void ApplyCivProfileToShip(ShipData shipData, CivData civData)
+        {
+            ComputeShipStats(shipData, civData);
+        }
+
+        public void ApplyTechLevelToShip(ShipData shipData, TechLevel techLevel)
+        {
+            // Stats now computed via ComputeShipStats — this is a no-op kept for compatibility.
         }
 
         #endregion
@@ -361,6 +415,7 @@ public GameObject[] beamWeaponPrefabs;
 
             Debug.Log($"✅ Building {ourShipSO.ShipName} ({shipType} at {ourShipSO.TechLevel}) for system {systemCon.name}");
 
+            CivData civData = systemCon.StarSysData.CurrentCivController?.CivData;
             List<ShipSO> shipSOAsList = new List<ShipSO> { ourShipSO };
             List<ShipController> shipConListOfOne = InstantiateShipControllersWithDataFromSO(shipSOAsList, systemCon.gameObject);
 
@@ -368,6 +423,7 @@ public GameObject[] beamWeaponPrefabs;
             {
                 if (shipCon != null)
                 {
+                    ApplyCivProfileToShip(shipCon.ShipData, civData);
                     shipCon.transform.SetParent(systemCon.transform);
                     shipCon.ShipData.CurrentStarSysController = systemCon;
                     shipCon.ShipData.CurrentFleetController = null;
@@ -382,7 +438,8 @@ public GameObject[] beamWeaponPrefabs;
         public void BuildShipsOfFirstFleet(FleetController fleetCon)
         {
             CivEnum civEnum = fleetCon.FleetData.CivEnum;
-            TechLevel techLevel = CivManager.Instance.GetCivDataByCivEnum(civEnum).CurrentTechLevel;
+            CivData civData = CivManager.Instance.GetCivDataByCivEnum(civEnum);
+            TechLevel techLevel = civData?.CurrentTechLevel ?? TechLevel.EARLY;
 
             List<ShipSO> ships = shipSOProvider.GetStartingFleetShips(techLevel, civEnum);
             List<ShipController> shipCons = new List<ShipController>();
@@ -394,6 +451,7 @@ public GameObject[] beamWeaponPrefabs;
                 {
                     if (shipCon != null)
                     {
+                        ApplyCivProfileToShip(shipCon.ShipData, civData);
                         shipCon.transform.SetParent(fleetCon.transform);
                         shipCon.ShipData.CurrentFleetController = fleetCon;
                     }

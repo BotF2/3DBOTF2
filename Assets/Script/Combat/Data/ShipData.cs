@@ -34,10 +34,12 @@ namespace BOTF3D.Combat
         public GameObject TargetOnThisShip;
         public FleetController CurrentFleetController;
         public StarSysController CurrentStarSysController;
+        public int  DilithiumCost = 1; // Dilithium units this ship holds; set by ShipTypeProfiles on build
+        public bool IsMothballed = false; // True when stored in a system with dilithium removed
         public bool Distroyed = false;
         public bool IsCaptured = false; // Set when captured; ship takes no damage, fires no weapons, grants rewards at combat end
         public bool IsScuttled = false; // Set before SelfDestruct() so the report distinguishes scuttled from combat-destroyed
-        public Vector3 Position; // <-- Will we need to save a combat position?
+        public Vector3 Position;
 
 
         public ShipData(string name)

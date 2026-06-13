@@ -159,9 +159,9 @@ namespace BOTF3D.Combat
             // Remove null entries
             allCivShips = allCivShips.Where(s => s != null).ToList();
 
-            // Filter: Only include ships at or below current tech level
+            // Filter: ship type must pass the global TechLevel gate AND civ must own an SO for it
             List<ShipSO> availableShips = allCivShips
-                .Where(s => s.TechLevel <= currentTechLevel)
+                .Where(s => ShipTypeProfiles.IsAvailableAtTechLevel(s.ShipType, currentTechLevel))
                 .ToList();
 
             Debug.Log($"GetAvailableShipsForCiv: {civEnum} at {currentTechLevel} has {availableShips.Count}/{allCivShips.Count} ships available");
@@ -170,28 +170,22 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
-        /// Check if a specific ship type is available for a civilization
+        /// Check if a specific ship type is available for a civilization.
+        /// Uses ShipTypeProfiles.IsAvailableAtTechLevel as the primary gate, then verifies
+        /// that the civ actually has an SO for that type (so phantom ship types are blocked).
         /// </summary>
         public bool IsShipTypeAvailable(ShipType shipType, CivEnum civEnum, TechLevel currentTechLevel)
         {
-            ShipSO ship = GetShipSO(shipType, currentTechLevel, civEnum);
-
-            if (ship == null)
+            if (!ShipTypeProfiles.IsAvailableAtTechLevel(shipType, currentTechLevel))
             {
-                // Try to find ANY version of this ship type for this civ
-                List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
-                ship = civShips?.FirstOrDefault(s => s != null && s.ShipType == shipType);
-
-                if (ship == null)
-                {
-                    Debug.Log($"IsShipTypeAvailable: {civEnum} has no {shipType} at any tech level");
-                    return false;
-                }
+                Debug.Log($"IsShipTypeAvailable: {shipType} gated at {currentTechLevel}");
+                return false;
             }
 
-            bool available = ship.TechLevel <= currentTechLevel;
-            Debug.Log($"IsShipTypeAvailable: {shipType} for {civEnum} - Required: {ship.TechLevel}, Current: {currentTechLevel}, Available: {available}");
-            return available;
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+            bool hasSO = civShips?.Any(s => s != null && s.ShipType == shipType) ?? false;
+            Debug.Log($"IsShipTypeAvailable: {shipType} for {civEnum} @ {currentTechLevel} — gate=pass, hasSO={hasSO}");
+            return hasSO;
         }
 
         /// <summary>

@@ -43,3 +43,18 @@ MonoBehaviour:
     not very efficient, they are developed to attack in tight formations. The individual
     does not count, only the state does. FOR CARDASSIA!
   IntelPoints: 0
+  shipBuildTimeMultiplier: 0.6
+  facilityBuildTimeMultiplier: 0.6
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 8
+  researchRateBonus: -0.1
+  intelPointsPerTurn: 7
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 9
+  baseCruiserTorpDmg: 10
+  baseCruiserShieldHP: 72
+  baseCruiserHullHP: 90
+  baseCruiserWarpFactor: 5.5
+  baseCruiserBuildDuration: 20

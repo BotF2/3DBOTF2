@@ -51,20 +51,17 @@ namespace BOTF3D.Combat
                 data.ShipSprite = shipSO.shipSprite;
             }
 
-            // Copy movement stats
-            data.maxWarpFactor = shipSO.maxWarpFactor;
+            // Combat stats (warp, weapons, shields, hull, build duration, dilithium) are computed
+            // later by ShipManager.ComputeShipStats(). Zero-initialize here so they're safe to read
+            // before computation and clearly mark that the SO values are no longer authoritative.
+            data.maxWarpFactor = 0f;
             data.currentWarpFactor = 0f;
-
-            // Copy health stats (initialize to max)
-            data.ShieldHealth = shipSO.ShieldMaxHealth;
-            data.HullHealth = shipSO.HullMaxHealth;
-
-            // Copy combat stats
-            data.TorpedoDamage = shipSO.TorpedoDamage;
-            data.BeamDamage = shipSO.BeamDamage;
-
-            // Copy build stats
-            data.BuildDuration = shipSO.BuildDuration;
+            data.ShieldHealth  = 0;
+            data.HullHealth    = 0;
+            data.TorpedoDamage = 0;
+            data.BeamDamage    = 0;
+            data.BuildDuration = 0;
+            data.DilithiumCost = ShipTypeProfiles.Get(shipSO.ShipType).DilithiumCost;
 
             Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' from ShipSO");
         }
@@ -72,13 +69,22 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Reset ship health to maximum
         /// </summary>
-        public void ResetShipHealth(ShipController shipController)
+        /// <summary>
+        /// Re-runs ComputeShipStats to restore full shield and hull from formula.
+        /// CivData must be provided so the formula can reference base stats.
+        /// </summary>
+        public void ResetShipHealth(ShipController shipController, BOTF3D.Civilization.CivData civData = null)
         {
-            if (shipController?.ShipData?.ShipSO != null)
+            if (shipController?.ShipData == null) return;
+
+            if (civData != null && ShipManager.Instance != null)
             {
-                shipController.ShipData.ShieldHealth = shipController.ShipData.ShipSO.ShieldMaxHealth;
-                shipController.ShipData.HullHealth = shipController.ShipData.ShipSO.HullMaxHealth;
+                ShipManager.Instance.ComputeShipStats(shipController.ShipData, civData);
                 Debug.Log($"ShipDataInitializer: Reset health for '{shipController.ShipData.ShipName}'");
+            }
+            else
+            {
+                Debug.LogWarning($"ShipDataInitializer.ResetShipHealth: no civData provided for '{shipController.ShipData.ShipName}' — health unchanged.");
             }
         }
 

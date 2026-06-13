@@ -47,6 +47,28 @@ namespace BOTF3D.Civilization
         private object SystemsOwned;
         public int PendingBuildTimeReduction = 0; // Consumed by next ship build at any owned shipyard; set from captured-ship BuildDuration / 2
 
+        // Civilization Build Profile — populated from CivSO at game start
+        public float ShipBuildTimeMultiplier = 1.0f;
+        public float FacilityBuildTimeMultiplier = 1.0f;
+        public float WeaponDamageMultiplier = 1.0f;
+        public float ShieldMultiplier = 1.0f;
+        public float HullMultiplier = 1.0f;
+        public int TechPointsPerCapturedShip = 10;
+        public float ResearchRateBonus = 0.0f;
+
+        // Intelligence / Espionage
+        public float IntelPointsPerTurn = 0f;
+        public int   EspionageTechYield = 0;   // 0 = use EspionageTechYieldTable lookup
+        public List<EspionageProject> ActiveEspionageProjects = new List<EspionageProject>();
+
+        // Base Cruiser stats — source of all ship stats via formula: Base × ShipTypeProfile × TechMultiplier
+        public int   BaseCruiserBeamDmg      = 7;
+        public int   BaseCruiserTorpDmg      = 8;
+        public int   BaseCruiserShieldHP     = 55;
+        public int   BaseCruiserHullHP       = 65;
+        public float BaseCruiserWarpFactor   = 5.0f;
+        public int   BaseCruiserBuildDuration= 20;
+
         /// <summary>
         /// Get power efficiency multiplier based on tech level
         /// Uses TechManager for centralized tech bonuses
@@ -74,9 +96,7 @@ namespace BOTF3D.Civilization
         public float CalculateTotalEmpirePower()
         {
             float totalPower = 0f;
-            float techMultiplier = GetPowerTechMultiplier();
 
-            // Loop through all owned systems
             var civController = CivManager.Instance?.GetCivControllerByCivEnum(CivEnum);
             if (civController?.CivData?.StarSysWeOwn != null)
             {
@@ -84,7 +104,7 @@ namespace BOTF3D.Civilization
                 {
                     if (system?.StarSysData != null)
                     {
-                        totalPower += system.StarSysData.CalculateTotalPower(techMultiplier);
+                        totalPower += system.StarSysData.CalculateTotalPower(CurrentTechLevel);
                     }
                 }
             }

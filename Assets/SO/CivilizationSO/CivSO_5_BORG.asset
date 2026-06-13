@@ -43,3 +43,18 @@ MonoBehaviour:
     way of life. In fact the Borg are twice as powerful as any other empire, since
     their cubes are gigantic and almost unbeatable, so: RESISTANCE IS FUTILE!'
   IntelPoints: 0
+  shipBuildTimeMultiplier: 2
+  facilityBuildTimeMultiplier: 2
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 25
+  researchRateBonus: -0.5
+  intelPointsPerTurn: 2
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 20
+  baseCruiserTorpDmg: 20
+  baseCruiserShieldHP: 160
+  baseCruiserHullHP: 180
+  baseCruiserWarpFactor: 9.5
+  baseCruiserBuildDuration: 20

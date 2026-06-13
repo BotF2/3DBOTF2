@@ -48,3 +48,18 @@ MonoBehaviour:
     Both Vorta and Jem\xB4hadar where designed to view the Founders as near-mythical
     gods. They know: VICTORY IS LIFE!"
   IntelPoints: 0
+  shipBuildTimeMultiplier: 1.3
+  facilityBuildTimeMultiplier: 1.3
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 15
+  researchRateBonus: 0.2
+  intelPointsPerTurn: 6
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 14
+  baseCruiserTorpDmg: 13
+  baseCruiserShieldHP: 96
+  baseCruiserHullHP: 110
+  baseCruiserWarpFactor: 7
+  baseCruiserBuildDuration: 20

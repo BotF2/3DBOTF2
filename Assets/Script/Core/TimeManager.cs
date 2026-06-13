@@ -158,6 +158,15 @@ namespace BOTF3D.Core
                 TechManager.Instance.ProcessResearchForAllCivs();
             }
 
+            // Process espionage intel generation and project advancement
+            if (IntelligenceManager.Instance != null && CivManager.Instance != null)
+            {
+                foreach (var civCon in CivManager.Instance.CivControllersInGame)
+                {
+                    IntelligenceManager.Instance.ProcessEspionageTurn(civCon);
+                }
+            }
+
             // TODO: Add other turn-based processing here
             // - Population growth
             // - Credits/income

@@ -27,11 +27,14 @@ namespace BOTF3D.Galaxy
             }
 
             var sysData = systemController.StarSysData;
+            var civData = systemController.StarSysData.CurrentCivController?.CivData;
+            TechLevel tech = civData?.CurrentTechLevel ?? TechLevel.EARLY;
 
-            // ✅ Check Dilithium capacity
-            if (sysData.CurrentPowerPlantCount >= sysData.DilithiumCapacity)
+            if (!sysData.CanBuildPowerPlant(tech))
             {
-                reason = $"Dilithium reserves exhausted. Maximum capacity: {sysData.DilithiumCapacity}";
+                int cost = TechManager.Instance != null ? TechManager.Instance.GetDilithiumCostPerPlant(tech) : 45;
+                int avail = sysData.GetDilithiumAvailable(tech);
+                reason = $"Insufficient dilithium. Need {cost} units, have {avail} available (of {sysData.DilithiumUnits} total).";
                 return false;
             }
 
@@ -49,19 +52,17 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public static string GetCapacityInfo(StarSysData sysData)
         {
-            return $"Power Plants: {sysData.CurrentPowerPlantCount}/{sysData.DilithiumCapacity}";
+            TechLevel tech = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int avail = sysData.GetDilithiumAvailable(tech);
+            return $"Power Plants: {sysData.PowerPlants?.Count ?? 0} | Dilithium: {avail}/{sysData.DilithiumUnits} free";
         }
 
-        /// <summary>
-        /// Get power output info
-        /// </summary>
         public static string GetPowerOutputInfo(StarSysData sysData, CivData civData)
         {
-            float basePower = 10f;
-            float techMultiplier = civData.GetPowerTechMultiplier();
-            float totalPower = sysData.CalculateTotalPower(techMultiplier);
-
-            return $"Power Output: {totalPower:F1} ({sysData.CurrentPowerPlantCount} × {basePower} × {techMultiplier:F1}x tech)";
+            TechLevel tech = civData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int outPerPlant = TechManager.Instance != null ? TechManager.Instance.GetPowerOutputPerPlant(tech) : 20;
+            float total = sysData.CalculateTotalPower(tech);
+            return $"Power Output: {total:F0} ({sysData.PowerPlants?.Count ?? 0} × {outPerPlant})";
         }
     }
 }

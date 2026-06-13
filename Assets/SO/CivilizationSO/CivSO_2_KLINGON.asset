@@ -44,3 +44,18 @@ MonoBehaviour:
     empires, especially other warmongers respect the Klingon Empire. WHEN FOLLOWING
     THE WAY OF THE WARRIOR, EVERYDAY IS A GOOD DAY TO DIE!
   IntelPoints: 0
+  shipBuildTimeMultiplier: 0.9
+  facilityBuildTimeMultiplier: 0.9
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 10
+  researchRateBonus: 0
+  intelPointsPerTurn: 3
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 13
+  baseCruiserTorpDmg: 10
+  baseCruiserShieldHP: 70
+  baseCruiserHullHP: 115
+  baseCruiserWarpFactor: 6.5
+  baseCruiserBuildDuration: 20

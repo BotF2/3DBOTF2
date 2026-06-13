@@ -42,3 +42,18 @@ MonoBehaviour:
     is always done by conquest and subjugation, however sometimes the Empire prefers
     allies, if they are more powerful than themselves. LONG LIVE THE EMPIRE!
   IntelPoints: 0
+  shipBuildTimeMultiplier: 0.95
+  facilityBuildTimeMultiplier: 1
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 12
+  researchRateBonus: 0
+  intelPointsPerTurn: 5
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 12
+  baseCruiserTorpDmg: 12
+  baseCruiserShieldHP: 80
+  baseCruiserHullHP: 98
+  baseCruiserWarpFactor: 6
+  baseCruiserBuildDuration: 20

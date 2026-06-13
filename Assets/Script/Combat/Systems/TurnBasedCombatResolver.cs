@@ -362,7 +362,10 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             string winner = sideOneAlive > 0 ? "Side One" : "Side Two";
             Debug.Log($"🏆 {winner} WINS!");
 
-            // Apply post-combat rewards for any captured ships
+            // Return dilithium from destroyed ships to their owner's home system
+            ApplyDestroyedShipDilithiumReturn();
+
+            // Dilithium from captured ships goes to the captor; other capture rewards applied here
             ApplyCaptureRewards();
 
             // ✅ Show combat end panel via manager
@@ -554,6 +557,7 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
         /// <summary>
         /// Grant post-combat rewards for each captured ship to the capturing civilization:
+        ///   - Dilithium units held by the ship → added to capturing civ's home system
         ///   - Shipyard build time reduction = half of captured ship's BuildDuration
         ///   - Small tech point bonus (5 pts per ship)
         /// Captured ships are destroyed after combat and never returned to the galaxy map.
@@ -561,8 +565,6 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         private void ApplyCaptureRewards()
         {
             if (combatData.CapturedShips == null || combatData.CapturedShips.Count == 0) return;
-
-            const int TECH_BONUS_PER_CAPTURE = 5;
 
             foreach (var ship in combatData.CapturedShips)
             {
@@ -575,6 +577,22 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
                 if (capturingCiv?.CivData == null) continue;
 
+                // Dilithium capture: ship's dilithium goes to the capturing civ's home system
+                int dilithium = ship.ShipData.DilithiumCost;
+                if (dilithium > 0)
+                {
+                    var capturerHome = FindHomeSystem(capturingCiv);
+                    if (capturerHome?.StarSysData != null)
+                    {
+                        capturerHome.StarSysData.DilithiumUnits += dilithium;
+                        Debug.Log($"⚡ {capturingCiv.CivData.CivShortName}: +{dilithium} dilithium from captured {ship.ShipData.ShipName} → {capturerHome.name}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Dilithium capture: no home system found for {capturingCiv.CivData.CivShortName}, {dilithium} units lost.");
+                    }
+                }
+
                 // Shipyard bonus: reduce next ship build by half of the captured ship's BuildDuration
                 int buildBonus = ship.ShipData.BuildDuration / 2;
                 if (buildBonus > 0)
@@ -583,11 +601,12 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                     Debug.Log($"⚙️ {capturingCiv.CivData.CivShortName}: +{buildBonus} shipyard build-time reduction from captured {ship.ShipData.ShipName}");
                 }
 
-                // Tech bonus only when the captured ship's civ is at or above the capturing civ's tech level
+                // Tech bonus uses the capturing civ's profile value (Borg assimilate more)
+                int techBonus = capturingCiv.CivData.TechPointsPerCapturedShip;
                 if (capturedCiv?.CivData != null && capturedCiv.CivData.CurrentTechLevel >= capturingCiv.CivData.CurrentTechLevel)
                 {
-                    capturingCiv.CivData.AddTechPoints(TECH_BONUS_PER_CAPTURE);
-                    Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: +{TECH_BONUS_PER_CAPTURE} tech pts from captured {ship.ShipData.ShipName}");
+                    capturingCiv.CivData.AddTechPoints(techBonus);
+                    Debug.Log($"🔬 {capturingCiv.CivData.CivShortName}: +{techBonus} tech pts from captured {ship.ShipData.ShipName}");
                 }
                 else
                 {
@@ -600,6 +619,50 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 if (CombatManager.Instance != null)
                     CombatManager.Instance.RemoveThisShipController(ship);
             }
+        }
+
+        /// <summary>
+        /// Returns dilithium held by each destroyed ship to its owner civ's home system.
+        /// Scuttled ships are included (owner recovers the dilithium — enemy doesn't get it,
+        /// which is the whole point of scuttling). Captured ships are handled separately in
+        /// ApplyCaptureRewards so their dilithium goes to the captor instead.
+        /// </summary>
+        private void ApplyDestroyedShipDilithiumReturn()
+        {
+            if (combatData.DestroyedShips == null || combatData.DestroyedShips.Count == 0) return;
+
+            foreach (var shipData in combatData.DestroyedShips)
+            {
+                if (shipData == null || shipData.DilithiumCost <= 0) continue;
+
+                CivController ownerCiv = shipData.CivEnum == combatData.CivEnumSideOne
+                    ? combatData.sideOneCiv
+                    : combatData.sideTwoCiv;
+
+                if (ownerCiv?.CivData == null) continue;
+
+                var homeSystem = FindHomeSystem(ownerCiv);
+                if (homeSystem?.StarSysData == null)
+                {
+                    Debug.LogWarning($"Dilithium return: no home system found for {ownerCiv.CivData.CivShortName}, {shipData.DilithiumCost} units lost.");
+                    continue;
+                }
+
+                homeSystem.StarSysData.DilithiumUnits += shipData.DilithiumCost;
+                string reason = shipData.IsScuttled ? "scuttled" : "destroyed";
+                Debug.Log($"⚡ {shipData.ShipName} ({reason}): {shipData.DilithiumCost} dilithium returned to {ownerCiv.CivData.CivShortName} home ({homeSystem.name})");
+            }
+        }
+
+        /// <summary>
+        /// Finds a civ's home system controller from its owned system list.
+        /// </summary>
+        private StarSysController FindHomeSystem(CivController civCon)
+        {
+            if (civCon?.CivData?.StarSysWeOwn == null) return null;
+            return civCon.CivData.StarSysWeOwn.Find(
+                s => s != null && s.name == civCon.CivData.CivHomeSystemName
+            );
         }
     }
 

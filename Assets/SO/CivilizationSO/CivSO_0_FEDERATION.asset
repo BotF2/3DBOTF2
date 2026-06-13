@@ -46,3 +46,18 @@ MonoBehaviour:
     MISSION: TO EXPLORE STRANGE NEW WORLDS, TO SEEK OUT NEW LIFE AND NEW CIVILIZATIONS,
     TO BOLDLY GO WHERE NO ONE HAS GONE BEFORE!'
   IntelPoints: 0
+  shipBuildTimeMultiplier: 1
+  facilityBuildTimeMultiplier: 1
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 10
+  researchRateBonus: 0.15
+  intelPointsPerTurn: 5
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 10
+  baseCruiserTorpDmg: 12
+  baseCruiserShieldHP: 80
+  baseCruiserHullHP: 100
+  baseCruiserWarpFactor: 6
+  baseCruiserBuildDuration: 20

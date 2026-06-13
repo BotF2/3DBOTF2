@@ -587,7 +587,7 @@ namespace BOTF3D.Galaxy
             Debug.Log($"  System world position: {starSysCon.transform.position}");
 
             // ✅ Set Dilithium Capacity based on system type
-            sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
+            sysData.DilithiumUnits = DetermineDilithiumCapacity(civSO, starSysSO);
             sysData.TotalSysPowerLoad = 0;
             sysData.TotalSysPowerOutput = starSysSO.PowerStations * sysData.BasePowerPerPlant;
             sysData.CurrentPowerPlantCount = starSysSO.PowerStations;
@@ -668,7 +668,7 @@ namespace BOTF3D.Galaxy
 
             if (true)
             {
-                int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
+                int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumUnits);
 
                 sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
@@ -707,58 +707,35 @@ namespace BOTF3D.Galaxy
         /// </summary>
         private int DetermineDilithiumCapacity(CivSO civSO, StarSysSO starSysSO)
         {
-            // ✅ Major race homeworlds
+            // Major race homeworlds: 100 dilithium units (supports 2 PowerPlants at EARLY)
             if (civSO.Playable && starSysSO.IsHomeworld)
-            {
-                return 2; // Federation, Romulan, Klingon, etc. homeworlds
-            }
+                return 100;
 
-            // ✅ Minor race systems
-            if (!civSO.Playable)
-            {
-                //// 70% get capacity 1-2, 30% get capacity 3
-                //float roll = UnityEngine.Random.value;
-                //if (roll < 0.40f) return 1;
-                //if (roll < 0.70f) return 2;
-                return 1;
-            }
+            // Habitable or terraformable systems (colonisable or minor civ): 50 units (1 PowerPlant at EARLY)
+            if (starSysSO.IsHabitable || starSysSO.IsTerraformable || !civSO.Playable)
+                return 50;
 
-            // ✅ Colonizable/Terraformable systems
-            if (starSysSO.IsHabitable || starSysSO.IsTerraformable)
-            {
-                //// Based on planet quality (you can expand this)
-                //float roll = UnityEngine.Random.value;
-                //if (roll < 0.50f) return 1;
-                //if (roll < 0.85f) return 2;
-                return 1;
-            }
-
-            // ✅ Non-habitable systems, black hole....
-            //#nullable enable
+            // Non-habitable (black holes, etc.)
             return 0;
         }
         /// <summary>
         /// Determine starting power plants (always 1 for warp-capable, 0 otherwise)
         /// </summary>
-        private int DetermineStartingPowerPlants(CivSO civSO, StarSysSO starSysSO, int dilithiumCapacity)
+        // dilithiumUnits is now 100/50/0; at EARLY tech a plant costs 45 units, so max starting plants:
+        //   100 units → 2 plants (major home), 50 units → 1 plant (minor/colony), 0 → none
+        private int DetermineStartingPowerPlants(CivSO civSO, StarSysSO starSysSO, int dilithiumUnits)
         {
-            if (dilithiumCapacity == 0)
-                return 0;
+            if (dilithiumUnits == 0) return 0;
 
-            // ✅ Read from ScriptableObject if available
+            int maxPlants = dilithiumUnits / 45; // EARLY-tech cost = 45 units/plant
+
             if (starSysSO != null && starSysSO.PowerStations > 0)
-            {
-                // Respect the SO's configured value, but cap at dilithium capacity
-                return Mathf.Min(starSysSO.PowerStations, dilithiumCapacity);
-            }
+                return Mathf.Min(starSysSO.PowerStations, maxPlants);
 
-            // ✅ Fallback: Warp-capable civs start with 1 power plant
-            if (civSO.CivInt <= 6)
-                return 2;
-            if (civSO.HasWarp)
-                return 1;
+            if (civSO.CivInt <= 6) return Mathf.Min(2, maxPlants); // major playable: start with 2
+            if (civSO.HasWarp)    return Mathf.Min(1, maxPlants);  // minor warp-capable: 1
 
-            return 0; // Non-warp systems start with 0
+            return 0;
         }
         private void SetParentForFacilities(GameObject parent, StarSysData starSysData)
         {

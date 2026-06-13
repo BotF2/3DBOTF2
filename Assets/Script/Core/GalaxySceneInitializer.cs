@@ -201,6 +201,11 @@ public class GalaxySceneInitializer : MonoBehaviour
 
         if (createdShips != null && createdShips.Count > 0)
         {
+            CivData civData = CivManager.Instance.GetCivDataByCivEnum(civEnum);
+            foreach (var shipCon in createdShips)
+                if (shipCon != null)
+                    ShipManager.Instance.ApplyCivProfileToShip(shipCon.ShipData, civData);
+
             fleet.UpdateMaxWarp();
             Debug.Log($"✅ Added {createdShips.Count} test ships to {civName} fleet. Total: {fleet.FleetData.ShipsList.Count}");
         }

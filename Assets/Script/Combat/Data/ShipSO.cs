@@ -24,6 +24,10 @@ public class ShipSO : ScriptableObject
     [Tooltip("Minimum tech points required to unlock this ship (e.g., 0, 150, 350, 700)")]
     public int MinTechPointsRequired = 0;
 
+    [Header("Dilithium")]
+    [Tooltip("Dilithium units this ship holds. 0 = derive from ShipTypeProfiles (recommended).")]
+    public int DilithiumCostOverride = 0;
+
     [Header("Ship Stats")]
     public Sprite shipSprite;
     public Color shipColor;

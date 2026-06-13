@@ -830,10 +830,18 @@ namespace BOTF3D.UI
         {
             if (sysCon == null) return;
 
-            // ✅ NEW: Early exit if no UI exists (for non-player systems)
+            // Resolve tech-aware facility power loads once; fall back to SO values if TechManager not ready
+            TechLevel techLevel = sysCon.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            var tm = TechManager.Instance;
+            int factoryLoad  = tm != null ? tm.GetFacilityPowerLoad(StarSysFacilityType.Factory,         techLevel) : sysCon.StarSysData.FactoryData?.PowerLoad        ?? 0;
+            int shipyardLoad = tm != null ? tm.GetFacilityPowerLoad(StarSysFacilityType.Shipyard,        techLevel) : sysCon.StarSysData.ShipyardData?.PowerLoad       ?? 0;
+            int shieldLoad   = tm != null ? tm.GetFacilityPowerLoad(StarSysFacilityType.ShieldGenerator, techLevel) : sysCon.StarSysData.ShieldGeneratorData?.PowerLoad ?? 0;
+            int obLoad       = tm != null ? tm.GetFacilityPowerLoad(StarSysFacilityType.OrbitalBattery,  techLevel) : sysCon.StarSysData.OrbitalBatteryData?.PowerLoad  ?? 0;
+            int researchLoad = tm != null ? tm.GetFacilityPowerLoad(StarSysFacilityType.ResearchCenter,  techLevel) : sysCon.StarSysData.ResearchCenterData?.PowerLoad  ?? 0;
+
+            // ✅ Early exit if no UI exists (for non-player systems)
             if (sysCon.StarSysUIGameObject == null)
             {
-                // Still update the data values even without UI
                 int load = 0;
                 int output = 0;
 
@@ -841,53 +849,45 @@ namespace BOTF3D.UI
                     output += sysCon.StarSysData.PowerPlantData.BasePowerOutput;
                 for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
                     if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
-                        load += sysCon.StarSysData.FactoryData.PowerLoad;
-
+                        load += factoryLoad;
                 for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
                     if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
-                        load += sysCon.StarSysData.ShipyardData.PowerLoad;
-
+                        load += shipyardLoad;
                 for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
                     if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
-                        load += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
-
+                        load += shieldLoad;
                 for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
                     if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
-                        load += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
-
+                        load += obLoad;
                 for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
                     if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
-                        load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
+                        load += researchLoad;
 
                 sysCon.StarSysData.TotalSysPowerLoad = load;
                 sysCon.StarSysData.TotalSysPowerOutput = output;
-                return; // ✅ Exit - no UI to update
+                return;
             }
 
-            // ✅ ORIGINAL CODE: UI exists, calculate and update UI
+            // UI exists — calculate and update display
             int loadUI = 0;
             int outputUI = 0;
             for (int i = 0; i < sysCon.StarSysData.PowerPlants.Count; i++)
                 outputUI += sysCon.StarSysData.PowerPlantData.BasePowerOutput;
             for (int i = 0; i < sysCon.StarSysData.Factories.Count; i++)
                 if (sysCon.StarSysData.Factories[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    loadUI += sysCon.StarSysData.FactoryData.PowerLoad;
-
+                    loadUI += factoryLoad;
             for (int i = 0; i < sysCon.StarSysData.Shipyards.Count; i++)
                 if (sysCon.StarSysData.Shipyards[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    loadUI += sysCon.StarSysData.ShipyardData.PowerLoad;
-
+                    loadUI += shipyardLoad;
             for (int i = 0; i < sysCon.StarSysData.ShieldGenerators.Count; i++)
                 if (sysCon.StarSysData.ShieldGenerators[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    loadUI += sysCon.StarSysData.ShieldGeneratorData.PowerLoad;
-
+                    loadUI += shieldLoad;
             for (int i = 0; i < sysCon.StarSysData.OrbitalBatteries.Count; i++)
                 if (sysCon.StarSysData.OrbitalBatteries[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    loadUI += sysCon.StarSysData.OrbitalBatteryData.PowerLoad;
-
+                    loadUI += obLoad;
             for (int i = 0; i < sysCon.StarSysData.ResearchCenters.Count; i++)
                 if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
-                    loadUI += sysCon.StarSysData.ResearchCenterData.PowerLoad;
+                    loadUI += researchLoad;
 
             sysCon.StarSysData.TotalSysPowerLoad = loadUI;
             sysCon.StarSysData.TotalSysPowerOutput = outputUI;

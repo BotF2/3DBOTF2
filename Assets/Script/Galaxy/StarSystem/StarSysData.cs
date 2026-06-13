@@ -38,9 +38,12 @@ namespace BOTF3D.Galaxy
         public Sprite StarSprit;
         public List<BOTF3D.Combat.ShipController> ShipsList = new List<BOTF3D.Combat.ShipController>();
         [Header("Dilithium & Power")]
-        public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitable or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
-        public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
-                                               // Consider adding other power sources and adjust this variable to be more general for total power output.
+        /// <summary>
+        /// Total dilithium units in this system (fixed — 100 for major home systems, 50 for minor/habitable, 0 for non-habitable).
+        /// PowerPlants and docked ships draw from this pool. Ships carry their dilithium when in a fleet.
+        /// </summary>
+        public int DilithiumUnits = 50;
+        public int CurrentPowerPlantCount = 1;
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;
@@ -118,27 +121,100 @@ namespace BOTF3D.Galaxy
         }
         public string GetSysName() { return this.sysName; }
         public CivEnum GetFirstOwner() { return this.firstOwnerCivEnum; }
-        /// <summary>
-        /// Check if system can build another power plant
-        /// </summary>
-        public bool CanBuildPowerPlant()
+        // --- Facility slot limits (derived from system size) ---
+
+        /// <summary>Maximum factories/research centers/orbital batteries = DilithiumUnits / 50 (1 for minor, 2 for major).</summary>
+        public int MaxFacilitiesFromDilithium => Mathf.Max(1, DilithiumUnits / 50);
+        public int MaxFactories         => MaxFacilitiesFromDilithium;
+        public int MaxResearchCenters   => MaxFacilitiesFromDilithium;
+        public int MaxOrbitalBatteries  => MaxFacilitiesFromDilithium;
+        public int MaxShipyards         => 1;
+        public int MaxShieldGenerators  => 1;
+
+        // --- Dilithium model ---
+
+        /// <summary>Dilithium committed to running PowerPlants at this tech level.</summary>
+        public int GetDilithiumAllocatedToPlants(TechLevel techLevel)
         {
-            return PowerPlants.Count < DilithiumCapacity;
-        }
-        /// <summary>
-        /// Get available power plant slots
-        /// </summary>
-        public int GetAvailablePowerPlantSlots()
-        {
-            return Mathf.Max(0, DilithiumCapacity - CurrentPowerPlantCount);
+            int costPerPlant = BOTF3D.Core.TechManager.Instance != null
+                ? BOTF3D.Core.TechManager.Instance.GetDilithiumCostPerPlant(techLevel)
+                : 45;
+            return (PowerPlants?.Count ?? 0) * costPerPlant;
         }
 
-        /// <summary>
-        /// Calculate total power output for this system
-        /// </summary>
+        /// <summary>Dilithium held by ships currently docked (stationed) in this system — not fleet ships.</summary>
+        public int GetDilithiumHeldByDockedShips()
+        {
+            int total = 0;
+            if (ShipsList == null) return 0;
+            foreach (var sc in ShipsList)
+            {
+                if (sc?.ShipData != null && !sc.ShipData.IsMothballed)
+                    total += sc.ShipData.DilithiumCost;
+            }
+            return total;
+        }
+
+        /// <summary>Dilithium free for new PowerPlants, ships, or moth-ball reactivation.</summary>
+        public int GetDilithiumAvailable(TechLevel techLevel)
+        {
+            int allocated = GetDilithiumAllocatedToPlants(techLevel) + GetDilithiumHeldByDockedShips();
+            return Mathf.Max(0, DilithiumUnits - allocated);
+        }
+
+        /// <summary>True if there is enough free dilithium to power one more PowerPlant at this tech level.</summary>
+        public bool CanBuildPowerPlant(TechLevel techLevel)
+        {
+            int costPerPlant = BOTF3D.Core.TechManager.Instance != null
+                ? BOTF3D.Core.TechManager.Instance.GetDilithiumCostPerPlant(techLevel)
+                : 45;
+            return GetDilithiumAvailable(techLevel) >= costPerPlant;
+        }
+
+        /// <summary>Legacy overload — uses EARLY tech cost as fallback.</summary>
+        public bool CanBuildPowerPlant() => CanBuildPowerPlant(TechLevel.EARLY);
+
+        /// <summary>How many additional PowerPlants the remaining dilithium can support at this tech level.</summary>
+        public int GetAvailablePowerPlantSlots(TechLevel techLevel)
+        {
+            int costPerPlant = BOTF3D.Core.TechManager.Instance != null
+                ? BOTF3D.Core.TechManager.Instance.GetDilithiumCostPerPlant(techLevel)
+                : 45;
+            if (costPerPlant <= 0) return 0;
+            return GetDilithiumAvailable(techLevel) / costPerPlant;
+        }
+
+        // --- Energy model ---
+
+        /// <summary>Total energy produced by active PowerPlants, scaled by TechLevel efficiency.</summary>
+        public float CalculateTotalPower(TechLevel techLevel)
+        {
+            int output = BOTF3D.Core.TechManager.Instance != null
+                ? BOTF3D.Core.TechManager.Instance.GetPowerOutputPerPlant(techLevel)
+                : BasePowerPerPlant;
+            return (PowerPlants?.Count ?? 0) * output;
+        }
+
+        /// <summary>Legacy overload for callers that pass a float multiplier.</summary>
         public float CalculateTotalPower(float techMultiplier)
         {
             return CurrentPowerPlantCount * BasePowerPerPlant * techMultiplier;
+        }
+
+        // --- Production model ---
+
+        /// <summary>
+        /// Factory production factor for build time calculation.
+        /// = 1.0 + (activeFactories × perFactoryBonus). Minimum 1.0 (no factories = no bonus, existing behavior).
+        /// </summary>
+        public float GetProductionFactor(TechLevel techLevel)
+        {
+            int count = Factories?.Count ?? 0;
+            if (count == 0) return 1.0f;
+            float bonus = BOTF3D.Core.TechManager.Instance != null
+                ? BOTF3D.Core.TechManager.Instance.GetFactoryProductionBonus(techLevel)
+                : 0.3f;
+            return 1.0f + count * bonus;
         }
 
         public Vector3 GetPosition()

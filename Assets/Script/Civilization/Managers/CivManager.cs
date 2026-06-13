@@ -234,6 +234,21 @@ namespace BOTF3D.Civilization
                 civData.HasWarp = civSOList[i].HasWarp;
                 civData.Decription = civSOList[i].Decription;
                 civData.IntelPoints = civSOList[i].IntelPoints;
+                civData.ShipBuildTimeMultiplier = civSOList[i].shipBuildTimeMultiplier;
+                civData.FacilityBuildTimeMultiplier = civSOList[i].facilityBuildTimeMultiplier;
+                civData.WeaponDamageMultiplier = civSOList[i].weaponDamageMultiplier;
+                civData.ShieldMultiplier = civSOList[i].shieldMultiplier;
+                civData.HullMultiplier = civSOList[i].hullMultiplier;
+                civData.TechPointsPerCapturedShip = civSOList[i].techPointsPerCapturedShip;
+                civData.ResearchRateBonus = civSOList[i].researchRateBonus;
+                civData.BaseCruiserBeamDmg       = civSOList[i].baseCruiserBeamDmg;
+                civData.BaseCruiserTorpDmg       = civSOList[i].baseCruiserTorpDmg;
+                civData.BaseCruiserShieldHP      = civSOList[i].baseCruiserShieldHP;
+                civData.BaseCruiserHullHP        = civSOList[i].baseCruiserHullHP;
+                civData.BaseCruiserWarpFactor    = civSOList[i].baseCruiserWarpFactor;
+                civData.BaseCruiserBuildDuration = civSOList[i].baseCruiserBuildDuration;
+                civData.IntelPointsPerTurn       = civSOList[i].intelPointsPerTurn;
+                civData.EspionageTechYield       = civSOList[i].espionageTechYield;
                 CivDataInGameList.Add(civData);
                 InstantiateCivilizations(civData, localPayerCivInt);
             }

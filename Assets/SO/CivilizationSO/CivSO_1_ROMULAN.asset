@@ -46,3 +46,18 @@ MonoBehaviour:
     use the deceptiveness of the Tal Shiar. WHEN KNOWLEDGE IS POWER, BEING UNKNOWN
     MEANS TO BE UNCONQUERABLE.
   IntelPoints: 0
+  shipBuildTimeMultiplier: 1.1
+  facilityBuildTimeMultiplier: 1
+  weaponDamageMultiplier: 1
+  shieldMultiplier: 1
+  hullMultiplier: 1
+  techPointsPerCapturedShip: 12
+  researchRateBonus: 0.2
+  intelPointsPerTurn: 8
+  espionageTechYield: 0
+  baseCruiserBeamDmg: 11
+  baseCruiserTorpDmg: 11
+  baseCruiserShieldHP: 88
+  baseCruiserHullHP: 82
+  baseCruiserWarpFactor: 6.5
+  baseCruiserBuildDuration: 20

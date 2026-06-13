@@ -236,14 +236,24 @@ namespace BOTF3D.Galaxy
             var drag = shipBuildItem.GetComponentInChildren<ShipBuildDrag>();
             if (drag == null) yield break;
 
+            var civ = controller.StarSysData.CurrentCivController;
+            TechLevel tech = civ?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+
+            // Build duration now computed entirely by formula (includes civ multiplier and tech speed)
             int buildTime = ShipManager.Instance.GetShipBuildDuration(
-                drag.ShipType,
-                controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel,
-                controller.StarSysData.CurrentOwnerCivEnum
+                drag.ShipType, tech, controller.StarSysData.CurrentOwnerCivEnum
             );
 
+            // Apply factory production speed bonus
+            float productionFactor = controller.StarSysData.GetProductionFactor(tech);
+            if (productionFactor > 1f)
+            {
+                int rawTime = buildTime;
+                buildTime = Mathf.Max(1, Mathf.RoundToInt(buildTime / productionFactor));
+                Debug.Log($"⚙️ Factory production x{productionFactor:F2}: ship build {rawTime} → {buildTime}");
+            }
+
             // Apply any pending build-time reduction earned from captured ships
-            var civ = controller.StarSysData.CurrentCivController;
             if (civ?.CivData?.PendingBuildTimeReduction > 0)
             {
                 int reduction = Mathf.Min(civ.CivData.PendingBuildTimeReduction, buildTime - 1);
@@ -312,6 +322,34 @@ namespace BOTF3D.Galaxy
                 BuildShipCoroutine(controller.sysShipBuildQueueList[0])
             );
         }
+        /// <summary>
+        /// Returns false if the system has already reached the slot cap for this facility type.
+        /// </summary>
+        public bool CanBuildFacility(StarSysFacilityType type)
+        {
+            var d = controller.StarSysData;
+            switch (type)
+            {
+                case StarSysFacilityType.PowerPlanet:
+                {
+                    TechLevel tech = controller.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+                    return d.CanBuildPowerPlant(tech);
+                }
+                case StarSysFacilityType.Factory:
+                    return (d.Factories?.Count ?? 0) < d.MaxFactories;
+                case StarSysFacilityType.Shipyard:
+                    return (d.Shipyards?.Count ?? 0) < d.MaxShipyards;
+                case StarSysFacilityType.ResearchCenter:
+                    return (d.ResearchCenters?.Count ?? 0) < d.MaxResearchCenters;
+                case StarSysFacilityType.ShieldGenerator:
+                    return (d.ShieldGenerators?.Count ?? 0) < d.MaxShieldGenerators;
+                case StarSysFacilityType.OrbitalBattery:
+                    return (d.OrbitalBatteries?.Count ?? 0) < d.MaxOrbitalBatteries;
+                default:
+                    return true;
+            }
+        }
+
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
         {
             int timeDuration = 1;
@@ -365,7 +403,17 @@ namespace BOTF3D.Galaxy
                 // ✅ Reduce build time based on speed multiplier
                 timeDuration = Mathf.Max(1, Mathf.RoundToInt(timeDuration / speedMultiplier));
 
-                Debug.Log($"GetBuildTimeDuration: {starSysFacilities} at {ourTechLevel} - Base: {timeDuration * speedMultiplier}, Adjusted: {timeDuration} (x{speedMultiplier:F2})");
+                // Apply civilization facility build multiplier (>1 = slower, <1 = faster)
+                float civFacilityMult = controller.StarSysData.CurrentCivController?.CivData?.FacilityBuildTimeMultiplier ?? 1f;
+                if (civFacilityMult != 1f)
+                    timeDuration = Mathf.Max(1, Mathf.RoundToInt(timeDuration * civFacilityMult));
+
+                Debug.Log($"GetBuildTimeDuration: {starSysFacilities} at {ourTechLevel} - Base: {timeDuration * speedMultiplier}, Adjusted: {timeDuration} (x{speedMultiplier:F2}, civFacility x{civFacilityMult:F2})");
+
+                // Apply factory production bonus to facility build time
+                float productionFactor = controller.StarSysData.GetProductionFactor(ourTechLevel);
+                if (productionFactor > 1f)
+                    timeDuration = Mathf.Max(1, Mathf.RoundToInt(timeDuration / productionFactor));
             }
 
             return timeDuration;

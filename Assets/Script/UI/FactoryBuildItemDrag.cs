@@ -111,6 +111,16 @@ namespace BOTF3D.UI
 
             if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("FactoryBuildSlot"))
             {
+                // Slot cap check: reject drop if this facility type is already at its limit
+                if (StarSysController.StarSysBuildManager != null &&
+                    !StarSysController.StarSysBuildManager.CanBuildFacility(FacilityType))
+                {
+                    Debug.LogWarning($"FactoryBuildItemDrag: Cannot build {FacilityType} — slot cap reached for '{StarSysController.name}'.");
+                    transform.SetParent(originalParent);
+                    rectTransform.anchoredPosition = Vector2.zero;
+                    return;
+                }
+
                 // ✅ CRITICAL: Parent to the ACTUAL build queue, not the drop slot!
                 if (StarSysController.BuildListGridLayoutGroup != null)
                 {
