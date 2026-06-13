@@ -163,6 +163,11 @@ public GameObject[] beamWeaponPrefabs;
             return shipSOProvider.GetAvailableShipsForCiv(civEnum, currentTechLevel);
         }
 
+        public GameObject GetFallbackFbx(ShipType shipType, CivEnum civEnum)
+        {
+            return shipSOProvider.GetFallbackFbx(shipType, civEnum);
+        }
+
         public bool IsShipTypeAvailable(ShipType shipType, CivEnum civEnum, TechLevel currentTechLevel)
         {
             return shipSOProvider.IsShipTypeAvailable(shipType, civEnum, currentTechLevel);

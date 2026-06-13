@@ -385,12 +385,29 @@ namespace BOTF3D.Combat.Testing
             string fbxName = shipSO.ShipFBX_ModelAsGOPrefab != null ? shipSO.ShipFBX_ModelAsGOPrefab.name : "NULL";
             GameLogger.Log(GameLogger.LogCategory.Combat, $"  Creating {civEnum} {shipType} using ShipSO: {shipSO.ShipName} (FBX: {fbxName})");
 
-            if (shipSO.ShipFBX_ModelAsGOPrefab == null)
+            // If this ShipSO has no FBX assigned, temporarily borrow one from another ShipSO
+            // so the scenario can still run instead of aborting the whole combat.
+            GameObject originalFbx = shipSO.ShipFBX_ModelAsGOPrefab;
+            bool borrowedFbx = false;
+            if (originalFbx == null)
             {
-                GameLogger.LogError(GameLogger.LogCategory.Combat,
-                    $"❌ {civEnum} {shipType} ShipSO '{shipSO.ShipName}' has no FBX model prefab assigned. " +
-                    $"Open the ShipSO asset in the Inspector and assign ShipFBX_ModelAsGOPrefab.");
-                return null;
+                GameObject fallbackFbx = ShipManager.Instance.GetFallbackFbx(shipType, civEnum);
+                if (fallbackFbx == null)
+                {
+                    GameLogger.LogError(GameLogger.LogCategory.Combat,
+                        $"❌ {civEnum} {shipType} ShipSO '{shipSO.ShipName}' has no FBX model prefab assigned, " +
+                        $"and no fallback model could be found for {shipType}. " +
+                        $"Open the ShipSO asset in the Inspector and assign ShipFBX_ModelAsGOPrefab.");
+                    return null;
+                }
+
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat,
+                    $"⚠️ {civEnum} {shipType} ShipSO '{shipSO.ShipName}' has no FBX model prefab assigned. " +
+                    $"Using '{fallbackFbx.name}' as a placeholder so combat can proceed. " +
+                    $"Open the ShipSO asset in the Inspector and assign ShipFBX_ModelAsGOPrefab to fix this permanently.");
+
+                shipSO.ShipFBX_ModelAsGOPrefab = fallbackFbx;
+                borrowedFbx = true;
             }
 
             // Create temporary parent (DontDestroyOnLoad prevents it from being in a scene, avoiding UI parent check)
@@ -401,6 +418,13 @@ namespace BOTF3D.Combat.Testing
             // This WILL log UI parent errors, but we'll clean up the invalid UI afterward
             List<ShipSO> shipSOList = new List<ShipSO> { shipSO };
             List<ShipController> shipList = ShipManager.Instance.InstantiateShipControllersWithDataFromSO(shipSOList, tempParent);
+
+            // Restore the ShipSO to its original (unassigned) state - the borrowed FBX was only
+            // needed for this instantiation call and shouldn't permanently mutate the shared asset.
+            if (borrowedFbx)
+            {
+                shipSO.ShipFBX_ModelAsGOPrefab = originalFbx;
+            }
 
             ShipController ship = shipList.Count > 0 ? shipList[0] : null;
 

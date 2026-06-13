@@ -37,7 +37,9 @@
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\FBX\\\\FED_SCOUT_I.fbx\"\\); $text = [System.Text.Encoding]::ASCII.GetString\\($bytes[0..4000]\\); $text -replace '[^\\\\x20-\\\\x7E\\\\n]', '' | Select-String -Pattern 'UpAxis|FrontAxis|CoordAxis|UpAxisSign|FrontAxisSign|Blender|Creator|Version|OriginalUp' -AllMatches | Select-Object -First 30)",
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\FBX\\\\FED_DESTROYER_I.fbx\"\\); $text = [System.Text.Encoding]::ASCII.GetString\\($bytes[0..4000]\\); $text -replace '[^\\\\x20-\\\\x7E\\\\n]', '' | Select-String -Pattern 'UpAxis|FrontAxis|CoordAxis|UpAxisSign|FrontAxisSign|Blender|Creator|Version|OriginalUp' -AllMatches | Select-Object -First 30)",
       "Bash(grep -E '\\\\.mat$')",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(awk 'NR==9221,NR==9260' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")",
+      "Bash(awk 'NR==10625,NR==10660' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")"
     ]
   }
 }

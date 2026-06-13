@@ -266,5 +266,46 @@ namespace BOTF3D.Combat
                 return new List<ShipSO>();
             }
         }
+
+        /// <summary>
+        /// Find a usable FBX model prefab to stand in for a ShipSO that has none assigned.
+        /// Search order: same civ + same ship type (any tech level) -> the global fallback
+        /// ship SO (FED Destroyer EARLY) -> any civ + same ship type.
+        /// Returns null if no FBX can be found anywhere.
+        /// </summary>
+        public GameObject GetFallbackFbx(ShipType shipType, CivEnum civEnum)
+        {
+            List<ShipSO> civShips = GetShipSOListByCiv(civEnum);
+            ShipSO sameTypeSameCiv = civShips?.FirstOrDefault(s =>
+                s != null && s.ShipType == shipType && s.ShipFBX_ModelAsGOPrefab != null);
+            if (sameTypeSameCiv != null)
+            {
+                return sameTypeSameCiv.ShipFBX_ModelAsGOPrefab;
+            }
+
+            ShipSO globalFallback = GetFallbackShipSO();
+            if (globalFallback != null && globalFallback.ShipFBX_ModelAsGOPrefab != null)
+            {
+                return globalFallback.ShipFBX_ModelAsGOPrefab;
+            }
+
+            var allLists = new[]
+            {
+                fedShipSOList, romShipSOList, klingShipSOList, cardShipSOList,
+                domShipSOList, borgShipSOList, terranShipSOList, minorShipSOList
+            };
+
+            foreach (var list in allLists)
+            {
+                ShipSO anyCivSameType = list?.FirstOrDefault(s =>
+                    s != null && s.ShipType == shipType && s.ShipFBX_ModelAsGOPrefab != null);
+                if (anyCivSameType != null)
+                {
+                    return anyCivSameType.ShipFBX_ModelAsGOPrefab;
+                }
+            }
+
+            return null;
+        }
     }
 }
