@@ -92,3 +92,4 @@ UserSettings/Layouts/default-2021.dwlt
 # Claude settings with potential secrets
 .claude/settingsOld*.json
 .claude/settingsOLD.json
+/Assets/LevelData/SuperCoolFogLevel.json.meta
