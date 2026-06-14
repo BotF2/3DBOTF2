@@ -424,10 +424,10 @@ namespace BOTF3D.UI
                         ourTMPs[i].text = notLocalPlayerCiv.CivData.Warlike.ToString();
                         break;
                     case "TraitText (2)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophbia.ToString();
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Xenophobia.ToString();
                         break;
                     case "TraitText (3)":
-                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthelss.ToString();
+                        ourTMPs[i].text = notLocalPlayerCiv.CivData.Ruthless.ToString();
                         break;
                     case "TraitText (4)":
                         ourTMPs[i].text = notLocalPlayerCiv.CivData.Greedy.ToString();
@@ -436,10 +436,10 @@ namespace BOTF3D.UI
                         ourTMPs[i].text = localPlayerCiv.CivData.Warlike.ToString();
                         break;
                     case "OurTraitText (2)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Xenophbia.ToString();
+                        ourTMPs[i].text = localPlayerCiv.CivData.Xenophobia.ToString();
                         break;
                     case "OurTraitText (3)":
-                        ourTMPs[i].text = localPlayerCiv.CivData.Ruthelss.ToString();
+                        ourTMPs[i].text = localPlayerCiv.CivData.Ruthless.ToString();
                         break;
                     case "OurTraitText (4)":
                         ourTMPs[i].text = localPlayerCiv.CivData.Greedy.ToString();

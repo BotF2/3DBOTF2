@@ -39,7 +39,8 @@
       "Bash(grep -E '\\\\.mat$')",
       "Bash(git status *)",
       "Bash(awk 'NR==9221,NR==9260' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")",
-      "Bash(awk 'NR==10625,NR==10660' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")"
+      "Bash(awk 'NR==10625,NR==10660' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")",
+      "Bash(xargs grep -l \"IntelMission\\\\|IntelligenceMission\")"
     ]
   }
 }

@@ -122,19 +122,31 @@ namespace BOTF3D.Civilization
         }
         public void GatherIntel(DiplomacyController diplomacyController)
         {
-            //ToDo:
+            IntelligenceManager.Instance.CreateIntelProject(
+                SecretActionsEnum.GatherIntelligence,
+                diplomacyController.DiplomacyData.CivEnumSideOne,
+                diplomacyController.DiplomacyData.CivEnumSideTwo);
         }
         public void Theft(DiplomacyController diplomacyController)
         {
-            //ToDo:
+            IntelligenceManager.Instance.CreateIntelProject(
+                SecretActionsEnum.IntellectualTheft,
+                diplomacyController.DiplomacyData.CivEnumSideOne,
+                diplomacyController.DiplomacyData.CivEnumSideTwo);
         }
         public void Disinformation(DiplomacyController diplomacyController)
         {
-            //ToDo:
+            IntelligenceManager.Instance.CreateIntelProject(
+                SecretActionsEnum.Disinformation,
+                diplomacyController.DiplomacyData.CivEnumSideOne,
+                diplomacyController.DiplomacyData.CivEnumSideTwo);
         }
         public void Sabatoge(DiplomacyController diplomacyController)
         {
-            //ToDo:
+            IntelligenceManager.Instance.CreateIntelProject(
+                SecretActionsEnum.Sabotage,
+                diplomacyController.DiplomacyData.CivEnumSideOne,
+                diplomacyController.DiplomacyData.CivEnumSideTwo);
         }
         public void Combat(DiplomacyController diplomacyController)
         {
