@@ -1,11 +1,8 @@
 
+using BOTF3D.Core;
+using BOTF3D.Galaxy;
 using System.Collections.Generic;
 using UnityEngine;
-using BOTF3D.Core;
-using BOTF3D.Combat;
-using BOTF3D.Galaxy;
-using BOTF3D.UI;
-using BOTF3D.Audio;
 
 
 
@@ -21,8 +18,8 @@ namespace BOTF3D.Civilization
         public string CivHomeSystemName;
         public Vector3 HomeStarSystemPosition;
         public WarLikeEnum Warlike;// a enum scale from most work like 0 to neutral 3 and most peaceful 5
-        public XenophobiaEnum Xenophbia; // XenophobiaEnum
-        public RuthlessEnum Ruthelss; //XenophobiaEnum
+        public XenophobiaEnum Xenophobia; // XenophobiaEnum
+        public RuthlessEnum Ruthless; //XenophobiaEnum
         public GreedyEnum Greedy; //XenophobiaEnum
         public Sprite CivRaceSprite;
         public Sprite InsigniaSprite;

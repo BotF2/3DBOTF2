@@ -24,8 +24,11 @@ namespace BOTF3D.Core
         public Action<TrekStardateEventSO> OnStardateSpecialEvent;
         public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
         public event Action<CivEnum, TechLevel, TechLevel> OnTechLevelAdvanced;
+        public event Action OnTurnAdvanced; // fires every StarDatesPerTurn stardates — strategic resolution tick
 
         public int currentStardate { get; private set; }
+        public int CurrentTurn { get; private set; } = 0;
+        [SerializeField] public int StarDatesPerTurn = 10;
 
         public bool timeRunning = true; // ✅ Change from false to true
         public bool IsPaused { get; private set; } = false; // Already correct
@@ -90,14 +93,17 @@ namespace BOTF3D.Core
 
             while (timeRunning)
             {
-                yield return new WaitForSeconds(10f / currentTimeSpeed); // 10 seconds in game = 1 turn
+                yield return new WaitForSeconds(10f / currentTimeSpeed);
                 currentStardate++;
                 OnStardateChanged?.Invoke();
-
-                // ✅ NEW: Process research for all civs each turn
-                ProcessTurnEvents();
-
                 CheckSpecialEvents();
+
+                if (currentStardate % StarDatesPerTurn == 0)
+                {
+                    CurrentTurn++;
+                    ProcessTurnEvents();
+                    OnTurnAdvanced?.Invoke();
+                }
             }
         }
 

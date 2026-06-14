@@ -223,8 +223,8 @@ namespace BOTF3D.Civilization
                 civData.CivLongName = civSOList[i].CivLongName;
                 civData.CivShortName = civSOList[i].CivShortName;
                 civData.Warlike = (WarLikeEnum)civSOList[i].WarLikeEnum; // a scale from 0 to neutral 3 and most peaceful at 5
-                civData.Xenophbia = civSOList[i].XenophbiaEnum;
-                civData.Ruthelss = civSOList[i].RuthlessEnum;
+                civData.Xenophobia = civSOList[i].XenophbiaEnum;
+                civData.Ruthless = civSOList[i].RuthlessEnum;
                 civData.Greedy = civSOList[i].GreedyEnum;
                 civData.CivRaceSprite = civSOList[i].CivImage;
                 civData.InsigniaSprite = civSOList[i].Insignia;

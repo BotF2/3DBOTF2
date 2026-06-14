@@ -264,8 +264,8 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             CivController civTwo = CivManager.Instance.GetCivControllerByCivEnum(ourDiploCon.DiplomacyData.CivEnumSideTwo);
             DiplomacyStatusEnum diplomacyStatus = DiplomacyStatusEnum.Neutral;
             int warLike = Math.Abs((int)civOne.CivData.Warlike - (int)civTwo.CivData.Warlike);
-            int xenophobia = Math.Abs((int)civOne.CivData.Xenophbia - (int)civTwo.CivData.Xenophbia);
-            int ruthless = Math.Abs((int)civOne.CivData.Ruthelss - (int)civTwo.CivData.Ruthelss);
+            int xenophobia = Math.Abs((int)civOne.CivData.Xenophobia - (int)civTwo.CivData.Xenophobia);
+            int ruthless = Math.Abs((int)civOne.CivData.Ruthless - (int)civTwo.CivData.Ruthless);
             int greedy = Math.Abs((int)civOne.CivData.Greedy - (int)civTwo.CivData.Greedy);
             int degreesOfSparation = warLike + xenophobia + ruthless + greedy;
             switch (degreesOfSparation)
