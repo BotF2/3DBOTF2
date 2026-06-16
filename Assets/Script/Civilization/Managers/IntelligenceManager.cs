@@ -20,6 +20,12 @@ namespace BOTF3D.Civilization
         private GameObject intelligenceUIPrefab;
         public List<IntelligenceController> IntelligenceControllerList { get; private set; } = new List<IntelligenceController>();
 
+        // Fires after every project resolves: (actionType, initiator, target, succeeded, discovered, techGain)
+        public static event System.Action<SecretActionsEnum, CivEnum, CivEnum, bool, bool, int> OnProjectResolved;
+
+        // Fires when first contact is established with a non-local-player civ
+        public static event System.Action<CivEnum> OnNewContact;
+
         private void Awake()
         {
             ServiceLocator.Register<IntelligenceManager>(this);
@@ -56,10 +62,20 @@ namespace BOTF3D.Civilization
             }
 
             IntelligenceController intelligenceController = new IntelligenceController(intelData);
-            //intelligenceController.IntelligenceData.IntelligenceStatusEnumOfCivs = CalculateIntelligenceStatusOnFirstContact(intelligenceController);
-            //intelligenceController.IntelligenceData.IntelligencePointsOfCivs = (int)intelligenceController.IntelligenceData.IntelligenceStatusEnumOfCivs;
             IntelligenceControllerList.Add(intelligenceController);
             InstantiateIntelligenceUIGameObject(intelligenceController);
+
+            if (GameController.Instance != null)
+            {
+                CivEnum localEnum = GameController.Instance.GameData.LocalPlayerCivEnum;
+                bool localIsOne = civSideOne.CivData.CivEnum == localEnum;
+                bool localIsTwo = civSideTwo.CivData.CivEnum == localEnum;
+                if (localIsOne || localIsTwo)
+                {
+                    CivEnum contactEnum = localIsOne ? civSideTwo.CivData.CivEnum : civSideOne.CivData.CivEnum;
+                    OnNewContact?.Invoke(contactEnum);
+                }
+            }
         }
 
 
@@ -170,13 +186,17 @@ namespace BOTF3D.Civilization
         /// Initiates a covert operation. Returns false if the action cannot start
         /// (no contact record, duplicate op already running, or insufficient IntelPoints).
         /// </summary>
-        public bool CreateIntelProject(SecretActionsEnum actionType, CivEnum initiatorCiv, CivEnum targetCiv)
+        public bool CreateIntelProject(SecretActionsEnum actionType, CivEnum initiatorCiv, CivEnum targetCiv,
+            out string failReason)
         {
+            failReason = string.Empty;
+
             CivController initiator = CivManager.Instance.GetCivControllerByCivEnum(initiatorCiv);
             CivController target    = CivManager.Instance.GetCivControllerByCivEnum(targetCiv);
 
             if (initiator == null || target == null)
             {
+                failReason = "civilization not found";
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy, $"IntelProject: civ not found ({initiatorCiv} → {targetCiv})");
                 return false;
             }
@@ -184,6 +204,7 @@ namespace BOTF3D.Civilization
             IntelligenceController intelCon = ReturnAnIntelligenceController(initiatorCiv, targetCiv);
             if (intelCon == null)
             {
+                failReason = "no contact record with that civilization";
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy, $"IntelProject: no contact record between {initiatorCiv} and {targetCiv}");
                 return false;
             }
@@ -193,17 +214,28 @@ namespace BOTF3D.Civilization
             {
                 if (existing.ActionType == actionType && !existing.IsComplete)
                 {
+                    failReason = "that operation is already running";
                     GameLogger.Log(GameLogger.LogCategory.Diplomacy, $"IntelProject: {actionType} already running against {targetCiv}");
                     return false;
                 }
             }
 
-            float targetRating = GetTargetTechRating(target.CivData);
-            float techGap      = Mathf.Max(0f, targetRating - 5f);
-            float cost         = CalculateIntelCost(actionType, techGap);
+            // Absolute level gap (0–3): same level = easiest, three levels apart = impossible.
+            float techGap = Mathf.Abs((int)target.CivData.CurrentTechLevel - (int)initiator.CivData.CurrentTechLevel);
+
+            if (actionType == SecretActionsEnum.IntellectualTheft && techGap >= 3)
+            {
+                failReason = "technology gap too large — their science is incomprehensible";
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"IntelProject: theft impossible — {initiatorCiv} is {techGap} levels below {targetCiv}");
+                return false;
+            }
+
+            float cost = CalculateIntelCost(actionType, techGap);
 
             if (initiator.CivData.IntelPoints < cost)
             {
+                failReason = $"insufficient Intel Points ({initiator.CivData.IntelPoints:F0} available, {cost:F0} needed)";
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy,
                     $"IntelProject: insufficient IntelPoints ({initiator.CivData.IntelPoints:F0} < {cost:F0}) for {actionType}");
                 return false;
@@ -280,14 +312,17 @@ namespace BOTF3D.Civilization
         private void ResolveIntellectualTheft(IntelProject project, CivController initiator, CivController target,
             bool succeeded, bool discovered)
         {
-            float techGap = Mathf.Max(0f, GetTargetTechRating(target.CivData) - 5f);
+            // Reward uses directional gap: stealing from a more-advanced civ yields more points.
+            // Floor at 10 so stealing from an equal or lesser civ still pays out something.
+            float rewardGap = (target.CivData.TechRating - initiator.CivData.TechRating) / 2.5f;
 
             if (succeeded)
             {
-                int techGain = Mathf.RoundToInt(20f * (1f + techGap));
+                int techGain = Mathf.Max(10, Mathf.RoundToInt(20f * (1f + rewardGap)));
                 initiator.CivData.AddTechPoints(techGain);
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy,
                     $"Tech theft succeeded: {project.InitiatorCiv} ← {project.TargetCiv} | +{techGain} TechPoints");
+                OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, true, false, techGain);
             }
             else
             {
@@ -295,6 +330,7 @@ namespace BOTF3D.Civilization
                     $"Tech theft failed: {project.InitiatorCiv} → {project.TargetCiv}");
                 if (discovered)
                     ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredIntellectualTheft);
+                OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, false, discovered, 0);
             }
         }
 
@@ -310,6 +346,7 @@ namespace BOTF3D.Civilization
             }
             else if (discovered)
                 ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredDisinformation);
+            OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, succeeded, discovered, 0);
         }
 
         private void ResolveSabotage(IntelProject project, CivController initiator, CivController target,
@@ -324,6 +361,7 @@ namespace BOTF3D.Civilization
             }
             else if (discovered)
                 ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredSabotage);
+            OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, succeeded, discovered, 0);
         }
 
         private void ResolveDisinformation(IntelProject project, CivController initiator, CivController target,
@@ -337,6 +375,7 @@ namespace BOTF3D.Civilization
             }
             else if (discovered)
                 ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredDisinformation);
+            OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, succeeded, discovered, 0);
         }
 
         private void ApplyDiscoveryPenalty(IntelProject project, DiplomaticEventEnum discoveryEvent)
@@ -353,19 +392,18 @@ namespace BOTF3D.Civilization
         // ─── Calculation helpers ─────────────────────────────────────────────
 
         /// <summary>
-        /// Proxy for CivData.TechRating until that field is added to CivSO/CivData.
-        /// Maps game-progression TechLevel to the 0–10 canon scale (Federation = 5).
+        /// Returns preview numbers shown in the Intel UI before the player commits.
+        /// Gap of 3 is impossible; gap 0–2 scales difficulty.
         /// </summary>
-        private static float GetTargetTechRating(CivData civData)
+        public void GetTheftPreview(CivController initiator, CivController target,
+            out bool possible, out float successChance, out float discoveryChance, out int potentialGain)
         {
-            switch (civData.CurrentTechLevel)
-            {
-                case TechLevel.EARLY:     return 2f;
-                case TechLevel.DEVELOPED: return 4f;
-                case TechLevel.ADVANCED:  return 6f;
-                case TechLevel.SUPREME:   return 8f;
-                default:                  return 2f;
-            }
+            int levelGap = Mathf.Abs((int)target.CivData.CurrentTechLevel - (int)initiator.CivData.CurrentTechLevel);
+            possible        = levelGap < 3;
+            successChance   = possible ? CalculateSuccessChance(SecretActionsEnum.IntellectualTheft, levelGap) : 0f;
+            discoveryChance = possible ? CalculateDiscoveryChance(SecretActionsEnum.IntellectualTheft, levelGap) : 0f;
+            float rewardGap = (target.CivData.TechRating - initiator.CivData.TechRating) / 2.5f;
+            potentialGain   = possible ? Mathf.Max(10, Mathf.RoundToInt(20f * (1f + rewardGap))) : 0;
         }
 
         private static int TurnsForAction(SecretActionsEnum action)

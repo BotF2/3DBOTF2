@@ -40,7 +40,11 @@
       "Bash(git status *)",
       "Bash(awk 'NR==9221,NR==9260' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")",
       "Bash(awk 'NR==10625,NR==10660' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\CombatScene.unity\")",
-      "Bash(xargs grep -l \"IntelMission\\\\|IntelligenceMission\")"
+      "Bash(xargs grep -l \"IntelMission\\\\|IntelligenceMission\")",
+      "Bash(python3 -c \"import sys,json; [print\\(json.dumps\\(json.loads\\(l\\), indent=2\\)[:3000]\\) for l in sys.stdin]\")",
+      "Bash(python3 *)",
+      "Bash(Get-Item \"Assets/FBX/ROM_CRUISER_II.fbx\")",
+      "Bash(Select-Object Length, LastWriteTime)"
     ]
   }
 }

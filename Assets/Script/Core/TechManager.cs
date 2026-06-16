@@ -46,17 +46,18 @@ namespace BOTF3D.Core
 
         private void OnStardateChanged()
         {
-            // Each stardate, add tech points from all research centers
+            int localPlayerGainThisStardate = 0;
+
+            // Pass 1: playable civs gain tech from their own research centers
             foreach (var civ in CivManager.Instance.CivControllersInGame)
             {
                 if (civ?.CivData == null) continue;
+                if (!civ.CivData.Playable) continue;
 
                 int activeResearchCenters = CountActiveResearchCenters(civ);
-
-                // ✅ Apply tech level multiplier to research output
-                float researchMultiplier = GetResearchOutputMultiplier(civ.CivData.CurrentTechLevel);
-                int basePoints = activeResearchCenters * techPointsPerResearchCenterPerTurn;
-                int techPointsGained = Mathf.RoundToInt(basePoints * researchMultiplier);
+                TechLevel levelBefore     = civ.CivData.CurrentTechLevel;
+                float researchMultiplier  = GetResearchOutputMultiplier(levelBefore);
+                int techPointsGained      = Mathf.RoundToInt(activeResearchCenters * techPointsPerResearchCenterPerTurn * researchMultiplier);
 
                 if (techPointsGained > 0)
                 {
@@ -64,40 +65,44 @@ namespace BOTF3D.Core
                     Debug.Log($"{civ.CivData.CivShortName}: +{techPointsGained} tech points " +
                              $"({activeResearchCenters} centers × {researchMultiplier:F1}x = total: {civ.CivData.TechPoints})");
 
-                    // Check for tech level advancement
-                    CheckTechLevelAdvancement(civ);
+                    if (civ.CivData.CurrentTechLevel > levelBefore)
+                        OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
                 }
+
+                if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
+                    localPlayerGainThisStardate = techPointsGained;
+            }
+
+            // Pass 2: warp-capable minor races keep pace with the local player
+            ApplyMinorRaceGrowth(localPlayerGainThisStardate);
+        }
+
+        private void ApplyMinorRaceGrowth(int gainPerStardate)
+        {
+            if (gainPerStardate <= 0) return;
+
+            foreach (var civ in CivManager.Instance.CivControllersInGame)
+            {
+                if (civ?.CivData == null) continue;
+                if (civ.CivData.Playable) continue;   // playable civs handled in pass 1
+                if (!civ.CivData.HasWarp) continue;   // pre-warp and uninhabited placeholders do not progress
+
+                TechLevel levelBefore = civ.CivData.CurrentTechLevel;
+                civ.CivData.TechPoints += gainPerStardate;
+
+                if (civ.CivData.CurrentTechLevel > levelBefore)
+                    OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
             }
         }
         private void OnTechLevelAdvanced(CivController civ, TechLevel newLevel)
         {
-            Debug.Log($"🎉 {civ.CivData.CivLongName} advanced to {newLevel}!");
-
-            // Trigger event for UI and other systems
+            Debug.Log($"{civ.CivData.CivLongName} advanced to {newLevel}!");
             OnTechAdvanced?.Invoke(civ, newLevel);
 
-            // ✅ Add null check for TechNotificationUI
             if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
             {
-                // Option A: If TechNotificationUI exists
-                if (TechNotificationUI.Instance != null)
-                {
-                    TechNotificationUI.Instance.ShowTechAdvancement(civ, newLevel);
-                }
-
-                // Option B: If TechNotificationUI doesn't exist yet, comment out
-                // TechNotificationUI.Instance?.ShowTechAdvancement(civ, newLevel);
-                Debug.Log($"🎉 {civ.CivData.CivLongName} advanced to {newLevel}!");
-
-                // Trigger event for UI and other systems
-                OnTechAdvanced?.Invoke(civ, newLevel);
-
-                // Show notification to local player
-                if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
-                {
-                    TechNotificationUI.Instance?.ShowTechAdvancement(civ, newLevel);
-                }
-                Debug.Log($"📢 PLAYER NOTIFICATION: You advanced to {newLevel}!");
+                TechNotificationUI.Instance?.ShowTechAdvancement(civ, newLevel);
+                Debug.Log($"PLAYER NOTIFICATION: You advanced to {newLevel}!");
             }
         }
         private int CountActiveResearchCenters(CivController civ)
@@ -119,28 +124,6 @@ namespace BOTF3D.Core
             }
 
             return count;
-        }
-
-        private void CheckTechLevelAdvancement(CivController civ)
-        {
-            TechLevel newLevel = GetTechLevelForPoints(civ.CivData.TechPoints);
-
-            if (newLevel > civ.CivData.CurrentTechLevel)
-            {
-                Debug.Log($"🎉 {civ.CivData.CivLongName} advanced to {newLevel}!");
-                civ.CivData.CurrentTechLevel = newLevel;
-
-                // Trigger UI notification
-                OnTechLevelAdvanced(civ, newLevel);
-            }
-        }
-
-        private TechLevel GetTechLevelForPoints(int points)
-        {
-            if (points >= 600) return TechLevel.SUPREME;
-            if (points >= 300) return TechLevel.ADVANCED;
-            if (points >= 100) return TechLevel.DEVELOPED;
-            return TechLevel.EARLY;
         }
 
         /// <summary>
@@ -274,10 +257,12 @@ namespace BOTF3D.Core
         {
             if (civ?.CivData == null) return;
 
+            TechLevel levelBefore = civ.CivData.CurrentTechLevel;
             civ.CivData.TechPoints += points;
             Debug.Log($"{civ.CivData.CivShortName}: +{points} tech points (total: {civ.CivData.TechPoints})");
 
-            CheckTechLevelAdvancement(civ);
+            if (civ.CivData.CurrentTechLevel > levelBefore)
+                OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
         }
 
         /// <summary>
@@ -349,26 +334,32 @@ namespace BOTF3D.Core
         /// </summary>
         public void ProcessResearchForAllCivs()
         {
+            int localPlayerGainThisStardate = 0;
+
             foreach (var civ in CivManager.Instance.CivControllersInGame)
             {
                 if (civ?.CivData == null) continue;
+                if (!civ.CivData.Playable) continue;
 
                 int activeResearchCenters = CountActiveResearchCenters(civ);
+                if (activeResearchCenters == 0) continue;
 
-                if (activeResearchCenters > 0)
-                {
-                    // Apply tech level multiplier to research output
-                    float researchMultiplier = GetResearchOutputMultiplier(civ.CivData.CurrentTechLevel);
-                    int basePoints = activeResearchCenters * techPointsPerResearchCenterPerTurn;
-                    int techPointsGained = Mathf.RoundToInt(basePoints * researchMultiplier);
+                TechLevel levelBefore    = civ.CivData.CurrentTechLevel;
+                float researchMultiplier = GetResearchOutputMultiplier(levelBefore);
+                int techPointsGained     = Mathf.RoundToInt(activeResearchCenters * techPointsPerResearchCenterPerTurn * researchMultiplier);
 
-                    civ.CivData.TechPoints += techPointsGained;
-                    Debug.Log($"{civ.CivData.CivShortName}: +{techPointsGained} tech points " +
-                             $"({activeResearchCenters} centers × {researchMultiplier:F1}x = total: {civ.CivData.TechPoints})");
+                civ.CivData.TechPoints += techPointsGained;
+                Debug.Log($"{civ.CivData.CivShortName}: +{techPointsGained} tech points " +
+                         $"({activeResearchCenters} centers × {researchMultiplier:F1}x = total: {civ.CivData.TechPoints})");
 
-                    CheckTechLevelAdvancement(civ);
-                }
+                if (civ.CivData.CurrentTechLevel > levelBefore)
+                    OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
+
+                if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
+                    localPlayerGainThisStardate = techPointsGained;
             }
+
+            ApplyMinorRaceGrowth(localPlayerGainThisStardate);
         }
     
 

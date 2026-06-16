@@ -35,10 +35,16 @@ namespace BOTF3D.UI
         [SerializeField] private Transform activeProjectContainer;
         [SerializeField] private GameObject projectEntryPrefab;
 
+        [Header("Header")]
+        [SerializeField] private TextMeshProUGUI headerText;
+
         [Header("Stats Display")]
         [SerializeField] private TextMeshProUGUI intelPointsText;
         [SerializeField] private TextMeshProUGUI perTurnRateText;
         [SerializeField] private TextMeshProUGUI feedbackText;
+
+        [Header("Controls")]
+        [SerializeField] private UnityEngine.UI.Button closeButton;
 
         // ── Kept from original stub ───────────────────────────────────────────
         public IntelligenceController IntelligenceController;
@@ -51,8 +57,9 @@ namespace BOTF3D.UI
         private readonly List<GameObject> _civRows     = new List<GameObject>();
         private readonly List<GameObject> _projectRows = new List<GameObject>();
 
-        // Guard against double-subscription if OnEnable fires without OnDisable
         private bool _subscribed;
+        private bool _hasPinnedCiv;
+        private CivEnum _pinnedCivEnum;
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -61,25 +68,40 @@ namespace BOTF3D.UI
             if (Instance != null && Instance != this)
                 Debug.LogWarning("IntelligenceUIController: duplicate detected — overwriting Instance.");
             Instance = this;
+
+            if (closeButton != null)
+            {
+                closeButton.onClick.RemoveAllListeners();
+                closeButton.onClick.AddListener(() => GalaxyMenuUIController.Instance?.CloseCurrentMenu());
+            }
         }
 
         private void OnEnable()
         {
-            if (!_subscribed && TimeManager.Instance != null)
-            {
-                TimeManager.Instance.OnTurnAdvanced += RefreshPanel;
-                _subscribed = true;
-            }
+            IntelligenceManager.OnProjectResolved += OnIntelProjectResolved;
+            IntelligenceManager.OnNewContact += PinCiv;
+            TrySubscribe();
             RefreshPanel();
         }
 
         private void OnDisable()
         {
+            IntelligenceManager.OnProjectResolved -= OnIntelProjectResolved;
+            IntelligenceManager.OnNewContact -= PinCiv;
             if (_subscribed)
             {
                 if (TimeManager.Instance != null)
                     TimeManager.Instance.OnTurnAdvanced -= RefreshPanel;
                 _subscribed = false;
+            }
+        }
+
+        private void TrySubscribe()
+        {
+            if (!_subscribed && TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnAdvanced += RefreshPanel;
+                _subscribed = true;
             }
         }
 
@@ -97,10 +119,18 @@ namespace BOTF3D.UI
         public void RefreshPanel()
         {
             if (IntelligenceManager.Instance == null) return;
+            TrySubscribe(); // catch the case where TimeManager wasn't ready at OnEnable
 
             RefreshIntelPoints();
             RefreshCivTable();
             RefreshActiveProjectPanel();
+        }
+
+        public void PinCiv(CivEnum civEnum)
+        {
+            _pinnedCivEnum = civEnum;
+            _hasPinnedCiv  = true;
+            RefreshPanel();
         }
 
         public void SetFeedback(string message)
@@ -116,10 +146,27 @@ namespace BOTF3D.UI
             CivController localCiv = CivManager.Instance?.LocalPlayerCivController;
             if (localCiv == null) return;
 
+            if (headerText != null)
+                headerText.text = GetAgencyName(localCiv.CivData.CivEnum);
             if (intelPointsText != null)
                 intelPointsText.text = localCiv.CivData.IntelPoints.ToString("F0");
             if (perTurnRateText != null)
                 perTurnRateText.text = $"+{CalculateIntelPerTurn(localCiv)}/turn";
+        }
+
+        private static string GetAgencyName(CivEnum civ)
+        {
+            switch (civ)
+            {
+                case CivEnum.FED:    return "Starfleet Intelligence / Section 31";
+                case CivEnum.ROM:    return "Tal Shiar";
+                case CivEnum.KLING:  return "Imperial Intelligence";
+                case CivEnum.CARD:   return "Obsidian Order";
+                case CivEnum.DOM:    return "Founders Intelligence";
+                case CivEnum.TERRAN: return "Section 31";
+                case CivEnum.BORG:   return "Intelligence Node";
+                default:             return "Intelligence";
+            }
         }
 
         private void RefreshCivTable()
@@ -217,7 +264,58 @@ namespace BOTF3D.UI
                     diplomaCon = diplomaCon
                 });
             }
+
+            if (_hasPinnedCiv)
+            {
+                int pinIdx = list.FindIndex(e => e.targetCiv.CivData.CivEnum == _pinnedCivEnum);
+                if (pinIdx > 0)
+                {
+                    var pinned = list[pinIdx];
+                    list.RemoveAt(pinIdx);
+                    list.Insert(0, pinned);
+                }
+            }
+
             return list;
+        }
+
+        private void OnIntelProjectResolved(SecretActionsEnum action, CivEnum initiator, CivEnum target,
+            bool succeeded, bool discovered, int techGain)
+        {
+            if (GameController.Instance == null) return;
+            if (initiator != GameController.Instance.GameData.LocalPlayerCivEnum) return;
+
+            string opName = FormatAction(action);
+            string msg;
+            if (succeeded)
+            {
+                msg = action == SecretActionsEnum.IntellectualTheft
+                    ? $"{opName} against {target} succeeded! Your agents obtained {techGain} tech points."
+                    : $"{opName} against {target} succeeded!";
+            }
+            else if (discovered)
+            {
+                msg = $"{opName} against {target} was discovered! Diplomatic relations damaged.";
+            }
+            else
+            {
+                msg = $"{opName} against {target} failed.";
+            }
+
+            SetFeedback(msg);
+            RefreshPanel();
+        }
+
+        private static string FormatAction(SecretActionsEnum action)
+        {
+            switch (action)
+            {
+                case SecretActionsEnum.IntellectualTheft:  return "Tech Theft";
+                case SecretActionsEnum.GatherIntelligence: return "Gather Intel";
+                case SecretActionsEnum.Sabotage:           return "Sabotage";
+                case SecretActionsEnum.Disinformation:     return "Disinformation";
+                default:                                   return action.ToString();
+            }
         }
 
         // ToDo: derive from owned star systems once per-system intel output is implemented

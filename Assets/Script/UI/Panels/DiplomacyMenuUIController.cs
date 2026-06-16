@@ -292,6 +292,8 @@ namespace BOTF3D.UI
                 GalaxyMenuUIController.Instance.FindTheirHomeSystem(partyOne, out homeSysController);
                 //LoadCivDataInUI(ourDiplomacyController.DiplomacyData.CivMajor, ourDiplomacyController);
             }
+            IntelligenceUIController.Instance?.PinCiv(notLocalPlayerCiv.CivData.CivEnum);
+
             Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
             bool foundRaceImage = false;       // ✅ Declared OUTSIDE the loop
             bool foundInsigniaImage = false;   // ✅ Declared OUTSIDE the loop

@@ -228,12 +228,14 @@ namespace BOTF3D.Civilization
                 civData.Greedy = civSOList[i].GreedyEnum;
                 civData.CivRaceSprite = civSOList[i].CivImage;
                 civData.InsigniaSprite = civSOList[i].Insignia;
-                civData.TechPoints = civSOList[i].TechPoints;
-                civData.CurrentTechLevel = MainMenuUIController.Instance.MainMenuData.SelectedTechLevel;
+                TechLevel startLevel = MainMenuUIController.Instance.MainMenuData.SelectedTechLevel;
+                civData.TechPoints = CivData.TechThresholds[startLevel] + civSOList[i].TechPoints;
                 civData.Playable = civSOList[i].Playable;
                 civData.HasWarp = civSOList[i].HasWarp;
                 civData.Decription = civSOList[i].Decription;
-                civData.IntelPoints = civSOList[i].IntelPoints;
+                civData.IntelPoints = civSOList[i].Playable
+                    ? Mathf.Max(25f, civSOList[i].IntelPoints)
+                    : civSOList[i].IntelPoints;
                 CivDataInGameList.Add(civData);
                 InstantiateCivilizations(civData, localPayerCivInt);
             }

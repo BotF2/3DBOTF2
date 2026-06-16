@@ -1,10 +1,3 @@
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.UI;
-using BOTF3D.Audio;
-
-
 namespace BOTF3D.Core
 {
     public enum CivEnum
@@ -242,10 +235,10 @@ namespace BOTF3D.Core
     }
     public enum TechLevel
     {
-        EARLY, //public int EarlyThreshold = 100;
-        DEVELOPED, //public int DevelopedThreshold = 300;
-        ADVANCED, //public int AdvancedThreshold = 600;
-        SUPREME //public int SupremeThreshold = 1000;
+        EARLY,     // 0–99 TechPoints   — starting level; no threshold required
+        DEVELOPED, // 100–299 TechPoints — reached at 100 TechPoints
+        ADVANCED,  // 300–599 TechPoints — reached at 300 TechPoints
+        SUPREME    // 600+ TechPoints    — reached at 600 TechPoints
     }
     public enum GameMode
     {

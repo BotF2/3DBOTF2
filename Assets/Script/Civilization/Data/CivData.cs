@@ -31,7 +31,30 @@ namespace BOTF3D.Civilization
             { TechLevel.SUPREME, 600 }
         };
         public int TechPoints { get; set; } = 0;
-        public TechLevel CurrentTechLevel { get; set; } = TechLevel.EARLY;
+
+        // Derived from TechPoints — no separate field to go out of sync.
+        public TechLevel CurrentTechLevel => TechLevelForPoints(TechPoints);
+
+        public static TechLevel TechLevelForPoints(int points)
+        {
+            if (points >= 600) return TechLevel.SUPREME;
+            if (points >= 300) return TechLevel.ADVANCED;
+            if (points >= 100) return TechLevel.DEVELOPED;
+            return TechLevel.EARLY;
+        }
+
+        // Continuous 0-10 scale: EARLY 0-2.5 | DEVELOPED 2.5-5 | ADVANCED 5-7.5 | SUPREME 7.5-10
+        public float TechRating
+        {
+            get
+            {
+                const float band = 2.5f;
+                if (TechPoints >= 600) return band * 3f + Mathf.Clamp01((TechPoints - 600) / 400f) * band;
+                if (TechPoints >= 300) return band * 2f + Mathf.Clamp01((TechPoints - 300) / 300f) * band;
+                if (TechPoints >= 100) return band       + Mathf.Clamp01((TechPoints - 100) / 200f) * band;
+                return Mathf.Clamp01(TechPoints / 100f) * band;
+            }
+        }
         public bool Playable;
         public bool PlayedByAI = true;
         public CivEnum LocalPlayerCivEnum;
@@ -96,25 +119,9 @@ namespace BOTF3D.Civilization
         public void AddTechPoints(int points)
         {
             if (TechManager.Instance != null)
-            {
                 TechManager.Instance.AddResearchPoints(CivManager.Instance.GetCivControllerByCivEnum(CivEnum), points);
-            }
             else
-            {
-                // Fallback if TechManager not available
-                TechLevel oldLevel = CurrentTechLevel;
-                TechPoints += points;
-
-                // Simple threshold check
-                if (TechPoints >= 600 && oldLevel != TechLevel.SUPREME)
-                    CurrentTechLevel = TechLevel.SUPREME;
-                else if (TechPoints >= 300 && oldLevel != TechLevel.ADVANCED)
-                    CurrentTechLevel = TechLevel.ADVANCED;
-                else if (TechPoints >= 100 && oldLevel != TechLevel.DEVELOPED)
-                    CurrentTechLevel = TechLevel.DEVELOPED;
-                else
-                    CurrentTechLevel = TechLevel.EARLY;
-            }
+                TechPoints += points; // level-up event skipped when TechManager absent
         }
 
         /// <summary>

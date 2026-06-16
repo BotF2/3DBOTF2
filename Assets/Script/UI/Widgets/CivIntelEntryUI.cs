@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BOTF3D.Core;
 using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
 
 namespace BOTF3D.UI
 {
@@ -16,6 +17,9 @@ namespace BOTF3D.UI
         [SerializeField] private TextMeshProUGUI techText;
         [SerializeField] private TextMeshProUGUI relationText;
         [SerializeField] private TextMeshProUGUI activeOpsText;
+        [SerializeField] private TextMeshProUGUI actionText;           // wire to "ActionText" TMP — shows active op type
+        [SerializeField] private TextMeshProUGUI lastSeenFleetCountText; // wire to "LastSeenFleetCount" TMP
+        [SerializeField] private TextMeshProUGUI stealInfoText;        // wire in Inspector: shows preview before op is launched
         [SerializeField] private Button gatherIntelButton;
         [SerializeField] private Button stealTechButton;
         [SerializeField] private Button sabotageButton;
@@ -31,34 +35,75 @@ namespace BOTF3D.UI
             _targetCiv    = targetCiv.CivData.CivEnum;
 
             if (civNameText  != null) civNameText.text  = targetCiv.CivData.CivShortName;
-            if (techText     != null) techText.text     = targetCiv.CivData.CurrentTechLevel.ToString();
+            if (techText     != null) techText.text     = $"{targetCiv.CivData.TechRating:F1} ({targetCiv.CivData.CurrentTechLevel})";
             if (relationText != null) relationText.text = diplomaCon != null
                 ? diplomaCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString()
                 : "Unknown";
 
             RefreshActiveOpsText(intelCon);
+            RefreshFleetCount(intelCon, _targetCiv);
+            RefreshStealInfo(localCiv, targetCiv);
             WireButton(gatherIntelButton,    intelCon, SecretActionsEnum.GatherIntelligence, alwaysEnabled: true);
-            WireButton(stealTechButton,      intelCon, SecretActionsEnum.IntellectualTheft,  alwaysEnabled: true);
-            // ToDo: gate stealTechButton on targetCiv.CivData.TechRating >= 5f once TechRating is added to CivData
             WireButton(sabotageButton,       intelCon, SecretActionsEnum.Sabotage,           alwaysEnabled: true);
             WireButton(disinformationButton, intelCon, SecretActionsEnum.Disinformation,     alwaysEnabled: true);
+
+            IntelligenceManager.Instance.GetTheftPreview(localCiv, targetCiv,
+                out bool theftPossible, out _, out _, out _);
+            WireButton(stealTechButton, intelCon, SecretActionsEnum.IntellectualTheft, alwaysEnabled: theftPossible);
         }
 
         private void RefreshActiveOpsText(IntelligenceController intelCon)
         {
-            if (activeOpsText == null) return;
-
+            string opName = "None";
             string summary = "None";
             if (intelCon?.IntelligenceData?.ActiveProjects != null)
             {
                 foreach (var p in intelCon.IntelligenceData.ActiveProjects)
                 {
                     if (p.IsComplete) continue;
-                    summary = $"{FormatAction(p.ActionType)} ({p.TurnsTotal - p.TurnsRemaining}/{p.TurnsTotal})";
+                    opName  = FormatAction(p.ActionType);
+                    summary = $"{opName} ({p.TurnsTotal - p.TurnsRemaining}/{p.TurnsTotal})";
                     break; // show first active op; multiple types can run but show the first
                 }
             }
-            activeOpsText.text = summary;
+            if (activeOpsText != null) activeOpsText.text = summary;
+            if (actionText    != null) actionText.text    = opName;
+        }
+
+        private void RefreshFleetCount(IntelligenceController intelCon, CivEnum targetCivEnum)
+        {
+            if (lastSeenFleetCountText == null) return;
+            if (intelCon?.IntelligenceData == null) { lastSeenFleetCountText.text = "--"; return; }
+
+            FleetController fleet = intelCon.IntelligenceData.CivSideOne == targetCivEnum
+                ? intelCon.IntelligenceData.LastSeenFleetOfSideOne
+                : intelCon.IntelligenceData.LastSeenFleetOfSideTwo;
+
+            if (fleet != null)
+            {
+                lastSeenFleetCountText.text = $"{fleet.FleetData?.ShipsList?.Count ?? 0} ships";
+            }
+            else if (intelCon.IntelligenceData.LastSeenStarSysController != null)
+            {
+                int count = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData?.ShipsList?.Count ?? 0;
+                lastSeenFleetCountText.text = $"{count} ships";
+            }
+            else
+            {
+                lastSeenFleetCountText.text = "0 ships";
+            }
+        }
+
+        private void RefreshStealInfo(CivController localCiv, CivController targetCiv)
+        {
+            if (stealInfoText == null) return;
+
+            IntelligenceManager.Instance.GetTheftPreview(localCiv, targetCiv,
+                out bool possible, out float success, out float discover, out int gain);
+
+            stealInfoText.text = possible
+                ? $"Success {success:P0}  |  Detect {discover:P0}  |  +{gain} pts"
+                : "Impossible — technology gap too large";
         }
 
         private void WireButton(Button btn, IntelligenceController intelCon,
@@ -75,11 +120,12 @@ namespace BOTF3D.UI
 
         private void OnActionClicked(SecretActionsEnum action)
         {
-            bool started = IntelligenceManager.Instance.CreateIntelProject(action, _initiatorCiv, _targetCiv);
+            bool started = IntelligenceManager.Instance.CreateIntelProject(action, _initiatorCiv, _targetCiv,
+                out string failReason);
 
             string msg = started
                 ? $"{FormatAction(action)} launched against {_targetCiv}."
-                : $"Cannot start {FormatAction(action)} against {_targetCiv}. Check IntelPoints or active ops.";
+                : $"Cannot launch {FormatAction(action)} against {_targetCiv}: {failReason}.";
 
             IntelligenceUIController.Instance?.SetFeedback(msg);
             IntelligenceUIController.Instance?.RefreshPanel();
