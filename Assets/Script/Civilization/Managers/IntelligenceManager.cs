@@ -244,7 +244,7 @@ namespace BOTF3D.Civilization
             initiator.CivData.IntelPoints -= cost;
 
             int   turns    = TurnsForAction(actionType);
-            float success  = CalculateSuccessChance(actionType, techGap);
+            float success  = Mathf.Clamp01(CalculateSuccessChance(actionType, techGap) + GetCivSuccessModifier(initiatorCiv));
             float discover = CalculateDiscoveryChance(actionType, techGap);
 
             var project = new IntelProject(actionType, initiatorCiv, targetCiv, turns, success, discover);
@@ -400,7 +400,7 @@ namespace BOTF3D.Civilization
         {
             int levelGap = Mathf.Abs((int)target.CivData.CurrentTechLevel - (int)initiator.CivData.CurrentTechLevel);
             possible        = levelGap < 3;
-            successChance   = possible ? CalculateSuccessChance(SecretActionsEnum.IntellectualTheft, levelGap) : 0f;
+            successChance   = possible ? Mathf.Clamp01(CalculateSuccessChance(SecretActionsEnum.IntellectualTheft, levelGap) + GetCivSuccessModifier(initiator.CivData.CivEnum)) : 0f;
             discoveryChance = possible ? CalculateDiscoveryChance(SecretActionsEnum.IntellectualTheft, levelGap) : 0f;
             float rewardGap = (target.CivData.TechRating - initiator.CivData.TechRating) / 2.5f;
             potentialGain   = possible ? Mathf.Max(10, Mathf.RoundToInt(20f * (1f + rewardGap))) : 0;
@@ -439,6 +439,17 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.Sabotage:           return 0.50f;
                 case SecretActionsEnum.IntellectualTheft:  return 0.5f / (1f + techGap * 0.5f);
                 default:                                   return 0.5f;
+            }
+        }
+
+        // Dominion: stronger intelligence apparatus. Klingons favour direct combat over subterfuge.
+        private static float GetCivSuccessModifier(CivEnum civ)
+        {
+            switch (civ)
+            {
+                case CivEnum.DOM:   return  0.10f;
+                case CivEnum.KLING: return -0.10f;
+                default:            return  0f;
             }
         }
 
