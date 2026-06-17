@@ -1,8 +1,8 @@
+using BOTF3D.Civilization;
+using BOTF3D.Core;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using BOTF3D.Core;
-using BOTF3D.Civilization;
 
 namespace BOTF3D.UI
 {
@@ -54,7 +54,7 @@ namespace BOTF3D.UI
         // ── Stable row pools — rows are created once and reused in place ──────
         // This prevents Destroy+Instantiate on every refresh, which collapses
         // the Hierarchy and loses the user's expanded inspector state.
-        private readonly List<GameObject> _civRows     = new List<GameObject>();
+        private readonly List<GameObject> _civRows = new List<GameObject>();
         private readonly List<GameObject> _projectRows = new List<GameObject>();
 
         private bool _subscribed;
@@ -82,6 +82,9 @@ namespace BOTF3D.UI
             IntelligenceManager.OnNewContact += PinCiv;
             TrySubscribe();
             RefreshPanel();
+
+            if (IsLocalPlayerBorg())
+                StartCoroutine(BorgAutoClose());
         }
 
         private void OnDisable()
@@ -121,6 +124,12 @@ namespace BOTF3D.UI
             if (IntelligenceManager.Instance == null) return;
             TrySubscribe(); // catch the case where TimeManager wasn't ready at OnEnable
 
+            if (IsLocalPlayerBorg())
+            {
+                SetBorgTexts();
+                return;
+            }
+
             RefreshIntelPoints();
             RefreshCivTable();
             RefreshActiveProjectPanel();
@@ -129,7 +138,7 @@ namespace BOTF3D.UI
         public void PinCiv(CivEnum civEnum)
         {
             _pinnedCivEnum = civEnum;
-            _hasPinnedCiv  = true;
+            _hasPinnedCiv = true;
             RefreshPanel();
         }
 
@@ -137,6 +146,27 @@ namespace BOTF3D.UI
         {
             if (feedbackText != null)
                 feedbackText.text = message;
+        }
+
+        // ── Borg-specific behaviour ───────────────────────────────────────────
+
+        private bool IsLocalPlayerBorg()
+        {
+            return CivManager.Instance?.LocalPlayerCivController?.CivData.CivEnum == CivEnum.BORG;
+        }
+
+        private void SetBorgTexts()
+        {
+            if (headerText != null) headerText.text = GetAgencyName(CivEnum.BORG);
+            if (feedbackText != null) feedbackText.text = "Resistance is Futile";
+            if (intelPointsText != null) intelPointsText.text = "";
+            if (perTurnRateText != null) perTurnRateText.text = "";
+        }
+
+        private System.Collections.IEnumerator BorgAutoClose()
+        {
+            yield return new WaitForSecondsRealtime(2f);
+            GalaxyMenuUIController.Instance?.CloseCurrentMenu();
         }
 
         // ── Private refresh methods ───────────────────────────────────────────
@@ -158,14 +188,14 @@ namespace BOTF3D.UI
         {
             switch (civ)
             {
-                case CivEnum.FED:    return "Starfleet Intelligence / Section 31";
-                case CivEnum.ROM:    return "Tal Shiar";
-                case CivEnum.KLING:  return "Imperial Intelligence";
-                case CivEnum.CARD:   return "Obsidian Order";
-                case CivEnum.DOM:    return "Founders Intelligence";
+                case CivEnum.FED: return "Starfleet Intelligence / Section 31";
+                case CivEnum.ROM: return "Tal Shiar";
+                case CivEnum.KLING: return "Imperial Intelligence";
+                case CivEnum.CARD: return "Obsidian Order";
+                case CivEnum.DOM: return "Founder Intelligence";
                 case CivEnum.TERRAN: return "Section 31";
-                case CivEnum.BORG:   return "Intelligence Node";
-                default:             return "Intelligence";
+                case CivEnum.BORG: return "Borg Intelligence Node";
+                default: return "Intelligence";
             }
         }
 
@@ -234,8 +264,8 @@ namespace BOTF3D.UI
         private struct ContactEntry
         {
             public IntelligenceController intelCon;
-            public CivController          targetCiv;
-            public DiplomacyController    diplomaCon;
+            public CivController targetCiv;
+            public DiplomacyController diplomaCon;
         }
 
         private List<ContactEntry> BuildContactList(CivEnum localEnum, CivController localCiv)
@@ -259,8 +289,8 @@ namespace BOTF3D.UI
 
                 list.Add(new ContactEntry
                 {
-                    intelCon   = intelCon,
-                    targetCiv  = targetCiv,
+                    intelCon = intelCon,
+                    targetCiv = targetCiv,
                     diplomaCon = diplomaCon
                 });
             }
@@ -310,11 +340,11 @@ namespace BOTF3D.UI
         {
             switch (action)
             {
-                case SecretActionsEnum.IntellectualTheft:  return "Tech Theft";
+                case SecretActionsEnum.IntellectualTheft: return "Tech Theft";
                 case SecretActionsEnum.GatherIntelligence: return "Gather Intel";
-                case SecretActionsEnum.Sabotage:           return "Sabotage";
-                case SecretActionsEnum.Disinformation:     return "Disinformation";
-                default:                                   return action.ToString();
+                case SecretActionsEnum.Sabotage: return "Sabotage";
+                case SecretActionsEnum.Disinformation: return "Disinformation";
+                default: return action.ToString();
             }
         }
 

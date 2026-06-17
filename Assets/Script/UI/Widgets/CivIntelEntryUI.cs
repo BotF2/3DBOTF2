@@ -17,9 +17,10 @@ namespace BOTF3D.UI
         [SerializeField] private TextMeshProUGUI techText;
         [SerializeField] private TextMeshProUGUI relationText;
         [SerializeField] private TextMeshProUGUI activeOpsText;
-        [SerializeField] private TextMeshProUGUI actionText;           // wire to "ActionText" TMP — shows active op type
+        [SerializeField] private TextMeshProUGUI actionText;             // wire to "ActionText" TMP — shows active op type
         [SerializeField] private TextMeshProUGUI lastSeenFleetCountText; // wire to "LastSeenFleetCount" TMP
-        [SerializeField] private TextMeshProUGUI stealInfoText;        // wire in Inspector: shows preview before op is launched
+        [SerializeField] private TextMeshProUGUI stealInfoText;          // wire in Inspector: shows preview before op is launched
+        [SerializeField] private TextMeshProUGUI localTechPointsText;    // wire to "ProgressText" TMP — shows local civ's accumulated tech points
         [SerializeField] private Button gatherIntelButton;
         [SerializeField] private Button stealTechButton;
         [SerializeField] private Button sabotageButton;
@@ -34,11 +35,12 @@ namespace BOTF3D.UI
             _initiatorCiv = localCiv.CivData.CivEnum;
             _targetCiv    = targetCiv.CivData.CivEnum;
 
-            if (civNameText  != null) civNameText.text  = targetCiv.CivData.CivShortName;
-            if (techText     != null) techText.text     = $"{targetCiv.CivData.TechRating:F1} ({targetCiv.CivData.CurrentTechLevel})";
-            if (relationText != null) relationText.text = diplomaCon != null
+            if (civNameText        != null) civNameText.text        = targetCiv.CivData.CivShortName;
+            if (techText          != null) techText.text          = $"{targetCiv.CivData.TechRating:F1} ({targetCiv.CivData.CurrentTechLevel})";
+            if (relationText      != null) relationText.text      = diplomaCon != null
                 ? diplomaCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString()
                 : "Unknown";
+            if (localTechPointsText != null) localTechPointsText.text = $"Tech pts: {localCiv.CivData.TechPoints}";
 
             RefreshActiveOpsText(intelCon);
             RefreshFleetCount(intelCon, _targetCiv);

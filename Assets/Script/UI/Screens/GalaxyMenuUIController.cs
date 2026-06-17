@@ -372,29 +372,10 @@ namespace BOTF3D.UI
             bool opening = !reportView.activeSelf;
             reportView.SetActive(opening);
 
+            // ReportEntryUI.OnEnable fires automatically when the view is activated,
+            // which calls RefreshPanel(). Explicit call here covers the re-open case.
             if (opening)
-                PopulateReportView();
-        }
-
-        private void PopulateReportView()
-        {
-            if (reportView == null) return;
-
-            string report = CombatUIManager.LastCombatReport;
-            if (string.IsNullOrEmpty(report))
-                report = "No combat report available.";
-
-            TextMeshProUGUI[] tmps = reportView.GetComponentsInChildren<TextMeshProUGUI>(true);
-            foreach (var tmp in tmps)
-            {
-                if (tmp.name == "Report(TMP)" || tmp.name == "Report")
-                {
-                    tmp.text = report;
-                    return;
-                }
-            }
-
-            Debug.LogWarning("PopulateReportView: Report(TMP) text component not found inside Report View.");
+                ReportEntryUI.Instance?.RefreshPanel();
         }
 
         public void SystemButtonPressed()
