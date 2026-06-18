@@ -698,7 +698,6 @@ GameObject:
   - component: {fileID: 1002894289974135302}
   - component: {fileID: 5386110541085353702}
   - component: {fileID: 5199846700490022719}
-  - component: {fileID: 2109464556795003278}
   - component: {fileID: 193111522720214693}
   m_Layer: 5
   m_Name: CivIntelPrefab
@@ -777,25 +776,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &2109464556795003278
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2872171980817456727}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0896011417b2fd046a115c93f766767e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ProjectEntryUI
-  actionText: {fileID: 2109514643606669922}
-  targetCivText: {fileID: 1419082586057338652}
-  progressText: {fileID: 6805331656125491117}
-  successText: {fileID: 2323073752174233823}
-  discoveryText: {fileID: 8212652774156277397}
-  progressBar: {fileID: 0}
-  cancelButton: {fileID: 3936993321615158633}
 --- !u!114 &193111522720214693
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -815,9 +795,10 @@ MonoBehaviour:
   actionText: {fileID: 2109514643606669922}
   lastSeenFleetCountText: {fileID: 2323073752174233823}
   stealInfoText: {fileID: 3228467805129955617}
+  localTechPointsText: {fileID: 0}
   gatherIntelButton: {fileID: 0}
   stealTechButton: {fileID: 7160913921777743924}
-  sabotageButton: {fileID: 0}
+  sabotageButton: {fileID: 2521377242928085905}
   disinformationButton: {fileID: 0}
 --- !u!1 &3001216717735073016
 GameObject:

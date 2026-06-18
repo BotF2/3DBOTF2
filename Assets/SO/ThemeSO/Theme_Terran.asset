@@ -31,7 +31,7 @@ MonoBehaviour:
   LowLightColor: {r: 0.65, g: 0.55, b: 0, a: 1}
   TextColor: {r: 0.9, g: 0.9, b: 0.8, a: 1}
   TMP_Text: {fileID: 0}
-  ButtonSprite0: {fileID: 21300000, guid: 7ac5af2f955d01d42871afb7cf6e3c48, type: 3}
+  ButtonSprite0: {fileID: 21300000, guid: d0e51a586e2e30442bde3b4bf4b656b0, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: 7ac5af2f955d01d42871afb7cf6e3c48, type: 3}
-  ButtonSprite2: {fileID: 21300000, guid: 7ac5af2f955d01d42871afb7cf6e3c48, type: 3}
+  ButtonSprite2: {fileID: 21300000, guid: 5d44a5b0dea3c62448ab45e4d4faac21, type: 3}
   ButtonSprite3: {fileID: 21300000, guid: 7ac5af2f955d01d42871afb7cf6e3c48, type: 3}

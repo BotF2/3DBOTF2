@@ -44,7 +44,11 @@
       "Bash(python3 -c \"import sys,json; [print\\(json.dumps\\(json.loads\\(l\\), indent=2\\)[:3000]\\) for l in sys.stdin]\")",
       "Bash(python3 *)",
       "Bash(Get-Item \"Assets/FBX/ROM_CRUISER_II.fbx\")",
-      "Bash(Select-Object Length, LastWriteTime)"
+      "Bash(Select-Object Length, LastWriteTime)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*.unity\")",
+      "Bash(Select-Object FullName)",
+      "Bash(grep -n -B2 -A 30 \"^--- .*&362816734$\\\\|^--- .*&1039613658$\\\\|^--- .*&1109388662$\" \"C:/Users/kenne/Documents/Unity/3DBOTF2_100/Assets/Scenes/GalaxyScene.unity\")",
+      "Bash(grep *)"
     ]
   }
 }

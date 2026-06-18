@@ -16,7 +16,8 @@ MonoBehaviour:
     m_Code: es
   m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
   m_Metadata:
-    m_Items: []
+    m_Items:
+    - rid: 3508330916595630393
   m_TableData:
   - m_Id: 62150139904
     m_Localized: Un jugador
@@ -150,6 +151,123 @@ MonoBehaviour:
     m_Localized: Algunos eventos
     m_Metadata:
       m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: Sin destino
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Fecha estelar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: COMBATIR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: INTEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: "Robo de tecnolog\xEDa"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: "Recopilar informaci\xF3n"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: Sabotaje
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: "Desinformaci\xF3n"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: "Se declar\xF3 la guerra con {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Relaciones con {0}: neutral'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: Acuerdo de paz con {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: Alianza forjada con {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: "La diplomacia cambi\xF3 con {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: Existe un estado de guerra entre {0} y {1}. Todos los tratados de
+      paz son nulos.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: Las relaciones entre {0} y {1} se han estabilizado en neutral.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: Se ha alcanzado un acuerdo de paz entre {0} y {1}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: "Se ha forjado una alianza entre {0} y {1}. La defensa mutua est\xE1
+      ahora activa."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: "La resistencia es in\xFAtil."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: '{0} barcos'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Sistemas
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630393
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 3508330916595630393
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696

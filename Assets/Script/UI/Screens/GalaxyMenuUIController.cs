@@ -372,54 +372,55 @@ namespace BOTF3D.UI
             bool opening = !reportView.activeSelf;
             reportView.SetActive(opening);
 
+            // ReportEntryUI.OnEnable fires automatically when the view is activated,
+            // which calls RefreshPanel(). Explicit call here covers the re-open case.
             if (opening)
-                PopulateReportView();
-        }
-
-        private void PopulateReportView()
-        {
-            if (reportView == null) return;
-
-            string report = CombatUIManager.LastCombatReport;
-            if (string.IsNullOrEmpty(report))
-                report = "No combat report available.";
-
-            TextMeshProUGUI[] tmps = reportView.GetComponentsInChildren<TextMeshProUGUI>(true);
-            foreach (var tmp in tmps)
-            {
-                if (tmp.name == "Report(TMP)" || tmp.name == "Report")
-                {
-                    tmp.text = report;
-                    return;
-                }
-            }
-
-            Debug.LogWarning("PopulateReportView: Report(TMP) text component not found inside Report View.");
+                ReportEntryUI.Instance?.RefreshPanel();
         }
 
         public void SystemButtonPressed()
         {
-            OpenMenu(Menu.StarSys, null);
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.StarSys || current == Menu.SystemsMenu || current == Menu.ASystemMenu)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.StarSys, null);
         }
 
         public void FleetButtonPressed()
         {
-            OpenMenu(Menu.Fleet, null);
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.Fleet || current == Menu.FleetMenu || current == Menu.AFleetMenu)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.Fleet, null);
         }
 
         public void DiplomacyButtonPressed()
         {
-            OpenMenu(Menu.Diplomacy, null);
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.Diplomacy || current == Menu.DiplomacyMenu || current == Menu.ADiplomacyMenu)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.Diplomacy, null);
         }
 
         public void IntelButtonPressed()
         {
-            OpenMenu(Menu.Intel, null);
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.Intel || current == Menu.IntellMenu)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.Intel, null);
         }
 
         public void EncyclopediaButtonPressed()
         {
-            OpenMenu(Menu.Encyclopedia, null);
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.Encyclopedia || current == Menu.EncyclopedianMenu)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.Encyclopedia, null);
         }
 
         private void OnHomeSystemButtonClicked()

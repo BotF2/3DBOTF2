@@ -16,7 +16,8 @@ MonoBehaviour:
     m_Code: pl
   m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
   m_Metadata:
-    m_Items: []
+    m_Items:
+    - rid: 3508330916595630391
   m_TableData:
   - m_Id: 62150139904
     m_Localized: Tryb dla jednego gracza
@@ -151,6 +152,124 @@ MonoBehaviour:
     m_Localized: "Niekt\xF3re wydarzenia"
     m_Metadata:
       m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: Brak celu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Data gwiezdna
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: WALKA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: INTEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: "Kradzie\u017C technologii"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: Zbierz informacje
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: "Sabota\u017C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: Dezinformacja
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: Wojna wypowiedziana {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Relacje z {0}: neutralne'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: Porozumienie pokojowe z {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: Sojusz zawarty z {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: "Dyplomacja zmieni\u0142a si\u0119 wraz z {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: "Stan wojny istnieje mi\u0119dzy {0} a {1}. Wszystkie traktaty pokojowe
+      s\u0105 niewa\u017Cne."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: "Relacje mi\u0119dzy {0} i {1} ustabilizowa\u0142y si\u0119 na neutralnym
+      poziomie."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: "Osi\u0105gni\u0119to porozumienie pokojowe pomi\u0119dzy {0} i
+      {1}."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: "{0} i {1} zawar\u0142y sojusz. Wzajemna obrona jest teraz aktywna."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: "Op\xF3r jest daremny"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: "{0} statk\xF3w"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Systemy
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630391
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 3508330916595630391
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696

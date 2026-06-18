@@ -862,7 +862,7 @@ namespace BOTF3D.UI
             if (fields != null)
             {
                 if (fields.DestinationName != null)
-                    fields.DestinationName.text = "No Destination";
+                    fields.DestinationName.text = BOTF3D.Core.Loc.Get("No Destination");
                 if (fields.DestinationCoordinates != null)
                     fields.DestinationCoordinates.text = "";
                 if (fields.SelectDestination != null)
@@ -887,7 +887,7 @@ namespace BOTF3D.UI
                         switch (name)
                         {
                             case "Destination FleetName Text":
-                                ourTMPs[j].text = "No Destination";
+                                ourTMPs[j].text = BOTF3D.Core.Loc.Get("No Destination");
                                 break;
                             case "Destination Coordinates":
                                 ourTMPs[j].text = "";
