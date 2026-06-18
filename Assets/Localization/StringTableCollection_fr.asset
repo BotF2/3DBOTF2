@@ -1,0 +1,274 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: StringTableCollection_fr
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: fr
+  m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
+  m_Metadata:
+    m_Items:
+    - rid: 3508330916595630389
+  m_TableData:
+  - m_Id: 62150139904
+    m_Localized: mode solo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 311542483984384
+    m_Localized: Multijoueur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72856576000
+    m_Localized: "Oser aller l\xE0 o\xF9 personne n'est jamais all\xE9."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267776
+    m_Localized: Charger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267777
+    m_Localized: "Enregistrer les param\xE8tres"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267778
+    m_Localized: "Pr\xE9c\xE9dent"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: "Cr\xE9er une carte"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Civilisation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Joueurs
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: "Param\xE8tres"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: Toi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: Dans le jeu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: Continuer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3444178414477312
+    m_Localized: Choisissez une civilisation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Ordinateur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Niveau technique
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: "T\xF4t"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: "D\xE9velopp\xE9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: "Avanc\xE9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: "Supr\xEAme"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Petit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Moyen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Grand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Lourd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: "Al\xE9atoire"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: Toi
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: "Extr\xEAme"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501554970664960
+    m_Localized: "Aucun \xE9v\xE9nement"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996608
+    m_Localized: "\xC9v\xE9nements rares"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996609
+    m_Localized: "Quelques \xE9v\xE9nements"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: Aucune destination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Date stellaire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: COMBAT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: INTEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: "Vol de mat\xE9riel informatique"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: Collectez des renseignements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: Sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: "D\xE9sinformation"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: "Guerre d\xE9clar\xE9e avec {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Relations avec {0} : neutre'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: accord de paix avec {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: "Alliance forg\xE9e avec {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: "La diplomatie a chang\xE9 avec {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: "Un \xE9tat de guerre existe d\xE9sormais entre {0} et {1}. Tous
+      les trait\xE9s de paix sont nuls."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: "Les relations entre {0} et {1} se sont stabilis\xE9es \xE0 un niveau
+      neutre."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: "Un accord de paix a \xE9t\xE9 conclu entre {0} et {1}."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: "Une alliance a \xE9t\xE9 forg\xE9e entre {0} et {1}. La d\xE9fense
+      mutuelle est d\xE9sormais active."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: "La r\xE9sistance est futile."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: '{0} navires'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Systemes
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630389
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3508330916595630389
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696

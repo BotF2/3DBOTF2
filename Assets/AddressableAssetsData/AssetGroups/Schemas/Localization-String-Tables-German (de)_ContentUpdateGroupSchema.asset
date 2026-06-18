@@ -11,6 +11,6 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5834b5087d578d24c926ce20cd31e6d6, type: 3}
   m_Name: Localization-String-Tables-German (de)_ContentUpdateGroupSchema
-  m_EditorClassIdentifier: 
-  m_Group: {fileID: 11400000, guid: e536e7df187846b42a8ea5c15ba3fde8, type: 2}
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.GroupSchemas.ContentUpdateGroupSchema
+  m_Group: {fileID: 11400000, guid: 97c7753d8909e2b41a5fe0ed60a46cf8, type: 2}
   m_StaticContent: 0

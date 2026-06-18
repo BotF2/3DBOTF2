@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FleetSO_13_ANDORIANS
   m_EditorClassIdentifier: 
   CivIndex: 13
-  Insignia: {fileID: 21300000, guid: c7e0bfa7fc00a634590561df9e0f7d21, type: 3}
+  Insignia: {fileID: 21300000, guid: 952d0e8f8a845a743b5034afecad4862, type: 3}
   CivOwnerEnum: 13
   Location: {x: 0, y: 0, z: 0}
   ShipsList: []

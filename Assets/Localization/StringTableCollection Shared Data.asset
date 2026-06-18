@@ -1,0 +1,280 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: StringTableCollection Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: StringTableCollection
+  m_TableCollectionNameGuidString: fa1ee9bcf2027c649882dd684b17436b
+  m_Entries:
+  - m_Id: 1288034254331904
+    m_Key: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Key: Resume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 62150139904
+    m_Key: Single.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 311542483984384
+    m_Key: Multiple.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72856576000
+    m_Key: ToBoldly.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267776
+    m_Key: LoadGame.LobbyMenu.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267777
+    m_Key: StartSetup.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267778
+    m_Key: Previous.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Key: InGame.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Key: GalaxyMap.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Key: CivHeader.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Key: PlayerHeader.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Key: Settings.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3444178414477312
+    m_Key: Chose A Civilzation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Key: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Key: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Key: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Key: TechLevel.GameParam.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Key: Early
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Key: Developed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Key: Advanced
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Key: Supreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Key: Small
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Key: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Key: Large
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Key: Extreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Key: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Key: Random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501554970664960
+    m_Key: No Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996608
+    m_Key: Rare Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996609
+    m_Key: Some Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Key: Ponderous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Key: YourCiv.LocalPlayer.MainMenu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993197346816
+    m_Key: No Destination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Key: Stardate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Key: Report.Combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Key: Report.Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Key: Report.Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Key: Intel.TechTheft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Key: Intel.GatherIntel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Key: Intel.Sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Key: Intel.Disinformation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Key: Dipl.War
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Key: Dipl.Neutral
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Key: Dipl.Peace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Key: Dipl.Allied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Key: Dipl.Changed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Key: Dipl.War.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Key: Dipl.Neutral.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Key: Dipl.Peace.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Key: Dipl.Allied.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Key: Resistance is Futile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Key: Ships
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Key: Ribbon.Systems
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376256
+    m_Key: Ribbon.Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Key: Ribbon.Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Key: Ribbon.Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Key: Ribbon.Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Key: Ribbon.Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Key: Ribbon.Home
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23097490120581120
+    m_Key: Fleet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23097917499187200
+    m_Key: FleetKey
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23098279618617344
+    m_Key: New Entry
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 847503923455459451
+  references:
+    version: 2
+    RefIds:
+    - rid: 847503923455459451
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1776297771334

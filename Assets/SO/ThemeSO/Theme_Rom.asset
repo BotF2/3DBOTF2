@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80299fdb14b4be145bb13b85e61b6789, type: 3}
+  m_Name: Theme_Rom
+  m_EditorClassIdentifier: 
+  CivInt: 0
+  BackImage: {fileID: 21300000, guid: 21cee358be34cbc44b61c1e18d8e2c96, type: 3}
+  Insignia: {fileID: 21300000, guid: 8c9e3fd6908d3574db264e8ea020ce79, type: 3}
+  RaceImage: {fileID: 21300000, guid: 46a0a7ea181abbf4e98fa72b74a278f5, type: 3}
+  SystemImage: {fileID: 21300000, guid: 9726e1e0c19df5b479c15a470b0472bf, type: 3}
+  FleetShipImage: {fileID: 21300000, guid: 927204f05506ff44399ac88d6be19389, type: 3}
+  PowerPlantImage: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
+  FactoryImage: {fileID: 21300000, guid: edda6618890f8a24d9889ffa0c8eb303, type: 3}
+  ShipyardImage: {fileID: 21300000, guid: 3b5874496fcc20f44a541ddd4c185416, type: 3}
+  ShieldImage: {fileID: 21300000, guid: 786125c77cd5d4f458686e1dd6022656, type: 3}
+  OrbitalBatteriesImage: {fileID: 21300000, guid: 1fae35ea715631547bbe39a271dadfe3, type: 3}
+  ResearchCenterImage: {fileID: 21300000, guid: 46aadaf2b00612c4f842cfff955c98ac, type: 3}
+  BackgroundColor: {r: 0.25, g: 0.69, b: 0.35, a: 1}
+  ForegroundColor: {r: 0.18, g: 0.5, b: 0.26, a: 1}
+  BoarderColor: {r: 0.1, g: 0.3, b: 0.16, a: 1}
+  HighLightColor: {r: 0.4, g: 0.85, b: 0.54, a: 1}
+  LowLightColor: {r: 0.18, g: 0.48, b: 0.25, a: 1}
+  TextColor: {r: 0.92, g: 1, b: 0.92, a: 1}
+  TMP_Text: {fileID: 0}
+  ButtonSprite0: {fileID: 21300000, guid: baf9dcc03a9d6b041aeb177b6be612fc, type: 3}
+  ButtonSprite1: {fileID: 21300000, guid: 85621f30cc17ce24082206b0b2657c0c, type: 3}
+  ButtonSprite2: {fileID: 21300000, guid: a4897f6d3da316b438059a980ddb4d8c, type: 3}
+  ButtonSprite3: {fileID: 21300000, guid: 85621f30cc17ce24082206b0b2657c0c, type: 3}

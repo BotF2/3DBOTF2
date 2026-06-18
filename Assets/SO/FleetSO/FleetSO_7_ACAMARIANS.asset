@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: FleetSO_7_ACAMARIANS
   m_EditorClassIdentifier: 
   CivIndex: 7
-  Insignia: {fileID: 21300000, guid: ad77f882fe6e85342aff7a393cbb1b54, type: 3}
+  Insignia: {fileID: 21300000, guid: ec4529e7c825d194bbc409a1bc5fc22d, type: 3}
   CivOwnerEnum: 7
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 

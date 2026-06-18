@@ -1,9 +1,18 @@
 using UnityEngine;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
-    public class GameController : MonoBehaviour
+    public class GameController : MonoBehaviour, IManager, IController
     {
+        public void Initialize() { }
+        public void UpdateState() { }
         /// //using Unity.Netcode; //********** install for Multiplayer???
 
         /// </summary>
@@ -14,6 +23,7 @@ namespace BOTF3D.Core
 
         public void Awake()
         {
+            ServiceLocator.Register<GameController>(this);
             gameData = new GameData();
 
             if (Instance != null)
@@ -48,5 +58,15 @@ namespace BOTF3D.Core
             else
                 return false;
         }
+    
+
+        
+        
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<GameController>();
+        }
+
+        public void Cleanup() { }
     }
 }

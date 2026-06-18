@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FleetSO_14_ANGOSIANS
   m_EditorClassIdentifier: 
   CivIndex: 14
-  Insignia: {fileID: 21300000, guid: 945884acbb650b54289a1156c1f5776c, type: 3}
+  Insignia: {fileID: 21300000, guid: afb3244ee877b8048b141a9eb35bc5af, type: 3}
   CivOwnerEnum: 14
   Location: {x: 0, y: 0, z: 0}
   ShipsList: []

@@ -17,6 +17,7 @@ MonoBehaviour:
   CivEnum: 0
   TechLevel: 0
   ShipType: 1
+  MinTechPointsRequired: 0
   shipSprite: {fileID: 21300000, guid: 66ff3af9d301b9a44bf8304a811a29e5, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 5

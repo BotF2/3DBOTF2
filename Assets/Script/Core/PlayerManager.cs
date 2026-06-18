@@ -1,14 +1,25 @@
-﻿// Ignore Spelling: Unregister
+// Ignore Spelling: Unregister
 
+using BOTF3D.Combat;
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
+
 using Mirror;
 using System.Collections.Generic;
 using UnityEngine;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
+using BOTF3D.Audio;
 
-public class PlayerManager : NetworkBehaviour
+
+
+namespace BOTF3D.Core
 {
-    public static PlayerManager Instance;
+    public class PlayerManager : NetworkBehaviour, IManager
+    {
+        public void Initialize() { }
+        public void Cleanup() { }
+        public static PlayerManager Instance;
 
     public LocalHumanPlayerController LocalPlayerController { get; private set; }
     public IPlayerController LocalPlayer { get; private set; }
@@ -21,6 +32,7 @@ public class PlayerManager : NetworkBehaviour
 
     private void Awake()
     {
+            ServiceLocator.Register<PlayerManager>(this);
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -154,5 +166,10 @@ public class PlayerManager : NetworkBehaviour
     {
         Debug.Log("SetMajorCivsInGameForMultiPlayer: Multiplayer setup pending implementation");
     }
-}
 
+
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<PlayerManager>(); }
+    }
+}

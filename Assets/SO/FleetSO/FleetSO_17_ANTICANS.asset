@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FleetSO_17_ANTICANS
   m_EditorClassIdentifier: 
   CivIndex: 17
-  Insignia: {fileID: 21300000, guid: bfe23d24cb25e3d4c96e0b595a542fe1, type: 3}
+  Insignia: {fileID: 21300000, guid: d0676641444b43044bf08be75f12b04b, type: 3}
   CivOwnerEnum: 17
   Location: {x: 0, y: 0, z: 0}
   ShipsList: []

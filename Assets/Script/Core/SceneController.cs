@@ -1,5 +1,6 @@
 // Ignore Spelling: BOTF
 
+using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
@@ -7,11 +8,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Scene = UnityEngine.SceneManagement.Scene;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
 
-namespace BOTF3D.GamePlay
+
+
+namespace BOTF3D.Core
 {
-    public class SceneController : MonoBehaviour
+    public class SceneController : MonoBehaviour, IManager
     {
+        public void Initialize() { }
+        public void UpdateState() { }
         public static SceneController Instance { get; private set; }
 
         private static string previousSceneName;
@@ -23,6 +31,7 @@ namespace BOTF3D.GamePlay
 
         private void Awake()
         {
+            ServiceLocator.Register<SceneController>(this);
             if (Instance == null)
             {
                 Instance = this;
@@ -126,21 +135,21 @@ namespace BOTF3D.GamePlay
             {
                 shipControllers1 = starSysCon.StarSysData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
-                combatType = CombatType.StarSystemCombat;
+                combatType = CombatType.SystemVsFleet;
                 Debug.Log($"  Player fleet null and '{starSysCon.name}' in combat with {enemyFleet.name}");
             }
             else if (starSysCon == null)
             {
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
-                combatType = CombatType.DeepSpaceCombat;
+                combatType = CombatType.FleetVsFleet;
                 Debug.Log($"  Star system null and '{playerFleet.name}' in combat with '{playerFleet.name}' and enemy fleet '{enemyFleet.name}' ShipControllers");
             }
             else if (enemyFleet == null)
             {
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = starSysCon.StarSysData.ShipsList;
-                combatType = CombatType.StarSystemCombat;
+                combatType = CombatType.FleetVsSystem;
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }
             // Start combat scene load coroutine
@@ -168,7 +177,8 @@ namespace BOTF3D.GamePlay
             // ✅ STEP 1: FIRST disable ALL EventSystems in BOTH scenes (while objects are still inactive)
             Debug.Log("Step 1: Disabling all EventSystems...");
 
-            var allEventSystems = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            var allEventSystems = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
+            //👉 In this scenario: we don’t care about order, just need to find them all So Mode None is exactly what you want
             foreach (var es in allEventSystems)
             {
                 es.enabled = false;
@@ -231,7 +241,7 @@ namespace BOTF3D.GamePlay
             // ✅ Create EventSystem if missing
             if (combatEventSystem == null)
             {
-                Debug.LogWarning("  ⚠️ No EventSystem found in Combat scene - creating one...");
+                Debug.Log("  ⚠️ No EventSystem found in Combat scene - creating one...");
                 var eventSystemGO = new GameObject("EventSystem (Combat)");
                 eventSystemGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
                 eventSystemGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
@@ -240,7 +250,7 @@ namespace BOTF3D.GamePlay
             }
 
             // ✅ STEP 6: Double-check - disable any OTHER EventSystems that might have re-enabled
-            var allEventSystemsAfter = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true);
+            var allEventSystemsAfter = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             int disabledCount = 0;
 
             foreach (var es in allEventSystemsAfter)
@@ -311,16 +321,69 @@ namespace BOTF3D.GamePlay
                 SceneManager.SetActiveScene(galaxyScene);
                 Debug.Log("  ✅ Galaxy scene set as active");
             }
+
+            // ✅ CRITICAL: Reactivate galaxy scene objects
             foreach (GameObject go in galaxyScene.GetRootGameObjects())
             {
                 go.SetActive(true);
             }
+            Debug.Log("  ✅ Galaxy scene objects reactivated");
+
+            // ✅ CRITICAL: Wait TWO frames for Awake() and Start() to complete
+            yield return null;
+            yield return null;
+
+            // ✅ NEW: Force activate main galaxy menu ribbon AFTER UI controllers have initialized
+            if (GalaxyMenuUIController.Instance != null)
+            {
+                Debug.Log("  ✅ Forcing activation of main galaxy menu ribbon...");
+
+                // Find CanvasGalaxy
+                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
+                if (canvasGalaxy != null)
+                {
+                    // Search for MainGalaxyMenuRibbon
+                    Transform menuRibbon = canvasGalaxy.transform.Find("MainGalaxyMenuRibbon");
+                    if (menuRibbon != null)
+                    {
+                        menuRibbon.gameObject.SetActive(true);
+                        Debug.Log($"    ✅ Activated MainGalaxyMenuRibbon");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("    ⚠️ MainGalaxyMenuRibbon not found! Searching recursively...");
+                        menuRibbon = FindInHierarchy(canvasGalaxy.transform, "MainGalaxyMenuRibbon");
+                        if (menuRibbon != null)
+                        {
+                            menuRibbon.gameObject.SetActive(true);
+                            Debug.Log($"    ✅ Activated MainGalaxyMenuRibbon (recursive search)");
+                        }
+                        else
+                        {
+                            Debug.LogError("    ❌ Could not find MainGalaxyMenuRibbon!");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogError("  ❌ CanvasGalaxy not found!");
+                }
+            }
+
             // ✅ NEW: Re-enable galaxy EventSystem
             var galaxyEventSystem = UnityEngine.EventSystems.EventSystem.current;
-            if (galaxyEventSystem != null && !galaxyEventSystem.enabled)
+            if (galaxyEventSystem != null)
             {
-                galaxyEventSystem.enabled = true;
-                Debug.Log($"  ✅ Re-enabled galaxy EventSystem");
+                if (!galaxyEventSystem.enabled)
+                {
+                    galaxyEventSystem.enabled = true;
+                    Debug.Log($"  ✅ Re-enabled galaxy EventSystem");
+                }
+            }
+            else
+            {
+                Debug.Log("  ⚠️ No EventSystem found! Creating one...");
+                CreateGalaxyEventSystem();
             }
 
             // ✅ Re-enable galaxy camera
@@ -337,21 +400,91 @@ namespace BOTF3D.GamePlay
                 Debug.Log("  ✅ Resumed galaxy time");
             }
 
-            // ✅ Refresh UI
+            // ✅ Wait one more frame before refreshing UI
+            yield return null;
+
+            // ✅ Refresh UI data
             if (FleetMenuUIController.Instance != null)
             {
                 FleetMenuUIController.Instance.SetupFleetUIData();
+                Debug.Log("  ✅ Refreshed fleet UI data");
             }
 
             if (StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetupSystemUIData();
+                Debug.Log("  ✅ Refreshed system UI data");
+
+                // ✅ CRITICAL: Move system UIs back to home storage and deactivate them
+                StarSysMenuUIController.Instance.MoveBackAnyStarSysUIGO();
+                Debug.Log("  ✅ Moved system UIs to home storage (deactivated)");
             }
 
-            // ✅ Clean up combat context
-            CombatContext.Clear();
+            // ✅ NEW: Resume build coroutines for all systems
+            if (StarSysManager.Instance != null)
+            {
+                Debug.Log("  ✅ Resuming build coroutines for all systems...");
+
+                foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
+                {
+                    if (sysCon != null && sysCon.StarSysBuildManager != null)
+                    {
+                        // Resume facility builds
+                        if (!sysCon.StarSysBuildManager.IsBuildingFacility && sysCon.sysBuildQueueList.Count > 0)
+                        {
+                            Debug.Log($"    Resuming facility build for system '{sysCon.name}'");
+                            sysCon.StarSysBuildManager.StartNextFacilityBuildIfAny();
+                        }
+
+                        // Resume ship builds
+                        if (!sysCon.StarSysBuildManager.IsBuildingShip && sysCon.sysShipBuildQueueList.Count > 0)
+                        {
+                            Debug.Log($"    Resuming ship build for system '{sysCon.name}'");
+                            sysCon.StarSysBuildManager.StartNextShipBuildIfAny();
+                        }
+                    }
+                }
+
+                Debug.Log("  ✅ Build coroutines resumed");
+            }
 
             Debug.Log("=== UnloadCombatSceneAndResumeGalaxy: Complete ===");
+        }
+
+        /// <summary>
+        /// Helper method to find objects recursively in hierarchy
+        /// </summary>
+        private Transform FindInHierarchy(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform found = FindInHierarchy(parent.GetChild(i), name);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Creates a galaxy EventSystem if missing
+        /// </summary>
+        private void CreateGalaxyEventSystem()
+        {
+            var eventSystemGO = new GameObject("EventSystem (Galaxy)");
+            eventSystemGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            eventSystemGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+
+            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+            if (galaxyScene.isLoaded)
+            {
+                SceneManager.MoveGameObjectToScene(eventSystemGO, galaxyScene);
+            }
+
+            Debug.Log("  ✅ Created EventSystem for Galaxy scene");
         }
 
         private void HideScene(string sceneName)
@@ -499,11 +632,16 @@ namespace BOTF3D.GamePlay
 
             Debug.Log("=== UnloadCombatScene: Complete ===");
         }
-    }
+    
 
-    /// <summary>
-    /// Stores combat context so we can return to galaxy with correct state
-    /// </summary>
+    
+        public void Cleanup() { }
+        private void OnDestroy()
+        {
+            ServiceLocator.Unregister<SceneController>();
+        }
+}
+
     public static class CombatContext
     {
         public static FleetController PlayerFleet { get; set; }

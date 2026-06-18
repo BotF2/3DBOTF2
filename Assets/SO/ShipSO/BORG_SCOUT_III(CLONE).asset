@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: BORG_SCOUT_III(CLONE)
   m_EditorClassIdentifier: Assembly-CSharp::ShipSO
-  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: fafbaaf2b3388e44b9b861b6066e2820, type: 3}
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 1795fc9dcae56194495aa8875484bb15, type: 3}
   ShipName: BORG_SCOUT_III(CLONE)
   CivEnum: 5
   TechLevel: 2
   ShipType: 0
+  MinTechPointsRequired: 0
   shipSprite: {fileID: 21300000, guid: 52c2355ed408e9247baae2e609ecb739, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 8

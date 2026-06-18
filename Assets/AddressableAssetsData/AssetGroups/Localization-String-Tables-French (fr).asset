@@ -11,20 +11,19 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
   m_Name: Localization-String-Tables-French (fr)
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Localization-String-Tables-French (fr)
-  m_GUID: 1e7b781c0c603504e888487b48352a7d
+  m_GUID: 23b57d40b2f1d2341af5fa50d6b829c4
   m_SerializeEntries:
-  - m_GUID: ea864335e7c15ca498df781fb2956c26
-    m_Address: StringTable3_fr
+  - m_GUID: 84121ff7c7372ca4dad0c293cb2bdea9
+    m_Address: StringTableCollection_fr
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-fr
-    - Preload
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: dc6ce6bc432f372418825e8ebe0f1220, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: bf30046827cdc2c4fbbfb4886a59f86f, type: 2}
-    - {fileID: 11400000, guid: 4f73c902bae54f64b9eb37372ddba850, type: 2}
+    - {fileID: 11400000, guid: 9c72736bbe996384db5e81ac9947cf8c, type: 2}
+    - {fileID: 11400000, guid: 40806b67349cfaf44a437667cf5e96b0, type: 2}

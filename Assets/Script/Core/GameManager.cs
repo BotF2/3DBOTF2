@@ -3,11 +3,19 @@
 using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 namespace BOTF3D.Core
 {
-    public class GameManager : MonoBehaviour
+    public class GameManager : MonoBehaviour, IManager
     {
+        public void Initialize() {}
+        public void Cleanup() {}
         public static GameManager Instance { get; private set; } // a static singleton, no other script can instantiate a GameManager, must us the singleton
 
         public MainMenuUIController mainMenuUIController;
@@ -23,6 +31,31 @@ namespace BOTF3D.Core
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
+            }
+            Debug.Log($"=== GAME MANAGER BUILD DIAGNOSTICS ===");
+            Debug.Log($"Active Scene: {SceneManager.GetActiveScene().name}");
+            Debug.Log($"Build Index: {SceneManager.GetActiveScene().buildIndex}");
+            Debug.Log($"Total Scenes in Build: {SceneManager.sceneCountInBuildSettings}");
+
+            // List all loaded scenes
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                Debug.Log($"  Loaded Scene [{i}]: {scene.name} (path: {scene.path})");
+            }
+        }
+        private void Start()
+        {
+            // Subscribe to scene loaded event
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            // Verify MainMenuUIController exists
+            if (MainMenuUIController.Instance == null)
+            {
+                Debug.LogError("❌ CRITICAL: MainMenuUIController.Instance is NULL at Start!");
+            }
+            else
+            {
+                Debug.Log("✅ MainMenuUIController.Instance found");
             }
         }
         public void SetGameMode(GameMode mode) // single player vs multiplayer, set in the main menu, used by GameController to determine how to run the game
@@ -42,11 +75,7 @@ namespace BOTF3D.Core
                 Debug.LogWarning("GameManager: MainMenuUIController.Instance is null - will retry when MainMenu scene loads");
             }
         }
-        private void Start()
-        {
-            // Subscribe to scene loaded event
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
+
         public void RegisterMainMenu(MainMenuUIController controller)
         {
             mainMenuUIController = controller;

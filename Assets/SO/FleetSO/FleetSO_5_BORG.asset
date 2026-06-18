@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: FleetSO_5_BORG
   m_EditorClassIdentifier: 
   CivIndex: 5
-  Insignia: {fileID: 21300000, guid: d6f9a44a9dc9a3a4ea7c0c1fedc3d44b, type: 3}
+  Insignia: {fileID: 21300000, guid: 15e91d9209ceb74458cb0203fa284151, type: 3}
   CivOwnerEnum: 5
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 

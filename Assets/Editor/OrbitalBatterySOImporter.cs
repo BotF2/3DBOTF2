@@ -1,8 +1,12 @@
-using BOTF3D.Core;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
+using BOTF3D.Core;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
 public class OrbitalBatterySOImporter : EditorWindow
 {
 #if UNITY_EDITOR
@@ -44,9 +48,9 @@ public class OrbitalBatterySOImporter : EditorWindow
             if (fields.Length > 7) // Ensure there are enough fields
             {
                 string imageString = fields[4];
-                foreach (string file in Directory.GetFiles($"BOTF3D/Resources/OrbitalBatteries/", "*.png"))
+                foreach (string file in Directory.GetFiles($"3DBOTF2/Resources/OrbitalBatteries/", "*.png"))
                 {
-                    if (file == "BOTF3D/Resources/OrbitalBatteries/" + imageString + ".png")
+                    if (file == "3DBOTF2/Resources/OrbitalBatteries/" + imageString + ".png")
                     {
                         imageString = "OrbitalBatteries/" + imageString;
                     }
@@ -66,7 +70,7 @@ public class OrbitalBatterySOImporter : EditorWindow
                     OrbitalBatterySO.PowerLoad = int.Parse(fields[7]);
                     OrbitalBatterySO.OrbitalBatterySprite = Resources.Load<Sprite>(imageString);
                     OrbitalBatterySO.Description = (fields[8]);
-                    string assetPath = $"BOTF3D/SO/StarSysOrbitalBatterySO/OrbitalBatterySO_{OrbitalBatterySO.CivInt}_{OrbitalBatterySO.Name}.asset";
+                    string assetPath = $"3DBOTF2/SO/StarSysOrbitalBatterySO/OrbitalBatterySO_{OrbitalBatterySO.CivInt}_{OrbitalBatterySO.Name}.asset";
                     AssetDatabase.CreateAsset(OrbitalBatterySO, assetPath);
                     AssetDatabase.SaveAssets();
                 }

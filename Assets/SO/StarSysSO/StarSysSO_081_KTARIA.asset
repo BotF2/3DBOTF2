@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 413d21328479c6a43b56205ac7b8ebcc, type: 3}
+  m_Name: StarSysSO_081_KTARIA
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
+  StarSysInt: 81
+  Position: {x: -53.28, y: 2.36, z: -75.96}
+  SysName: KTARIA
+  FirstOwner: 81
+  CurrentOwner: 81
+  StarType: 3
+  StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
+  Dilitium: 1
+  PowerStations: 1
+  Factories: 1
+  ResearchCenters: 1
+  Shipyards: 1
+  ShieldGenerators: 2
+  OrbitalBatteries: 5
+  Description: Description
+  powerPlantSprite: {fileID: 0}
+  factorySprite: {fileID: 21300000, guid: 3122b83fc111b524bb8d653746b72bd3, type: 3}
+  shipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
+  shieldSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
+  orbitalSprite: {fileID: 21300000, guid: eed8212e85494304581c2fbe4cbf2e84, type: 3}
+  researchCenterSprite: {fileID: 21300000, guid: ce8c2536b4f642f4488292d2bf4faad3, type: 3}
+  IsHomeworld: 1
+  IsHabitable: 1
+  IsTerraformable: 1

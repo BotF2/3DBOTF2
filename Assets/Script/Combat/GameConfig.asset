@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b3d022ef787d3f4592211029ec9b4a5, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Config.GameConfig
+  enableDebugLogs: 1
+  enableCombatDebug: 0
+  enableAIDebug: 0
+  showFogOfWarDebug: 0
+  maxShipsPerCombat: 20
+  combatTimeScale: 1
+  useProjectilePooling: 1
+  maxPooledProjectiles: 50
+  weaponDamageMultiplier: 1
+  shieldStrengthMultiplier: 1
+  allowCombatRetreat: 1
+  disableRandomSideTwoOrders: 0
+  startingCredits: 1000
+  baseResearchPerTurn: 10
+  fleetMaintenanceMultiplier: 1
+  enableTooltips: 1
+  tooltipDelay: 0.5
+  enableTutorials: 1
+  masterVolume: 1
+  musicVolume: 0.7
+  sfxVolume: 0.8

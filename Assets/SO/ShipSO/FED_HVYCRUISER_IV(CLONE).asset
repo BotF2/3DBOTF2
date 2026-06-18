@@ -16,7 +16,8 @@ MonoBehaviour:
   ShipName: FED_HVYCRUISER_IV(CLONE)
   CivEnum: 0
   TechLevel: 3
-  ShipType: 5
+  ShipType: 4
+  MinTechPointsRequired: 0
   shipSprite: {fileID: 21300000, guid: 132dbbeee4d552c4f8cc655867c9b3ef, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 9

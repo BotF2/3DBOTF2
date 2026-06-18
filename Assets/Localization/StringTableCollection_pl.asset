@@ -1,0 +1,275 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: StringTableCollection_pl
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: pl
+  m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
+  m_Metadata:
+    m_Items:
+    - rid: 3508330916595630391
+  m_TableData:
+  - m_Id: 62150139904
+    m_Localized: Tryb dla jednego gracza
+    m_Metadata:
+      m_Items: []
+  - m_Id: 311542483984384
+    m_Localized: Tryb wieloosobowy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72856576000
+    m_Localized: "\u015Amia\u0142o pod\u0105\u017Ca\u0107 tam, gdzie nikt jeszcze
+      nie dotar\u0142."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267776
+    m_Localized: "Obci\u0105\u017Cenie"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267777
+    m_Localized: Zapisz ustawienia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267778
+    m_Localized: Poprzedni
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: "Utw\xF3rz map\u0119"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Cywilizacja
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Gracze
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: Ustawienia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: Ty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: W grze
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pauza
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: "Kontynuowa\u0107"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3444178414477312
+    m_Localized: "Wybierz cywilizacj\u0119"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Komputer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Nieobecny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Poziom techniczny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Wczesny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: "Rozwini\u0119ty"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Zaawansowany
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: "Najwy\u017Cszy"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: "Ma\u0142y"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: "\u015Aredni"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: "Du\u017Cy"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: "Ci\u0119\u017Cki"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Kanon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: Losowy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: Ty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: Skrajny
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501554970664960
+    m_Localized: "Brak wydarze\u0144"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996608
+    m_Localized: Rzadkie wydarzenia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996609
+    m_Localized: "Niekt\xF3re wydarzenia"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: Brak celu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Data gwiezdna
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: WALKA
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: INTEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: "Kradzie\u017C technologii"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: Zbierz informacje
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: "Sabota\u017C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: Dezinformacja
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: Wojna wypowiedziana {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Relacje z {0}: neutralne'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: Porozumienie pokojowe z {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: Sojusz zawarty z {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: "Dyplomacja zmieni\u0142a si\u0119 wraz z {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: "Stan wojny istnieje mi\u0119dzy {0} a {1}. Wszystkie traktaty pokojowe
+      s\u0105 niewa\u017Cne."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: "Relacje mi\u0119dzy {0} i {1} ustabilizowa\u0142y si\u0119 na neutralnym
+      poziomie."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: "Osi\u0105gni\u0119to porozumienie pokojowe pomi\u0119dzy {0} i
+      {1}."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: "{0} i {1} zawar\u0142y sojusz. Wzajemna obrona jest teraz aktywna."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: "Op\xF3r jest daremny"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: "{0} statk\xF3w"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Systemy
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630391
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3508330916595630391
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696

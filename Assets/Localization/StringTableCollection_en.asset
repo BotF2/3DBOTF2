@@ -1,0 +1,283 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: StringTableCollection_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
+  m_Metadata:
+    m_Items:
+    - rid: 3508330916595630394
+  m_TableData:
+  - m_Id: 62150139904
+    m_Localized: Singleplayer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 311542483984384
+    m_Localized: Multiplayer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72856576000
+    m_Localized: To boldly go where no one has gone before.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267776
+    m_Localized: Load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267777
+    m_Localized: Save Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72936267778
+    m_Localized: Previous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873292020850688
+    m_Localized: Create Map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884664951644160
+    m_Localized: Civilization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215858900992
+    m_Localized: Players
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891215905038336
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229303623680
+    m_Localized: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 904229349761024
+    m_Localized: In Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034254331904
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1288034308857856
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3444178414477312
+    m_Localized: Chose A Civilization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202816
+    m_Localized: Computer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1661048295202817
+    m_Localized: Absent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2038611676962816
+    m_Localized: Tech Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072923910144
+    m_Localized: Early
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298752
+    m_Localized: Developed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298753
+    m_Localized: Advanced
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298754
+    m_Localized: Supreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298755
+    m_Localized: Small
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298756
+    m_Localized: Medium
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298757
+    m_Localized: Large
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298758
+    m_Localized: Ponderous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298759
+    m_Localized: Canon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2041072932298760
+    m_Localized: Random
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425711730688
+    m_Localized: You
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3466425766256640
+    m_Localized: Extreme
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501554970664960
+    m_Localized: No Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996608
+    m_Localized: Rare Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3501555020996609
+    m_Localized: Some Events
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: No Destination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Stardate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: COMBAT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: INTEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: Tech Theft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: Gather Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: Sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: Disinformation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: War declared with {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Relations with {0}: neutral'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: Peace accord with {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: Alliance forged with {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: Diplomacy changed with {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: A state of war now exists between {0} and {1}. All peace treaties
+      are void.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: Relations between {0} and {1} have settled at neutral.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: A peace accord has been reached between {0} and {1}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: An alliance has been forged between {0} and {1}. Mutual defense
+      is now active.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: Resistance is Futile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: '{0} ships'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Systems
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630394
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23097490120581120
+    m_Localized: Fleet
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630394
+  - m_Id: 23097917499187200
+    m_Localized: Fleet
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3508330916595630394
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696
+        - id: 23097490120581120

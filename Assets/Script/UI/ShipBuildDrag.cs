@@ -1,12 +1,20 @@
 using BOTF3D.Core;
-using BOTF3D.GamePlay;
+
 using BOTF3D.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BOTF3D.Combat;
+using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
+using BOTF3D.Audio;
+
+
 
 
 public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
 {
+        public void Initialize() { }
+        public void UpdateState() { }
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
     public Transform originalParent;

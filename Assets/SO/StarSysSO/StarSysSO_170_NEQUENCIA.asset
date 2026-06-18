@@ -11,27 +11,28 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 413d21328479c6a43b56205ac7b8ebcc, type: 3}
   m_Name: StarSysSO_170_NEQUENCIA
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 170
-  Position: {x: 280, y: 23, z: 10}
+  Position: {x: 33.15, y: 2.02, z: 2.82}
   SysName: NEQUENCIA
   FirstOwner: 170
   CurrentOwner: 170
-  StarType: 5
-  StarSprit: {fileID: 21300000, guid: 37f43cf2c0796bf44973efd08231096a, type: 3}
-  Population: 0
-  PopulationLimit: 10
-  Farms: 0
+  StarType: 6
+  StarSprit: {fileID: 21300000, guid: 273bfa1105374de4790896227204089a, type: 3}
+  Dilitium: 1
   PowerStations: 0
   Factories: 0
   ResearchCenters: 0
   Shipyards: 0
   ShieldGenerators: 0
   OrbitalBatteries: 0
-  Description: descrition here...
-  powerPlantSprite: {fileID: 0}
-  factorySprite: {fileID: 0}
-  shipyardSprite: {fileID: 0}
-  shieldSprite: {fileID: 0}
-  orbitalSprite: {fileID: 0}
-  researchCenterSprite: {fileID: 0}
+  Description: Description
+  powerPlantSprite: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
+  factorySprite: {fileID: 21300000, guid: 5121a27f0bd353f4ca5cf0ebcb16f223, type: 3}
+  shipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
+  shieldSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
+  orbitalSprite: {fileID: 21300000, guid: 8b78df08e970299418fcfedccdb29648, type: 3}
+  researchCenterSprite: {fileID: 21300000, guid: 6e52dd9974776e4468567ae690e10a9a, type: 3}
+  IsHomeworld: 0
+  IsHabitable: 1
+  IsTerraformable: 1

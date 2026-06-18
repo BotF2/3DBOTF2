@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: FleetSO_22_ATREANS
   m_EditorClassIdentifier: 
   CivIndex: 22
-  Insignia: {fileID: 21300000, guid: bcfbab117900fcd46a3d3cadb1e55d74, type: 3}
+  Insignia: {fileID: 21300000, guid: d7c7e55cbb5adbf48b54ce676d89505c, type: 3}
   CivOwnerEnum: 22
   Location: {x: 0, y: 0, z: 0}
-  ShipsList: []
+  ShipsList:
+  - {fileID: 0}
   MaxWarpFactor: 0
   CurrentWarpFactor: 0
   Name: 
