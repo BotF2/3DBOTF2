@@ -147,6 +147,126 @@ MonoBehaviour:
     m_Key: YourCiv.LocalPlayer.MainMenu
     m_Metadata:
       m_Items: []
+  - m_Id: 23061993197346816
+    m_Key: No Destination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Key: Stardate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Key: Report.Combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Key: Report.Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Key: Report.Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Key: Intel.TechTheft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Key: Intel.GatherIntel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Key: Intel.Sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Key: Intel.Disinformation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Key: Dipl.War
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Key: Dipl.Neutral
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Key: Dipl.Peace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Key: Dipl.Allied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Key: Dipl.Changed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Key: Dipl.War.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Key: Dipl.Neutral.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Key: Dipl.Peace.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Key: Dipl.Allied.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Key: Resistance is Futile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Key: Ships
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Key: Ribbon.Systems
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376256
+    m_Key: Ribbon.Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Key: Ribbon.Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Key: Ribbon.Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Key: Ribbon.Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Key: Ribbon.Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Key: Ribbon.Home
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23097490120581120
+    m_Key: Fleet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23097917499187200
+    m_Key: FleetKey
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23098279618617344
+    m_Key: New Entry
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

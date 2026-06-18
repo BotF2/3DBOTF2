@@ -158,7 +158,7 @@ namespace BOTF3D.UI
         private void SetBorgTexts()
         {
             if (headerText != null) headerText.text = GetAgencyName(CivEnum.BORG);
-            if (feedbackText != null) feedbackText.text = "Resistance is Futile";
+            if (feedbackText != null) feedbackText.text = BOTF3D.Core.Loc.Get("Resistance is Futile");
             if (intelPointsText != null) intelPointsText.text = "";
             if (perTurnRateText != null) perTurnRateText.text = "";
         }

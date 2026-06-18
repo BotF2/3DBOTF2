@@ -16,7 +16,8 @@ MonoBehaviour:
     m_Code: de
   m_SharedData: {fileID: 11400000, guid: fa1ee9bcf2027c649882dd684b17436b, type: 2}
   m_Metadata:
-    m_Items: []
+    m_Items:
+    - rid: 3508330916595630388
   m_TableData:
   - m_Id: 62150139904
     m_Localized: Einzelspieler
@@ -150,6 +151,124 @@ MonoBehaviour:
     m_Localized: Einige Ereignisse
     m_Metadata:
       m_Items: []
+  - m_Id: 23061993197346816
+    m_Localized: Kein Ziel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872768
+    m_Localized: Sternzeit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872769
+    m_Localized: KAMPF
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872770
+    m_Localized: DIPL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872771
+    m_Localized: Intel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872772
+    m_Localized: Technikdiebstahl
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872773
+    m_Localized: Informationen sammeln
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872774
+    m_Localized: Sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872775
+    m_Localized: Desinformation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872776
+    m_Localized: "Krieg erkl\xE4rt mit {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872777
+    m_Localized: 'Beziehungen zu {0}: neutral'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872778
+    m_Localized: Friedensabkommen mit {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872779
+    m_Localized: "B\xFCndnis geschmiedet mit {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872780
+    m_Localized: "Die Diplomatie \xE4nderte sich mit {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872781
+    m_Localized: "Zwischen {0} und {1} herrscht nun Kriegszustand. Alle Friedensvertr\xE4ge
+      sind ung\xFCltig."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872782
+    m_Localized: Die Beziehungen zwischen {0} und {1} haben sich auf einem neutralen
+      Niveau eingependelt.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872783
+    m_Localized: Zwischen {0} und {1} wurde ein Friedensabkommen erzielt.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872784
+    m_Localized: "Zwischen {0} und {1} wurde ein B\xFCndnis geschlossen. Die gegenseitige
+      Verteidigung ist nun aktiv."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872785
+    m_Localized: Widerstand ist zwecklos
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23061993251872786
+    m_Localized: '{0} Schiffe'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831874461696
+    m_Localized: Systeme
+    m_Metadata:
+      m_Items:
+      - rid: 3508330916595630388
+  - m_Id: 23091831937376256
+    m_Localized: Fleets
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376257
+    m_Localized: Diplomacy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376258
+    m_Localized: Intelligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376259
+    m_Localized: Report
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376260
+    m_Localized: Encyclopedia
+    m_Metadata:
+      m_Items: []
+  - m_Id: 23091831937376261
+    m_Localized: Home
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 3508330916595630388
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 23091831874461696

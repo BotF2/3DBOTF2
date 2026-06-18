@@ -269,9 +269,9 @@ namespace BOTF3D.UI
         {
             switch (cat)
             {
-                case ReportCategory.Combat:    return "COMBAT";
-                case ReportCategory.Diplomacy: return "DIPL";
-                case ReportCategory.Intel:     return "INTEL";
+                case ReportCategory.Combat:    return BOTF3D.Core.Loc.Get("Report.Combat",    "COMBAT");
+                case ReportCategory.Diplomacy: return BOTF3D.Core.Loc.Get("Report.Diplomacy", "DIPL");
+                case ReportCategory.Intel:     return BOTF3D.Core.Loc.Get("Report.Intel",     "INTEL");
                 default:                       return "—";
             }
         }
@@ -280,10 +280,10 @@ namespace BOTF3D.UI
         {
             switch (action)
             {
-                case SecretActionsEnum.IntellectualTheft:  return "Tech Theft";
-                case SecretActionsEnum.GatherIntelligence: return "Gather Intel";
-                case SecretActionsEnum.Sabotage:           return "Sabotage";
-                case SecretActionsEnum.Disinformation:     return "Disinformation";
+                case SecretActionsEnum.IntellectualTheft:  return BOTF3D.Core.Loc.Get("Intel.TechTheft",      "Tech Theft");
+                case SecretActionsEnum.GatherIntelligence: return BOTF3D.Core.Loc.Get("Intel.GatherIntel",    "Gather Intel");
+                case SecretActionsEnum.Sabotage:           return BOTF3D.Core.Loc.Get("Intel.Sabotage",       "Sabotage");
+                case SecretActionsEnum.Disinformation:     return BOTF3D.Core.Loc.Get("Intel.Disinformation", "Disinformation");
                 default:                                   return action.ToString();
             }
         }
@@ -292,11 +292,11 @@ namespace BOTF3D.UI
         {
             switch (state)
             {
-                case DiplomaticState.War:     return $"War declared with {other}";
-                case DiplomaticState.Neutral: return $"Relations with {other}: neutral";
-                case DiplomaticState.Peace:   return $"Peace accord with {other}";
-                case DiplomaticState.Allied:  return $"Alliance forged with {other}";
-                default:                      return $"Diplomacy changed with {other}";
+                case DiplomaticState.War:     return BOTF3D.Core.Loc.Format("Dipl.War",     "War declared with {0}",          other);
+                case DiplomaticState.Neutral: return BOTF3D.Core.Loc.Format("Dipl.Neutral", "Relations with {0}: neutral",    other);
+                case DiplomaticState.Peace:   return BOTF3D.Core.Loc.Format("Dipl.Peace",   "Peace accord with {0}",          other);
+                case DiplomaticState.Allied:  return BOTF3D.Core.Loc.Format("Dipl.Allied",  "Alliance forged with {0}",       other);
+                default:                      return BOTF3D.Core.Loc.Format("Dipl.Changed", "Diplomacy changed with {0}",     other);
             }
         }
 
@@ -305,13 +305,17 @@ namespace BOTF3D.UI
             switch (state)
             {
                 case DiplomaticState.War:
-                    return $"A state of war now exists between {local} and {other}. All peace treaties are void.";
+                    return BOTF3D.Core.Loc.Format("Dipl.War.Detail",
+                        "A state of war now exists between {0} and {1}. All peace treaties are void.", local, other);
                 case DiplomaticState.Neutral:
-                    return $"Relations between {local} and {other} have settled at neutral.";
+                    return BOTF3D.Core.Loc.Format("Dipl.Neutral.Detail",
+                        "Relations between {0} and {1} have settled at neutral.", local, other);
                 case DiplomaticState.Peace:
-                    return $"A peace accord has been reached between {local} and {other}.";
+                    return BOTF3D.Core.Loc.Format("Dipl.Peace.Detail",
+                        "A peace accord has been reached between {0} and {1}.", local, other);
                 case DiplomaticState.Allied:
-                    return $"An alliance has been forged between {local} and {other}. Mutual defense is now active.";
+                    return BOTF3D.Core.Loc.Format("Dipl.Allied.Detail",
+                        "An alliance has been forged between {0} and {1}. Mutual defense is now active.", local, other);
                 default:
                     return "";
             }

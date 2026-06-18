@@ -266,6 +266,7 @@ GameObject:
   m_Component:
   - component: {fileID: 63061175}
   - component: {fileID: 63061176}
+  - component: {fileID: 63061177}
   m_Layer: 5
   m_Name: Toggle_CAPTURE2
   m_TagString: Untagged
@@ -355,6 +356,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &63061177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 63061174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &70026372
 GameObject:
   m_ObjectHideFlags: 0
@@ -440,6 +459,7 @@ GameObject:
   m_Component:
   - component: {fileID: 76402738}
   - component: {fileID: 76402739}
+  - component: {fileID: 76402740}
   m_Layer: 5
   m_Name: Toggle_FORMATION2
   m_TagString: Untagged
@@ -529,6 +549,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &76402740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 76402737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &82380296
 GameObject:
   m_ObjectHideFlags: 0
@@ -1605,6 +1643,7 @@ GameObject:
   m_Component:
   - component: {fileID: 197687518}
   - component: {fileID: 197687519}
+  - component: {fileID: 197687520}
   m_Layer: 5
   m_Name: Toggle_ENGAGE2
   m_TagString: Untagged
@@ -1694,6 +1733,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 1
+--- !u!114 &197687520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197687517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &250179466
 GameObject:
   m_ObjectHideFlags: 0
@@ -1779,6 +1836,7 @@ GameObject:
   m_Component:
   - component: {fileID: 264356598}
   - component: {fileID: 264356599}
+  - component: {fileID: 264356600}
   m_Layer: 5
   m_Name: Toggle_RETREAT2
   m_TagString: Untagged
@@ -1868,6 +1926,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &264356600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 264356597}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &265721082
 GameObject:
   m_ObjectHideFlags: 0
@@ -2330,6 +2406,7 @@ GameObject:
   m_Component:
   - component: {fileID: 326862252}
   - component: {fileID: 326862254}
+  - component: {fileID: 326862255}
   m_Layer: 5
   m_Name: Toggle_ENGAGE
   m_TagString: Untagged
@@ -2419,6 +2496,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 1
+--- !u!114 &326862255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326862251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &379170579
 GameObject:
   m_ObjectHideFlags: 0
@@ -2979,6 +3074,7 @@ GameObject:
   m_Component:
   - component: {fileID: 486750007}
   - component: {fileID: 486750008}
+  - component: {fileID: 486750009}
   m_Layer: 5
   m_Name: Toggle_CAPTURE
   m_TagString: Untagged
@@ -3068,6 +3164,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &486750009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486750006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &506096627
 GameObject:
   m_ObjectHideFlags: 0
@@ -5494,6 +5608,7 @@ GameObject:
   m_Component:
   - component: {fileID: 932392498}
   - component: {fileID: 932392497}
+  - component: {fileID: 932392499}
   m_Layer: 0
   m_Name: CombatOrderSelection
   m_TagString: Untagged
@@ -5568,6 +5683,24 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &932392499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932392495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &933925861
 GameObject:
   m_ObjectHideFlags: 0
@@ -6067,6 +6200,7 @@ GameObject:
   - component: {fileID: 1011744379}
   - component: {fileID: 1011744378}
   - component: {fileID: 1011744377}
+  - component: {fileID: 1011744380}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -6176,6 +6310,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1011744375}
   m_CullTransparentMesh: 1
+--- !u!114 &1011744380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1011744375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 0
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1030628051
 GameObject:
   m_ObjectHideFlags: 0
@@ -6186,6 +6338,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1030628052}
   - component: {fileID: 1030628053}
+  - component: {fileID: 1030628054}
   m_Layer: 5
   m_Name: Toggle_TARGET_TRANSPORTS2
   m_TagString: Untagged
@@ -6275,6 +6428,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1030628054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1030628051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1042591883
 GameObject:
   m_ObjectHideFlags: 0
@@ -6634,6 +6805,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1158722934}
   - component: {fileID: 1158722935}
+  - component: {fileID: 1158722936}
   m_Layer: 5
   m_Name: Toggle_SCUTTLE
   m_TagString: Untagged
@@ -6723,6 +6895,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1158722936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1158722933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1186034485
 GameObject:
   m_ObjectHideFlags: 0
@@ -6733,6 +6923,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1186034486}
   - component: {fileID: 1186034487}
+  - component: {fileID: 1186034488}
   m_Layer: 5
   m_Name: Toggle_RUSH
   m_TagString: Untagged
@@ -6822,6 +7013,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1186034488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186034485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1187121023
 GameObject:
   m_ObjectHideFlags: 0
@@ -6982,6 +7191,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1223335957}
   - component: {fileID: 1223335958}
+  - component: {fileID: 1223335959}
   m_Layer: 5
   m_Name: Toggle_SCUTTLE2
   m_TagString: Untagged
@@ -7071,6 +7281,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1223335959
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1223335956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1242166657
 GameObject:
   m_ObjectHideFlags: 0
@@ -8911,6 +9139,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1520271896}
   - component: {fileID: 1520271897}
+  - component: {fileID: 1520271898}
   m_Layer: 5
   m_Name: Toggle_TARGET_TRANSPORTS
   m_TagString: Untagged
@@ -9000,6 +9229,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1520271898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1520271895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1526961623
 GameObject:
   m_ObjectHideFlags: 0
@@ -10179,6 +10426,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1707488958}
   - component: {fileID: 1707488959}
+  - component: {fileID: 1707488960}
   m_Layer: 5
   m_Name: Toggle_RETREAT
   m_TagString: Untagged
@@ -10268,6 +10516,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1707488960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1707488957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1715804526
 GameObject:
   m_ObjectHideFlags: 0
@@ -10733,6 +10999,7 @@ GameObject:
   - component: {fileID: 1754830087}
   - component: {fileID: 1754830086}
   - component: {fileID: 1754830085}
+  - component: {fileID: 1754830088}
   m_Layer: 5
   m_Name: ButtonEnterCombat
   m_TagString: Untagged
@@ -10854,6 +11121,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1754830083}
   m_CullTransparentMesh: 1
+--- !u!114 &1754830088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1754830083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 0
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1788582307
 GameObject:
   m_ObjectHideFlags: 0
@@ -11670,6 +11955,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1895409803}
   - component: {fileID: 1895409804}
+  - component: {fileID: 1895409805}
   m_Layer: 5
   m_Name: Toggle_FORMATION
   m_TagString: Untagged
@@ -11759,6 +12045,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1895409805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1895409802}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1901018632
 GameObject:
   m_ObjectHideFlags: 0
@@ -12056,6 +12360,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1922096432}
   - component: {fileID: 1922096433}
+  - component: {fileID: 1922096434}
   m_Layer: 5
   m_Name: Toggle_RUSH2
   m_TagString: Untagged
@@ -12145,6 +12450,24 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1922096434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922096431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 0
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &1934061528
 GameObject:
   m_ObjectHideFlags: 0

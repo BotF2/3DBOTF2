@@ -541,15 +541,11 @@ namespace BOTF3D.UI
             if (!stardateText.gameObject.activeInHierarchy) return;
 
             // Get current stardate from TimeManager
+            string label = BOTF3D.Core.Loc.Get("Stardate", "Stardate");
             if (TimeManager.Instance != null)
-            {
-                int currentStardate = TimeManager.Instance.currentStardate;
-                stardateText.text = $"Stardate: {currentStardate}";
-            }
+                stardateText.text = $"{label}: {TimeManager.Instance.currentStardate}";
             else
-            {
-                stardateText.text = "Stardate: --";
-            }
+                stardateText.text = $"{label}: --";
         }
 
         private void OnEnable()

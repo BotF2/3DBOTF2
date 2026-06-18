@@ -2,10 +2,6 @@ using BOTF3D.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
 
 
 
@@ -73,57 +69,24 @@ namespace BOTF3D.UI
                 return;
             }
 
-            // Set default theme (don't apply yet - images might not be ready)
             if (themeSOs != null && themeSOs.Length > 0)
-            {
-                CurrentTheme = themeSOs[0]; // Fed theme
-                Debug.Log("ThemeManager: Default theme set to Fed");
-            }
+                CurrentTheme = themeSOs[0];
             else
-            {
-                Debug.LogError("ThemeManager: themeSOs array is empty! Assign ThemeSO assets in Inspector.");
-            }
+                GameLogger.LogError(GameLogger.LogCategory.UI, "ThemeManager: themeSOs array is empty — assign ThemeSO assets in Inspector.");
         }
 
-        private void Start()
-        {
-            // Don't apply theme yet - UI elements might be in a scene that will unload
-            // ApplyTheme will be called from MainMenuUIController.SetLocalCivilization()
-            Debug.Log("ThemeManager: Start - theme will be applied when civilization is selected");
-        }
+        private void Start() { }
 
         public void ApplyTheme(ThemeEnum themeEnum)
         {
-            // Select the theme SO
-            switch (themeEnum)
+            int index = (int)themeEnum;
+            if (themeSOs == null || index < 0 || index >= themeSOs.Length)
             {
-                case ThemeEnum.Fed:
-                    CurrentTheme = themeSOs[0];
-                    break;
-                case ThemeEnum.Rom:
-                    CurrentTheme = themeSOs[1];
-                    break;
-                case ThemeEnum.Kling:
-                    CurrentTheme = themeSOs[2];
-                    break;
-                case ThemeEnum.Card:
-                    CurrentTheme = themeSOs[3];
-                    break;
-                case ThemeEnum.Dom:
-                    CurrentTheme = themeSOs[4];
-                    break;
-                case ThemeEnum.Borg:
-                    CurrentTheme = themeSOs[5];
-                    break;
-                case ThemeEnum.Terran:
-                    CurrentTheme = themeSOs[6];
-                    break;
-                default:
-                    CurrentTheme = themeSOs.Length > 7 ? themeSOs[7] : themeSOs[0];
-                    break;
+                GameLogger.LogError(GameLogger.LogCategory.UI, $"ThemeManager: No ThemeSO at index {index} for {themeEnum}");
+                return;
             }
-
-            Debug.Log($"ThemeManager: Applying theme {themeEnum} (CurrentTheme set: {CurrentTheme != null})");
+            CurrentTheme = themeSOs[index];
+            GameLogger.Log(GameLogger.LogCategory.UI, $"ThemeManager: Applying {themeEnum} theme");
 
             // IMPORTANT: These Image references are in MainMenuScene and become null after scene unload
             // That's OK - the CurrentTheme is what matters for gameplay UI
@@ -166,12 +129,6 @@ namespace BOTF3D.UI
                 // ✅ BROADCAST THEME CHANGE TO ALL THEMED UI ELEMENTS
                 NotifyThemeChanged();
 
-                // Note: MainMenu UI elements become null after scene unload - that's expected behavior
-                Debug.Log($"ThemeManager: Theme {themeEnum} applied and broadcasted to all ThemedUIElements");
-            }
-            else
-            {
-                Debug.LogError("ThemeManager: CurrentTheme is NULL after theme selection!");
             }
         }
 
@@ -185,14 +142,10 @@ namespace BOTF3D.UI
 
             // Find all ThemedUIElement components in active scenes and update them
             var themedElements = FindObjectsByType<ThemedUIElement>(FindObjectsSortMode.None);
-            Debug.Log($"ThemeManager: Found {themedElements.Length} ThemedUIElement components to update");
-
             foreach (var element in themedElements)
             {
                 if (element != null && element.gameObject.activeInHierarchy)
-                {
                     element.ApplyTheme();
-                }
             }
         }
 

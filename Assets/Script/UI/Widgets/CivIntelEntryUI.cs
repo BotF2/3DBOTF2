@@ -83,16 +83,16 @@ namespace BOTF3D.UI
 
             if (fleet != null)
             {
-                lastSeenFleetCountText.text = $"{fleet.FleetData?.ShipsList?.Count ?? 0} ships";
+                lastSeenFleetCountText.text = BOTF3D.Core.Loc.Format("Ships", "{0} ships", fleet.FleetData?.ShipsList?.Count ?? 0);
             }
             else if (intelCon.IntelligenceData.LastSeenStarSysController != null)
             {
                 int count = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData?.ShipsList?.Count ?? 0;
-                lastSeenFleetCountText.text = $"{count} ships";
+                lastSeenFleetCountText.text = BOTF3D.Core.Loc.Format("Ships", "{0} ships", count);
             }
             else
             {
-                lastSeenFleetCountText.text = "0 ships";
+                lastSeenFleetCountText.text = BOTF3D.Core.Loc.Format("Ships", "{0} ships", 0);
             }
         }
 

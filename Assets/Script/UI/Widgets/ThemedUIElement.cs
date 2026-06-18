@@ -1,10 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using BOTF3D.Core;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
 
 
 
@@ -14,7 +10,6 @@ namespace BOTF3D.UI
     /// Attach this component to any UI element that should change based on the active civilization theme
     /// Automatically updates when ThemeManager.ApplyTheme() is called
     /// </summary>
-    [RequireComponent(typeof(Selectable))]
     public class ThemedUIElement : MonoBehaviour
     {
         [Header("Theme Application")]
@@ -48,7 +43,7 @@ namespace BOTF3D.UI
         private void Awake()
         {
             button = GetComponent<Button>();
-            image = GetComponent<Image>();
+            image = GetComponent<Image>() ?? GetComponentInChildren<Image>();
         }
 
         private void Start()
@@ -60,27 +55,19 @@ namespace BOTF3D.UI
         }
         private void OnEnable()
         {
-            // Re-apply theme when this UI element is enabled
-            var themeManager = FindAnyObjectByType<ThemeManager>();
-            if (themeManager != null && themeManager.CurrentTheme != null)
-            {
+            if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
                 ApplyTheme();
-            }
         }
 
-        /// <summary>
-        /// Apply the current theme to this UI element
-        /// </summary>
         public void ApplyTheme()
         {
-            var themeManager = FindAnyObjectByType<ThemeManager>();
-            if (themeManager == null || themeManager.CurrentTheme == null)
+            if (ThemeManager.Instance == null || ThemeManager.Instance.CurrentTheme == null)
             {
-                Debug.LogWarning($"ThemedUIElement on {gameObject.name}: ThemeManager or CurrentTheme is null");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: ThemeManager or CurrentTheme is null");
                 return;
             }
 
-            global::ThemeSO theme = themeManager.CurrentTheme;
+            global::ThemeSO theme = ThemeManager.Instance.CurrentTheme;
 
             switch (ThemeTarget)
             {
@@ -106,26 +93,20 @@ namespace BOTF3D.UI
         {
             if (button == null)
             {
-                Debug.LogWarning($"ThemedUIElement on {gameObject.name}: No Button component found");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Button component found");
                 return;
             }
 
-            // Get the appropriate button sprite based on slot
             Sprite buttonSprite = GetButtonSprite(theme, ButtonSpriteSlot);
-
             if (buttonSprite == null)
             {
-                Debug.LogWarning($"ThemedUIElement on {gameObject.name}: No spriteInsignia in slot {ButtonSpriteSlot}");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No sprite in slot {ButtonSpriteSlot}");
                 return;
             }
 
-            // Apply sprite to button's Image component
             if (image != null)
-            {
                 image.sprite = buttonSprite;
-            }
 
-            // Optional: Update button colors based on theme
             ColorBlock colors = button.colors;
             colors.normalColor = GetThemeColor(theme, ThemeColorType.Primary);
             colors.highlightedColor = GetThemeColor(theme, ThemeColorType.Highlight);
@@ -133,44 +114,28 @@ namespace BOTF3D.UI
             colors.selectedColor = GetThemeColor(theme, ThemeColorType.Highlight);
             colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
             button.colors = colors;
-
-            Debug.Log($"Applied {theme.name} button theme (slot {ButtonSpriteSlot}) to {gameObject.name}");
         }
 
         private void ApplyImageTheme(global::ThemeSO theme)
         {
             if (image == null)
             {
-                Debug.LogWarning($"ThemedUIElement on {gameObject.name}: No Image component found");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Image component found");
                 return;
             }
 
-            Sprite spriteInsignia = GetImageSprite(theme, InsigniaImageType);
-            if (spriteInsignia != null)
-            {
-                image.sprite = spriteInsignia;
-                Debug.Log($"Applied {theme.name} image ({InsigniaImageType}) to {gameObject.name}");
-            }
-            Sprite spriteRace = GetImageSprite(theme, RaceImageType);
-            if (spriteRace != null)
-            {
-                image.sprite = spriteRace;
-                Debug.Log($"Applied {theme.name} image ({RaceImageType}) to {gameObject.name}");
-            }
+            Sprite sprite = GetImageSprite(theme, InsigniaImageType);
+            if (sprite != null)
+                image.sprite = sprite;
         }
 
         private void ApplyTextTheme(global::ThemeSO theme)
         {
-            // Get TMP_Text component dynamically to avoid TMPro dependency issues
             var textComponent = GetComponentInChildren(System.Type.GetType("TMPro.TMP_Text, Unity.TextMeshPro"));
             if (textComponent != null)
             {
                 var colorProp = textComponent.GetType().GetProperty("color");
-                if (colorProp != null)
-                {
-                    colorProp.SetValue(textComponent, theme.TextColor);
-                    Debug.Log($"Applied {theme.name} text color to {gameObject.name}");
-                }
+                colorProp?.SetValue(textComponent, theme.TextColor);
             }
         }
 
@@ -178,12 +143,11 @@ namespace BOTF3D.UI
         {
             if (image == null)
             {
-                Debug.LogWarning($"ThemedUIElement on {gameObject.name}: No Image component found");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Image component found");
                 return;
             }
 
             image.color = GetThemeColor(theme, ColorType);
-            Debug.Log($"Applied {theme.name} color ({ColorType}) to {gameObject.name}");
         }
 
         private Sprite GetButtonSprite(global::ThemeSO theme, int slot)
