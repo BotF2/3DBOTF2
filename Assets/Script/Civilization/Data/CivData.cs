@@ -64,6 +64,7 @@ namespace BOTF3D.Civilization
         //public List<CivController> CivControllersWeKnow;
         //public List<CivEnum> CivEnumsWeKnow;
         public float IntelPoints;
+        public int QualityScore = 5;
         private object SystemsOwned;
         public int PendingBuildTimeReduction = 0; // Consumed by next ship build at any owned shipyard; set from captured-ship BuildDuration / 2
 

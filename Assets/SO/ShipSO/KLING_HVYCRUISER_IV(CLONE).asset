@@ -21,9 +21,9 @@ MonoBehaviour:
   shipSprite: {fileID: 21300000, guid: d67f2f140b568884fa3d893820052e7a, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 9
-  ShieldMaxHealth: 80
-  HullMaxHealth: 60
-  TorpedoDamage: 66
-  BeamDamage: 66
-  BuildDuration: 10
+  ShieldMaxHealth: 99
+  HullMaxHealth: 75
+  TorpedoDamage: 68
+  BeamDamage: 68
+  BuildDuration: 14
   ShipDescription: 

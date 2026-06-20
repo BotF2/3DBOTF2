@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 0
   CivEnum: 0
-  CivShortName: FEDERATION
+  CivShortName: Federation
   CivLongName: United Federation of Planets
   CivHomeSystem: SOL
   WarLikeEnum: 1
@@ -46,3 +46,4 @@ MonoBehaviour:
     MISSION: TO EXPLORE STRANGE NEW WORLDS, TO SEEK OUT NEW LIFE AND NEW CIVILIZATIONS,
     TO BOLDLY GO WHERE NO ONE HAS GONE BEFORE!'
   IntelPoints: 0
+  QualityScore: 5

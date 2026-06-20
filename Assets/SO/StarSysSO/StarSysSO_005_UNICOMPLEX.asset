@@ -20,12 +20,12 @@ MonoBehaviour:
   StarType: 9
   StarSprit: {fileID: 21300000, guid: 1542334d570e7864a93b3d294316a14a, type: 3}
   Dilitium: 2
-  PowerStations: 2
-  Factories: 2
-  ResearchCenters: 2
+  PowerStations: 1
+  Factories: 1
+  ResearchCenters: 4
   Shipyards: 1
-  ShieldGenerators: 2
-  OrbitalBatteries: 10
+  ShieldGenerators: 4
+  OrbitalBatteries: 4
   Description: Description
   powerPlantSprite: {fileID: 21300000, guid: 1255299b7026dcf4aa5bdd8e328db099, type: 3}
   factorySprite: {fileID: 21300000, guid: a3345f76412f410488f69695db9b7a11, type: 3}

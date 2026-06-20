@@ -710,7 +710,7 @@ namespace BOTF3D.Galaxy
             // ✅ Major race homeworlds
             if (civSO.Playable && starSysSO.IsHomeworld)
             {
-                return 2; // Federation, Romulan, Klingon, etc. homeworlds
+                return starSysSO.Dilitium; // set per-civ by CivBalanceCalculator
             }
 
             // ✅ Minor race systems

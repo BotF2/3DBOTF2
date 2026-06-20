@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80299fdb14b4be145bb13b85e61b6789, type: 3}
   m_Name: Theme_Card
   m_EditorClassIdentifier: 
-  CivInt: 0
+  CivInt: 3
   BackImage: {fileID: 21300000, guid: c43e6b0c0db05144c953615654bd53e0, type: 3}
   Insignia: {fileID: 21300000, guid: 7941866b5e867404c9eddbba724c2a89, type: 3}
   RaceImage: {fileID: 21300000, guid: 493502cc3093aa94cb40ce98dc6dd1c4, type: 3}
@@ -30,8 +30,8 @@ MonoBehaviour:
   HighLightColor: {r: 0.88, g: 0.72, b: 0.36, a: 1}
   LowLightColor: {r: 0.54, g: 0.42, b: 0.16, a: 1}
   TextColor: {r: 0.98, g: 0.95, b: 0.85, a: 1}
-  TMP_Text: {fileID: 0}
+  CivFont: {fileID: 11400000, guid: 3223ea7cb0ba5a9429e26d16ed0fddc6, type: 2}
   ButtonSprite0: {fileID: 21300000, guid: ed88ca875c8d8f047a6feee6e1f7eff8, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: 9e25d4c6abd1e8c46acf39527f930506, type: 3}
   ButtonSprite2: {fileID: 21300000, guid: fee8703799e7c074e85d87a5026cce90, type: 3}
-  ButtonSprite3: {fileID: 21300000, guid: 9e25d4c6abd1e8c46acf39527f930506, type: 3}
+  ButtonSprite3: {fileID: 21300000, guid: 0313f408f15559746b42c264d0c32f8c, type: 3}

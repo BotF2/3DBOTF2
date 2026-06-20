@@ -22,8 +22,8 @@ MonoBehaviour:
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 6.5
   ShieldMaxHealth: 55
-  HullMaxHealth: 33
+  HullMaxHealth: 35
   TorpedoDamage: 30
   BeamDamage: 30
-  BuildDuration: 10
+  BuildDuration: 9
   ShipDescription: 

@@ -17,12 +17,13 @@ MonoBehaviour:
   CivEnum: 3
   TechLevel: 3
   ShipType: 3
+  MinTechPointsRequired: 0
   shipSprite: {fileID: 21300000, guid: 447f26380f335ed4d82b79911d6ad01b, type: 3}
   shipColor: {r: 0, g: 0, b: 0, a: 0}
   maxWarpFactor: 9.2
-  ShieldMaxHealth: 65
-  HullMaxHealth: 46
-  TorpedoDamage: 50
-  BeamDamage: 50
-  BuildDuration: 9
+  ShieldMaxHealth: 36
+  HullMaxHealth: 25
+  TorpedoDamage: 23
+  BeamDamage: 23
+  BuildDuration: 5
   ShipDescription: 

@@ -17,21 +17,21 @@ MonoBehaviour:
   Insignia: {fileID: 21300000, guid: 640bf7d36229bee49b35ff8fef77b1e8, type: 3}
   RaceImage: {fileID: 21300000, guid: 9f337b818e6ce7f49ada896cbf5c1bd4, type: 3}
   SystemImage: {fileID: 21300000, guid: d0f0c0f0001543b4eb1a5bddf59ccb19, type: 3}
-  FleetShipImage: {fileID: 21300000, guid: 0782b18c1373f8f4da5900c5a064e379, type: 3}
+  FleetShipImage: {fileID: 21300000, guid: 622857705278aab459e61c3bc6b1612c, type: 3}
   PowerPlantImage: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
   FactoryImage: {fileID: 21300000, guid: e230a3cfce8d7494dbee8b3425232ef1, type: 3}
   ShipyardImage: {fileID: 21300000, guid: 272894f2eb4be314daa579a955b55173, type: 3}
   ShieldImage: {fileID: 21300000, guid: 786125c77cd5d4f458686e1dd6022656, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 4ef4fe19ca729104996395632c8869ec, type: 3}
   ResearchCenterImage: {fileID: 21300000, guid: 759a55d754272734bafc82b2c6789b40, type: 3}
-  BackgroundColor: {r: 0.29, g: 0.56, b: 0.89, a: 1}
+  BackgroundColor: {r: 0.13950695, g: 0.21176471, b: 0.75431335, a: 0.36862746}
   ForegroundColor: {r: 0.2, g: 0.4, b: 0.7, a: 1}
-  BoarderColor: {r: 0.12, g: 0.25, b: 0.45, a: 1}
+  BoarderColor: {r: 0.13950695, g: 0.21176471, b: 0.75431335, a: 1}
   HighLightColor: {r: 0.44, g: 0.7, b: 1, a: 1}
   LowLightColor: {r: 0.17, g: 0.37, b: 0.64, a: 1}
   TextColor: {r: 0.95, g: 0.97, b: 1, a: 1}
-  TMP_Text: {fileID: 1345168074899889596, guid: c87908f4b0e0fd5488d80d14c2024ab0, type: 3}
+  CivFont: {fileID: 11400000, guid: 6a15e0bb01b1ff24e9f30d2ddcd10004, type: 2}
   ButtonSprite0: {fileID: 21300000, guid: d8b6258d73f9aab4ab803017a44913ed, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: 2f8c0ff3d37f7de4082472e25f5ae1e6, type: 3}
   ButtonSprite2: {fileID: 21300000, guid: 646568ac3a5f8ca4083d583acb4bedda, type: 3}
-  ButtonSprite3: {fileID: 21300000, guid: 2f8c0ff3d37f7de4082472e25f5ae1e6, type: 3}
+  ButtonSprite3: {fileID: 21300000, guid: a0405e2d91e12684d81ebfda2f5847d0, type: 3}

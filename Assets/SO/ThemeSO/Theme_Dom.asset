@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80299fdb14b4be145bb13b85e61b6789, type: 3}
   m_Name: Theme_Dom
   m_EditorClassIdentifier: 
-  CivInt: 0
+  CivInt: 4
   BackImage: {fileID: 21300000, guid: 17c2a5d2e78f9fd49910260e7c52b7ae, type: 3}
   Insignia: {fileID: 21300000, guid: c05efc7684b21b14cbb712987fd3bed7, type: 3}
   RaceImage: {fileID: 21300000, guid: aa258f09a0c15b24091aba1492265283, type: 3}
   SystemImage: {fileID: 21300000, guid: 481b0a05023d6344f8ecd0c17b8bf216, type: 3}
-  FleetShipImage: {fileID: 21300000, guid: 08f6832b2f0c25540a925a6a47d9c368, type: 3}
+  FleetShipImage: {fileID: 21300000, guid: 65e0a9469bd319e45990b8c48497e5bd, type: 3}
   PowerPlantImage: {fileID: 21300000, guid: debd3118c20cd4543acef1038acddaf9, type: 3}
   FactoryImage: {fileID: 21300000, guid: ab4034e6eedf1814ebad3140c2d1b57b, type: 3}
   ShipyardImage: {fileID: 21300000, guid: cdc36c3e87a713e4e9edb99c3519c27d, type: 3}
@@ -30,8 +30,8 @@ MonoBehaviour:
   HighLightColor: {r: 0.63, g: 0.47, b: 0.9, a: 1}
   LowLightColor: {r: 0.29, g: 0.18, b: 0.48, a: 1}
   TextColor: {r: 0.95, g: 0.92, b: 1, a: 1}
-  TMP_Text: {fileID: 0}
+  CivFont: {fileID: 11400000, guid: 0684075f8e4b03c46992816432a00d02, type: 2}
   ButtonSprite0: {fileID: 21300000, guid: e2ff1631bd5b706468e15c72cc4113a8, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: a363ac2c87fda5c41a56dc6f76fc0f6a, type: 3}
   ButtonSprite2: {fileID: 21300000, guid: c1c4c2012e910e14186615537144354f, type: 3}
-  ButtonSprite3: {fileID: 21300000, guid: a363ac2c87fda5c41a56dc6f76fc0f6a, type: 3}
+  ButtonSprite3: {fileID: 21300000, guid: 8a5341f926b28924da4db0292ef13fbc, type: 3}

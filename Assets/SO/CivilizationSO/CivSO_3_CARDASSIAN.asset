@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 3
   CivEnum: 3
-  CivShortName: CARDASSIAN
+  CivShortName: Cardassian
   CivLongName: Cardassian Union
   CivHomeSystem: CARDASSIA
   WarLikeEnum: -1
@@ -43,3 +43,4 @@ MonoBehaviour:
     not very efficient, they are developed to attack in tight formations. The individual
     does not count, only the state does. FOR CARDASSIA!
   IntelPoints: 0
+  QualityScore: 1

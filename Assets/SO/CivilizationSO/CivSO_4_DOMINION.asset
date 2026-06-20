@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 4
   CivEnum: 4
-  CivShortName: DOMINION
+  CivShortName: Dominion
   CivLongName: Dominion
   CivHomeSystem: OMARIAN_NEBULA
   WarLikeEnum: -1
@@ -48,3 +48,4 @@ MonoBehaviour:
     Both Vorta and Jem\xB4hadar where designed to view the Founders as near-mythical
     gods. They know: VICTORY IS LIFE!"
   IntelPoints: 0
+  QualityScore: 8

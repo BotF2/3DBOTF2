@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 1
   CivEnum: 1
-  CivShortName: ROMULAN
+  CivShortName: Romulan
   CivLongName: Romulan Star Empire
   CivHomeSystem: ROMULUS
   WarLikeEnum: -1
@@ -46,3 +46,4 @@ MonoBehaviour:
     use the deceptiveness of the Tal Shiar. WHEN KNOWLEDGE IS POWER, BEING UNKNOWN
     MEANS TO BE UNCONQUERABLE.
   IntelPoints: 0
+  QualityScore: 6

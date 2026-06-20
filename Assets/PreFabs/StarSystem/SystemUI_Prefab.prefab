@@ -4529,6 +4529,7 @@ GameObject:
   - component: {fileID: 4945801355993135060}
   - component: {fileID: 4945801355993135063}
   - component: {fileID: 4945801355993135062}
+  - component: {fileID: 5418994935658426680}
   m_Layer: 5
   m_Name: YardScroll ViewQueue
   m_TagString: Untagged
@@ -4626,6 +4627,24 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5418994935658426680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801355993135056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &4945801356080388011
 GameObject:
   m_ObjectHideFlags: 0
@@ -4660,7 +4679,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000018320274}
+  m_AnchoredPosition: {x: 0, y: 0.00094723346}
   m_SizeDelta: {x: 0, y: 200}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4945801356080388009
@@ -13075,6 +13094,7 @@ GameObject:
   - component: {fileID: 4945801357657852546}
   - component: {fileID: 4945801357657852605}
   - component: {fileID: 4945801357657852604}
+  - component: {fileID: 5599330362089746009}
   m_Layer: 5
   m_Name: FactoryScrollViewQueue
   m_TagString: Untagged
@@ -13172,6 +13192,24 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5599330362089746009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4945801357657852606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &4945801357670904616
 GameObject:
   m_ObjectHideFlags: 0
@@ -14749,6 +14787,7 @@ GameObject:
   - component: {fileID: 2134540462770632548}
   - component: {fileID: 4292699981584840070}
   - component: {fileID: 5995442463715440948}
+  - component: {fileID: 5966443529829194022}
   m_Layer: 5
   m_Name: OrbitalBatterGrid
   m_TagString: Untagged
@@ -14839,6 +14878,24 @@ MonoBehaviour:
   m_Spacing: {x: 2, y: 2}
   m_Constraint: 0
   m_ConstraintCount: 2
+--- !u!114 &5966443529829194022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7851791291908258251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  InsigniaImageType: 1
+  RaceImageType: 2
+  ApplyOnStart: 1
 --- !u!1 &7924078422301477395
 GameObject:
   m_ObjectHideFlags: 0

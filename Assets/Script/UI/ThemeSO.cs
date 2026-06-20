@@ -28,7 +28,7 @@ public class ThemeSO : ScriptableObject
     public Color HighLightColor;
     public Color LowLightColor;
     public Color TextColor;
-    public TMP_Text TMP_Text;
+    public TMP_FontAsset CivFont;
     public Sprite ButtonSprite0;
     public Sprite ButtonSprite1;
     public Sprite ButtonSprite2;

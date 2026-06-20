@@ -240,27 +240,27 @@ MonoBehaviour:
       m_Items:
       - rid: 3508330916595630388
   - m_Id: 23091831937376256
-    m_Localized: Fleets
+    m_Localized: Flotten
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376257
-    m_Localized: Diplomacy
+    m_Localized: Diplomatie
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376258
-    m_Localized: Intelligence
+    m_Localized: Intelligenz
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376259
-    m_Localized: Report
+    m_Localized: Bericht
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376260
-    m_Localized: Encyclopedia
+    m_Localized: "Enzyklop\xE4die"
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376261
-    m_Localized: Home
+    m_Localized: Heim
     m_Metadata:
       m_Items: []
   references:

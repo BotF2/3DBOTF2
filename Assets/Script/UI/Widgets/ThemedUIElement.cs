@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using BOTF3D.Core;
@@ -17,7 +18,7 @@ namespace BOTF3D.UI
         public ThemeTarget ThemeTarget = ThemeTarget.Button;
 
         [Header("Button Theme Settings")]
-        [Tooltip("Which button spriteInsignia slot to use from ThemeSO (1-4)")]
+        [Tooltip("Which button sprite slot to use from ThemeSO (0-3)")]
         [Range(0, 3)]
         public int ButtonSpriteSlot = 0;
 
@@ -25,13 +26,9 @@ namespace BOTF3D.UI
         [Tooltip("Which color to apply from ThemeSO")]
         public ThemeColorType ColorType = ThemeColorType.Primary;
 
-        [Header("Image Insignia Theme Settings")]
-        [Tooltip("Which themed insignia image to use")]
-        public ThemeImageType InsigniaImageType = ThemeImageType.Insignia;
-
-        [Header("Image Race Theme Settings")]
-        [Tooltip("Which themed race image to use")]
-        public ThemeImageType RaceImageType = ThemeImageType.Race;
+        [Header("Sprite / Image Settings")]
+        [Tooltip("Which image from ThemeSO to display (used when ThemeTarget is Image)")]
+        public ThemeImageType ImageType = ThemeImageType.Insignia;
 
         [Header("Auto-Apply")]
         [Tooltip("Automatically apply theme on Start?")]
@@ -39,11 +36,13 @@ namespace BOTF3D.UI
 
         private Button button;
         private Image image;
+        private SpriteRenderer spriteRenderer;
 
         private void Awake()
         {
-            button = GetComponent<Button>();
-            image = GetComponent<Image>() ?? GetComponentInChildren<Image>();
+            button          = GetComponent<Button>();
+            image           = GetComponent<Image>() ?? GetComponentInChildren<Image>();
+            spriteRenderer  = GetComponent<SpriteRenderer>();
         }
 
         private void Start()
@@ -118,25 +117,40 @@ namespace BOTF3D.UI
 
         private void ApplyImageTheme(global::ThemeSO theme)
         {
-            if (image == null)
+            Sprite sprite = GetImageSprite(theme, ImageType);
+            if (sprite == null)
             {
-                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Image component found");
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No sprite for {ImageType} in current theme");
                 return;
             }
 
-            Sprite sprite = GetImageSprite(theme, InsigniaImageType);
-            if (sprite != null)
+            if (image != null)
+            {
                 image.sprite = sprite;
+                return;
+            }
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.sprite = sprite;
+                return;
+            }
+
+            GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Image or SpriteRenderer found");
         }
 
         private void ApplyTextTheme(global::ThemeSO theme)
         {
-            var textComponent = GetComponentInChildren(System.Type.GetType("TMPro.TMP_Text, Unity.TextMeshPro"));
-            if (textComponent != null)
+            TMP_Text tmp = GetComponent<TMP_Text>() ?? GetComponentInChildren<TMP_Text>();
+            if (tmp == null)
             {
-                var colorProp = textComponent.GetType().GetProperty("color");
-                colorProp?.SetValue(textComponent, theme.TextColor);
+                GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No TMP_Text component found");
+                return;
             }
+
+            tmp.color = theme.TextColor;
+            if (theme.CivFont != null)
+                tmp.font = theme.CivFont;
         }
 
         private void ApplyColorTheme(global::ThemeSO theme)

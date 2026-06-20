@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 6
   CivEnum: 6
-  CivShortName: TERRAN
-  CivLongName: TERRAN EMPIRE
+  CivShortName: Terran
+  CivLongName: Terran Empire
   CivHomeSystem: TERRA
   WarLikeEnum: -2
   XenophbiaEnum: -2
@@ -42,3 +42,4 @@ MonoBehaviour:
     is always done by conquest and subjugation, however sometimes the Empire prefers
     allies, if they are more powerful than themselves. LONG LIVE THE EMPIRE!
   IntelPoints: 0
+  QualityScore: 5

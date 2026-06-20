@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 2
   CivEnum: 2
-  CivShortName: KLINGON
+  CivShortName: Klingon
   CivLongName: Klingon Empire
   CivHomeSystem: KRONOS
   WarLikeEnum: -2
@@ -44,3 +44,4 @@ MonoBehaviour:
     empires, especially other warmongers respect the Klingon Empire. WHEN FOLLOWING
     THE WAY OF THE WARRIOR, EVERYDAY IS A GOOD DAY TO DIE!
   IntelPoints: 0
+  QualityScore: 4

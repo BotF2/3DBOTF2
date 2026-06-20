@@ -34,8 +34,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 160, y: 25}
+  m_AnchoredPosition: {x: 0.000015258789, y: 0}
+  m_SizeDelta: {x: 174.32, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2266190396100389331
 CanvasRenderer:
@@ -74,8 +74,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278453277
-  m_fontColor: {r: 0.11320752, g: 0.016447127, b: 0.016447127, a: 1}
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -131,7 +131,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: -0.6621094, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -310,8 +310,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -66}
-  m_SizeDelta: {x: 220, y: 27}
+  m_AnchoredPosition: {x: 150, y: -69}
+  m_SizeDelta: {x: 230, y: 27}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &1374984853694853413
 CanvasRenderer:
@@ -1209,6 +1209,7 @@ GameObject:
   - component: {fileID: 6117494567341332614}
   - component: {fileID: 1596598342852056888}
   - component: {fileID: 3141070610917059016}
+  - component: {fileID: 4763612070819364861}
   m_Layer: 5
   m_Name: Text FleetName (TMP)
   m_TagString: Untagged
@@ -1335,6 +1336,23 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &4763612070819364861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1789318963417973970}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 2
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  ImageType: 1
+  ApplyOnStart: 1
 --- !u!1 &2047528126861964761
 GameObject:
   m_ObjectHideFlags: 0
@@ -1764,8 +1782,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.25, y: 0}
-  m_SizeDelta: {x: -9.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3679861183029498045
 CanvasRenderer:
@@ -1804,8 +1822,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4281019179
+  m_fontColor: {r: 0.16862746, g: 0.16862746, b: 0.16862746, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1880,6 +1898,7 @@ GameObject:
   - component: {fileID: 8199433374905363842}
   - component: {fileID: 7716652422391719161}
   - component: {fileID: 316277099420956846}
+  - component: {fileID: 1737366632904032775}
   m_Layer: 5
   m_Name: FleetUI_Prefab
   m_TagString: fleetUIRoot
@@ -2008,6 +2027,23 @@ MonoBehaviour:
   DestinationName: {fileID: 6222109267844049625}
   DestinationCoordinates: {fileID: 4529573589828459386}
   WarpValueText: {fileID: 1336364828457817580}
+--- !u!114 &1737366632904032775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3127805292150332128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 3
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  ImageType: 1
+  ApplyOnStart: 1
 --- !u!1 &3149927222220872153
 GameObject:
   m_ObjectHideFlags: 0
@@ -2019,6 +2055,7 @@ GameObject:
   - component: {fileID: 8305700352982160389}
   - component: {fileID: 3723718142263253590}
   - component: {fileID: 3808443810346042197}
+  - component: {fileID: 8882445939037381164}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -2100,10 +2137,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 23
+  m_fontSize: 22.35
   m_fontSizeBase: 23
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
@@ -2145,6 +2182,23 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &8882445939037381164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3149927222220872153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 2
+  ButtonSpriteSlot: 0
+  ColorType: 6
+  ImageType: 1
+  ApplyOnStart: 1
 --- !u!1 &4269272817735968529
 GameObject:
   m_ObjectHideFlags: 0
@@ -2180,7 +2234,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4929563120431836857
 CanvasRenderer:
@@ -2219,8 +2273,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4281019179
+  m_fontColor: {r: 0.16862746, g: 0.16862746, b: 0.16862746, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2237,10 +2291,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
+  m_fontSize: 24.15
   m_fontSizeBase: 24
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
@@ -2420,6 +2474,7 @@ GameObject:
   - component: {fileID: 2436760876375871906}
   - component: {fileID: 8107401092144756873}
   - component: {fileID: 1006010032630364630}
+  - component: {fileID: 3390943277895764134}
   m_Layer: 5
   m_Name: CancelButtonFleetUI
   m_TagString: Untagged
@@ -2444,8 +2499,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 465, y: -153.3}
-  m_SizeDelta: {x: 100, y: 30}
+  m_AnchoredPosition: {x: 430, y: -153.3}
+  m_SizeDelta: {x: 174.32, y: 30}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &2436760876375871906
 CanvasRenderer:
@@ -2541,6 +2596,23 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &3390943277895764134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4677499741067547225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.ThemedUIElement
+  ThemeTarget: 0
+  ButtonSpriteSlot: 2
+  ColorType: 6
+  ImageType: 1
+  ApplyOnStart: 1
 --- !u!1 &4993154111691662357
 GameObject:
   m_ObjectHideFlags: 0
@@ -2748,7 +2820,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -95}
+  m_AnchoredPosition: {x: 150, y: -96}
   m_SizeDelta: {x: 200, y: 25}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &5475149057602870428
@@ -2922,7 +2994,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -124.3}
+  m_AnchoredPosition: {x: 150, y: -121}
   m_SizeDelta: {x: 280, y: 25}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &3512378025062801901
@@ -3395,8 +3467,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -33}
-  m_SizeDelta: {x: 220, y: 27}
+  m_AnchoredPosition: {x: 150, y: -36}
+  m_SizeDelta: {x: 230, y: 27}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &298856294508294982
 CanvasRenderer:
@@ -3604,8 +3676,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -66}
-  m_SizeDelta: {x: 220, y: 27}
+  m_AnchoredPosition: {x: 150, y: -69}
+  m_SizeDelta: {x: 230, y: 27}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &7664346628139757604
 CanvasRenderer:
@@ -4586,8 +4658,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 150, y: -161.6}
-  m_SizeDelta: {x: 229.9788, y: 25}
+  m_AnchoredPosition: {x: 150, y: -146}
+  m_SizeDelta: {x: 250, y: 50}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6272841033836576771
 CanvasRenderer:
@@ -4760,7 +4832,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6965266782896686622
 CanvasRenderer:
@@ -4799,8 +4871,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4281019179
+  m_fontColor: {r: 0.16862746, g: 0.16862746, b: 0.16862746, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -4817,10 +4889,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
+  m_fontSize: 24.15
   m_fontSizeBase: 24
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0

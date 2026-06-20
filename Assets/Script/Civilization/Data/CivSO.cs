@@ -36,6 +36,9 @@ namespace BOTF3D.Civilization
         //public float TaxRate; // universal or variable by civ/sys??
         //public float GrowthRate; // universal or variable by civ/sys??
         public float IntelPoints;
+        [Tooltip("0 = pure quantity (cheap/fast/weak), 10 = pure quality (expensive/slow/powerful). Set by designer; read by CivBalanceCalculator.")]
+        [Range(0, 10)]
+        public int QualityScore = 5;
         //public List<CivData> ContactList = new List<CivData>();
     }
 }

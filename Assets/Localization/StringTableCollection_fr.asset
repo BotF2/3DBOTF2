@@ -235,16 +235,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 23091831874461696
-    m_Localized: Systemes
+    m_Localized: "Syst\xE8mes"
     m_Metadata:
       m_Items:
       - rid: 3508330916595630389
   - m_Id: 23091831937376256
-    m_Localized: Fleets
+    m_Localized: Flottes
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376257
-    m_Localized: Diplomacy
+    m_Localized: Diplomatie
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376258
@@ -252,15 +252,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376259
-    m_Localized: Report
+    m_Localized: Rapport
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376260
-    m_Localized: Encyclopedia
+    m_Localized: "Encyclop\xE9die"
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376261
-    m_Localized: Home
+    m_Localized: Maison
     m_Metadata:
       m_Items: []
   references:

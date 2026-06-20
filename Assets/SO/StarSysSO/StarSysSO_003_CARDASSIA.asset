@@ -19,13 +19,13 @@ MonoBehaviour:
   CurrentOwner: 3
   StarType: 3
   StarSprit: {fileID: 21300000, guid: a71196654f476ea4db890e76192307fa, type: 3}
-  Dilitium: 2
-  PowerStations: 2
-  Factories: 2
-  ResearchCenters: 2
-  Shipyards: 1
-  ShieldGenerators: 2
-  OrbitalBatteries: 10
+  Dilitium: 5
+  PowerStations: 4
+  Factories: 4
+  ResearchCenters: 1
+  Shipyards: 2
+  ShieldGenerators: 1
+  OrbitalBatteries: 11
   Description: Description
   powerPlantSprite: {fileID: 21300000, guid: 08e726991db827c4aa0a75325f31244b, type: 3}
   factorySprite: {fileID: 21300000, guid: e60512c7bfaf53549b7d0818e45c54cf, type: 3}
