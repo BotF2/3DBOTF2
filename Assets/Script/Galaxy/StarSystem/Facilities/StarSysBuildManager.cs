@@ -116,16 +116,27 @@ namespace BOTF3D.Galaxy
                 StarSysMenuUIController.Instance.SetBuildProgress(0f);
             }
 
+            // Null the coroutine FIRST so IsBuildingFacility becomes false before
+            // StartNextFacilityBuildIfAny sets it back to true for the next item.
+            // (CompleteFacilityBuild no longer does this, to avoid clobbering the
+            //  new coroutine reference that StartNextFacilityBuildIfAny assigns.)
             buildCoroutine = null;
+            StartNextFacilityBuildIfAny();
+            StarSysMenuUIController.Instance?.RefreshQueueForSystem(controller);
         }
         internal void CompleteFacilityBuild(Transform buildItem)
         {
             if (buildItem == null) return;
 
+            // Explicit removal mirrors the ship-queue pattern and ensures the list is
+            // accurate before RefreshFacilityQueue reads it (startIndex depends on it).
+            controller.sysBuildQueueList.Remove(buildItem);
+
             var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
             if (buildDrag == null)
             {
                 Debug.LogWarning("CompleteFacilityBuild: FactoryBuildItemDrag missing on buildItem.");
+                UnityEngine.Object.Destroy(buildItem.gameObject);
                 return;
             }
 
@@ -180,8 +191,11 @@ namespace BOTF3D.Galaxy
                 newFacilityGO.transform.SetParent(controller.gameObject.transform, false);
 
             // Remove/cleanup temp build UI item used to represent the building process
-            buildItem.SetParent(buildDrag.originalParent, false);
-            UnityEngine.Object.Destroy(buildItem.gameObject);
+            if (buildItem != null)
+            {
+                buildItem.SetParent(buildDrag.originalParent, false);
+                UnityEngine.Object.Destroy(buildItem.gameObject);
+            }
 
             // ✅ AddSysFacility will now handle adding to the list AND updating UI
             if (StarSysMenuUIController.Instance != null && newFacilityGO != null)
@@ -199,9 +213,6 @@ namespace BOTF3D.Galaxy
                 Debug.LogWarning($"CompleteFacilityBuild: StarSysMenuUIController.Instance is null or newFacilityGO is null for system {controller.name}.");
             }
 
-            // Continue with build queue processing
-            buildCoroutine = null;
-            StartNextFacilityBuildIfAny();
         }
         public void StartNextFacilityBuildIfAny()
         {
@@ -289,8 +300,11 @@ namespace BOTF3D.Galaxy
 
             ShipManager.Instance.BuildShipInSystem(drag.ShipType, controller);
 
-            UnityEngine.Object.Destroy(shipBuildItem.gameObject);
             controller.sysShipBuildQueueList.Remove(shipBuildItem);
+            if (shipBuildItem != null)
+                UnityEngine.Object.Destroy(shipBuildItem.gameObject);
+
+            StarSysMenuUIController.Instance?.RefreshQueueForSystem(controller);
 
             // ✅ Reset slider
             if (StarSysMenuUIController.Instance != null)

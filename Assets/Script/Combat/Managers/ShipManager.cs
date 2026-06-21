@@ -346,8 +346,8 @@ public GameObject[] beamWeaponPrefabs;
 
         public int GetShipBuildDuration(ShipType shipType, TechLevel techLevel, CivEnum civEnum)
         {
-            ShipSO shipSO = GetShipSO(shipType, techLevel, civEnum);
-            return shipSO?.BuildDuration ?? 1;
+            int quality = CivManager.Instance?.GetCivDataByCivEnum(civEnum)?.QualityScore ?? 5;
+            return ShipStatCalculator.Calculate(shipType, techLevel, civEnum, quality).BuildDuration;
         }
 
         #endregion

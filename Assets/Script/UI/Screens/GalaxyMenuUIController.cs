@@ -746,6 +746,12 @@ namespace BOTF3D.UI
                         encyclopediaMenuView.SetActive(false);
                     break;
             }
+
+            // Only reset the state tracker when the menu being closed is the one that is tracked.
+            // Menus like BuildMenu are overlays that don't own the state tracker slot,
+            // so closing them must not evict the underlying system/fleet menu from state.
+            if (uiStateManager.CurrentOpenMenu == enumMenu)
+                uiStateManager.CloseCurrentMenu();
         }
 
         public void CloseAllMenus()

@@ -16,7 +16,6 @@ public class ExtractAndFixShipMaterials : EditorWindow
         string[] fbxGUIDs = AssetDatabase.FindAssets("t:Model", new[] { "Assets/FBX" });
         
         int extractedCount = 0;
-        int fixedCount = 0;
         
         foreach (string guid in fbxGUIDs)
         {
@@ -66,13 +65,12 @@ public class ExtractAndFixShipMaterials : EditorWindow
                         }
                     }
                     
-                    // Change importer to use external materials
+                    // Remap FBX internal materials to the extracted .mat files
                     importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
-                    importer.materialLocation = ModelImporterMaterialLocation.External;
                     importer.SearchAndRemapMaterials(ModelImporterMaterialName.BasedOnMaterialName, ModelImporterMaterialSearch.Local);
                     importer.SaveAndReimport();
-                    
-                    Debug.Log($"  ✅ FBX now using external materials");
+
+                    Debug.Log($"  ✅ FBX remapped to extracted materials");
                 }
                 catch (System.Exception e)
                 {
@@ -81,7 +79,7 @@ public class ExtractAndFixShipMaterials : EditorWindow
             }
             else
             {
-                Debug.Log($"  ℹ️ FBX already using external materials");
+                Debug.Log($"  ℹ️ FBX already using ImportStandard — skipping");
             }
         }
         

@@ -70,13 +70,11 @@ namespace BOTF3D.Combat
             HealthSpeed = 10.0f;
             lastPosition = transform.position;
 
-            if (ShipData != null && ShipData.ShipSO != null)
+            if (ShipData != null && ShipData.ShieldHealth == 0 && ShipData.HullHealth == 0
+                && ShipData.ShieldMaxHealth > 0)
             {
-                if (ShipData.ShieldHealth == 0 && ShipData.HullHealth == 0)
-                {
-                    ShipData.ShieldHealth = ShipData.ShipSO.ShieldMaxHealth;
-                    ShipData.HullHealth = ShipData.ShipSO.HullMaxHealth;
-                }
+                ShipData.ShieldHealth = ShipData.ShieldMaxHealth;
+                ShipData.HullHealth   = ShipData.HullMaxHealth;
             }
         }
 
@@ -110,7 +108,7 @@ namespace BOTF3D.Combat
 
         private int GetMaxHealth()
         {
-            if (ShipData?.ShipSO != null) return ShipData.ShipSO.ShieldMaxHealth + ShipData.ShipSO.HullMaxHealth;
+            if (ShipData != null) return ShipData.ShieldMaxHealth + ShipData.HullMaxHealth;
             return 100;
         }
 

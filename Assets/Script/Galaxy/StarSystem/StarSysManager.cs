@@ -104,12 +104,13 @@ namespace BOTF3D.Galaxy
         private GameObject galaxyImage;
         [SerializeField]
         private GameObject canvasBuildList;
+        private StarSysController currentBuildUISysCon;
+        public StarSysController CurrentBuildUISysCon => currentBuildUISysCon;
         [SerializeField]
         private Sprite unknowSystem;
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
-        [SerializeField]
-        public GameObject StarSysUI_ListContainer;
+        // StarSysUI_ListContainer removed — system UIs live in SysListContainer (SystemsMenuView/Viewport/SysListContainer)
 
         // ✅ NEW: Random position pool for RANDOM galaxy type
         private List<Vector3> randomPositionPool;
@@ -245,24 +246,6 @@ namespace BOTF3D.Galaxy
                 }
             }
 
-            // ✅ NEW: Find your StarSysUI_ListContainer
-            if (StarSysUI_ListContainer == null)
-            {
-                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
-                if (canvasGalaxy != null)
-                {
-                    StarSysUI_ListContainer = FindInHierarchy(canvasGalaxy.transform, "StarSysUI_ListContainer");
-
-                    if (StarSysUI_ListContainer != null)
-                    {
-                        Debug.Log($"StarSysManager: ✅ Found StarSysUI_ListContainer");
-                    }
-                    else
-                    {
-                        Debug.LogWarning("StarSysManager: ⚠️ StarSysUI_ListContainer not found - create it in CanvasGalaxy!");
-                    }
-                }
-            }
         }
 
         private GameObject FindInHierarchy(Transform parent, string name)
@@ -330,7 +313,9 @@ namespace BOTF3D.Galaxy
                 var shipBuildScript = prefab.GetComponent<ShipBuildDrag>();
                 if (shipBuildScript != null)
                 {
-                    shipBuildScript.BuildDuration = shipSO.BuildDuration;
+                    int q = CivManager.Instance?.GetCivDataByCivEnum(localCiv)?.QualityScore ?? 5;
+                    shipBuildScript.BuildDuration = BOTF3D.Combat.ShipStatCalculator.Calculate(
+                        shipSO.ShipType, shipSO.TechLevel, localCiv, q).BuildDuration;
                     shipBuildScript.ShipSprite = shipSO.shipSprite;
                     prefab.GetComponent<Image>().sprite = shipSO.shipSprite;
 
@@ -1351,16 +1336,36 @@ namespace BOTF3D.Galaxy
             // Final pass to process any items that were queued by InstantiateShipListUIGameObject
             shipManager.ProcessPendingShipUIs();
         }
+        public void HideBuildUI()
+        {
+            var buildUIFields = Object.FindFirstObjectByType<BuildUIFields>(FindObjectsInactive.Exclude);
+            if (buildUIFields != null)
+                buildUIFields.gameObject.SetActive(false);
+            // Do NOT deactivate canvasBuildList — ASystemMenuView may be a child of it,
+            // and SetActive(false) on a parent hides children even after SetActive(true) on the child.
+        }
+
         public void InstantiateSysBuildUI(StarSysController sysCon) // open the build queue UI
         {
             Debug.Log($"InstantiateSysBuildUI: Opening for system '{sysCon.name}'");
 
-            var existingBuildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
-            if (existingBuildUI != null)
+            // Search inactive objects too — HideBuildUI deactivates rather than destroys
+            var existingBuildUIFields = Object.FindFirstObjectByType<BuildUIFields>(FindObjectsInactive.Include);
+            if (existingBuildUIFields != null)
             {
-                Debug.Log("  Destroying previous build UI");
-                Destroy(existingBuildUI);
+                if (currentBuildUISysCon == sysCon)
+                {
+                    // Same system reopened — just show the existing UI so the queue is preserved
+                    Debug.Log("  Reusing existing build UI for same system");
+                    existingBuildUIFields.gameObject.SetActive(true);
+                    canvasBuildList.SetActive(true);
+                    return;
+                }
+                Debug.Log("  Destroying previous build UI (different system): " + existingBuildUIFields.gameObject.name);
+                Destroy(existingBuildUIFields.gameObject);
+                currentBuildUISysCon = null;
             }
+            currentBuildUISysCon = sysCon;
 
             GameObject sysBuildListInstance = Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0), Quaternion.identity);
             sysBuildListInstance.layer = 5;
@@ -1589,6 +1594,7 @@ namespace BOTF3D.Galaxy
                     if (powerPlantSO != null)
                         imageObPower.GetComponentInChildren<Image>().sprite = powerPlantSO.PowerPlantSprite;
                     imageObPower.transform.SetParent(powerPlantInventorySlot.transform, false);
+                    { var d = imageObPower.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.Factory:
@@ -1608,6 +1614,7 @@ namespace BOTF3D.Galaxy
                     if (factorySO != null)
                         imageObFactory.GetComponentInChildren<Image>().sprite = factorySO.FactorySprite;
                     imageObFactory.transform.SetParent(factoryInventorySlot.transform, false);
+                    { var d = imageObFactory.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.Shipyard:
@@ -1627,6 +1634,7 @@ namespace BOTF3D.Galaxy
                     if (shipyardSO != null)
                         imageObShipyard.GetComponentInChildren<Image>().sprite = shipyardSO.ShipyardSprite;
                     imageObShipyard.transform.SetParent(shipyardInventorySlot.transform, false);
+                    { var d = imageObShipyard.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.ShieldGenerator:
@@ -1646,6 +1654,7 @@ namespace BOTF3D.Galaxy
                     if (shieldSO != null)
                         imageObShield.GetComponentInChildren<Image>().sprite = shieldSO.ShieldGeneratorSprite;
                     imageObShield.transform.SetParent(shieldGenInventorySlot.transform, false);
+                    { var d = imageObShield.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.OrbitalBattery:
@@ -1665,6 +1674,7 @@ namespace BOTF3D.Galaxy
                     if (orbitalSO != null)
                         imageObOB.GetComponentInChildren<Image>().sprite = orbitalSO.OrbitalBatterySprite;
                     imageObOB.transform.SetParent(orbitalBatteryInventorySlot.transform, false);
+                    { var d = imageObOB.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.ResearchCenter:
@@ -1684,6 +1694,7 @@ namespace BOTF3D.Galaxy
                     if (researchSO != null)
                         imageObRC.GetComponentInChildren<Image>().sprite = researchSO.ResearchCenterSprite;
                     imageObRC.transform.SetParent(researchCenterInventory_slot.transform, false);
+                    { var d = imageObRC.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 default:
@@ -1858,25 +1869,18 @@ namespace BOTF3D.Galaxy
             // Store reference on the controller
             sysCon.StarSysUIGameObject = newUI;
 
-            // ✅ CRITICAL: Parent to StarSysUI_ListContainer (home storage)
-            if (StarSysUI_ListContainer != null)
+            // Parent inside SysListContainer (SystemsMenuView/Viewport/SysListContainer) so the
+            // RectTransform is already in the right canvas subtree. The UI starts inactive and
+            // is activated when the Systems menu is opened.
+            var sysListContainer = StarSysMenuUIController.Instance?.SysListContainer;
+            if (sysListContainer != null)
             {
-                newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
-                Debug.Log($"  ✅ Parented to StarSysUI_ListContainer");
+                newUI.transform.SetParent(sysListContainer.transform, false);
+                Debug.Log($"  ✅ Parented to SysListContainer");
             }
             else
             {
-                Debug.LogWarning("  ⚠️ StarSysUI_ListContainer is null! Trying to find it...");
-                FindGalaxyReferences();
-
-                if (StarSysUI_ListContainer != null)
-                {
-                    newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
-                }
-                else
-                {
-                    Debug.LogError("  ❌ Still can't find StarSysUI_ListContainer! UI will be orphaned!");
-                }
+                Debug.LogError("  ❌ StarSysMenuUIController.SysListContainer is null — UI may render incorrectly. Check Inspector assignment on StarSysMenuUIController.");
             }
 
             // ✅ Set up ShipContent for ship UIs
@@ -2020,7 +2024,9 @@ namespace BOTF3D.Galaxy
                     {
                         itemImage.sprite = shipSO.shipSprite;
                         dragItem.ShipSprite = shipSO.shipSprite;
-                        dragItem.BuildDuration = shipSO.BuildDuration;
+                        int q2 = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+                        dragItem.BuildDuration = BOTF3D.Combat.ShipStatCalculator.Calculate(
+                            shipSO.ShipType, shipSO.TechLevel, localCiv, q2).BuildDuration;
                         dragItem.ShipType = shipSO.ShipType;
 
                         Debug.Log($"  ✅ Set {shipSO.ShipType} sprite for {localCiv}");

@@ -24,15 +24,9 @@ public class ShipSO : ScriptableObject
     [Tooltip("Minimum tech points required to unlock this ship (e.g., 0, 150, 350, 700)")]
     public int MinTechPointsRequired = 0;
 
-    [Header("Ship Stats")]
+    [Header("Visual / Description")]
     public Sprite shipSprite;
     public Color shipColor;
-    public float maxWarpFactor;
-    public int ShieldMaxHealth;
-    public int HullMaxHealth;
-    public int TorpedoDamage;
-    public int BeamDamage;
-    public int BuildDuration;
     public string ShipDescription;
 
     /// <summary>

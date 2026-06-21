@@ -114,7 +114,7 @@ namespace BOTF3D.Editor
                 }
             }
 
-            var tmps = Object.FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var tmps = Object.FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include);
             int wired = 0, skipped = 0;
 
             foreach (var tmp in tmps)

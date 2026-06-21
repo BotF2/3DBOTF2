@@ -38,35 +38,33 @@ namespace BOTF3D.Combat
             // Store reference to ShipSO
             data.ShipSO = shipSO;
 
-            // Copy basic properties
+            // Identity and visual
             data.ShipName = shipSO.ShipName;
             data.CivEnum = shipSO.CivEnum;
             data.TechLevel = shipSO.TechLevel;
             data.ShipType = shipSO.ShipType;
             data.ShipDescription = shipSO.ShipDescription;
-
-            // Copy sprite
             if (shipSO.shipSprite != null)
-            {
                 data.ShipSprite = shipSO.shipSprite;
-            }
 
-            // Copy movement stats
-            data.maxWarpFactor = shipSO.maxWarpFactor;
+            // Calculate combat stats from type, tier, civ doctrine, and flavor
+            int quality = CivManager.Instance?.GetCivDataByCivEnum(shipSO.CivEnum)?.QualityScore ?? 5;
+            ShipStats stats = ShipStatCalculator.Calculate(shipSO.ShipType, shipSO.TechLevel, shipSO.CivEnum, quality);
+
+            data.ShieldMaxHealth  = stats.ShieldMaxHealth;
+            data.HullMaxHealth    = stats.HullMaxHealth;
+            data.ShieldHealth     = stats.ShieldMaxHealth;
+            data.HullHealth       = stats.HullMaxHealth;
+            data.BeamDamage       = stats.BeamDamage;
+            data.TorpedoDamage    = stats.TorpedoDamage;
+            data.maxWarpFactor    = stats.MaxWarpFactor;
             data.currentWarpFactor = 0f;
+            data.BuildDuration    = stats.BuildDuration;
 
-            // Copy health stats (initialize to max)
-            data.ShieldHealth = shipSO.ShieldMaxHealth;
-            data.HullHealth = shipSO.HullMaxHealth;
-
-            // Copy combat stats
-            data.TorpedoDamage = shipSO.TorpedoDamage;
-            data.BeamDamage = shipSO.BeamDamage;
-
-            // Copy build stats
-            data.BuildDuration = shipSO.BuildDuration;
-
-            Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' from ShipSO");
+            Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' — " +
+                      $"Sh:{data.ShieldMaxHealth} Hu:{data.HullMaxHealth} " +
+                      $"Be:{data.BeamDamage} To:{data.TorpedoDamage} " +
+                      $"Wp:{data.maxWarpFactor:F1} Bd:{data.BuildDuration} (Q{quality})");
         }
 
         /// <summary>
@@ -74,10 +72,10 @@ namespace BOTF3D.Combat
         /// </summary>
         public void ResetShipHealth(ShipController shipController)
         {
-            if (shipController?.ShipData?.ShipSO != null)
+            if (shipController?.ShipData != null)
             {
-                shipController.ShipData.ShieldHealth = shipController.ShipData.ShipSO.ShieldMaxHealth;
-                shipController.ShipData.HullHealth = shipController.ShipData.ShipSO.HullMaxHealth;
+                shipController.ShipData.ShieldHealth = shipController.ShipData.ShieldMaxHealth;
+                shipController.ShipData.HullHealth   = shipController.ShipData.HullMaxHealth;
                 Debug.Log($"ShipDataInitializer: Reset health for '{shipController.ShipData.ShipName}'");
             }
         }
@@ -133,6 +131,8 @@ namespace BOTF3D.Combat
             destination.ShipSprite = source.ShipSprite;
             destination.maxWarpFactor = source.maxWarpFactor;
             destination.currentWarpFactor = source.currentWarpFactor;
+            destination.ShieldMaxHealth = source.ShieldMaxHealth;
+            destination.HullMaxHealth   = source.HullMaxHealth;
             destination.ShieldHealth = source.ShieldHealth;
             destination.HullHealth = source.HullHealth;
             destination.TorpedoDamage = source.TorpedoDamage;

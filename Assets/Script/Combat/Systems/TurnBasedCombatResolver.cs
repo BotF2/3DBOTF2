@@ -499,9 +499,7 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             {
                 if (ship == null || ship.ShipData.Distroyed || ship.ShipData.IsCaptured) continue;
 
-                int maxHP = ship.ShipData.ShipSO != null
-                    ? ship.ShipData.ShipSO.ShieldMaxHealth + ship.ShipData.ShipSO.HullMaxHealth
-                    : ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
+                int maxHP = ship.ShipData.ShieldMaxHealth + ship.ShipData.HullMaxHealth;
 
                 int currentHP = ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
                 float successChance = maxHP > 0 ? (float)currentHP / maxHP : 0f;

@@ -14,7 +14,15 @@ using BOTF3D.Audio;
 public class FleetUI_Fields : MonoBehaviour
 {
     [Header("GameObjects")]
-    public GameObject FleetShipContentGO;
+    public GameObject FleetShipContentGO;  // Container inside the ship scroll view
+    public GameObject ShipScrollView;      // The ScrollRect parent (Ship Scroll View GO)
+
+    [Header("Ship List Expansion")]
+    public Button ExpandShipsButton;
+    [Tooltip("Height of the Ship Scroll View in collapsed (default) state. " +
+             "Default = 6 rows × 29 px (25 cell + 4 spacing) = 174. " +
+             "Expand button only appears when ship count exceeds 6 × 8 = 48.")]
+    public float CollapsedShipViewHeight = 174f;
 
     [Header("RectTrans Mini map")]
     public RectTransform MinimapRedDot;

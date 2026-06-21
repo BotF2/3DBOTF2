@@ -56,6 +56,18 @@ public class StarSysUI_Fields : MonoBehaviour
     // fields below for dictionary reference
     public RectTransform shipContent;
 
+    [Header("Ship List Expansion")]
+    public GameObject ShipScrollView;
+    public UnityEngine.UI.Button ExpandShipsButton;
+    [Tooltip("Width of the Ship Scroll View in collapsed state (2 columns × 140 px + spacing).")]
+    public float CollapsedShipScrollViewWidth = 290f;
+
+    [Header("Build Queue Display")]
+    [Tooltip("Assign to YardScroll ViewQueue/Viewport/Content in the prefab.")]
+    public Transform yardQueueContent;
+    [Tooltip("Assign to FactoryScrollViewQueue/Viewport/Content in the prefab.")]
+    public Transform factoryQueueContent;
+
     [Header("Buttons")]
     public Button buildButton;
     public Button shipButton;

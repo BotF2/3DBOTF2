@@ -90,9 +90,16 @@ namespace BOTF3D.Galaxy
 
         public void Start()
         {
-            for (int i = 0; i < CivManager.Instance.CivSOListAllPossible.Count; i++)
+            if (CivManager.Instance != null && CivManager.Instance.CivSOListAllPossible != null)
             {
-                fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new List<int>());
+                for (int i = 0; i < CivManager.Instance.CivSOListAllPossible.Count; i++)
+                {
+                    fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new List<int>());
+                }
+            }
+            else
+            {
+                Debug.LogError("FleetManager.Start: CivManager.Instance or CivSOListAllPossible is null — fleet number tracking will be empty.");
             }
 
             // Find GalaxyCenter at start

@@ -165,6 +165,8 @@ public static GalaxyCameraDragMoveZoom Instance;
     private void DoZoom()
     {
         if (IMGUIBlocker.IsMouseOver()) return;
+        if (UnityEngine.EventSystems.EventSystem.current != null &&
+            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
         float scrollValue = 0f;
         if (uiControls != null)
         {

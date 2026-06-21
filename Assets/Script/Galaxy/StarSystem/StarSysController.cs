@@ -675,13 +675,12 @@ namespace BOTF3D.Galaxy
         public void BuildClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildUI(this);
-            GalaxyUI.OpenMenu(Menu.BuildMenu, null);
-
+            // Do NOT call GalaxyUI.OpenMenu(BuildMenu) — that triggers CloseCurrentMenu(),
+            // which hides ASystemMenuView before the build queue has even opened.
         }
         public void ShipClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildUI(this);
-            GalaxyUI.OpenMenu(Menu.BuildMenu, null);
         }
         public void FactoryButtonOnClicked(StarSysController starSysCon)
         {

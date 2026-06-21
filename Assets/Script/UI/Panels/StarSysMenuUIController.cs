@@ -44,6 +44,10 @@ namespace BOTF3D.UI
         public Slider ShipSliderBuildProgress;
         public Slider SliderBuildProgress;
 
+        [Header("Build Queue Display Prefabs")]
+        [SerializeField] private GameObject shipyardQueueItemPrefab;
+        [SerializeField] private GameObject factoryQueueItemPrefab;
+
         private void Awake()
         {
             // ✅ Simple scene-based singleton - no DontDestroyOnLoad!
@@ -99,8 +103,10 @@ namespace BOTF3D.UI
         }
         public void SetUIReferences(GameObject systemListContainer, GameObject canvasGalaxy)
         {
-            this.SysListContainer = systemListContainer;
-            // Store canvasGalaxy reference if needed by the class
+            // SysListContainer must NOT be set from systemListContainer here — that object
+            // is the 3D home-storage container under GalaxyCenter used by StarSysManager.
+            // FindSysUIContainers() locates the correct canvas-based SysListContainer
+            // inside CanvasGalaxy/SystemsMenuView/Viewport when ShowSystemMenuView is called.
         }
         /// <summary>
         /// Shows the scrollable list view of all local player's systems
@@ -124,14 +130,11 @@ namespace BOTF3D.UI
             // ✅ ACTIVATE PARENT FIRST - This is critical!
             SystemsMenuView.SetActive(true);
 
-            // ✅ Ensure SysListContainer is also active (it might be under SystemsMenuView)
             if (SysListContainer != null)
-            {
                 SysListContainer.SetActive(true);
-            }
 
-            // ✅ NOW move and activate children
-            if (StarSysManager.Instance != null)
+            // ✅ Move and activate each local player's system UI into the list container
+            if (SysListContainer != null && StarSysManager.Instance != null)
             {
                 foreach (var sysCon in StarSysManager.Instance.StarSysControllerList)
                 {
@@ -141,12 +144,13 @@ namespace BOTF3D.UI
                     if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum))
                         continue;
 
-                    // ✅ Move to container first
                     sysCon.StarSysUIGameObject.transform.SetParent(SysListContainer.transform, false);
-
-                    // ✅ Then activate (parent is already active)
                     sysCon.StarSysUIGameObject.SetActive(true);
                 }
+            }
+            else
+            {
+                Debug.LogError("ShowSystemMenuView: SysListContainer is null — check Inspector assignment on StarSysMenuUIController.");
             }
 
             Debug.Log("  SystemMenuView activated with scrollable list");
@@ -259,20 +263,74 @@ namespace BOTF3D.UI
                 {
                     sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
 
-                    // Ensure Grid Layout Group for 2D UI layout
-                    var grid = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.GridLayoutGroup>();
-                    if (grid == null)
+                    // Grid: 140×25 cells, 2 columns
+                    var grid = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.GridLayoutGroup>()
+                               ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.GridLayoutGroup>();
+                    grid.cellSize = new Vector2(140, 25);
+                    grid.spacing = new Vector2(4, 4);
+                    grid.padding = new RectOffset(5, 0, 0, 0);
+                    grid.startAxis = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
+                    grid.constraint = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
+                    grid.constraintCount = 2;
+
+                    var fitter = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
+                                 ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                    fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+                    fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+
+                    // Anchor content to top-left so GridLayoutGroup places items downward
+                    var contentRect = sysUIFieldElement.shipContent;
+                    contentRect.anchorMin = new Vector2(0f, 1f);
+                    contentRect.anchorMax = new Vector2(1f, 1f);
+                    contentRect.pivot     = new Vector2(0f, 1f);
+                    contentRect.anchoredPosition = Vector2.zero;
+                    contentRect.sizeDelta        = Vector2.zero;
+
+                    // Fix Viewport to fill ShipScrollView
+                    if (sysUIFieldElement.ShipScrollView != null)
                     {
-                        grid = sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                        grid.cellSize = new Vector2(100, 100); // Default cell size
-                        grid.spacing = new Vector2(5, 5);
+                        var svRect = sysUIFieldElement.ShipScrollView.GetComponent<RectTransform>();
+                        if (svRect != null)
+                            svRect.sizeDelta = new Vector2(sysUIFieldElement.CollapsedShipScrollViewWidth, svRect.sizeDelta.y);
+
+                        var viewport = sysUIFieldElement.ShipScrollView.transform.Find("Viewport");
+                        if (viewport != null)
+                        {
+                            var vpRect = viewport.GetComponent<RectTransform>();
+                            if (vpRect != null)
+                            {
+                                vpRect.anchorMin = Vector2.zero;
+                                vpRect.anchorMax = Vector2.one;
+                                vpRect.sizeDelta = Vector2.zero;
+                                vpRect.anchoredPosition = Vector2.zero;
+                            }
+                        }
+
+                        var sr = sysUIFieldElement.ShipScrollView.GetComponent<UnityEngine.UI.ScrollRect>();
+                        if (sr != null)
+                        {
+                            sr.enabled = true;
+                            // Prevent scroll events from propagating to the FactoryScrollViewQueue
+                            if (sysUIFieldElement.ShipScrollView.GetComponent<ScrollRectIsolator>() == null)
+                                sysUIFieldElement.ShipScrollView.AddComponent<ScrollRectIsolator>();
+                        }
                     }
 
-                    var fitter = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.ContentSizeFitter>();
-                    if (fitter == null)
+                    // Expand button: show whenever ships are present
+                    int shipCount = sysCon.StarSysData?.ShipsList?.Count ?? 0;
+                    bool needsExpand = shipCount > 0;
+                    if (sysUIFieldElement.ExpandShipsButton != null)
                     {
-                        fitter = sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-                        fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                        sysUIFieldElement.ExpandShipsButton.gameObject.SetActive(needsExpand);
+                        if (needsExpand)
+                        {
+                            sysUIFieldElement.ExpandShipsButton.onClick.RemoveAllListeners();
+                            var capSysCon = sysCon;
+                            var capFields = sysUIFieldElement;
+                            sysUIFieldElement.ExpandShipsButton.onClick.AddListener(
+                                () => ToggleSysShipListExpansion(capSysCon, capFields));
+                            SetSysExpandButtonLabel(sysUIFieldElement, false);
+                        }
                     }
 
                     // ✅ SYNC SHIPS (Always run to ensure UIs are present and correctly parented)
@@ -306,19 +364,11 @@ namespace BOTF3D.UI
                 // ✅ FIRST TIME ONLY: Wire buttons and set original parent
                 if (!listOfStarSysUiGos.Contains(sysCon.StarSysUIGameObject))
                 {
-                    // Set OriginalParentTransform to home storage
+                    // Set OriginalParentTransform — system UIs live in SysListContainer permanently
                     var childController = sysCon.StarSysUIGameObject.GetComponent<FleetAndSystemChildController>();
                     if (childController != null)
                     {
-                        // ✅ Use StarSysManager's container as the original parent
-                        if (StarSysManager.Instance.StarSysUI_ListContainer != null)
-                        {
-                            childController.OriginalParentTransform = StarSysManager.Instance.StarSysUI_ListContainer.transform;
-                        }
-                        else
-                        {
-                            childController.OriginalParentTransform = SysListContainer.transform; // Fallback
-                        }
+                        childController.OriginalParentTransform = SysListContainer?.transform;
                     }
 
                     // Wire all buttons (BuildButton, ShipButton, etc.)
@@ -354,6 +404,8 @@ namespace BOTF3D.UI
                 {
                     Debug.LogWarning($"SetupSystemUIData: InitializeFromStarSysData failed for {sysCon.name}: {ex.Message}");
                 }
+
+                RefreshQueueDisplays(sysCon, sysUIFieldElement);
 
                 setupCount++;
             } // ✅ MOVED: End of foreach loop is HERE
@@ -526,81 +578,37 @@ namespace BOTF3D.UI
             Debug.Log($"PopulateSystemsList: Complete - {populatedCount} systems added to list");
         }
         /// <summary>
-        /// Moves all system UIs back to home storage (StarSysUI_ListContainer)
-        /// CALLED BY: HideSystemMenuView(), HideA_SystemMenuView(), MoveBackAnyStarSysUIGO()
+        /// Hides all system UIs. Any in AStarSysMenuView are returned to SysListContainer first.
+        /// CALLED BY: HideSystemMenuView(), HideA_SystemMenuView()
         /// </summary>
         private void MoveSystemsToHomeStorage()
         {
-            Debug.Log("MoveSystemsToHomeStorage: Starting");
-
-            // ✅ Get home storage container from StarSysManager
-            GameObject homeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-
-            if (homeContainer == null)
-            {
-                Debug.LogWarning("  ⚠️ StarSysUI_ListContainer not found! Systems will remain where they are.");
-                return;
-            }
-
-            int movedCount = 0;
-
-            // Move from ASystemMenuView (detail view)
+            // Return any system UI from the detail view back to SysListContainer, then deactivate it
             if (ASystemMenuView != null)
             {
                 for (int i = ASystemMenuView.transform.childCount - 1; i >= 0; i--)
                 {
                     var child = ASystemMenuView.transform.GetChild(i);
                     if (child == null) continue;
-
-                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    if (starSysUIFields != null)
+                    if (child.GetComponent<StarSysUI_Fields>() != null)
                     {
-                        child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // Deactivate when in storage
-                        movedCount++;
+                        if (SysListContainer != null)
+                            child.SetParent(SysListContainer.transform, false);
+                        child.gameObject.SetActive(false);
                     }
                 }
             }
 
-            // Move from SysListContainer (scalable list view)
-            if (SysListContainer != null && SysListContainer != homeContainer)
+            // Deactivate all system UIs in the list container
+            if (SysListContainer != null)
             {
-                for (int i = SysListContainer.transform.childCount - 1; i >= 0; i--)
+                for (int i = 0; i < SysListContainer.transform.childCount; i++)
                 {
                     var child = SysListContainer.transform.GetChild(i);
-                    if (child == null) continue;
-
-                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    if (starSysUIFields != null)
-                    {
-                        child.SetParent(homeContainer.transform, false);
+                    if (child != null && child.GetComponent<StarSysUI_Fields>() != null)
                         child.gameObject.SetActive(false);
-                        movedCount++;
-                    }
                 }
             }
-
-            // ✅ Check for stray system UIs in fleet views (error case)
-            var aFleetView = FleetMenuUIController.Instance?.AFleetMenuView;
-            if (aFleetView != null)
-            {
-                for (int i = aFleetView.transform.childCount - 1; i >= 0; i--)
-                {
-                    var child = aFleetView.transform.GetChild(i);
-                    if (child == null) continue;
-
-                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    if (starSysUIFields != null)
-                    {
-                        Debug.LogError($"  ❌ SYSTEM UI '{child.name}' found in AFleetMenuView! Moving to home storage.");
-                        child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate!
-                        movedCount++;
-                    }
-                }
-            }
-
-            Debug.Log($"MoveSystemsToHomeStorage: Moved {movedCount} UIs to home storage");
         }
 
         public void SetActiveSetParentUIGO(StarSysController theSysCon)
@@ -667,28 +675,18 @@ namespace BOTF3D.UI
         {
             Debug.Log("CloseBuildingQueues: Starting");
 
-            // ✅ Destroy the build UI to prevent stale references
-            var buildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
-            if (buildUI != null)
-            {
-                Debug.Log("  Destroying build queue UI: " + buildUI.name);
-                Destroy(buildUI);
-            }
-            else
-            {
-                Debug.Log("  Build queue UI not found (already destroyed?)");
-            }
+            // Refresh the System UI queue display before hiding, so newly added items appear immediately
+            var buildSysCon = StarSysManager.Instance?.CurrentBuildUISysCon;
+            if (buildSysCon != null)
+                RefreshQueueForSystem(buildSysCon);
 
-            // ✅ Only close the BuildMenu, leave ASystemMenu open
-            if (GalaxyMenuUIController.Instance != null)
-            {
-                GalaxyMenuUIController.Instance.CloseMenu(Menu.BuildMenu);
-                Debug.Log("  ✅ Closed Build Menu (Star System Menu remains open)");
-            }
-            else
-            {
-                Debug.LogError("  ❌ GalaxyMenuUIController.Instance is NULL!");
-            }
+            // Hide (don't destroy) so in-progress builds remain visible if the same system is reopened
+            StarSysManager.Instance?.HideBuildUI();
+
+            // Inspector-wired (persistent) listeners on the CloseBuilding button cannot be cleared
+            // in code and may close ASystemMenuView as a side-effect.  Re-assert it open here.
+            if (ASystemMenuView != null)
+                ASystemMenuView.SetActive(true);
 
             Debug.Log("CloseBuildingQueues: Complete");
         }
@@ -797,12 +795,13 @@ namespace BOTF3D.UI
                     break;
             }
 
-            // ✅ NEW: Show/Hide On button based on whether there are facilities to turn on
+            // Show ON button only when there are facilities to turn on AND power headroom allows it.
             if (onButton != null)
             {
-                bool shouldShowOnButton = numOff > 0;
+                int headroom = sysController.StarSysData.TotalSysPowerOutput - sysController.StarSysData.TotalSysPowerLoad;
+                bool shouldShowOnButton = numOff > 0 && newFacilityLoad <= headroom;
                 onButton.gameObject.SetActive(shouldShowOnButton);
-                Debug.Log($"🔘 UpdateFacilityUI: {facilityType} Power ON button -> {(shouldShowOnButton ? "VISIBLE" : "HIDDEN")} (numOff={numOff})");
+                Debug.Log($"🔘 UpdateFacilityUI: {facilityType} Power ON button -> {(shouldShowOnButton ? "VISIBLE" : "HIDDEN")} (numOff={numOff}, headroom={headroom}, load={newFacilityLoad})");
             }
 
             // ✅ NEW: Show/Hide Off button based on whether there are facilities to turn off
@@ -927,6 +926,15 @@ namespace BOTF3D.UI
                 if ("NumTotal EOut" == OneTMP[i].name)
                     OneTMP[i].text = outputUI.ToString();
             }
+
+            // Re-evaluate all facility ON button visibility now that TotalSysPowerLoad/Output
+            // are up to date. This handles the case where turning off facility type B frees
+            // power headroom that should re-enable the ON button for facility type A.
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.OrbitalBattery);
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ResearchCenter);
         }
 
         internal void AddSysFacility(StarSysController controller, GameObject facilityGO, string loadName, string ratioName, StarSysFacilityType facilityType)
@@ -1379,11 +1387,11 @@ namespace BOTF3D.UI
                 Debug.Log($"StarSysMenuUIController: Found SystemsMenuView: {SystemsMenuView != null}");
             }
 
-            // ✅ Find ASystemMenuView (single system detail view)
+            // ✅ Find AStarSysMenuView (single system detail view)
             if (ASystemMenuView == null)
             {
-                ASystemMenuView = FindInHierarchy(canvasGalaxy.transform, "ASystemMenuView");
-                Debug.Log($"StarSysMenuUIController: Found ASystemMenuView: {ASystemMenuView != null}");
+                ASystemMenuView = FindInHierarchy(canvasGalaxy.transform, "AStarSysMenuView");
+                Debug.Log($"StarSysMenuUIController: Found AStarSysMenuView: {ASystemMenuView != null}");
             }
 
             // ✅ Find SysListContainer (INSIDE SystemsMenuView/Viewport)
@@ -1421,92 +1429,41 @@ namespace BOTF3D.UI
         }
         public void MoveBackAnyStarSysUIGO()
         {
-            Debug.Log("=== MoveBackAnyStarSysUIGO: Starting ===");
-
-            // ✅ Clean up destroyed references
             listOfStarSysUiGos.RemoveAll(go => go == null);
-            Debug.Log($"  Cleaned tracking list, now has {listOfStarSysUiGos.Count} valid entries");
 
-            // ✅ Get home storage container from StarSysManager
-            GameObject homeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-
-            if (homeContainer == null)
-            {
-                Debug.LogWarning("  ⚠️ StarSysUI_ListContainer not found! UIs will remain visible.");
-                return;
-            }
-
-            // Move from ASystemMenuView (detail view)
+            // Return any system UI from the detail view to SysListContainer and deactivate
             if (ASystemMenuView != null)
             {
-                Debug.Log($"  Checking ASystemMenuView ({ASystemMenuView.transform.childCount} children)");
-
                 for (int i = ASystemMenuView.transform.childCount - 1; i >= 0; i--)
                 {
                     var child = ASystemMenuView.transform.GetChild(i);
                     if (child == null) continue;
 
-                    // ✅ Check if this is a SYSTEM UI (not a fleet UI!)
                     var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
+                    var fleetUIFields   = child.GetComponent<FleetUI_Fields>();
 
                     if (starSysUIFields != null && fleetUIFields == null)
                     {
-                        // This is a star system UI - move to home and DEACTIVATE
-                        Debug.Log($"    Moving SYSTEM UI '{child.name}' to home storage");
-                        child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate when in storage!
-                    }
-                    else if (fleetUIFields != null)
-                    {
-                        Debug.LogWarning($"    Fleet UI '{child.name}' found in ASystemMenuView - skipping (Fleet controller handles this)");
+                        if (SysListContainer != null)
+                            child.SetParent(SysListContainer.transform, false);
+                        child.gameObject.SetActive(false);
                     }
                 }
-
-                ASystemMenuView.SetActive(false); // ✅ Hide the view
+                ASystemMenuView.SetActive(false);
             }
 
-            // Move from SysListContainer (scrollable list view)
-            if (SysListContainer != null && SysListContainer != homeContainer)
+            // Deactivate all system UIs in the list container
+            if (SysListContainer != null)
             {
-                Debug.Log($"  Checking SysListContainer ({SysListContainer.transform.childCount} children)");
-
-                for (int i = SysListContainer.transform.childCount - 1; i >= 0; i--)
+                for (int i = 0; i < SysListContainer.transform.childCount; i++)
                 {
                     var child = SysListContainer.transform.GetChild(i);
-                    if (child == null) continue;
-
-                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    if (starSysUIFields != null)
-                    {
-                        Debug.Log($"    Moving SYSTEM UI '{child.name}' to home storage");
-                        child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate!
-                    }
+                    if (child != null && child.GetComponent<StarSysUI_Fields>() != null)
+                        child.gameObject.SetActive(false);
                 }
             }
 
-            // ✅ CRITICAL: Also check home storage itself and deactivate any active children
-            if (homeContainer != null)
-            {
-                Debug.Log($"  Checking home storage ({homeContainer.transform.childCount} children)");
-
-                for (int i = 0; i < homeContainer.transform.childCount; i++)
-                {
-                    var child = homeContainer.transform.GetChild(i);
-                    if (child != null && child.gameObject.activeSelf)
-                    {
-                        var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                        if (starSysUIFields != null)
-                        {
-                            Debug.Log($"    Deactivating SYSTEM UI '{child.name}' in home storage");
-                            child.gameObject.SetActive(false); // ✅ DEACTIVATE!
-                        }
-                    }
-                }
-            }
-
-            // ✅ Check for stray system UIs in fleet views (error case)
+            // Guard: stray system UIs in fleet view
             var aFleetView = FleetMenuUIController.Instance?.AFleetMenuView;
             if (aFleetView != null)
             {
@@ -1514,19 +1471,17 @@ namespace BOTF3D.UI
                 {
                     var child = aFleetView.transform.GetChild(i);
                     if (child == null) continue;
-
-                    var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    if (starSysUIFields != null)
+                    if (child.GetComponent<StarSysUI_Fields>() != null)
                     {
-                        Debug.LogError($"  ❌ SYSTEM UI '{child.name}' found in AFleetMenuView! Moving to home storage.");
-                        child.SetParent(homeContainer.transform, false);
-                        child.gameObject.SetActive(false); // ✅ CRITICAL: Deactivate!
+                        Debug.LogError($"❌ SYSTEM UI '{child.name}' found in AFleetMenuView!");
+                        if (SysListContainer != null)
+                            child.SetParent(SysListContainer.transform, false);
+                        child.gameObject.SetActive(false);
                     }
                 }
             }
 
             ActiveStarSysController = null;
-            Debug.Log("=== MoveBackAnyStarSysUIGO: Complete - all UIs moved and DEACTIVATED ===");
         }
         // ✅ Add this method to display power plant build info
         public void UpdatePowerPlantBuildUI(StarSysController selectedSystem)
@@ -1549,6 +1504,189 @@ namespace BOTF3D.UI
             Debug.Log($"Power Plant UI: {PowerPlantBuildValidator.GetCapacityInfo(sysData)}");
             Debug.Log($"  {PowerPlantBuildValidator.GetPowerOutputInfo(sysData, civData)}");
             Debug.Log($"  Can Build: {canBuild} - {reason}");
+        }
+
+        private void ToggleSysShipListExpansion(StarSysController sysCon, StarSysUI_Fields fields)
+        {
+            if (fields.ShipScrollView == null) return;
+            var svRect = fields.ShipScrollView.GetComponent<RectTransform>();
+            if (svRect == null) return;
+            var grid = fields.shipContent?.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+            if (grid == null) return;
+
+            bool isCollapsed = svRect.sizeDelta.x <= fields.CollapsedShipScrollViewWidth + 1f;
+
+            if (isCollapsed)
+            {
+                var canvas = fields.GetComponentInParent<Canvas>();
+                float scale = canvas != null ? canvas.scaleFactor : 1f;
+
+                // Left screen-space edge of the ShipScrollView (overlay canvas: world pos = screen pos)
+                var corners = new Vector3[4];
+                svRect.GetWorldCorners(corners);
+                float leftScreenX = corners[0].x;
+
+                float availableWidth = (Screen.width - leftScreenX - 20f) / scale;
+                int newCols = Mathf.Max(2, Mathf.FloorToInt(
+                    (availableWidth + grid.spacing.x) / (grid.cellSize.x + grid.spacing.x)));
+
+                svRect.sizeDelta = new Vector2(availableWidth, svRect.sizeDelta.y);
+                grid.constraintCount = newCols;
+
+                // Render on top of other system UI elements; button must come after scroll view
+                fields.ShipScrollView.transform.SetAsLastSibling();
+                fields.transform.SetAsLastSibling();
+                // Move button last so it renders on top of the expanded ShipScrollView
+                if (fields.ExpandShipsButton != null)
+                    fields.ExpandShipsButton.transform.SetAsLastSibling();
+
+                SetSysExpandButtonLabel(fields, true);
+            }
+            else
+            {
+                svRect.sizeDelta = new Vector2(fields.CollapsedShipScrollViewWidth, svRect.sizeDelta.y);
+                grid.constraintCount = 2;
+                SetSysExpandButtonLabel(fields, false);
+            }
+
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(svRect);
+        }
+
+        private static void SetSysExpandButtonLabel(StarSysUI_Fields fields, bool expanded)
+        {
+            if (fields.ExpandShipsButton == null) return;
+            var tmp = fields.ExpandShipsButton.GetComponentInChildren<TMPro.TMP_Text>();
+            if (tmp != null) tmp.text = expanded ? "◄" : "►";
+        }
+
+        public void RefreshQueueForSystem(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysUIGameObject == null) return;
+            var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields != null)
+                RefreshQueueDisplays(sysCon, fields);
+        }
+
+        public void RefreshQueueDisplays(StarSysController sysCon, StarSysUI_Fields fields)
+        {
+            RefreshShipQueue(sysCon, fields);
+            RefreshFacilityQueue(sysCon, fields);
+        }
+
+        private void RefreshShipQueue(StarSysController sysCon, StarSysUI_Fields fields)
+        {
+            if (fields.yardQueueContent == null || shipyardQueueItemPrefab == null) return;
+
+            // Content grows vertically; no horizontal scroll
+            var fitter = fields.yardQueueContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
+                         ?? fields.yardQueueContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+            fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+            var sr = fields.yardQueueContent.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            if (sr != null) sr.horizontal = false;
+
+            // Destroy previous display items
+            var toDestroy = new System.Collections.Generic.List<GameObject>();
+            foreach (Transform child in fields.yardQueueContent)
+                toDestroy.Add(child.gameObject);
+            foreach (var go in toDestroy)
+                Destroy(go);
+
+            var queue = sysCon.sysShipBuildQueueList;
+            if (queue == null || queue.Count == 0) return;
+
+            int startIndex = sysCon.StarSysBuildManager.IsBuildingShip ? 1 : 0;
+            for (int i = startIndex; i < queue.Count; i++)
+            {
+                var queueItemTransform = queue[i];
+                if (queueItemTransform == null) continue;
+
+                var drag = queueItemTransform.GetComponent<ShipBuildDrag>();
+                if (drag == null) continue;
+
+                var displayItem = Instantiate(shipyardQueueItemPrefab, fields.yardQueueContent);
+
+                var rootImg = displayItem.GetComponent<Image>();
+                if (rootImg != null && drag.ShipSprite != null)
+                    rootImg.sprite = drag.ShipSprite;
+
+                var nameTmp = displayItem.transform.Find("Ship Name (TMP)")?.GetComponent<TMPro.TMP_Text>();
+                if (nameTmp != null)
+                    nameTmp.text = drag.ShipType.ToString();
+
+                var cancelBtn = displayItem.transform.Find("CancelButton")?.GetComponent<Button>();
+                if (cancelBtn != null)
+                {
+                    var capturedItem = queueItemTransform;
+                    var capturedSysCon = sysCon;
+                    var capturedFields = fields;
+                    cancelBtn.onClick.AddListener(() =>
+                    {
+                        capturedSysCon.sysShipBuildQueueList.Remove(capturedItem);
+                        if (capturedItem != null)
+                            Destroy(capturedItem.gameObject);
+                        RefreshShipQueue(capturedSysCon, capturedFields);
+                    });
+                }
+            }
+        }
+
+        private void RefreshFacilityQueue(StarSysController sysCon, StarSysUI_Fields fields)
+        {
+            if (fields.factoryQueueContent == null || factoryQueueItemPrefab == null) return;
+
+            var fitter = fields.factoryQueueContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
+                         ?? fields.factoryQueueContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+            fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+            var sr = fields.factoryQueueContent.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+            if (sr != null) sr.horizontal = false;
+
+            var toDestroy = new System.Collections.Generic.List<GameObject>();
+            foreach (Transform child in fields.factoryQueueContent)
+                toDestroy.Add(child.gameObject);
+            foreach (var go in toDestroy)
+                Destroy(go);
+
+            var queue = sysCon.sysBuildQueueList;
+            if (queue == null || queue.Count == 0) return;
+
+            int startIndex = sysCon.StarSysBuildManager.IsBuildingFacility ? 1 : 0;
+            for (int i = startIndex; i < queue.Count; i++)
+            {
+                var queueItemTransform = queue[i];
+                if (queueItemTransform == null) continue;
+
+                var drag = queueItemTransform.GetComponent<FactoryBuildItemDrag>();
+                if (drag == null) continue;
+
+                var displayItem = Instantiate(factoryQueueItemPrefab, fields.factoryQueueContent);
+
+                var rootImg = displayItem.GetComponent<Image>();
+                if (rootImg != null && drag.ShipSprite != null)
+                    rootImg.sprite = drag.ShipSprite;
+
+                var nameTmp = displayItem.transform.Find("Item Name (TMP)")?.GetComponent<TMPro.TMP_Text>();
+                if (nameTmp != null)
+                    nameTmp.text = drag.FacilityType.ToString();
+
+                var cancelBtn = displayItem.transform.Find("CancelButton")?.GetComponent<Button>();
+                if (cancelBtn != null)
+                {
+                    var capturedItem = queueItemTransform;
+                    var capturedSysCon = sysCon;
+                    var capturedFields = fields;
+                    cancelBtn.onClick.AddListener(() =>
+                    {
+                        capturedSysCon.sysBuildQueueList.Remove(capturedItem);
+                        if (capturedItem != null)
+                            Destroy(capturedItem.gameObject);
+                        RefreshFacilityQueue(capturedSysCon, capturedFields);
+                    });
+                }
+            }
         }
     }
 }

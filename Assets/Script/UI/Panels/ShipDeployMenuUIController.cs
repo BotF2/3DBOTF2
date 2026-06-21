@@ -1170,7 +1170,7 @@ public FleetController BottomFleet;
         private void DumpAllShipListUIs()
         {
             // Find all ShipListUI_Item instances (active and inactive)
-            var all = UnityEngine.Object.FindObjectsByType<ShipListUI_Item>(UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+            var all = UnityEngine.Object.FindObjectsByType<ShipListUI_Item>(UnityEngine.FindObjectsInactive.Include);
             // Debug.Log($"DumpAllShipListUIs: found {all.Length} ShipListUI_Item instances");
             for (int i = 0; i < all.Length; i++)
             {

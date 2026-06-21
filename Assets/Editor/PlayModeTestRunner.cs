@@ -142,7 +142,7 @@ namespace Unity.AI.Assistant.PlayModeTest
                 if (buttonGO == null) 
                 {
                     Debug.Log("[Test] Searching for button by name failed, searching all buttons...");
-                    Button[] allButtons = GameObject.FindObjectsByType<Button>(FindObjectsSortMode.None);
+                    Button[] allButtons = GameObject.FindObjectsByType<Button>(FindObjectsInactive.Exclude);
                     foreach(var b in allButtons)
                     {
                         if (b.name.Contains("SinglePlayer"))

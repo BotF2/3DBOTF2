@@ -312,20 +312,11 @@ namespace BOTF3D.UI
                     }
                     else if (starSysUIFields != null)
                     {
-                        Debug.Log($"    Moving SYSTEM UI '{child.name}' from AFleetMenuView back to system storage");
-
-                        // Move system UI back to its home storage
-                        var sysHomeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-                        if (sysHomeContainer != null)
-                        {
-                            child.SetParent(sysHomeContainer.transform, false);
-                            child.gameObject.SetActive(false);
-                        }
-                        else if (StarSysMenuUIController.Instance?.SysListContainer != null)
-                        {
-                            child.SetParent(StarSysMenuUIController.Instance.SysListContainer.transform, false);
-                            child.gameObject.SetActive(false);
-                        }
+                        Debug.Log($"    Moving SYSTEM UI '{child.name}' from AFleetMenuView back to SysListContainer");
+                        var sysListContainer = StarSysMenuUIController.Instance?.SysListContainer;
+                        if (sysListContainer != null)
+                            child.SetParent(sysListContainer.transform, false);
+                        child.gameObject.SetActive(false);
                     }
                 }
 
@@ -404,20 +395,79 @@ namespace BOTF3D.UI
             {
                 fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
 
-                // Ensure Grid Layout Group for 2D UI layout
-                var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>();
-                if (grid == null)
+                // 8 ships per row, each cell 140×25. Rows wrap downward when expanded.
+                // In collapsed state the ShipScrollView height clips to one visible row.
+                var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>()
+                           ?? uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
+                grid.cellSize        = new Vector2(140, 25);
+                grid.spacing         = new Vector2(4, 4);
+                grid.startAxis       = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
+                grid.constraint      = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 8;
+
+                // Height controlled by the ShipScrollView RectTransform + Mask (collapsed)
+                // or by ContentSizeFitter (expanded). Width fills the container.
+                var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>()
+                             ?? uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+                fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+                // Fix Content RectTransform so the GridLayoutGroup starts items
+                // at the top-left of the Viewport rather than below the panel.
+                var contentRect = uiFields.FleetShipContentGO.GetComponent<RectTransform>();
+                if (contentRect != null)
                 {
-                    grid = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                    grid.cellSize = new Vector2(100, 100); // Default cell size
-                    grid.spacing = new Vector2(5, 5);
+                    contentRect.anchorMin        = new Vector2(0f, 1f); // top-left anchor
+                    contentRect.anchorMax        = new Vector2(1f, 1f); // stretch horizontally
+                    contentRect.pivot            = new Vector2(0f, 1f); // pivot at top-left
+                    contentRect.anchoredPosition = Vector2.zero;        // flush with viewport top
+                    contentRect.sizeDelta        = Vector2.zero;        // width = viewport, height by fitter
                 }
 
-                var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>();
-                if (fitter == null)
+                if (uiFields.ShipScrollView != null)
                 {
-                    fitter = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                    var sr = uiFields.ShipScrollView.GetComponent<UnityEngine.UI.ScrollRect>();
+
+                    // Viewport must fill the ShipScrollView so the Mask clips correctly
+                    RectTransform viewportRect = sr != null && sr.viewport != null
+                        ? sr.viewport
+                        : uiFields.ShipScrollView.transform.childCount > 0
+                            ? uiFields.ShipScrollView.transform.GetChild(0).GetComponent<RectTransform>()
+                            : null;
+
+                    if (viewportRect != null)
+                    {
+                        viewportRect.anchorMin        = Vector2.zero;
+                        viewportRect.anchorMax        = Vector2.one;
+                        viewportRect.sizeDelta        = Vector2.zero;
+                        viewportRect.anchoredPosition = Vector2.zero;
+                    }
+
+                    // Disable ScrollRect — prevents scroll-wheel events reaching the galaxy map.
+                    // The Viewport Mask stays enabled to clip overflow in collapsed state.
+                    if (sr != null) sr.enabled = false;
+
+                    // Collapsed height — one visible row
+                    var svRect = uiFields.ShipScrollView.GetComponent<RectTransform>();
+                    if (svRect != null)
+                        svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, uiFields.CollapsedShipViewHeight);
+                }
+
+                // Show the expand button only when the fleet exceeds 6 full rows (48 ships).
+                // Smaller fleets fit within the normal Ship Scroll View height.
+                if (uiFields.ExpandShipsButton != null)
+                {
+                    int shipCount   = fleetCon.FleetData?.ShipsList?.Count ?? 0;
+                    bool needsExpand = shipCount > 6 * 8;
+
+                    uiFields.ExpandShipsButton.gameObject.SetActive(needsExpand);
+
+                    if (needsExpand)
+                    {
+                        uiFields.ExpandShipsButton.onClick.RemoveAllListeners();
+                        uiFields.ExpandShipsButton.onClick.AddListener(() => ToggleShipListExpansion(fleetCon, uiFields));
+                        SetExpandButtonLabel(uiFields, false);
+                    }
                 }
             }
 
@@ -1091,6 +1141,68 @@ namespace BOTF3D.UI
                 AFleetMenuView.SetActive(false);
                 Debug.Log("AFleetMenuView hidden");
             }
+        }
+
+        // Toggles the ship list between:
+        //   Collapsed — one visible row (Mask clips the rest), ▼ button
+        //   Expanded  — ShipScrollView grows to show all rows,  ▲ button
+        // Grid is always FixedColumnCount=8 — only height and Mask change.
+        private void ToggleShipListExpansion(FleetController fleetCon, FleetUI_Fields uiFields)
+        {
+            if (uiFields.ShipScrollView == null || uiFields.FleetShipContentGO == null) return;
+
+            var grid   = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+            var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+            var svRect = uiFields.ShipScrollView.GetComponent<RectTransform>();
+            var mask   = uiFields.ShipScrollView.GetComponentInChildren<UnityEngine.UI.Mask>();
+
+            bool isCollapsed = mask == null || mask.enabled;
+
+            if (isCollapsed)
+            {
+                // ── Expand ────────────────────────────────────────────────────
+                // Calculate rows needed and target height
+                int shipCount = fleetCon?.FleetData?.ShipsList?.Count ?? 0;
+                int cols      = grid != null ? grid.constraintCount : 8;
+                int rows      = Mathf.Max(1, Mathf.CeilToInt(shipCount / (float)cols));
+                float rowH    = grid != null ? grid.cellSize.y + grid.spacing.y : 29f;
+                float neededH = rows * rowH + 8f;
+                float targetH = Mathf.Min(neededH, Screen.height * 0.85f);
+
+                if (svRect != null)
+                    svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, targetH);
+
+                // ContentSizeFitter drives height once mask is off
+                if (fitter != null)
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+
+                if (mask != null) mask.enabled = false;
+
+                SetExpandButtonLabel(uiFields, true);
+            }
+            else
+            {
+                // ── Collapse ──────────────────────────────────────────────────
+                if (fitter != null)
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+                if (svRect != null)
+                    svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, uiFields.CollapsedShipViewHeight);
+
+                if (mask != null) mask.enabled = true;
+
+                SetExpandButtonLabel(uiFields, false);
+            }
+
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
+                uiFields.FleetShipContentGO.GetComponent<RectTransform>());
+        }
+
+        private static void SetExpandButtonLabel(FleetUI_Fields uiFields, bool expanded)
+        {
+            if (uiFields.ExpandShipsButton == null) return;
+            var txt = uiFields.ExpandShipsButton.GetComponentInChildren<TMPro.TMP_Text>();
+            if (txt != null) txt.text = expanded ? "▲" : "▼";
         }
     }
 }

@@ -114,57 +114,10 @@ public class ShipSOImporter : EditorWindow
                     Debug.LogError($"    ❌ FBX NOT FOUND for {fbxBaseName}");
                 }
 
-                shipSO.ShieldMaxHealth = int.Parse(fields[2]);
-                shipSO.HullMaxHealth = int.Parse(fields[4]);
-                shipSO.TorpedoDamage = int.Parse(fields[6]);
-                shipSO.BeamDamage = int.Parse(fields[8]);
-
-                int civFactor = 0;
-                switch (shipSO.CivEnum)
-                {
-                    case CivEnum.FED:
-                    case CivEnum.ROM:
-                    case CivEnum.KLING:
-                    case CivEnum.TERRAN:
-                        break;
-                    case CivEnum.CARD:
-                        civFactor = -1;
-                        break;
-                    case CivEnum.DOM:
-                        civFactor = +2;
-                        break;
-                    case CivEnum.BORG:
-                        civFactor = +4;
-                        break;
-                    default:
-                        break;
-                }
-
-                switch (shipSO.ShipType)
-                {
-                    case ShipType.Scout:
-                        shipSO.BuildDuration = 6 + civFactor;
-                        break;
-                    case ShipType.Destroyer:
-                        shipSO.BuildDuration = 8 + civFactor;
-                        break;
-                    case ShipType.Cruiser:
-                        shipSO.BuildDuration = 10 + civFactor;
-                        break;
-                    case ShipType.LtCruiser:
-                        shipSO.BuildDuration = 10 + civFactor;
-                        break;
-                    case ShipType.HvyCruiser:
-                        shipSO.BuildDuration = 14 + civFactor;
-                        break;
-                    case ShipType.Transport:
-                        shipSO.BuildDuration = 10 + civFactor;
-                        break;
-                    default:
-                        break;
-                }
-
-                shipSO.maxWarpFactor = float.Parse(fields[11]);
+                // Combat stats (ShieldMaxHealth, HullMaxHealth, TorpedoDamage, BeamDamage,
+                // BuildDuration, maxWarpFactor) are no longer stored on ShipSO.
+                // They are derived at runtime by ShipStatCalculator from ShipType,
+                // TechLevel, CivEnum, and the civ's QualityScore.
                 assetPath = $"Assets/SO/ShipSO/{shipSO.ShipName}.asset";
 
                 // ✅ CRITICAL: Create directory if it doesn't exist

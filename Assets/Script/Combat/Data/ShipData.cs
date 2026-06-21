@@ -24,6 +24,8 @@ namespace BOTF3D.Combat
         public Sprite ShipSprite;
         public float maxWarpFactor;
         public float currentWarpFactor;
+        public int ShieldMaxHealth; // cached max set during initialization; used for health-bar and reset
+        public int HullMaxHealth;   // cached max set during initialization; used for health-bar and reset
         public int ShieldHealth;
         public int HullHealth;
         public int TorpedoDamage;
@@ -54,13 +56,9 @@ namespace BOTF3D.Combat
             this.TechLevel = shipSO.TechLevel;
             this.ShipType = shipSO.ShipType;
             this.ShipSprite = shipSO.shipSprite;
-            this.maxWarpFactor = shipSO.maxWarpFactor;
-            this.ShieldHealth = shipSO.ShieldMaxHealth;
-            this.HullHealth = shipSO.HullMaxHealth;
-            this.TorpedoDamage = shipSO.TorpedoDamage;
-            this.BeamDamage = shipSO.BeamDamage;
-            this.BuildDuration = shipSO.BuildDuration;
             this.ShipDescription = shipSO.ShipDescription;
+            // Combat stats are not stored on ShipSO; call ShipDataInitializer.InitializeShipData
+            // (which calls ShipStatCalculator) to populate maxWarpFactor, ShieldMaxHealth, etc.
         }
 public ShipData()
         {
