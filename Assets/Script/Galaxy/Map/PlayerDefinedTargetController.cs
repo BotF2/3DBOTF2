@@ -54,18 +54,22 @@ namespace BOTF3D.Galaxy
         private void OnMouseUp()
         {
             IsDragging = false;
-            if (PlayerTargetData != null && PlayerTargetData.FleetController != null)
+
+            // Guard: if TargetController was cleared by cancel (DestroyPlayerTarget nulls it before
+            // deferred Destroy completes), skip re-setting the destination so the cancel sticks.
+            if (PlayerTargetData != null && PlayerTargetData.FleetController != null
+                && PlayerTargetData.FleetController.TargetController == this)
             {
+                var galaxyUI = GalaxyMenuUIController.Instance;
+                if (galaxyUI != null)
+                    galaxyUI.BeginSetDestination(PlayerTargetData.FleetController); // re-register fleet before destination is set
+
                 PlayerTargetData.FleetController.PlayerTargetAsNewDestination(this.gameObject);
-                
-                // Restore destination mode so we can still see the cursor if needed, 
-                // but usually setting a destination completes the process.
-                if (GalaxyMenuUIController.Instance != null)
-                {
-                    GalaxyMenuUIController.Instance.SetClickMode(GalaxyClickMode.SetDestination);
-                }
+
+                if (galaxyUI != null)
+                    galaxyUI.CompleteSetDestination(); // clears fleet + resets click mode to Normal
             }
-            
+
             PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(false, this);
             GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(false);
         }

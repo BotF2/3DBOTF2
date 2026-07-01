@@ -196,7 +196,6 @@ namespace BOTF3D.UI
         public void SetClickMode(GalaxyClickMode mode)
         {
             CurrentClickMode = mode;
-            Debug.Log($"GalaxyUIStateManager: Click mode set to {mode}");
         }
 
         /// <summary>

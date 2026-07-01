@@ -189,8 +189,9 @@ namespace BOTF3D.Galaxy
                 .ThenBy(t => t.localPosition.x)
                 .ToList();
 
-            // 2️⃣ THEN maybe start coroutine
-            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
+            // 2️⃣ Start build only when a turn is actively progressing
+            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0 &&
+                TimeManager.Instance?.TurnPhase == TurnPhase.TurnProgression)
             {
                 StarSysBuildManager.StartNextFacilityBuildIfAny();
             }
@@ -217,7 +218,8 @@ namespace BOTF3D.Galaxy
                 .ThenBy(t => t.localPosition.x)
                 .ToList();
 
-            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
+            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0 &&
+                TimeManager.Instance?.TurnPhase == TurnPhase.TurnProgression)
             {
                 StarSysBuildManager.StartNextShipBuildIfAny();
             }
@@ -523,20 +525,10 @@ namespace BOTF3D.Galaxy
         private void HandleDestinationClick(StarSysController clickedSystemCon)
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            if (galaxyUI == null)
-            {
-                Debug.LogError("StarSysController.HandleDestinationClick: GalaxyMenuUIController.Instance is null");
-                return;
-            }
+            if (galaxyUI == null) return;
 
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-
-            // ✅ Add null check
-            if (theFleetConLookingForDestination == null)
-            {
-                Debug.LogWarning("StarSysController.HandleDestinationClick: No fleet is looking for a destination");
-                return;
-            }
+            if (theFleetConLookingForDestination == null) return;
 
             // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
             if (theFleetConLookingForDestination.TargetController != null)
@@ -618,12 +610,27 @@ namespace BOTF3D.Galaxy
         public void OnEnable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent += DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+            }
         }
         public void OnDisable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+            }
+        }
+
+        private void OnTurnPhaseChanged(TurnPhase phase)
+        {
+            if (phase != TurnPhase.TurnProgression || StarSysBuildManager == null) return;
+            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
+                StarSysBuildManager.StartNextFacilityBuildIfAny();
+            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
+                StarSysBuildManager.StartNextShipBuildIfAny();
         }
         private void DoDisaster(TrekRandomEventSO randomSpecialEvent)
         {
@@ -918,15 +925,14 @@ namespace BOTF3D.Galaxy
 
         private void OnDestroy()
         {
-            // Remove fog revealer when system is destroyed
             if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
-            {
                 FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
-            }
 
-            // Existing cleanup code...
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+            }
         }
         public void CleanupStarSysUIs()
         {

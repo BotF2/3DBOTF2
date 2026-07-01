@@ -43,13 +43,21 @@ namespace BOTF3D.Galaxy
         public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
-        private readonly float warpFudgeFactor = 10f;
+        // Units-per-second scaler. Tune this in the Inspector on the fleet prefab.
+        // 4f ≈ 60% slower than the original 10f baseline.
+        [SerializeField] private float warpFudgeFactor = 4f;
         private Rigidbody rb;
         private float updateInterval = 0.1f; // ~10 updates/sec (adjust for smoothness vs performance)
         private float lastUpdateTime;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
+
+        // Which fleet we're currently pursuing (set via the Intercept button)
+        public static FleetController PendingInterceptFleet; // fleet waiting for player to pick a target
+        private Vector3 interceptPoint;
+        private float interceptUpdateTimer;
+        private const float INTERCEPT_UPDATE_INTERVAL = 0.5f;
         private float galaxyWidth = 1f;
         private float galaxyHeight = 1f;
         private float minimapWidth = 200f;
@@ -139,29 +147,115 @@ namespace BOTF3D.Galaxy
         }
         private void FixedUpdate()
         {
-            // Destroying Fleets with no ships is problematic
-            // The FleetController FeetData is still running in script
-            // and if the player clicks on or OnTrigerEntere.... it causes errors
-            if (FleetData != null && FleetData.Destination != null)
-            {
-                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && FleetData.CurrentWarpFactor > 0f)
-                {
-                    // Calculate distance for this frame
-                    distanceToDestination = Vector3.Distance(transform.position, FleetData.Destination.transform.position);
+            if (FleetData == null) return;
+            if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase != TurnPhase.TurnProgression) return;
 
-                    // Always move the fleet (physics)
+            // ── Intercept mode ────────────────────────────────────────────────
+            if (FleetData.InterceptTarget != null)
+            {
+                if (FleetData.InterceptTarget == null || FleetData.InterceptTarget.gameObject == null)
+                {
+                    CancelIntercept(); // target was destroyed
+                }
+                else if (FleetData.CurrentWarpFactor > 0f)
+                {
+                    interceptUpdateTimer -= Time.fixedDeltaTime;
+                    if (interceptUpdateTimer <= 0f)
+                    {
+                        interceptPoint = ComputeInterceptPoint();
+                        interceptUpdateTimer = INTERCEPT_UPDATE_INTERVAL;
+                    }
+
+                    MoveToInterceptPoint();
+
+                    if (!gotMapSizeFromGameManager) GetMapSise();
+                    if (Time.time - lastUpdateTime >= updateInterval)
+                    {
+                        DrawDestinationLine(interceptPoint);
+                        UpdateMinimapPosition();
+                        lastUpdateTime = Time.time;
+                    }
+                }
+                return;
+            }
+
+            // ── Normal destination mode ───────────────────────────────────────
+            if (FleetData.Destination != null && FleetData.CurrentWarpFactor > 0f)
+            {
+                if (FleetData.Destination != FleetManager.Instance?.GalaxyCenter)
+                {
+                    distanceToDestination = Vector3.Distance(transform.position, FleetData.Destination.transform.position);
                     MoveToDesitinationGO(GetDirection());
-                    if (!gotMapSizeFromGameManager)
-                        GetMapSise();
-                    // Throttle visual updates (line rendering, UI)
+                    if (!gotMapSizeFromGameManager) GetMapSise();
                     if (Time.time - lastUpdateTime >= updateInterval)
                     {
                         DrawDestinationLine(FleetData.Destination.transform.position);
-                        UpdateMinimapPosition(); // Add this
+                        UpdateMinimapPosition();
                         lastUpdateTime = Time.time;
                     }
                 }
             }
+        }
+
+        // ── Intercept helpers ─────────────────────────────────────────────────
+
+        public void SetInterceptTarget(FleetController target)
+        {
+            FleetData.InterceptTarget = target;
+            interceptPoint = target.transform.position;
+            interceptUpdateTimer = 0f; // force immediate recompute
+            FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor; // full speed ahead
+            Debug.Log($"{name}: intercept target set to '{target.name}'");
+        }
+
+        public void CancelIntercept()
+        {
+            FleetData.InterceptTarget = null;
+            interceptPoint = Vector3.zero;
+        }
+
+        private Vector3 ComputeInterceptPoint()
+        {
+            var target = FleetData.InterceptTarget;
+            if (target == null) return transform.position;
+
+            Vector3 targetPos = target.transform.position;
+
+            // If target is stopped, just go straight to it
+            if (target.FleetData.CurrentWarpFactor <= 0f ||
+                target.FleetData.Destination == null ||
+                target.FleetData.Destination == FleetManager.Instance.GalaxyCenter)
+                return targetPos;
+
+            Vector3 targetDest = target.FleetData.Destination.transform.position;
+            Vector3 targetDir  = (targetDest - targetPos).normalized;
+            float   targetSpeed = target.FleetData.CurrentWarpFactor * warpFudgeFactor;
+            float   ourSpeed    = FleetData.CurrentWarpFactor * warpFudgeFactor;
+            if (ourSpeed <= 0f) return targetPos;
+
+            // Estimate time to close the gap and predict where target will be
+            float dist         = Vector3.Distance(transform.position, targetPos);
+            float timeEstimate = dist / ourSpeed;
+            Vector3 predicted  = targetPos + targetDir * targetSpeed * timeEstimate;
+
+            // Don't predict past the target's own destination
+            float distToDest = Vector3.Distance(targetPos, targetDest);
+            if (Vector3.Distance(targetPos, predicted) > distToDest)
+                predicted = targetDest;
+
+            return predicted;
+        }
+
+        private void MoveToInterceptPoint()
+        {
+            float howFast   = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
+            Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
+                howFast * warpFudgeFactor * Time.fixedDeltaTime);
+            rb.MovePosition(nextPos);
+            FleetData.Position = nextPos;
+
+            Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
+            DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
         }
 
         private void GetMapSise()
@@ -243,56 +337,59 @@ namespace BOTF3D.Galaxy
 
                 if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
                 {
-                    if (hitFleetCon == this && hitFleetCon == null) return; // ignore self
-                    {
-                        if (isOurDestination)
-                        {
-                            ClickCancelDestinationButton();// we stop, cancel destination
+                    if (hitFleetCon == this || hitFleetCon == null) return; // ignore self
 
-                            if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
+                    // Stop both fleets on contact (whether queued or immediate)
+                    bool contactIsIntercept = (FleetData.InterceptTarget == hitFleetCon);
+                    if (contactIsIntercept) CancelIntercept();
+
+                    if (isOurDestination || contactIsIntercept)
+                    {
+                        ClickCancelDestinationButton(); // we stop
+
+                        if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum) // enemy fleet
+                        {
+                            hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
+                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
+
+                            bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+
+                            if (duringProgression)
+                            {
+                                // Defer: queue and let ProcessTurnEvents handle it
+                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
+                                Debug.Log($"OnTriggerEnter: FleetVsFleet queued (TurnProgression) — {name} vs {hitFleetCon.name}");
+                            }
+                            else
                             {
                                 OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                FleetUI.MoveBackAnyaFleetUIGO(); // close our fleet UI
+                                FleetUI.MoveBackAnyaFleetUIGO();
                                 DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
-                                //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
-                                EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
-
-                                if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
-                                {
-                                    ClickCancelDestinationButton(); // they stop
-
-                                    CloseUnLoadFleetUI(this); // need more code to handle this encounter 
-                                }
-
                             }
-                            else //our fleet
-                            {
-                                // do ships management?
-                                OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
-                            }
+
+                            if (hitFleetCon.FleetData.Destination == this.gameObject)
+                                CloseUnLoadFleetUI(this);
                         }
-                        else
+                        else // friendly fleet
                         {
-                            // not our destination ignore for now
+                            OnADestinationThatIsOurOtherFleet(hitFleetCon);
                         }
                     }
                 }
-                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reports a collision for now, not the system
+                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon))
                 {
                     if (isOurDestination)
                     {
-                        ClickCancelDestinationButton(); // we stop, cancel destination
+                        ClickCancelDestinationButton();
 
-                        // ✅ Check if uninhabited system
                         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
 
                         if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
-                            // ✅ Uninhabited system - check if habitable and show colonization UI
                             if (sysCon.StarSysData.IsHabitable)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
-
                                 if (weAreLocalPlayer)
                                 {
                                     FleetUI.MoveBackAnyaFleetUIGO();
@@ -301,28 +398,32 @@ namespace BOTF3D.Galaxy
                             }
                             else
                             {
-                                Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}' - no colonization possible");
+                                Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}'");
                             }
                         }
-                        else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // Foreign owned system (real civ)
+                        else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
                         {
-                            // ✅ Foreign civilization's system - trigger diplomacy
                             if (weAreLocalPlayer)
-                            {
                                 EncounterUnknownSystemShowName(collider.gameObject);
+
+                            bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+
+                            if (duringProgression)
+                            {
+                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
+                                Debug.Log($"OnTriggerEnter: FleetVsSystem queued (TurnProgression) — {name} at {sysCon.name}");
                             }
-                            FleetUI.MoveBackAnyaFleetUIGO();
-                            DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+                            else
+                            {
+                                FleetUI.MoveBackAnyaFleetUIGO();
+                                DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+                            }
                         }
-                        else // Our own system
+                        else
                         {
                             Debug.Log($"Fleet arrived at our own system '{sysCon.StarSysData.SysName}'");
-                            // ToDo: enter our system logic
                         }
-                    }
-                    else
-                    {
-                        // not our destination ignore for now
                     }
                 }
                 else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController targetCon))
@@ -377,6 +478,9 @@ namespace BOTF3D.Galaxy
                     if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
                         HandleShipMergeSelection(clickedFleetCon);
                     break;
+                case GalaxyClickMode.SelectForIntercept:
+                    HandleInterceptSelection(clickedFleetCon);
+                    break;
             }
         }
 
@@ -394,20 +498,39 @@ namespace BOTF3D.Galaxy
         }
         private void HandleDestinationClick(FleetController clickedFleetCon)
         {
-            FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-            if (theFleetConLookingForDestination == null) return;
+            var pursuing = GalaxyUI.FleetLookingForDestination;
+            if (pursuing == null || clickedFleetCon == pursuing) return;
 
-            // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
-            if (theFleetConLookingForDestination.TargetController != null)
+            if (pursuing.TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(pursuing);
+
+            // Clicked a moving fleet → use intercept logic
+            pursuing.SetInterceptTarget(clickedFleetCon);
+
+            var fields = pursuing.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
             {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(theFleetConLookingForDestination);
+                fields.InterceptTargetButton?.gameObject.SetActive(false);
+                fields.CancelInterceptButton?.gameObject.SetActive(true);
+                if (fields.DestinationName != null)
+                    fields.DestinationName.text = clickedFleetCon.FleetData.FleetName;
+                if (fields.DestinationCoordinates != null)
+                    fields.DestinationCoordinates.text = "";
             }
 
-            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
-            theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
-
-            // Reset mode and cursor
             GalaxyUI.CompleteSetDestination();
+            MousePointerChanger.Instance?.ResetCursor();
+        }
+
+        private void HandleInterceptSelection(FleetController clickedFleetCon)
+        {
+            if (PendingInterceptFleet == null) return;
+            if (clickedFleetCon == PendingInterceptFleet) return; // can't intercept self
+            if (clickedFleetCon.FleetData.CivEnum == PendingInterceptFleet.FleetData.CivEnum) return; // same civ
+
+            PendingInterceptFleet.SetInterceptTarget(clickedFleetCon);
+            PendingInterceptFleet = null;
+            GalaxyUI.ResetClickMode();
             MousePointerChanger.Instance?.ResetCursor();
         }
 
@@ -654,19 +777,16 @@ namespace BOTF3D.Galaxy
 
         void MoveToDesitinationGO(Vector3 direction)
         {
-            // distanceToDestination field is now updated in FixedUpdate
             float howFast = this.FleetData.CurrentWarpFactor;
             if (howFast > this.FleetData.MaxWarpFactor)
-            {
                 this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
-            }
+
             Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
-            howFast * warpFudgeFactor * Time.fixedDeltaTime);
-            rb.MovePosition(nextPosition); // kinematic with physics movement
+                howFast * warpFudgeFactor * Time.fixedDeltaTime);
+            rb.MovePosition(nextPosition);
             this.FleetData.Position = nextPosition;
             Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
-            Vector3[] points = { rb.position, galaxyPlanePoint };
-            DropLine.SetUpLine(points);
+            DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
         }
         void DrawDestinationLine(Vector3 destinationPoint)
         {
@@ -904,25 +1024,33 @@ namespace BOTF3D.Galaxy
         }
         public void ClickCancelDestinationButton()
         {
-            // Destroy player-defined target if it exists
-            if (TargetController != null)
-            {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
-            }
-            DestinationLine.gameObject.SetActive(false);
+            // Zero warp FIRST — unconditional stop before any failable lookups
             FleetData.LastDestination = FleetData.Destination;
-            FleetData.Destination = FleetManager.Instance.GalaxyCenter;
-            FleetData.CurrentWarpFactor = 0f; // stop the fleet
-            GalaxyUI.CompleteSetDestination();
-            FleetUI.ClickCancelDestinationButton(this);
-            GalaxyUI.SetClickMode(GalaxyClickMode.Normal);
-            MousePointerChanger.Instance.ResetCursor();
+            FleetData.CurrentWarpFactor = 0f;
+            FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
+
+            // Clear any active intercept (fleet-chasing) state
+            if (FleetData.InterceptTarget != null)
+                CancelIntercept();
+            PendingInterceptFleet = null;
+
+            // Sync warp slider to 0 so scroll/drag can't silently restore a non-zero value
+            FleetUI?.UpdateFleetWarpUI(this, 0f);
+
+            if (TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
+
+            if (DestinationLine != null)
+                DestinationLine.gameObject.SetActive(false);
+
+            GalaxyUI?.CompleteSetDestination();
+            FleetUI?.ClickCancelDestinationButton(this);
+            GalaxyUI?.SetClickMode(GalaxyClickMode.Normal);
+            MousePointerChanger.Instance?.ResetCursor();
         }
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
-            Debug.Log($"=== SetAsDestinationInUI: Fleet '{name}' selecting destination ===");
-
             fleetData.Destination = hitObject;
             GalaxyObjectType destinationType = GalaxyObjectType.None;
             string destinationNameText = "";
@@ -931,8 +1059,6 @@ namespace BOTF3D.Galaxy
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
 
-            Debug.Log($"  Coordinates: {coordiatesText}");
-
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
@@ -940,28 +1066,23 @@ namespace BOTF3D.Galaxy
                 {
                     destinationType = 0;
                     destinationNameText += starSysController.StarSysData.SysName;
-                    Debug.Log($"  Destination is known system: '{destinationNameText}'");
                 }
                 else
                 {
                     destinationType = starSysController.StarSysData.SystemType;
-                    Debug.Log($"  Destination is unknown system type: {destinationType}");
                 }
             }
             else if (hitObject.GetComponent<FleetController>() != null)
             {
                 FleetController fleetCon = hitObject.GetComponent<FleetController>();
-
                 if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, fleetCon.FleetData.CivController))
                 {
                     destinationType = GalaxyObjectType.Fleet;
                     destinationNameText = fleetCon.FleetData.FleetName;
-                    Debug.Log($"  Destination is known fleet: '{destinationNameText}'");
                 }
                 else
                 {
                     destinationType = GalaxyObjectType.UnknownFleet;
-                    Debug.Log($"  Destination is unknown fleet");
                 }
             }
 
@@ -1002,8 +1123,6 @@ namespace BOTF3D.Galaxy
                     destinationNameText = "Target at";
                     break;
                 case GalaxyObjectType.UnknownFleet:
-                    destinationNameText = "Fleet at";
-                    break;
                 case GalaxyObjectType.Fleet:
                     destinationNameText = "Fleet at";
                     break;
@@ -1012,19 +1131,7 @@ namespace BOTF3D.Galaxy
                     break;
             }
 
-            Debug.Log($"  Final destination name: '{destinationNameText}'");
-            Debug.Log($"  Calling FleetUI.SetAsDestination() - FleetUI is {(FleetUI != null ? "NOT NULL" : "NULL")}");
-
-            // ✅ CRITICAL FIX: Don't use cached FleetUI - use Instance directly!
-            if (FleetMenuUIController.Instance != null)
-            {
-                FleetMenuUIController.Instance.SetAsDestination(destinationNameText, coordiatesText);
-                Debug.Log($"  ✅ Called FleetMenuUIController.Instance.SetAsDestination()");
-            }
-            else
-            {
-                Debug.LogError($"  ❌ FleetMenuUIController.Instance is NULL! Cannot update destination UI!");
-            }
+            FleetMenuUIController.Instance?.SetAsDestination(destinationNameText, coordiatesText);
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
@@ -1035,9 +1142,7 @@ namespace BOTF3D.Galaxy
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
-                galaxyUI.BeginSetDestination(fleetCon); // ✅ This sets FleetLookingForDestination
-                galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-                Debug.Log($"✅ Set FleetLookingForDestination to '{fleetCon.name}'");
+                galaxyUI.BeginSetDestination(fleetCon);
             }
 
             // Get buttons from the specific fleet's UI

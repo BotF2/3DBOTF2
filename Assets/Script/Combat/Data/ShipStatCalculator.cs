@@ -21,14 +21,15 @@ namespace BOTF3D.Combat
     public static class ShipStatCalculator
     {
         // ── Base stats at Tier I, QualityScore=5, no civ flavor (minor-race baseline) ──
+        // Columns: Shield, Hull, Beam, Torp, Warp, Build, Dilithium
         private static readonly Dictionary<ShipType, BaseStats> Base = new Dictionary<ShipType, BaseStats>
         {
-            { ShipType.Scout,     new BaseStats(20, 10, 10,  8, 5.5f,  5) },
-            { ShipType.Destroyer, new BaseStats(32, 15, 16, 13, 5.0f,  8) },
-            { ShipType.LtCruiser, new BaseStats(44, 22, 22, 18, 4.5f, 11) },
-            { ShipType.Cruiser,   new BaseStats(58, 30, 30, 24, 4.0f, 14) },
-            { ShipType.HvyCruiser,new BaseStats(76, 42, 40, 32, 3.5f, 18) },
-            { ShipType.Transport, new BaseStats(12, 30,  3,  0, 3.5f,  6) },
+            { ShipType.Scout,     new BaseStats(20, 10, 10,  8, 5.5f,  5, 1) },
+            { ShipType.Destroyer, new BaseStats(32, 15, 16, 13, 5.0f,  8, 2) },
+            { ShipType.LtCruiser, new BaseStats(44, 22, 22, 18, 4.5f, 11, 3) },
+            { ShipType.Cruiser,   new BaseStats(58, 30, 30, 24, 4.0f, 14, 3) },
+            { ShipType.HvyCruiser,new BaseStats(76, 42, 40, 32, 3.5f, 18, 4) },
+            { ShipType.Transport, new BaseStats(12, 30,  3,  0, 3.5f,  6, 4) },
         };
 
         // ── Tech-tier multipliers (derived from actual FED Scout_I–IV data) ──
@@ -67,6 +68,32 @@ namespace BOTF3D.Combat
             { CivEnum.TERRAN, new CivFlavor(1.08f, 1.05f, 1.00f, 1.05f) },
         };
 
+        // ── Per-civ power plant dilithium cost ─────────────────────────────────────
+        // FED = 30 is the baseline. Other civs scale by doctrine:
+        //   ROM:    efficient, fragile — less infrastructure needed
+        //   KLING:  honour-based, martial — moderate power draw
+        //   CARD:   methodical, expansive — slightly above baseline
+        //   DOM:    polaron tech is energy-hungry — notably above baseline
+        //   BORG:   massive shield/hull infrastructure — highest cost
+        //   TERRAN: identical tech base to FED
+        private static readonly Dictionary<CivEnum, int> PowerPlantLi2Cost = new Dictionary<CivEnum, int>
+        {
+            { CivEnum.FED,    30 },
+            { CivEnum.ROM,    25 },
+            { CivEnum.KLING,  28 },
+            { CivEnum.CARD,   32 },
+            { CivEnum.DOM,    35 },
+            { CivEnum.BORG,   40 },
+            { CivEnum.TERRAN, 30 },
+        };
+
+        /// <summary>
+        /// Returns the dilithium cost to build one power plant for the given civilisation.
+        /// Falls back to 10 for minor races.
+        /// </summary>
+        public static int GetPowerPlantDilithiumCost(CivEnum civ) =>
+            PowerPlantLi2Cost.TryGetValue(civ, out int cost) ? cost : 10;
+
         /// <summary>
         /// Compute all runtime stats.  Call once during ship initialization.
         /// </summary>
@@ -93,6 +120,7 @@ namespace BOTF3D.Combat
                 TorpedoDamage   = Mathf.Max(0, Mathf.RoundToInt(b.Torp   * combat * f.Torp)),
                 MaxWarpFactor   = b.Warp * warpMult,
                 BuildDuration   = Mathf.Max(1, Mathf.RoundToInt(b.Build  * buildMult)),
+                DilithiumCost   = Mathf.Max(0, Mathf.RoundToInt(b.Dilithium * TierBuild[ti])),
             };
         }
 
@@ -100,10 +128,10 @@ namespace BOTF3D.Combat
 
         private readonly struct BaseStats
         {
-            public readonly int Shield, Hull, Beam, Torp, Build;
+            public readonly int Shield, Hull, Beam, Torp, Build, Dilithium;
             public readonly float Warp;
-            public BaseStats(int shield, int hull, int beam, int torp, float warp, int build)
-            { Shield = shield; Hull = hull; Beam = beam; Torp = torp; Warp = warp; Build = build; }
+            public BaseStats(int shield, int hull, int beam, int torp, float warp, int build, int dilithium)
+            { Shield = shield; Hull = hull; Beam = beam; Torp = torp; Warp = warp; Build = build; Dilithium = dilithium; }
         }
 
         private readonly struct CivFlavor
@@ -126,5 +154,6 @@ namespace BOTF3D.Combat
         public int   TorpedoDamage;
         public float MaxWarpFactor;
         public int   BuildDuration;
+        public int   DilithiumCost;
     }
 }

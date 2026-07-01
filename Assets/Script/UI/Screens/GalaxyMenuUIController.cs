@@ -79,6 +79,9 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject encyclopediaBackground;
 
         [Header("Buttons")]
+        [SerializeField] private Button advanceTurnButton;
+        [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // green — turn in progress
+        [SerializeField] private Color turnNotReadyColor = Color.white;              // white — idle, ready for player click
         [SerializeField] private GameObject selectOtherSysOrFleetButtonGO;
         [SerializeField] private GameObject InteractionButtonGO;
         [SerializeField] private GameObject tradeButtonGO;
@@ -241,6 +244,10 @@ namespace BOTF3D.UI
             // Activate main galaxy menu
             ActivateMainGalaxyMenu();
 
+            // Initialize button state to match whatever phase TimeManager is already in
+            // (handles the case where TimeManager persisted from a prior DontDestroyOnLoad session)
+            OnTurnPhaseChanged(TimeManager.Instance?.TurnPhase ?? TurnPhase.InterTurn);
+
             Debug.Log("GalaxyMenuUIController: Start complete");
         }
 
@@ -321,6 +328,7 @@ namespace BOTF3D.UI
             WireHomeSystemButton();
             WireCloseMenuButton();
             WireReportButton();
+            WireAdvanceTurnButton();
         }
 
         private void WireHomeSystemButton()
@@ -361,9 +369,63 @@ namespace BOTF3D.UI
                 reportView.SetActive(false);
         }
 
+        private void WireAdvanceTurnButton()
+        {
+            if (advanceTurnButton == null) return;
+
+            advanceTurnButton.onClick.RemoveAllListeners();
+            advanceTurnButton.onClick.AddListener(OnAdvanceTurnButtonClicked);
+
+            _playerReadyForTurn = false;
+            SetAdvanceTurnButtonColor(turnNotReadyColor);
+
+            var phase = TimeManager.Instance != null
+                ? TimeManager.Instance.TurnPhase
+                : TurnPhase.InterTurn;
+            advanceTurnButton.interactable = (phase != TurnPhase.EncounterResolution);
+
+            Debug.Log("✅ AdvanceTurnButton wired");
+        }
+
         #endregion
 
         #region Button Handlers (Main Menu Ribbon)
+
+        private bool _playerReadyForTurn = false;
+
+        private void OnAdvanceTurnButtonClicked()
+        {
+            _playerReadyForTurn = !_playerReadyForTurn;
+            SetAdvanceTurnButtonColor(_playerReadyForTurn ? turnReadyColor : turnNotReadyColor);
+
+            if (_playerReadyForTurn)
+                TimeManager.Instance?.AdvanceTurn();
+            else
+                TimeManager.Instance?.PauseTime(); // player un-readied; halt the clock
+        }
+
+        private void OnTurnPhaseChanged(TurnPhase phase)
+        {
+            if (advanceTurnButton == null) return;
+
+            // When the turn actually ends and we return to InterTurn, reset to not-ready
+            if (phase == TurnPhase.InterTurn)
+            {
+                _playerReadyForTurn = false;
+                SetAdvanceTurnButtonColor(turnNotReadyColor);
+            }
+
+            advanceTurnButton.interactable = (phase != TurnPhase.EncounterResolution);
+        }
+
+        private void SetAdvanceTurnButtonColor(Color color)
+        {
+            if (advanceTurnButton == null) return;
+            var colors = advanceTurnButton.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = color * 1.2f; // slightly brighter on hover
+            advanceTurnButton.colors = colors;
+        }
 
         private void OnReportButtonClicked()
         {
@@ -595,6 +657,9 @@ namespace BOTF3D.UI
             // Always close the report view when the close button is pressed
             if (reportView != null)
                 reportView.SetActive(false);
+
+            // Close the build queue panel if it is open
+            StarSysManager.Instance?.HideBuildUI();
         }
 
         /// <summary>
@@ -1000,6 +1065,18 @@ namespace BOTF3D.UI
         #endregion
 
         #region Cleanup
+
+        private void OnEnable()
+        {
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+        }
+
+        private void OnDisable()
+        {
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+        }
 
         private void OnDestroy()
         {

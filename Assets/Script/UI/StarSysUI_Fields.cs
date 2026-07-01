@@ -1,15 +1,14 @@
 // Ignore Spelling: Sys
 
 using BOTF3D.Core;
+using BOTF3D.Galaxy;
+using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
+using Toggle = UnityEngine.UI.Toggle;
 
 
 /// <summary>
@@ -22,8 +21,8 @@ using BOTF3D.Audio;
 /// </summary>
 public class StarSysUI_Fields : MonoBehaviour
 {
-        public void Initialize() { }
-        public void UpdateState() { }
+    public void Initialize() { }
+    public void UpdateState() { }
     [Serializable]
     public class FacilityUI
     {
@@ -112,6 +111,44 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image shieldPlantImage;
     public Image orbitalBatteriesImage;
     public Image researchImage;
+
+    [Header("Compact Row")]
+    [Tooltip("SysCompactHeader component on the CompactHeader child — always visible in the list.")]
+    public SysCompactHeader compactHeader;
+    [Tooltip("Root of all original prefab content — toggled by the expand/collapse button.")]
+    public GameObject expandedContent;
+
+    [Header("AI Management Toggles")]
+    public Toggle toggleOff;
+    public Toggle toggleEconomy;
+    public Toggle toggleWar;
+    public Toggle toggleDefence;
+
+    public void WireAIModeToggles(StarSysController sysCon)
+    {
+        if (sysCon?.StarSysData == null) return;
+        var data = sysCon.StarSysData;
+        SetToggleWithoutNotify(toggleOff,     data.AIBuildMode == AIBuildMode.Off);
+        SetToggleWithoutNotify(toggleEconomy, data.AIBuildMode == AIBuildMode.Economy);
+        SetToggleWithoutNotify(toggleWar,     data.AIBuildMode == AIBuildMode.War);
+        SetToggleWithoutNotify(toggleDefence, data.AIBuildMode == AIBuildMode.Defence);
+        WireToggle(toggleOff,     () => data.AIBuildMode = AIBuildMode.Off);
+        WireToggle(toggleEconomy, () => data.AIBuildMode = AIBuildMode.Economy);
+        WireToggle(toggleWar,     () => data.AIBuildMode = AIBuildMode.War);
+        WireToggle(toggleDefence, () => data.AIBuildMode = AIBuildMode.Defence);
+    }
+
+    private void SetToggleWithoutNotify(Toggle t, bool isOn)
+    {
+        if (t != null) t.SetIsOnWithoutNotify(isOn);
+    }
+
+    private void WireToggle(Toggle t, Action onSelected)
+    {
+        if (t == null) return;
+        t.onValueChanged.RemoveAllListeners();
+        t.onValueChanged.AddListener(isOn => { if (isOn) onSelected(); });
+    }
 
     //internal CoroutineRunner coroutineRunner;
     private void Awake()

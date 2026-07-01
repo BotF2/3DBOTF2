@@ -60,11 +60,12 @@ namespace BOTF3D.Combat
             data.maxWarpFactor    = stats.MaxWarpFactor;
             data.currentWarpFactor = 0f;
             data.BuildDuration    = stats.BuildDuration;
+            data.DilithiumCost    = stats.DilithiumCost;
 
             Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' — " +
                       $"Sh:{data.ShieldMaxHealth} Hu:{data.HullMaxHealth} " +
                       $"Be:{data.BeamDamage} To:{data.TorpedoDamage} " +
-                      $"Wp:{data.maxWarpFactor:F1} Bd:{data.BuildDuration} (Q{quality})");
+                      $"Wp:{data.maxWarpFactor:F1} Bd:{data.BuildDuration} Li2:{data.DilithiumCost} (Q{quality})");
         }
 
         /// <summary>

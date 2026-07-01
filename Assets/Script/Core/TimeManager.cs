@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using BOTF3D.Combat;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
@@ -25,22 +26,24 @@ namespace BOTF3D.Core
         public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
         public event Action<CivEnum, TechLevel, TechLevel> OnTechLevelAdvanced;
         public event Action OnTurnAdvanced; // fires every StarDatesPerTurn stardates — strategic resolution tick
+        public event Action<TurnPhase> OnTurnPhaseChanged; // UI can subscribe to update Advance Turn button
 
         public int currentStardate { get; private set; }
         public int CurrentTurn { get; private set; } = 0;
         [SerializeField] public int StarDatesPerTurn = 10;
 
+        public TurnPhase TurnPhase { get; private set; } = TurnPhase.InterTurn;
+
         public bool timeRunning = true; // ✅ Change from false to true
         public bool IsPaused { get; private set; } = false; // Already correct
         private Coroutine timeCoroutine;
-        private float currentTimeSpeed = 10f; // This controls YOUR coroutine delay
+        private float currentTimeSpeed = 10f; // stardates/sec — controls turn progression speed
         private float unityTimeScale = 1f; // ✅ Add this for Unity's Time.timeScale
         private bool isPausing = false;
         public List<TrekRandomEventSO> RandomEvents;
         public List<TrekStardateEventSO> StardateEvents;
 
         public int StaringStardate = 1010; // the starting stardate
-        //private float currentTimeSpeed;
 
         void Awake()
         {
@@ -53,25 +56,27 @@ namespace BOTF3D.Core
                 return;
             }
 
-            DontDestroyOnLoad(gameObject); // ✅ Move here
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
 
-            // ✅ Initialize to running state
-            IsPaused = false;
-            timeRunning = true;
+            // Start paused — player must click Advance Turn to begin first turn
+            IsPaused = true;
+            timeRunning = false;
 
             Debug.Log($"⏰ TimeManager: Initialized - IsPaused={IsPaused}, timeRunning={timeRunning}");
         }
         private void Start()
         {
-            // timer = currentTimeSpeed;
-            timeCoroutine = StartCoroutine(TimeProgression());
             currentStardate = StaringStardate;
 
-            // ✅ Ensure running state
-            IsPaused = false;
-            timeRunning = true;
+            // Remain in InterTurn until player clicks Advance Turn for the first time
+            IsPaused = true;
+            timeRunning = false;
 
-            Debug.Log($"⏰ TimeManager: Started - currentStardate={currentStardate}");
+            // Fire the event so any already-subscribed UI components initialize their state
+            SetTurnPhase(TurnPhase.InterTurn);
+
+            Debug.Log($"⏰ TimeManager: Started - currentStardate={currentStardate}, waiting for first Advance Turn click");
         }
         void Update()
         {
@@ -80,13 +85,44 @@ namespace BOTF3D.Core
         public void StartTime()
         {
             if (timeCoroutine != null)
-            {
                 StopCoroutine(timeCoroutine);
-            }
+            timeRunning = true;
+            IsPaused = false;
+            Time.timeScale = 1f;
             timeCoroutine = StartCoroutine(TimeProgression());
-            IsPaused = false; // ✅ FIX: Starting time means NOT paused
-            timeRunning = true; // ✅ Also set this
             Debug.Log("⏰ TimeManager: Time started via StartTime()");
+        }
+
+        /// <summary>
+        /// Called by the "Advance Turn" button (or AI).
+        /// Restarts the clock for one full turn cycle, then the system auto-pauses again.
+        /// </summary>
+        public void AdvanceTurn()
+        {
+            if (TurnPhase == TurnPhase.TurnProgression) return; // already running
+            SetTurnPhase(TurnPhase.TurnProgression);
+            StartTime(); // restarts the coroutine (PauseTime killed it) and sets timeScale = 1
+            Debug.Log("⏰ TimeManager: Turn advanced — TurnProgression started");
+        }
+
+        /// <summary>
+        /// Called by GalaxyEncounterQueue (or diplomacy panel close) when all queued
+        /// encounters for this turn have been resolved.
+        /// </summary>
+        public void OnEncounterQueueEmpty()
+        {
+            if (TurnPhase == TurnPhase.EncounterResolution)
+            {
+                SetTurnPhase(TurnPhase.InterTurn);
+                Debug.Log("⏰ TimeManager: All encounters resolved — InterTurn");
+            }
+        }
+
+        private void SetTurnPhase(TurnPhase phase)
+        {
+            TurnPhase = phase;
+            OnTurnPhaseChanged?.Invoke(phase);
+            Debug.Log($"⏰ TimeManager: TurnPhase → {phase}");
         }
         private System.Collections.IEnumerator TimeProgression()
         {
@@ -154,20 +190,33 @@ namespace BOTF3D.Core
             }
         }
         /// <summary>
-        /// Process all turn-based events (research, production, etc.)
+        /// Process all turn-based events (research, production, etc.) then pause the clock.
+        /// Encounters queued during TurnProgression are drained before returning to InterTurn.
         /// </summary>
         private void ProcessTurnEvents()
         {
-            // Process research for all civilizations
             if (TechManager.Instance != null)
-            {
                 TechManager.Instance.ProcessResearchForAllCivs();
-            }
 
-            // TODO: Add other turn-based processing here
-            // - Population growth
-            // - Credits/income
-            // - Random events
+            // TODO: population growth, credits/income, random events
+
+            var queue = BOTF3D.Galaxy.GalaxyEncounterQueue.Instance;
+            if (queue != null && queue.HasPending)
+            {
+                SetTurnPhase(TurnPhase.EncounterResolution);
+                PauseTime();
+                queue.DrainAll();
+                // OnEncounterQueueEmpty() transitions to InterTurn after DrainAll
+                // If DrainAll resolves synchronously (no player prompts needed) we arrive here already in InterTurn.
+                // If diplomacy panels require player interaction, the panel close button should call
+                // GalaxyEncounterQueue.Instance.ResolveNext() and TimeManager.Instance.OnEncounterQueueEmpty()
+                // once all encounters are dismissed.
+            }
+            else
+            {
+                SetTurnPhase(TurnPhase.InterTurn);
+                PauseTime();
+            }
         }
 
         // Check for special events and trigger corresponding actions
@@ -213,7 +262,9 @@ namespace BOTF3D.Core
         {
             timeRunning = false;
             IsPaused = true;
-            Time.timeScale = 0f; // ✅ Correct - freeze Unity time
+            // Do NOT set Time.timeScale here — that would freeze FixedUpdate and stop
+            // all galaxy fleet movement. Fleet physics must keep running between turns.
+            // Only PauseForMessageCoroutine (and combat) should freeze Unity time.
             Debug.Log("⏸ TimeManager: Time PAUSED");
         }
 
@@ -221,7 +272,8 @@ namespace BOTF3D.Core
         {
             timeRunning = true;
             IsPaused = false;
-            Time.timeScale = 1f; // ✅ FIX: Use 1.0, not currentTimeSpeed (which is 10)
+            // Restore timeScale in case a message pause or combat froze it.
+            Time.timeScale = 1f;
             Debug.Log($"▶️ TimeManager: Time RESUMED (timeScale=1.0, coroutineSpeed={currentTimeSpeed})");
         }
 
@@ -264,8 +316,36 @@ namespace BOTF3D.Core
         }
     
 
+        /// <summary>
+        /// Reset to InterTurn state — stops any running coroutine and fires the phase event.
+        /// Called on scene load so that a DontDestroyOnLoad TimeManager never carries
+        /// a stale TurnProgression state into a fresh GalaxyScene session.
+        /// </summary>
+        public void EnsureInterTurn()
+        {
+            if (timeCoroutine != null)
+            {
+                StopCoroutine(timeCoroutine);
+                timeCoroutine = null;
+            }
+            timeRunning = false;
+            IsPaused = true;
+            Time.timeScale = 1f;
+            SetTurnPhase(TurnPhase.InterTurn);
+            Debug.Log("⏰ TimeManager: EnsureInterTurn — reset to InterTurn");
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            // When the galaxy scene is loaded (additively or directly) make sure we
+            // start in InterTurn so the player controls are active from frame one.
+            if (scene.name.Contains("Galaxy"))
+                EnsureInterTurn();
+        }
+
         private void OnDestroy()
         {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
             ServiceLocator.Unregister<TimeManager>();
         }
 }

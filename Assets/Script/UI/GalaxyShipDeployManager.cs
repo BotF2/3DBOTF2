@@ -424,7 +424,6 @@ namespace BOTF3D.UI
         public void BeginSetDestination(FleetController fleet)
         {
             FleetLookingForDestination = fleet;
-            Debug.Log($"GalaxyShipDeployManager: Fleet looking for destination set to {fleet?.name}");
         }
 
         /// <summary>
@@ -448,8 +447,6 @@ namespace BOTF3D.UI
         /// </summary>
         public void CancelShipDeploy()
         {
-            Debug.Log("GalaxyShipDeployManager: Canceling ship deploy");
-
             // Clear all state
             FleetLookingForShipDeploy = null;
             FleetSelectedForShipDeploy = null;
@@ -469,7 +466,6 @@ namespace BOTF3D.UI
         /// </summary>
         public void CompleteSetDestination()
         {
-            Debug.Log("GalaxyShipDeployManager: Completing set destination");
             FleetLookingForDestination = null;
         }
     }

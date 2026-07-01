@@ -37,6 +37,7 @@ namespace BOTF3D.Galaxy
         public Button FleetButtonDown;
         public Button FleetButtonUIClose;
         public bool WarpButtonPressed = false;
+        public FleetController InterceptTarget; // non-null while this fleet is in intercept/pursuit mode
         private SpriteRenderer[] spriteRenderers;
 
         public FleetData(FleetSO fleetSO)

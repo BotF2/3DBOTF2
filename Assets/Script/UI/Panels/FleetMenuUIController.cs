@@ -528,20 +528,30 @@ namespace BOTF3D.UI
             }
 
             // ✅ BUTTON WIRING: ALWAYS runs
-            uiFields.DestinationDragTarget.gameObject.SetActive(true);
+            // Design intent: one Select Destination button, one Cancel Destination button.
+            // The script detects whether a map click targets a fleet (intercept) or a fixed object
+            // automatically — the player never needs to choose a different button.
+            // SelectDestination, SelectDestinationCursor, and InterceptTargetButton all alias the
+            // same Button in the prefab; CancelDestination and CancelInterceptButton do the same.
+            // Only wire through SelectDestination and CancelDestination to avoid listener overwrites.
+            bool hasActiveDestination = fleetCon.FleetData?.Destination != null
+                && fleetCon.FleetData.Destination != FleetManager.Instance?.GalaxyCenter;
+            bool showCancel = hasActiveDestination || fleetCon.FleetData?.InterceptTarget != null;
+
+            uiFields.DestinationDragTarget.gameObject.SetActive(!hasActiveDestination);
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
             uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
             dragDestinationTargetButtonGO = uiFields.DestinationDragTarget.gameObject;
-
-            uiFields.CancelDestination.gameObject.SetActive(false);
-            uiFields.CancelDestination.onClick.RemoveAllListeners();
-            uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
-            cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
 
             uiFields.SelectDestination.gameObject.SetActive(true);
             uiFields.SelectDestination.onClick.RemoveAllListeners();
             uiFields.SelectDestination.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
             selectDestinationCursorButtonGO = uiFields.SelectDestination.gameObject;
+
+            uiFields.CancelDestination.gameObject.SetActive(showCancel);
+            uiFields.CancelDestination.onClick.RemoveAllListeners();
+            uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
+            cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
 
             uiFields.WarpUp.gameObject.SetActive(true);
             uiFields.WarpUp.onClick.RemoveAllListeners();
@@ -843,36 +853,69 @@ namespace BOTF3D.UI
             }
         }
 
+        private void ClickInterceptButton(FleetController fleetCon)
+        {
+            if (fleetCon == null) return;
+
+            FleetController.PendingInterceptFleet = fleetCon;
+            GalaxyMenuUIController.Instance?.SetClickMode(GalaxyClickMode.SelectForIntercept);
+            MousePointerChanger.Instance?.SetDestinationCursor();
+
+            // Swap button visibility while waiting for target pick
+            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                fields.InterceptTargetButton?.gameObject.SetActive(false);
+                fields.CancelInterceptButton?.gameObject.SetActive(true);
+            }
+
+            Debug.Log($"FleetMenuUIController: Intercept mode — waiting for target fleet click (pursuer: {fleetCon.name})");
+        }
+
+        private void ClickCancelInterceptButton(FleetController fleetCon, FleetUI_Fields fields)
+        {
+            if (fleetCon == null) return;
+
+            fleetCon.CancelIntercept();
+            FleetController.PendingInterceptFleet = null;
+            GalaxyMenuUIController.Instance?.ResetClickMode();
+            MousePointerChanger.Instance?.ResetCursor();
+
+            if (fields != null)
+            {
+                fields.InterceptTargetButton?.gameObject.SetActive(true);
+                fields.CancelInterceptButton?.gameObject.SetActive(false);
+            }
+
+            Debug.Log($"FleetMenuUIController: Intercept cancelled for {fleetCon.name}");
+        }
+
         public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
         {
             if (fleetConWaitingForDestination == null) return;
 
             if (fleetConWaitingForDestination.TargetController != null)
-            {
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
+
+            bool isLocalPlayer = GameController.Instance != null &&
+                                  GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum);
+            if (!isLocalPlayer) return;
+
+            var fields = fleetConWaitingForDestination.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.SelectDestination != null)
+                    fields.SelectDestination.gameObject.SetActive(false);
             }
 
-            if (GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum))
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
             {
-                // Get buttons from the active fleet UI instead of using stale references
-                var fields = fleetConWaitingForDestination.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-                if (fields != null)
-                {
-                    if (fields.DestinationDragTarget != null)
-                        fields.DestinationDragTarget.gameObject.SetActive(false);
-                    if (fields.CancelDestination != null)
-                        fields.CancelDestination.gameObject.SetActive(true);
-                    if (fields.SelectDestination != null)
-                        fields.SelectDestination.gameObject.SetActive(false);
-                }
-
-                var galaxyUI = GalaxyMenuUIController.Instance;
-                if (galaxyUI != null)
-                {
-                    galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
-                    galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-                    galaxyUI.FleetLookingForDestination = fleetConWaitingForDestination;
-                }
+                galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
                 MousePointerChanger.Instance.SetDestinationCursor();
             }
         }
@@ -880,20 +923,15 @@ namespace BOTF3D.UI
         {
             if (fleetCon == null) return;
 
-            // Destroy any existing player-defined target for this fleet
             if (fleetCon.TargetController != null)
-            {
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+            {
+                galaxyUI.BeginSetDestination(fleetCon);
+                MousePointerChanger.Instance?.SetDestinationCursor();
             }
-
-            // Change to destination selection mode
-            GalaxyMenuUIController.Instance?.SetClickMode(GalaxyClickMode.SetDestination);
-            GalaxyMenuUIController.Instance.FleetLookingForDestination = fleetCon;
-
-            // Update cursor
-            MousePointerChanger.Instance?.SetDestinationCursor();
-
-            Debug.Log($"FleetMenuUIController: Select Destination mode for fleet '{fleetCon.name}'");
         }
         public void ClickCancelDestinationButton(FleetController fleetCon)
         {
@@ -951,36 +989,29 @@ namespace BOTF3D.UI
 
         public void SetAsDestination(string nameDestination, string newCoordinates)
         {
-            Debug.Log("=== SetAsDestination CALLED ===");
-            Debug.Log($"  nameDestination: '{nameDestination}'");
-            Debug.Log($"  newCoordinates: '{newCoordinates}'");
-
             var galaxyUI = GalaxyMenuUIController.Instance;
-
-            // ✅ Check if a fleet is waiting for destination
             if (galaxyUI?.FleetLookingForDestination == null)
             {
-                Debug.LogError("❌ No fleet waiting for destination! This shouldn't be called without setting FleetLookingForDestination first.");
+                Debug.LogError("SetAsDestination: FleetLookingForDestination is NULL");
                 return;
             }
 
             var fleetCon = galaxyUI.FleetLookingForDestination;
-
-            // Get text fields from the specific fleet's UI
             var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-            if (fields != null)
+            if (fields == null)
             {
-                if (fields.DestinationName != null)
-                    fields.DestinationName.text = nameDestination;
-                if (fields.DestinationCoordinates != null)
-                    fields.DestinationCoordinates.text = newCoordinates;
-                if (fields.CancelDestination != null)
-                    fields.CancelDestination.gameObject.SetActive(true);
-                if (fields.DestinationDragTarget != null)
-                    fields.DestinationDragTarget.gameObject.SetActive(false);
-
-                Debug.Log($"✅ Set destination for fleet '{fleetCon.name}'");
+                Debug.LogError($"SetAsDestination: FleetUI_Fields not found on '{fleetCon.FleetUIGameObject?.name}'");
+                return;
             }
+
+            if (fields.DestinationName != null)
+                fields.DestinationName.text = nameDestination;
+            if (fields.DestinationCoordinates != null)
+                fields.DestinationCoordinates.text = newCoordinates;
+            if (fields.CancelDestination != null)
+                fields.CancelDestination.gameObject.SetActive(true);
+            if (fields.DestinationDragTarget != null)
+                fields.DestinationDragTarget.gameObject.SetActive(false);
 
             MousePointerChanger.Instance.ResetCursor();
         }
@@ -1010,7 +1041,10 @@ namespace BOTF3D.UI
         {
             if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
 
-            // Get buttons from the specific fleet's UI
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+                galaxyUI.BeginSetDestination(fleetCon); // sets FleetLookingForDestination AND click mode
+
             var fields = fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fields != null)
             {
@@ -1022,7 +1056,6 @@ namespace BOTF3D.UI
                     fields.SelectDestination.gameObject.SetActive(true);
             }
 
-            GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
             MousePointerChanger.Instance.SetDestinationCursor();
         }
         private void OnDisable()

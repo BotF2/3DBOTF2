@@ -22,6 +22,7 @@ public class PowerPlantSO: ScriptableObject
     public string Name;
     public int StartStarDate; //start to build in factory queue
     public int BuildDuration;// duration to build can be reduced by number and output of factories
+    public int DilithiumCost = 1; // Li_2 crystals required to build (power plants consume dilithium)
     public int PowerOutput;
     public Sprite PowerPlantSprite;
     public string Description;

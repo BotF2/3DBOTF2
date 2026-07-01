@@ -31,6 +31,7 @@ namespace BOTF3D.Combat
         public int TorpedoDamage;
         public int BeamDamage;
         public int BuildDuration;
+        public int DilithiumCost;
         public string ShipDescription;
         public ShipController TargetThisShipController;
         public GameObject TargetOnThisShip;

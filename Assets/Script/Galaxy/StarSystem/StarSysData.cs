@@ -41,6 +41,12 @@ namespace BOTF3D.Galaxy
         public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitable or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
         public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
                                                // Consider adding other power sources and adjust this variable to be more general for total power output.
+        public int DilithiumStockpile; // Unallocated dilithium available for construction
+        public AIBuildMode AIBuildMode = AIBuildMode.Off;
+        public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
+
+        public bool HasDilithium(int amount) => DilithiumStockpile >= amount;
+        public void DeductDilithium(int amount) => DilithiumStockpile = Mathf.Max(0, DilithiumStockpile - amount);
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;

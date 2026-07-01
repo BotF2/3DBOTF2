@@ -18,13 +18,13 @@ MonoBehaviour:
         serializedData:
         - key: 0
           value:
-            rid: 4060111002061242368
+            rid: 3755637087314903169
         - key: 1
           value:
-            rid: 4060111002061242369
+            rid: 3755637087314903170
         - key: 2
           value:
-            rid: 4060111002061242370
+            rid: 3755637087314903171
       lastMaterialMappings:
         serializedData: []
       previewSettings:
@@ -32,15 +32,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 4060111002061242368
+    - rid: 3755637087314903169
       type: {class: ModelSelection, ns: Unity.AI.Pbr.Services.Stores.States, asm: Unity.AI.Pbr}
       data:
         modelID: 
-    - rid: 4060111002061242369
+    - rid: 3755637087314903170
       type: {class: ModelSelection, ns: Unity.AI.Pbr.Services.Stores.States, asm: Unity.AI.Pbr}
       data:
         modelID: 
-    - rid: 4060111002061242370
+    - rid: 3755637087314903171
       type: {class: ModelSelection, ns: Unity.AI.Pbr.Services.Stores.States, asm: Unity.AI.Pbr}
       data:
         modelID: 

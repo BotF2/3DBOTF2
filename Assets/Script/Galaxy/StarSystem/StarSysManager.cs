@@ -1,6 +1,7 @@
 // Ignore Spelling: shiptype Sys hvy BOTF
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
-
+using BOTF3D.Core;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
@@ -8,9 +9,6 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Core;
-using BOTF3D.Civilization;
-using BOTF3D.Audio;
 
 
 
@@ -22,8 +20,8 @@ namespace BOTF3D.Galaxy
     /// </summary>
     public class StarSysManager : MonoBehaviour, IManager
     {
-        public void Initialize() {}
-        public void Cleanup() {}
+        public void Initialize() { }
+        public void Cleanup() { }
         public static StarSysManager Instance;
 
         [Header("Scene References")]
@@ -680,10 +678,40 @@ namespace BOTF3D.Galaxy
                 }
             }
 
+            InitializeDilithiumStockpile(starSysCon);
+
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
                 localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
             }
+        }
+
+        private void InitializeDilithiumStockpile(StarSysController sysCon)
+        {
+            var sysData = sysCon.StarSysData;
+            bool isPlayable = sysData.CurrentCivController?.CivData?.Playable == true;
+
+            if (!isPlayable)
+            {
+                sysData.DilithiumStockpile = 5;
+                return;
+            }
+
+            CivEnum civ    = sysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality    = sysData.CurrentCivController.CivData.QualityScore;
+
+            // Cost of the power plants that were pre-built at game start
+            int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(civ) * sysData.CurrentPowerPlantCount;
+
+            // Cost of the Destroyer placed in-system at game start
+            int shipLi2 = ShipStatCalculator.Calculate(ShipType.Destroyer, tech, civ, quality).DilithiumCost;
+
+            // Base buffer of 20 + 3 per power plant (more plants = more infrastructure to maintain)
+            int buffer = 20 + sysData.CurrentPowerPlantCount * 3;
+
+            sysData.DilithiumStockpile = ppLi2 + shipLi2 + buffer;
+            Debug.Log($"[Dilithium] {sysCon.name} ({civ}): pp={ppLi2}, ship={shipLi2}, buffer={buffer}, stockpile={sysData.DilithiumStockpile}");
         }
 
         // ... (rest of the methods remain the same - DetermineDilithiumCapacity, DetermineStartingPowerPlants, etc.)
@@ -1287,6 +1315,9 @@ namespace BOTF3D.Galaxy
                 }
             }
 
+            // Refresh turn/Li_2 costs now that tech level has changed
+            PopulateBuildCostTexts(sysCon, buildUIInstance);
+
             Debug.Log("=== UpdateAvailableShipsByTechLevel: Complete ===");
         }
 
@@ -1370,9 +1401,15 @@ namespace BOTF3D.Galaxy
             GameObject sysBuildListInstance = Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0), Quaternion.identity);
             sysBuildListInstance.layer = 5;
 
+            // Populate system name header
+            var buildUIFields = sysBuildListInstance.GetComponent<BuildUIFields>();
+            if (buildUIFields?.systemNameTMP != null)
+                buildUIFields.systemNameTMP.text = sysCon.StarSysData.SysName;
+
             // ✅ Set civ-specific images FIRST (before anything else)
             SetFacilityBuildImages(sysCon, sysBuildListInstance);
             SetShipBuildImages(sysCon, sysBuildListInstance);
+            PopulateBuildCostTexts(sysCon, sysBuildListInstance);
 
             // Find GridLayoutGroups
             GridLayoutGroup[] grids = sysBuildListInstance.GetComponentsInChildren<GridLayoutGroup>();
@@ -1484,6 +1521,7 @@ namespace BOTF3D.Galaxy
             }
             SetShipBuildImages(sysCon, sysBuildListInstance);
             SetFacilityBuildImages(sysCon, sysBuildListInstance);
+            PopulateBuildCostTexts(sysCon, sysBuildListInstance);
 
             Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
             // ✅ NEW: Find and wire CloseBuilding button
@@ -1557,11 +1595,22 @@ namespace BOTF3D.Galaxy
             foreach (var shipDrag in shipDragItems)
             {
                 shipDrag.StarSysController = sysCon;
-                Debug.Log($"    Wired ship drag '{shipDrag.name}' to system '{sysCon.name}'");
+                shipDrag.ShipType = shipDrag.gameObject.name switch
+                {
+                    "ItemScout" => ShipType.Scout,
+                    "ItemDestroyer" => ShipType.Destroyer,
+                    "ItemCruiser" => ShipType.Cruiser,
+                    "ItemLtCruiser" => ShipType.LtCruiser,
+                    "ItemHvyCruiser" => ShipType.HvyCruiser,
+                    "ItemTransport" => ShipType.Transport,
+                    _ => shipDrag.ShipType
+                };
+                Debug.Log($"    Wired ship drag '{shipDrag.name}' (type={shipDrag.ShipType}) to system '{sysCon.name}'");
             }
 
             // ✅ NEW: Filter ship build items based on tech level
             UpdateAvailableShipsByTechLevel(sysCon, sysBuildListInstance);
+            ApplyDilithiumAvailability(sysCon, sysBuildListInstance);
 
             Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
         }
@@ -2066,6 +2115,149 @@ namespace BOTF3D.Galaxy
                     Debug.Log($"  🔒 {dragItem.ShipType} locked (requires higher tech level)");
                 }
             }
+        }
+
+        /// <summary>
+        /// Populates the turn-count and Li_2 text fields in the build UI.
+        /// Called on initial open and whenever tech level advances.
+        /// </summary>
+        public void PopulateBuildCostTexts(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon == null || buildUIInstance == null) return;
+            if (sysCon.StarSysData?.CurrentCivController?.CivData == null) return;
+
+            CivEnum civ = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+
+            // Build a name → TMP lookup so we can set each field in O(1)
+            var tmps = new Dictionary<string, TextMeshProUGUI>();
+            foreach (var t in buildUIInstance.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (!tmps.ContainsKey(t.gameObject.name))
+                    tmps[t.gameObject.name] = t;
+
+            // ── Facilities ────────────────────────────────────────────────────────────
+            SetCostText(tmps, "F_PowerTurns", "F_PowerLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.PowerPlanet),
+                ShipStatCalculator.GetPowerPlantDilithiumCost(civ));
+
+            SetCostText(tmps, "F_FactoryTurns", "F_FactoryLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.Factory),
+                GetFactorySObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_YardTurns", "F_YardLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.Shipyard),
+                GetShipyardSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_ShieldTurns", "F_ShieldLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.ShieldGenerator),
+                GetShieldGeneratorSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_ResearchTurns", "F_ResearchLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.ResearchCenter),
+                GetResearchCenterSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_OBTurns", "F_OBLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.OrbitalBattery),
+                GetOrbitalBatterySObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            // ── Ships ──────────────────────────────────────────────────────────────────
+            SetShipCostText(tmps, "ScoutTurns", "ScoutLi_2", ShipType.Scout, tech, civ, quality);
+            SetShipCostText(tmps, "DestroyerTurns", "DestroyerLi_2", ShipType.Destroyer, tech, civ, quality);
+            SetShipCostText(tmps, "CruiserTurns", "CruiserLi_2", ShipType.Cruiser, tech, civ, quality);
+            SetShipCostText(tmps, "LtCruiserTurns", "LtCruiserLi_2", ShipType.LtCruiser, tech, civ, quality);
+            SetShipCostText(tmps, "HvyCruiserTurns", "HvyCruiserLi_2", ShipType.HvyCruiser, tech, civ, quality);
+            SetShipCostText(tmps, "TransTurns", "TransLi_2", ShipType.Transport, tech, civ, quality);
+
+            // ── Dilithium Stockpile ────────────────────────────────────────────────────
+            // The value text is named "DilithiumText" inside the "Ditlithium Stockpile" container
+            var stockpileRoot = buildUIInstance.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == "Dilithium Stockpile");
+            if (stockpileRoot != null)
+            {
+                var valueText = stockpileRoot.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (valueText != null)
+                    valueText.text = sysCon.StarSysData.DilithiumStockpile.ToString();
+            }
+        }
+
+        private void SetCostText(Dictionary<string, TextMeshProUGUI> tmps,
+            string turnsKey, string li2Key, int turns, int dilithium)
+        {
+            if (tmps.TryGetValue(turnsKey, out var t)) t.text = turns.ToString();
+            if (tmps.TryGetValue(li2Key, out var l)) l.text = dilithium.ToString();
+        }
+
+        private void SetShipCostText(Dictionary<string, TextMeshProUGUI> tmps,
+            string turnsKey, string li2Key,
+            ShipType shipType, TechLevel tech, CivEnum civ, int quality)
+        {
+            var stats = ShipStatCalculator.Calculate(shipType, tech, civ, quality);
+            if (tmps.TryGetValue(turnsKey, out var t)) t.text = stats.BuildDuration.ToString();
+            if (tmps.TryGetValue(li2Key, out var l)) l.text = stats.DilithiumCost.ToString();
+        }
+
+        private int GetFacilityTurns(StarSysController sysCon, StarSysFacilityType facilityType)
+        {
+            if (sysCon.StarSysBuildManager != null)
+                return sysCon.StarSysBuildManager.GetBuildTimeDuration(facilityType);
+
+            // Fallback: raw duration without tech-speed adjustment
+            return facilityType switch
+            {
+                StarSysFacilityType.PowerPlanet => sysCon.StarSysData.PowerPlantData?.BuildDuration ?? 5,
+                StarSysFacilityType.Factory => sysCon.StarSysData.FactoryData?.BuildDuration ?? 5,
+                StarSysFacilityType.Shipyard => sysCon.StarSysData.ShipyardData?.BuildDuration ?? 8,
+                StarSysFacilityType.ShieldGenerator => sysCon.StarSysData.ShieldGeneratorData?.BuildDuration ?? 6,
+                StarSysFacilityType.ResearchCenter => sysCon.StarSysData.ResearchCenterData?.BuildDuration ?? 6,
+                StarSysFacilityType.OrbitalBattery => sysCon.StarSysData.OrbitalBatteryData?.BuildDuration ?? 6,
+                _ => 5,
+            };
+        }
+
+        /// <summary>
+        /// Grays out and blocks drag for any build item whose dilithium cost exceeds the system stockpile.
+        /// Called after UpdateAvailableShipsByTechLevel so tech-locked items keep their existing state.
+        /// </summary>
+        private void ApplyDilithiumAvailability(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon?.StarSysData?.CurrentCivController?.CivData == null) return;
+
+            int stockpile = sysCon.StarSysData.DilithiumStockpile;
+            CivEnum civ = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+
+            foreach (var drag in buildUIInstance.GetComponentsInChildren<ShipBuildDrag>(true))
+            {
+                int cost = ShipStatCalculator.Calculate(drag.ShipType, tech, civ, quality).DilithiumCost;
+                if (cost > 0 && stockpile < cost)
+                    SetBuildableUnavailable(drag.gameObject);
+            }
+
+            foreach (var drag in buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true))
+            {
+                int cost = drag.FacilityType switch
+                {
+                    StarSysFacilityType.PowerPlanet => ShipStatCalculator.GetPowerPlantDilithiumCost(civ),
+                    StarSysFacilityType.Factory => GetFactorySObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.Shipyard => GetShipyardSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.ShieldGenerator => GetShieldGeneratorSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.OrbitalBattery => GetOrbitalBatterySObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.ResearchCenter => GetResearchCenterSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    _ => 0
+                };
+                if (cost > 0 && stockpile < cost)
+                    SetBuildableUnavailable(drag.gameObject);
+            }
+        }
+
+        private static void SetBuildableUnavailable(GameObject go)
+        {
+            var cg = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>();
+            cg.alpha = 0.4f;
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
         }
     }
 }

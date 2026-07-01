@@ -48,6 +48,9 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject shipyardQueueItemPrefab;
         [SerializeField] private GameObject factoryQueueItemPrefab;
 
+        // Tracks which system currently has its ExpandedContent visible in the list
+        private StarSysController _currentExpandedSysCon;
+
         private void Awake()
         {
             // ✅ Simple scene-based singleton - no DontDestroyOnLoad!
@@ -570,8 +573,24 @@ namespace BOTF3D.UI
                 // ✅ Move system UI from home storage to list container
                 sysCon.StarSysUIGameObject.transform.SetParent(sysListContainer, false);
                 sysCon.StarSysUIGameObject.SetActive(true);
-                populatedCount++;
 
+                // Wire compact header and set initial collapse state
+                var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (fields != null)
+                {
+                    fields.compactHeader?.Populate(sysCon);
+                    fields.WireAIModeToggles(sysCon);
+
+                    // The system at the top of the list defaults to expanded; its Expand
+                    // button is hidden since there's nothing left to promote it to.
+                    bool isTopOfList = sysCon.StarSysUIGameObject.transform.GetSiblingIndex() == 0;
+                    fields.expandedContent?.SetActive(isTopOfList);
+                    fields.compactHeader?.SetExpandButtonActive(!isTopOfList);
+                    if (isTopOfList)
+                        _currentExpandedSysCon = sysCon;
+                }
+
+                populatedCount++;
                 Debug.Log($"  ✅ Added system '{sysCon.name}' to systems list");
             }
 
@@ -651,6 +670,15 @@ namespace BOTF3D.UI
                 theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
                 theSysCon.StarSysUIGameObject.SetActive(true); // ✅ Ensure it's active
                 lastSysCon = theSysCon;
+
+                // Single-system detail view: always show ExpandedContent and hide the
+                // Expand button since there's no list to move within.
+                var soloFields = theSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (soloFields != null)
+                {
+                    soloFields.expandedContent?.SetActive(true);
+                    soloFields.compactHeader?.SetExpandButtonActive(false);
+                }
 
                 Debug.Log($"SetActiveSetParentUIGO: Successfully displayed system '{theSysCon.name}'");
                 Debug.Log($"  Power Output: {theSysCon.StarSysData.TotalSysPowerOutput}, Load: {theSysCon.StarSysData.TotalSysPowerLoad}");
@@ -1687,6 +1715,60 @@ namespace BOTF3D.UI
                     });
                 }
             }
+        }
+
+        // ── Compact-row expand / collapse ────────────────────────────────────────────
+
+        /// <summary>
+        /// Expands the given system's full UI in the list, collapsing whichever system
+        /// was previously expanded.  Clicking the already-expanded system collapses it.
+        /// Called by SysCompactHeader when the player presses the expand button.
+        /// </summary>
+        public void ExpandSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon == _currentExpandedSysCon) return;
+
+            // Collapse whatever was open before and restore its Expand button
+            if (_currentExpandedSysCon != null)
+                CollapseSystemUI(_currentExpandedSysCon);
+
+            var sysUI = sysCon.StarSysUIGameObject;
+            if (sysUI == null) return;
+
+            // Move to the top of the scroll list
+            sysUI.transform.SetSiblingIndex(0);
+
+            // Show full content, hide its own Expand button (nothing left to promote it
+            // to), and refresh the dilithium value in the compact header
+            var fields = sysUI.GetComponent<StarSysUI_Fields>();
+            if (fields != null)
+            {
+                fields.expandedContent?.SetActive(true);
+                fields.compactHeader?.SetExpandButtonActive(false);
+                fields.compactHeader?.RefreshDilithium();
+                fields.WireAIModeToggles(sysCon);
+            }
+
+            _currentExpandedSysCon = sysCon;
+            RebuildListLayout();
+        }
+
+        private void CollapseSystemUI(StarSysController sysCon)
+        {
+            var sysUI = sysCon?.StarSysUIGameObject;
+            if (sysUI == null) return;
+            var fields = sysUI.GetComponent<StarSysUI_Fields>();
+            fields?.expandedContent?.SetActive(false);
+            fields?.compactHeader?.SetExpandButtonActive(true);
+        }
+
+        private void RebuildListLayout()
+        {
+            var rt = (SysListContainer != null)
+                ? SysListContainer.GetComponent<RectTransform>()
+                : null;
+            if (rt != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
         }
     }
 }

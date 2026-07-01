@@ -28,17 +28,19 @@ namespace BOTF3D.Galaxy
 
             var sysData = systemController.StarSysData;
 
-            // ✅ Check Dilithium capacity
+            // ✅ Check Dilithium capacity (slot limit)
             if (sysData.CurrentPowerPlantCount >= sysData.DilithiumCapacity)
             {
                 reason = $"Dilithium reserves exhausted. Maximum capacity: {sysData.DilithiumCapacity}";
                 return false;
             }
 
-            // ✅ You can add other constraints here:
-            // - Resource costs
-            // - Build time
-            // - Tech requirements
+            // ✅ Check dilithium stockpile (each power plant costs 1)
+            if (!sysData.HasDilithium(1))
+            {
+                reason = "Insufficient dilithium in stockpile.";
+                return false;
+            }
 
             reason = "Build allowed";
             return true;

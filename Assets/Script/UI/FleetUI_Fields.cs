@@ -32,6 +32,8 @@ public class FleetUI_Fields : MonoBehaviour
     public Button DestinationDragTarget;
     public Button CancelDestination;
     public Button SelectDestination;
+    public Button InterceptTargetButton; // pursue / intercept a moving enemy fleet
+    public Button CancelInterceptButton; // cancel active intercept
     public Button WarpUp;
     public Button WarpDown;
     public Button CloseFleetUI;

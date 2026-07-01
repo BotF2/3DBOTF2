@@ -55,6 +55,11 @@ namespace BOTF3D.Galaxy
             int buildTime = GetBuildTimeDuration(buildDrag.FacilityType);
             if (buildTime <= 0) buildTime = 1;
 
+            // Deduct dilithium stockpile when a power plant build starts
+            if (buildDrag.FacilityType == StarSysFacilityType.PowerPlanet)
+                controller.StarSysData.DeductDilithium(
+                    ShipStatCalculator.GetPowerPlantDilithiumCost(controller.StarSysData.CurrentOwnerCivEnum));
+
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
 
@@ -247,6 +252,21 @@ namespace BOTF3D.Galaxy
             var drag = shipBuildItem.GetComponentInChildren<ShipBuildDrag>();
             if (drag == null) yield break;
 
+            // Validate and deduct dilithium before build begins
+            var civ = controller.StarSysData.CurrentCivController;
+            var techLevel = civ?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            var civEnum = controller.StarSysData.CurrentOwnerCivEnum;
+            int quality = civ?.CivData?.QualityScore ?? 5;
+            int shipDilithium = ShipStatCalculator.Calculate(drag.ShipType, techLevel, civEnum, quality).DilithiumCost;
+
+            if (!controller.StarSysData.HasDilithium(shipDilithium))
+            {
+                Debug.LogWarning($"BuildShipCoroutine: Not enough dilithium to build {drag.ShipType} (need {shipDilithium}, have {controller.StarSysData.DilithiumStockpile})");
+                shipBuildCoroutine = null;
+                yield break;
+            }
+            controller.StarSysData.DeductDilithium(shipDilithium);
+
             int buildTime = ShipManager.Instance.GetShipBuildDuration(
                 drag.ShipType,
                 controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel,
@@ -254,7 +274,6 @@ namespace BOTF3D.Galaxy
             );
 
             // Apply any pending build-time reduction earned from captured ships
-            var civ = controller.StarSysData.CurrentCivController;
             if (civ?.CivData?.PendingBuildTimeReduction > 0)
             {
                 int reduction = Mathf.Min(civ.CivData.PendingBuildTimeReduction, buildTime - 1);
@@ -326,6 +345,53 @@ namespace BOTF3D.Galaxy
                 BuildShipCoroutine(controller.sysShipBuildQueueList[0])
             );
         }
+
+        // ── Code-driven queue API (used by AI; bypasses drag-and-drop UI) ──────────
+
+        /// <summary>
+        /// Enqueues a facility build without requiring UI drag-and-drop.
+        /// Creates a minimal headless GameObject carrying the FactoryBuildItemDrag
+        /// data the build coroutine expects.  Returns false if the queue is full.
+        /// </summary>
+        public bool QueueFacilityBuild(StarSysFacilityType type)
+        {
+            if (controller.sysBuildQueueList.Count >= 5) return false;
+
+            var go   = new GameObject($"AIBuild_{type}");
+            var drag = go.AddComponent<FactoryBuildItemDrag>();
+            drag.FacilityType      = type;
+            drag.StarSysController = controller;
+
+            controller.sysBuildQueueList.Add(go.transform);
+
+            if (!IsBuildingFacility)
+                StartNextFacilityBuildIfAny();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Enqueues a ship build without requiring UI drag-and-drop.
+        /// Creates a minimal headless GameObject carrying the ShipBuildDrag
+        /// data the build coroutine expects.  Returns false if the queue is full.
+        /// </summary>
+        public bool QueueShipBuild(ShipType type)
+        {
+            if (controller.sysShipBuildQueueList.Count >= 5) return false;
+
+            var go   = new GameObject($"AIBuild_{type}");
+            var drag = go.AddComponent<ShipBuildDrag>();
+            drag.ShipType          = type;
+            drag.StarSysController = controller;
+
+            controller.sysShipBuildQueueList.Add(go.transform);
+
+            if (!IsBuildingShip)
+                StartNextShipBuildIfAny();
+
+            return true;
+        }
+
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
         {
             int timeDuration = 1;
