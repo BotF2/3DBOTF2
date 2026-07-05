@@ -19,11 +19,11 @@ MonoBehaviour:
   SystemImage: {fileID: 21300000, guid: 7bc7e2688d55cbf4ab0ff07af920907e, type: 3}
   FleetShipImage: {fileID: 21300000, guid: 92da5e0952459004eac48e1f0606b928, type: 3}
   PowerPlantImage: {fileID: 21300000, guid: 08e726991db827c4aa0a75325f31244b, type: 3}
-  FactoryImage: {fileID: 21300000, guid: 389fa6a31d496a04cb80c4e98b9f92b1, type: 3}
-  ShipyardImage: {fileID: 21300000, guid: dea4b19b8bc6fbf439345b5ee82e0664, type: 3}
-  ShieldImage: {fileID: 21300000, guid: 786125c77cd5d4f458686e1dd6022656, type: 3}
+  FactoryImage: {fileID: 21300000, guid: e60512c7bfaf53549b7d0818e45c54cf, type: 3}
+  ShipyardImage: {fileID: 21300000, guid: 9c2c8cff3100afe4e8a42cbc06090b4e, type: 3}
+  ShieldImage: {fileID: 21300000, guid: 6742ae701ae11d546a3ed26bdcc53c18, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 2c5bd654d3ae71e42ac5ab0b11872ed1, type: 3}
-  ResearchCenterImage: {fileID: 21300000, guid: dbfd8373acc769a48876ae3083c5ff51, type: 3}
+  ResearchCenterImage: {fileID: 21300000, guid: 873d0e4be4e6caa4a8678104257ff6f2, type: 3}
   BackgroundColor: {r: 0.78, g: 0.61, b: 0.24, a: 1}
   ForegroundColor: {r: 0.6, g: 0.47, b: 0.18, a: 1}
   BoarderColor: {r: 0.38, g: 0.3, b: 0.12, a: 1}

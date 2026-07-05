@@ -57,7 +57,11 @@
       "Bash(git grep *)",
       "Bash(git diff *)",
       "Bash(awk 'NR>=28700 && NR<=28760 {print NR\": \"$0}')",
-      "Bash(awk 'NR>=29340 && NR<=29400 {print NR\": \"$0}')"
+      "Bash(awk 'NR>=29340 && NR<=29400 {print NR\": \"$0}')",
+      "Bash(powershell *)",
+      "Bash(awk -v 'id=--- !u!1 \\\\&__TRACKED_VAR__' 'index\\($0,id\\)==1{f=1} f{print; c++} c>15{exit}' Assets/PreFabs/StarSystem/SystemUI_Prefab.prefab)",
+      "Bash(awk 'index\\($0,\"--- !u!1 &4945801355922885453\"\\)==1{f=1} f{print} /m_Name:/{if\\(f\\){print; exit}}' \"Assets/PreFabs/StarSystem/SystemUI_Prefab.prefab\")",
+      "Bash(powershell.exe *)"
     ]
   },
   "model": "claude-sonnet-5"

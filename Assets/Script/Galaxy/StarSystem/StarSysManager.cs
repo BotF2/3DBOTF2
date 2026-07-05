@@ -820,7 +820,9 @@ namespace BOTF3D.Galaxy
                 powerPlantData.StartStarDate = startingStarDate;
                 powerPlantData.BuildDuration = powerPlantSO.BuildDuration;
                 powerPlantData.BasePowerOutput = powerPlantSO.PowerOutput;
-                powerPlantData.PowerPlantSprite = powerPlantSO.PowerPlantSprite;
+                // ✅ Sprite comes from ThemeSO (per-civ), not the facility SO — ThemeSO is the
+                // single source of truth for facility art so editing a theme updates the icon live.
+                powerPlantData.PowerPlantSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).PowerPlantImage;
                 powerPlantData.Description = powerPlantSO.Description;
                 sysController.StarSysData.PowerPlantData = powerPlantData;
 
@@ -849,7 +851,7 @@ namespace BOTF3D.Galaxy
                 factoryData.StartStarDate = startingStarDate;
                 factoryData.PowerLoad = factorySO.PowerLoad;
                 factoryData.BuildDuration = factorySO.BuildDuration;
-                factoryData.FactorySprite = factorySO.FactorySprite;
+                factoryData.FactorySprite = ThemeManager.Instance.GetThemeByCivEnum(civ).FactoryImage;
                 factoryData.Description = factorySO.Description;
                 sysController.StarSysData.FactoryData = factoryData;
 
@@ -879,7 +881,7 @@ namespace BOTF3D.Galaxy
                 syData.StartStarDate = startingStarDate;
                 syData.BuildDuration = sSO.BuildDuration;
                 syData.PowerLoad = sSO.PowerLoad;
-                syData.ShipyardSprite = sSO.ShipyardSprite;
+                syData.ShipyardSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ShipyardImage;
                 syData.Description = sSO.Description;
                 sysController.StarSysData.ShipyardData = syData;
 
@@ -908,7 +910,7 @@ namespace BOTF3D.Galaxy
                 sgData.StartStarDate = startingStarDate;
                 sgData.BuildDuration = sgSO.BuildDuration;
                 sgData.PowerLoad = sgSO.PowerLoad;
-                sgData.ShieldGeneratorSprite = sgSO.ShieldGeneratorSprite;
+                sgData.ShieldGeneratorSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ShieldImage;
                 sgData.Description = sgSO.Description;
                 sysController.StarSysData.ShieldGeneratorData = sgData;
 
@@ -937,7 +939,7 @@ namespace BOTF3D.Galaxy
                 obData.StartStarDate = startingStarDate;
                 obData.BuildDuration = obSO.BuildDuration;
                 obData.PowerLoad = obSO.PowerLoad;
-                obData.OrbitalBatterySprite = obSO.OrbitalBatterySprite;
+                obData.OrbitalBatterySprite = ThemeManager.Instance.GetThemeByCivEnum(civ).OrbitalBatteriesImage;
                 obData.Description = obSO.Description;
                 sysController.StarSysData.OrbitalBatteryData = obData;
 
@@ -966,7 +968,7 @@ namespace BOTF3D.Galaxy
                 researchData.StartStarDate = startingStarDate;
                 researchData.BuildDuration = rSO.BuildDuration;
                 researchData.PowerLoad = rSO.PowerLoad;
-                researchData.ResearchCenterSprite = rSO.ResearchCenterSprite;
+                researchData.ResearchCenterSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ResearchCenterImage;
                 researchData.Description = rSO.Description;
                 sysController.StarSysData.ResearchCenterData = researchData;
 
@@ -1639,9 +1641,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObPower = Instantiate(powerPlantInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var powerPlantSO = GetPowrPlantSObyCivEnum(sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (powerPlantSO != null)
-                        imageObPower.GetComponentInChildren<Image>().sprite = powerPlantSO.PowerPlantSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObPower.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
                     imageObPower.transform.SetParent(powerPlantInventorySlot.transform, false);
                     { var d = imageObPower.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1659,9 +1660,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObFactory = Instantiate(factoryInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var factorySO = GetFactorySObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (factorySO != null)
-                        imageObFactory.GetComponentInChildren<Image>().sprite = factorySO.FactorySprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObFactory.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
                     imageObFactory.transform.SetParent(factoryInventorySlot.transform, false);
                     { var d = imageObFactory.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1679,9 +1679,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObShipyard = Instantiate(shipyardInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var shipyardSO = GetShipyardSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (shipyardSO != null)
-                        imageObShipyard.GetComponentInChildren<Image>().sprite = shipyardSO.ShipyardSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObShipyard.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
                     imageObShipyard.transform.SetParent(shipyardInventorySlot.transform, false);
                     { var d = imageObShipyard.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1699,9 +1698,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObShield = Instantiate(shieldGenInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var shieldSO = GetShieldGeneratorSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (shieldSO != null)
-                        imageObShield.GetComponentInChildren<Image>().sprite = shieldSO.ShieldGeneratorSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObShield.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
                     imageObShield.transform.SetParent(shieldGenInventorySlot.transform, false);
                     { var d = imageObShield.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1719,9 +1717,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObOB = Instantiate(orbitalBatteryInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var orbitalSO = GetOrbitalBatterySObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (orbitalSO != null)
-                        imageObOB.GetComponentInChildren<Image>().sprite = orbitalSO.OrbitalBatterySprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObOB.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
                     imageObOB.transform.SetParent(orbitalBatteryInventorySlot.transform, false);
                     { var d = imageObOB.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1739,9 +1736,8 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObRC = Instantiate(researchCenterInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var researchSO = GetResearchCenterSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (researchSO != null)
-                        imageObRC.GetComponentInChildren<Image>().sprite = researchSO.ResearchCenterSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObRC.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
                     imageObRC.transform.SetParent(researchCenterInventory_slot.transform, false);
                     { var d = imageObRC.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -1964,70 +1960,36 @@ namespace BOTF3D.Galaxy
             CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
             Debug.Log($"SetFacilityBuildImages: Setting for {localCiv}");
 
+            // ✅ Use the theme for the system's owning civ, not whichever theme happens to be
+            // globally "current" (e.g. the local player's main-menu selection) - otherwise a
+            // system owned by another civ would show the wrong civ's facility art.
+            ThemeSO theme = ThemeManager.Instance?.GetThemeByCivEnum(localCiv);
+            if (theme == null) return;
+
             // Find all buildable items
             FactoryBuildItemDrag[] buildableItems = buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true);
 
             foreach (var item in buildableItems)
             {
-                Image itemImage = item.GetComponent<Image>();
-                if (itemImage == null) continue;
-
-                switch (item.name)
+                Sprite sprite = item.name switch
                 {
-                    case "ItemPowerPlant":
-                        var powerPlantSO = GetPowrPlantSObyCivEnum(localCiv);
-                        if (powerPlantSO != null && powerPlantSO.PowerPlantSprite != null)
-                        {
-                            itemImage.sprite = powerPlantSO.PowerPlantSprite;
-                            Debug.Log($"  ✅ Set PowerPlant sprite for {localCiv}");
-                        }
-                        break;
+                    "ItemPowerPlant" => theme.PowerPlantImage,
+                    "ItemFactory" => theme.FactoryImage,
+                    "ItemShipyard" => theme.ShipyardImage,
+                    "ItemShieldGenerator" => theme.ShieldImage,
+                    "ItemOrbitalBattery" => theme.OrbitalBatteriesImage,
+                    "ItemResearchCenter" => theme.ResearchCenterImage,
+                    _ => null
+                };
+                if (sprite == null) continue;
 
-                    case "ItemFactory":
-                        var factorySO = GetFactorySObyCivInt((int)localCiv);
-                        if (factorySO != null && factorySO.FactorySprite != null)
-                        {
-                            itemImage.sprite = factorySO.FactorySprite;
-                            Debug.Log($"  ✅ Set Factory sprite for {localCiv}");
-                        }
-                        break;
+                // ✅ Some item prefabs (e.g. ItemShipyard) render their icon via a nested child
+                // "Image" GameObject rather than the root's own Image component - update every
+                // Image under this item so the visible one always gets the themed sprite.
+                foreach (var img in item.GetComponentsInChildren<Image>(true))
+                    img.sprite = sprite;
 
-                    case "ItemShipyard":
-                        var shipyardSO = GetShipyardSObyCivInt((int)localCiv);
-                        if (shipyardSO != null && shipyardSO.ShipyardSprite != null)
-                        {
-                            itemImage.sprite = shipyardSO.ShipyardSprite;
-                            Debug.Log($"  ✅ Set Shipyard sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemShieldGenerator":
-                        var shieldSO = GetShieldGeneratorSObyCivInt((int)localCiv);
-                        if (shieldSO != null && shieldSO.ShieldGeneratorSprite != null)
-                        {
-                            itemImage.sprite = shieldSO.ShieldGeneratorSprite;
-                            Debug.Log($"  ✅ Set ShieldGenerator sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemOrbitalBattery":
-                        var orbitalSO = GetOrbitalBatterySObyCivInt((int)localCiv);
-                        if (orbitalSO != null && orbitalSO.OrbitalBatterySprite != null)
-                        {
-                            itemImage.sprite = orbitalSO.OrbitalBatterySprite;
-                            Debug.Log($"  ✅ Set OrbitalBattery sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemResearchCenter":
-                        var researchSO = GetResearchCenterSObyCivInt((int)localCiv);
-                        if (researchSO != null && researchSO.ResearchCenterSprite != null)
-                        {
-                            itemImage.sprite = researchSO.ResearchCenterSprite;
-                            Debug.Log($"  ✅ Set ResearchCenter sprite for {localCiv}");
-                        }
-                        break;
-                }
+                Debug.Log($"  ✅ Set {item.name} sprite for {localCiv}");
             }
         }
 
@@ -2065,10 +2027,14 @@ namespace BOTF3D.Galaxy
                 // ✅ Find matching ShipSO by type
                 ShipSO shipSO = availableShips.FirstOrDefault(s => s.ShipType == dragItem.ShipType);
 
+                // ✅ The per-slot background image (e.g. "ImageScoutBackground") sits alongside
+                // the draggable item under the same InventorySlot - mirror the item's sprite onto it.
+                Image bgImage = FindShipInventoryBackgroundImage(dragItem);
+                Image itemImage = dragItem.GetComponent<Image>();
+
                 if (shipSO != null)
                 {
                     // Set image and data
-                    Image itemImage = dragItem.GetComponent<Image>();
                     if (itemImage != null && shipSO.shipSprite != null)
                     {
                         itemImage.sprite = shipSO.shipSprite;
@@ -2081,6 +2047,10 @@ namespace BOTF3D.Galaxy
                         Debug.Log($"  ✅ Set {shipSO.ShipType} sprite for {localCiv}");
                     }
 
+                    // ✅ Ship is buildable - show the real item image, hide the locked preview
+                    if (itemImage != null)
+                        itemImage.enabled = true;
+
                     // ✅ Show this ship type - make it fully interactable
                     dragItem.gameObject.SetActive(true);
 
@@ -2090,6 +2060,15 @@ namespace BOTF3D.Galaxy
                         canvasGroup.alpha = 1.0f;
                         canvasGroup.interactable = true;
                         canvasGroup.blocksRaycasts = true;
+                    }
+
+                    if (bgImage != null && shipSO.shipSprite != null)
+                    {
+                        bgImage.sprite = shipSO.shipSprite;
+                        bgImage.enabled = true;
+                        bgImage.transform.SetAsLastSibling();
+                        Color c = bgImage.color;
+                        bgImage.color = new Color(c.r, c.g, c.b, 1f);
                     }
                 }
                 else
@@ -2112,8 +2091,66 @@ namespace BOTF3D.Galaxy
                     canvasGroup.interactable = false;
                     canvasGroup.blocksRaycasts = false;
 
+                    // ✅ Preview the ship's eventual look (this civ + type) even though it's
+                    // not buildable yet - the background shows what it'll be once unlocked,
+                    // dimmed to 30% alpha to read as inactive. Hide the item's default/stale
+                    // image underneath so it doesn't show through the preview.
+                    if (bgImage != null)
+                    {
+                        ShipSO futureShipSO = ShipManager.Instance.GetShipSO(localCiv, dragItem.ShipType);
+                        if (futureShipSO != null && futureShipSO.shipSprite != null)
+                        {
+                            bgImage.sprite = futureShipSO.shipSprite;
+                            bgImage.enabled = true;
+                            bgImage.transform.SetAsLastSibling();
+                            Color c = bgImage.color;
+                            bgImage.color = new Color(c.r, c.g, c.b, 0.3f);
+
+                            if (itemImage != null)
+                                itemImage.enabled = false;
+                        }
+                        else
+                        {
+                            bgImage.enabled = false;
+
+                            if (itemImage != null)
+                                itemImage.enabled = true;
+                        }
+                    }
+
                     Debug.Log($"  🔒 {dragItem.ShipType} locked (requires higher tech level)");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Locates the "Image{ShipType}Background" sibling that sits next to a ship's
+        /// draggable inventory item (e.g. "ImageScoutBackground" next to "ItemScout"),
+        /// mirroring how each facility's InventorySlot pairs a background image with its item.
+        /// </summary>
+        private Image FindShipInventoryBackgroundImage(ShipBuildDrag dragItem)
+        {
+            Transform slot = dragItem.transform.parent;
+            if (slot == null) return null;
+
+            string bgName = GetShipInventoryBackgroundName(dragItem.ShipType);
+            if (bgName == null) return null;
+
+            Transform bg = slot.Find(bgName);
+            return bg != null ? bg.GetComponent<Image>() : null;
+        }
+
+        private string GetShipInventoryBackgroundName(ShipType type)
+        {
+            switch (type)
+            {
+                case ShipType.Scout: return "ImageScoutBackground";
+                case ShipType.Destroyer: return "ImageDestroyerBackground";
+                case ShipType.Cruiser: return "ImageCruiserBackground";
+                case ShipType.LtCruiser: return "ImageLtCruiserBackground";
+                case ShipType.HvyCruiser: return "ImageHvyCruiserBackground";
+                case ShipType.Transport: return "ImageTransportBackground";
+                default: return null;
             }
         }
 

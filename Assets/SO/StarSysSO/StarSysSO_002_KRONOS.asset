@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 2
   Position: {x: 18.22, y: -1.48, z: -67.02}
-  SysName: KRONOS
+  SysName: Qo'noS
   FirstOwner: 2
   CurrentOwner: 2
   StarType: 5

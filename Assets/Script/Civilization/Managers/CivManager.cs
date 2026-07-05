@@ -208,6 +208,13 @@ namespace BOTF3D.Civilization
             GameController.Instance.GameData.GalaxyMapType = (GalaxyMapType)galaxyType;
             isSinglePlayer = isSingleVsMultiplayer;
             GameController.Instance.GameData.LocalPlayerCivEnum = (CivEnum)localPlayerCivInt;
+
+            // Keep ThemeManager.CurrentTheme in sync with the final local player civ.
+            // MainMenuUIController.SetLocalCivilization() updates both together during civ browsing,
+            // but this is the authoritative "start game" commit and must re-sync in case it drifted.
+            if (ThemeManager.Instance != null)
+                ThemeManager.Instance.ApplyTheme((ThemeEnum)localPlayerCivInt);
+
             CivDataFromSO(CivSOsInGame, localPlayerCivInt);
             CreateCivEnumList(CivSOsInGame);
         }

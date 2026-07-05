@@ -1,16 +1,14 @@
 // Ignore Spelling: Sys Anya
 
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
-
+using BOTF3D.Galaxy;
 using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
-using BOTF3D.Audio;
 
 
 
@@ -279,15 +277,15 @@ namespace BOTF3D.UI
                     var fitter = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
                                  ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
                     fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
-                    fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
 
                     // Anchor content to top-left so GridLayoutGroup places items downward
                     var contentRect = sysUIFieldElement.shipContent;
                     contentRect.anchorMin = new Vector2(0f, 1f);
                     contentRect.anchorMax = new Vector2(1f, 1f);
-                    contentRect.pivot     = new Vector2(0f, 1f);
+                    contentRect.pivot = new Vector2(0f, 1f);
                     contentRect.anchoredPosition = Vector2.zero;
-                    contentRect.sizeDelta        = Vector2.zero;
+                    contentRect.sizeDelta = Vector2.zero;
 
                     // Fix Viewport to fill ShipScrollView
                     if (sysUIFieldElement.ShipScrollView != null)
@@ -484,8 +482,8 @@ namespace BOTF3D.UI
                     fields.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
                 if (fields.shipyardImage != null)
                     fields.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
-                if (fields.shieldPlantImage != null)
-                    fields.shieldPlantImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
+                if (fields.shieldPlanetImage != null)
+                    fields.shieldPlanetImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
                 if (fields.orbitalBatteriesImage != null)
                     fields.orbitalBatteriesImage.sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
                 if (fields.researchImage != null)
@@ -808,6 +806,7 @@ namespace BOTF3D.UI
                     numOff = facilities.Count - numOn;
                     fields.numOBRatio.text = numOn.ToString() + "/" + (facilities.Count).ToString();
                     fields.oBLoad.text = (newFacilityLoad * numOn).ToString();
+                    fields.SyncOrbitalBatteryGrid(facilities, sysController.StarSysData.OrbitalBatteryData?.OrbitalBatterySprite);
                     break;
                 case StarSysFacilityType.ResearchCenter:
                     newFacilityLoad = sysController.StarSysData.ResearchCenterData.PowerLoad;
@@ -1468,7 +1467,7 @@ namespace BOTF3D.UI
                     if (child == null) continue;
 
                     var starSysUIFields = child.GetComponent<StarSysUI_Fields>();
-                    var fleetUIFields   = child.GetComponent<FleetUI_Fields>();
+                    var fleetUIFields = child.GetComponent<FleetUI_Fields>();
 
                     if (starSysUIFields != null && fleetUIFields == null)
                     {
@@ -1608,7 +1607,7 @@ namespace BOTF3D.UI
             // Content grows vertically; no horizontal scroll
             var fitter = fields.yardQueueContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
                          ?? fields.yardQueueContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-            fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
             fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
 
             var sr = fields.yardQueueContent.GetComponentInParent<UnityEngine.UI.ScrollRect>();
@@ -1666,7 +1665,7 @@ namespace BOTF3D.UI
 
             var fitter = fields.factoryQueueContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
                          ?? fields.factoryQueueContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-            fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
             fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
 
             var sr = fields.factoryQueueContent.GetComponentInParent<UnityEngine.UI.ScrollRect>();

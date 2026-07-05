@@ -16,7 +16,7 @@ MonoBehaviour:
   CivEnum: 2
   CivShortName: Klingon
   CivLongName: Klingon Empire
-  CivHomeSystem: KRONOS
+  CivHomeSystem: Qo'noS
   WarLikeEnum: -2
   XenophbiaEnum: 0
   RuthlessEnum: 2

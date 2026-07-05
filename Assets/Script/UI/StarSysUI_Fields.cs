@@ -108,9 +108,15 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image powerUnitImage;
     public Image factoryImage;
     public Image shipyardImage;
-    public Image shieldPlantImage;
+    public Image shieldPlanetImage;
     public Image orbitalBatteriesImage;
     public Image researchImage;
+
+    [Header("Orbital Battery Grid")]
+    [Tooltip("Content transform with GridLayoutGroup — assign to OBName/OrbitalBatterGrid in the prefab.")]
+    public RectTransform orbitalBatteryContent;
+    [Tooltip("Shared icon prefab (Image + ThemedUIElement + OrbitalBatteryIconUI) instantiated once per orbital battery.")]
+    public GameObject orbitalBatteryIconPrefab;
 
     [Header("Compact Row")]
     [Tooltip("SysCompactHeader component on the CompactHeader child — always visible in the list.")]
@@ -315,6 +321,8 @@ public class StarSysUI_Fields : MonoBehaviour
                         }
                         if (f.ratioText != null) f.ratioText.text = $"{numOn}/{total}";
                         if (f.loadText != null) f.loadText.text = (loadPerFacility * numOn).ToString();
+
+                        SyncOrbitalBatteryGrid(obs, ob?.OrbitalBatterySprite);
                         break;
                     }
                 case StarSysFacilityType.ResearchCenter:
@@ -354,6 +362,54 @@ public class StarSysUI_Fields : MonoBehaviour
         }
 
         Debug.Log($"🔧 InitializeFromStarSysData complete for {data.SysName}");
+    }
+
+    /// <summary>
+    /// Keeps one icon per orbital battery in orbitalBatteryContent, in sync with data.OrbitalBatteries.
+    /// Also refreshes the header orbitalBatteriesImage using the sprite already resolved for this
+    /// system's owning civ (OrbitalBatteryData.OrbitalBatterySprite), not the globally-selected theme —
+    /// otherwise this header would show the local player's theme even for systems owned by another civ.
+    /// Called from InitializeFromStarSysData and from StarSysMenuUIController.UpdateFacilityUI (on/off toggles).
+    /// </summary>
+    public void SyncOrbitalBatteryGrid(List<GameObject> batteries, Sprite headerSprite)
+    {
+        if (orbitalBatteriesImage != null && headerSprite != null)
+            orbitalBatteriesImage.sprite = headerSprite;
+
+        if (orbitalBatteryContent == null || orbitalBatteryIconPrefab == null || batteries == null)
+            return;
+
+        var existingIcons = orbitalBatteryContent.GetComponentsInChildren<OrbitalBatteryIconUI>(true);
+
+        foreach (var facilityGO in batteries)
+        {
+            if (facilityGO == null) continue;
+
+            OrbitalBatteryIconUI iconUI = null;
+            foreach (var existing in existingIcons)
+            {
+                if (existing.SourceFacilityGO == facilityGO)
+                {
+                    iconUI = existing;
+                    break;
+                }
+            }
+
+            if (iconUI == null)
+            {
+                var iconGO = Instantiate(orbitalBatteryIconPrefab, orbitalBatteryContent);
+                iconUI = iconGO.GetComponent<OrbitalBatteryIconUI>();
+                if (iconUI == null)
+                {
+                    Debug.LogWarning("orbitalBatteryIconPrefab is missing an OrbitalBatteryIconUI component!");
+                    continue;
+                }
+                iconUI.SourceFacilityGO = facilityGO;
+            }
+
+            bool isOn = facilityGO.GetComponent<TextMeshProUGUI>()?.text == "1";
+            iconUI.SetOnOff(isOn);
+        }
     }
 
     /// <summary>

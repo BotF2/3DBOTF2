@@ -185,6 +185,10 @@ namespace BOTF3D.Core
                     if (StarSysManager.Instance != null)
                     {
                         StarSysManager.Instance.UpdateAvailableShipsByTechLevel(sysCon, buildUI);
+
+                        // ✅ Also refresh item/background sprites so newly-unlocked ships get their
+                        // real art (and previously-locked ones drop their "coming soon" preview)
+                        StarSysManager.Instance.SetShipBuildImages(sysCon, buildUI);
                     }
                 }
             }
