@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_027_BANEA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 27
-  Position: {x: 34.2, y: 2.07, z: 76.1}
+  Position: {x: 34.20, y: 2.07, z: 76.10}
   SysName: BANEA
   FirstOwner: 27
   CurrentOwner: 27

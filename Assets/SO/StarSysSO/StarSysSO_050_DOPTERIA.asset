@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_050_DOPTERIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 50
-  Position: {x: -12.7, y: 2.27, z: 1.28}
+  Position: {x: -12.70, y: 2.27, z: 1.28}
   SysName: DOPTERIA
   FirstOwner: 50
   CurrentOwner: 50

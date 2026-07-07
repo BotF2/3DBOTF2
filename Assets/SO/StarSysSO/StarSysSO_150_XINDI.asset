@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_150_XINDI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 150
-  Position: {x: -11.25, y: 2.53, z: -20.29}
+  Position: {x: -10.45, y: 2.53, z: -21.09}
   SysName: XINDI
   FirstOwner: 150
   CurrentOwner: 150

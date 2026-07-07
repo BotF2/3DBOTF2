@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_202_LYRA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 202
-  Position: {x: 15.01, y: 2.31, z: -11.42}
+  Position: {x: 14.79, y: 2.31, z: -11.10}
   SysName: LYRA
   FirstOwner: 202
   CurrentOwner: 202

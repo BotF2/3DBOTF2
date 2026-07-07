@@ -61,7 +61,10 @@
       "Bash(powershell *)",
       "Bash(awk -v 'id=--- !u!1 \\\\&__TRACKED_VAR__' 'index\\($0,id\\)==1{f=1} f{print; c++} c>15{exit}' Assets/PreFabs/StarSystem/SystemUI_Prefab.prefab)",
       "Bash(awk 'index\\($0,\"--- !u!1 &4945801355922885453\"\\)==1{f=1} f{print} /m_Name:/{if\\(f\\){print; exit}}' \"Assets/PreFabs/StarSystem/SystemUI_Prefab.prefab\")",
-      "Bash(powershell.exe *)"
+      "Bash(powershell.exe *)",
+      "Bash(awk 'NR==16565,NR==16650' Assets/Scenes/GalaxyScene.unity)",
+      "Bash(awk 'NR==25526,NR==25526+250' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\GalaxyScene.unity\")",
+      "Bash(shuf -n 20)"
     ]
   },
   "model": "claude-sonnet-5"

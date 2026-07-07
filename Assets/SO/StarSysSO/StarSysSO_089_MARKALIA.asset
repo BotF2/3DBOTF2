@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_089_MARKALIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 89
-  Position: {x: -7.37, y: 0.2, z: -75.96}
+  Position: {x: -7.60, y: 0.20, z: -75.17}
   SysName: MARKALIA
   FirstOwner: 89
   CurrentOwner: 89

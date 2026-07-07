@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_059_EXCALBIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 59
-  Position: {x: 57.31, y: -0.21, z: -36.3}
+  Position: {x: 57.31, y: -0.21, z: -36.30}
   SysName: EXCALBIA
   FirstOwner: 59
   CurrentOwner: 59

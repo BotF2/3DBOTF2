@@ -153,10 +153,10 @@ namespace BOTF3D.Core
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }
             // Start combat scene load coroutine
-            StartCoroutine(LoadCombatSceneAdditive(shipControllers1, shipControllers2, combatType));
+            StartCoroutine(LoadCombatSceneAdditive(shipControllers1, shipControllers2, combatType, starSysCon));
         }
 
-        private IEnumerator LoadCombatSceneAdditive(List<ShipController> shipControllers1, List<ShipController> shipControllers2, CombatType combatType)
+        private IEnumerator LoadCombatSceneAdditive(List<ShipController> shipControllers1, List<ShipController> shipControllers2, CombatType combatType, StarSysController starSysCon)
         {
             Debug.Log("=== LoadCombatSceneAdditive: Starting async load ===");
 
@@ -282,7 +282,7 @@ namespace BOTF3D.Core
                     Debug.Log($"  ✅ Combat camera enabled");
                 }
             }
-            CombatManager.Instance.RequestCombat(shipControllers1, shipControllers2, combatType);
+            CombatManager.Instance.RequestCombat(shipControllers1, shipControllers2, combatType, starSysCon);
             Debug.Log("=== LoadCombatSceneAdditive: Complete ===");
         }
 

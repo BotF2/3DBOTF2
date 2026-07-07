@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_120_SULIBAN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 120
-  Position: {x: 7.54, y: 2.43, z: -80.25}
+  Position: {x: 8.50, y: 2.43, z: -79.24}
   SysName: SULIBAN
   FirstOwner: 120
   CurrentOwner: 120

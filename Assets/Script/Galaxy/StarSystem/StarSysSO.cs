@@ -4,6 +4,7 @@ using BOTF3D.Combat;
 using BOTF3D.Civilization;
 using BOTF3D.UI;
 using BOTF3D.Audio;
+using BOTF3D.Galaxy;
 
 
 
@@ -35,4 +36,22 @@ public class StarSysSO : ScriptableObject
     public bool IsHomeworld;
     public bool IsHabitable;
     public bool IsTerraformable;
+
+#if UNITY_EDITOR
+    // Instant feedback while hand-editing a position in the Inspector - the full
+    // neighbor-distance sweep across all systems lives in the
+    // "Tools/Validate Star System Positions" batch check instead, since that's too
+    // expensive to run on every field edit.
+    private void OnValidate()
+    {
+        if (!GalaxyPositionBounds.IsWithinBounds(Position))
+        {
+            Debug.LogWarning(
+                $"{name}: Position {Position} is outside the galaxy image bounds " +
+                $"(x:[{GalaxyPositionBounds.XMin},{GalaxyPositionBounds.XMax}], " +
+                $"z:[{GalaxyPositionBounds.ZMin},{GalaxyPositionBounds.ZMax}]) and may render off the map. " +
+                "Run Tools > Validate Star System Positions for full details.", this);
+        }
+    }
+#endif
 }

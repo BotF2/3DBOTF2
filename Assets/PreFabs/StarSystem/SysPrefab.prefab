@@ -93,6 +93,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: -1377276575
@@ -437,7 +438,6 @@ GameObject:
   - component: {fileID: 805090473298870839}
   - component: {fileID: 8896515134039025732}
   - component: {fileID: 468722086658986204}
-  - component: {fileID: 5758640073671131955}
   m_Layer: 4
   m_Name: LoadToolTip
   m_TagString: Untagged
@@ -502,18 +502,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &5758640073671131955
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2497271698024831042}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d4ab63fa3e8ed64d95d6f81c3b153cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &4942334795299522690
 GameObject:
   m_ObjectHideFlags: 0
@@ -1012,6 +1000,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: -1377276575

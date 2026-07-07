@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_167_ANTARES
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 167
-  Position: {x: -13.77, y: 0.93, z: 12.1}
+  Position: {x: -13.77, y: 0.93, z: 12.10}
   SysName: ANTARES
   FirstOwner: 167
   CurrentOwner: 167

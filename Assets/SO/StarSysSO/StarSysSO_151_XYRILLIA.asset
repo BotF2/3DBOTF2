@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_151_XYRILLIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 151
-  Position: {x: 8.61, y: -1.8, z: -42.55}
+  Position: {x: 8.61, y: -1.80, z: -42.76}
   SysName: XYRILLIA
   FirstOwner: 151
   CurrentOwner: 151

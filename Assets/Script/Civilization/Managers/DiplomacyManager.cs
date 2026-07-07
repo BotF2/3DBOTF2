@@ -39,6 +39,83 @@ namespace BOTF3D.Civilization
 
         }
 
+        private void OnEnable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnAdvanced += ProcessAIDiplomacyForAllCivs;
+                TimeManager.Instance.OnTurnAdvanced += ProcessCooperationPactDrift;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnAdvanced -= ProcessAIDiplomacyForAllCivs;
+                TimeManager.Instance.OnTurnAdvanced -= ProcessCooperationPactDrift;
+            }
+        }
+
+        /// <summary>
+        /// Per-turn trust drift for every minor-major pair with an active cooperation pact (see
+        /// DiplomacyController.OfferAlliance / TickCooperationPactDrift). Runs independently of the
+        /// AI decision tick above so a human-proposed pact with an AI minor race still grows even
+        /// though the human doesn't go through ProcessAIDiplomacyForAllCivs.
+        /// </summary>
+        private void ProcessCooperationPactDrift()
+        {
+            foreach (var diploCon in DiplomacyControllers)
+            {
+                if (diploCon?.DiplomacyData == null || !diploCon.DiplomacyData.CooperationPactActive) continue;
+
+                bool sideOneMinor = (int)diploCon.DiplomacyData.CivEnumSideOne > 6;
+                CivEnum minorEnum = sideOneMinor ? diploCon.DiplomacyData.CivEnumSideOne : diploCon.DiplomacyData.CivEnumSideTwo;
+                CivEnum majorEnum = sideOneMinor ? diploCon.DiplomacyData.CivEnumSideTwo : diploCon.DiplomacyData.CivEnumSideOne;
+
+                CivController major = CivManager.Instance.GetCivControllerByCivEnum(majorEnum);
+                CivController minor = CivManager.Instance.GetCivControllerByCivEnum(minorEnum);
+                if (major?.CivData == null || minor?.CivData == null) continue;
+
+                diploCon.TickCooperationPactDrift(major.CivData, minor.CivData);
+            }
+        }
+
+        /// <summary>
+        /// Minimal per-turn AI diplomacy tick: for every active pair where the AI seat is Side One
+        /// (a human player acts through the UI instead), roll a chance to attempt one goodwill
+        /// gesture this turn. Chance and target status are both scaled by DiplomaticAptitude, so
+        /// Federation-like civs court relationships far more readily than Romulan/Cardassian/
+        /// Dominion-like ones. ApplyDiplomaticGesture already rejects any pair involving the Borg.
+        /// </summary>
+        private void ProcessAIDiplomacyForAllCivs()
+        {
+            foreach (var diploCon in DiplomacyControllers)
+            {
+                if (diploCon?.DiplomacyData == null) continue;
+
+                CivEnum aiCivEnum = diploCon.DiplomacyData.CivEnumSideOne;
+                if (aiCivEnum == CivEnum.BORG) continue;
+                if (GameController.Instance != null && GameController.Instance.AreWeLocalPlayer(aiCivEnum)) continue;
+
+                CivController proposer = CivManager.Instance.GetCivControllerByCivEnum(aiCivEnum);
+                if (proposer?.CivData == null || !proposer.CivData.PlayedByAI) continue;
+
+                // Cooperative civs (DiplomaticAptitude near +2) act nearly every turn; hostile ones
+                // (near -2) rarely bother. Range: ~10%-50% chance per turn.
+                float actionChance = 0.3f + proposer.CivData.DiplomaticAptitude * 0.1f;
+                if (UnityEngine.Random.value > actionChance) continue;
+
+                DiplomacyStatusEnum status = diploCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
+                if (status >= DiplomacyStatusEnum.Friendly && proposer.CivData.DiplomaticAptitude > 0f)
+                    diploCon.OfferAlliance(diploCon);
+                else if (status >= DiplomacyStatusEnum.Neutral)
+                    diploCon.SendAid(diploCon);
+                else
+                    diploCon.ProposeTrade(diploCon);
+            }
+        }
+
         public DiplomacyController InstantiateDiplomacyController(CivController civSideOne, FleetController fleetSideOne,
         CivController civSideTwo, FleetController fleetSideTwo, StarSysController sysCon)
         {

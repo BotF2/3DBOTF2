@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_097_NECHANI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 97
-  Position: {x: 61.57, y: 1.31, z: 68.9}
+  Position: {x: 61.57, y: 1.31, z: 68.90}
   SysName: NECHANI
   FirstOwner: 97
   CurrentOwner: 97

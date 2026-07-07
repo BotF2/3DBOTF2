@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_022_ATREA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 22
-  Position: {x: -6.32, y: -0.07, z: -80.76}
+  Position: {x: -6.05, y: -0.07, z: -79.75}
   SysName: ATREA
   FirstOwner: 22
   CurrentOwner: 22

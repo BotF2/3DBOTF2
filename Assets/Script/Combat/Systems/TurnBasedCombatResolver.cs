@@ -365,6 +365,13 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             // Apply post-combat rewards for any captured ships
             ApplyCaptureRewards();
 
+            // Borg have no diplomacy - they assimilate defended/attacked systems by winning combat instead.
+            CivEnum winningCivEnum = sideOneAlive > 0 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
+            if (winningCivEnum == CivEnum.BORG && combatData.StarSysCon != null)
+            {
+                CivManager.Instance.AssimilateSystem(combatData.StarSysCon, CivEnum.BORG);
+            }
+
             // ✅ Show combat end panel via manager
             if (BOTF3D.UI.CombatUIManager.Instance != null)
             {

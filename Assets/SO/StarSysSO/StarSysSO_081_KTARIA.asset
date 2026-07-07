@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_081_KTARIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 81
-  Position: {x: -53.28, y: 2.36, z: -75.96}
+  Position: {x: -53.28, y: 2.36, z: -74.49}
   SysName: KTARIA
   FirstOwner: 81
   CurrentOwner: 81

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_144_VORGON
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 144
-  Position: {x: 49.8, y: 2.18, z: -52.73}
+  Position: {x: 49.80, y: 2.18, z: -52.73}
   SysName: VORGON
   FirstOwner: 144
   CurrentOwner: 144

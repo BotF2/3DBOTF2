@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_006_SUN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 6
-  Position: {x: -45.4, y: 1.29, z: -70.41}
+  Position: {x: -45.40, y: 1.29, z: -70.41}
   SysName: SUN
   FirstOwner: 6
   CurrentOwner: 6

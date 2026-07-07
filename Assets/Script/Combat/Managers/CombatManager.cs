@@ -148,9 +148,9 @@ public GameObject HealthbarPrefab;
         /// <summary>
         /// Request a combat - will be queued if another is active
         /// </summary>
-        public void RequestCombat(List<ShipController> sideOneShips, List<ShipController> sideTwoShips, CombatType combatType)
+        public void RequestCombat(List<ShipController> sideOneShips, List<ShipController> sideTwoShips, CombatType combatType, StarSysController starSysCon = null)
         {
-            queueManager.RequestCombat(sideOneShips, sideTwoShips, combatType);
+            queueManager.RequestCombat(sideOneShips, sideTwoShips, combatType, starSysCon);
         }
 
         /// <summary>
@@ -159,6 +159,7 @@ public GameObject HealthbarPrefab;
         private void HandleCombatControllerRequest(
             List<ShipController> sideOneShips,
             List<ShipController> sideTwoShips,
+            StarSysController starSysCon,
             System.Action<CombatController> callback)
         {
             // Find scene references
@@ -167,7 +168,8 @@ public GameObject HealthbarPrefab;
             // Create combat controller
             CombatController controller = combatInstantiator.InstantiateCombatController(
                 sideOneShips,
-                sideTwoShips
+                sideTwoShips,
+                starSysCon
             );
 
             callback?.Invoke(controller);
@@ -280,7 +282,7 @@ public GameObject HealthbarPrefab;
                         sideTwoShips = intelCon.IntelligenceData.LastSeenStarSysController.StarSysData.ShipsList;
                         if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
                         {
-                            RequestCombat(sideOneShips, sideTwoShips, CombatType.FleetVsSystem);
+                            RequestCombat(sideOneShips, sideTwoShips, CombatType.FleetVsSystem, intelCon.IntelligenceData.LastSeenStarSysController);
                         }
                     }
                 }
@@ -291,7 +293,7 @@ public GameObject HealthbarPrefab;
 
                     if (sideOneShips.Count > 0 && sideTwoShips.Count > 0)
                     {
-                        RequestCombat(sideOneShips, sideTwoShips, CombatType.SystemVsFleet);
+                        RequestCombat(sideOneShips, sideTwoShips, CombatType.SystemVsFleet, intelCon.IntelligenceData.LastSeenStarSysController);
                     }
                 }
             }

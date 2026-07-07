@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_032_BOLIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 32
-  Position: {x: -16.94, y: 1.88, z: -67.2}
+  Position: {x: -16.94, y: 1.88, z: -67.20}
   SysName: BOLIA
   FirstOwner: 32
   CurrentOwner: 32

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_039_BYNARS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 39
-  Position: {x: -64, y: 0.34, z: -73.56}
+  Position: {x: -64.00, y: 0.34, z: -73.56}
   SysName: BYNARS
   FirstOwner: 39
   CurrentOwner: 39

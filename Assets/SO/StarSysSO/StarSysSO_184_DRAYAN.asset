@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_184_DRAYAN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 184
-  Position: {x: 9.49, y: 0.2, z: 33.25}
+  Position: {x: 9.49, y: 0.20, z: 33.25}
   SysName: DRAYAN
   FirstOwner: 184
   CurrentOwner: 184

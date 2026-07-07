@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_210_CARINA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 210
-  Position: {x: -10.9, y: 2.16, z: 71.12}
+  Position: {x: -10.90, y: 2.16, z: 71.12}
   SysName: CARINA
   FirstOwner: 210
   CurrentOwner: 210

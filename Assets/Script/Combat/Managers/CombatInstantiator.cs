@@ -45,7 +45,8 @@ namespace BOTF3D.Combat
         /// </summary>
         public CombatController InstantiateCombatController(
             List<ShipController> sideOneShipCons,
-            List<ShipController> sideTwoShipCons)
+            List<ShipController> sideTwoShipCons,
+            StarSysController starSysCon = null)
         {
             if (combatConPrefab == null)
             {
@@ -62,7 +63,7 @@ namespace BOTF3D.Combat
             Debug.Log("📦 Instantiating NEW CombatController...");
 
             // Create combat data
-            CombatData combatData = CreateCombatData(sideOneShipCons, sideTwoShipCons);
+            CombatData combatData = CreateCombatData(sideOneShipCons, sideTwoShipCons, starSysCon);
 
             // Instantiate controller
             CombatController combatController = Object.Instantiate(
@@ -95,14 +96,21 @@ namespace BOTF3D.Combat
         /// </summary>
         private CombatData CreateCombatData(
             List<ShipController> sideOneShipCons,
-            List<ShipController> sideTwoShipCons)
+            List<ShipController> sideTwoShipCons,
+            StarSysController starSysCon)
         {
+            CivEnum civEnumSideOne = sideOneShipCons[0].ShipData.CivEnum;
+            CivEnum civEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum;
+
             return new CombatData
             {
                 SideOneShipCons = sideOneShipCons,
                 SideTwoShipCons = sideTwoShipCons,
-                CivEnumSideOne = sideOneShipCons[0].ShipData.CivEnum,
-                CivEnumSideTwo = sideTwoShipCons[0].ShipData.CivEnum,
+                CivEnumSideOne = civEnumSideOne,
+                CivEnumSideTwo = civEnumSideTwo,
+                sideOneCiv = CivManager.Instance?.GetCivControllerByCivEnum(civEnumSideOne),
+                sideTwoCiv = CivManager.Instance?.GetCivControllerByCivEnum(civEnumSideTwo),
+                StarSysCon = starSysCon,
                 OrderSideOne = CombatOrders.Engage,
                 OrderSideTwo = CombatOrders.Engage
             };

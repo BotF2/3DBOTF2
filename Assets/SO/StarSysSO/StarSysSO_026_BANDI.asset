@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_026_BANDI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 26
-  Position: {x: 6.47, y: -1.23, z: -83.9}
+  Position: {x: 6.96, y: -1.23, z: -83.80}
   SysName: BANDI
   FirstOwner: 26
   CurrentOwner: 26

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_111_RAMATIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 111
-  Position: {x: 5.63, y: 2.09, z: -75.73}
+  Position: {x: 5.68, y: 2.09, z: -75.46}
   SysName: RAMATIA
   FirstOwner: 111
   CurrentOwner: 111

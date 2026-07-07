@@ -57,8 +57,11 @@ namespace BOTF3D.Galaxy
 
             // Deduct dilithium stockpile when a power plant build starts
             if (buildDrag.FacilityType == StarSysFacilityType.PowerPlanet)
+            {
                 controller.StarSysData.DeductDilithium(
                     ShipStatCalculator.GetPowerPlantDilithiumCost(controller.StarSysData.CurrentOwnerCivEnum));
+                RefreshCompactHeaderDilithium();
+            }
 
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
@@ -219,6 +222,16 @@ namespace BOTF3D.Galaxy
             }
 
         }
+
+        /// <summary>
+        /// Pushes the current StarSysData.DilithiumStockpile to the always-visible
+        /// compact header, keeping it in sync whenever dilithium is spent.
+        /// </summary>
+        private void RefreshCompactHeaderDilithium()
+        {
+            var fields = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+            fields?.compactHeader?.RefreshDilithium();
+        }
         public void StartNextFacilityBuildIfAny()
         {
             Debug.Log($"StartNextFacilityBuildIfAny: IsBuildingFacility={IsBuildingFacility}, Queue count={controller.sysBuildQueueList.Count}");
@@ -266,6 +279,7 @@ namespace BOTF3D.Galaxy
                 yield break;
             }
             controller.StarSysData.DeductDilithium(shipDilithium);
+            RefreshCompactHeaderDilithium();
 
             int buildTime = ShipManager.Instance.GetShipBuildDuration(
                 drag.ShipType,

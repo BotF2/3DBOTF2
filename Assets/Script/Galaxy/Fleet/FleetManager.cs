@@ -275,6 +275,49 @@ namespace BOTF3D.Galaxy
             return fleetController;
         }
 
+        /// <summary>
+        /// Headless equivalent of StarSysMenuUIController.ClickNewFleetButton + the manual
+        /// ship-drag-drop flow: forms a brand-new fleet at the system's position and transfers
+        /// the given ships straight into it, with no UI/drag components involved. Built for
+        /// AI-owned systems (e.g. StarSysAIManager War mode) that need to dispatch built ships
+        /// without a human dragging them into a fleet panel.
+        /// </summary>
+        public FleetController FormFleetFromSystemShips(StarSysController sysCon, List<ShipController> shipsToMove)
+        {
+            if (sysCon?.StarSysData == null || shipsToMove == null || shipsToMove.Count == 0) return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
+            var position = sysCon.StarSysData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.Insignia = thisCivData.InsigniaSprite;
+            fleetData.ShipsList = new List<ShipController>();
+
+            FleetController newFleet = InstantiateFleet(null, sysCon, fleetData, position, true);
+            if (newFleet == null) return null;
+
+            foreach (var ship in shipsToMove)
+            {
+                if (ship == null) continue;
+
+                sysCon.StarSysData.ShipsList.Remove(ship);
+                ship.ShipData.CurrentStarSysController = null;
+
+                newFleet.FleetData.ShipsList.Add(ship);
+                ship.ShipData.CurrentFleetController = newFleet;
+                ship.transform.SetParent(newFleet.transform, false);
+            }
+
+            newFleet.UpdateMaxWarp();
+            return newFleet;
+        }
+
         public FleetController InstantiateFleet(FleetController existingFleetCon, StarSysController sysController,
             FleetData fleetData, Vector3 position, bool isNewFleet)
         {

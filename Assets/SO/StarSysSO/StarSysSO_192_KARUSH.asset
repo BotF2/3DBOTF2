@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_192_KARUSH
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 192
-  Position: {x: 22.37, y: -0.29, z: 30.5}
+  Position: {x: 22.37, y: -0.29, z: 30.50}
   SysName: KARUSH
   FirstOwner: 192
   CurrentOwner: 192

@@ -45,6 +45,13 @@ namespace BOTF3D.Galaxy
         public AIBuildMode AIBuildMode = AIBuildMode.Off;
         public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
 
+        // Subspace scanner: this system's own "fog of war" for detecting nearby enemy fleets,
+        // independent of the local player's rendering fog grid (FischlWorks_FogWar). Refreshed
+        // every turn by StarSysAIManager for every system regardless of owner, so it's available
+        // both for AI auto-Defence triggers and for future "set enemy fleet as destination" UI.
+        public float SubspaceScannerRadius = 250f;
+        public List<FleetController> DetectedEnemyFleets = new List<FleetController>();
+
         public bool HasDilithium(int amount) => DilithiumStockpile >= amount;
         public void DeductDilithium(int amount) => DilithiumStockpile = Mathf.Max(0, DilithiumStockpile - amount);
         public List<GameObject> PowerPlants;

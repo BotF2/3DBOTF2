@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_158_HAYASHI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 158
-  Position: {x: 6.47, y: 0.7, z: -25.09}
+  Position: {x: 6.47, y: 0.70, z: -25.09}
   SysName: HAYASHI
   FirstOwner: 158
   CurrentOwner: 158

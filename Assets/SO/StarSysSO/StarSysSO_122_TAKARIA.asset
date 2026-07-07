@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_122_TAKARIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 122
-  Position: {x: 63.75, y: 3, z: 75.07}
+  Position: {x: 63.75, y: 3.00, z: 75.07}
   SysName: TAKARIA
   FirstOwner: 122
   CurrentOwner: 122

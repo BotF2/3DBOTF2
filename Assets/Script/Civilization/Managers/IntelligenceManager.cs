@@ -171,13 +171,54 @@ namespace BOTF3D.Civilization
         private void OnEnable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnTurnAdvanced += TickIntelProjects;
+                TimeManager.Instance.OnTurnAdvanced += ProcessAIIntelForAllCivs;
+            }
         }
 
         private void OnDisable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnTurnAdvanced -= TickIntelProjects;
+                TimeManager.Instance.OnTurnAdvanced -= ProcessAIIntelForAllCivs;
+            }
+        }
+
+        /// <summary>
+        /// Minimal per-turn AI intel tick: for every contact where the AI seat is Side One and no
+        /// operation is already running, roll a chance to start one this turn. Chance and action
+        /// choice are both driven by GetCivSuccessModifier's Ruthless/Xenophobia formula, so
+        /// Romulan/Cardassian/Dominion-like civs run covert ops far more often than Federation-like
+        /// ones, which mostly default to passive intelligence gathering.
+        /// </summary>
+        private void ProcessAIIntelForAllCivs()
+        {
+            foreach (var intelCon in IntelligenceControllerList)
+            {
+                if (intelCon?.IntelligenceData?.ActiveProjects == null) continue;
+
+                CivEnum initiatorEnum = intelCon.IntelligenceData.CivSideOne;
+                CivEnum targetEnum = intelCon.IntelligenceData.CivSideTwo;
+                if (initiatorEnum == CivEnum.None || targetEnum == CivEnum.None) continue;
+                if (GameController.Instance != null && GameController.Instance.AreWeLocalPlayer(initiatorEnum)) continue;
+
+                CivController initiator = CivManager.Instance.GetCivControllerByCivEnum(initiatorEnum);
+                if (initiator?.CivData == null || !initiator.CivData.PlayedByAI) continue;
+
+                if (intelCon.IntelligenceData.ActiveProjects.Exists(p => !p.IsComplete)) continue;
+
+                float covertBias = GetCivSuccessModifier(initiatorEnum);
+                float actionChance = Mathf.Max(0.05f, 0.2f + covertBias * 2f);
+                if (UnityEngine.Random.value > actionChance) continue;
+
+                SecretActionsEnum action = covertBias > 0f
+                    ? SecretActionsEnum.IntellectualTheft
+                    : SecretActionsEnum.GatherIntelligence;
+
+                CreateIntelProject(action, initiatorEnum, targetEnum, out _);
+            }
         }
 
         // ─── Project creation ────────────────────────────────────────────────
@@ -306,6 +347,9 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.Disinformation:
                     ResolveDisinformation(project, initiator, target, succeeded, discovered);
                     break;
+                case SecretActionsEnum.SystemRecon:
+                    ResolveSystemRecon(project, initiator, target, succeeded, discovered);
+                    break;
             }
         }
 
@@ -358,6 +402,20 @@ namespace BOTF3D.Civilization
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy,
                     $"Sabotage succeeded against {project.TargetCiv} | -20 IntelPoints");
                 // ToDo: additional effects (factory slowdown, shipyard damage)
+
+                // If the target is a minor race mid-way through a cooperation pact with some other
+                // major civ (e.g. Vulcans courted by the Federation), sabotage can also poison that
+                // relationship - the classic Romulan/Cardassian play against a rival's budding ally.
+                DiplomacyController pact = DiplomacyManager.Instance?.DiplomacyControllers.Find(dc =>
+                    dc?.DiplomacyData != null && dc.DiplomacyData.CooperationPactActive &&
+                    (dc.DiplomacyData.CivEnumSideOne == project.TargetCiv || dc.DiplomacyData.CivEnumSideTwo == project.TargetCiv) &&
+                    dc.DiplomacyData.CivEnumSideOne != project.InitiatorCiv && dc.DiplomacyData.CivEnumSideTwo != project.InitiatorCiv);
+                if (pact != null)
+                {
+                    pact.SubtractDiplomaticPoints(15);
+                    GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                        $"Sabotage also set back {project.TargetCiv}'s cooperation pact by 15 points.");
+                }
             }
             else if (discovered)
                 ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredSabotage);
@@ -372,6 +430,31 @@ namespace BOTF3D.Civilization
                 GameLogger.Log(GameLogger.LogCategory.Diplomacy,
                     $"Disinformation succeeded against {project.TargetCiv}");
                 // ToDo: reduce target's DiplomacyPoints with a third civ
+            }
+            else if (discovered)
+                ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredDisinformation);
+            OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, succeeded, discovered, 0);
+        }
+
+        /// <summary>
+        /// Refreshes the target's home star system as a "last seen" recon record on the shared
+        /// IntelligenceController, without requiring a live fleet/combat encounter there first.
+        /// </summary>
+        private void ResolveSystemRecon(IntelProject project, CivController initiator, CivController target,
+            bool succeeded, bool discovered)
+        {
+            if (succeeded)
+            {
+                IntelligenceController intelCon = ReturnAnIntelligenceController(project.InitiatorCiv, project.TargetCiv);
+                StarSysController homeSysCon = target.CivData.StarSysWeOwn?
+                    .Find(s => s != null && s.StarSysData.SysName == target.CivData.CivHomeSystemName);
+
+                if (intelCon != null && homeSysCon != null)
+                {
+                    intelCon.IntelligenceData.LastSeenStarSysController = homeSysCon;
+                    GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                        $"System recon succeeded: {project.InitiatorCiv} now sees {homeSysCon.StarSysData.SysName} ({project.TargetCiv})");
+                }
             }
             else if (discovered)
                 ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredDisinformation);
@@ -411,6 +494,7 @@ namespace BOTF3D.Civilization
             switch (action)
             {
                 case SecretActionsEnum.GatherIntelligence: return 1;
+                case SecretActionsEnum.SystemRecon:        return 1;
                 case SecretActionsEnum.Disinformation:     return 2;
                 case SecretActionsEnum.Sabotage:           return 2;
                 case SecretActionsEnum.IntellectualTheft:  return 3;
@@ -423,6 +507,7 @@ namespace BOTF3D.Civilization
             switch (action)
             {
                 case SecretActionsEnum.GatherIntelligence: return 5f;
+                case SecretActionsEnum.SystemRecon:        return 8f;
                 case SecretActionsEnum.Disinformation:     return 10f;
                 case SecretActionsEnum.Sabotage:           return 15f;
                 case SecretActionsEnum.IntellectualTheft:  return 10f * (1f + techGap);
@@ -435,6 +520,7 @@ namespace BOTF3D.Civilization
             switch (action)
             {
                 case SecretActionsEnum.GatherIntelligence: return 0.85f;
+                case SecretActionsEnum.SystemRecon:        return 0.75f;
                 case SecretActionsEnum.Disinformation:     return 0.60f;
                 case SecretActionsEnum.Sabotage:           return 0.50f;
                 case SecretActionsEnum.IntellectualTheft:  return 0.5f / (1f + techGap * 0.5f);
@@ -442,15 +528,16 @@ namespace BOTF3D.Civilization
             }
         }
 
-        // Dominion: stronger intelligence apparatus. Klingons favour direct combat over subterfuge.
+        /// <summary>
+        /// Ruthless/secretive, xenophobic civs (Romulan, Cardassian, Dominion) run stronger covert
+        /// operations than open, trusting ones (Federation). Klingons favour direct combat over
+        /// subterfuge and land negative too. Divisor of 30 keeps the range near the old hand-tuned ±0.10.
+        /// </summary>
         private static float GetCivSuccessModifier(CivEnum civ)
         {
-            switch (civ)
-            {
-                case CivEnum.DOM:   return  0.10f;
-                case CivEnum.KLING: return -0.10f;
-                default:            return  0f;
-            }
+            CivData civData = CivManager.Instance?.GetCivDataByCivEnum(civ);
+            if (civData == null) return 0f;
+            return -((int)civData.Ruthless + (int)civData.Xenophobia) / 30f;
         }
 
         private static float CalculateDiscoveryChance(SecretActionsEnum action, float techGap)
@@ -458,6 +545,7 @@ namespace BOTF3D.Civilization
             switch (action)
             {
                 case SecretActionsEnum.GatherIntelligence: return 0.10f;
+                case SecretActionsEnum.SystemRecon:        return 0.10f;
                 case SecretActionsEnum.Disinformation:     return 0.20f;
                 case SecretActionsEnum.Sabotage:           return 0.35f;
                 case SecretActionsEnum.IntellectualTheft:  return 0.30f + techGap * 0.10f;

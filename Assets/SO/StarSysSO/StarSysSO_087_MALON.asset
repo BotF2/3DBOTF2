@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_087_MALON
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 87
-  Position: {x: 49.8, y: 0.83, z: 44.64}
+  Position: {x: 49.58, y: 0.83, z: 44.44}
   SysName: MALON
   FirstOwner: 87
   CurrentOwner: 87

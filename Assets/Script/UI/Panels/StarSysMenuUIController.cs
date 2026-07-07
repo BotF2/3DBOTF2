@@ -675,6 +675,10 @@ namespace BOTF3D.UI
                 if (soloFields != null)
                 {
                     soloFields.expandedContent?.SetActive(true);
+                    // Populate (not just RefreshDilithium) since this system's compact header may
+                    // never have been populated via the systems-list path (PopulateSystemsList) —
+                    // e.g. when the player opens the solo detail view straight from the galaxy map.
+                    soloFields.compactHeader?.Populate(theSysCon);
                     soloFields.compactHeader?.SetExpandButtonActive(false);
                 }
 

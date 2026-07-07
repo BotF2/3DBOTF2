@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_038_BREKKA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 38
-  Position: {x: 13.66, y: 1.14, z: -84.42}
+  Position: {x: 12.24, y: 1.14, z: -80.64}
   SysName: BREKKA
   FirstOwner: 38
   CurrentOwner: 38

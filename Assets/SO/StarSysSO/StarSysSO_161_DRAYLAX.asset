@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_161_DRAYLAX
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 161
-  Position: {x: -2.04, y: -0.46, z: -36.3}
+  Position: {x: -2.08, y: -0.46, z: -36.31}
   SysName: DRAYLAX
   FirstOwner: 161
   CurrentOwner: 161

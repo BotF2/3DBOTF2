@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_194_MORSKA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 194
-  Position: {x: 9.68, y: 2.4, z: 76.97}
+  Position: {x: 9.68, y: 2.40, z: 76.97}
   SysName: MORSKA
   FirstOwner: 194
   CurrentOwner: 194

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_054_EDO
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 54
-  Position: {x: -39.42, y: 2.4, z: -85.94}
+  Position: {x: -38.56, y: 2.40, z: -85.94}
   SysName: EDO
   FirstOwner: 54
   CurrentOwner: 54

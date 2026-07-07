@@ -336,6 +336,103 @@ namespace BOTF3D.Civilization
                 }
             }
         }
+        /// <summary>
+        /// Full immediate annexation when a minor race civ reaches Membership status with a major civ:
+        /// transfers every system the minor owns to the major civ and fires an elimination event.
+        /// Existing minor-race ships/facilities are reflagged to the major civ in place (same hulls,
+        /// same models) - only new ships built afterward come out looking like the major civ, since
+        /// ship builds already key off the system's CurrentOwnerCivEnum.
+        /// </summary>
+        public void AnnexMinorCiv(CivEnum majorCivEnum, CivEnum minorCivEnum)
+        {
+            CivController majorCiv = GetCivControllerByCivEnum(majorCivEnum);
+            CivController minorCiv = GetCivControllerByCivEnum(minorCivEnum);
+            if (majorCiv?.CivData == null || minorCiv?.CivData == null) return;
+
+            majorCiv.CivData.StarSysWeOwn ??= new List<StarSysController>();
+
+            if (minorCiv.CivData.StarSysWeOwn != null)
+            {
+                foreach (var sysCon in minorCiv.CivData.StarSysWeOwn)
+                {
+                    if (sysCon == null) continue;
+
+                    sysCon.UpdateOwner(majorCivEnum);
+                    sysCon.StarSysData.CurrentCivController = majorCiv;
+                    ReflagSystemAssets(sysCon, majorCivEnum);
+
+                    if (!majorCiv.CivData.StarSysWeOwn.Contains(sysCon))
+                        majorCiv.CivData.StarSysWeOwn.Add(sysCon);
+
+                    GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, majorCivEnum);
+                }
+                minorCiv.CivData.StarSysWeOwn.Clear();
+            }
+
+            // Fleets in transit (not docked at any system) also belong to the minor civ and need
+            // to convert - a Vulcan patrol fleet en route somewhere becomes a Federation fleet too.
+            if (FleetManager.Instance != null)
+            {
+                foreach (var fleetCon in FleetManager.Instance.FleetControllerList)
+                {
+                    if (fleetCon?.FleetData == null || fleetCon.FleetData.CivEnum != minorCivEnum) continue;
+                    fleetCon.FleetData.CivEnum = majorCivEnum;
+                    if (fleetCon.FleetData.ShipsList != null)
+                        foreach (var ship in fleetCon.FleetData.ShipsList)
+                            if (ship?.ShipData != null) ship.ShipData.CivEnum = majorCivEnum;
+                }
+            }
+
+            Debug.Log($"[CivManager] {minorCivEnum} annexed into {majorCivEnum} via Membership — full ownership transfer complete.");
+            GameEvents.CivEliminated(minorCivEnum);
+        }
+
+        /// <summary>
+        /// Reflags every ship docked at a system plus its six facility types to a new owner civ.
+        /// Ships keep their original hulls/visuals; facilities carry per-system CivEnum data used by
+        /// the build UI, so this alone makes the system's future builds come out as the new owner.
+        /// </summary>
+        private void ReflagSystemAssets(StarSysController sysCon, CivEnum newOwnerCivEnum)
+        {
+            if (sysCon.StarSysData.ShipsList != null)
+                foreach (var ship in sysCon.StarSysData.ShipsList)
+                    if (ship?.ShipData != null) ship.ShipData.CivEnum = newOwnerCivEnum;
+
+            if (sysCon.StarSysData.PowerPlantData != null) sysCon.StarSysData.PowerPlantData.CivEnum = newOwnerCivEnum;
+            if (sysCon.StarSysData.FactoryData != null) sysCon.StarSysData.FactoryData.CivEnum = newOwnerCivEnum;
+            if (sysCon.StarSysData.ShipyardData != null) sysCon.StarSysData.ShipyardData.CivEnum = newOwnerCivEnum;
+            if (sysCon.StarSysData.ShieldGeneratorData != null) sysCon.StarSysData.ShieldGeneratorData.CivEnum = newOwnerCivEnum;
+            if (sysCon.StarSysData.OrbitalBatteryData != null) sysCon.StarSysData.OrbitalBatteryData.CivEnum = newOwnerCivEnum;
+            if (sysCon.StarSysData.ResearchCenterData != null) sysCon.StarSysData.ResearchCenterData.CivEnum = newOwnerCivEnum;
+        }
+
+        /// <summary>
+        /// Transfers a single system's ownership to a new civ (e.g. Borg assimilation after winning
+        /// a system-defense combat). Unlike AnnexMinorCiv this moves only one system, not a civ's
+        /// whole territory, and does not eliminate the previous owner.
+        /// </summary>
+        public void AssimilateSystem(StarSysController sysCon, CivEnum newOwnerCivEnum)
+        {
+            if (sysCon?.StarSysData == null) return;
+
+            CivEnum previousOwnerCivEnum = sysCon.StarSysData.CurrentOwnerCivEnum;
+            CivController previousOwner = GetCivControllerByCivEnum(previousOwnerCivEnum);
+            CivController newOwner = GetCivControllerByCivEnum(newOwnerCivEnum);
+            if (newOwner?.CivData == null) return;
+
+            previousOwner?.CivData?.StarSysWeOwn?.Remove(sysCon);
+
+            newOwner.CivData.StarSysWeOwn ??= new List<StarSysController>();
+            if (!newOwner.CivData.StarSysWeOwn.Contains(sysCon))
+                newOwner.CivData.StarSysWeOwn.Add(sysCon);
+
+            sysCon.UpdateOwner(newOwnerCivEnum);
+            sysCon.StarSysData.CurrentCivController = newOwner;
+
+            Debug.Log($"[CivManager] {sysCon.StarSysData.SysName} assimilated by {newOwnerCivEnum} (was {previousOwnerCivEnum}).");
+            GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, newOwnerCivEnum);
+        }
+
         public CivController GetLocalPlayerCivController()
         {
             CivController civController = null;

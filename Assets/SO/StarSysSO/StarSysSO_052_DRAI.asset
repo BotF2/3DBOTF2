@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_052_DRAI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 52
-  Position: {x: -19.62, y: -1.34, z: 76.1}
+  Position: {x: -19.62, y: -1.34, z: 76.10}
   SysName: DRAI
   FirstOwner: 52
   CurrentOwner: 52

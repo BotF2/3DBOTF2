@@ -36,13 +36,14 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Request a combat - will be queued if another is active
         /// </summary>
-        public void RequestCombat(List<ShipController> sideOneShips, List<ShipController> sideTwoShips, CombatType combatType)
+        public void RequestCombat(List<ShipController> sideOneShips, List<ShipController> sideTwoShips, CombatType combatType, StarSysController starSysCon = null)
         {
             var pendingCombat = new PendingCombat
             {
                 SideOneShips = sideOneShips,
                 SideTwoShips = sideTwoShips,
-                CombatType = combatType
+                CombatType = combatType,
+                StarSysCon = starSysCon
             };
 
             combatQueue.Enqueue(pendingCombat);
@@ -108,7 +109,7 @@ namespace BOTF3D.Combat
 
             // Request controller creation through event
             CombatController controller = null;
-            OnCombatControllerRequested?.Invoke(pendingCombat.SideOneShips, pendingCombat.SideTwoShips, (c) => controller = c);
+            OnCombatControllerRequested?.Invoke(pendingCombat.SideOneShips, pendingCombat.SideTwoShips, pendingCombat.StarSysCon, (c) => controller = c);
 
             callback?.Invoke(controller);
         }
@@ -127,7 +128,7 @@ namespace BOTF3D.Combat
         }
 
         // Events for decoupling
-        public event System.Action<List<ShipController>, List<ShipController>, System.Action<CombatController>> OnCombatControllerRequested;
+        public event System.Action<List<ShipController>, List<ShipController>, StarSysController, System.Action<CombatController>> OnCombatControllerRequested;
         public event System.Action OnCombatSetupNeeded;
 
         /// <summary>
@@ -138,6 +139,7 @@ namespace BOTF3D.Combat
             public List<ShipController> SideOneShips;
             public List<ShipController> SideTwoShips;
             public CombatType CombatType;
+            public StarSysController StarSysCon;
         }
     }
 }

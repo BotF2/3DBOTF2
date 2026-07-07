@@ -210,11 +210,11 @@ namespace BOTF3D.Core
                 SetTurnPhase(TurnPhase.EncounterResolution);
                 PauseTime();
                 queue.DrainAll();
-                // OnEncounterQueueEmpty() transitions to InterTurn after DrainAll
-                // If DrainAll resolves synchronously (no player prompts needed) we arrive here already in InterTurn.
-                // If diplomacy panels require player interaction, the panel close button should call
-                // GalaxyEncounterQueue.Instance.ResolveNext() and TimeManager.Instance.OnEncounterQueueEmpty()
-                // once all encounters are dismissed.
+                // DrainAll() resolves every queued encounter synchronously (opening any diplomacy
+                // panels non-blocking) and returns immediately - it does not wait on player input.
+                // Nothing else calls back into TimeManager when it's done, so we must return to
+                // InterTurn here ourselves or turn advancement soft-locks forever.
+                OnEncounterQueueEmpty();
             }
             else
             {

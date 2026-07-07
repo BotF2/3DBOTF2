@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_064_HAAKONIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 64
-  Position: {x: 20.23, y: -0.46, z: 76.1}
+  Position: {x: 20.23, y: -0.46, z: 76.10}
   SysName: HAAKONIA
   FirstOwner: 64
   CurrentOwner: 64

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_116_SHELIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 116
-  Position: {x: 19.16, y: 1.67, z: -86.46}
+  Position: {x: 21.74, y: 1.67, z: -88.00}
   SysName: SHELIA
   FirstOwner: 116
   CurrentOwner: 116

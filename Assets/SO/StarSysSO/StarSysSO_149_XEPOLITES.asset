@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_149_XEPOLITES
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 149
-  Position: {x: -50.05, y: -2.4, z: -0.76}
+  Position: {x: -50.05, y: -2.40, z: -0.76}
   SysName: XEPOLITES
   FirstOwner: 149
   CurrentOwner: 149

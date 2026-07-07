@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_033_BOMAR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 33
-  Position: {x: 52.49, y: -0.83, z: 47.16}
+  Position: {x: 52.71, y: -0.83, z: 47.36}
   SysName: BOMAR
   FirstOwner: 33
   CurrentOwner: 33

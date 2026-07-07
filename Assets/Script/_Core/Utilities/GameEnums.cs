@@ -487,6 +487,7 @@ namespace BOTF3D.Core
         Sabotage,
         Disinformation,
         IntellectualTheft,
+        SystemRecon, // refresh LastSeenStarSysController for a target's system without a live encounter
         Combat
     }
     public enum AIBuildMode

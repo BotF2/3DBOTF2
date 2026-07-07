@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_069_HORTA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 69
-  Position: {x: -5.25, y: 0.56, z: -58.74}
+  Position: {x: -4.76, y: 0.56, z: -59.21}
   SysName: HORTA
   FirstOwner: 69
   CurrentOwner: 69

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_043_CHALNOTH
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 43
-  Position: {x: 5.42, y: -1.23, z: -82.93}
+  Position: {x: 4.40, y: -1.23, z: -80.15}
   SysName: CHALNOTH
   FirstOwner: 43
   CurrentOwner: 43
