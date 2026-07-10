@@ -38,6 +38,9 @@ namespace BOTF3D.Combat
         private static readonly float[] TierWarp   = { 1.00f, 1.36f, 1.45f, 1.78f };
         private static readonly float[] TierBuild  = { 1.00f, 1.20f, 1.40f, 1.60f };
 
+        // ── Transport cargo capacity by tech tier (Transport ShipType only) ──
+        private static readonly int[] TransportCargoByTier = { 2, 3, 4, 6 };
+
         // ── Quality-score multipliers (index = QualityScore 0–10) ──
         // Combat: moderate linear scale so quality doctrine gives noticeable but not overwhelming power.
         // Build: steeper curve — high-quality ships are significantly more costly to produce.
@@ -121,6 +124,7 @@ namespace BOTF3D.Combat
                 MaxWarpFactor   = b.Warp * warpMult,
                 BuildDuration   = Mathf.Max(1, Mathf.RoundToInt(b.Build  * buildMult)),
                 DilithiumCost   = Mathf.Max(0, Mathf.RoundToInt(b.Dilithium * TierBuild[ti])),
+                CargoCapacity   = shipType == ShipType.Transport ? TransportCargoByTier[ti] : 0,
             };
         }
 
@@ -155,5 +159,6 @@ namespace BOTF3D.Combat
         public float MaxWarpFactor;
         public int   BuildDuration;
         public int   DilithiumCost;
+        public int   CargoCapacity;
     }
 }

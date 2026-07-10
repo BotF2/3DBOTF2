@@ -24,6 +24,8 @@ MonoBehaviour:
   CivImage: {fileID: 21300000, guid: 8b8e14073077ed44d97e4489faf3312a, type: 3}
   Insignia: {fileID: 21300000, guid: acc50ce06f5548a4da44e35967757a72, type: 3}
   Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 32
   Credits: 0
   TechPoints: 0
   CivTechLevel: 100

@@ -660,6 +660,20 @@ namespace BOTF3D.Galaxy
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+
+                sysData.MaxPopulation = DetermineMaxPopulation(civSO, starSysSO);
+                sysData.MaxGroundForceUnits = DetermineMaxGroundForceUnits(civSO, starSysSO, sysData.MaxPopulation);
+                // Homeworlds start fully settled with troops already fielded; every other owned system
+                // starts at 0 and grows toward its cap over time via PopulationManager (see that class
+                // for the per-stardate growth/conversion tied to active Factories/ResearchCenters).
+                if (starSysSO.IsHomeworld)
+                {
+                    sysData.Population = sysData.MaxPopulation;
+                    int initialGroundForces = Mathf.Clamp(sysData.Population / GroundForceData.PopulationPerUnit, 0, sysData.MaxGroundForceUnits);
+                    for (int i = 0; i < initialGroundForces; i++)
+                        AddGroundForceUnit(starSysCon);
+                }
+
                 SetParentForFacilities(starSysCon.gameObject, sysData);
 
                 if (StarSysMenuUIController.Instance != null)
@@ -750,6 +764,56 @@ namespace BOTF3D.Galaxy
             //#nullable enable
             return 0;
         }
+
+        /// <summary>
+        /// Determine the Population cap for a system. Homeworlds use the civ's authored lore value
+        /// (CivSO.Population) if set. Major homeworlds otherwise use MaxHomePopulation directly (every
+        /// major is authored with the same fixed 80, so majors reliably reach the top GroundForce tier).
+        /// Minor homeworlds without a lore value instead roll randomly within Min/MaxHomePopulation,
+        /// where MaxHomePopulation itself was authored per-civ (randomized up to 40) so minor caps vary
+        /// across races. Non-home systems get smaller fixed starting caps until colonization
+        /// (transport-delivered population) is built out.
+        /// </summary>
+        private int DetermineMaxPopulation(CivSO civSO, StarSysSO starSysSO)
+        {
+            if (starSysSO.IsHomeworld)
+            {
+                if (civSO.Population > 0)
+                    return civSO.Population;
+
+                if (civSO.Playable)
+                    return civSO.MaxHomePopulation > 0 ? civSO.MaxHomePopulation : 80;
+
+                int min = civSO.MinHomePopulation > 0 ? civSO.MinHomePopulation : 10;
+                int max = civSO.MaxHomePopulation > min ? civSO.MaxHomePopulation : min + 20;
+                return UnityEngine.Random.Range(min, max + 1);
+            }
+
+            if (civSO.Playable)
+                return (starSysSO.IsHabitable || starSysSO.IsTerraformable) ? 20 : 0;
+
+            return 8; // minor-owned non-home system
+        }
+
+        /// <summary>
+        /// Determine the GroundForces cap for a system. Home systems of major civs are the only
+        /// systems that can reach the absolute upper limit of 11 (matches groundForceGridLimit in
+        /// StarSysUI_Fields). Every other tier is scaled down from there so majors always field more
+        /// troops than minors, and homeworlds always field more than colonies.
+        /// </summary>
+        private int DetermineMaxGroundForceUnits(CivSO civSO, StarSysSO starSysSO, int maxPopulation)
+        {
+            if (maxPopulation <= 0) return 0;
+
+            int tierCeiling;
+            if (civSO.Playable && starSysSO.IsHomeworld) tierCeiling = 11;
+            else if (civSO.Playable) tierCeiling = 6;
+            else if (starSysSO.IsHomeworld) tierCeiling = 5;
+            else tierCeiling = 2;
+
+            return Mathf.Clamp(maxPopulation / GroundForceData.PopulationPerUnit, 1, tierCeiling);
+        }
+
         /// <summary>
         /// Determine starting power plants (always 1 for warp-capable, 0 otherwise)
         /// </summary>
@@ -799,6 +863,38 @@ namespace BOTF3D.Galaxy
             {
                 go.transform.SetParent(parent.transform, false);
             }
+            foreach (var go in starSysData.GroundForces)
+            {
+                go.transform.SetParent(parent.transform, false);
+            }
+        }
+
+        /// <summary>
+        /// Instantiates one ground force unit placeholder for the system and adds it to
+        /// StarSysData.GroundForces. Unlike other facilities, ground forces have no power load and
+        /// no on/off state (see GroundForceIconUI), so the placeholder needs no TextMeshProUGUI toggle -
+        /// it exists purely as a unique GameObject identity for the UI grid (StarSysUI_Fields.SyncGroundForceGrid)
+        /// to key off of. Called at homeworld creation and by PopulationManager as population grows.
+        /// </summary>
+        public GameObject AddGroundForceUnit(StarSysController sysController)
+        {
+            var sysData = sysController.StarSysData;
+
+            if (sysData.GroundForceData == null)
+            {
+                sysData.GroundForceData = new GroundForceData("null")
+                {
+                    CivEnum = sysData.CurrentOwnerCivEnum,
+                    FacilitiesEnumType = StarSysFacilityType.GroundForce
+                };
+            }
+
+            var newFacilityGO = new GameObject("GroundForceUnit");
+            newFacilityGO.layer = 5;
+            newFacilityGO.transform.SetParent(sysController.transform, false);
+            newFacilityGO.SetActive(false);
+            sysData.GroundForces.Add(newFacilityGO);
+            return newFacilityGO;
         }
         public List<GameObject> AddSystemFacilities(int numOf, GameObject prefab, int civInt, int onOff, StarSysController sysController)
         {

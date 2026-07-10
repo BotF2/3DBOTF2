@@ -24,6 +24,8 @@ MonoBehaviour:
   CivImage: {fileID: 0}
   Insignia: {fileID: 0}
   Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 37
   Credits: 0
   TechPoints: 0
   CivTechLevel: 100

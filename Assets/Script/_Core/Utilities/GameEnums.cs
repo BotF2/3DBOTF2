@@ -377,7 +377,8 @@ namespace BOTF3D.Core
         Shipyard,
         ShieldGenerator,
         OrbitalBattery,
-        ResearchCenter
+        ResearchCenter,
+        GroundForce
     }
     public enum CombatType
     {

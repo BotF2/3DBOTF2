@@ -445,6 +445,12 @@ namespace BOTF3D.UI
                 fields.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
             }
 
+            if (fields.cargoButton != null)
+            {
+                fields.cargoButton.onClick.RemoveAllListeners();
+                fields.cargoButton.onClick.AddListener(() => StarSysClickCargoButton(sysCon));
+            }
+
             if (fields.newFleetButton != null)
             {
                 fields.newFleetButton.onClick.RemoveAllListeners();
@@ -1258,6 +1264,11 @@ namespace BOTF3D.UI
                 MousePointerChanger.Instance.SetShipExchangeCursor();
                 ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
             }
+        }
+        private void StarSysClickCargoButton(StarSysController sysController)
+        {
+            if (CargoDeployMenuUIController.Instance != null)
+                CargoDeployMenuUIController.Instance.ShowCargoMenuView(sysController);
         }
         private void StarSysClickMergeShipsButton(StarSysController starSysController)
         {

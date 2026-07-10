@@ -61,6 +61,7 @@ namespace BOTF3D.Combat
             data.currentWarpFactor = 0f;
             data.BuildDuration    = stats.BuildDuration;
             data.DilithiumCost    = stats.DilithiumCost;
+            data.CargoCapacity    = stats.CargoCapacity;
 
             Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' — " +
                       $"Sh:{data.ShieldMaxHealth} Hu:{data.HullMaxHealth} " +
@@ -139,6 +140,8 @@ namespace BOTF3D.Combat
             destination.TorpedoDamage = source.TorpedoDamage;
             destination.BeamDamage = source.BeamDamage;
             destination.BuildDuration = source.BuildDuration;
+            destination.CargoCapacity = source.CargoCapacity;
+            destination.LoadedPopulation = source.LoadedPopulation;
             destination.ShipDescription = source.ShipDescription;
 
             Debug.Log($"ShipDataInitializer: Copied data from '{source.ShipName}'");

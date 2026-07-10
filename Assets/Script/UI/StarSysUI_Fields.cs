@@ -84,6 +84,7 @@ public class StarSysUI_Fields : MonoBehaviour
     public Button mergeFleetButton;
     public Button shipDeployButton;
     public Button cancelShipManagerButton;
+    public Button cargoButton;
 
     [Header("Text")]
     public TextMeshProUGUI headerPowerUnitText;
@@ -103,6 +104,9 @@ public class StarSysUI_Fields : MonoBehaviour
     public TextMeshProUGUI numResearchRatio;
     public TextMeshProUGUI researchLoad;
     public TextMeshProUGUI powerOverload;
+    public TextMeshProUGUI groundForceName;
+    public TextMeshProUGUI numGroundForce;
+    public TextMeshProUGUI populationText;
 
     [Header("Images")]
     public Image powerUnitImage;
@@ -111,12 +115,23 @@ public class StarSysUI_Fields : MonoBehaviour
     public Image shieldPlanetImage;
     public Image orbitalBatteriesImage;
     public Image researchImage;
+    public Image groundForceImage;
 
     [Header("Orbital Battery Grid")]
-    [Tooltip("Content transform with GridLayoutGroup — assign to OBName/OrbitalBatterGrid in the prefab.")]
+    [Tooltip("OrbitalBatteryGrid transform (GridLayoutGroup, 32x32 cells, Fixed Column Count 11) that OB_Element icons are instantiated under.")]
     public RectTransform orbitalBatteryContent;
-    [Tooltip("Shared icon prefab (Image + ThemedUIElement + OrbitalBatteryIconUI) instantiated once per orbital battery.")]
+    [Tooltip("OB_Element prefab (Assets/PreFabs/Combat/OB_Element.prefab) instantiated once per orbital battery, up to orbitalBatteryGridLimit.")]
     public GameObject orbitalBatteryIconPrefab;
+    [Tooltip("Max number of orbital battery icons shown, matching the grid's Fixed Column Count.")]
+    public int orbitalBatteryGridLimit = 11;
+
+    [Header("Ground Force Grid")]
+    [Tooltip("GroundForceGrid transform (GridLayoutGroup, 32x32 cells) that GroundForceElement icons are instantiated under.")]
+    public RectTransform groundForceContent;
+    [Tooltip("GroundForceElement prefab (Assets/PreFabs/Combat/GroundForceElement.prefab) instantiated once per ground force unit, up to groundForceGridLimit.")]
+    public GameObject groundForceIconPrefab;
+    [Tooltip("Max number of ground force icons shown, matching the grid's Fixed Column Count.")]
+    public int groundForceGridLimit = 11;
 
     [Header("Compact Row")]
     [Tooltip("SysCompactHeader component on the CompactHeader child — always visible in the list.")]
@@ -354,6 +369,19 @@ public class StarSysUI_Fields : MonoBehaviour
             }
         }
 
+        // Ground forces have no power/on-off entry in the facilities list above (no power load,
+        // no on/off buttons), so they're synced directly here instead. GroundForceData still has no
+        // CSV/SO importer for a designer-authored name/sprite, so those stay blank/prefab-authored
+        // until that pipeline exists — only the count/grid and population are live.
+        var gfd = data.GroundForceData;
+        var groundForces = data.GroundForces;
+        int totalGroundForces = groundForces?.Count ?? 0;
+        if (groundForceImage != null && gfd?.GroundForceSprite != null) groundForceImage.sprite = gfd.GroundForceSprite;
+        if (groundForceName != null && gfd != null) groundForceName.text = gfd.Name ?? string.Empty;
+        if (numGroundForce != null) numGroundForce.text = totalGroundForces.ToString();
+        if (populationText != null) populationText.text = data.Population.ToString();
+        SyncGroundForceGrid(groundForces);
+
         // show/hide power overload indicator
         if (PowerOverload != null)
         {
@@ -365,7 +393,10 @@ public class StarSysUI_Fields : MonoBehaviour
     }
 
     /// <summary>
-    /// Keeps one icon per orbital battery in orbitalBatteryContent, in sync with data.OrbitalBatteries.
+    /// Keeps one OB_Element icon per orbital battery in orbitalBatteryContent, in sync with
+    /// data.OrbitalBatteries, up to orbitalBatteryGridLimit (matches the grid's Fixed Column Count).
+    /// Powered-off batteries stay visible but grayed out (see OrbitalBatteryIconUI.SetOnOff) — they
+    /// still occupy a grid slot and count toward the limit, same as the old on/off behavior.
     /// Also refreshes the header orbitalBatteriesImage using the sprite already resolved for this
     /// system's owning civ (OrbitalBatteryData.OrbitalBatterySprite), not the globally-selected theme —
     /// otherwise this header would show the local player's theme even for systems owned by another civ.
@@ -380,10 +411,13 @@ public class StarSysUI_Fields : MonoBehaviour
             return;
 
         var existingIcons = orbitalBatteryContent.GetComponentsInChildren<OrbitalBatteryIconUI>(true);
+        var usedIcons = new HashSet<OrbitalBatteryIconUI>();
 
+        int shown = 0;
         foreach (var facilityGO in batteries)
         {
             if (facilityGO == null) continue;
+            if (shown >= orbitalBatteryGridLimit) break;
 
             OrbitalBatteryIconUI iconUI = null;
             foreach (var existing in existingIcons)
@@ -407,8 +441,73 @@ public class StarSysUI_Fields : MonoBehaviour
                 iconUI.SourceFacilityGO = facilityGO;
             }
 
+            iconUI.gameObject.SetActive(true);
             bool isOn = facilityGO.GetComponent<TextMeshProUGUI>()?.text == "1";
             iconUI.SetOnOff(isOn);
+            usedIcons.Add(iconUI);
+            shown++;
+        }
+
+        // Hide any leftover icons beyond the grid limit or for batteries no longer in the list
+        foreach (var existing in existingIcons)
+        {
+            if (!usedIcons.Contains(existing))
+                existing.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Keeps one GroundForceElement icon per ground force unit in groundForceContent, in sync with
+    /// data.GroundForces, up to groundForceGridLimit. Ground forces have no power load and no on/off
+    /// state, so every icon shown is simply active — there is no gray-out step like orbital batteries.
+    /// Called from InitializeFromStarSysData.
+    /// </summary>
+    public void SyncGroundForceGrid(List<GameObject> groundForces)
+    {
+        if (groundForceContent == null || groundForceIconPrefab == null || groundForces == null)
+            return;
+
+        var existingIcons = groundForceContent.GetComponentsInChildren<GroundForceIconUI>(true);
+        var usedIcons = new HashSet<GroundForceIconUI>();
+
+        int shown = 0;
+        foreach (var facilityGO in groundForces)
+        {
+            if (facilityGO == null) continue;
+            if (shown >= groundForceGridLimit) break;
+
+            GroundForceIconUI iconUI = null;
+            foreach (var existing in existingIcons)
+            {
+                if (existing.SourceFacilityGO == facilityGO)
+                {
+                    iconUI = existing;
+                    break;
+                }
+            }
+
+            if (iconUI == null)
+            {
+                var iconGO = Instantiate(groundForceIconPrefab, groundForceContent);
+                iconUI = iconGO.GetComponent<GroundForceIconUI>();
+                if (iconUI == null)
+                {
+                    Debug.LogWarning("groundForceIconPrefab is missing a GroundForceIconUI component!");
+                    continue;
+                }
+                iconUI.SourceFacilityGO = facilityGO;
+            }
+
+            iconUI.gameObject.SetActive(true);
+            usedIcons.Add(iconUI);
+            shown++;
+        }
+
+        // Hide any leftover icons beyond the grid limit or for units no longer in the list
+        foreach (var existing in existingIcons)
+        {
+            if (!usedIcons.Contains(existing))
+                existing.gameObject.SetActive(false);
         }
     }
 

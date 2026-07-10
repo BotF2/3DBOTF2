@@ -36,6 +36,13 @@ namespace BOTF3D.Galaxy
         {
             controller = owner;
         }
+
+        // SliderBuildProgress/ShipSliderBuildProgress on StarSysMenuUIController are rewired to whichever
+        // system's build panel is currently open (see StarSysManager.InstantiateSysBuildUI); they are not
+        // scoped per system. Without this check, a system building in the background (e.g. an AI civ)
+        // would overwrite the currently-viewed system's slider with its own unrelated progress every frame.
+        private bool IsShowingThisSystemsBuildUI => StarSysManager.Instance?.CurrentBuildUISysCon == controller;
+
         private IEnumerator BuildFacilityCoroutine(Transform buildItem)
         {
             Debug.Log($"=== BuildFacilityCoroutine: START ===");
@@ -72,14 +79,10 @@ namespace BOTF3D.Galaxy
             Debug.Log($"  End date: {endDate}");
 
             // ✅ Reset slider to 0%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(0f);
                 Debug.Log("  Slider reset to 0%");
-            }
-            else
-            {
-                Debug.LogError("  ❌ StarSysMenuUIController.Instance is NULL!");
             }
 
             int loopCount = 0;
@@ -97,7 +100,7 @@ namespace BOTF3D.Galaxy
                 }
 
                 // ✅ Update the slider
-                if (StarSysMenuUIController.Instance != null)
+                if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
                 {
                     StarSysMenuUIController.Instance.SetBuildProgress(progress);
                 }
@@ -107,7 +110,7 @@ namespace BOTF3D.Galaxy
             }
 
             // ✅ Complete - set slider to 100%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(1f);
             }
@@ -119,7 +122,7 @@ namespace BOTF3D.Galaxy
             CompleteFacilityBuild(buildItem);
 
             // ✅ Reset slider
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(0f);
             }
@@ -302,7 +305,7 @@ namespace BOTF3D.Galaxy
             Debug.Log($"BuildShipCoroutine: Building {drag.ShipType} for {buildTime} stardates (start={startDate}, end={endDate})");
 
             // ✅ Reset slider to 0%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
             }
@@ -315,7 +318,7 @@ namespace BOTF3D.Galaxy
                 float progress = Mathf.Clamp01((float)elapsedStardates / buildTime);
 
                 // ✅ Update the ship slider
-                if (StarSysMenuUIController.Instance != null)
+                if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
                 {
                     StarSysMenuUIController.Instance.SetShipBuildProgress(progress);
                 }
@@ -324,7 +327,7 @@ namespace BOTF3D.Galaxy
             }
 
             // ✅ Complete - set slider to 100%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(1f);
             }
@@ -340,7 +343,7 @@ namespace BOTF3D.Galaxy
             StarSysMenuUIController.Instance?.RefreshQueueForSystem(controller);
 
             // ✅ Reset slider
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
             }

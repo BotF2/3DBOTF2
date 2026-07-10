@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
+  m_Name: FED_TRANSPORT_I
+  m_EditorClassIdentifier: Assembly-CSharp::ShipSO
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: f83e508b4eb41af4cb70d447ab48dee4, type: 3}
+  ShipName: FED_TRANSPORT_I
+  CivEnum: 0
+  TechLevel: 0
+  ShipType: 5
+  MinTechPointsRequired: 0
+  shipSprite: {fileID: 21300000, guid: d966c86d4b77f0b429b5ef176f2b1583, type: 3}
+  shipColor: {r: 0, g: 0, b: 0, a: 0}
+  maxWarpFactor: 3.5
+  ShieldMaxHealth: 15
+  HullMaxHealth: 30
+  TorpedoDamage: 3
+  BeamDamage: 3
+  BuildDuration: 5
+  ShipDescription: 

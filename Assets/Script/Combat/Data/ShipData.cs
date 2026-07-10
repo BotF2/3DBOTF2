@@ -32,6 +32,10 @@ namespace BOTF3D.Combat
         public int BeamDamage;
         public int BuildDuration;
         public int DilithiumCost;
+        public int CargoCapacity; // Transport-only; how many population/ground-force units it can carry, scales with TechLevel
+        public int LoadedPopulation; // Population units currently loaded into this transport's cargo hold
+        public int LoadedGroundForces; // Ground force units currently loaded into this transport's cargo hold; shares CargoCapacity with LoadedPopulation
+        public string BaseShipName; // ShipName before any cargo-based rename (Colonyship/Dropship); restored once cargo is fully unloaded
         public string ShipDescription;
         public ShipController TargetThisShipController;
         public GameObject TargetOnThisShip;

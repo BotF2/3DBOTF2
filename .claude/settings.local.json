@@ -64,7 +64,12 @@
       "Bash(powershell.exe *)",
       "Bash(awk 'NR==16565,NR==16650' Assets/Scenes/GalaxyScene.unity)",
       "Bash(awk 'NR==25526,NR==25526+250' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\\\\Scenes\\\\GalaxyScene.unity\")",
-      "Bash(shuf -n 20)"
+      "Bash(shuf -n 20)",
+      "Bash(git *)",
+      "Bash(xxd Assets/SO/CivilizationSO/CivSO_10_ALDEANS.asset)",
+      "Bash(sed -n '24,32p' Assets/SO/CivilizationSO/CivSO_0_FEDERATION.asset)",
+      "Bash(sed -n '24,32p' Assets/SO/CivilizationSO/CivSO_10_ALDEANS.asset)",
+      "Bash(xxd)"
     ]
   },
   "model": "claude-sonnet-5"

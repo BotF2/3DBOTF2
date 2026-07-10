@@ -660,6 +660,9 @@ namespace BOTF3D.UI
 
             // Close the build queue panel if it is open
             StarSysManager.Instance?.HideBuildUI();
+
+            // Close the cargo deploy panel if it is open
+            CargoDeployMenuUIController.Instance?.CloseCargoMenu();
         }
 
         /// <summary>
@@ -853,6 +856,10 @@ namespace BOTF3D.UI
             }
 
             HideShipDeployMenu();
+
+            // Close the build queue and cargo deploy panels if open
+            StarSysManager.Instance?.HideBuildUI();
+            CargoDeployMenuUIController.Instance?.CloseCargoMenu();
         }
 
         #endregion

@@ -62,6 +62,11 @@ namespace BOTF3D.Galaxy
         public List<ShipData> ShipyardQueue;
         public List<GameObject> ShieldGenerators;
         public List<GameObject> OrbitalBatteries;
+        public List<GameObject> GroundForces = new List<GameObject>();
+        [Header("Population & Ground Forces")]
+        public int Population; // current population units; converts into GroundForces up to MaxGroundForceUnits
+        public int MaxPopulation; // cap this system's Population can grow to (set by StarSysManager at creation)
+        public int MaxGroundForceUnits; // cap on GroundForces.Count; major homeworlds can reach GroundForceData.PopulationPerUnit-scaled 11
         public GameObject buildSlotItemImage;
         public List<GameObject> buildQueueImageList;
         public int BasePowerPerPlant = 20; // two power plants for major home systems so 40 total
@@ -74,6 +79,7 @@ namespace BOTF3D.Galaxy
         public ShieldGeneratorData ShieldGeneratorData;
         public OrbitalBatteryData OrbitalBatteryData;
         public ResearchCenterData ResearchCenterData;
+        public GroundForceData GroundForceData;
         [SerializeField]
         private Image powerPlant;
         [SerializeField]

@@ -32,8 +32,8 @@ namespace BOTF3D.UI
         [SerializeField] private Button advanceTurnButton;
 
         [Header("Advance Turn Colors")]
-        [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // green — turn will go
-        [SerializeField] private Color turnNotReadyColor = Color.white;              // white — idle/not yet committed
+        [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // stands out — ready to accept a click
+        [SerializeField] private Color turnProcessingColor = new Color(0.5f, 0.5f, 0.5f, 0.45f); // gray + transparent — turn is processing
 
         [Header("Turn Progress Bar")]
         [SerializeField] private Image turnProgressBar;
@@ -362,7 +362,7 @@ namespace BOTF3D.UI
             {
                 advanceTurnButton.onClick.RemoveAllListeners();
                 advanceTurnButton.onClick.AddListener(OnAdvanceTurnClicked);
-                SetAdvanceTurnColor(turnNotReadyColor); // white — waiting for player click
+                SetAdvanceTurnProcessing(); // placeholder until real turn phase is known
             }
 
             // ✅ Initialize toggle overlay button (optional)
@@ -623,7 +623,7 @@ namespace BOTF3D.UI
             switch (phase)
             {
                 case TurnPhase.InterTurn:
-                    SetAdvanceTurnColor(turnNotReadyColor);
+                    SetAdvanceTurnColor(turnReadyColor); // stands out — ready to accept a click
                     if (turnProgressBar != null)
                     {
                         turnProgressBar.fillAmount = 1f;
@@ -631,7 +631,7 @@ namespace BOTF3D.UI
                     }
                     break;
                 case TurnPhase.TurnProgression:
-                    SetAdvanceTurnColor(turnReadyColor);
+                    SetAdvanceTurnProcessing(); // gray + transparent — turn is processing, button looks inactive
                     if (turnProgressBar != null)
                     {
                         turnProgressBar.color = progressBarActiveColor;
@@ -729,6 +729,20 @@ namespace BOTF3D.UI
             var cb = advanceTurnButton.colors;
             cb.normalColor = color;
             cb.highlightedColor = color * 1.2f;
+            cb.disabledColor = turnProcessingColor;
+            advanceTurnButton.colors = cb;
+        }
+
+        /// <summary>Grays out and fades the button while a turn is processing — Selectable renders
+        /// disabledColor (not normalColor) whenever interactable is false, so this is what actually
+        /// makes the button look inactive during TurnProgression.</summary>
+        private void SetAdvanceTurnProcessing()
+        {
+            if (advanceTurnButton == null) return;
+            var cb = advanceTurnButton.colors;
+            cb.normalColor = turnProcessingColor;
+            cb.highlightedColor = turnProcessingColor;
+            cb.disabledColor = turnProcessingColor;
             advanceTurnButton.colors = cb;
         }
 
