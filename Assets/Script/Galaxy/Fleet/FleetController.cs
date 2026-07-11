@@ -151,11 +151,15 @@ namespace BOTF3D.Galaxy
             if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase != TurnPhase.TurnProgression) return;
 
             // ── Intercept mode ────────────────────────────────────────────────
-            if (FleetData.InterceptTarget != null)
+            // Checked via IsPursuingIntercept rather than "InterceptTarget != null": a destroyed
+            // FleetController's reference compares equal to null (UnityEngine.Object's == override),
+            // so once the target dies, "InterceptTarget != null" is already false and would silently
+            // skip straight past the destroyed-target handling below without ever running it.
+            if (FleetData.IsPursuingIntercept)
             {
-                if (FleetData.InterceptTarget == null || FleetData.InterceptTarget.gameObject == null)
+                if (FleetData.InterceptTarget == null)
                 {
-                    CancelIntercept(); // target was destroyed
+                    OnInterceptTargetLost(); // target was destroyed mid-pursuit
                 }
                 else if (FleetData.CurrentWarpFactor > 0f)
                 {
@@ -202,6 +206,7 @@ namespace BOTF3D.Galaxy
         public void SetInterceptTarget(FleetController target)
         {
             FleetData.InterceptTarget = target;
+            FleetData.IsPursuingIntercept = true;
             interceptPoint = target.transform.position;
             interceptUpdateTimer = 0f; // force immediate recompute
             FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor; // full speed ahead
@@ -211,7 +216,29 @@ namespace BOTF3D.Galaxy
         public void CancelIntercept()
         {
             FleetData.InterceptTarget = null;
+            FleetData.IsPursuingIntercept = false;
             interceptPoint = Vector3.zero;
+        }
+
+        /// <summary>Called when a pursued intercept target is destroyed mid-transit. Stops the fleet
+        /// in place rather than letting it silently coast toward a stale point.</summary>
+        private void OnInterceptTargetLost()
+        {
+            CancelIntercept();
+            FleetData.CurrentWarpFactor = 0f;
+            FleetUI?.UpdateFleetWarpUI(this, 0f);
+
+            var fields = FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            if (fields != null)
+            {
+                fields.InterceptTargetButton?.gameObject.SetActive(true);
+                fields.CancelInterceptButton?.gameObject.SetActive(false);
+            }
+
+            if (FleetData.IsConvoy)
+                OnConvoyTargetLost();
+
+            Debug.Log($"{name}: intercept target was destroyed — movement stopped");
         }
 
         private Vector3 ComputeInterceptPoint()
@@ -423,6 +450,8 @@ namespace BOTF3D.Galaxy
                         else
                         {
                             Debug.Log($"Fleet arrived at our own system '{sysCon.StarSysData.SysName}'");
+                            if (FleetData.IsConvoy && FleetData.ConvoyMergeSystem == sysCon)
+                                DepositConvoyAt(sysCon);
                         }
                     }
                 }
@@ -813,6 +842,77 @@ namespace BOTF3D.Galaxy
         {
             // Logic to handle what happens when the fleet arrives at our other fleet as destination
             // how do we manage both fleets trying to do something with the other fleet?
+            if (FleetData.IsConvoy && FleetData.ConvoyMergeTarget == ourOtherFleet)
+                MergeConvoyInto(ourOtherFleet);
+        }
+
+        /// <summary>Transfers this convoy's ships into the fleet it was sent to reinforce, then removes
+        /// the now-empty convoy. Called once the convoy physically reaches ConvoyMergeTarget, whether via
+        /// intercept pursuit (moving target) or a static destination (target happened to be stationary).</summary>
+        private void MergeConvoyInto(FleetController targetFleet)
+        {
+            if (targetFleet == null) return;
+
+            var ships = new List<ShipController>(FleetData.ShipsList);
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+
+                var shipUIItem = ship.ShipListUIGameObject != null
+                    ? ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>()
+                    : null;
+
+                targetFleet.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = targetFleet;
+                ship.ShipData.CurrentStarSysController = null;
+
+                if (shipUIItem != null)
+                {
+                    shipUIItem.CurrentFleet = targetFleet;
+                    shipUIItem.CurrentStarSyst = null;
+                }
+            }
+
+            targetFleet.UpdateMaxWarp();
+            FleetManager.Instance.DestroyFleetController(this);
+        }
+
+        /// <summary>Transfers this convoy's ships into the star system it was sent to deposit at, then
+        /// removes the now-empty convoy. Called from OnTriggerEnter's "arrived at our own system" branch
+        /// when this fleet is a convoy that has arrived at its ConvoyMergeSystem.</summary>
+        private void DepositConvoyAt(StarSysController targetSystem)
+        {
+            if (targetSystem == null) return;
+
+            var ships = new List<ShipController>(FleetData.ShipsList);
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+
+                var shipUIItem = ship.ShipListUIGameObject != null
+                    ? ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>()
+                    : null;
+
+                targetSystem.AddToShipList(ship);
+                ship.ShipData.CurrentStarSysController = targetSystem;
+                ship.ShipData.CurrentFleetController = null;
+
+                if (shipUIItem != null)
+                {
+                    shipUIItem.CurrentStarSyst = targetSystem;
+                    shipUIItem.CurrentFleet = null;
+                }
+            }
+
+            FleetManager.Instance.DestroyFleetController(this);
+        }
+
+        /// <summary>Called when this convoy's pursuit target is destroyed mid-transit (see
+        /// OnInterceptTargetLost). The convoy has already been stopped in place; this just clears the
+        /// stale merge target so a future SetInterceptTarget call isn't misread as still-pending.</summary>
+        private void OnConvoyTargetLost()
+        {
+            FleetData.ConvoyMergeTarget = null;
         }
         void OnADestinationThatIsPlayerTarget()
         {
@@ -1030,7 +1130,7 @@ namespace BOTF3D.Galaxy
             FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
 
             // Clear any active intercept (fleet-chasing) state
-            if (FleetData.InterceptTarget != null)
+            if (FleetData.IsPursuingIntercept)
                 CancelIntercept();
             PendingInterceptFleet = null;
 

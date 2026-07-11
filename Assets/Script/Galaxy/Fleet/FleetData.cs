@@ -38,6 +38,18 @@ namespace BOTF3D.Galaxy
         public Button FleetButtonUIClose;
         public bool WarpButtonPressed = false;
         public FleetController InterceptTarget; // non-null while this fleet is in intercept/pursuit mode
+        // True from SetInterceptTarget until CancelIntercept, independent of whether InterceptTarget
+        // still references a live object. Needed because a destroyed FleetController compares equal to
+        // null (UnityEngine.Object's == override), so "InterceptTarget == null" alone can't distinguish
+        // "never had a target" from "target was just destroyed".
+        public bool IsPursuingIntercept;
+
+        // True for a temporary fleet spawned to ferry redeployed ships to a distant fleet/system.
+        public bool IsConvoy;
+        // Set when IsConvoy and the redeploy target is another fleet; convoy merges into it on arrival.
+        public FleetController ConvoyMergeTarget;
+        // Set when IsConvoy and the redeploy target is a star system; convoy deposits ships there on arrival.
+        public StarSysController ConvoyMergeSystem;
         private SpriteRenderer[] spriteRenderers;
 
         public FleetData(FleetSO fleetSO)

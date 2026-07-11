@@ -876,6 +876,45 @@ public FleetController BottomFleet;
             FleetController targetFleet = BottomFleet;
             StarSysController targetSystem = BottomStarSyst;
 
+            // If the real target is far enough away, redirect the BottomSlot ships into a temporary
+            // convoy fleet instead of teleporting them straight into it. The convoy travels at warp
+            // (intercept-pursuing a fleet target so it tracks a target that may itself be moving, or a
+            // plain destination for a stationary system target) and merges/deposits on arrival.
+            FleetController convoyFleet = null;
+            FleetController convoyMergeTargetFleet = null;
+            StarSysController convoyMergeTargetSystem = null;
+
+            if (BottomSlot.transform.childCount > 0)
+            {
+                Vector3 sourcePos = TopFleet != null ? TopFleet.transform.position :
+                    TopStarSyst != null ? TopStarSyst.transform.position : Vector3.zero;
+                Vector3 targetPos = targetFleet != null ? targetFleet.transform.position :
+                    targetSystem != null ? targetSystem.transform.position : Vector3.zero;
+
+                if (Vector3.Distance(sourcePos, targetPos) > FleetManager.ConvoyDistanceThreshold)
+                {
+                    CivEnum sourceCiv = TopFleet != null ? TopFleet.FleetData.CivEnum :
+                        TopStarSyst != null ? TopStarSyst.StarSysData.CurrentOwnerCivEnum :
+                        targetFleet != null ? targetFleet.FleetData.CivEnum :
+                        targetSystem.StarSysData.CurrentOwnerCivEnum;
+
+                    convoyFleet = FleetManager.Instance.CreateConvoyFleet(TopFleet, TopStarSyst, sourceCiv);
+                    if (convoyFleet != null)
+                    {
+                        convoyMergeTargetFleet = targetFleet;
+                        convoyMergeTargetSystem = targetSystem;
+                        convoyFleet.FleetData.ConvoyMergeTarget = targetFleet;
+                        convoyFleet.FleetData.ConvoyMergeSystem = targetSystem;
+
+                        // Ships get merged into the convoy below instead of the real target.
+                        targetFleet = convoyFleet;
+                        targetSystem = null;
+
+                        Debug.Log($"CommitMergeAndClose: target is {Vector3.Distance(sourcePos, targetPos):F1} units away — routing ships through convoy '{convoyFleet.name}'");
+                    }
+                }
+            }
+
             // ✅ CRITICAL: Process BOTH TopSlot AND BottomSlot
             // TopSlot = ships staying with original owner
             // BottomSlot = ships going to target
@@ -1008,6 +1047,21 @@ public FleetController BottomFleet;
             // 3️⃣ Update max warp
             if (targetFleet != null) targetFleet.UpdateMaxWarp();
             if (TopFleet != null && TopFleet != targetFleet) TopFleet.UpdateMaxWarp();
+
+            // 4️⃣ Send the convoy on its way now that its final MaxWarpFactor (from the ships just
+            // loaded aboard it) is known.
+            if (convoyFleet != null)
+            {
+                if (convoyMergeTargetFleet != null)
+                {
+                    convoyFleet.SetInterceptTarget(convoyMergeTargetFleet);
+                }
+                else if (convoyMergeTargetSystem != null)
+                {
+                    convoyFleet.FleetData.Destination = convoyMergeTargetSystem.gameObject;
+                    convoyFleet.FleetData.CurrentWarpFactor = convoyFleet.FleetData.MaxWarpFactor;
+                }
+            }
 
             Debug.Log($"=== CommitMergeAndClose COMPLETE ===");
 

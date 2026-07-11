@@ -355,7 +355,7 @@ namespace BOTF3D.Galaxy
 
             var transGalaxyCenter = GalaxyCenter.transform; // Safe now - we checked above
 
-            if (sysController.StarSysData != null && !isNewFleet)
+            if (sysController != null && sysController.StarSysData != null && !isNewFleet)
             {
                 newTrans = sysController.transform;
                 Destroy(existingFleetCon.gameObject); // destroy the empty original fleet controller
@@ -364,7 +364,7 @@ namespace BOTF3D.Galaxy
             {
                 newTrans = existingFleetCon.transform;
             }
-            else if (sysController.StarSysData != null && isNewFleet)
+            else if (sysController != null && sysController.StarSysData != null && isNewFleet)
             {
                 newTrans = sysController.transform;
             }
@@ -850,11 +850,47 @@ namespace BOTF3D.Galaxy
             RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
             if (FleetControllersInGame.Contains(fleetController))
                 FleetControllersInGame.Remove(fleetController);
+            if (FleetControllerList.Contains(fleetController))
+                FleetControllerList.Remove(fleetController);
             if (fleetController.FleetUIGameObject != null)
                 Destroy(fleetController.FleetUIGameObject);
             if (fleetController.DropLine != null)
                 Destroy(fleetController.DropLine.gameObject);
             Destroy(fleetController.gameObject);
+        }
+
+        // Distance (in galaxy-map units) beyond which a fleet-merge/deploy is routed through a
+        // temporary convoy fleet that travels at warp, instead of an instant transfer.
+        public const float ConvoyDistanceThreshold = 30f;
+
+        /// <summary>
+        /// Creates an empty temporary "convoy" fleet used to carry redeployed ships across a distance
+        /// too far for an instant merge. Ships are NOT added here — the caller uses the same
+        /// FleetController/StarSysController.AddToShipList used by every other ship transfer, then
+        /// configures IsConvoy/ConvoyMergeTarget/ConvoyMergeSystem and sets the convoy's destination
+        /// (SetInterceptTarget for a moving fleet target, or Destination for a system target).
+        /// Exactly one of sourceFleet/sourceSystem should be non-null; it supplies the spawn position.
+        /// </summary>
+        public FleetController CreateConvoyFleet(FleetController sourceFleet, StarSysController sourceSystem, CivEnum civEnum)
+        {
+            FleetSO fleetSO = GetFleetSO_byInt((int)civEnum);
+            if (fleetSO == null) return null;
+
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+            Vector3 position = sourceFleet != null ? sourceFleet.transform.position :
+                sourceSystem != null ? sourceSystem.StarSysData.GetPosition() : Vector3.zero;
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.Insignia = thisCivData.InsigniaSprite;
+            fleetData.ShipsList = new List<ShipController>();
+            fleetData.IsConvoy = true;
+
+            return InstantiateFleet(sourceFleet, sourceSystem, fleetData, position, true);
         }
 
         internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)
