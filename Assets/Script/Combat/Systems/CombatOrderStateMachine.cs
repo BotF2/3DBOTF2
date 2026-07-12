@@ -53,7 +53,6 @@ namespace BOTF3D.Combat
         private const float RETREAT_TURN_TIME = 8.0f;
         private const float RETREAT_DRIFT_SPEED = 3f;  // maxWarpFactor multiplier for turn-phase drift
         private bool isWarpingOut = false;
-        private bool weaponsCutOff = false;
         private const float RETREAT_TURN_DEGREES = 180f;
         private Vector3 warpOutVelocity; // Acceleration during warp-out
         private float warpOutTimer;
@@ -263,7 +262,6 @@ namespace BOTF3D.Combat
             Debug.Log($"🔄 {ShipController.ShipData.ShipName} order changed from {previousOrder} to {CurrentOrder} - resetting state");
             
             isWarpingOut = false;
-            weaponsCutOff = false;
             currentState = OrderState.Idle;
             stateTimer = 0f;
 

@@ -43,5 +43,28 @@ namespace BOTF3D.Galaxy
             float dz = (a.z - b.z) * ZWeight;
             return Mathf.Sqrt(dx * dx + dz * dz);
         }
+
+        // SystemUI_Prefab's MiniMap RectTransform (140x198, RedDot child anchored/pivoted at its
+        // center, RedDot itself 8x8). DotBuffer keeps the dot's own half-size plus a small margin
+        // from the minimap edge so corner systems (e.g. Borg/Dominion homeworlds near XMax/ZMax)
+        // don't render partially outside the minimap art.
+        public const float MiniMapWidth = 140f;
+        public const float MiniMapHeight = 198f;
+        public const float MiniMapDotBuffer = 6f;
+
+        /// <summary>Maps a star system's LOCAL position (i.e. transform.localPosition under
+        /// GalaxyCenter, which matches StarSysSO.Position 1:1 and the XMin/XMax/ZMin/ZMax bounds
+        /// above) to an anchoredPosition on the MiniMap RectTransform, clamped and buffered so the
+        /// dot always stays fully inside the minimap art.</summary>
+        public static Vector2 ToMiniMapPosition(Vector3 localPosition)
+        {
+            float usableHalfWidth = MiniMapWidth * 0.5f - MiniMapDotBuffer;
+            float usableHalfHeight = MiniMapHeight * 0.5f - MiniMapDotBuffer;
+
+            float normalizedX = Mathf.Clamp(localPosition.x, XMin, XMax) / XMax;
+            float normalizedZ = Mathf.Clamp(localPosition.z, ZMin, ZMax) / ZMax;
+
+            return new Vector2(normalizedX * usableHalfWidth, normalizedZ * usableHalfHeight);
+        }
     }
 }

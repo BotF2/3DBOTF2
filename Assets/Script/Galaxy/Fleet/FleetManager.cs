@@ -296,7 +296,8 @@ namespace BOTF3D.Galaxy
             fleetData.CivShortName = thisCivData.CivShortName;
             fleetData.CivEnum = thisCivData.CivEnum;
             fleetData.PlayerId = thisCivData.PlayerId;
-            fleetData.Insignia = thisCivData.InsigniaSprite;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
             fleetData.ShipsList = new List<ShipController>();
 
             FleetController newFleet = InstantiateFleet(null, sysCon, fleetData, position, true);
@@ -309,7 +310,8 @@ namespace BOTF3D.Galaxy
                 sysCon.StarSysData.ShipsList.Remove(ship);
                 ship.ShipData.CurrentStarSysController = null;
 
-                newFleet.FleetData.ShipsList.Add(ship);
+                if (!newFleet.FleetData.ShipsList.Contains(ship))
+                    newFleet.FleetData.ShipsList.Add(ship);
                 ship.ShipData.CurrentFleetController = newFleet;
                 ship.transform.SetParent(newFleet.transform, false);
             }
@@ -387,11 +389,11 @@ namespace BOTF3D.Galaxy
             }
 
             fleetData.Position = newFleet.transform.position;
-            InstantiateFleetUIGameObject(newFleet, isNewFleet);
-            // ✅ Now ships can find the ShipListUIParent when their UIs are created
-            if (!isNewFleet)
-                ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
 
+            // Fleet name/number must be assigned BEFORE the fleet UI is instantiated below,
+            // since InstantiateFleetUIGameObject -> SetupFleetUIElements reads FleetData.FleetName
+            // to populate the "Fleet Name (TMP)" text on the FleetUI prefab. Assigning it after
+            // UI creation left that text blank on first instantiation.
             newFleet.transform.localScale = new Vector3(0.7f, 0.7f, 1);
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             newFleet.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
@@ -406,6 +408,11 @@ namespace BOTF3D.Galaxy
                 TheText.text = newFleet.FleetData.FleetName;
                 fleetData.FleetName = TheText.text;
             }
+
+            InstantiateFleetUIGameObject(newFleet, isNewFleet);
+            // ✅ Now ships can find the ShipListUIParent when their UIs are created
+            if (!isNewFleet)
+                ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
 
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
@@ -886,7 +893,8 @@ namespace BOTF3D.Galaxy
             fleetData.CivShortName = thisCivData.CivShortName;
             fleetData.CivEnum = thisCivData.CivEnum;
             fleetData.PlayerId = thisCivData.PlayerId;
-            fleetData.Insignia = thisCivData.InsigniaSprite;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
             fleetData.ShipsList = new List<ShipController>();
             fleetData.IsConvoy = true;
 

@@ -2,6 +2,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -61,7 +62,6 @@ namespace BOTF3D.Galaxy
         private float galaxyWidth = 1f;
         private float galaxyHeight = 1f;
         private float minimapWidth = 200f;
-        private float minimapHeight = 400f;
         private bool gotMapSizeFromGameManager = false;
         [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
@@ -81,8 +81,6 @@ namespace BOTF3D.Galaxy
         private Slider warpSlider;
         [SerializeField]
         private TextMeshProUGUI warpSliderText;
-        [SerializeField]
-        private float maxSliderValue = 10f;
         private readonly TMP_Dropdown shipDropdown;
 
         public GameObject ShipDropDownGO;
@@ -228,15 +226,16 @@ namespace BOTF3D.Galaxy
             FleetData.CurrentWarpFactor = 0f;
             FleetUI?.UpdateFleetWarpUI(this, 0f);
 
-            var fields = FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = FleetUIGameObject != null ? FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 fields.InterceptTargetButton?.gameObject.SetActive(true);
                 fields.CancelInterceptButton?.gameObject.SetActive(false);
             }
 
-            if (FleetData.IsConvoy)
-                OnConvoyTargetLost();
+            // Clear any pending merge target regardless of IsConvoy — this also applies to a "real"
+            // fleet sent to merge into another via HandleShipMergeSelection.
+            OnConvoyTargetLost();
 
             Debug.Log($"{name}: intercept target was destroyed — movement stopped");
         }
@@ -536,7 +535,7 @@ namespace BOTF3D.Galaxy
             // Clicked a moving fleet → use intercept logic
             pursuing.SetInterceptTarget(clickedFleetCon);
 
-            var fields = pursuing.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = pursuing.FleetUIGameObject != null ? pursuing.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 fields.InterceptTargetButton?.gameObject.SetActive(false);
@@ -616,8 +615,8 @@ namespace BOTF3D.Galaxy
                         var sysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                         if (sysUIFields != null && sysUIFields.redDot != null)
                         {
-                            Vector3 sysPos = starSysLooking.transform.position;
-                            sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
+                            Vector3 sysPos = starSysLooking.transform.localPosition;
+                            sysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(sysPos);
                         }
                     }
                 }
@@ -645,45 +644,39 @@ namespace BOTF3D.Galaxy
 
             if (fleetLooking != null && fleetLooking != this) // Fleet-to-Fleet merge
             {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.gameObject.SetActive(true);
+                // Rather than opening the manual ship-deploy panel, send the entire source fleet to
+                // physically travel to the target fleet and auto-merge into it on arrival. Reuses the
+                // same arrival logic as a temporary convoy (see OnADestinationThatIsOurOtherFleet /
+                // MergeConvoyInto) — the source fleet is consumed (destroyed) once its ships are
+                // transferred into the target.
+                fleetLooking.FleetData.ConvoyMergeTarget = clickedFleetCon;
+                fleetLooking.SetInterceptTarget(clickedFleetCon);
 
-                // ✅ Add VerticalLayoutGroup if not present
-                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
-                if (layoutGroup == null)
+                // Use the existing destination UI (SelectDestination/CancelDestination + name/coords
+                // text), same fields SetAsDestinationInUI/SetAsDestination use for a normal move order,
+                // rather than the legacy InterceptTargetButton/CancelInterceptButton aliases. The Cancel
+                // Destination button is already wired (see FleetMenuUIController.SetupFleetUIElements)
+                // to fleetCon.ClickCancelDestinationButton(), which now also aborts the pending merge.
+                var fields = fleetLooking.FleetUIGameObject != null ? fleetLooking.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+                if (fields != null)
                 {
-                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
-                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
-                    layoutGroup.spacing = 20f; // Space between fleet UIs
-                    layoutGroup.childForceExpandHeight = false;
-                    layoutGroup.childForceExpandWidth = false;
-                    layoutGroup.childControlHeight = false;
-                    layoutGroup.childControlWidth = false;
+                    if (fields.DestinationDragTarget != null)
+                        fields.DestinationDragTarget.gameObject.SetActive(false);
+                    if (fields.CancelDestination != null)
+                        fields.CancelDestination.gameObject.SetActive(true);
+                    if (fields.DestinationName != null)
+                        fields.DestinationName.text = clickedFleetCon.FleetData.FleetName;
+                    if (fields.DestinationCoordinates != null)
+                        fields.DestinationCoordinates.text = "";
                 }
 
-                // Parent source fleet UI to container (TOP position)
-                if (fleetLooking.FleetUIGameObject != null)
-                {
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
-                    fleetLooking.FleetUIGameObject.SetActive(true);
-                    Debug.Log($"✅ Source fleet UI parented to AFleetMenuView (top)");
-                }
+                Debug.Log($"🚚 HandleShipMergeSelection: '{fleetLooking.name}' set to travel to and auto-merge into '{clickedFleetCon.name}'");
 
-                // Parent target fleet UI to container (BOTTOM position)
-                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
-                clickedFleetCon.FleetUIGameObject.SetActive(true);
-                Debug.Log($"✅ Target fleet UI parented to AFleetMenuView (bottom)");
-                List<BOTF3D.Combat.ShipController> combinedShipsList = new List<BOTF3D.Combat.ShipController>();
-
-                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
-                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
-
-                Debug.Log($"Merge Fleet-to-Fleet: {fleetLooking.FleetData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
-
-                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
-                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, fleetLooking, null, null);
+                galaxyUI.ClickCancelShipDeployButton(); // clears merge-selection state and click mode
+                galaxyUI.CloseMenu(Menu.AFleetMenu);
+                galaxyUI.CloseMenu(Menu.FleetMenu);
+                MousePointerChanger.Instance.ResetCursor();
+                return;
             }
             else if (starSysLooking != null) // System-to-Fleet merge
             {
@@ -842,21 +835,43 @@ namespace BOTF3D.Galaxy
         {
             // Logic to handle what happens when the fleet arrives at our other fleet as destination
             // how do we manage both fleets trying to do something with the other fleet?
-            if (FleetData.IsConvoy && FleetData.ConvoyMergeTarget == ourOtherFleet)
+            // Not gated on FleetData.IsConvoy: this also fires for a "real" fleet sent via
+            // HandleShipMergeSelection to travel to and merge into another of our fleets — IsConvoy is
+            // reserved for temporary carrier fleets spawned by CreateConvoyFleet.
+            if (FleetData.ConvoyMergeTarget == ourOtherFleet)
                 MergeConvoyInto(ourOtherFleet);
         }
 
-        /// <summary>Transfers this convoy's ships into the fleet it was sent to reinforce, then removes
-        /// the now-empty convoy. Called once the convoy physically reaches ConvoyMergeTarget, whether via
-        /// intercept pursuit (moving target) or a static destination (target happened to be stationary).</summary>
+        /// <summary>Transfers this fleet's ships into the fleet it was sent to merge into, then removes
+        /// the now-empty source fleet. Called once the source fleet physically reaches ConvoyMergeTarget,
+        /// whether via intercept pursuit (moving target) or a static destination (target happened to be
+        /// stationary). Used both for temporary convoy carrier fleets and for a whole real fleet sent to
+        /// merge into another via HandleShipMergeSelection.</summary>
         private void MergeConvoyInto(FleetController targetFleet)
         {
             if (targetFleet == null) return;
 
-            var ships = new List<ShipController>(FleetData.ShipsList);
+            // Guard against re-entrant/duplicate invocation (e.g. OnTriggerEnter firing more than
+            // once for the same arrival collision). Clearing the merge target immediately makes this
+            // call idempotent — a second call for the same arrival will see ConvoyMergeTarget == null
+            // and OnADestinationThatIsOurOtherFleet's guard will skip it before we get here again.
+            FleetData.ConvoyMergeTarget = null;
+
+            // Distinct() guards against a source ShipsList that already contains the same ship
+            // reference twice (possible from state formed before FleetData.AddToShipList's own
+            // duplicate guard was added) — without this, iterating a doubled entry would add the
+            // ship once (fine) then hit AddToShipList's "already in" warning on the second pass.
+            var ships = new List<ShipController>(FleetData.ShipsList.Distinct());
+            Debug.Log($"🚚 MergeConvoyInto: convoy '{name}' merging {ships.Count} ship(s) into target '{targetFleet.name}' " +
+                $"(target ShipsList.Count before={targetFleet.FleetData.ShipsList.Count}, target ShipListUIParent={(targetFleet.FleetData.ShipListUIParent != null ? targetFleet.FleetData.ShipListUIParent.name : "NULL")})");
+
             foreach (var ship in ships)
             {
-                if (ship == null) continue;
+                if (ship == null)
+                {
+                    Debug.LogWarning("🚚 MergeConvoyInto: null ship reference in convoy ShipsList, skipping");
+                    continue;
+                }
 
                 var shipUIItem = ship.ShipListUIGameObject != null
                     ? ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>()
@@ -871,7 +886,14 @@ namespace BOTF3D.Galaxy
                     shipUIItem.CurrentFleet = targetFleet;
                     shipUIItem.CurrentStarSyst = null;
                 }
+
+                FleetData.RemoveFromShipList(ship);
+
+                Debug.Log($"🚚 MergeConvoyInto:   transferred '{ship.ShipData?.ShipName}' — target ShipsList.Count now={targetFleet.FleetData.ShipsList.Count}, " +
+                    $"ship.ShipListUIGameObject={(ship.ShipListUIGameObject != null ? "SET" : "NULL")}");
             }
+
+            Debug.Log($"🚚 MergeConvoyInto: complete — target '{targetFleet.name}' ShipsList.Count final={targetFleet.FleetData.ShipsList.Count}, destroying convoy '{name}'");
 
             targetFleet.UpdateMaxWarp();
             FleetManager.Instance.DestroyFleetController(this);
@@ -883,6 +905,10 @@ namespace BOTF3D.Galaxy
         private void DepositConvoyAt(StarSysController targetSystem)
         {
             if (targetSystem == null) return;
+
+            // Same idempotency guard as MergeConvoyInto — clear the merge target immediately so a
+            // duplicate OnTriggerEnter for the same arrival is skipped instead of double-depositing.
+            FleetData.ConvoyMergeTarget = null;
 
             var ships = new List<ShipController>(FleetData.ShipsList);
             foreach (var ship in ships)
@@ -902,6 +928,8 @@ namespace BOTF3D.Galaxy
                     shipUIItem.CurrentStarSyst = targetSystem;
                     shipUIItem.CurrentFleet = null;
                 }
+
+                FleetData.RemoveFromShipList(ship);
             }
 
             FleetManager.Instance.DestroyFleetController(this);
@@ -934,6 +962,8 @@ namespace BOTF3D.Galaxy
             // Add to FleetData (model). FleetData.AddToShipList should guard duplicates but check anyway.
             if (!FleetData.ShipsList.Contains(shipController))
                 FleetData.AddToShipList(shipController);
+            else
+                Debug.LogWarning($"AddToShipList: '{shipController.ShipData?.ShipName}' already in '{name}'.FleetData.ShipsList — skipped duplicate add");
 
             // Move the UI representation under the fleet's UI parent if available.
             if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
@@ -1147,6 +1177,18 @@ namespace BOTF3D.Galaxy
             FleetUI?.ClickCancelDestinationButton(this);
             GalaxyUI?.SetClickMode(GalaxyClickMode.Normal);
             MousePointerChanger.Instance?.ResetCursor();
+        }
+
+        /// <summary>User-initiated abort of a pending convoy-deploy or fleet-merge. Deliberately kept
+        /// separate from ClickCancelDestinationButton(), which OnTriggerEnter also calls internally just
+        /// to stop movement on arrival — if that shared method cleared ConvoyMergeTarget/ConvoyMergeSystem
+        /// too, every normal arrival would wipe the merge target moments before
+        /// OnADestinationThatIsOurOtherFleet / the ConvoyMergeSystem check in OnTriggerEnter reads it,
+        /// silently breaking every convoy/fleet merge. Only wire this to the UI Cancel Destination button.</summary>
+        public void AbortPendingConvoyMerge()
+        {
+            FleetData.ConvoyMergeTarget = null;
+            FleetData.ConvoyMergeSystem = null;
         }
 
         public void SetAsDestinationInUI(GameObject hitObject)

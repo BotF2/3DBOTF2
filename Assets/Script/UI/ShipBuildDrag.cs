@@ -147,12 +147,6 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
                 return;
             }
 
-            // ✅ Create visual icon in inventory
-            if (StarSysManager.Instance != null)
-            {
-                StarSysManager.Instance.NewImageInShipInventory(ShipType);
-            }
-
             // ✅ Return ORIGINAL to palette
             transform.SetParent(originalParent);
             rectTransform.anchoredPosition = Vector2.zero;

@@ -65,6 +65,7 @@ namespace BOTF3D.Galaxy
         public List<GameObject> GroundForces = new List<GameObject>();
         [Header("Population & Ground Forces")]
         public int Population; // current population units; converts into GroundForces up to MaxGroundForceUnits
+        public float PopulationGrowthAccumulator; // fractional growth carried between stardates (see PopulationManager.GrowSystem)
         public int MaxPopulation; // cap this system's Population can grow to (set by StarSysManager at creation)
         public int MaxGroundForceUnits; // cap on GroundForces.Count; major homeworlds can reach GroundForceData.PopulationPerUnit-scaled 11
         public GameObject buildSlotItemImage;

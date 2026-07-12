@@ -651,6 +651,10 @@ namespace BOTF3D.Galaxy
 
             if (true)
             {
+                // Shared by orbital battery and population starting scale-down below so a fresh
+                // EARLY-era game doesn't spawn every system already fully built/settled.
+                TechLevel startingTechLevel = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+
                 int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
 
                 sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
@@ -658,18 +662,29 @@ namespace BOTF3D.Galaxy
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
-                sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+                int startingOrbitalBatteries = DetermineStartingOrbitalBatteries(civSO, startingTechLevel, starSysSO.OrbitalBatteries);
+                sysData.OrbitalBatteries = AddSystemFacilities(startingOrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
 
                 sysData.MaxPopulation = DetermineMaxPopulation(civSO, starSysSO);
                 sysData.MaxGroundForceUnits = DetermineMaxGroundForceUnits(civSO, starSysSO, sysData.MaxPopulation);
-                // Homeworlds start fully settled with troops already fielded; every other owned system
-                // starts at 0 and grows toward its cap over time via PopulationManager (see that class
-                // for the per-stardate growth/conversion tied to active Factories/ResearchCenters).
+                // Homeworlds start partially settled, scaled by the civ's starting TechLevel (see
+                // DetermineStartingPopulationFraction) - a fresh EARLY-era game no longer spawns every
+                // homeworld already at its population cap. Every other owned system still starts at 0
+                // and grows toward its cap over time via PopulationManager (see that class for the
+                // per-stardate growth/conversion tied to active Factories/ResearchCenters).
                 if (starSysSO.IsHomeworld)
                 {
-                    sysData.Population = sysData.MaxPopulation;
-                    int initialGroundForces = Mathf.Clamp(sysData.Population / GroundForceData.PopulationPerUnit, 0, sysData.MaxGroundForceUnits);
+                    float startingFraction = DetermineStartingPopulationFraction(civSO, startingTechLevel);
+                    int startingTotalPopulation = Mathf.RoundToInt(sysData.MaxPopulation * startingFraction);
+
+                    // 10% of the starting population is already fielded as ground forces rather than
+                    // civilians - carved out of, not added on top of, the total so Population +
+                    // GroundForces.Count always equals the system's true total population.
+                    int initialGroundForces = Mathf.Clamp(
+                        Mathf.RoundToInt(startingTotalPopulation * 0.10f), 0, sysData.MaxGroundForceUnits);
+                    sysData.Population = startingTotalPopulation - initialGroundForces;
+
                     for (int i = 0; i < initialGroundForces; i++)
                         AddGroundForceUnit(starSysCon);
                 }
@@ -793,6 +808,79 @@ namespace BOTF3D.Galaxy
                 return (starSysSO.IsHabitable || starSysSO.IsTerraformable) ? 20 : 0;
 
             return 8; // minor-owned non-home system
+        }
+
+        /// <summary>
+        /// Fraction of MaxPopulation a homeworld starts with, based on the civ's TechLevel at creation
+        /// time. Majors get a fixed fraction per tier so they're predictable; minors roll within a
+        /// per-tier range so same-tech minors still vary. Population climbs from here toward
+        /// MaxPopulation over time via PopulationManager - it's no longer set to the cap outright.
+        /// </summary>
+        private float DetermineStartingPopulationFraction(CivSO civSO, TechLevel techLevel)
+        {
+            if (civSO.Playable)
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: return 0.25f;
+                    case TechLevel.DEVELOPED: return 0.50f;
+                    case TechLevel.ADVANCED: return 0.75f;
+                    default: return 1.0f; // SUPREME
+                }
+            }
+
+            switch (techLevel)
+            {
+                case TechLevel.EARLY: return UnityEngine.Random.Range(0.10f, 0.30f);
+                case TechLevel.DEVELOPED: return UnityEngine.Random.Range(0.30f, 0.55f);
+                case TechLevel.ADVANCED: return UnityEngine.Random.Range(0.55f, 0.80f);
+                default: return UnityEngine.Random.Range(0.80f, 1.0f); // SUPREME
+            }
+        }
+
+        /// <summary>
+        /// Number of orbital batteries a system starts with, scaled down from the designer-authored
+        /// starSysSO.OrbitalBatteries count by TechLevel so a fresh EARLY-era game doesn't spawn every
+        /// system already fully defended - the rest can be built up over time via StarSysBuildManager.
+        /// Majors use the same fixed 25/50/75/100% curve as starting population. Minors use the same
+        /// randomized per-tier range, then shift up or down per point of WarLikeEnum/XenophobiaEnum:
+        /// warlike and xenophobic civs field more batteries at any given tech tier, peaceful/open ones
+        /// field fewer.
+        /// </summary>
+        private int DetermineStartingOrbitalBatteries(CivSO civSO, TechLevel techLevel, int authoredCount)
+        {
+            if (authoredCount <= 0) return 0;
+
+            float fraction;
+            if (civSO.Playable)
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: fraction = 0.25f; break;
+                    case TechLevel.DEVELOPED: fraction = 0.50f; break;
+                    case TechLevel.ADVANCED: fraction = 0.75f; break;
+                    default: fraction = 1.0f; break; // SUPREME
+                }
+            }
+            else
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: fraction = UnityEngine.Random.Range(0.10f, 0.30f); break;
+                    case TechLevel.DEVELOPED: fraction = UnityEngine.Random.Range(0.30f, 0.55f); break;
+                    case TechLevel.ADVANCED: fraction = UnityEngine.Random.Range(0.55f, 0.80f); break;
+                    default: fraction = UnityEngine.Random.Range(0.80f, 1.0f); break; // SUPREME
+                }
+
+                // WarLikeEnum/XenophobiaEnum run -2 (Warlike/Xenophobia) to +2 (Pacifist/Compassion), so
+                // negating and summing gives a -4..4 "defensiveness" score. Each point shifts the
+                // fraction by 10% - a Warlike+Xenophobia minor fields noticeably more batteries than an
+                // equivalent-tech Pacifist+Compassion one.
+                int defensiveness = -(int)civSO.WarLikeEnum - (int)civSO.XenophbiaEnum;
+                fraction = Mathf.Clamp01(fraction + defensiveness * 0.10f);
+            }
+
+            return Mathf.Clamp(Mathf.RoundToInt(authoredCount * fraction), 0, authoredCount);
         }
 
         /// <summary>

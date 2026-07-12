@@ -75,6 +75,20 @@ namespace BOTF3D.UI
             RefreshPopulationToken();
             RefreshGroundForceToken();
             RefreshTransportRows();
+            RefreshSystemPanel();
+        }
+
+        /// <summary>Pushes the current StarSysData back into the system's own SystemUI_Prefab (numPopulation,
+        /// GroundForceGrid icons, etc). CargoDeployPanel edits StarSysData directly, so without this the
+        /// system panel would show stale numbers/icons until it's closed and reopened.</summary>
+        private void RefreshSystemPanel()
+        {
+            var sysData = CurrentStarSys?.StarSysData;
+            if (sysData == null || CurrentStarSys.StarSysUIGameObject == null) return;
+
+            var sysUIFields = CurrentStarSys.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (sysUIFields != null)
+                sysUIFields.InitializeFromStarSysData(sysData);
         }
 
         private void RefreshPopulationToken()
