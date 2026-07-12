@@ -377,8 +377,15 @@ public class StarSysUI_Fields : MonoBehaviour
         var groundForces = data.GroundForces;
         int totalGroundForces = groundForces?.Count ?? 0;
         if (groundForceImage != null && gfd?.GroundForceSprite != null) groundForceImage.sprite = gfd.GroundForceSprite;
-        if (groundForceName != null && gfd != null) groundForceName.text = gfd.Name ?? string.Empty;
+        // groundForceName is the static "Ground Forces" header baked into the prefab - leave it alone.
+        // GroundForceData.Name has no designer-authored pipeline yet (see comment above) and is only
+        // ever populated with the "null" placeholder from StarSysManager.AddGroundForceUnit, so
+        // displaying it here just replaces the header with the literal text "null".
         if (numGroundForce != null) numGroundForce.text = totalGroundForces.ToString();
+        // Population shown here is civilians only (total population minus fielded ground forces).
+        // data.Population already excludes GroundForces under the carve-out model in
+        // StarSysManager/PopulationManager (ground forces are drawn out of, not added on top of, the
+        // population pool), so it doesn't need GroundForces subtracted again here.
         if (populationText != null) populationText.text = data.Population.ToString();
         SyncGroundForceGrid(groundForces);
 

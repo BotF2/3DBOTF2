@@ -55,7 +55,7 @@ namespace FischlWorks_FogWar
 
         private void Update()
         {
-            if (fogWar == null || fogWar.CheckWorldGridRange(transform.position) == false)
+            if (fogWar == null || fogWar.FogReady == false || fogWar.CheckWorldGridRange(transform.position) == false)
             {
                 return;
             }
@@ -85,7 +85,7 @@ namespace FischlWorks_FogWar
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (fogWar == null || Application.isPlaying == false)
+            if (fogWar == null || Application.isPlaying == false || fogWar.FogReady == false)
             {
                 return;
             }

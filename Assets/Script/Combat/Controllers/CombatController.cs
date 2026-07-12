@@ -79,7 +79,7 @@ namespace BOTF3D.Combat
 
         private void Awake()
         {
-            CombatID = GetEntityId();
+            CombatID = GetInstanceID();
             Debug.Log($"✅ CombatController {CombatID}: Created");
 
             // Add turn-based resolver component
@@ -145,7 +145,7 @@ namespace BOTF3D.Combat
                     targetingSystem.StopAllWeaponFire();
 
                     // Destroy all torpedoes still in flight so they can't hit ships during the end sequence
-                    foreach (var t in FindObjectsOfType<Torpedo>())
+                    foreach (var t in FindObjectsByType<Torpedo>())
                         Destroy(t.gameObject);
 
                     if (!showingEndPanel)

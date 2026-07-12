@@ -663,6 +663,15 @@ namespace BOTF3D.UI
 
             // Close the cargo deploy panel if it is open
             CargoDeployMenuUIController.Instance?.CloseCargoMenu();
+
+            // ✅ FIX: ShipDeployPanel is a direct child of CanvasGalaxy (not nested inside
+            // ASystemMenuView/AFleetMenuView), so HideMenuViews() above never touches it.
+            // Route through the same commit+cleanup path as the panel's own Save/Close
+            // button (OnSaveCloseButtonClicked -> ClickCancelShipManageButton) instead of
+            // just hiding it — this destroys any empty temp fleet created by "New Fleet"
+            // but keeps one that already has ships dragged into it, and resets click mode
+            // so a stray click on a system/fleet doesn't get misread as a deploy selection.
+            ShipDeployMenuUIController.Instance?.OnSaveCloseButtonClicked();
         }
 
         /// <summary>

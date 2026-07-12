@@ -382,8 +382,8 @@ namespace BOTF3D.UI
                 // Position red dot on mini-map — always refresh using live transform position
                 if (sysUIFieldElement.redDot != null)
                 {
-                    Vector3 sysPos = sysCon.transform.position;
-                    sysUIFieldElement.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
+                    Vector3 sysPos = sysCon.transform.localPosition;
+                    sysUIFieldElement.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(sysPos);
                 }
 
                 // ✅ CRITICAL: Calculate power balance BEFORE updating UI
@@ -698,7 +698,9 @@ namespace BOTF3D.UI
             }
 
             // ✅ Update PowerOverloadImage to this system's power overload visual
-            var sysUIFieldElement = theSysCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+            var sysUIFieldElement = theSysCon.StarSysUIGameObject != null
+                ? theSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()
+                : null;
             if (sysUIFieldElement != null && sysUIFieldElement.PowerOverload != null)
             {
                 PowerOverloadImage = sysUIFieldElement.PowerOverload;
@@ -1049,7 +1051,9 @@ namespace BOTF3D.UI
                 }
 
                 // Try to update typed UI first
-                var uiElement = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
+                var uiElement = controller.StarSysUIGameObject != null
+                    ? controller.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()
+                    : null;
                 if (uiElement == null)
                 {
                     Debug.LogWarning($"AddSysFacility: StarSysUI_Fields not found for system {controller.name}. Falling back to string-based updates.");
@@ -1298,7 +1302,8 @@ namespace BOTF3D.UI
             fleetData.PlayerId = thisCivData.PlayerId;
             //fleetData.FleetInt = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
             //fleetData.Name = $"{thisCivData.CivShortName} Fleet {fleetData.FleetInt}";
-            fleetData.Insignia = thisCivData.InsigniaSprite;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
             fleetData.ShipsList = new List<ShipController>();
             var galaxyMenuUICon = GalaxyMenuUIController.Instance;
             galaxyMenuUICon.ResetClickMode();

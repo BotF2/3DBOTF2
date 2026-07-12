@@ -500,6 +500,7 @@ namespace BOTF3D.UI
             }
 
             // ✅ 2, 3 & 4. Sync ships (Always run for both new and existing fleets to catch any missing UIs)
+            Debug.Log($"🧩 SetupFleetUIElements: '{fleetCon.name}' opening with FleetData.ShipsList.Count={fleetCon.FleetData?.ShipsList?.Count ?? -1}, FleetShipContentGO={(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
             if (uiFields.FleetShipContentGO != null && fleetCon.FleetData?.ShipsList != null)
             {
                 foreach (var shipCon in fleetCon.FleetData.ShipsList)
@@ -550,7 +551,11 @@ namespace BOTF3D.UI
 
             uiFields.CancelDestination.gameObject.SetActive(showCancel);
             uiFields.CancelDestination.onClick.RemoveAllListeners();
-            uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
+            // AbortPendingConvoyMerge() alongside the stop-movement call: this is the only UI-driven
+            // cancel, so it's the one place a pending merge should actually be abandoned (see
+            // AbortPendingConvoyMerge's doc comment for why this can't live inside
+            // ClickCancelDestinationButton itself).
+            uiFields.CancelDestination.onClick.AddListener(() => { fleetCon.ClickCancelDestinationButton(); fleetCon.AbortPendingConvoyMerge(); });
             cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
 
             uiFields.WarpUp.gameObject.SetActive(true);
@@ -660,7 +665,8 @@ namespace BOTF3D.UI
             fleetData.PlayerId = thisCivData.PlayerId;
             //Not fleetData.FleetInt, wait to get fleet num from instantiate fleet in = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
             //Same goes for fleetData.Name = $"{thisCivData.CivLongName} Fleet {fleetData.FleetInt}";
-            fleetData.Insignia = thisCivData.InsigniaSprite;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
             fleetData.ShipsList = new List<ShipController>();
             //Not fleetData.Position, wait for it = position;
 
@@ -763,7 +769,7 @@ namespace BOTF3D.UI
                     // ✅ NEW: Ensure the fleet has proper UI setup before keeping it
                     if (tempFleetController.FleetData.ShipListUIParent == null)
                     {
-                        var uiFields = tempFleetController.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                        var uiFields = tempFleetController.FleetUIGameObject != null ? tempFleetController.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
                         if (uiFields != null && uiFields.FleetShipContentGO != null)
                         {
                             tempFleetController.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
@@ -862,7 +868,7 @@ namespace BOTF3D.UI
             MousePointerChanger.Instance?.SetDestinationCursor();
 
             // Swap button visibility while waiting for target pick
-            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 fields.InterceptTargetButton?.gameObject.SetActive(false);
@@ -901,7 +907,7 @@ namespace BOTF3D.UI
                                   GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum);
             if (!isLocalPlayer) return;
 
-            var fields = fleetConWaitingForDestination.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = fleetConWaitingForDestination.FleetUIGameObject != null ? fleetConWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 if (fields.DestinationDragTarget != null)
@@ -946,7 +952,7 @@ namespace BOTF3D.UI
             MousePointerChanger.Instance.ResetCursor();
 
             // Get buttons from the specific fleet's UI
-            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 if (fields.DestinationName != null)
@@ -997,10 +1003,10 @@ namespace BOTF3D.UI
             }
 
             var fleetCon = galaxyUI.FleetLookingForDestination;
-            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields == null)
             {
-                Debug.LogError($"SetAsDestination: FleetUI_Fields not found on '{fleetCon.FleetUIGameObject?.name}'");
+                Debug.LogError($"SetAsDestination: FleetUI_Fields not found on '{(fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.name : "NULL")}'");
                 return;
             }
 

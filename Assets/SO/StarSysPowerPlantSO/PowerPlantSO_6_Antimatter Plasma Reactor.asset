@@ -18,8 +18,9 @@ MonoBehaviour:
   Name: Antimatter Plasma Reactors
   StartStarDate: 0
   BuildDuration: 8
+  DilithiumCost: 1
   PowerOutput: 20
-  PowerPlantSprite: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
+  PowerPlantSprite: {fileID: 21300000, guid: 52ecba78df0345d4f91d024d780a636a, type: 3}
   Description: In the presence of warp plasma, hydrogen is converted completely and
     efficiently to energy. The Plasma Reactor uses a fully-contained bubble of warp
     plasma as a catalyst, and converts hydrogen to energy more efficiently than a

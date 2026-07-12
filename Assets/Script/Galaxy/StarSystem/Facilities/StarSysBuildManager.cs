@@ -232,8 +232,16 @@ namespace BOTF3D.Galaxy
         /// </summary>
         private void RefreshCompactHeaderDilithium()
         {
-            var fields = controller.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
-            fields?.compactHeader?.RefreshDilithium();
+            // AI-controlled systems may never have a UI GameObject instantiated, so
+            // _starSysUIGameObject can be Unity's "fake null" — `?.` bypasses Unity's
+            // overloaded null check and still calls GetComponent, throwing. Use an
+            // explicit `== null` check instead.
+            if (controller.StarSysUIGameObject == null) return;
+
+            var fields = controller.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields == null || fields.compactHeader == null) return;
+
+            fields.compactHeader.RefreshDilithium();
         }
         public void StartNextFacilityBuildIfAny()
         {

@@ -30,7 +30,11 @@ namespace FischlWorks_FogWar
     public class csFogWar : MonoBehaviour
     {
         public static csFogWar Instance { get; private set; }
+        // RunFogOfWar() is invoked manually by StarSysManager once the galaxy scene is ready, not
+        // from Awake/Start, so callers (e.g. csFogVisibilityAgent's Update/OnDrawGizmos) must check
+        // this before touching shadowcaster.fogField, which stays null until RunFogOfWar completes.
         bool fogReady = false;
+        public bool FogReady { get { return fogReady; } }
         [SerializeField]
         GameObject galacticCamHolder;
         GameObject fogPlaneParent;

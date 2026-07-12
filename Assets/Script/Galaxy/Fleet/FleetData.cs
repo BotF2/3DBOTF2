@@ -55,7 +55,7 @@ namespace BOTF3D.Galaxy
         public FleetData(FleetSO fleetSO)
         {
             Insignia = fleetSO.Insignia;
-            ShipsList = fleetSO.ShipsList;
+            ShipsList = new List<BOTF3D.Combat.ShipController>(fleetSO.ShipsList);
             MaxWarpFactor = fleetSO.MaxWarpFactor;
             description = fleetSO.Description;
             CivIndex = fleetSO.CivIndex;
@@ -86,7 +86,11 @@ namespace BOTF3D.Galaxy
         }
         public void AddToShipList(BOTF3D.Combat.ShipController shipController)
         {
-            ShipsList.Add(shipController);
+            // Guard here (not just in FleetController's wrapper) since several call sites add
+            // directly to ShipsList — a duplicate reference here silently causes a "skipped
+            // duplicate add" warning later, whenever this fleet is merged into another.
+            if (shipController != null && !ShipsList.Contains(shipController))
+                ShipsList.Add(shipController);
         }
         public void RemoveFromShipList(BOTF3D.Combat.ShipController shipController)
         {

@@ -441,8 +441,8 @@ namespace BOTF3D.Galaxy
                     var lookingSysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                     if (lookingSysUIFields != null && lookingSysUIFields.redDot != null)
                     {
-                        Vector3 lookingPos = starSysLooking.transform.position;
-                        lookingSysUIFields.redDot.anchoredPosition = new Vector2(lookingPos.x * 0.12f, lookingPos.z * 0.12f);
+                        Vector3 lookingPos = starSysLooking.transform.localPosition;
+                        lookingSysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(lookingPos);
                         Debug.Log($"Updated mini map for LOOKING system '{starSysLooking.name}'");
                     }
                 }
@@ -463,27 +463,31 @@ namespace BOTF3D.Galaxy
                 var thisSysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (thisSysUIFields != null && thisSysUIFields.redDot != null)
                 {
-                    Vector3 thisPos = this.transform.position;
-                    thisSysUIFields.redDot.anchoredPosition = new Vector2(thisPos.x * 0.12f, thisPos.z * 0.12f);
+                    Vector3 thisPos = this.transform.localPosition;
+                    thisSysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(thisPos);
                     Debug.Log($"Updated mini map for clicked system '{this.name}'");
                 }
             }
             else if (fleetLooking != null && starSysLooking == null)
             {
                 // Fleet to star system deploy
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.SetActive(true);
+                // ✅ Use ASystemMenuView (not AFleetMenuView) to match the proven-working
+                // "star system to star system deploy" branch above and HandleMergeSelection's
+                // Fleet-to-System case — this is the container with the VerticalLayoutGroup
+                // set up for stacking two prefab UIs on the left side of the deploy panel.
+                var aSysView = StarSysUI.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
 
                 // Parent fleet UI (top)
                 if (fleetLooking.FleetUIGameObject != null)
                 {
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                     fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
                     fleetLooking.FleetUIGameObject.SetActive(true);
                 }
 
                 // Parent THIS system UI (bottom)
-                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
                 clickedSystemCon.StarSysUIGameObject.SetActive(true);
 
@@ -498,8 +502,8 @@ namespace BOTF3D.Galaxy
                 var sysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (sysUIFields != null && sysUIFields.redDot != null)
                 {
-                    Vector3 sysPos = this.transform.position;
-                    sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
+                    Vector3 sysPos = this.transform.localPosition;
+                    sysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(sysPos);
                     Debug.Log($"Updated mini map for system '{this.name}' in fleet-to-system deploy");
                 }
             }

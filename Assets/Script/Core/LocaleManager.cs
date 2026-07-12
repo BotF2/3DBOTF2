@@ -78,7 +78,7 @@ namespace BOTF3D.Core
             Debug.Log("RefreshAllLocalizedStrings: Forcing update on all active UI...");
 
             // Find all active LocalizeStringEvent components
-            var localizedStrings = FindObjectsByType<UnityEngine.Localization.Components.LocalizeStringEvent>(FindObjectsSortMode.None);
+            var localizedStrings = FindObjectsByType<UnityEngine.Localization.Components.LocalizeStringEvent>();
 
             Debug.Log($"  Found {localizedStrings.Length} LocalizeStringEvent components");
 
