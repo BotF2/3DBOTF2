@@ -15,6 +15,15 @@ using BOTF3D.Audio;
 
 namespace BOTF3D.Core
 {
+    [System.Serializable]
+    public struct RosterEntry
+    {
+        public int PlayerId;
+        public string PlayerName;
+        public CivEnum PlayerCiv;
+        public PlayerType PlayerType;
+    }
+
     public class PlayerManager : NetworkBehaviour, IManager
     {
         public void Initialize() { }
@@ -24,6 +33,9 @@ namespace BOTF3D.Core
     public LocalHumanPlayerController LocalPlayerController { get; private set; }
     public IPlayerController LocalPlayer { get; private set; }
     public readonly List<IPlayerController> AllPlayerControllers = new List<IPlayerController>();
+
+    // Server-authoritative lobby roster, replicated to every client for the multiplayer lobby/status panel.
+    public readonly SyncList<RosterEntry> Roster = new SyncList<RosterEntry>();
 
     // RENAMED: PlayerData → PlayerInfo
     public List<GamePlayerInfo> PlayerInfoList { get; private set; } = new List<GamePlayerInfo>();
@@ -64,27 +76,66 @@ namespace BOTF3D.Core
         };
 
         PlayerInfoList.Add(playerData);
+        Roster.Add(new RosterEntry { PlayerId = playerId, PlayerName = playerName, PlayerCiv = CivEnum.FED, PlayerType = playerType });
         Debug.Log($"PlayerManager: Registered {playerType} player '{playerName}' (ID: {playerId})");
     }
 
     public void UnregisterPlayer(int playerID)
     {
-        if (AllPlayerControllers == null || AllPlayerControllers.Count == 0)
+        if (AllPlayerControllers != null)
         {
-            // ✅ Use Debug.Log instead of LogWarning during app shutdown (it's expected)
-            Debug.Log("UnregisterPlayer: No players to unregister (expected in single-player or during shutdown)");
-            return;
+            for (int i = 0; i < AllPlayerControllers.Count; i++)
+            {
+                if (AllPlayerControllers[i].PlayerInfo.PlayerId == playerID)
+                {
+                    AllPlayerControllers.RemoveAt(i);
+                    break;
+                }
+            }
         }
 
-        for (int i = 0; i < AllPlayerControllers.Count; i++)
+        for (int i = 0; i < Roster.Count; i++)
         {
-            if (AllPlayerControllers[i].PlayerInfo.PlayerId == playerID)
+            if (Roster[i].PlayerId == playerID)
             {
-                Debug.Log($"UnregisterPlayer: Removed player ID {playerID}");
-                AllPlayerControllers.RemoveAt(i);
+                Roster.RemoveAt(i);
                 break;
             }
         }
+
+        Debug.Log($"UnregisterPlayer: Processed unregister for player ID {playerID}");
+    }
+
+    // Server-authoritative check used by CmdSetPlayerCiv to reject a civ pick already held by
+    // a different connected player, so two clients can never end up on the same civilization.
+    public bool IsCivTakenByAnotherPlayer(CivEnum civ, int requestingPlayerId)
+    {
+        for (int i = 0; i < Roster.Count; i++)
+        {
+            if (Roster[i].PlayerCiv == civ && Roster[i].PlayerId != requestingPlayerId)
+                return true;
+        }
+        return false;
+    }
+
+    public void UpdateRosterEntry(int playerId, string playerName, CivEnum civ)
+    {
+        for (int i = 0; i < Roster.Count; i++)
+        {
+            if (Roster[i].PlayerId == playerId)
+            {
+                RosterEntry entry = Roster[i];
+                entry.PlayerName = playerName;
+                entry.PlayerCiv = civ;
+                Roster[i] = entry;
+                return;
+            }
+        }
+    }
+
+    public void SetLocalPlayerController(LocalHumanPlayerController controller)
+    {
+        LocalPlayerController = controller;
     }
 
     public void AddLocalPlayer(GamePlayerInfo data)

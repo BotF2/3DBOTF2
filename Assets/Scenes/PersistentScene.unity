@@ -2256,7 +2256,7 @@ MonoBehaviour:
   targetWidth: 1920
   targetHeight: 1080
   fullscreen: 1
-  fullscreenMode: 0
+  fullscreenMode: 4
   qualityLevel: 2
   vSyncCount: 1
   targetFrameRate: -1
@@ -4866,7 +4866,7 @@ MonoBehaviour:
   onlineScene: 
   offlineSceneLoadDelay: 0
   transport: {fileID: 1932995085}
-  networkAddress: localhost
+  networkAddress: LocalHost
   maxConnections: 100
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
@@ -4948,7 +4948,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkManagerHUD
   offsetX: 0
   offsetY: 0
 --- !u!1 &1936528631

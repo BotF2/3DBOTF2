@@ -300,6 +300,26 @@ public GameObject HealthbarPrefab;
         }
 
         /// <summary>
+        /// Finds the active (not-yet-ended) combat between the two given civs, for use by
+        /// networked order RPCs that only have civ identities to work with (not a local instance ID).
+        /// </summary>
+        public CombatController GetActiveCombatControllerForCivs(CivEnum civA, CivEnum civB)
+        {
+            var allCombatControllers = combatInstantiator.GetAllCombatControllers();
+            for (int i = 0; i < allCombatControllers.Count; i++)
+            {
+                CombatController controller = allCombatControllers[i];
+                if (controller.CombatEnded || controller.CombatData == null) continue;
+
+                bool matchesForward = controller.CombatData.CivEnumSideOne == civA && controller.CombatData.CivEnumSideTwo == civB;
+                bool matchesReverse = controller.CombatData.CivEnumSideOne == civB && controller.CombatData.CivEnumSideTwo == civA;
+                if (matchesForward || matchesReverse)
+                    return controller;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Remove a ship controller from all combat tracking (legacy method)
         /// </summary>
         internal void RemoveThisShipController(ShipController shipController)

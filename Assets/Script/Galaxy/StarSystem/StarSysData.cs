@@ -42,7 +42,7 @@ namespace BOTF3D.Galaxy
         public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
                                                // Consider adding other power sources and adjust this variable to be more general for total power output.
         public int DilithiumStockpile; // Unallocated dilithium available for construction
-        public AIBuildMode AIBuildMode = AIBuildMode.Off;
+        public AIBuildMode AIBuildMode = AIBuildMode.Economy;
         public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
 
         // Subspace scanner: this system's own "fog of war" for detecting nearby enemy fleets,

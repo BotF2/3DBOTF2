@@ -69,7 +69,26 @@
       "Bash(xxd Assets/SO/CivilizationSO/CivSO_10_ALDEANS.asset)",
       "Bash(sed -n '24,32p' Assets/SO/CivilizationSO/CivSO_0_FEDERATION.asset)",
       "Bash(sed -n '24,32p' Assets/SO/CivilizationSO/CivSO_10_ALDEANS.asset)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "Bash(xargs wc -l)",
+      "Bash(ls *.sln)",
+      "Bash(which dotnet *)",
+      "Bash(which msbuild *)",
+      "Bash(awk '$0 ~ \"^--- !u!1 &831971744$\" {found=1} found{print; if\\(/m_Component/ && c++>5\\) exit} found && /m_IsActive/ {exit}' \"Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(awk '$0 ~ \"^--- !u!224 &831971745$\" {found=1} found{print} found && /m_AnchorMin/ {exit}' \"Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(awk -v 'start=--- !u!114 &__TRACKED_VAR__' 'index\\($0,start\\)==1{f=1;next} f && /^--- !u!/{exit} f' Assets/Scenes/MainMenuScene.unity)",
+      "Bash(awk -v start=\"--- !u!114 &206574036\" 'index\\($0,start\\)==1{f=1} f{print} f && /^--- !u!/ && !index\\($0,start\\){c++; if\\(c>1\\) exit}' \"Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(awk -v start=\"--- !u!114 &1623589207\" 'index\\($0,start\\)==1{f=1} f{print} f && /^--- !u!/ && !index\\($0,start\\){exit}' \"Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(awk -v start=\"--- !u!114 &831971746\" 'index\\($0,start\\)==1{f=1} f{print} f && /^--- !u!/ && !index\\($0,start\\){exit}' \"Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(sed -i '34245,34350d' Assets/Scenes/MainMenuScene.unity)",
+      "Bash(sed -n '34240,34248p' Assets/Scenes/MainMenuScene.unity)",
+      "Bash(node -e ' *)",
+      "Bash(sed -i '33283s/.*/  m_Name: /;33284s/.*/  m_EditorClassIdentifier: /' Assets/Scenes/MainMenuScene.unity)",
+      "Bash(sed -n '33280,33286p' Assets/Scenes/MainMenuScene.unity)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-NetUDPEndpoint *)",
+      "PowerShell(Get-Process *)",
+      "mcp__visualize__read_me"
     ]
   },
   "model": "claude-sonnet-5"

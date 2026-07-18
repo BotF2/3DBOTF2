@@ -16,7 +16,6 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     public GamePlayerInfo PlayerInfo { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
-    bool hasAuthority;
     //private static int aiNumber = 1; // Static counter to differentiate AI players
     [SyncVar] public string playerName = "Ai Player";
     public string PlayerName => playerName;
@@ -51,28 +50,56 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
         //// Register with the PlayerManager
         //PlayerManager.Instance.AddLocalPlayer(new PlayerData { name = PlayerData.PlayerName });
     }
-    public void ExecuteOrder(string order)
+    // AI decisions are made on the server (there's no owning client to command), so these
+    // just broadcast the server's decision out to every client via ClientRpc.
+    public void SubmitCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
-        if (hasAuthority)
-        {
-            CmdSendOrder(order);
-        }
+        if (isServer)
+            RpcApplyCombatOrder(order, actingCiv, opposingCiv);
     }
 
-    [Command]
-    void CmdSendOrder(string order)
+    public void SubmitDiplomacyOrder(NegotiationPloysEnum order, CivEnum actingCiv, CivEnum opposingCiv)
     {
-        //runs on the server
-        Debug.Log($"[Server] Received order: {order}");
-        RpcHandleOrder(order);
+        if (isServer)
+            RpcApplyDiplomacyOrder(order, actingCiv, opposingCiv);
+    }
+
+    public void SubmitIntelOrder(SecretActionsEnum order, CivEnum actingCiv, CivEnum targetCiv)
+    {
+        if (isServer)
+            RpcApplyIntelOrder(order, actingCiv, targetCiv);
     }
 
     [ClientRpc]
-    void RpcHandleOrder(string order)
+    void RpcApplyCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
-        Debug.Log($"[All Clients] Order executed: {order}");
-        // Actual combat logic here
+        CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(actingCiv, opposingCiv);
+        if (combatCon == null)
+        {
+            Debug.LogWarning($"RpcApplyCombatOrder: no active combat found between {actingCiv} and {opposingCiv}");
+            return;
+        }
+        GiveCombatOrder(order, combatCon, actingCiv);
     }
+
+    [ClientRpc]
+    void RpcApplyDiplomacyOrder(NegotiationPloysEnum order, CivEnum actingCiv, CivEnum opposingCiv)
+    {
+        DiplomacyController diploCon = DiplomacyManager.Instance?.ReturnADiplomacyController(actingCiv, opposingCiv);
+        if (diploCon == null)
+        {
+            Debug.LogWarning($"RpcApplyDiplomacyOrder: no diplomacy record between {actingCiv} and {opposingCiv}");
+            return;
+        }
+        GiveDiplomacyOrder(order, diploCon, actingCiv);
+    }
+
+    [ClientRpc]
+    void RpcApplyIntelOrder(SecretActionsEnum order, CivEnum actingCiv, CivEnum targetCiv)
+    {
+        GiveIntelOrder(order, actingCiv, targetCiv);
+    }
+
     public void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ)
     {
         //var combatCons = CombatManager.Instance.CombatControllers;
@@ -107,40 +134,15 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
 
     public void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ)
     {
-        // Handle AI logic for diplomacy orders.
+        // No-op: NegotiationPloysEnum has no consumer anywhere in the codebase yet (diplomacy
+        // negotiation logic hasn't been built for single-player either). The RPC above already
+        // delivers this order to every client correctly; wire in real AI diplomacy logic here
+        // once that system exists.
     }
 
-    public void GiveIntelOrder(SecretActionsEnum order, CivEnum civ)
+    public void GiveIntelOrder(SecretActionsEnum order, CivEnum actingCiv, CivEnum targetCiv)
     {
-
-        //***? will we have an IntelController like the combat controller?
-        //var combatCons = CombatManager.Instance.CombatControllers;
-        //CombatController aCombatCon = CombatManager.Instance.CombatControllers[0];
-        //for (int i = 0; i < combatCons.Count; i++)
-        //{
-        //    if (combatCon.CombatData.CivEnumSideOne == civ || combatCon.CombatData.CivEnumSideTwo == civ)
-        //        aCombatCon = combatCons[i];
-        //    break;
-        //}
-        //switch (order)
-        //{
-        //    case SecretActionsEnum.Disinformation:
-        //        aCombatCon.SetCombatOrder(CombatOrders.Engage, PlayerCiv);
-        //        break;
-        //    case SecretActionsEnum.Combat:
-        //        aCombatCon.SetCombatOrder(CombatOrders.Rush, PlayerCiv);
-        //        break;
-        //    case SecretActionsEnum.IntellectualTheft:
-        //        aCombatCon.SetCombatOrder(CombatOrders.Retreat, PlayerCiv);
-        //        break;
-        //    case SecretActionsEnum.Sabotage:
-        //        aCombatCon.SetCombatOrder(CombatOrders.Formation, PlayerCiv);
-        //        break;
-        //    case SecretActionsEnum.GatherIntelligence:
-        //        aCombatCon.SetCombatOrder(CombatOrders.AttackTransports, PlayerCiv);
-
-        //        break;
-        //}
+        IntelligenceManager.Instance?.CreateIntelProject(order, actingCiv, targetCiv, out _);
     }
 
     internal void GetAICombatOrder(SecretActionsEnum order, CombatController combatCon, CivEnum civ)

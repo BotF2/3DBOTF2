@@ -66,9 +66,21 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject panelGamePara;
         [SerializeField]
+        private GameObject panelClientRoster;
+        [SerializeField]
         private GameObject singlePlayToggleGroup;
         [SerializeField]
         private GameObject mulitplayerToggleGroup;
+        [SerializeField]
+        private TMP_InputField playerNameInputField;
+        [SerializeField]
+        private TMP_InputField hostIpInputField;
+        [SerializeField]
+        private TMP_InputField hostPortInputField;
+        [SerializeField]
+        private TMP_Text mulitplayerStatusText;
+        public ToggleGroup MultiplayerCivilizationGroup;
+        public Toggle[] MultiplayerCivToggles; // index-mapped to CivEnum (0=FED ... 6=TERRAN)
         [SerializeField]
         private GameObject mapToggleGroup;
         [SerializeField]
@@ -80,6 +92,7 @@ namespace BOTF3D.UI
         private string player = "You", computer = "Computer", notInGame = "Absent";
         [SerializeField]
         private LocalizeStringEvent[] playerLocalizers;
+        private TMP_Text[] playerTexts;
         //private LocalizeStringEvent playerFedLocalizer, playerRomLocalizer, playerKlingLocalizer,
         //                   playerCardLocalizer, playerDomLocalizer, playerBorgLocalizer, playerTerranLocalizer;
         private Toggle activeLocalPlayerToggle;
@@ -108,7 +121,6 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle, BorgLocalPlayerToggle, TerranLocalPlayerToggle;
 
         public ToggleGroup SinglePlayerCivilizationGroup;
-        //public ToggleGroup MultiplayerCivilizationGroup;// Can and should this be a group in the multiplayer setting, maybe.
         public Toggle FedOnOff, RomOnOff, KlingOnOff, CardOnOff, DomOnOff, BorgOnOff, TerranOnOff;
         public List<Toggle> OnOffToggles;
         private Toggle activeMapToggle;
@@ -136,6 +148,61 @@ namespace BOTF3D.UI
         [SerializeField] private Button buttonSpanish;
         [SerializeField] private Button buttonPolish;
         [SerializeField] private Button buttonPortuguese;
+
+        private bool rosterCallbackSubscribed;
+
+        private void OnEnable()
+        {
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+        }
+
+        private void OnDisable()
+        {
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            UnsubscribeRosterCallback();
+        }
+
+        // Fires for both StartHost (host's own embedded client) and StartClient once the
+        // transport-level connection completes. Moves the lobby straight to the roster panel
+        // so players pick civs there instead of behind a manual "Next" click.
+        private void OnNetworkClientConnected()
+        {
+            SubscribeRosterCallback();
+
+            if (IsSinglePlayer)
+                return;
+
+            if (panelMuliplayer != null)
+                panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(true);
+        }
+
+        // PlayerManager is a NetworkBehaviour, so Instance only exists once a host/client session
+        // is live - hook the roster SyncList here (not in OnEnable) so panelGamePara's player
+        // labels keep showing up-to-date remote player names even if someone changes their civ
+        // pick after the host has already moved past Panel_ClientRoster.
+        private void SubscribeRosterCallback()
+        {
+            if (rosterCallbackSubscribed || PlayerManager.Instance == null)
+                return;
+            PlayerManager.Instance.Roster.Callback += OnRosterChangedForLabels;
+            rosterCallbackSubscribed = true;
+        }
+
+        private void UnsubscribeRosterCallback()
+        {
+            if (!rosterCallbackSubscribed)
+                return;
+            if (PlayerManager.Instance != null)
+                PlayerManager.Instance.Roster.Callback -= OnRosterChangedForLabels;
+            rosterCallbackSubscribed = false;
+        }
+
+        private void OnRosterChangedForLabels(SyncList<RosterEntry>.Operation op, int index, RosterEntry oldItem, RosterEntry newItem)
+        {
+            UpdateNotInGame();
+        }
 
         private void Awake()
         {
@@ -213,6 +280,10 @@ namespace BOTF3D.UI
                 playerBorg.GetComponent<LocalizeStringEvent>(),
                 playerTerran.GetComponent<LocalizeStringEvent>()
             };
+            playerTexts = new TMP_Text[]
+            {
+                playerFed, playerRom, playerKling, playerCard, playerDom, playerBorg, playerTerran
+            };
             // ✅ Initialize toggle array
             civToggles = new Toggle[]
             {
@@ -226,16 +297,21 @@ namespace BOTF3D.UI
             //playerDomLocalizer = playerDom.GetComponent<LocalizeStringEvent>();
             //playerBorgLocalizer = playerBorg.GetComponent<LocalizeStringEvent>();
             //playerTerranLocalizer = playerTerran.GetComponent<LocalizeStringEvent>();
-            // Pending Multiplayer lobby if needed
-            //MultiplayerCivilizationGroup.enabled = true;
-            //MultiplayerCivilizationGroup = mulitplayerToggleGroup.GetComponent<ToggleGroup>();
-            //MultiplayerCivilizationGroup.RegisterToggle(FedLocalPalyerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(KlingLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(RomLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(CardLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(DomLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(BorgLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(TerranLocalPlayerToggle);
+            // Multiplayer lobby: name/civ selection push to the local player's LocalHumanPlayerController
+            if (playerNameInputField != null)
+                playerNameInputField.onEndEdit.AddListener(OnPlayerNameEndEdit);
+            if (MultiplayerCivToggles != null)
+            {
+                for (int i = 0; i < MultiplayerCivToggles.Length; i++)
+                {
+                    int civIndex = i;
+                    MultiplayerCivToggles[i].onValueChanged.AddListener((isOn) =>
+                    {
+                        if (isOn)
+                            OnMultiplayerCivToggleChanged(civIndex);
+                    });
+                }
+            }
 
             // ✅ Wire language buttons
             SetupLanguageButtons();
@@ -1014,9 +1090,41 @@ namespace BOTF3D.UI
         }
         private void UpdateNotInGame()
         {
+            // Multiplayer: map each civ claimed by a connected human player (other than the local
+            // player, who already gets "You") to that player's roster name, so the host sees who
+            // is playing what instead of a generic "Computer" label.
+            Dictionary<CivEnum, string> remoteClaimedNames = null;
+            if (!IsSinglePlayer && PlayerManager.Instance != null)
+            {
+                int? localPlayerId = PlayerManager.Instance.LocalPlayerController?.netId.GetHashCode();
+                remoteClaimedNames = new Dictionary<CivEnum, string>();
+                foreach (RosterEntry entry in PlayerManager.Instance.Roster)
+                {
+                    if (entry.PlayerType != PlayerType.Local)
+                        continue;
+                    if (localPlayerId.HasValue && entry.PlayerId == localPlayerId.Value)
+                        continue;
+                    remoteClaimedNames[entry.PlayerCiv] = entry.PlayerName;
+                }
+            }
+
             for (int i = 0; i < civToggles.Length; i++)
             {
                 if (playerLocalizers[i] == null) continue;
+
+                if (remoteClaimedNames != null && remoteClaimedNames.TryGetValue((CivEnum)i, out string remoteName))
+                {
+                    // Claimed by a connected remote player - show their name instead of Computer/Absent.
+                    // Disable the localizer so it doesn't overwrite this on a locale change; UpdateNotInGame
+                    // re-enables it below once the civ is no longer claimed by another player.
+                    playerLocalizers[i].enabled = false;
+                    if (playerTexts[i] != null)
+                        playerTexts[i].text = remoteName;
+                    continue;
+                }
+
+                if (!playerLocalizers[i].enabled)
+                    playerLocalizers[i].enabled = true;
 
                 string currentKey = playerLocalizers[i].StringReference.TableEntryReference.Key;
 
@@ -1493,6 +1601,161 @@ namespace BOTF3D.UI
             panelGamePara.SetActive(false);
             panelLobby.SetActive(true);
         }
+
+        private void SetLobbyStatus(string message)
+        {
+            if (mulitplayerStatusText != null)
+                mulitplayerStatusText.text = message;
+            Debug.Log($"MultiplayerLobby: {message}");
+        }
+
+        private void OnPlayerNameEndEdit(string newName)
+        {
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerName(newName);
+        }
+
+        private void OnMultiplayerCivToggleChanged(int civIndex)
+        {
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv((CivEnum)civIndex);
+        }
+
+        // Called by LocalHumanPlayerController.OnStartLocalPlayer once this client's player object
+        // has spawned (StartHost is near-instant; StartClient spawns asynchronously after connecting),
+        // so whatever name the player already entered in the lobby UI gets pushed immediately.
+        // Civilization is no longer picked pre-connect - PlayerManager.RegisterPlayer defaults every
+        // connecting player to FED, and each client then picks their own civ post-connect via the
+        // dropdown on their row in Panel_ClientRoster (ClientRosterPanelUIController).
+        public void OnLocalPlayerReady(LocalHumanPlayerController localPlayer)
+        {
+            if (playerNameInputField != null && !string.IsNullOrWhiteSpace(playerNameInputField.text))
+                localPlayer.SubmitPlayerName(playerNameInputField.text);
+        }
+
+        public void HostButton() // Button Host in Panel-MulitplayerLobby
+        {
+            if (NetworkManager.singleton == null)
+            {
+                SetLobbyStatus("NetworkManager not found.");
+                return;
+            }
+            if (NetworkServer.active || NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Already hosting or connected.");
+                return;
+            }
+
+            NetworkManager.singleton.StartHost();
+            SetLobbyStatus($"Hosting at {NetworkManager.singleton.networkAddress}. Select a civilization and press Next.");
+        }
+
+        public void ConnectButton() // Button Connnect in Panel-MulitplayerLobby
+        {
+            if (NetworkManager.singleton == null)
+            {
+                SetLobbyStatus("NetworkManager not found.");
+                return;
+            }
+            if (NetworkServer.active || NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Already hosting or connected.");
+                return;
+            }
+
+            string ip = hostIpInputField != null ? hostIpInputField.text.Trim() : "";
+            if (string.IsNullOrEmpty(ip))
+            {
+                SetLobbyStatus("Enter a host IP address first.");
+                return;
+            }
+
+            string portText = hostPortInputField != null ? hostPortInputField.text.Trim() : "";
+            if (!string.IsNullOrEmpty(portText))
+            {
+                if (!ushort.TryParse(portText, out ushort port))
+                {
+                    SetLobbyStatus("Port must be a number between 0 and 65535.");
+                    return;
+                }
+                if (Transport.active is PortTransport portTransport)
+                    portTransport.Port = port;
+            }
+
+            NetworkManager.singleton.networkAddress = ip;
+            NetworkManager.singleton.StartClient();
+            SetLobbyStatus($"Connecting to {ip}...");
+        }
+
+        public void CancelButton() // Button Cancel in Panel-MulitplayerLobby - aborts setup and returns to Panel-Lobby
+        {
+            UnsubscribeRosterCallback();
+
+            if (NetworkManager.singleton != null)
+            {
+                if (NetworkServer.active && NetworkClient.isConnected)
+                    NetworkManager.singleton.StopHost();
+                else if (NetworkClient.active)
+                    NetworkManager.singleton.StopClient();
+                else if (NetworkServer.active)
+                    NetworkManager.singleton.StopServer();
+            }
+
+            SetLobbyStatus(string.Empty);
+            panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
+            panelCivSelection.SetActive(false);
+            panelGamePara.SetActive(false);
+            panelLobby.SetActive(true);
+        }
+
+        public void NextButton() // Button Next, moved onto Panel_ClientRoster - confirms civ picks, proceeds to game parameters
+        {
+            if (!NetworkServer.active && !NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Host or connect before continuing.");
+                return;
+            }
+
+            IsSinglePlayer = false;
+            GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
+
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
+            panelMuliplayer.SetActive(false);
+            panelLobby.SetActive(false);
+            panelCivSelection.SetActive(false);
+            panelGamePara.SetActive(true);
+
+            ApplyRosterLocksToGameParams();
+
+            Debug.Log("NextButton: Proceeding to game parameters. Civs claimed by connected players are locked in.");
+        }
+
+        // Prevents the host from accidentally excluding a civ a connected human player already
+        // claimed in Panel_ClientRoster. Civs with no human claim stay toggleable so the host can
+        // still choose whether the AI plays them.
+        private void ApplyRosterLocksToGameParams()
+        {
+            if (civToggles == null || PlayerManager.Instance == null)
+                return;
+
+            var claimedCivs = new HashSet<CivEnum>();
+            foreach (RosterEntry entry in PlayerManager.Instance.Roster)
+                if (entry.PlayerType == PlayerType.Local)
+                    claimedCivs.Add(entry.PlayerCiv);
+
+            for (int i = 0; i < civToggles.Length; i++)
+            {
+                CivEnum civ = (CivEnum)i;
+                bool claimedByHuman = claimedCivs.Contains(civ);
+                if (claimedByHuman)
+                    civToggles[i].SetIsOnWithoutNotify(true);
+                civToggles[i].interactable = !claimedByHuman;
+            }
+
+            UpdateNotInGame();
+        }
+
         public void SaveButton()
         {
             Debug.Log($"SaveButton: localPlayerCiv = {localPlayerCiv} (index {(int)localPlayerCiv})");

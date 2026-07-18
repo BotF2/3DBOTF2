@@ -1,5 +1,15 @@
 {
   "dependencies": {
+    "com.edgegap.unity-servers-plugin": {
+      "version": "https://github.com/edgegap/edgegap-unity-plugin.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "com.unity.modules.uielements": "1.0.0"
+      },
+      "hash": "ba2fdf10047458fd0a3c90040ba83c788b9e1a35"
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
@@ -172,7 +182,7 @@
       }
     },
     "com.unity.multiplayer.center.quickstart": {
-      "version": "1.0.1",
+      "version": "1.1.2",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -191,7 +201,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.multiplayer.tools": {
-      "version": "2.2.8",
+      "version": "2.2.9",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -206,7 +216,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.netcode.gameobjects": {
-      "version": "2.12.0",
+      "version": "2.13.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -277,6 +287,24 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.sdk.linux-arm64": {
+      "version": "1.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.sysroot.base": "1.1.0"
+      },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.sdk.linux-x86_64": {
+      "version": "1.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.sysroot.base": "1.1.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.searcher": {
       "version": "4.9.4",
       "depth": 2,
@@ -336,7 +364,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.services.multiplayer": {
-      "version": "2.2.3",
+      "version": "2.2.4",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -404,6 +432,13 @@
         "com.unity.searcher": "4.9.3"
       }
     },
+    "com.unity.sysroot.base": {
+      "version": "1.1.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
     "com.unity.test-framework": {
       "version": "1.6.0",
       "depth": 0,
@@ -436,8 +471,17 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.toolchain.win-x86_64-linux": {
+      "version": "1.1.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.sysroot.base": "1.1.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.transport": {
-      "version": "2.7.3",
+      "version": "2.7.4",
       "depth": 0,
       "source": "registry",
       "dependencies": {
