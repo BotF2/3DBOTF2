@@ -2,6 +2,7 @@ using BOTF3D.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using BOTF3D.Combat;
@@ -13,7 +14,7 @@ using BOTF3D.Audio;
 
 namespace BOTF3D.Core
 {
-    public class TimeManager : MonoBehaviour, IManager
+    public class TimeManager : NetworkBehaviour, IManager
     {
         public void Initialize() {}
         public void Cleanup() {}
@@ -28,11 +29,28 @@ namespace BOTF3D.Core
         public event Action OnTurnAdvanced; // fires every StarDatesPerTurn stardates — strategic resolution tick
         public event Action<TurnPhase> OnTurnPhaseChanged; // UI can subscribe to update Advance Turn button
 
-        public int currentStardate { get; private set; }
-        public int CurrentTurn { get; private set; } = 0;
+        // These three were plain auto-properties before turn-phase networking. TimeManager used to
+        // run as an unnetworked MonoBehaviour, so OnGameStartReceived (called on every client via
+        // PlayerManager.RpcStartGame) had each machine start its own independent TimeProgression()
+        // coroutine, and AdvanceTurn() only ever mutated that local machine's own copy - a non-host
+        // client's turn click never reached the server, so server-authoritative fleet movement (which
+        // gates on TurnPhase == TurnProgression) never actually triggered for non-host clients. Now
+        // that TimeManager is a NetworkBehaviour (scene object, see PersistentScene.unity), these are
+        // SyncVars so the server is the sole simulator and every client's UI/gating logic reads the
+        // same replicated state.
+        [SyncVar(hook = nameof(OnStardateSynced))]
+        private int syncedStardate;
+        public int currentStardate => syncedStardate;
+
+        [SyncVar(hook = nameof(OnCurrentTurnSynced))]
+        private int syncedCurrentTurn = 0;
+        public int CurrentTurn => syncedCurrentTurn;
+
         [SerializeField] public int StarDatesPerTurn = 10;
 
-        public TurnPhase TurnPhase { get; private set; } = TurnPhase.InterTurn;
+        [SyncVar(hook = nameof(OnTurnPhaseSynced))]
+        private TurnPhase syncedTurnPhase = TurnPhase.InterTurn;
+        public TurnPhase TurnPhase => syncedTurnPhase;
 
         public bool timeRunning = true; // ✅ Change from false to true
         public bool IsPaused { get; private set; } = false; // Already correct
@@ -67,14 +85,21 @@ namespace BOTF3D.Core
         }
         private void Start()
         {
-            currentStardate = StaringStardate;
+            // Only the server owns the authoritative stardate/phase - a joining client receives
+            // these via the SyncVars themselves (initial spawn sync), so setting them here too
+            // would just get immediately overwritten and would trip Mirror's "SyncVar set on
+            // client" warning for no benefit.
+            if (NetworkServer.active)
+            {
+                syncedStardate = StaringStardate;
+
+                // Fire the event so any already-subscribed UI components initialize their state
+                SetTurnPhase(TurnPhase.InterTurn);
+            }
 
             // Remain in InterTurn until player clicks Advance Turn for the first time
             IsPaused = true;
             timeRunning = false;
-
-            // Fire the event so any already-subscribed UI components initialize their state
-            SetTurnPhase(TurnPhase.InterTurn);
 
             Debug.Log($"⏰ TimeManager: Started - currentStardate={currentStardate}, waiting for first Advance Turn click");
         }
@@ -84,6 +109,12 @@ namespace BOTF3D.Core
         }
         public void StartTime()
         {
+            // TimeProgression is the sole tick of stardate/turn simulation (research, special
+            // events, encounter queueing). Running it on every client independently is what
+            // caused non-host clients' turn clicks to never reach the server-authoritative fleet
+            // movement gate (see FleetController.FixedUpdate) - only the server may run it now.
+            if (!isServer) return;
+
             if (timeCoroutine != null)
                 StopCoroutine(timeCoroutine);
             timeRunning = true;
@@ -94,15 +125,45 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Called by the "Advance Turn" button (or AI).
+        /// Called by the "Advance Turn" button (or AI). Server-authoritative - clients must go
+        /// through RequestAdvanceTurn() below, which relays here via Command.
         /// Restarts the clock for one full turn cycle, then the system auto-pauses again.
         /// </summary>
+        [Server]
         public void AdvanceTurn()
         {
-            if (TurnPhase == TurnPhase.TurnProgression) return; // already running
+            if (syncedTurnPhase == TurnPhase.TurnProgression)
+            {
+                Debug.Log("⏰ TimeManager: AdvanceTurn ignored — already in TurnProgression");
+                return; // already running
+            }
             SetTurnPhase(TurnPhase.TurnProgression);
             StartTime(); // restarts the coroutine (PauseTime killed it) and sets timeScale = 1
             Debug.Log("⏰ TimeManager: Turn advanced — TurnProgression started");
+        }
+
+        /// <summary>
+        /// Entry point for the "Advance Turn" button (GameControlOverlay) and any AI caller.
+        /// TimeManager is a scene-singleton NetworkBehaviour with no owning connection (same as
+        /// FleetController's order relays), so non-host clients relay through a
+        /// requiresAuthority = false Command rather than calling AdvanceTurn() directly.
+        /// </summary>
+        public void RequestAdvanceTurn()
+        {
+            if (isServer)
+                AdvanceTurn();
+            else
+            {
+                Debug.Log("⏰ TimeManager: RequestAdvanceTurn - relaying via CmdAdvanceTurn (non-host client).");
+                CmdAdvanceTurn();
+            }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdAdvanceTurn(NetworkConnectionToClient sender = null)
+        {
+            Debug.Log($"⏰ TimeManager: CmdAdvanceTurn received from connection {sender?.connectionId}");
+            AdvanceTurn();
         }
 
         /// <summary>
@@ -120,23 +181,40 @@ namespace BOTF3D.Core
 
         private void SetTurnPhase(TurnPhase phase)
         {
-            TurnPhase = phase;
-            OnTurnPhaseChanged?.Invoke(phase);
-            Debug.Log($"⏰ TimeManager: TurnPhase → {phase}");
+            // Assigning the SyncVar replicates to every client; OnTurnPhaseSynced fires the
+            // OnTurnPhaseChanged event both here on the server/host and on each remote client
+            // once the new value arrives (same hook-fires-everywhere pattern already established
+            // by LocalHumanPlayerController.OnPlayerCivChanged / FleetController.OnCivEnumChanged).
+            syncedTurnPhase = phase;
         }
+
+        private void OnTurnPhaseSynced(TurnPhase oldPhase, TurnPhase newPhase)
+        {
+            OnTurnPhaseChanged?.Invoke(newPhase);
+            Debug.Log($"⏰ TimeManager: TurnPhase → {newPhase}");
+        }
+
+        private void OnStardateSynced(int oldStardate, int newStardate)
+        {
+            OnStardateChanged?.Invoke();
+        }
+
+        private void OnCurrentTurnSynced(int oldTurn, int newTurn)
+        {
+        }
+
         private System.Collections.IEnumerator TimeProgression()
         {
 
             while (timeRunning)
             {
                 yield return new WaitForSeconds(10f / currentTimeSpeed);
-                currentStardate++;
-                OnStardateChanged?.Invoke();
+                syncedStardate++;
                 CheckSpecialEvents();
 
-                if (currentStardate % StarDatesPerTurn == 0)
+                if (syncedStardate % StarDatesPerTurn == 0)
                 {
-                    CurrentTurn++;
+                    syncedCurrentTurn++;
                     ProcessTurnEvents();
                     OnTurnAdvanced?.Invoke();
                 }

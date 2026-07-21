@@ -1423,6 +1423,19 @@ namespace BOTF3D.Galaxy
 
         }
 
+        // StarSysController has no NetworkIdentity (it's a plain MonoBehaviour, not networked), so a
+        // fleet destination Command can't take one as a parameter directly - it sends the system name
+        // instead and this does the server-side lookup back to the actual GameObject.
+        public StarSysController GetStarSysControllerByName(string name)
+        {
+            for (int i = 0; i < StarSysControllerList.Count; i++)
+            {
+                if (StarSysControllerList[i].StarSysData.GetSysName().Equals(name))
+                    return StarSysControllerList[i];
+            }
+            return null;
+        }
+
         public void UpdateStarSystemOwner(CivEnum civCurrent, CivEnum civNew)
         {
             foreach (var sysCon in StarSysControllerList)

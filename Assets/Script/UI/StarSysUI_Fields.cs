@@ -183,7 +183,10 @@ public class StarSysUI_Fields : MonoBehaviour
     }
 
     public FacilityUI GetFacility(StarSysFacilityType type)
-        => facilityUIDictionary[type]; // get facilty UI by type as a StarSysFacilityType enum called in StarSysMenuUIController
+        // Returns null (instead of throwing) when this prefab instance's Inspector-configured
+        // `facilities` list has no entry for `type` - callers already treat null as "skip this
+        // facility's UI update" (see StarSysMenuUIController.AddSysFacility's try/catch).
+        => facilityUIDictionary.TryGetValue(type, out var facUI) ? facUI : null;
 
     /// <summary>
     /// Populate UI fields from StarSysData. Safe, null-checked and idempotent.

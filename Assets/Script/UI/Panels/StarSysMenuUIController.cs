@@ -1060,16 +1060,9 @@ namespace BOTF3D.UI
                 }
                 else
                 {
-                    StarSysUI_Fields.FacilityUI facUI = null;
-                    try
-                    {
-                        facUI = uiElement.GetFacility(facilityType);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUI_Fields for {controller.name}. Exception: {ex.Message}");
-                        facUI = null;
-                    }
+                    StarSysUI_Fields.FacilityUI facUI = uiElement.GetFacility(facilityType);
+                    if (facUI == null)
+                        Debug.LogWarning($"AddSysFacility: facility UI of type {facilityType} not found on StarSysUI_Fields for {controller.name} - check the 'facilities' list in the Inspector on this system's StarSysUI prefab instance.");
 
                     if (facUI != null)
                     {

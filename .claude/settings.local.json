@@ -88,7 +88,13 @@
       "PowerShell(Get-NetTCPConnection *)",
       "PowerShell(Get-NetUDPEndpoint *)",
       "PowerShell(Get-Process *)",
-      "mcp__visualize__read_me"
+      "mcp__visualize__read_me",
+      "PowerShell(Resolve-DnsName *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(awk 'NR==31456{print NR\": \"$0}' \"/c/Users/kenne/Documents/Unity/3DBOTF2_100/Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(awk -F'&' '$0 ~ /:/ {print}')",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   },
   "model": "claude-sonnet-5"

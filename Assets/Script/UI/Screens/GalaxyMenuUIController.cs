@@ -399,7 +399,8 @@ namespace BOTF3D.UI
             SetAdvanceTurnButtonColor(_playerReadyForTurn ? turnReadyColor : turnNotReadyColor);
 
             if (_playerReadyForTurn)
-                TimeManager.Instance?.AdvanceTurn();
+                // Relays to the server if we're not the host - see TimeManager.RequestAdvanceTurn.
+                TimeManager.Instance?.RequestAdvanceTurn();
             else
                 TimeManager.Instance?.PauseTime(); // player un-readied; halt the clock
         }

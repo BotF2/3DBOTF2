@@ -254,6 +254,8 @@ namespace BOTF3D.Galaxy
 
             var galaxyUI = GalaxyMenuUIController.Instance;
 
+            Debug.Log($"OnMouseDown: system '{clickedSystemCon.name}' clicked, CurrentClickMode={galaxyUI.CurrentClickMode}.");
+
             switch (galaxyUI.CurrentClickMode)
             {
                 case GalaxyClickMode.Normal:
@@ -280,6 +282,7 @@ namespace BOTF3D.Galaxy
                     break;
 
                 case GalaxyClickMode.SetDestination:
+                    Debug.Log($"OnMouseDown: SetDestination click on system '{clickedSystemCon.name}'.");
                     HandleDestinationClick(clickedSystemCon);
                     break;
 
@@ -529,10 +532,20 @@ namespace BOTF3D.Galaxy
         private void HandleDestinationClick(StarSysController clickedSystemCon)
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            if (galaxyUI == null) return;
+            if (galaxyUI == null)
+            {
+                Debug.LogWarning("HandleDestinationClick: GalaxyMenuUIController.Instance is NULL - click ignored.");
+                return;
+            }
 
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-            if (theFleetConLookingForDestination == null) return;
+            if (theFleetConLookingForDestination == null)
+            {
+                Debug.LogWarning($"HandleDestinationClick: galaxyUI.FleetLookingForDestination is NULL when clicking system '{clickedSystemCon.name}' - SetDestination mode was not armed for a fleet, click ignored.");
+                return;
+            }
+
+            Debug.Log($"HandleDestinationClick: setting destination='{clickedSystemCon.name}' for fleet '{theFleetConLookingForDestination.name}'.");
 
             // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
             if (theFleetConLookingForDestination.TargetController != null)

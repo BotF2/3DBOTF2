@@ -40,7 +40,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         base.OnStartServer();
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.RegisterPlayer(this, false, playerName, netId.GetHashCode(), PlayerType.Local);
+            playerCiv = PlayerManager.Instance.RegisterPlayer(this, false, playerName, netId.GetHashCode(), PlayerType.Local);
     }
     public override void OnStopServer()
     {
@@ -63,9 +63,17 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         // Only the local player can issue commands
         Debug.Log("I have authority");
     }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        Debug.Log($"[RosterDiag] OnStartClient netId={netId} isOwned={isOwned}");
+    }
+
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
+        Debug.Log($"[RosterDiag] OnStartLocalPlayer netId={netId} PlayerManager.Instance={(PlayerManager.Instance != null ? "OK" : "NULL")} MainMenuUIController.Instance={(MainMenuUIController.Instance != null ? "OK" : "NULL")}");
         if (PlayerManager.Instance != null)
             PlayerManager.Instance.SetLocalPlayerController(this);
         if (MainMenuUIController.Instance != null)

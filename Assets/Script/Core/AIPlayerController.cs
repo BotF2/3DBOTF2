@@ -24,7 +24,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     {
         base.OnStartServer();
         if (PlayerManager.Instance != null)
-            PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.AI);
+            PlayerCiv = PlayerManager.Instance.RegisterPlayer(this, false, PlayerName, netId.GetHashCode(), PlayerType.AI);
 
     }
     public override void OnStopServer()

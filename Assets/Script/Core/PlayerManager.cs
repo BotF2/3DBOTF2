@@ -66,18 +66,44 @@ namespace BOTF3D.Core
             Debug.Log("Single Player (no network)");
     }
 
-    public void RegisterPlayer(IPlayerController controller, bool isLocalPlayerArg, string playerName, int playerId, PlayerType playerType)
+    // Same 7 majors as ClientRosterPanelUIController.SelectableCivs - kept in this order so the
+    // first free slot a new player is assigned matches the order civs appear in the roster dropdown.
+    private static readonly CivEnum[] AssignableCivs =
     {
+        CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
+    };
+
+    // Returns the assigned civ so callers (LocalHumanPlayerController/AiPlayerController) can set
+    // their own authoritative civ field to match - otherwise a new player's [SyncVar] playerCiv
+    // stays at its own default (FED) even though the roster entry says otherwise, and the two
+    // desync the moment anything reads the controller's civ directly instead of the roster.
+    public CivEnum RegisterPlayer(IPlayerController controller, bool isLocalPlayerArg, string playerName, int playerId, PlayerType playerType)
+    {
+        CivEnum assignedCiv = GetFirstAvailableCiv(playerId);
+
         GamePlayerInfo playerData = new GamePlayerInfo(playerName)
         {
             PlayerId = playerId,
             PlayerType = playerType,
-            PlayerCiv = CivEnum.FED
+            PlayerCiv = assignedCiv
         };
 
         PlayerInfoList.Add(playerData);
-        Roster.Add(new RosterEntry { PlayerId = playerId, PlayerName = playerName, PlayerCiv = CivEnum.FED, PlayerType = playerType });
-        Debug.Log($"PlayerManager: Registered {playerType} player '{playerName}' (ID: {playerId})");
+        Roster.Add(new RosterEntry { PlayerId = playerId, PlayerName = playerName, PlayerCiv = assignedCiv, PlayerType = playerType });
+        Debug.Log($"PlayerManager: Registered {playerType} player '{playerName}' (ID: {playerId}) with civ {assignedCiv}");
+        return assignedCiv;
+    }
+
+    // Picks the first civ (in AssignableCivs order) not already held by another connected player,
+    // so a newly-joined player doesn't collide with an existing player's civ pick (e.g. host on FED).
+    private CivEnum GetFirstAvailableCiv(int excludingPlayerId)
+    {
+        for (int i = 0; i < AssignableCivs.Length; i++)
+        {
+            if (!IsCivTakenByAnotherPlayer(AssignableCivs[i], excludingPlayerId))
+                return AssignableCivs[i];
+        }
+        return AssignableCivs[0]; // all 7 taken (more players than majors) - fall back, server already rejects the duplicate elsewhere
     }
 
     public void UnregisterPlayer(int playerID)
@@ -94,12 +120,19 @@ namespace BOTF3D.Core
             }
         }
 
-        for (int i = 0; i < Roster.Count; i++)
+        // SyncList writes require an active server/client - during shutdown (e.g. this being
+        // called from LocalHumanPlayerController.OnDestroy() after NetworkServer/NetworkClient
+        // have already stopped), the whole Roster is being torn down anyway, so skip the mutation
+        // rather than let SyncList throw.
+        if (NetworkServer.active || NetworkClient.active)
         {
-            if (Roster[i].PlayerId == playerID)
+            for (int i = 0; i < Roster.Count; i++)
             {
-                Roster.RemoveAt(i);
-                break;
+                if (Roster[i].PlayerId == playerID)
+                {
+                    Roster.RemoveAt(i);
+                    break;
+                }
             }
         }
 
@@ -216,6 +249,22 @@ namespace BOTF3D.Core
     internal void SetMajorCivsInGameForMultiPlayer(List<CivEnum> majorCivsInGameList, CivEnum localPlayerCiv)
     {
         Debug.Log("SetMajorCivsInGameForMultiPlayer: Multiplayer setup pending implementation");
+    }
+
+    // Host-only entry point (called from MainMenuUIController.LoadGalaxyScene, which only the host
+    // can reach). Broadcasts the host's chosen game parameters - including a shared RNG seed - to
+    // every connected client so galaxy generation (CivManager/StarSysManager, both driven by the
+    // global UnityEngine.Random) produces an identical result on every machine.
+    [Server]
+    public void ServerBroadcastStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        RpcStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+    }
+
+    [ClientRpc]
+    private void RpcStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        MainMenuUIController.Instance?.OnGameStartReceived(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
     }
 
 

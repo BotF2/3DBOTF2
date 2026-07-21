@@ -611,9 +611,19 @@ namespace BOTF3D.UI
 
         private void OnAdvanceTurnClicked()
         {
-            if (TimeManager.Instance == null) return;
-            if (TimeManager.Instance.TurnPhase != TurnPhase.InterTurn) return;
-            TimeManager.Instance.AdvanceTurn();
+            if (TimeManager.Instance == null)
+            {
+                Debug.LogWarning("OnAdvanceTurnClicked: TimeManager.Instance is NULL - click ignored.");
+                return;
+            }
+            if (TimeManager.Instance.TurnPhase != TurnPhase.InterTurn)
+            {
+                Debug.LogWarning($"OnAdvanceTurnClicked: TurnPhase is {TimeManager.Instance.TurnPhase}, not InterTurn - click ignored.");
+                return;
+            }
+            Debug.Log("OnAdvanceTurnClicked: relaying RequestAdvanceTurn().");
+            // Relays to the server if we're not the host - see TimeManager.RequestAdvanceTurn.
+            TimeManager.Instance.RequestAdvanceTurn();
         }
 
         private void OnTurnPhaseChanged(TurnPhase phase)
@@ -710,8 +720,13 @@ namespace BOTF3D.UI
                 masterVolumeSlider.interactable = !_playerPaused;
 
             if (advanceTurnButton != null)
+            {
+                bool wasInteractable = advanceTurnButton.interactable;
                 advanceTurnButton.interactable = !_playerPaused
                     && (TimeManager.Instance?.TurnPhase == TurnPhase.InterTurn);
+                if (advanceTurnButton.interactable != wasInteractable)
+                    Debug.Log($"SetControlsInteractable: advanceTurnButton.interactable {wasInteractable} -> {advanceTurnButton.interactable} (_playerPaused={_playerPaused}, TimeManager.Instance={(TimeManager.Instance != null ? "OK" : "NULL")}, TurnPhase={TimeManager.Instance?.TurnPhase})");
+            }
         }
 
         private void UpdateTurnProgress()

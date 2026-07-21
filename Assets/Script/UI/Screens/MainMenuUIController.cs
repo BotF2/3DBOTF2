@@ -1,6 +1,8 @@
 // Ignore Spelling: Kling BOTF
 using BOTF3D.Audio;
+using BOTF3D.Civilization;
 using BOTF3D.Core;
+using BOTF3D.Galaxy;
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,9 +15,6 @@ using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
 
 
 
@@ -49,14 +48,12 @@ namespace BOTF3D.UI
         private GameObject TipCanvas;
         [SerializeField]
         private GameObject mainMenuButton;
-        //ToDo for multiplayer lobby
-        //public CivEnum SelectedRemote0CivEnum;
-        //public CivEnum SelectedRemote1CivEnum;
-        //public CivEnum SelectedRemote2CivEnum;
-        //public CivEnum SelectedRemote3CivEnum;
-        //public CivEnum SelectedRemote4CivEnum;
-        //public CivEnum SelectedRemote5CivEnum;
+        [SerializeField]
+        private GameObject previousGameParamsButton; // "Button Return" in Panel-GameParametersMenu
         public bool IsSinglePlayer;
+        // Set by OnGameStartReceived, consumed by LoadGalaxySceneCoroutine right before galaxy
+        // generation - see the [Server]/[ClientRpc] pair on PlayerManager for how this is shared.
+        private int pendingGalaxySeed;
         [SerializeField]
         private GameObject panelLobby;
         [SerializeField]
@@ -69,8 +66,8 @@ namespace BOTF3D.UI
         private GameObject panelClientRoster;
         [SerializeField]
         private GameObject singlePlayToggleGroup;
-        [SerializeField]
-        private GameObject mulitplayerToggleGroup;
+        //[SerializeField]
+        //private GameObject mulitplayerToggleGroup;
         [SerializeField]
         private TMP_InputField playerNameInputField;
         [SerializeField]
@@ -167,6 +164,7 @@ namespace BOTF3D.UI
         // so players pick civs there instead of behind a manual "Next" click.
         private void OnNetworkClientConnected()
         {
+            Debug.Log("[RosterDiag] OnNetworkClientConnected fired");
             SubscribeRosterCallback();
 
             if (IsSinglePlayer)
@@ -304,6 +302,11 @@ namespace BOTF3D.UI
             {
                 for (int i = 0; i < MultiplayerCivToggles.Length; i++)
                 {
+                    if (MultiplayerCivToggles[i] == null)
+                    {
+                        Debug.LogWarning($"MainMenuUIController: MultiplayerCivToggles[{i}] is not assigned in the Inspector - skipping.");
+                        continue;
+                    }
                     int civIndex = i;
                     MultiplayerCivToggles[i].onValueChanged.AddListener((isOn) =>
                     {
@@ -624,18 +627,47 @@ namespace BOTF3D.UI
             }
         }
 
-        // Call this when transitioning to gameplay (from Panel-GameParametersWindow)
+        // Call this when transitioning to gameplay (from Panel-GameParametersWindow). Only the host
+        // can reach this button (ApplyHostOnlyGating disables it for non-host clients), so this
+        // gathers the host's own local UI selections and broadcasts them to every connected client
+        // instead of transitioning only the clicking machine - see OnGameStartReceived below.
         public void LoadGalaxyScene()
         {
-            TimeManager.Instance.timeRunning = true;
-            TimeManager.Instance.StartTime();
             UpdateMapSelection();
             UpdateGalaxySizeSelection();
             UpdateTechLevelSelection();
             UpdateNotInGame();
-            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, this.MainMenuData.SelectedGalaxyType);
 
-            Debug.Log("LoadGalaxyScene: Starting clean scene transition");
+            // Shared seed so every client's minor-race selection shuffle (CivManager) and
+            // population/battery rolls (StarSysManager) - both still driven by the global
+            // UnityEngine.Random - replay identically instead of producing a different galaxy
+            // per client.
+            int seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+
+            Debug.Log("LoadGalaxyScene: Host broadcasting game start to all clients");
+            PlayerManager.Instance.ServerBroadcastStartGame(
+                (int)MainMenuData.SelectedGalaxySize,
+                (int)MainMenuData.SelectedTechLevel,
+                (int)MainMenuData.SelectedGalaxyType,
+                seed,
+                IsSinglePlayer);
+        }
+
+        // Runs on every client (including the host's own client) via PlayerManager.RpcStartGame -
+        // the single shared entry point that actually builds the galaxy, so remote clients use the
+        // host's real parameters instead of their own (gated-off, possibly stale) local toggle state.
+        public void OnGameStartReceived(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+        {
+            IsSinglePlayer = isSinglePlayer;
+            MainMenuData.SelectedGalaxySize = (GalaxySize)galaxySize;
+            MainMenuData.SelectedTechLevel = (TechLevel)techLevel;
+            MainMenuData.SelectedGalaxyType = (GalaxyMapType)galaxyType;
+            pendingGalaxySeed = seed;
+
+            TimeManager.Instance.timeRunning = true;
+            TimeManager.Instance.StartTime();
+
+            Debug.Log($"OnGameStartReceived: Starting clean scene transition (seed={seed})");
 
             // Store game settings before transition
             GameController.Instance.GameData.GameMode = IsSinglePlayer ? GameMode.SINGLEPLAYER : GameMode.MULTIPLAYER;
@@ -700,6 +732,13 @@ namespace BOTF3D.UI
 
             // Find and activate galaxy objects
             FindAndActivateGalaxySceneReferences();
+
+            // Seed immediately before generation so no unrelated UnityEngine.Random consumer
+            // (particle systems, other UI) can slip in between this and the deterministic
+            // minor-race/position/population rolls below - see CivManager/StarSysManager.
+            UnityEngine.Random.InitState(pendingGalaxySeed);
+
+            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, MainMenuData.SelectedGalaxyType);
 
             // Initialize game systems
             CivManager.Instance.OnNewGameButtonClicked(
@@ -1090,10 +1129,14 @@ namespace BOTF3D.UI
         }
         private void UpdateNotInGame()
         {
-            // Multiplayer: map each civ claimed by a connected human player (other than the local
-            // player, who already gets "You") to that player's roster name, so the host sees who
-            // is playing what instead of a generic "Computer" label.
+            // Multiplayer: map each civ claimed by a connected human player to either "You" (the
+            // local player's own claim) or that player's roster name, so this client always shows
+            // who is playing what instead of relying on the single-player toggle flow - which never
+            // runs in multiplayer, since the local civ pick comes from the ClientRosterPanel dropdown,
+            // not the civ on/off toggles here. Roster-driven, so it's correct regardless of whether
+            // the host or a remote client reaches this panel first.
             Dictionary<CivEnum, string> remoteClaimedNames = null;
+            CivEnum? localClaimedCiv = null;
             if (!IsSinglePlayer && PlayerManager.Instance != null)
             {
                 int? localPlayerId = PlayerManager.Instance.LocalPlayerController?.netId.GetHashCode();
@@ -1103,7 +1146,10 @@ namespace BOTF3D.UI
                     if (entry.PlayerType != PlayerType.Local)
                         continue;
                     if (localPlayerId.HasValue && entry.PlayerId == localPlayerId.Value)
+                    {
+                        localClaimedCiv = entry.PlayerCiv;
                         continue;
+                    }
                     remoteClaimedNames[entry.PlayerCiv] = entry.PlayerName;
                 }
             }
@@ -1111,6 +1157,14 @@ namespace BOTF3D.UI
             for (int i = 0; i < civToggles.Length; i++)
             {
                 if (playerLocalizers[i] == null) continue;
+
+                if (localClaimedCiv.HasValue && (CivEnum)i == localClaimedCiv.Value)
+                {
+                    if (!playerLocalizers[i].enabled)
+                        playerLocalizers[i].enabled = true;
+                    SetLocalizedPlayerText(playerLocalizers[i], "You");
+                    continue;
+                }
 
                 if (remoteClaimedNames != null && remoteClaimedNames.TryGetValue((CivEnum)i, out string remoteName))
                 {
@@ -1128,17 +1182,23 @@ namespace BOTF3D.UI
 
                 string currentKey = playerLocalizers[i].StringReference.TableEntryReference.Key;
 
-                if (!civToggles[i].isOn && currentKey != "You")
+                // In single-player, "You" is owned by ActivePlayerToggle()/ResetPlayers() and must
+                // be left alone here. In multiplayer, "You" is only ever assigned above (via
+                // localClaimedCiv) - if we land here with a stale "You" it means the local player
+                // switched off this civ to claim another one, so it must not be preserved or it
+                // lingers forever, showing up alongside the new "You".
+                if (IsSinglePlayer && currentKey == "You")
                 {
-                    // Civ is OFF and not the player → set to "Absent"
+                    // leave alone
+                }
+                else if (!civToggles[i].isOn)
+                {
                     SetLocalizedPlayerText(playerLocalizers[i], "Absent");
                 }
-                else if (civToggles[i].isOn && currentKey == "Absent")
+                else if (currentKey == "Absent" || currentKey == "You")
                 {
-                    // Civ turned back ON from "Absent" → set to "Computer"
                     SetLocalizedPlayerText(playerLocalizers[i], "Computer");
                 }
-                // ✅ If currentKey == "You", leave it alone (don't change it)
             }
         }
         private void ActivePlayerToggle()
@@ -1627,8 +1687,16 @@ namespace BOTF3D.UI
         // dropdown on their row in Panel_ClientRoster (ClientRosterPanelUIController).
         public void OnLocalPlayerReady(LocalHumanPlayerController localPlayer)
         {
+            Debug.Log($"[RosterDiag] OnLocalPlayerReady fired, netId={localPlayer.netId} hash={localPlayer.netId.GetHashCode()}");
             if (playerNameInputField != null && !string.IsNullOrWhiteSpace(playerNameInputField.text))
                 localPlayer.SubmitPlayerName(playerNameInputField.text);
+
+            // Panel_ClientRoster.RefreshPanel() may already have run once (it runs on OnEnable,
+            // which fires the instant we SetActive(true) it right after Host/Connect) - at that
+            // point PlayerManager.Instance.LocalPlayerController was still null, so every row was
+            // drawn as read-only text (GetLocalPlayerId() had nothing to match against). Now that
+            // it's set, force a redraw so this player's own row gets its civ dropdown.
+            ClientRosterPanelUIController.Instance?.RefreshPanel();
         }
 
         public void HostButton() // Button Host in Panel-MulitplayerLobby
@@ -1646,6 +1714,19 @@ namespace BOTF3D.UI
 
             NetworkManager.singleton.StartHost();
             SetLobbyStatus($"Hosting at {NetworkManager.singleton.networkAddress}. Select a civilization and press Next.");
+
+            // NetworkManager.RegisterClientMessages() (called internally by StartHost()) does
+            // "NetworkClient.OnConnectedEvent = OnClientConnectInternal" - a plain overwrite, not
+            // +=, which wipes out our OnEnable() subscription every time Start Host/Client runs.
+            // Re-subscribe now that StartHost() has finished re-registering its own handler.
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+
+            // Mirror's host path (NetworkClient.ConnectHost()) never raises OnConnectedEvent -
+            // that's only fired by a real transport handshake, which host mode skips since it's
+            // an in-memory local connection. Drive the same auto-transition directly here instead
+            // of relying on the event, since StartHost() completes synchronously.
+            OnNetworkClientConnected();
         }
 
         public void ConnectButton() // Button Connnect in Panel-MulitplayerLobby
@@ -1682,6 +1763,14 @@ namespace BOTF3D.UI
 
             NetworkManager.singleton.networkAddress = ip;
             NetworkManager.singleton.StartClient();
+
+            // See matching comment in HostButton(): StartClient() -> RegisterClientMessages()
+            // overwrites NetworkClient.OnConnectedEvent with Mirror's own internal handler,
+            // silently dropping our OnEnable() subscription. Without this, OnNetworkClientConnected()
+            // never fires on the connecting client and the UI stays stuck on "Connecting...".
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+
             SetLobbyStatus($"Connecting to {ip}...");
         }
 
@@ -1727,8 +1816,50 @@ namespace BOTF3D.UI
             panelGamePara.SetActive(true);
 
             ApplyRosterLocksToGameParams();
+            ApplyHostOnlyGating();
 
             Debug.Log("NextButton: Proceeding to game parameters. Civs claimed by connected players are locked in.");
+        }
+
+        // UI-only host gate: a connected-but-non-host client must not be able to change galaxy
+        // parameters or start the game - only the host (or a single-player session) drives these.
+        // This does not implement networked scene-transition propagation to remote clients yet;
+        // it only prevents non-host clients from touching the controls locally.
+        private void ApplyHostOnlyGating()
+        {
+            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active;
+            if (isHostAuthoritative)
+                return; // host/single-player keeps full control; per-civ locks are handled by ApplyRosterLocksToGameParams()
+
+            SetToggleListInteractable(OnOffToggles, false);
+            SetToggleListInteractable(MapToggles, false);
+            SetToggleListInteractable(GalaxySizeToggles, false);
+            SetToggleListInteractable(TechLevelToggles, false);
+
+            if (mainMenuButton != null)
+            {
+                Button startButton = mainMenuButton.GetComponent<Button>();
+                if (startButton != null)
+                    startButton.interactable = false;
+            }
+
+            if (previousGameParamsButton != null)
+            {
+                Button backButton = previousGameParamsButton.GetComponent<Button>();
+                if (backButton != null)
+                    backButton.interactable = false;
+            }
+
+            SetLobbyStatus("Waiting for host to start the game...");
+        }
+
+        private static void SetToggleListInteractable(List<Toggle> toggles, bool interactable)
+        {
+            if (toggles == null)
+                return;
+            foreach (Toggle toggle in toggles)
+                if (toggle != null)
+                    toggle.interactable = interactable;
         }
 
         // Prevents the host from accidentally excluding a civ a connected human player already

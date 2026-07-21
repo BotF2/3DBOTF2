@@ -1,6 +1,7 @@
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
+using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -18,13 +19,132 @@ namespace BOTF3D.Galaxy
     /// Controlling fleet movement and interactions while the matching FeetData class
     /// holds key info on status and for save game
     /// </summary>
-    public class FleetController : MonoBehaviour
+    public class FleetController : NetworkBehaviour
     {
         public void Initialize() { }
         public void UpdateState() { }
         //Fields
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
+
+        // Replicated alongside SyncedCivEnum below so OnCivEnumChanged can rebuild the same "Fleet N"
+        // name FleetManager.InstantiateFleet assigns server-side (see GetNewFleetInt). Declared before
+        // SyncedCivEnum so Mirror's weaver-generated deserializer assigns this field first within the
+        // same sync payload - OnCivEnumChanged's hook can then rely on it already being current.
+        [SyncVar]
+        public int SyncedFleetInt;
+
+        // FleetSO.MaxWarpFactor defaults to 0 and is only ever corrected by UpdateMaxWarp() computing
+        // the slowest ship's speed - a server-only call (FleetManager.InstantiateFleet, ship
+        // deploy/merge, etc.). A non-host client's reconstructed FleetData (see OnCivEnumChanged) has
+        // no ships to run that computation on, so it was permanently stuck at 0, which made the warp
+        // slider's maxValue 0 and every warp-up click get rejected. Declared before SyncedCivEnum for
+        // the same reason as SyncedFleetInt above - OnCivEnumChanged reads this field directly rather
+        // than waiting for its own hook, so it must already be current by then.
+        [SyncVar(hook = nameof(OnMaxWarpFactorChanged))]
+        public float SyncedMaxWarpFactor;
+
+        // Fleet creation/position is server-authoritative (see FleetManager.InstantiateFleet), so
+        // remote clients never run InstantiateFleet themselves and their FleetData stays null. This
+        // SyncVar is the minimal piece of FleetData replicated to every client so each one can locally
+        // decide fog-of-war visibility/insignia and register the fleet in its own FleetManager lists -
+        // NOT a substitute for full FleetData sync (ships, warp factor, destination remain server-only
+        // for now).
+        [SyncVar(hook = nameof(OnCivEnumChanged))]
+        public CivEnum SyncedCivEnum;
+
+        // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the
+        // initial spawn sync. Keeps a non-host client's already-built FleetData/slider in sync with
+        // fleet composition changes it has no other way of detecting.
+        private void OnMaxWarpFactorChanged(float oldValue, float newValue)
+        {
+            Debug.LogWarning($"🛰️[MAXWARP] OnMaxWarpFactorChanged: fleet '{name}' oldValue={oldValue}, newValue={newValue}, NetworkServer.active={NetworkServer.active}, FleetData={(FleetData == null ? "NULL" : "OK")}.");
+            if (NetworkServer.active) return;
+            if (FleetData == null) return;
+
+            FleetData.MaxWarpFactor = newValue;
+            if (GalaxyUI != null)
+                FleetUI.UpdateFleetMaxWarpUI(this, newValue);
+        }
+
+        // Fires on every client whenever SyncedCivEnum changes, including the initial sync on spawn
+        // (same Mirror hook behavior relied on by LocalHumanPlayerController.OnPlayerCivChanged).
+        // NetworkServer.active (not isServer) is the right guard here: the host machine already ran
+        // the full setup directly inside FleetManager.InstantiateFleet, and NetworkServer.active is
+        // true there regardless of whether this particular NetworkIdentity has finished spawning yet.
+        private void OnCivEnumChanged(CivEnum oldCiv, CivEnum newCiv)
+        {
+            if (NetworkServer.active) return;
+
+            // NetworkTransform's coordinateSpace is set to World (needed so the fleet's synced
+            // position isn't misread as this unparented client copy's own local position - see
+            // FleetPrefab.prefab), but Mirror's NetworkTransformBase forcibly disables scale sync
+            // entirely whenever coordinateSpace is World (never implemented world/lossy-scale sync -
+            // see NetworkTransformBase.SetScale). FleetManager.InstantiateFleet's runtime scale
+            // (0.4, 0.4, 1) therefore never reaches any remote client. It's the same fixed constant
+            // for every fleet regardless of civ (one shared fleetPrefab - see InstantiateFleet), so
+            // just apply it locally here instead of relying on a sync that Mirror can't do.
+            //
+            // FleetManager.InstantiateFleet also parents the fleet under GalaxyCenter (scale 10,10,10
+            // in GalaxyScene.unity) BEFORE applying that 0.4 local scale, so the server/host's actual
+            // effective world scale is 0.4 * 10 = 4, not 0.4. This client copy is unparented (see
+            // above), so its local scale IS its world scale - it must bake in that same GalaxyCenter
+            // multiplier itself or it renders 10x too small, which is exactly the "hierarchy says 0.7
+            // but looks way smaller" symptom this was meant to fix in the first place.
+            // On a freshly-connected client, this hook can fire for pre-existing fleets (e.g. the
+            // host's) as part of the initial spawn-message burst, before this client's own
+            // FleetManager has resolved GalaxyCenter (that normally happens later during this
+            // client's own galaxy scene setup). Falling back to Vector3.one in that case silently
+            // bakes in the wrong scale forever (0.4 instead of 0.4*10=4) - retry the lookup first,
+            // same pattern as FleetManager.SetUpDropLine's galaxyImage retry.
+            if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
+                FleetManager.Instance.FindGalaxyReferences();
+
+            Vector3 galaxyScale = FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null
+                ? FleetManager.Instance.GalaxyCenter.transform.lossyScale
+                : Vector3.one;
+            transform.localScale = Vector3.Scale(new Vector3(0.4f, 0.4f, 1f), galaxyScale);
+
+            if (FleetData == null)
+            {
+                FleetSO fleetSO = FleetManager.Instance.GetFleetSO_byInt((int)newCiv);
+                if (fleetSO == null)
+                {
+                    Debug.LogWarning($"FleetController.OnCivEnumChanged: no FleetSO found for civ {newCiv}; cannot set up remote fleet visuals for '{name}' - RegisterFleetControllerAndSetupVisuals (insignia/fog/DropLine) will NOT run for this fleet.");
+                    return;
+                }
+                FleetData = new FleetData(fleetSO);
+                FleetData.CivEnum = newCiv;
+                // FleetData(FleetSO) doesn't set FleetName - only InstantiateFleet does that,
+                // server-side, and this client-reconstructed FleetData never goes through it. Without
+                // this, FleetNameText/the map label read FleetData.FleetName as null/empty.
+                FleetData.FleetInt = SyncedFleetInt;
+                FleetData.FleetName = "Fleet " + SyncedFleetInt.ToString();
+                // SyncedMaxWarpFactor is already deserialized at this point (declared before
+                // SyncedCivEnum - see its own comment), and reflects the server's real
+                // UpdateMaxWarp() result rather than the FleetSO's unconfigured 0 default.
+                Debug.LogWarning($"🛰️[MAXWARP] OnCivEnumChanged: fleet '{name}' raw SyncedMaxWarpFactor={SyncedMaxWarpFactor} at FleetData construction time (fleetSO default MaxWarpFactor={fleetSO.MaxWarpFactor}).");
+                if (SyncedMaxWarpFactor > 0f)
+                    FleetData.MaxWarpFactor = SyncedMaxWarpFactor;
+                if (FleetManager.Instance.GalaxyCenter != null)
+                    FleetData.Destination = FleetManager.Instance.GalaxyCenter;
+            }
+
+            Debug.Log($"OnCivEnumChanged: civ={newCiv} synced for fleet '{name}' (GalaxyCenter={(FleetManager.Instance.GalaxyCenter != null ? "OK" : "NULL")}) - calling RegisterFleetControllerAndSetupVisuals.");
+            FleetManager.Instance.RegisterFleetControllerAndSetupVisuals(this, FleetData);
+        }
+
+        // Non-host clients have no Mirror authority over any fleet (spawned via plain
+        // NetworkServer.Spawn with no owning connection - see FleetManager.InstantiateFleet), so every
+        // order-relay Command below uses requiresAuthority = false and checks this instead: the calling
+        // connection's own player civ (via its player-owned LocalHumanPlayerController) must match the
+        // civ of the fleet being commanded, so Player 2 can order their own fleet but not the Fed one.
+        private bool IsSenderAuthorizedForThisFleet(NetworkConnectionToClient sender)
+        {
+            if (sender?.identity == null) return false;
+            LocalHumanPlayerController playerCon = sender.identity.GetComponent<LocalHumanPlayerController>();
+            return playerCon != null && FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+        }
         [SerializeField]
         private GameObject _fleetUIGameObject;
 
@@ -274,11 +394,17 @@ namespace BOTF3D.Galaxy
 
         private void MoveToInterceptPoint()
         {
-            float howFast   = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
-            Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
-                howFast * warpFudgeFactor * Time.fixedDeltaTime);
-            rb.MovePosition(nextPos);
-            FleetData.Position = nextPos;
+            // Movement is server-authoritative - NetworkTransform on this prefab replicates the
+            // resulting position out to every client. Clients must not also call MovePosition here,
+            // or their local Rigidbody would fight the incoming NetworkTransform replication.
+            if (isServer)
+            {
+                float howFast   = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
+                Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
+                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                rb.MovePosition(nextPos);
+                FleetData.Position = nextPos;
+            }
 
             Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
             DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
@@ -286,6 +412,7 @@ namespace BOTF3D.Galaxy
 
         private void GetMapSise()
         {
+            if (FleetUIGameObject == null) return;
             var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
             RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
@@ -469,6 +596,7 @@ namespace BOTF3D.Galaxy
         {
             var clickedFleetCon = GetComponentInParent<FleetController>();
 
+            Debug.Log($"FleetController.OnMouseDown: raw click on '{name}' (layer={gameObject.layer}), clickedFleetCon={(clickedFleetCon == null ? "NULL" : clickedFleetCon.name)}, CurrentClickMode={GalaxyUI?.CurrentClickMode}.");
             if (clickedFleetCon == null) return;
 
             switch (GalaxyUI.CurrentClickMode)
@@ -799,14 +927,21 @@ namespace BOTF3D.Galaxy
 
         void MoveToDesitinationGO(Vector3 direction)
         {
-            float howFast = this.FleetData.CurrentWarpFactor;
-            if (howFast > this.FleetData.MaxWarpFactor)
-                this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
+            // Movement is server-authoritative - NetworkTransform on this prefab replicates the
+            // resulting position out to every client. Clients must not also call MovePosition here,
+            // or their local Rigidbody would fight the incoming NetworkTransform replication.
+            if (isServer)
+            {
+                float howFast = this.FleetData.CurrentWarpFactor;
+                if (howFast > this.FleetData.MaxWarpFactor)
+                    this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
 
-            Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
-                howFast * warpFudgeFactor * Time.fixedDeltaTime);
-            rb.MovePosition(nextPosition);
-            this.FleetData.Position = nextPosition;
+                Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
+                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                rb.MovePosition(nextPosition);
+                this.FleetData.Position = nextPosition;
+            }
+
             Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
             DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
         }
@@ -1009,6 +1144,15 @@ namespace BOTF3D.Galaxy
                 }
             }
             fleetData.MaxWarpFactor = maxWarp;
+            Debug.LogWarning($"🛰️[MAXWARP] UpdateMaxWarp: fleet '{name}' computed maxWarp={maxWarp} from {fleetData.ShipsList.Count} ship(s), isServer={isServer}, NetworkServer.active={NetworkServer.active}, SyncedMaxWarpFactor(before)={SyncedMaxWarpFactor}.");
+            // isServer requires the NetworkIdentity to have already been spawned (NetworkServer.Spawn),
+            // but InstantiateFleet calls UpdateMaxWarp() twice (ShipManager.BuildShipsOfFirstFleet and
+            // just before Spawn) while building the fleet, i.e. before Spawn has run - isServer reads
+            // false there even though this is unambiguously server code, so SyncedMaxWarpFactor was
+            // silently never assigned pre-spawn. NetworkServer.active is true in server code regardless
+            // of spawn timing - same reasoning as OnCivEnumChanged's NetworkServer.active guard above.
+            if (NetworkServer.active)
+                SyncedMaxWarpFactor = maxWarp;
             if (GalaxyUI != null)
                 FleetUI.UpdateFleetMaxWarpUI(this, maxWarp);
         }
@@ -1029,8 +1173,10 @@ namespace BOTF3D.Galaxy
             {
                 warpChange = 0.1f;
             }
+            Debug.Log($"FleetOnWarpUpClick: fleet '{fleetCon.name}' current={fleetCon.FleetData.CurrentWarpFactor}, max={fleetCon.FleetData.MaxWarpFactor}, warpChange={warpChange}.");
             if (fleetCon.FleetData.CurrentWarpFactor + warpChange > fleetCon.FleetData.MaxWarpFactor)
             {
+                Debug.LogWarning($"🛰️[MAXWARP] FleetOnWarpUpClick: fleet '{fleetCon.name}' would exceed MaxWarpFactor ({fleetCon.FleetData.CurrentWarpFactor}+{warpChange} > {fleetCon.FleetData.MaxWarpFactor}) - click ignored.");
                 warpChange = 0f;
                 return;
             }
@@ -1042,8 +1188,10 @@ namespace BOTF3D.Galaxy
             {
                 warpChange = -0.1f;
             }
+            Debug.Log($"FleetOnWarpDownClick: fleet '{fleetCon.name}' current={fleetCon.FleetData.CurrentWarpFactor}, max={fleetCon.FleetData.MaxWarpFactor}, warpChange={warpChange}.");
             if (fleetCon.FleetData.CurrentWarpFactor - warpChange < 0f)
             {
+                Debug.LogWarning($"🛰️[MAXWARP] FleetOnWarpDownClick: fleet '{fleetCon.name}' would go below 0 ({fleetCon.FleetData.CurrentWarpFactor}-{warpChange} < 0) - click ignored.");
                 warpChange = 0f;
                 return;
             }
@@ -1052,6 +1200,7 @@ namespace BOTF3D.Galaxy
 
         public void SliderOnValueChange(float newWarpValue)
         {
+            Debug.Log($"SliderOnValueChange: fleet '{name}' requested newWarpValue={newWarpValue}, MaxWarpFactor={this.FleetData.MaxWarpFactor}.");
             float maxSliderValue = this.FleetData.MaxWarpFactor;
 
             if (newWarpValue < 0f)
@@ -1064,7 +1213,29 @@ namespace BOTF3D.Galaxy
             }
 
             FleetData.CurrentWarpFactor = newWarpValue;
-            fleetUI.UpdateFleetWarpUI(this, newWarpValue);
+            FleetUI.UpdateFleetWarpUI(this, newWarpValue);
+
+            // Movement in FixedUpdate() reads FleetData off whichever machine's FleetController this
+            // is - on a non-host client that's a disconnected copy (see OnCivEnumChanged), so the order
+            // has to be relayed to the server-authoritative instance. isServer is true on the host, so
+            // this is a no-op there and the block above is all that ever runs.
+            if (!isServer)
+            {
+                Debug.Log($"SliderOnValueChange: non-host client relaying warp={newWarpValue} for fleet '{name}' via CmdSetWarpFactor.");
+                CmdSetWarpFactor(newWarpValue);
+            }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetWarpFactor(float newWarpValue, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetWarpFactor: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdSetWarpFactor: connection {sender?.connectionId} authorized, setting warp={newWarpValue} on fleet '{name}'.");
+            SliderOnValueChange(newWarpValue);
         }
 
         //internal void SelectedUsForShips(FleetController fleetCon)
@@ -1274,6 +1445,91 @@ namespace BOTF3D.Galaxy
             }
 
             FleetMenuUIController.Instance?.SetAsDestination(destinationNameText, coordiatesText);
+
+            // Same reasoning as SliderOnValueChange: on a non-host client this method only mutated a
+            // disconnected local FleetData copy, so relay to the server-authoritative instance too.
+            if (!isServer)
+                RelayDestinationToServer(hitObject);
+        }
+
+        // hitObject can be a star system, a fleet, or GalaxyCenter - each needs its own Command since
+        // Mirror can only serialize GameObject/NetworkIdentity parameters for objects that have a
+        // spawned NetworkIdentity, and StarSysController/GalaxyCenter don't have one (only FleetController
+        // does - see Stage 1). A manually-placed player-defined target point also has no NetworkIdentity
+        // and isn't handled here; giving that kind of order on a non-host client is a known remaining gap.
+        private void RelayDestinationToServer(GameObject hitObject)
+        {
+            if (hitObject == FleetManager.Instance?.GalaxyCenter)
+            {
+                Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=GalaxyCenter via CmdSetDestinationToGalaxyCenter.");
+                CmdSetDestinationToGalaxyCenter();
+                return;
+            }
+
+            StarSysController starSysCon = hitObject.GetComponent<StarSysController>();
+            if (starSysCon != null)
+            {
+                Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination='{starSysCon.StarSysData.GetSysName()}' via CmdSetDestinationToStarSystem.");
+                CmdSetDestinationToStarSystem(starSysCon.StarSysData.GetSysName());
+                return;
+            }
+
+            FleetController targetFleetCon = hitObject.GetComponent<FleetController>();
+            if (targetFleetCon != null)
+            {
+                NetworkIdentity targetIdentity = targetFleetCon.GetComponent<NetworkIdentity>();
+                if (targetIdentity != null)
+                {
+                    Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=fleet '{targetFleetCon.name}' via CmdSetDestinationToFleet.");
+                    CmdSetDestinationToFleet(targetIdentity);
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"RelayDestinationToServer: '{hitObject.name}' has no networked relay path (e.g. a player-defined target point) - this order will not reach the server on a non-host client.");
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToGalaxyCenter(NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToGalaxyCenter: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdSetDestinationToGalaxyCenter: connection {sender?.connectionId} authorized, setting destination on fleet '{name}'.");
+            FleetData.Destination = FleetManager.Instance?.GalaxyCenter;
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToStarSystem(string starSysName, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToStarSystem: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            StarSysController targetSys = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (targetSys == null)
+            {
+                Debug.LogWarning($"CmdSetDestinationToStarSystem: no star system named '{starSysName}' found server-side (possible galaxy-generation divergence between client and server).");
+                return;
+            }
+            Debug.Log($"CmdSetDestinationToStarSystem: connection {sender?.connectionId} authorized, setting destination='{starSysName}' on fleet '{name}'.");
+            FleetData.Destination = targetSys.gameObject;
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToFleet(NetworkIdentity targetFleetIdentity, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToFleet: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            if (targetFleetIdentity == null) return;
+            Debug.Log($"CmdSetDestinationToFleet: connection {sender?.connectionId} authorized, setting destination=fleet '{targetFleetIdentity.name}' on fleet '{name}'.");
+            FleetData.Destination = targetFleetIdentity.gameObject;
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)

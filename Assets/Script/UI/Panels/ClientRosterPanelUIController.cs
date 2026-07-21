@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Mirror;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using BOTF3D.Core;
 
 namespace BOTF3D.UI
@@ -40,6 +41,8 @@ namespace BOTF3D.UI
             public TextMeshProUGUI civilizationNameText;
             public TMP_Dropdown civilizationDropdown;
             public List<CivEnum> dropdownCivs = new List<CivEnum>();
+            public List<bool> dropdownCivAvailable = new List<bool>();
+            public int lastValidIndex;
         }
 
         private readonly List<RowState> rows = new List<RowState>();
@@ -90,6 +93,7 @@ namespace BOTF3D.UI
 
             IReadOnlyList<RosterEntry> roster = PlayerManager.Instance.Roster;
             int? localPlayerId = GetLocalPlayerId();
+            Debug.Log($"[RosterDiag] RefreshPanel: rosterCount={roster.Count} localPlayerId={(localPlayerId.HasValue ? localPlayerId.Value.ToString() : "null")}");
 
             while (rows.Count < roster.Count)
                 rows.Add(BuildRow());
@@ -99,6 +103,12 @@ namespace BOTF3D.UI
 
             for (int i = roster.Count; i < rows.Count; i++)
                 rows[i].root.SetActive(false);
+
+            // Newly instantiated/reactivated rows don't reliably retrigger VerticalLayoutGroup's
+            // own dirty-tracking (SetActive doesn't fire OnTransformChildrenChanged), so without
+            // this a just-joined player's row can be left at a stale/default position instead of
+            // being stacked under the previous row.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content as RectTransform);
         }
 
         private static int? GetLocalPlayerId()
@@ -128,6 +138,17 @@ namespace BOTF3D.UI
         {
             if (index < 0 || index >= row.dropdownCivs.Count)
                 return;
+
+            if (!row.dropdownCivAvailable[index])
+            {
+                // Taken civs stay visible (greyed out) so the player can see what's unavailable,
+                // but selecting one snaps the dropdown back instead of submitting it - the server
+                // would reject it anyway (see LocalHumanPlayerController.CmdSetPlayerCiv).
+                row.civilizationDropdown.SetValueWithoutNotify(row.lastValidIndex);
+                return;
+            }
+
+            row.lastValidIndex = index;
             PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv(row.dropdownCivs[index]);
         }
 
@@ -141,7 +162,7 @@ namespace BOTF3D.UI
             if (r.civilizationDropdown == null)
             {
                 // No dropdown wired on this prefab (older/placeholder rows) - fall back to read-only text.
-                if (r.civilizationNameText != null) r.civilizationNameText.text = entry.PlayerCiv.ToString();
+                if (r.civilizationNameText != null) r.civilizationNameText.text = GetDisplayName(entry.PlayerCiv);
                 return;
             }
 
@@ -151,7 +172,7 @@ namespace BOTF3D.UI
                 if (r.civilizationNameText != null)
                 {
                     r.civilizationNameText.gameObject.SetActive(true);
-                    r.civilizationNameText.text = entry.PlayerCiv.ToString();
+                    r.civilizationNameText.text = GetDisplayName(entry.PlayerCiv);
                 }
                 return;
             }
@@ -161,23 +182,45 @@ namespace BOTF3D.UI
             r.civilizationDropdown.gameObject.SetActive(true);
 
             r.dropdownCivs.Clear();
+            r.dropdownCivAvailable.Clear();
             var options = new List<TMP_Dropdown.OptionData>();
             int selectedIndex = 0;
             for (int i = 0; i < SelectableCivs.Length; i++)
             {
                 CivEnum civ = SelectableCivs[i];
-                if (civ != entry.PlayerCiv && IsTakenByAnotherPlayer(civ, entry.PlayerId, roster))
-                    continue;
+                bool takenByOther = civ != entry.PlayerCiv && IsTakenByAnotherPlayer(civ, entry.PlayerId, roster);
 
                 if (civ == entry.PlayerCiv)
                     selectedIndex = r.dropdownCivs.Count;
+
                 r.dropdownCivs.Add(civ);
-                options.Add(new TMP_Dropdown.OptionData(civ.ToString()));
+                r.dropdownCivAvailable.Add(!takenByOther);
+
+                // Keep taken civs visible but greyed out (rather than hiding them) so it's obvious
+                // why they can't be picked instead of them silently disappearing from the list.
+                string label = takenByOther ? $"<color=#808080>{GetDisplayName(civ)} (Taken)</color>" : GetDisplayName(civ);
+                options.Add(new TMP_Dropdown.OptionData(label));
             }
 
             r.civilizationDropdown.options = options;
             r.civilizationDropdown.SetValueWithoutNotify(selectedIndex);
             r.civilizationDropdown.RefreshShownValue();
+            r.lastValidIndex = selectedIndex;
+        }
+
+        private static string GetDisplayName(CivEnum civ)
+        {
+            switch (civ)
+            {
+                case CivEnum.FED:    return "Federation";
+                case CivEnum.ROM:    return "Romulan";
+                case CivEnum.KLING:  return "Klingon";
+                case CivEnum.CARD:   return "Cardassian";
+                case CivEnum.DOM:    return "Dominion";
+                case CivEnum.BORG:   return "Borg";
+                case CivEnum.TERRAN: return "Terran";
+                default:             return civ.ToString();
+            }
         }
 
         private static bool IsTakenByAnotherPlayer(CivEnum civ, int excludingPlayerId, IReadOnlyList<RosterEntry> roster)

@@ -898,14 +898,24 @@ namespace BOTF3D.UI
 
         public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
         {
-            if (fleetConWaitingForDestination == null) return;
+            if (fleetConWaitingForDestination == null)
+            {
+                Debug.LogWarning("SelectedDestinationCursor: fleetConWaitingForDestination is NULL - click ignored.");
+                return;
+            }
 
             if (fleetConWaitingForDestination.TargetController != null)
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
 
             bool isLocalPlayer = GameController.Instance != null &&
                                   GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum);
-            if (!isLocalPlayer) return;
+            if (!isLocalPlayer)
+            {
+                Debug.LogWarning($"SelectedDestinationCursor: fleet '{fleetConWaitingForDestination.name}' (civ={fleetConWaitingForDestination.FleetData?.CivEnum}) is NOT recognized as the local player's own fleet (GameController.Instance={(GameController.Instance != null ? "OK" : "NULL")}) - SetDestination mode NOT armed, click ignored.");
+                return;
+            }
+
+            Debug.Log($"SelectedDestinationCursor: arming SetDestination mode for fleet '{fleetConWaitingForDestination.name}'.");
 
             var fields = fleetConWaitingForDestination.FleetUIGameObject != null ? fleetConWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
@@ -927,7 +937,11 @@ namespace BOTF3D.UI
         }
         public void ClickSelectDestinationButton(FleetController fleetCon)
         {
-            if (fleetCon == null) return;
+            if (fleetCon == null)
+            {
+                Debug.LogWarning("ClickSelectDestinationButton: fleetCon is NULL - click ignored.");
+                return;
+            }
 
             if (fleetCon.TargetController != null)
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
@@ -935,8 +949,13 @@ namespace BOTF3D.UI
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
+                Debug.Log($"ClickSelectDestinationButton: arming SetDestination mode for fleet '{fleetCon.name}'.");
                 galaxyUI.BeginSetDestination(fleetCon);
                 MousePointerChanger.Instance?.SetDestinationCursor();
+            }
+            else
+            {
+                Debug.LogWarning("ClickSelectDestinationButton: GalaxyMenuUIController.Instance is NULL - could not arm SetDestination mode.");
             }
         }
         public void ClickCancelDestinationButton(FleetController fleetCon)
