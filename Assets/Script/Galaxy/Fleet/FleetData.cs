@@ -44,6 +44,44 @@ namespace BOTF3D.Galaxy
         // "never had a target" from "target was just destroyed".
         public bool IsPursuingIntercept;
 
+        // Star system this fleet currently occupies a dock slot at (see FleetDockLayout /
+        // StarSysData.ClaimFleetDockSlot), null once the fleet has moved away. Set by
+        // FleetManager.InstantiateFleet when the fleet is created at a system; released by
+        // ReleaseDockSlotIfAny the moment the fleet actually starts moving.
+        public StarSysController DockedStarSys;
+        public int DockedSlotIndex = -1;
+
+        public void ReleaseDockSlotIfAny()
+        {
+            if (DockedStarSys == null) return;
+            DockedStarSys.StarSysData.ReleaseFleetDockSlot(DockedSlotIndex);
+            DockedStarSys = null;
+            DockedSlotIndex = -1;
+        }
+
+        // Simpler positioning used when THIS fleet spawns a new fleet off itself (splitting,
+        // convoys anchored on a fleet rather than a system) instead of the star-system dock slots
+        // above. No occupancy tracking - just nudge each successive split a bit further out, and
+        // restart from the first nudge as soon as this fleet's own position has moved since the
+        // last split, since a moving fleet already can't leave newly split fleets overlapping it.
+        private Vector3 lastSplitAnchorPosition;
+        private bool hasSplitAnchor;
+        private int splitSpacerCount;
+
+        public Vector3 GetNextSplitOffset(Vector3 anchorPosition)
+        {
+            if (!hasSplitAnchor || anchorPosition != lastSplitAnchorPosition)
+            {
+                splitSpacerCount = 0;
+                lastSplitAnchorPosition = anchorPosition;
+                hasSplitAnchor = true;
+            }
+
+            float step = 15f + splitSpacerCount * 5f;
+            splitSpacerCount++;
+            return new Vector3(-step, step, 0f);
+        }
+
         // True for a temporary fleet spawned to ferry redeployed ships to a distant fleet/system.
         public bool IsConvoy;
         // Set when IsConvoy and the redeploy target is another fleet; convoy merges into it on arrival.

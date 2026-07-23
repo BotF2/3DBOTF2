@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Mirror;
 using BOTF3D.Combat;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
@@ -72,6 +73,11 @@ namespace BOTF3D.Combat
 
         // Fleet refs captured before combat starts, used for reliable end-of-combat cleanup
         private List<FleetController> _involvedFleets = new List<FleetController>();
+
+        // A stable, still-valid FleetController from this combat, used as the Command/Rpc call
+        // channel by code (TurnBasedCombatResolver, CombatUIManager) that isn't itself a
+        // NetworkBehaviour and needs one to reach the network.
+        public FleetController GetInvolvedFleetAnchor() => _involvedFleets.Find(f => f != null);
 
         // === DEBUG & TESTING ===
         private BOTF3D.Combat.Testing.CombatRecorder combatRecorder;
@@ -210,8 +216,35 @@ namespace BOTF3D.Combat
             // Setup ships using ShipSetupManager
             shipSetupManager.SetupAllShips();
 
+            BuildShipIDLookup();
+
+            // Initialize the resolver now (not after warp-in) so networked turn-1 order
+            // submission - which happens from the pre-warp combat menu, before StartWarpInAnimation
+            // ever runs - has combatController/combatData available. See TurnBasedCombatResolver.
+            if (UseTurnBasedCombat && TurnResolver != null)
+            {
+                TurnResolver.Initialize(this);
+            }
+
             Debug.Log("=== Ship Setup Complete ===");
         }
+
+        // ShipID -> ShipController, used to apply networked per-ship outcome Rpcs (destroyed/
+        // captured/scuttled - see ShipController.ForceDestroyFromServer & friends) by stable ID
+        // rather than by local instance reference, since each client instantiates its own ships.
+        private readonly Dictionary<int, ShipController> shipsByID = new Dictionary<int, ShipController>();
+
+        private void BuildShipIDLookup()
+        {
+            shipsByID.Clear();
+            foreach (var ship in CombatData.SideOneShipCons.Concat(CombatData.SideTwoShipCons))
+            {
+                if (ship?.ShipData == null) continue;
+                shipsByID[ship.ShipData.ShipID] = ship;
+            }
+        }
+
+        public ShipController GetShipByID(int shipID) => shipsByID.TryGetValue(shipID, out var ship) ? ship : null;
 
         private void CaptureInvolvedFleets()
         {
@@ -288,7 +321,7 @@ namespace BOTF3D.Combat
             {
                 if (TurnResolver != null)
                 {
-                    TurnResolver.Initialize(this);
+                    // Already Initialize()'d in PopulateShipData, before warp-in - see comment there.
                     Debug.Log("🎮 Starting Turn-Based Combat");
                     TurnResolver.BeginOrderSelection();
                 }
@@ -635,7 +668,18 @@ namespace BOTF3D.Combat
         /// </summary>
         public void EndCombat()
         {
+            // Idempotency guard: the server calls this directly, then its own RpcCombatEnded
+            // broadcast (see FleetController.RpcCombatEnded) loops back and calls it again on the
+            // host's own client connection, and a non-host combatant client calls it from that same
+            // Rpc. Without this guard all three paths would re-run cleanup.
+            if (combatEnded) return;
+            combatEnded = true;
+
             Debug.Log("=== EndCombat: Starting cleanup ===");
+
+            // Grab a stable fleet ref before the cleanup loop below can destroy entries in
+            // _involvedFleets, so we still have something to broadcast the combat-ended Rpc through.
+            FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
 
             // Clean up ships
             if (CombatData.SideOneShipCons != null)
@@ -714,6 +758,10 @@ namespace BOTF3D.Combat
                 TimeManager.Instance.ResumeTime();
                 CombatManager.Instance.OnCombatEnded(this);
             }
+
+            // Tell bystanders (see FleetController.RpcCombatEnded) they can hide the paused notice.
+            if (NetworkServer.active)
+                combatEndedAnchor?.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
         }
 
         /// <summary>

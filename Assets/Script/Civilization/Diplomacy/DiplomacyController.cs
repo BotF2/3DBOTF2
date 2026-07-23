@@ -304,10 +304,15 @@ namespace BOTF3D.Civilization
                 // ✅ Force close ALL menus to prevent UI conflicts
                 GalaxyMenuUIController.Instance.CloseAllMenus();
 
-                Debug.Log($"✅ Diplomacy closed, loading combat scene...");
+                Debug.Log($"✅ Diplomacy closed, requesting combat scene...");
 
-                SceneController.Instance.LoadCombatScene(
-                    diplomacyController.DiplomacyData.FleetControllerCivOne,
+                // SceneController.LoadCombatScene is not itself networked - it's a purely local scene
+                // load. FleetControllerCivOne is always a real, networked fleet (see ValidCombatCheck),
+                // so route the request through it: RequestStartCombat relays to the server if needed
+                // and the server broadcasts the result to every client via RpcStartCombat, so both
+                // combatants' clients load the Combat scene together instead of just whichever one
+                // clicked the button.
+                diplomacyController.DiplomacyData.FleetControllerCivOne.RequestStartCombat(
                     diplomacyController.DiplomacyData.FleetContollerCivTwo,
                     diplomacyController.DiplomacyData.StarSysController
                 );
@@ -317,18 +322,23 @@ namespace BOTF3D.Civilization
 
         private bool ValidCombatCheck(DiplomacyData diplomacyData)
         {
-            bool _result = false;
-            if ((diplomacyData.FleetControllerCivOne != null && diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0) &&
-                (diplomacyData.FleetContollerCivTwo != null && diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0))
-                _result = true;
-            if ((diplomacyData.FleetControllerCivOne != null && diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0) &&
-                (diplomacyData.StarSysController != null && diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0))
-                _result = true;
-            if ((diplomacyData.FleetContollerCivTwo != null && diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0) &&
-                (diplomacyData.StarSysController != null && diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0))
-                _result = true;
+            // FleetControllerCivOne/CivTwo are sometimes a placeholder "empty" fleet controller
+            // (see FleetManager.InsatiateEmptyFleetController) standing in for a defender that's
+            // actually system-docked rather than fleeted - its FleetData is never assigned, so it must
+            // be null-checked here too, not just the FleetController reference itself.
+            bool sideOneHasShips = diplomacyData.FleetControllerCivOne != null &&
+                diplomacyData.FleetControllerCivOne.FleetData != null &&
+                diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0;
+            bool sideTwoHasShips = diplomacyData.FleetContollerCivTwo != null &&
+                diplomacyData.FleetContollerCivTwo.FleetData != null &&
+                diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0;
+            bool systemHasShips = diplomacyData.StarSysController != null &&
+                diplomacyData.StarSysController.StarSysData != null &&
+                diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0;
 
-            return _result;
+            return (sideOneHasShips && sideTwoHasShips) ||
+                   (sideOneHasShips && systemHasShips) ||
+                   (sideTwoHasShips && systemHasShips);
         }
 
         internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)

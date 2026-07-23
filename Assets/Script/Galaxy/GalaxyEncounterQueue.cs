@@ -76,18 +76,22 @@ namespace BOTF3D.Galaxy
             var record = pending[0];
             pending.RemoveAt(0);
 
-            // Skip records whose actors were destroyed between queuing and resolution
+            // Skip records whose actors were destroyed between queuing and resolution.
+            // Resolution is broadcast to every client (see FleetController.ServerNotify*Encounter)
+            // instead of calling DiplomacyManager directly here, since DrainAll only ever runs on the
+            // server and DiplomacyManager is an unnetworked per-client singleton - calling it directly
+            // here would only ever open the Diplomacy UI on the host's own screen.
             if (record.Kind == EncounterKind.FleetVsFleet)
             {
                 if (record.FleetA != null && record.FleetB != null)
-                    DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(record.FleetA, record.FleetB);
+                    record.FleetA.ServerNotifyFleetVsFleetEncounter(record.FleetB);
                 else if (HasPending)
                     ResolveNext();
             }
             else
             {
                 if (record.FleetA != null && record.StarSys != null)
-                    DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(record.FleetA, record.StarSys);
+                    record.FleetA.ServerNotifyFleetVsSystemEncounter(record.StarSys);
                 else if (HasPending)
                     ResolveNext();
             }

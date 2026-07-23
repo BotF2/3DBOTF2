@@ -69,7 +69,6 @@ namespace BOTF3D.Galaxy
         private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
         public csFogWar.FogRevealer TempFogRevealerFleet;
-        private float newFleetSpacer = 0f;
 
         // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
         [SerializeField] public GameObject FleetUI_ListContainer;
@@ -363,6 +362,11 @@ namespace BOTF3D.Galaxy
 
             fleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
+            // Exactly one of these is set below, picking which positioning scheme applies: a system
+            // dock slot (see FleetDockLayout) for a fleet appearing at a star system, or the simpler
+            // fleet-relative spacer for a fleet splitting off of an existing fleet.
+            StarSysController dockSystem = null;
+            FleetController spacerAnchorFleet = null;
 
             FleetController newFleet = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
 
@@ -393,31 +397,42 @@ namespace BOTF3D.Galaxy
             if (sysController != null && sysController.StarSysData != null && !isNewFleet)
             {
                 newTrans = sysController.transform;
+                dockSystem = sysController;
                 Destroy(existingFleetCon.gameObject); // destroy the empty original fleet controller
             }
             else if (existingFleetCon != null && isNewFleet)
             {
                 newTrans = existingFleetCon.transform;
+                spacerAnchorFleet = existingFleetCon;
             }
             else if (sysController != null && sysController.StarSysData != null && isNewFleet)
             {
                 newTrans = sysController.transform;
+                dockSystem = sysController;
             }
 
             newFleet.transform.SetParent(transGalaxyCenter, true);
 
             if (newTrans != null)
             {
-                if (!isNewFleet)
+                if (dockSystem != null)
                 {
-                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y + 20f, newTrans.position.z + 10F));
+                    // Fleet 1 claims slot 0 (the original fixed spot); each subsequent fleet built/
+                    // formed at this system claims the next free slot in the outward spiral, and the
+                    // slot is freed automatically once that fleet moves away (see
+                    // FleetData.ReleaseDockSlotIfAny, called from FleetController's movement).
+                    int slot = dockSystem.StarSysData.ClaimFleetDockSlot(newFleet);
+                    Vector3 slotOffset = FleetDockLayout.GetSlotOffset(slot);
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y, newTrans.position.z) + slotOffset);
+                    fleetData.DockedStarSys = dockSystem;
+                    fleetData.DockedSlotIndex = slot;
                 }
-                else
+                else if (spacerAnchorFleet != null)
                 {
-                    if (newFleetSpacer > 10f)
-                        newFleetSpacer = 0;
-                    newFleet.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
-                    newFleetSpacer = newFleetSpacer + 5f;
+                    // Simpler scheme for a fleet splitting off another fleet (not a system): nudge
+                    // outward each time, resetting as soon as the source fleet itself has moved.
+                    Vector3 spacerOffset = spacerAnchorFleet.FleetData.GetNextSplitOffset(newTrans.position);
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y, newTrans.position.z) + spacerOffset);
                 }
             }
 
@@ -950,6 +965,7 @@ namespace BOTF3D.Galaxy
         internal void DestroyFleetController(FleetController fleetController)
         {
             if (fleetController == null) return;
+            fleetController.FleetData?.ReleaseDockSlotIfAny();
             RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
             if (FleetControllersInGame.Contains(fleetController))
                 FleetControllersInGame.Remove(fleetController);

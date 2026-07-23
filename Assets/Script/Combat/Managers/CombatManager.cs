@@ -320,6 +320,24 @@ public GameObject HealthbarPrefab;
         }
 
         /// <summary>
+        /// Same as <see cref="GetActiveCombatControllerForCivs"/> but for callers (e.g. an order-submission
+        /// Command) that only have the submitting side's civ, not the opponent's.
+        /// </summary>
+        public CombatController GetActiveCombatControllerForCiv(CivEnum civ)
+        {
+            var allCombatControllers = combatInstantiator.GetAllCombatControllers();
+            for (int i = 0; i < allCombatControllers.Count; i++)
+            {
+                CombatController controller = allCombatControllers[i];
+                if (controller.CombatEnded || controller.CombatData == null) continue;
+
+                if (controller.CombatData.CivEnumSideOne == civ || controller.CombatData.CivEnumSideTwo == civ)
+                    return controller;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Remove a ship controller from all combat tracking (legacy method)
         /// </summary>
         internal void RemoveThisShipController(ShipController shipController)

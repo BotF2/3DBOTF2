@@ -52,6 +52,31 @@ namespace BOTF3D.Galaxy
         public float SubspaceScannerRadius = 250f;
         public List<FleetController> DetectedEnemyFleets = new List<FleetController>();
 
+        // Dock slots for fleets sitting at this system (see FleetDockLayout). A null entry is a
+        // free slot a departed fleet left behind; the list only grows when every existing slot is
+        // occupied, so a system that regularly cycles fleets through doesn't leak slots.
+        public List<FleetController> FleetDockSlots = new List<FleetController>();
+
+        public int ClaimFleetDockSlot(FleetController fleet)
+        {
+            for (int i = 0; i < FleetDockSlots.Count; i++)
+            {
+                if (FleetDockSlots[i] == null)
+                {
+                    FleetDockSlots[i] = fleet;
+                    return i;
+                }
+            }
+            FleetDockSlots.Add(fleet);
+            return FleetDockSlots.Count - 1;
+        }
+
+        public void ReleaseFleetDockSlot(int slotIndex)
+        {
+            if (slotIndex >= 0 && slotIndex < FleetDockSlots.Count)
+                FleetDockSlots[slotIndex] = null;
+        }
+
         public bool HasDilithium(int amount) => DilithiumStockpile >= amount;
         public void DeductDilithium(int amount) => DilithiumStockpile = Mathf.Max(0, DilithiumStockpile - amount);
         public List<GameObject> PowerPlants;

@@ -94,7 +94,10 @@
       "Bash(awk 'NR==31456{print NR\": \"$0}' \"/c/Users/kenne/Documents/Unity/3DBOTF2_100/Assets/Scenes/MainMenuScene.unity\")",
       "Bash(awk -F'&' '$0 ~ /:/ {print}')",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_100\\\\Assets\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(echo \"tracked?:$?\")",
+      "Read(//c/Users/kenne/.claude/projects/C--Users-kenne-Documents-Unity-3DBOTF2-100/**)",
+      "Read(//c/Users/kenne/.claude/projects/C--Users-kenne-Documents-Unity-3DBOTF2-100/memory/**)"
     ]
   },
   "model": "claude-sonnet-5"

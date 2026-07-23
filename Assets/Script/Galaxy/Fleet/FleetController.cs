@@ -478,6 +478,32 @@ namespace BOTF3D.Galaxy
             interceptUpdateTimer = 0f; // force immediate recompute
             FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor; // full speed ahead
             Debug.Log($"{name}: intercept target set to '{target.name}'");
+
+            // Same reasoning as SetAsDestinationInUI/SliderOnValueChange: on a non-host client this
+            // only mutated a disconnected local FleetData copy - the server-authoritative fleet never
+            // learned about the intercept order, so it never actually moved. This was the root cause
+            // of giving an enemy fleet as a destination working for the host (whose own FleetController
+            // IS the server-authoritative instance) but silently doing nothing for a non-host client.
+            if (!isServer)
+            {
+                NetworkIdentity targetIdentity = target.GetComponent<NetworkIdentity>();
+                if (targetIdentity != null)
+                    CmdSetInterceptTarget(targetIdentity);
+            }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetInterceptTarget(NetworkIdentity targetIdentity, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetInterceptTarget: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            FleetController targetFleetCon = targetIdentity != null ? targetIdentity.GetComponent<FleetController>() : null;
+            if (targetFleetCon == null) return;
+            Debug.Log($"CmdSetInterceptTarget: connection {sender?.connectionId} authorized, setting intercept target='{targetFleetCon.name}' on fleet '{name}'.");
+            SetInterceptTarget(targetFleetCon);
         }
 
         public void CancelIntercept()
@@ -548,6 +574,8 @@ namespace BOTF3D.Galaxy
             // or their local Rigidbody would fight the incoming NetworkTransform replication.
             if (isServer)
             {
+                FleetData.ReleaseDockSlotIfAny(); // no-op once already released, so safe every tick
+
                 float howFast = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
                 Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
                     howFast * warpFudgeFactor * Time.fixedDeltaTime);
@@ -651,24 +679,37 @@ namespace BOTF3D.Galaxy
 
                         if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum) // enemy fleet
                         {
-                            hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
+                            // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
+                            // is only ever drained on the server (TimeManager's TimeProgression
+                            // coroutine returns early on non-host clients), and DiplomacyManager is a
+                            // plain, unnetworked per-client singleton - resolving this locally on
+                            // whichever client's physics happened to fire this trigger previously only
+                            // ever opened the Diplomacy UI on that one machine. ServerNotify*Encounter
+                            // (below) broadcasts the decision to every client via ClientRpc instead.
+                            if (isServer)
+                            {
+                                hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
+
+                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+
+                                if (duringProgression)
+                                {
+                                    // Defer: queue and let ProcessTurnEvents handle it
+                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
+                                    Debug.Log($"OnTriggerEnter: FleetVsFleet queued (TurnProgression) — {name} vs {hitFleetCon.name}");
+                                }
+                                else
+                                {
+                                    OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                    ServerNotifyFleetVsFleetEncounter(hitFleetCon);
+                                }
+                            }
+
+                            // Client-local visibility reveal (per-civ "have we met" cache) - every
+                            // client needs this for its own view, regardless of which machine's
+                            // physics fired this trigger.
                             EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
-
-                            bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
-                                BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
-
-                            if (duringProgression)
-                            {
-                                // Defer: queue and let ProcessTurnEvents handle it
-                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
-                                Debug.Log($"OnTriggerEnter: FleetVsFleet queued (TurnProgression) — {name} vs {hitFleetCon.name}");
-                            }
-                            else
-                            {
-                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                FleetUI.MoveBackAnyaFleetUIGO();
-                                DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
-                            }
 
                             if (hitFleetCon.FleetData.Destination == this.gameObject)
                                 CloseUnLoadFleetUI(this);
@@ -708,18 +749,21 @@ namespace BOTF3D.Galaxy
                             if (weAreLocalPlayer)
                                 EncounterUnknownSystemShowName(collider.gameObject);
 
-                            bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
-                                BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+                            // Same server-authoritative reasoning as the fleet-vs-fleet branch above.
+                            if (isServer)
+                            {
+                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
 
-                            if (duringProgression)
-                            {
-                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
-                                Debug.Log($"OnTriggerEnter: FleetVsSystem queued (TurnProgression) — {name} at {sysCon.name}");
-                            }
-                            else
-                            {
-                                FleetUI.MoveBackAnyaFleetUIGO();
-                                DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+                                if (duringProgression)
+                                {
+                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
+                                    Debug.Log($"OnTriggerEnter: FleetVsSystem queued (TurnProgression) — {name} at {sysCon.name}");
+                                }
+                                else
+                                {
+                                    ServerNotifyFleetVsSystemEncounter(sysCon);
+                                }
                             }
                         }
                         else
@@ -1091,6 +1135,8 @@ namespace BOTF3D.Galaxy
             // or their local Rigidbody would fight the incoming NetworkTransform replication.
             if (isServer)
             {
+                FleetData.ReleaseDockSlotIfAny(); // no-op once already released, so safe every tick
+
                 float howFast = this.FleetData.CurrentWarpFactor;
                 if (howFast > this.FleetData.MaxWarpFactor)
                     this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
@@ -1106,6 +1152,17 @@ namespace BOTF3D.Galaxy
         }
         void DrawDestinationLine(Vector3 destinationPoint)
         {
+            // Destination lines are only meaningful to the civ giving the order - the host/server
+            // process runs FixedUpdate (and this draw call) for every fleet in the game, not just its
+            // own, so without this gate the host would see every civ's destination lines, not just
+            // its own local player's.
+            if (FleetData != null && GameController.Instance != null && !GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
+            {
+                if (DestinationLine != null)
+                    DestinationLine.gameObject.SetActive(false);
+                return;
+            }
+
             if (DestinationLine != null) { }
             else
             {
@@ -1507,6 +1564,29 @@ namespace BOTF3D.Galaxy
             FleetUI?.ClickCancelDestinationButton(this);
             GalaxyUI?.SetClickMode(GalaxyClickMode.Normal);
             MousePointerChanger.Instance?.ResetCursor();
+
+            // Same reasoning as SetAsDestinationInUI/SliderOnValueChange: on a non-host client this
+            // method only mutated a disconnected local FleetData copy. Without this relay, the
+            // server-authoritative fleet never learned the destination/warp were canceled, so the
+            // next TurnProgression tick resumed movement toward the "canceled" destination.
+            if (!isServer)
+                CmdCancelDestination();
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdCancelDestination(NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdCancelDestination: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdCancelDestination: connection {sender?.connectionId} authorized, canceling destination/warp on fleet '{name}'.");
+            FleetData.LastDestination = FleetData.Destination;
+            FleetData.CurrentWarpFactor = 0f;
+            FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
+            if (FleetData.IsPursuingIntercept)
+                CancelIntercept();
         }
 
         /// <summary>User-initiated abort of a pending convoy-deploy or fleet-merge. Deliberately kept
@@ -1689,6 +1769,323 @@ namespace BOTF3D.Galaxy
             if (targetFleetIdentity == null) return;
             Debug.Log($"CmdSetDestinationToFleet: connection {sender?.connectionId} authorized, setting destination=fleet '{targetFleetIdentity.name}' on fleet '{name}'.");
             FleetData.Destination = targetFleetIdentity.gameObject;
+        }
+
+        // ── Encounter/diplomacy/combat networking ─────────────────────────────
+        // DiplomacyManager and DiplomacyController are plain, unnetworked per-client singletons/
+        // MonoBehaviours - each client builds its own local DiplomacyController/UI from its own
+        // local-player perspective (see DiplomacyManager.OpenDiplomacyUI). GalaxyEncounterQueue is
+        // only ever drained on the server (TimeManager's TimeProgression coroutine returns early on
+        // non-host clients), so resolving an encounter there previously only ever updated the host's
+        // own local DiplomacyManager - Player 2 never got told. These Rpc/Command pairs broadcast the
+        // server's encounter/combat decisions to every client so each one runs its own local
+        // resolution/UI-open logic.
+
+        [Server]
+        public void ServerNotifyFleetVsFleetEncounter(FleetController otherFleet)
+        {
+            NetworkIdentity otherIdentity = otherFleet != null ? otherFleet.GetComponent<NetworkIdentity>() : null;
+            if (otherIdentity == null) return;
+            RpcFleetVsFleetEncounter(otherIdentity);
+        }
+
+        [ClientRpc]
+        private void RpcFleetVsFleetEncounter(NetworkIdentity otherFleetIdentity)
+        {
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            if (otherFleetCon == null) return;
+
+            // ClientRpc reaches every connected client, not just the two combatants - a bystander
+            // civ (no ships in this encounter) has no business having its Diplomacy UI opened.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherFleetCon.FleetData.CivEnum)) return;
+
+            FleetUI?.MoveBackAnyaFleetUIGO();
+            DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, otherFleetCon);
+        }
+
+        [Server]
+        public void ServerNotifyFleetVsSystemEncounter(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData == null) return;
+            RpcFleetVsSystemEncounter(sysCon.StarSysData.GetSysName());
+        }
+
+        [ClientRpc]
+        private void RpcFleetVsSystemEncounter(string starSysName)
+        {
+            StarSysController sysCon = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (sysCon == null) return;
+
+            // Same bystander guard as RpcFleetVsFleetEncounter above.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, sysCon.StarSysData.CurrentOwnerCivEnum)) return;
+
+            FleetUI?.MoveBackAnyaFleetUIGO();
+            DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+        }
+
+        // Entry point called from DiplomacyController.Combat() - either combatant's client can click
+        // Combat from their own Diplomacy window, so this must reach the server regardless of which
+        // client (host or non-host) called it.
+        public void RequestStartCombat(FleetController otherFleetCon, StarSysController sysCon)
+        {
+            if (isServer)
+            {
+                ServerStartCombat(otherFleetCon, sysCon);
+                return;
+            }
+
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            CmdRequestStartCombat(otherIdentity, sysName);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdRequestStartCombat(NetworkIdentity otherFleetIdentity, string starSysName, NetworkConnectionToClient sender = null)
+        {
+            LocalHumanPlayerController playerCon = sender?.identity != null ? sender.identity.GetComponent<LocalHumanPlayerController>() : null;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"CmdRequestStartCombat: connection {sender?.connectionId} has no LocalHumanPlayerController.");
+                return;
+            }
+
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+
+            // Either combatant's own client may trigger combat: the attacking fleet (this), the
+            // defending fleet (otherFleetCon), or the owner of the defending star system (sysCon).
+            bool controlsThis = FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+            bool controlsOther = otherFleetCon != null && otherFleetCon.FleetData != null && playerCon.PlayerCiv == otherFleetCon.FleetData.CivEnum;
+            bool controlsSystem = sysCon != null && sysCon.StarSysData != null && playerCon.PlayerCiv == sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            if (!controlsThis && !controlsOther && !controlsSystem)
+            {
+                Debug.LogWarning($"CmdRequestStartCombat: connection {sender?.connectionId} (civ {playerCon.PlayerCiv}) is not a combatant in this encounter - request ignored.");
+                return;
+            }
+
+            ServerStartCombat(otherFleetCon, sysCon);
+        }
+
+        [Server]
+        private void ServerStartCombat(FleetController otherFleetCon, StarSysController sysCon)
+        {
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            RpcStartCombat(otherIdentity, sysName);
+        }
+
+        [ClientRpc]
+        private void RpcStartCombat(NetworkIdentity otherFleetIdentity, string starSysName)
+        {
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+
+            CivEnum otherCiv = otherFleetCon != null ? otherFleetCon.FleetData.CivEnum : sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            // Bystander civs (no ships in this fight) stay on the Galaxy map instead of being
+            // dragged into the Combat scene - see CmdRequestStartCombat's combatant check, which
+            // this mirrors client-side. They just get a lightweight notice instead.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherCiv))
+            {
+                CombatPausedNoticeUI.Instance?.Show(FleetData.CivEnum, otherCiv);
+                return;
+            }
+
+            SceneController.Instance.LoadCombatScene(this, otherFleetCon, sysCon);
+        }
+
+        // Shared by the encounter/combat Rpcs above: is our local human player one of the two
+        // civs actually involved, or just a bystander who happens to also be a connected client?
+        private static bool IsLocalPlayerACombatant(CivEnum civA, CivEnum civB)
+        {
+            return GameController.Instance != null &&
+                   (GameController.Instance.AreWeLocalPlayer(civA) || GameController.Instance.AreWeLocalPlayer(civB));
+        }
+
+        [Server]
+        public void ServerNotifyCombatEnded(CivEnum civA, CivEnum civB)
+        {
+            RpcCombatEnded(civA, civB);
+        }
+
+        [ClientRpc]
+        private void RpcCombatEnded(CivEnum civA, CivEnum civB)
+        {
+            // Bystanders who were shown the paused notice above hide it again.
+            CombatPausedNoticeUI.Instance?.Hide();
+
+            // Combatants tear down their own Combat scene view here. The server already ran
+            // CombatController.EndCombat() (that's what triggered this Rpc, via
+            // ServerNotifyCombatEnded) - EndCombat's own idempotency guard makes it safe to call
+            // again from the host's own client connection. Non-host combatants haven't run it yet,
+            // so this is their only trigger to leave the Combat scene.
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(civA, civB);
+            combatCon?.EndCombat();
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Turn-based combat order submission - CombatUIManager/TurnBasedCombatResolver aren't
+        // NetworkBehaviours, so they route through whichever FleetController belongs to the local
+        // player's own fleet in the active combat (see CombatController.GetInvolvedFleetAnchor).
+        // ---------------------------------------------------------------------------------------
+
+        public void RequestSubmitCombatOrder(CombatOrders order)
+        {
+            if (isServer)
+            {
+                ServerSubmitCombatOrder(GameController.Instance.GetOurCiv(), order);
+                return;
+            }
+            CmdSubmitCombatOrder(order);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSubmitCombatOrder(CombatOrders order, NetworkConnectionToClient sender = null)
+        {
+            LocalHumanPlayerController playerCon = sender?.identity != null ? sender.identity.GetComponent<LocalHumanPlayerController>() : null;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"CmdSubmitCombatOrder: connection {sender?.connectionId} has no LocalHumanPlayerController.");
+                return;
+            }
+            ServerSubmitCombatOrder(playerCon.PlayerCiv, order);
+        }
+
+        [Server]
+        private void ServerSubmitCombatOrder(CivEnum civ, CombatOrders order)
+        {
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCiv(civ);
+            if (combatCon == null || combatCon.TurnResolver == null)
+            {
+                Debug.LogWarning($"ServerSubmitCombatOrder: no active combat found for civ {civ} - order ignored.");
+                return;
+            }
+            combatCon.TurnResolver.ServerSubmitOrder(civ, order);
+        }
+
+        [Server]
+        public void ServerBroadcastOrderLocked(int side)
+        {
+            RpcOrderLocked(side);
+        }
+
+        [ClientRpc]
+        private void RpcOrderLocked(int side)
+        {
+            CombatUIManager.Instance?.OnOrderLocked(side);
+        }
+
+        [Server]
+        public void ServerBroadcastOrdersResolved(CombatOrders sideOne, CombatOrders sideTwo)
+        {
+            RpcOrdersResolved(sideOne, sideTwo);
+        }
+
+        [ClientRpc]
+        private void RpcOrdersResolved(CombatOrders sideOne, CombatOrders sideTwo)
+        {
+            CombatUIManager.Instance?.CurrentCombatController?.TurnResolver?.ApplyResolvedOrdersAndResolve(sideOne, sideTwo);
+        }
+
+        [Server]
+        public void ServerBroadcastCombatPhaseChanged(CombatPhase phase)
+        {
+            RpcCombatPhaseChanged(phase);
+        }
+
+        [ClientRpc]
+        private void RpcCombatPhaseChanged(CombatPhase phase)
+        {
+            CombatUIManager.Instance?.OnCombatPhaseChanged(phase);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Ship-outcome reconciliation. Each client redundantly simulates weapon fire/damage locally
+        // (see TurnBasedCombatResolver/ShipController) so mid-combat HP can drift slightly between
+        // the two combatants' clients, but the decisions below (a ship dies / is captured / is
+        // scuttled) are re-broadcast from whichever client made the call while NetworkServer.active,
+        // and applied idempotently everywhere via ShipController.ApplyXFromServer so both clients'
+        // final outcome (who survived) converges even if the exact HP trace didn't.
+        // ---------------------------------------------------------------------------------------
+
+        [Server]
+        public void ServerBroadcastShipDestroyed(int shipID)
+        {
+            RpcShipDestroyed(shipID);
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.TurnResolver?.ServerCheckCombatOverAfterReconciliation();
+        }
+
+        [ClientRpc]
+        private void RpcShipDestroyed(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyDestroyedFromServer();
+        }
+
+        [Server]
+        public void ServerBroadcastShipCaptured(int shipID)
+        {
+            RpcShipCaptured(shipID);
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.TurnResolver?.ServerCheckCombatOverAfterReconciliation();
+        }
+
+        [ClientRpc]
+        private void RpcShipCaptured(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyCapturedFromServer();
+        }
+
+        [Server]
+        public void ServerBroadcastShipScuttled(int shipID)
+        {
+            RpcShipScuttled(shipID);
+        }
+
+        [ClientRpc]
+        private void RpcShipScuttled(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyScuttledFromServer();
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Non-host report path for the reconciliation above. Each client's damage simulation can
+        // reach a kill/capture decision before the host's does (or the host's simulation may never
+        // reach it at all - see ResolveTurn/IsCombatOver), which previously left the host's combat
+        // stuck waiting on its own local outcome forever. These let a non-host client that detects
+        // a kill/capture ask the server to adopt it immediately, so the server's ship-alive state
+        // (and thus IsCombatOver) converges regardless of which client noticed first.
+        // ---------------------------------------------------------------------------------------
+
+        public void RequestReportShipDestroyed(int shipID)
+        {
+            if (isServer)
+            {
+                ServerBroadcastShipDestroyed(shipID);
+                return;
+            }
+            CmdReportShipDestroyed(shipID);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdReportShipDestroyed(int shipID)
+        {
+            ServerBroadcastShipDestroyed(shipID);
+        }
+
+        public void RequestReportShipCaptured(int shipID)
+        {
+            if (isServer)
+            {
+                ServerBroadcastShipCaptured(shipID);
+                return;
+            }
+            CmdReportShipCaptured(shipID);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdReportShipCaptured(int shipID)
+        {
+            ServerBroadcastShipCaptured(shipID);
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
