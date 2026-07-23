@@ -52,6 +52,18 @@ namespace BOTF3D.Galaxy
         public StarSysController ConvoyMergeSystem;
         private SpriteRenderer[] spriteRenderers;
 
+        // Backs ShipController.ShipData.ShipID assignment in ShipFactory.LinkShipToParent. Ships have
+        // no NetworkIdentity of their own (see FleetController's comments on why ship data isn't
+        // networked), so a server-authoritative Command that transfers one between fleets (see
+        // FleetManager.ServerTransferShip) needs some other stable way to say "this specific ship" -
+        // a sequence number scoped to this fleet's own (already-synced) FleetInt is guaranteed to match
+        // between the server and any client, since a fleet's starting ships are always created together,
+        // in the same deterministic order, by the same call (ShipManager.BuildShipsOfFirstFleet /
+        // GalaxySceneInitializer.AddTestShipsToFleet) on both sides - unlike a single global counter,
+        // which could desync if fleets happen to reconstruct in a different order on a given client.
+        private int nextShipCreationSeq = 1; // 0 is reserved to mean "unassigned"
+        public int GetNextShipCreationSeq() => nextShipCreationSeq++;
+
         public FleetData(FleetSO fleetSO)
         {
             Insignia = fleetSO.Insignia;

@@ -1,14 +1,15 @@
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using Mirror;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using BOTF3D.Civilization;
-using BOTF3D.Audio;
 
 
 
@@ -44,6 +45,17 @@ namespace BOTF3D.Galaxy
         [SyncVar(hook = nameof(OnMaxWarpFactorChanged))]
         public float SyncedMaxWarpFactor;
 
+        // True for fleets created empty via the ship-deploy UI (split off an existing fleet, or
+        // formed from a system's docked ships - see FleetManager.ServerCreateSplitFleet /
+        // ServerCreateFleetFromSystem), false for a civ's very first starting fleet. OnCivEnumChanged
+        // needs this to know whether its client-reconstructed FleetData should start with 0 ships or
+        // fall back to FleetSO.ShipsList's configured template ships - without it, every remote
+        // client's "new empty fleet" incorrectly starts pre-populated with that civ's FleetSO template
+        // ships (same ghost ship(s) every time, since fleetSO is one shared asset). Declared before
+        // SyncedCivEnum for the same field-ordering reason as SyncedFleetInt/SyncedMaxWarpFactor above.
+        [SyncVar]
+        public bool SyncedIsNewFleet;
+
         // Fleet creation/position is server-authoritative (see FleetManager.InstantiateFleet), so
         // remote clients never run InstantiateFleet themselves and their FleetData stays null. This
         // SyncVar is the minimal piece of FleetData replicated to every client so each one can locally
@@ -72,10 +84,103 @@ namespace BOTF3D.Galaxy
         // NetworkServer.active (not isServer) is the right guard here: the host machine already ran
         // the full setup directly inside FleetManager.InstantiateFleet, and NetworkServer.active is
         // true there regardless of whether this particular NetworkIdentity has finished spawning yet.
+        // Mirror's weaver-generated SyncVar deserializer only invokes a hook when the incoming
+        // value differs from whatever the backing field already holds (see
+        // NetworkBehaviour.GeneratedSyncVarDeserialize) - including on the very first sync. Since
+        // CivEnum.FED is ordinal 0 (GameEnums.cs), that's also C#'s zero-init default for an
+        // unassigned CivEnum field, so this hook NEVER fires on a remote client for any fleet
+        // whose civ is FED: the synced value (FED) equals the field's pre-deserialize default
+        // (FED), so Mirror sees "no change" and skips the callback entirely. OnStartClient()
+        // below is the fallback for that case - this flag makes sure whichever of the two runs
+        // first (hook here, or the fallback there) is the only one that actually does the setup.
+        private bool _civSetupInitiated;
+
         private void OnCivEnumChanged(CivEnum oldCiv, CivEnum newCiv)
         {
             if (NetworkServer.active) return;
+            if (_civSetupInitiated) return;
+            _civSetupInitiated = true;
 
+            // Two things HandleCivEnumChanged depends on can both be unresolved during a freshly-
+            // connected client's initial spawn-message burst for pre-existing fleets (e.g. the host's):
+            //
+            // 1. GameController.AreWeLocalPlayer(newCiv) (used by RegisterFleetControllerAndSetupVisuals)
+            //    falls back to GameData.LocalPlayerCivEnum (defaulted to CivEnum.FED - see GameData.cs,
+            //    "temp set to fed for now") whenever PlayerManager.LocalPlayerController hasn't been set
+            //    yet (only assigned from this client's own player object's OnStartLocalPlayer). If the
+            //    remote fleet's civ happens to equal that stale FED default (e.g. the host is actually
+            //    playing FED), it gets misclassified as "ours": RegisterFleetControllerAndSetupVisuals
+            //    takes the local-player branch, which never called SetActive on the insignia GameObjects
+            //    (fixed defensively in FleetManager, but relying on that is still guessing).
+            // 2. The 0.4-scale bake-in below reads FleetManager.Instance.GalaxyCenter.transform.lossyScale
+            //    (10,10,10) to compensate for this client copy being unparented. If GalaxyCenter hasn't
+            //    been resolved yet, it silently falls back to Vector3.one, baking in 0.4 instead of
+            //    0.4*10=4 - a fleet that renders 10x too small, with no later retry since this SyncVar
+            //    hook only fires once per value change.
+            //
+            // Both are the same class of bug as the InsigniaUnknownGO one above - defer until we can
+            // answer both reliably instead of guessing.
+            if (!IsReadyToHandleCivChange())
+            {
+                StartCoroutine(WaitThenHandleCivChanged(newCiv));
+                return;
+            }
+
+            HandleCivEnumChanged(newCiv);
+        }
+
+        // Fallback for the FED-hook-skip case described on _civSetupInitiated above. Mirror
+        // guarantees SyncVar deserialization (and any hooks it does invoke) completes before
+        // OnStartClient runs (NetworkClient.OnObjectSpawnFinished applies the spawn payload, then
+        // BootstrapIdentity -> OnStartClient - see NetworkClient.cs), so SyncedCivEnum is always
+        // current here, and this is guaranteed to run strictly after OnCivEnumChanged would have
+        // fired had Mirror invoked it. _civSetupInitiated is the shared guard, so this only does
+        // anything when the hook above never ran at all.
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            if (NetworkServer.active) return;
+            if (_civSetupInitiated) return;
+            _civSetupInitiated = true;
+
+            if (!IsReadyToHandleCivChange())
+            {
+                StartCoroutine(WaitThenHandleCivChanged(SyncedCivEnum));
+                return;
+            }
+
+            HandleCivEnumChanged(SyncedCivEnum);
+        }
+
+        private bool IsReadyToHandleCivChange()
+        {
+            if (PlayerManager.Instance == null || PlayerManager.Instance.LocalPlayerController == null)
+                return false;
+
+            if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
+                FleetManager.Instance.FindGalaxyReferences();
+
+            return FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null;
+        }
+
+        private IEnumerator WaitThenHandleCivChanged(CivEnum newCiv)
+        {
+            const float timeout = 5f;
+            float elapsed = 0f;
+            while (!IsReadyToHandleCivChange() && elapsed < timeout)
+            {
+                yield return null;
+                elapsed += Time.unscaledDeltaTime;
+            }
+
+            if (!IsReadyToHandleCivChange())
+                Debug.LogWarning($"FleetController.OnCivEnumChanged: local player/GalaxyCenter still unresolved after {timeout}s for fleet '{name}' - proceeding anyway, civ classification/scale may be wrong.");
+
+            HandleCivEnumChanged(newCiv);
+        }
+
+        private void HandleCivEnumChanged(CivEnum newCiv)
+        {
             // NetworkTransform's coordinateSpace is set to World (needed so the fleet's synced
             // position isn't misread as this unparented client copy's own local position - see
             // FleetPrefab.prefab), but Mirror's NetworkTransformBase forcibly disables scale sync
@@ -103,9 +208,13 @@ namespace BOTF3D.Galaxy
             Vector3 galaxyScale = FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null
                 ? FleetManager.Instance.GalaxyCenter.transform.lossyScale
                 : Vector3.one;
-            transform.localScale = Vector3.Scale(new Vector3(0.4f, 0.4f, 1f), galaxyScale);
+            // X and Y must stay equal (a fleet sprite billboard, not an oblong shape) - derive both
+            // from galaxyScale.x alone rather than scaling each axis independently, so a
+            // non-uniform GalaxyCenter (X != Y) can never stretch the sprite.
+            transform.localScale = new Vector3(0.4f * galaxyScale.x, 0.4f * galaxyScale.x, galaxyScale.z);
 
-            if (FleetData == null)
+            bool isFreshReconstruction = FleetData == null;
+            if (isFreshReconstruction)
             {
                 FleetSO fleetSO = FleetManager.Instance.GetFleetSO_byInt((int)newCiv);
                 if (fleetSO == null)
@@ -114,6 +223,8 @@ namespace BOTF3D.Galaxy
                     return;
                 }
                 FleetData = new FleetData(fleetSO);
+                if (SyncedIsNewFleet)
+                    FleetData.ShipsList = new List<ShipController>(); // start empty - see SyncedIsNewFleet comment
                 FleetData.CivEnum = newCiv;
                 // FleetData(FleetSO) doesn't set FleetName - only InstantiateFleet does that,
                 // server-side, and this client-reconstructed FleetData never goes through it. Without
@@ -132,6 +243,17 @@ namespace BOTF3D.Galaxy
 
             Debug.Log($"OnCivEnumChanged: civ={newCiv} synced for fleet '{name}' (GalaxyCenter={(FleetManager.Instance.GalaxyCenter != null ? "OK" : "NULL")}) - calling RegisterFleetControllerAndSetupVisuals.");
             FleetManager.Instance.RegisterFleetControllerAndSetupVisuals(this, FleetData);
+
+            // ShipController has no NetworkIdentity/SyncList - the server's own
+            // ShipManager.BuildShipsOfFirstFleet call inside InstantiateFleet (for a civ's original
+            // starting fleet, isNewFleet=false) never reaches this client. GetStartingFleetShips is a
+            // pure function of civ + tech level, so rebuilding it locally here reconstructs the same
+            // Scout/Destroyer/Transport (majors) or single ship (minors) the server already built,
+            // without needing to network ShipController itself. Player-created fleets
+            // (SyncedIsNewFleet) must stay empty here - they get their ships from the deploy UI drag
+            // session instead.
+            if (isFreshReconstruction && !SyncedIsNewFleet)
+                ShipManager.Instance?.BuildShipsOfFirstFleet(this);
         }
 
         // Non-host clients have no Mirror authority over any fleet (spawned via plain
@@ -170,6 +292,7 @@ namespace BOTF3D.Galaxy
         private Rigidbody rb;
         private float updateInterval = 0.1f; // ~10 updates/sec (adjust for smoothness vs performance)
         private float lastUpdateTime;
+        private float lastDropLineUpdateTime;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
@@ -262,7 +385,33 @@ namespace BOTF3D.Galaxy
             galaxyWidth = GalaxyView.Instance.GalaxyWidth;
             galaxyHeight = GalaxyView.Instance.GalaxyHeight;
 
+            // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
+            // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
+            // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
+            // anchoredPosition (map center) instead of its real spawn position.
+            UpdateMinimapPosition();
         }
+        private void Update()
+        {
+            // DropLine is only otherwise refreshed from MoveToInterceptPoint/MoveToDesitinationGO,
+            // both of which only run from FixedUpdate while TimeManager.TurnPhase ==
+            // TurnProgression. A stationary fleet (e.g. a freshly-deployed one, never given a
+            // destination) never reaches either, so its very first placement - drawn inside
+            // FleetManager.SetUpDropLine at fleet-registration time - is the only one it ever gets.
+            // On a non-host client that registration happens inside FleetController.OnCivEnumChanged,
+            // which (same root cause as GetMapSise/UpdateMinimapPosition above) can fire before
+            // NetworkTransform has delivered this fleet's first synced position, leaving the line
+            // drawn from whatever stale/default position the local placeholder GameObject started at.
+            // Re-drawing it here every frame off the current (by-then-synced) transform.position is
+            // cheap and self-healing regardless of the exact timing that caused the mismatch.
+            if (DropLine == null) return;
+            if (Time.time - lastDropLineUpdateTime < updateInterval) return;
+            lastDropLineUpdateTime = Time.time;
+
+            Vector3 galaxyPlanePoint = new Vector3(transform.position.x, -60f, transform.position.z);
+            DropLine.SetUpLine(new Vector3[] { transform.position, galaxyPlanePoint });
+        }
+
         private void FixedUpdate()
         {
             if (FleetData == null) return;
@@ -374,15 +523,15 @@ namespace BOTF3D.Galaxy
                 return targetPos;
 
             Vector3 targetDest = target.FleetData.Destination.transform.position;
-            Vector3 targetDir  = (targetDest - targetPos).normalized;
-            float   targetSpeed = target.FleetData.CurrentWarpFactor * warpFudgeFactor;
-            float   ourSpeed    = FleetData.CurrentWarpFactor * warpFudgeFactor;
+            Vector3 targetDir = (targetDest - targetPos).normalized;
+            float targetSpeed = target.FleetData.CurrentWarpFactor * warpFudgeFactor;
+            float ourSpeed = FleetData.CurrentWarpFactor * warpFudgeFactor;
             if (ourSpeed <= 0f) return targetPos;
 
             // Estimate time to close the gap and predict where target will be
-            float dist         = Vector3.Distance(transform.position, targetPos);
+            float dist = Vector3.Distance(transform.position, targetPos);
             float timeEstimate = dist / ourSpeed;
-            Vector3 predicted  = targetPos + targetDir * targetSpeed * timeEstimate;
+            Vector3 predicted = targetPos + targetDir * targetSpeed * timeEstimate;
 
             // Don't predict past the target's own destination
             float distToDest = Vector3.Distance(targetPos, targetDest);
@@ -399,7 +548,7 @@ namespace BOTF3D.Galaxy
             // or their local Rigidbody would fight the incoming NetworkTransform replication.
             if (isServer)
             {
-                float howFast   = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
+                float howFast = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
                 Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
                     howFast * warpFudgeFactor * Time.fixedDeltaTime);
                 rb.MovePosition(nextPos);
@@ -421,7 +570,7 @@ namespace BOTF3D.Galaxy
             gotMapSizeFromGameManager = true;
         }
 
-        private void UpdateMinimapPosition()
+        public void UpdateMinimapPosition()
         {
             if (FleetUIGameObject == null) return;
 
@@ -594,6 +743,16 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
+            // OnMouseDown is a raw physics raycast (SendMouseEvents) that runs independently of
+            // uGUI - it fires even when the click actually landed on a UI button (e.g. the "New
+            // Fleet" button in AFleetMenu) that happens to sit over this fleet's screen position.
+            // Without this guard, clicking that button also re-triggers HandleNormalClick below,
+            // which calls OpenMenu(AFleetMenu) on the same fleet - closing/rebuilding the menu
+            // (and its buttons) between the button's pointer-down and pointer-up, which cancels
+            // the button's OnClick and makes the New Fleet action silently do nothing.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             var clickedFleetCon = GetComponentInParent<FleetController>();
 
             Debug.Log($"FleetController.OnMouseDown: raw click on '{name}' (layer={gameObject.layer}), clickedFleetCon={(clickedFleetCon == null ? "NULL" : clickedFleetCon.name)}, CurrentClickMode={GalaxyUI?.CurrentClickMode}.");

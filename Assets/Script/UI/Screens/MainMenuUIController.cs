@@ -147,15 +147,23 @@ namespace BOTF3D.UI
         [SerializeField] private Button buttonPortuguese;
 
         private bool rosterCallbackSubscribed;
+        private GameObject activeConfirmDialog;
 
         private void OnEnable()
         {
             NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+            if (Transport.active != null)
+            {
+                Transport.active.OnServerError -= OnHostTransportError;
+                Transport.active.OnServerError += OnHostTransportError;
+            }
         }
 
         private void OnDisable()
         {
             NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            if (Transport.active != null)
+                Transport.active.OnServerError -= OnHostTransportError;
             UnsubscribeRosterCallback();
         }
 
@@ -1515,6 +1523,13 @@ namespace BOTF3D.UI
             GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
             UpdateNotInGame(); // Update player statuses based on toggles before starting the game
             //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+
+            // Default the join fields to localhost so testing host+client on one machine doesn't
+            // require retyping these every time - user can still overwrite for a real LAN address.
+            if (hostIpInputField != null && string.IsNullOrEmpty(hostIpInputField.text))
+                hostIpInputField.text = "127.0.0.1";
+            if (hostPortInputField != null && string.IsNullOrEmpty(hostPortInputField.text))
+                hostPortInputField.text = "7777";
         }
 
         public void SetSinglePlayer() // button in Canvas MainMenu / Panel-Lobby when first loaded 
@@ -1669,6 +1684,89 @@ namespace BOTF3D.UI
             Debug.Log($"MultiplayerLobby: {message}");
         }
 
+        // Built entirely at runtime (no prefab/scene wiring needed) since there's no shared
+        // confirmation-dialog widget in this project yet. Only used for the Host-vs-Connect
+        // misclick guard above, so it's intentionally minimal.
+        private void ShowConfirmDialog(string message, string confirmLabel, System.Action onConfirm)
+        {
+            if (activeConfirmDialog != null)
+                Destroy(activeConfirmDialog);
+
+            Canvas parentCanvas = mainMenuCanvas != null ? mainMenuCanvas.GetComponentInParent<Canvas>() : null;
+            if (parentCanvas == null)
+                parentCanvas = FindFirstObjectByType<Canvas>();
+
+            GameObject overlay = new GameObject("HostConfirmDialog", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            overlay.transform.SetParent(parentCanvas != null ? parentCanvas.transform : transform, false);
+            var overlayRect = overlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+            overlay.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+
+            GameObject box = new GameObject("Box", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            box.transform.SetParent(overlay.transform, false);
+            var boxRect = box.GetComponent<RectTransform>();
+            boxRect.sizeDelta = new Vector2(440, 220);
+            boxRect.anchorMin = boxRect.anchorMax = new Vector2(0.5f, 0.5f);
+            boxRect.anchoredPosition = Vector2.zero;
+            box.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.12f, 0.97f);
+
+            GameObject textGO = new GameObject("Message", typeof(RectTransform));
+            textGO.transform.SetParent(box.transform, false);
+            var textRect = textGO.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0.35f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = new Vector2(16f, 0f);
+            textRect.offsetMax = new Vector2(-16f, -16f);
+            var messageText = textGO.AddComponent<TextMeshProUGUI>();
+            messageText.text = message;
+            messageText.fontSize = 22;
+            messageText.alignment = TextAlignmentOptions.Center;
+            messageText.color = Color.white;
+
+            void MakeButton(string label, Vector2 anchorMin, Vector2 anchorMax, Color color, UnityEngine.Events.UnityAction onClick)
+            {
+                GameObject btnGO = new GameObject(label + "Button", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+                btnGO.transform.SetParent(box.transform, false);
+                var btnRect = btnGO.GetComponent<RectTransform>();
+                btnRect.anchorMin = anchorMin;
+                btnRect.anchorMax = anchorMax;
+                btnRect.offsetMin = Vector2.zero;
+                btnRect.offsetMax = Vector2.zero;
+                btnGO.GetComponent<Image>().color = color;
+                btnGO.GetComponent<Button>().onClick.AddListener(onClick);
+
+                GameObject btnTextGO = new GameObject("Text", typeof(RectTransform));
+                btnTextGO.transform.SetParent(btnGO.transform, false);
+                var btnTextRect = btnTextGO.GetComponent<RectTransform>();
+                btnTextRect.anchorMin = Vector2.zero;
+                btnTextRect.anchorMax = Vector2.one;
+                btnTextRect.offsetMin = Vector2.zero;
+                btnTextRect.offsetMax = Vector2.zero;
+                var btnText = btnTextGO.AddComponent<TextMeshProUGUI>();
+                btnText.text = label;
+                btnText.alignment = TextAlignmentOptions.Center;
+                btnText.color = Color.white;
+                btnText.fontSize = 20;
+            }
+
+            MakeButton(confirmLabel, new Vector2(0.05f, 0.08f), new Vector2(0.48f, 0.28f), new Color(0.65f, 0.15f, 0.15f), () =>
+            {
+                Destroy(overlay);
+                activeConfirmDialog = null;
+                onConfirm?.Invoke();
+            });
+            MakeButton("Cancel", new Vector2(0.52f, 0.08f), new Vector2(0.95f, 0.28f), new Color(0.25f, 0.25f, 0.25f), () =>
+            {
+                Destroy(overlay);
+                activeConfirmDialog = null;
+            });
+
+            activeConfirmDialog = overlay;
+        }
+
         private void OnPlayerNameEndEdit(string newName)
         {
             PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerName(newName);
@@ -1712,7 +1810,43 @@ namespace BOTF3D.UI
                 return;
             }
 
-            NetworkManager.singleton.StartHost();
+            // A non-empty address field is a strong signal the player meant to type someone
+            // else's IP into Connect and clicked Host by mistake - confirm before hosting a
+            // brand-new, disconnected session out from under them.
+            string typedIp = hostIpInputField != null ? hostIpInputField.text.Trim() : "";
+            if (!string.IsNullOrEmpty(typedIp))
+            {
+                ShowConfirmDialog(
+                    $"You entered an address to Connect to ({typedIp}), but clicked Host instead.\n\nStart your own game here instead?",
+                    "Host Anyway",
+                    StartHostingNow);
+                return;
+            }
+
+            StartHostingNow();
+        }
+
+        private void StartHostingNow()
+        {
+            try
+            {
+                NetworkManager.singleton.StartHost();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"HostButton: StartHost() threw - {ex.Message}");
+                SetLobbyStatus($"Could not start hosting: {ex.Message}. The port may already be in use - if someone else is already hosting, use Connect instead.");
+                if (NetworkServer.active || NetworkClient.active)
+                    NetworkManager.singleton.StopHost();
+                return;
+            }
+
+            if (!NetworkServer.active)
+            {
+                SetLobbyStatus("Could not start hosting - the port may already be in use. If someone else is already hosting, use Connect instead.");
+                return;
+            }
+
             SetLobbyStatus($"Hosting at {NetworkManager.singleton.networkAddress}. Select a civilization and press Next.");
 
             // NetworkManager.RegisterClientMessages() (called internally by StartHost()) does
@@ -1722,11 +1856,31 @@ namespace BOTF3D.UI
             NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
             NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
 
+            // StartHost() may have created a new Transport.active instance (or this is the first
+            // time it became non-null) - make sure our bind-failure listener is attached to it.
+            if (Transport.active != null)
+            {
+                Transport.active.OnServerError -= OnHostTransportError;
+                Transport.active.OnServerError += OnHostTransportError;
+            }
+
             // Mirror's host path (NetworkClient.ConnectHost()) never raises OnConnectedEvent -
             // that's only fired by a real transport handshake, which host mode skips since it's
             // an in-memory local connection. Drive the same auto-transition directly here instead
             // of relying on the event, since StartHost() completes synchronously.
             OnNetworkClientConnected();
+        }
+
+        // Some transports (e.g. Telepathy's background accept thread) don't throw synchronously
+        // when the port is already in use - they report it asynchronously through this callback
+        // instead. Without this, a same-machine port conflict would leave the UI stuck claiming
+        // "Hosting at ..." even though nothing is actually listening.
+        private void OnHostTransportError(int connectionId, TransportError error, string reason)
+        {
+            Debug.LogError($"HostButton: transport reported a server error ({error}): {reason}");
+            SetLobbyStatus($"Hosting failed: {reason}. The port may already be in use - if someone else is already hosting, use Connect instead.");
+            if (NetworkServer.active)
+                NetworkManager.singleton.StopHost();
         }
 
         public void ConnectButton() // Button Connnect in Panel-MulitplayerLobby

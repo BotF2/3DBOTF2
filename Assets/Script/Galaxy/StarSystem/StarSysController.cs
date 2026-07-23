@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using BOTF3D.Civilization;
 using BOTF3D.Audio;
@@ -249,6 +250,11 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
+            // See matching comment in FleetController.OnMouseDown: this raw physics click fires
+            // even when a UI button over this system's screen position was the actual click target.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             var clickedSystemCon = GetComponentInParent<StarSysController>();
             if (clickedSystemCon == null) return;
 

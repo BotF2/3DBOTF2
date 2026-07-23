@@ -52,6 +52,14 @@ namespace BOTF3D.Core
         private TurnPhase syncedTurnPhase = TurnPhase.InterTurn;
         public TurnPhase TurnPhase => syncedTurnPhase;
 
+        // Server-authoritative set of civs that have marked themselves done giving orders for the
+        // current InterTurn. Advancing to TurnProgression now requires every civ in
+        // PlayerManager.Roster to be present here (see TryAutoAdvanceIfAllReady) instead of
+        // advancing on the first player's click. Cleared and re-seeded with any AI civs (see
+        // BeginNewInterTurnReadyState) every time we (re-)enter InterTurn. SyncList so every
+        // client's UI can show live "waiting on X" state via the Callback event.
+        public readonly SyncList<CivEnum> ReadyCivs = new SyncList<CivEnum>();
+
         public bool timeRunning = true; // ✅ Change from false to true
         public bool IsPaused { get; private set; } = false; // Already correct
         private Coroutine timeCoroutine;
@@ -125,8 +133,8 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Called by the "Advance Turn" button (or AI). Server-authoritative - clients must go
-        /// through RequestAdvanceTurn() below, which relays here via Command.
+        /// Actually starts TurnProgression. Server-only - reached either via
+        /// TryAutoAdvanceIfAllReady() once every civ is ready, or via ForceAdvanceTurn().
         /// Restarts the clock for one full turn cycle, then the system auto-pauses again.
         /// </summary>
         [Server]
@@ -143,27 +151,106 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Entry point for the "Advance Turn" button (GameControlOverlay) and any AI caller.
-        /// TimeManager is a scene-singleton NetworkBehaviour with no owning connection (same as
-        /// FleetController's order relays), so non-host clients relay through a
-        /// requiresAuthority = false Command rather than calling AdvanceTurn() directly.
+        /// Host-only escape hatch for a stuck/AFK player - advances regardless of ReadyCivs.
+        /// No Command relay: only ever wired to a button that's shown/interactable exclusively on
+        /// the host's own client (NetworkServer.active is true there and nowhere else), matching
+        /// the pattern of every other host-only action in this codebase.
         /// </summary>
-        public void RequestAdvanceTurn()
+        public void ForceAdvanceTurn()
+        {
+            if (!NetworkServer.active)
+            {
+                Debug.LogWarning("⏰ TimeManager: ForceAdvanceTurn called on a non-host client — ignored.");
+                return;
+            }
+            Debug.LogWarning("⏰ TimeManager: ForceAdvanceTurn — advancing without waiting for all civs ready.");
+            AdvanceTurn();
+        }
+
+        /// <summary>
+        /// Entry point for the "Advance Turn" button (GameControlOverlay) toggling this civ's ready
+        /// state, and for AI to mark itself ready. TimeManager is a scene-singleton NetworkBehaviour
+        /// with no owning connection (same as FleetController's order relays), so non-host clients
+        /// relay through a requiresAuthority = false Command rather than mutating ReadyCivs directly.
+        /// </summary>
+        public void RequestSetCivReady(CivEnum civ, bool ready)
         {
             if (isServer)
-                AdvanceTurn();
+                SetCivReady(civ, ready);
             else
             {
-                Debug.Log("⏰ TimeManager: RequestAdvanceTurn - relaying via CmdAdvanceTurn (non-host client).");
-                CmdAdvanceTurn();
+                Debug.Log($"⏰ TimeManager: RequestSetCivReady({civ}, {ready}) - relaying via CmdSetCivReady (non-host client).");
+                CmdSetCivReady(civ, ready);
             }
         }
 
         [Command(requiresAuthority = false)]
-        private void CmdAdvanceTurn(NetworkConnectionToClient sender = null)
+        private void CmdSetCivReady(CivEnum civ, bool ready, NetworkConnectionToClient sender = null)
         {
-            Debug.Log($"⏰ TimeManager: CmdAdvanceTurn received from connection {sender?.connectionId}");
+            Debug.Log($"⏰ TimeManager: CmdSetCivReady({civ}, {ready}) received from connection {sender?.connectionId}");
+            SetCivReady(civ, ready);
+        }
+
+        [Server]
+        private void SetCivReady(CivEnum civ, bool ready)
+        {
+            if (syncedTurnPhase != TurnPhase.InterTurn)
+            {
+                Debug.LogWarning($"⏰ TimeManager: SetCivReady({civ}, {ready}) ignored — not InterTurn (phase={syncedTurnPhase}).");
+                return;
+            }
+
+            if (ready)
+            {
+                if (!ReadyCivs.Contains(civ))
+                    ReadyCivs.Add(civ);
+            }
+            else
+            {
+                ReadyCivs.Remove(civ);
+            }
+
+            Debug.Log($"⏰ TimeManager: {civ} ready={ready} ({ReadyCivs.Count} ready).");
+            TryAutoAdvanceIfAllReady();
+        }
+
+        [Server]
+        private void TryAutoAdvanceIfAllReady()
+        {
+            if (syncedTurnPhase != TurnPhase.InterTurn) return;
+            if (PlayerManager.Instance == null || PlayerManager.Instance.Roster.Count == 0) return;
+
+            foreach (var entry in PlayerManager.Instance.Roster)
+            {
+                // AI civs are always treated as ready (stub - see BeginNewInterTurnReadyState),
+                // checked here directly rather than relying solely on ReadyCivs already containing
+                // them - an AI registering mid-InterTurn (e.g. joining after this InterTurn's seed
+                // already ran) would otherwise block the group forever with nothing to un-ready it.
+                if (entry.PlayerType == PlayerType.AI) continue;
+                if (!ReadyCivs.Contains(entry.PlayerCiv))
+                    return; // still waiting on someone
+            }
+
+            Debug.Log("⏰ TimeManager: All civs ready — auto-advancing turn.");
             AdvanceTurn();
+        }
+
+        /// <summary>
+        /// Human (non-AI) civs registered in PlayerManager.Roster that haven't marked themselves
+        /// ready yet this InterTurn. Used by the turn UI to render a "waiting on X, Y" notice.
+        /// </summary>
+        public List<CivEnum> GetHumanCivsNotReady()
+        {
+            var result = new List<CivEnum>();
+            if (PlayerManager.Instance == null) return result;
+
+            foreach (var entry in PlayerManager.Instance.Roster)
+            {
+                if (entry.PlayerType == PlayerType.AI) continue;
+                if (!ReadyCivs.Contains(entry.PlayerCiv))
+                    result.Add(entry.PlayerCiv);
+            }
+            return result;
         }
 
         /// <summary>
@@ -186,6 +273,31 @@ namespace BOTF3D.Core
             // once the new value arrives (same hook-fires-everywhere pattern already established
             // by LocalHumanPlayerController.OnPlayerCivChanged / FleetController.OnCivEnumChanged).
             syncedTurnPhase = phase;
+
+            // ReadyCivs is server-authoritative (SyncList) - only the server may mutate it. This
+            // method is also reached from EnsureInterTurn, which OnSceneLoaded calls unconditionally
+            // on every client (see below), so the NetworkServer.active guard is required here even
+            // though the syncedTurnPhase assignment above is already effectively inert off-server.
+            if (phase == TurnPhase.InterTurn && NetworkServer.active)
+                BeginNewInterTurnReadyState();
+        }
+
+        [Server]
+        private void BeginNewInterTurnReadyState()
+        {
+            ReadyCivs.Clear();
+
+            if (PlayerManager.Instance == null) return;
+
+            foreach (var entry in PlayerManager.Instance.Roster)
+            {
+                // Stub AI turn logic: there's no galaxy-map AI decision-making yet, so an AI civ has
+                // nothing to plan and is ready the instant a new InterTurn begins. Real AI turn
+                // planning can call RequestSetCivReady(civ, true) itself once it exists instead of
+                // this unconditional add, without touching the ready-sync mechanism.
+                if (entry.PlayerType == PlayerType.AI)
+                    ReadyCivs.Add(entry.PlayerCiv);
+            }
         }
 
         private void OnTurnPhaseSynced(TurnPhase oldPhase, TurnPhase newPhase)

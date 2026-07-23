@@ -94,6 +94,30 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             CmdSetPlayerCiv(civ);
     }
 
+    public void SubmitCreateSplitFleet(FleetController sourceFleet)
+    {
+        if (isOwned && sourceFleet != null)
+            CmdCreateSplitFleet(sourceFleet.netIdentity);
+    }
+
+    public void SubmitCreateFleetFromSystem(string sysName)
+    {
+        if (isOwned && !string.IsNullOrEmpty(sysName))
+            CmdCreateFleetFromSystem(sysName);
+    }
+
+    public void SubmitDestroyEmptyFleet(FleetController fleetCon)
+    {
+        if (isOwned && fleetCon != null)
+            CmdDestroyEmptyFleet(fleetCon.netIdentity);
+    }
+
+    public void SubmitTransferShip(FleetController fromFleet, FleetController toFleet, int shipID)
+    {
+        if (isOwned && fromFleet != null && toFleet != null && shipID != 0)
+            CmdTransferShip(fromFleet.netIdentity, toFleet.netIdentity, shipID);
+    }
+
     public void SubmitCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
         if (isOwned)
@@ -143,6 +167,85 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     void TargetRejectPlayerCiv()
     {
         ClientRosterPanelUIController.Instance?.RefreshPanel();
+    }
+
+    [Command]
+    void CmdCreateSplitFleet(NetworkIdentity sourceFleetIdentity)
+    {
+        FleetController sourceFleet = sourceFleetIdentity != null ? sourceFleetIdentity.GetComponent<FleetController>() : null;
+        if (sourceFleet == null || sourceFleet.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdCreateSplitFleet: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for fleet '{sourceFleet?.name}'.");
+            return;
+        }
+        FleetController newFleet = FleetManager.Instance.ServerCreateSplitFleet(sourceFleet);
+        if (newFleet != null)
+            TargetSplitFleetCreated(sourceFleet.netId, newFleet.netId);
+    }
+
+    [TargetRpc]
+    void TargetSplitFleetCreated(uint sourceFleetNetId, uint newFleetNetId)
+    {
+        FleetMenuUIController.Instance?.OnSplitFleetCreated(sourceFleetNetId, newFleetNetId);
+    }
+
+    [Command]
+    void CmdCreateFleetFromSystem(string sysName)
+    {
+        StarSysController sysCon = StarSysManager.Instance.GetStarSysControllerByName(sysName);
+        if (sysCon == null || sysCon.StarSysData.CurrentOwnerCivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdCreateFleetFromSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for system '{sysName}'.");
+            return;
+        }
+        FleetController newFleet = FleetManager.Instance.ServerCreateFleetFromSystem(sysCon);
+        if (newFleet != null)
+            TargetFleetFromSystemCreated(sysName, newFleet.netId);
+    }
+
+    [TargetRpc]
+    void TargetFleetFromSystemCreated(string sysName, uint newFleetNetId)
+    {
+        StarSysMenuUIController.Instance?.OnFleetFromSystemCreated(sysName, newFleetNetId);
+    }
+
+    // "New Fleet" creates the shell up front (see CmdCreateSplitFleet/CmdCreateFleetFromSystem
+    // above) before the player has dragged any ships into it, so cancelling the deploy UI without
+    // dragging anything needs to undo that. FleetController is a Mirror NetworkIdentity spawned via
+    // NetworkServer.Spawn, so only the server can properly remove it (NetworkServer.Destroy) -
+    // a non-host client calling FleetManager.DestroyFleetController directly only ever deleted its
+    // own local copy, leaving the empty fleet alive on the server/host forever.
+    [Command]
+    void CmdDestroyEmptyFleet(NetworkIdentity fleetIdentity)
+    {
+        FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+        if (fleetCon == null || fleetCon.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdDestroyEmptyFleet: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for fleet '{fleetCon?.name}'.");
+            return;
+        }
+        if (fleetCon.FleetData.ShipsList.Count > 0)
+        {
+            Debug.LogWarning($"CmdDestroyEmptyFleet: fleet '{fleetCon.name}' has {fleetCon.FleetData.ShipsList.Count} ship(s) - refusing to destroy.");
+            return;
+        }
+        FleetManager.Instance.DestroyFleetController(fleetCon);
+    }
+
+    // Relays a drag-and-drop ship move (see ShipListUI_Item.AddToFleet) to the server so its
+    // authoritative FleetData.ShipsList lists stay correct - see FleetManager.ServerTransferShip's
+    // comment for why this is needed at all on a non-host client.
+    [Command]
+    void CmdTransferShip(NetworkIdentity fromFleetIdentity, NetworkIdentity toFleetIdentity, int shipID)
+    {
+        FleetController fromFleet = fromFleetIdentity != null ? fromFleetIdentity.GetComponent<FleetController>() : null;
+        FleetController toFleet = toFleetIdentity != null ? toFleetIdentity.GetComponent<FleetController>() : null;
+        if (fromFleet == null || toFleet == null || fromFleet.FleetData.CivEnum != playerCiv || toFleet.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTransferShip: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for transfer between '{fromFleet?.name}' and '{toFleet?.name}'.");
+            return;
+        }
+        FleetManager.Instance.ServerTransferShip(fromFleet, toFleet, shipID);
     }
 
     [Command]

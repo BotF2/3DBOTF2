@@ -116,6 +116,12 @@ namespace BOTF3D.Galaxy
         {
             return this.starSysInt;
         }
+
+        // Same purpose/reasoning as FleetData.GetNextShipCreationSeq - scoped to this system's own
+        // stable starSysInt (shared/deterministic across clients via the galaxy's generation seed)
+        // instead of a single global counter.
+        private int nextShipCreationSeq = 1; // 0 is reserved to mean "unassigned"
+        public int GetNextShipCreationSeq() => nextShipCreationSeq++;
         public Vector3 GetPosition(Vector3 vector3)
         {
             return this.position;

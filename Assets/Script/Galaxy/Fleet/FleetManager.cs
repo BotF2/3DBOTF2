@@ -385,6 +385,7 @@ namespace BOTF3D.Galaxy
             // per-client visual/registration setup below (see RegisterFleetControllerAndSetupVisuals)
             // on remote clients, who never run InstantiateFleet themselves - fleet creation is
             // server-authoritative, but visibility/insignia depend on each client's own civ perspective.
+            newFleet.SyncedIsNewFleet = isNewFleet;
             newFleet.SyncedCivEnum = fleetData.CivEnum;
 
             var transGalaxyCenter = GalaxyCenter.transform; // Safe now - we checked above
@@ -587,6 +588,12 @@ namespace BOTF3D.Galaxy
 
             if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
             {
+                // Explicit SetActive (not just SpriteRenderer.enabled) so this branch is correct even
+                // if it ever runs for a freshly-spawned remote-client fleet object whose insignia
+                // GameObjects are still at their prefab-default (inactive) state - the non-local
+                // branch below always sets these explicitly for the same reason.
+                fleetChildFields.InsigniaGO.SetActive(true);
+                fleetChildFields.InsigniaUnknownGO.SetActive(false);
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
@@ -952,7 +959,18 @@ namespace BOTF3D.Galaxy
                 Destroy(fleetController.FleetUIGameObject);
             if (fleetController.DropLine != null)
                 Destroy(fleetController.DropLine.gameObject);
-            Destroy(fleetController.gameObject);
+
+            // Spawned FleetControllers are Mirror NetworkIdentities (see InstantiateFleet's
+            // NetworkServer.Spawn) - a plain Destroy() on the server leaves a stale entry in
+            // NetworkServer.spawned and never tells clients to remove their own copy.
+            // NetworkServer.Destroy sends the proper destroy message first. On a genuine remote
+            // client (convoy/ship-transfer cleanup, still unnetworked - see SyncedIsNewFleet's
+            // comment) there's no server to route through, so fall back to the local-only Destroy
+            // exactly as before.
+            if (NetworkServer.active)
+                NetworkServer.Destroy(fleetController.gameObject);
+            else
+                Destroy(fleetController.gameObject);
         }
 
         // Distance (in galaxy-map units) beyond which a fleet-merge/deploy is routed through a
@@ -988,6 +1006,96 @@ namespace BOTF3D.Galaxy
             fleetData.IsConvoy = true;
 
             return InstantiateFleet(sourceFleet, sourceSystem, fleetData, position, true);
+        }
+
+        // Server-side counterpart of FleetMenuUIController.ClickNewFleetButton(FleetController) - splits
+        // an empty new fleet off of sourceFleet at its current position, for the player to drag ships
+        // into via the ship-deploy UI. Called via LocalHumanPlayerController.CmdCreateSplitFleet so this
+        // also works when a non-host client clicks the button (InstantiateFleet is server-only).
+        [Server]
+        public FleetController ServerCreateSplitFleet(FleetController sourceFleet)
+        {
+            if (sourceFleet == null || sourceFleet.FleetData == null || sourceFleet.FleetData.ShipsList.Count < 2)
+                return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sourceFleet.FleetData.CivEnum);
+            var position = sourceFleet.FleetData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.ShipsList = new List<ShipController>();
+
+            var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
+            FleetController newFleet = InstantiateFleet(sourceFleet, emptyStarSysCon, fleetData, position, true);
+            Destroy(emptyStarSysCon.gameObject);
+            return newFleet;
+        }
+
+        // Server-side counterpart of ShipListUI_Item's drag-and-drop ship reassignment. That UI item
+        // mutates its own client's local FleetData.ShipsList directly for instant visual feedback, but
+        // (like InstantiateFleet's callers above) never reaches the server on its own - on the host that
+        // local copy IS the server's authoritative copy, so it "just works" there, but a non-host
+        // client's edits silently never reach the server's real fleet data at all. Called via
+        // LocalHumanPlayerController.CmdTransferShip so the server's own ShipsList lists (which combat,
+        // fog of war, and every other system actually reads) stay correct regardless of which client
+        // performed the drag.
+        [Server]
+        public void ServerTransferShip(FleetController fromFleet, FleetController toFleet, int shipID)
+        {
+            if (fromFleet == null || toFleet == null || fromFleet.FleetData == null || toFleet.FleetData == null || shipID == 0)
+                return;
+            if (fromFleet == toFleet)
+                return;
+
+            ShipController ship = fromFleet.FleetData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShip: ship id {shipID} not found in fleet '{fromFleet.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromFleet.FleetData.ShipsList.Remove(ship);
+            if (!toFleet.FleetData.ShipsList.Contains(ship))
+                toFleet.FleetData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentFleetController = toFleet;
+            ship.ShipData.CurrentStarSysController = null;
+            if (ship.transform != null && toFleet.gameObject != null)
+                ship.transform.SetParent(toFleet.transform, false);
+
+            fromFleet.UpdateMaxWarp();
+            toFleet.UpdateMaxWarp();
+
+            Debug.Log($"ServerTransferShip: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to '{toFleet.name}'. fromFleet now has {fromFleet.FleetData.ShipsList.Count}, toFleet now has {toFleet.FleetData.ShipsList.Count}.");
+        }
+
+        // Server-side counterpart of StarSysMenuUIController.ClickNewFleetButton(StarSysController) -
+        // forms an empty new fleet at sysCon's position, for the player to drag docked ships into via
+        // the ship-deploy UI. Called via LocalHumanPlayerController.CmdCreateFleetFromSystem so this also
+        // works when a non-host client clicks the button (InstantiateFleet is server-only).
+        [Server]
+        public FleetController ServerCreateFleetFromSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData.ShipsList.Count == 0) return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
+            var position = sysCon.StarSysData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.ShipsList = new List<ShipController>();
+
+            return InstantiateFleet(null, sysCon, fleetData, position, true);
         }
 
         internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)

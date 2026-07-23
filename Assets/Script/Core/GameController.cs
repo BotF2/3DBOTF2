@@ -61,11 +61,18 @@ namespace BOTF3D.Core
         // whenever it's available, falling back to the cache only if that reference isn't set yet.
         public bool AreWeLocalPlayer(CivEnum civ)
         {
+            return civ == GetOurCiv();
+        }
+
+        // Same resolution GameData.LocalPlayerCivEnum-vs-LocalPlayerController.PlayerCiv preference
+        // described above, exposed for callers (e.g. turn-ready UI) that need our own civ rather
+        // than just a yes/no comparison against some other civ.
+        public CivEnum GetOurCiv()
+        {
             LocalHumanPlayerController localPlayerCon = PlayerManager.Instance != null
                 ? PlayerManager.Instance.LocalPlayerController
                 : null;
-            CivEnum ourCiv = localPlayerCon != null ? localPlayerCon.PlayerCiv : this.GameData.LocalPlayerCivEnum;
-            return civ == ourCiv;
+            return localPlayerCon != null ? localPlayerCon.PlayerCiv : this.GameData.LocalPlayerCivEnum;
         }
     
 

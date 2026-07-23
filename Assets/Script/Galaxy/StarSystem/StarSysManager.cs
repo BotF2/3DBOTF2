@@ -646,6 +646,16 @@ namespace BOTF3D.Galaxy
             if (civSO.HasWarp)
             {
                 FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon);
+            }
+
+            // Home system defense: majors always get their own lone Destroyer regardless of warp
+            // status; minors only get one once they've researched warp (HasWarp=true) - mirrors the
+            // major/minor split already used for starting-fleet composition
+            // (ShipSOProvider.GetStartingFleetShips) and for majority/minority checks elsewhere
+            // (DiplomacyController.cs uses the same CivEnum <= TERRAN cutoff).
+            bool isMajorCiv = starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN;
+            if (isMajorCiv || civSO.HasWarp)
+            {
                 ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
             }
 

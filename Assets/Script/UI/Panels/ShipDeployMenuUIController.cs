@@ -178,6 +178,27 @@ public FleetController BottomFleet;
                 return;
             }
 
+            // Safety net: reparent any leftover ship UI still sitting in the shared BottomSlot from a
+            // previous deploy session back to its real owner's own UI container, so it doesn't show up
+            // as a "ghost" ship in this (unrelated) new fleet's list. Normally CancelShipManageAfterCommit
+            // already does this on commit, but this guards against any other path that doesn't.
+            if (BottomSlot != null)
+            {
+                for (int i = BottomSlot.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = BottomSlot.transform.GetChild(i);
+                    var shipUIItem = child.GetComponent<ShipListUI_Item>();
+                    var ownerShip = shipUIItem != null ? shipUIItem.ShipController : null;
+                    if (ownerShip != null && chosenFleet.FleetData != null && chosenFleet.FleetData.ShipsList.Contains(ownerShip))
+                        continue; // belongs in this session, leave it for the population loop below
+
+                    GameObject ownerParent = shipUIItem?.CurrentFleet?.FleetData?.ShipListUIParent
+                        ?? shipUIItem?.CurrentStarSyst?.StarSysData?.ShipListUIParent;
+                    if (ownerParent != null)
+                        child.SetParent(ownerParent.transform, false);
+                }
+            }
+
             // Make sure any ship UI created earlier is reparented to its owners.
             if (ShipManager.Instance != null)
             {
@@ -208,11 +229,16 @@ public FleetController BottomFleet;
                             {
                                 ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
 
-                                // Set IntendedSlotParent
+                                // Set IntendedSlotParent AND owner - without CurrentFleet being kept
+                                // current here, reopening this deploy session on a ship that's already
+                                // in chosenFleet leaves its UI item's CurrentFleet stale (or null),
+                                // which makes a later drag's RemoveFromCurrentOwner() silently no-op.
                                 var shipUIItem = ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>();
                                 if (shipUIItem != null)
                                 {
                                     shipUIItem.IntendedSlotParent = BottomSlot.transform; // ? NEW
+                                    shipUIItem.CurrentFleet = chosenFleet;
+                                    shipUIItem.CurrentStarSyst = null;
                                 }
                             }
                             //else
@@ -263,6 +289,14 @@ public FleetController BottomFleet;
                     if (ship.ShipListUIGameObject != null)
                     {
                         ship.ShipListUIGameObject.transform.SetParent(BottomSlot.transform, false);
+
+                        var shipUIItem = ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>();
+                        if (shipUIItem != null)
+                        {
+                            shipUIItem.IntendedSlotParent = BottomSlot.transform;
+                            shipUIItem.CurrentStarSyst = ownerSys;
+                            shipUIItem.CurrentFleet = null;
+                        }
                     }
                 }
             }

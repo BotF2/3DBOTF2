@@ -47,8 +47,17 @@ namespace FischlWorks_FogWar
 
         private void Start()
         {
-            spriteRenderers = GetComponentsInChildren<SpriteRenderer>().ToList();
-            lineRenderers = GetComponentsInChildren<LineRenderer>().ToList();
+            // FleetManager.RegisterFleetControllerAndSetupVisuals pre-assigns spriteRenderers before
+            // this Start() ever runs (AddComponent + assignment happen synchronously, same frame) -
+            // it deliberately excludes whichever of the insignia/unknown sprite renderers lost the
+            // civ-contact check, so Update() below never force-enables the "wrong" one back on. Auto-
+            // collecting unconditionally here clobbered that filtered list with every SpriteRenderer
+            // under the fleet, silently re-including the excluded one and making contact state stop
+            // mattering the instant fog visibility toggled true.
+            if (spriteRenderers == null)
+                spriteRenderers = GetComponentsInChildren<SpriteRenderer>().ToList();
+            if (lineRenderers == null)
+                lineRenderers = GetComponentsInChildren<LineRenderer>().ToList();
             //meshRenderers = GetComponentsInChildren<MeshRenderer>().ToList();
             //skinnedMeshRenderers = GetComponentsInChildren<SkinnedMeshRenderer>().ToList();
         }
