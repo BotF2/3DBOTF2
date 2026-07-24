@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_006_SUN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 6
-  Position: {x: -45.40, y: 1.29, z: -70.41}
+  Position: {x: -45.4, y: 1.29, z: -70.41}
   SysName: SUN
   FirstOwner: 6
   CurrentOwner: 6
@@ -27,7 +27,7 @@ MonoBehaviour:
   ShieldGenerators: 2
   OrbitalBatteries: 7
   Description: Description
-  powerPlantSprite: {fileID: 21300000, guid: c1cc6b3d79191e44a91d5fc1cf0f1ee5, type: 3}
+  powerPlantSprite: {fileID: 21300000, guid: 52ecba78df0345d4f91d024d780a636a, type: 3}
   factorySprite: {fileID: 21300000, guid: 5121a27f0bd353f4ca5cf0ebcb16f223, type: 3}
   shipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
   shieldSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}

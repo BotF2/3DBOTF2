@@ -177,6 +177,10 @@ namespace BOTF3D.UI
 
             Debug.Log($"UpdateOwnershipFromSlot: Ship={ShipController.ShipData.ShipName}, Slot={slotParent.name}");
 
+            // Captured before RemoveFromCurrentOwner clears it - needed below to relay a fleet-to-fleet
+            // move to the server (see AddToFleet's comment).
+            FleetController previousFleet = CurrentFleet ?? ShipController?.ShipData?.CurrentFleetController;
+
             // Remove from previous owner
             RemoveFromCurrentOwner();
 
@@ -185,7 +189,7 @@ namespace BOTF3D.UI
             {
                 if (deployMenu.TopFleet != null)
                 {
-                    AddToFleet(deployMenu.TopFleet);
+                    AddToFleet(deployMenu.TopFleet, previousFleet);
                 }
                 else if (deployMenu.TopStarSyst != null)
                 {
@@ -196,7 +200,7 @@ namespace BOTF3D.UI
             {
                 if (deployMenu.BottomFleet != null)
                 {
-                    AddToFleet(deployMenu.BottomFleet);
+                    AddToFleet(deployMenu.BottomFleet, previousFleet);
                 }
                 else if (deployMenu.BottomStarSyst != null)
                 {
@@ -207,21 +211,37 @@ namespace BOTF3D.UI
 
         private void RemoveFromCurrentOwner()
         {
-            if (CurrentFleet != null)
+            // CurrentFleet/CurrentStarSyst are set on this UI item whenever it's placed into a slot
+            // (SetUpTopShipLists/SetUpBottomShipLists), but ShipData.CurrentFleetController/
+            // CurrentStarSysController is the actual source of truth for who owns this ship (it's what
+            // every other system - combat, production, fog of war - reads). On a non-host client the
+            // two can fall out of sync (e.g. a ship-list UI item reused across sessions without its
+            // owner fields being refreshed), which silently no-ops the removal below: the ship then
+            // gets added to the new fleet's list while never leaving the old one, duplicating it.
+            // Falling back to ShipData's fields guarantees the removal always targets the ship's real
+            // current owner, not just whatever this particular UI item thinks it is.
+            FleetController fleetOwner = CurrentFleet ?? ShipController?.ShipData?.CurrentFleetController;
+            StarSysController sysOwner = CurrentStarSyst ?? ShipController?.ShipData?.CurrentStarSysController;
+
+            if (fleetOwner != null)
             {
-                Debug.Log($"RemoveFromCurrentOwner: Removing {ShipController.ShipData.ShipName} from fleet {CurrentFleet.name}");
-                CurrentFleet.FleetData.ShipsList.Remove(ShipController);
+                Debug.Log($"RemoveFromCurrentOwner: Removing {ShipController.ShipData.ShipName} from fleet {fleetOwner.name}");
+                fleetOwner.FleetData.ShipsList.Remove(ShipController);
                 ShipController.ShipData.CurrentFleetController = null;
             }
-            else if (CurrentStarSyst != null)
+            else if (sysOwner != null)
             {
-                Debug.Log($"RemoveFromCurrentOwner: Removing {ShipController.ShipData.ShipName} from system {CurrentStarSyst.name}");
-                CurrentStarSyst.StarSysData.ShipsList.Remove(ShipController);
+                Debug.Log($"RemoveFromCurrentOwner: Removing {ShipController.ShipData.ShipName} from system {sysOwner.name}");
+                sysOwner.StarSysData.ShipsList.Remove(ShipController);
                 ShipController.ShipData.CurrentStarSysController = null;
+            }
+            else
+            {
+                Debug.LogWarning($"RemoveFromCurrentOwner: {ShipController?.ShipData?.ShipName} has no known current fleet/system owner (CurrentFleet, CurrentStarSyst, and ShipData owner fields all null) - nothing to remove from.");
             }
         }
 
-        private void AddToFleet(FleetController fleet)
+        private void AddToFleet(FleetController fleet, FleetController previousFleet = null)
         {
             Debug.Log($"AddToFleet: '{ShipController?.ShipData?.ShipName}' to fleet '{fleet?.name}'");
 
@@ -242,6 +262,16 @@ namespace BOTF3D.UI
             }
 
             try { fleet.UpdateMaxWarp(); } catch { }
+
+            // Everything above is only this client's own local prediction (see
+            // FleetManager.ServerTransferShip's comment) - relay the move to the server so its
+            // authoritative FleetData.ShipsList lists for both fleets actually reflect it too. Only
+            // fleet-to-fleet moves are networked here; a ship arriving from a star system already goes
+            // through a server-authoritative path elsewhere (ServerCreateFleetFromSystem et al).
+            if (previousFleet != null && previousFleet != fleet && ShipController?.ShipData != null && ShipController.ShipData.ShipID != 0)
+            {
+                PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShip(previousFleet, fleet, ShipController.ShipData.ShipID);
+            }
         }
 
         private void AddToStarSystem(StarSysController starSys)

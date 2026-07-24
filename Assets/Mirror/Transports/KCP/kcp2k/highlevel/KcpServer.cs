@@ -1,3 +1,4 @@
+
 // kcp server logic abstracted into a class.
 // for use in Mirror, DOTSNET, testing, etc.
 using System;
@@ -62,7 +63,7 @@ namespace kcp2k
             // create newClientEP either IPv4 or IPv6
             newClientEP = config.DualMode
                           ? new IPEndPoint(IPAddress.IPv6Any, 0)
-                          : new IPEndPoint(IPAddress.Any,     0);
+                          : new IPEndPoint(IPAddress.Any, 0);
         }
 
         public virtual bool IsActive() => socket != null;
@@ -259,7 +260,7 @@ namespace kcp2k
             // events need to be wrapped with connectionIds
             KcpServerConnection connection = new KcpServerConnection(
                 OnConnectedCallback,
-                (message,  channel) => OnData(connectionId, message, channel),
+                (message, channel) => OnData(connectionId, message, channel),
                 OnDisconnectedCallback,
                 (error, reason) => OnError(connectionId, error, reason),
                 (data) => RawSend(connectionId, data),

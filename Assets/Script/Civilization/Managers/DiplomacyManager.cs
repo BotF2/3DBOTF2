@@ -144,13 +144,11 @@ namespace BOTF3D.Civilization
                     {
                         fleetSideTwo.FleetData.ShipsList.RemoveAll(item => item == null);
                         shipsToSeeInLocalPayerDiploUI = fleetSideTwo.FleetData.ShipsList;
-                        diplomacyData.FleetContollerCivTwo = fleetSideTwo;
                     }
                     else if (sysCon.StarSysData != null)
                     {
                         sysCon.StarSysData.ShipsList.RemoveAll(item => item == null);
                         shipsToSeeInLocalPayerDiploUI = sysCon.StarSysData.ShipsList;
-                        diplomacyData.StarSysController = sysCon;
                     }
                 }
                 else
@@ -167,6 +165,16 @@ namespace BOTF3D.Civilization
                     }
                 }
                 diplomacyData.FleetControllerCivOne = fleetSideOne;
+                // FleetContollerCivTwo/StarSysController must be recorded regardless of which side is
+                // the local player (the block above only decides which side's ships to preview in the
+                // local player's diplomacy UI) - previously these were only set inside the "local is
+                // civSideOne" branch above, so any first-contact encounter where the local player was
+                // civSideTwo left both fields null, and DiplomacyController.Combat()'s ValidCombatCheck
+                // silently failed forever, making the Combat button do nothing.
+                if (fleetSideTwo != null && fleetSideTwo.FleetData != null)
+                    diplomacyData.FleetContollerCivTwo = fleetSideTwo;
+                else if (sysCon != null && sysCon.StarSysData != null)
+                    diplomacyData.StarSysController = sysCon;
                 diplomacyData.firstContact = true;
                 diplomacyData.EncounterType = EncounterType.FirstContact;
 

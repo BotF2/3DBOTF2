@@ -15,6 +15,15 @@ using BOTF3D.Audio;
 
 namespace BOTF3D.Core
 {
+    [System.Serializable]
+    public struct RosterEntry
+    {
+        public int PlayerId;
+        public string PlayerName;
+        public CivEnum PlayerCiv;
+        public PlayerType PlayerType;
+    }
+
     public class PlayerManager : NetworkBehaviour, IManager
     {
         public void Initialize() { }
@@ -24,6 +33,9 @@ namespace BOTF3D.Core
     public LocalHumanPlayerController LocalPlayerController { get; private set; }
     public IPlayerController LocalPlayer { get; private set; }
     public readonly List<IPlayerController> AllPlayerControllers = new List<IPlayerController>();
+
+    // Server-authoritative lobby roster, replicated to every client for the multiplayer lobby/status panel.
+    public readonly SyncList<RosterEntry> Roster = new SyncList<RosterEntry>();
 
     // RENAMED: PlayerData → PlayerInfo
     public List<GamePlayerInfo> PlayerInfoList { get; private set; } = new List<GamePlayerInfo>();
@@ -54,37 +66,109 @@ namespace BOTF3D.Core
             Debug.Log("Single Player (no network)");
     }
 
-    public void RegisterPlayer(IPlayerController controller, bool isLocalPlayerArg, string playerName, int playerId, PlayerType playerType)
+    // Same 7 majors as ClientRosterPanelUIController.SelectableCivs - kept in this order so the
+    // first free slot a new player is assigned matches the order civs appear in the roster dropdown.
+    private static readonly CivEnum[] AssignableCivs =
     {
+        CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD, CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
+    };
+
+    // Returns the assigned civ so callers (LocalHumanPlayerController/AiPlayerController) can set
+    // their own authoritative civ field to match - otherwise a new player's [SyncVar] playerCiv
+    // stays at its own default (FED) even though the roster entry says otherwise, and the two
+    // desync the moment anything reads the controller's civ directly instead of the roster.
+    public CivEnum RegisterPlayer(IPlayerController controller, bool isLocalPlayerArg, string playerName, int playerId, PlayerType playerType)
+    {
+        CivEnum assignedCiv = GetFirstAvailableCiv(playerId);
+
         GamePlayerInfo playerData = new GamePlayerInfo(playerName)
         {
             PlayerId = playerId,
             PlayerType = playerType,
-            PlayerCiv = CivEnum.FED
+            PlayerCiv = assignedCiv
         };
 
         PlayerInfoList.Add(playerData);
-        Debug.Log($"PlayerManager: Registered {playerType} player '{playerName}' (ID: {playerId})");
+        Roster.Add(new RosterEntry { PlayerId = playerId, PlayerName = playerName, PlayerCiv = assignedCiv, PlayerType = playerType });
+        Debug.Log($"PlayerManager: Registered {playerType} player '{playerName}' (ID: {playerId}) with civ {assignedCiv}");
+        return assignedCiv;
+    }
+
+    // Picks the first civ (in AssignableCivs order) not already held by another connected player,
+    // so a newly-joined player doesn't collide with an existing player's civ pick (e.g. host on FED).
+    private CivEnum GetFirstAvailableCiv(int excludingPlayerId)
+    {
+        for (int i = 0; i < AssignableCivs.Length; i++)
+        {
+            if (!IsCivTakenByAnotherPlayer(AssignableCivs[i], excludingPlayerId))
+                return AssignableCivs[i];
+        }
+        return AssignableCivs[0]; // all 7 taken (more players than majors) - fall back, server already rejects the duplicate elsewhere
     }
 
     public void UnregisterPlayer(int playerID)
     {
-        if (AllPlayerControllers == null || AllPlayerControllers.Count == 0)
+        if (AllPlayerControllers != null)
         {
-            // ✅ Use Debug.Log instead of LogWarning during app shutdown (it's expected)
-            Debug.Log("UnregisterPlayer: No players to unregister (expected in single-player or during shutdown)");
-            return;
-        }
-
-        for (int i = 0; i < AllPlayerControllers.Count; i++)
-        {
-            if (AllPlayerControllers[i].PlayerInfo.PlayerId == playerID)
+            for (int i = 0; i < AllPlayerControllers.Count; i++)
             {
-                Debug.Log($"UnregisterPlayer: Removed player ID {playerID}");
-                AllPlayerControllers.RemoveAt(i);
-                break;
+                if (AllPlayerControllers[i].PlayerInfo.PlayerId == playerID)
+                {
+                    AllPlayerControllers.RemoveAt(i);
+                    break;
+                }
             }
         }
+
+        // SyncList writes require an active server/client - during shutdown (e.g. this being
+        // called from LocalHumanPlayerController.OnDestroy() after NetworkServer/NetworkClient
+        // have already stopped), the whole Roster is being torn down anyway, so skip the mutation
+        // rather than let SyncList throw.
+        if (NetworkServer.active || NetworkClient.active)
+        {
+            for (int i = 0; i < Roster.Count; i++)
+            {
+                if (Roster[i].PlayerId == playerID)
+                {
+                    Roster.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
+        Debug.Log($"UnregisterPlayer: Processed unregister for player ID {playerID}");
+    }
+
+    // Server-authoritative check used by CmdSetPlayerCiv to reject a civ pick already held by
+    // a different connected player, so two clients can never end up on the same civilization.
+    public bool IsCivTakenByAnotherPlayer(CivEnum civ, int requestingPlayerId)
+    {
+        for (int i = 0; i < Roster.Count; i++)
+        {
+            if (Roster[i].PlayerCiv == civ && Roster[i].PlayerId != requestingPlayerId)
+                return true;
+        }
+        return false;
+    }
+
+    public void UpdateRosterEntry(int playerId, string playerName, CivEnum civ)
+    {
+        for (int i = 0; i < Roster.Count; i++)
+        {
+            if (Roster[i].PlayerId == playerId)
+            {
+                RosterEntry entry = Roster[i];
+                entry.PlayerName = playerName;
+                entry.PlayerCiv = civ;
+                Roster[i] = entry;
+                return;
+            }
+        }
+    }
+
+    public void SetLocalPlayerController(LocalHumanPlayerController controller)
+    {
+        LocalPlayerController = controller;
     }
 
     public void AddLocalPlayer(GamePlayerInfo data)
@@ -165,6 +249,22 @@ namespace BOTF3D.Core
     internal void SetMajorCivsInGameForMultiPlayer(List<CivEnum> majorCivsInGameList, CivEnum localPlayerCiv)
     {
         Debug.Log("SetMajorCivsInGameForMultiPlayer: Multiplayer setup pending implementation");
+    }
+
+    // Host-only entry point (called from MainMenuUIController.LoadGalaxyScene, which only the host
+    // can reach). Broadcasts the host's chosen game parameters - including a shared RNG seed - to
+    // every connected client so galaxy generation (CivManager/StarSysManager, both driven by the
+    // global UnityEngine.Random) produces an identical result on every machine.
+    [Server]
+    public void ServerBroadcastStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        RpcStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+    }
+
+    [ClientRpc]
+    private void RpcStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        MainMenuUIController.Instance?.OnGameStartReceived(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
     }
 
 

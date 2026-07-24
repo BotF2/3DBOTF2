@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using BOTF3D.Civilization;
 using BOTF3D.Audio;
@@ -249,10 +250,17 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
+            // See matching comment in FleetController.OnMouseDown: this raw physics click fires
+            // even when a UI button over this system's screen position was the actual click target.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             var clickedSystemCon = GetComponentInParent<StarSysController>();
             if (clickedSystemCon == null) return;
 
             var galaxyUI = GalaxyMenuUIController.Instance;
+
+            Debug.Log($"OnMouseDown: system '{clickedSystemCon.name}' clicked, CurrentClickMode={galaxyUI.CurrentClickMode}.");
 
             switch (galaxyUI.CurrentClickMode)
             {
@@ -280,6 +288,7 @@ namespace BOTF3D.Galaxy
                     break;
 
                 case GalaxyClickMode.SetDestination:
+                    Debug.Log($"OnMouseDown: SetDestination click on system '{clickedSystemCon.name}'.");
                     HandleDestinationClick(clickedSystemCon);
                     break;
 
@@ -529,10 +538,20 @@ namespace BOTF3D.Galaxy
         private void HandleDestinationClick(StarSysController clickedSystemCon)
         {
             var galaxyUI = GalaxyMenuUIController.Instance;
-            if (galaxyUI == null) return;
+            if (galaxyUI == null)
+            {
+                Debug.LogWarning("HandleDestinationClick: GalaxyMenuUIController.Instance is NULL - click ignored.");
+                return;
+            }
 
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-            if (theFleetConLookingForDestination == null) return;
+            if (theFleetConLookingForDestination == null)
+            {
+                Debug.LogWarning($"HandleDestinationClick: galaxyUI.FleetLookingForDestination is NULL when clicking system '{clickedSystemCon.name}' - SetDestination mode was not armed for a fleet, click ignored.");
+                return;
+            }
+
+            Debug.Log($"HandleDestinationClick: setting destination='{clickedSystemCon.name}' for fleet '{theFleetConLookingForDestination.name}'.");
 
             // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
             if (theFleetConLookingForDestination.TargetController != null)

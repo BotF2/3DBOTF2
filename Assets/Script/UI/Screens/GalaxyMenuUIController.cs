@@ -1,6 +1,7 @@
 using BOTF3D.Core;
 
 using System.Collections.Generic;
+using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -376,8 +377,7 @@ namespace BOTF3D.UI
             advanceTurnButton.onClick.RemoveAllListeners();
             advanceTurnButton.onClick.AddListener(OnAdvanceTurnButtonClicked);
 
-            _playerReadyForTurn = false;
-            SetAdvanceTurnButtonColor(turnNotReadyColor);
+            RefreshAdvanceTurnButtonColor();
 
             var phase = TimeManager.Instance != null
                 ? TimeManager.Instance.TurnPhase
@@ -391,30 +391,40 @@ namespace BOTF3D.UI
 
         #region Button Handlers (Main Menu Ribbon)
 
-        private bool _playerReadyForTurn = false;
-
         private void OnAdvanceTurnButtonClicked()
         {
-            _playerReadyForTurn = !_playerReadyForTurn;
-            SetAdvanceTurnButtonColor(_playerReadyForTurn ? turnReadyColor : turnNotReadyColor);
+            if (TimeManager.Instance == null || GameController.Instance == null) return;
+            if (TimeManager.Instance.TurnPhase != TurnPhase.InterTurn) return;
 
-            if (_playerReadyForTurn)
-                TimeManager.Instance?.AdvanceTurn();
-            else
-                TimeManager.Instance?.PauseTime(); // player un-readied; halt the clock
+            CivEnum ourCiv = GameController.Instance.GetOurCiv();
+            bool currentlyReady = TimeManager.Instance.ReadyCivs.Contains(ourCiv);
+            // Relays to the server if we're not the host - see TimeManager.RequestSetCivReady.
+            // Un-readying does NOT pause the clock here - InterTurn is already paused, and
+            // TurnProgression readiness toggles are ignored server-side (see TimeManager.SetCivReady).
+            TimeManager.Instance.RequestSetCivReady(ourCiv, !currentlyReady);
+        }
+
+        /// <summary>Derives displayed ready state from TimeManager.ReadyCivs rather than a locally
+        /// tracked bool, so this button and GameControlOverlay's stay in sync with each other and
+        /// with un-ready/re-ready toggles made from either one.</summary>
+        private void RefreshAdvanceTurnButtonColor()
+        {
+            if (advanceTurnButton == null) return;
+            bool weAreReady = TimeManager.Instance != null && GameController.Instance != null
+                && TimeManager.Instance.ReadyCivs.Contains(GameController.Instance.GetOurCiv());
+            SetAdvanceTurnButtonColor(weAreReady ? turnReadyColor : turnNotReadyColor);
+        }
+
+        private void OnReadyCivsChanged(SyncList<CivEnum>.Operation op, int index, CivEnum oldItem, CivEnum newItem)
+        {
+            RefreshAdvanceTurnButtonColor();
         }
 
         private void OnTurnPhaseChanged(TurnPhase phase)
         {
             if (advanceTurnButton == null) return;
 
-            // When the turn actually ends and we return to InterTurn, reset to not-ready
-            if (phase == TurnPhase.InterTurn)
-            {
-                _playerReadyForTurn = false;
-                SetAdvanceTurnButtonColor(turnNotReadyColor);
-            }
-
+            RefreshAdvanceTurnButtonColor();
             advanceTurnButton.interactable = (phase != TurnPhase.EncounterResolution);
         }
 
@@ -451,8 +461,13 @@ namespace BOTF3D.UI
 
         public void FleetButtonPressed()
         {
+            // Only toggle-close when the ribbon's own multi-fleet list is already open. A single
+            // fleet's detail view (Menu.AFleetMenu, opened by clicking a fleet on the map) is a
+            // different container - clicking the ribbon button while that's open should replace it
+            // with the list, not just close it and show nothing (see OpenMenu's eviction of the
+            // previous menu for why switching away from AFleetMenu is now safe to do here).
             Menu current = uiStateManager.CurrentOpenMenu;
-            if (current == Menu.Fleet || current == Menu.FleetMenu || current == Menu.AFleetMenu)
+            if (current == Menu.Fleet || current == Menu.FleetMenu)
                 CloseMenu(current);
             else
                 OpenMenu(Menu.Fleet, null);
@@ -1085,13 +1100,19 @@ namespace BOTF3D.UI
         private void OnEnable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+                TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
+            }
         }
 
         private void OnDisable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+                TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
+            }
         }
 
         private void OnDestroy()

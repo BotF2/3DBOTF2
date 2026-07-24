@@ -27,7 +27,6 @@
   <Project Path="Unity.AI.MCP.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
   <Project Path="Unity.AI.Assistant.UI.Editor.csproj" />
-  <Project Path="BOTF3D.csproj" />
   <Project Path="Mirror.Components.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Editor.csproj" />
@@ -39,6 +38,7 @@
   <Project Path="Mirror.Editor.csproj" />
   <Project Path="Unity.Services.QoS.csproj" />
   <Project Path="Unity.InferenceEngine.csproj" />
+  <Project Path="BOTF3D.csproj" />
   <Project Path="Unity.AI.Mesh.csproj" />
   <Project Path="UnityEngine.UI.csproj" />
   <Project Path="Unity.Services.Authentication.Editor.csproj" />
@@ -79,6 +79,7 @@
   <Project Path="glTFast.Export.csproj" />
   <Project Path="Unity.VisualEffectGraph.Runtime.csproj" />
   <Project Path="Unity.AppUI.Navigation.Editor.csproj" />
+  <Project Path="Unity.Services.Multiplayer.Server.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Component.csproj" />
   <Project Path="Unity.AI.Image.csproj" />
   <Project Path="Mirror.csproj" />
@@ -91,6 +92,7 @@
   <Project Path="Unity.VisualScripting.State.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.Integrations.Profiler.Editor.csproj" />
   <Project Path="Unity.AI.Search.Editor.csproj" />
+  <Project Path="Unity.SysrootPackage.Editor.csproj" />
   <Project Path="Unity.AppUI.Redux.csproj" />
   <Project Path="Unity.AI.Assistant.Agent.Dynamic.Extension.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.2D.Runtime.csproj" />
@@ -109,6 +111,7 @@
   <Project Path="Unity.InternalAPIEditorBridge.013.csproj" />
   <Project Path="kcp2k.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetworkSimulator.Runtime.csproj" />
+  <Project Path="Unity.Services.Authentication.Server.csproj" />
   <Project Path="Unity.Multiplayer.Tools.MetricTestData.csproj" />
   <Project Path="Unity.Multiplayer.Center.NetcodeForGameObjectsExample.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetworkProfiler.Editor.csproj" />
@@ -164,10 +167,11 @@
   <Project Path="Unity.AppUI.Undo.csproj" />
   <Project Path="Unity.Services.Core.Analytics.csproj" />
   <Project Path="UnityEditor.UI.Analytics.csproj" />
+  <Project Path="Unity.Netcode.Editor.csproj" />
   <Project Path="Unity.InferenceEngine.Editor.Visualizer.csproj" />
   <Project Path="Unity.SurfaceCache.Runtime.csproj" />
-  <Project Path="Unity.Netcode.Editor.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.RenderPipelines.Core.Runtime.Shared.csproj" />
+  <Project Path="Unity.Sysroot.Linux_arm64.csproj" />
   <Project Path="Unity.Mathematics.Editor.csproj" />
   <Project Path="Unity.Services.Core.csproj" />
   <Project Path="UnityEditor.XR.LegacyInputHelpers.csproj" />
@@ -219,6 +223,7 @@
   <Project Path="Unity.RenderPipelines.Core.ShaderLibrary.csproj" />
   <Project Path="Unity.Services.Core.Environments.csproj" />
   <Project Path="Unity.AI.Toolkit.Compliance.csproj" />
+  <Project Path="Unity.Sysroot.Linux_x86_64.csproj" />
   <Project Path="Unity.ScriptableBuildPipeline.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.013.csproj" />
   <Project Path="Unity.Multiplayer.Tools.Initialization.csproj" />
@@ -226,6 +231,7 @@
   <Project Path="EncryptionTransportEditor.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Runtime.Shared.csproj" />
   <Project Path="Unity.Services.Core.Environments.Internal.csproj" />
+  <Project Path="Unity.Toolchain.Win-x86_64-Linux.csproj" />
   <Project Path="Unity.Services.Core.Threading.csproj" />
   <Project Path="Unity.AI.MCP.Runtime.csproj" />
   <Project Path="Unity.ShaderGraph.Utilities.csproj" />

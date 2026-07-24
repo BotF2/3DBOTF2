@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using Mirror;
 using Quaternion = UnityEngine.Quaternion;
 
 
@@ -439,32 +440,103 @@ namespace BOTF3D.Combat
                     bool vulnerableToCapture = myOrder == CombatOrders.Retreat || myOrder == CombatOrders.Scuttle;
                     if (enemyOrder == CombatOrders.Capture && vulnerableToCapture)
                     {
-                        ShipData.IsCaptured = true;
-                        ShipData.HullHealth = 0;
-                        cc.CombatData.CapturedShips.Add(this);
-                        DestroyAllActiveBeams();
-                        Debug.Log($"🎯 {ShipData.ShipName} CAPTURED by {cc.CombatData.CivEnumSideOne}/{cc.CombatData.CivEnumSideTwo}!");
+                        CaptureShip(announceToNetwork: true);
                         return;
                     }
                 }
 
-                ShipData.Distroyed = true;
-                cc?.CombatData?.DestroyedShips.Add(ShipData);
-                if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
-                if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
-                if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
-                if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
-
-                if (explosionPrefab != null)
-                {
-                    Instantiate(explosionPrefab, transform.position, transform.rotation);
-                    GameLogger.Log(GameLogger.LogCategory.Combat, $"💥..💥Ship Explosion {ShipData.ShipName}", this);
-                }
-                CombatUIManager.Instance?.CurrentCombatController?.PlayExplosionSound(transform.position);
-
-                DestroyAllActiveBeams();
-                Destroy(gameObject);
+                DestroyShip(announceToNetwork: true);
             }
+        }
+
+        /// <summary>
+        /// Marks this ship captured and, if this client's decision is the server's (see
+        /// NetworkServer.active gate), broadcasts it so the other combatant's client converges on
+        /// the same outcome even if their own local damage simulation didn't reach this HP state -
+        /// see FleetController.ServerBroadcastShipCaptured/RpcShipCaptured.
+        /// </summary>
+        private void CaptureShip(bool announceToNetwork)
+        {
+            if (ShipData.IsCaptured || ShipData.Distroyed) return;
+
+            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            ShipData.IsCaptured = true;
+            ShipData.HullHealth = 0;
+            if (cc != null && !cc.CombatData.CapturedShips.Contains(this))
+                cc.CombatData.CapturedShips.Add(this);
+            DestroyAllActiveBeams();
+            Debug.Log($"🎯 {ShipData.ShipName} CAPTURED by {cc?.CombatData.CivEnumSideOne}/{cc?.CombatData.CivEnumSideTwo}!");
+
+            if (announceToNetwork)
+            {
+                var anchor = cc?.GetInvolvedFleetAnchor();
+                if (NetworkServer.active)
+                    anchor?.ServerBroadcastShipCaptured(ShipData.ShipID);
+                else
+                    anchor?.RequestReportShipCaptured(ShipData.ShipID);
+            }
+        }
+
+        /// <summary>
+        /// Marks this ship destroyed and, if this client's decision is the server's, broadcasts it -
+        /// same reconciliation purpose as CaptureShip above.
+        /// </summary>
+        private void DestroyShip(bool announceToNetwork)
+        {
+            if (ShipData.Distroyed) return;
+
+            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            ShipData.Distroyed = true;
+            cc?.CombatData?.DestroyedShips.Add(ShipData);
+            if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
+            if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
+            if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
+            if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
+
+            if (explosionPrefab != null)
+            {
+                Instantiate(explosionPrefab, transform.position, transform.rotation);
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"💥..💥Ship Explosion {ShipData.ShipName}", this);
+            }
+            cc?.PlayExplosionSound(transform.position);
+
+            DestroyAllActiveBeams();
+
+            if (announceToNetwork)
+            {
+                var anchor = cc?.GetInvolvedFleetAnchor();
+                if (NetworkServer.active)
+                    anchor?.ServerBroadcastShipDestroyed(ShipData.ShipID);
+                else
+                    anchor?.RequestReportShipDestroyed(ShipData.ShipID);
+            }
+
+            Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// Called via FleetController.RpcShipDestroyed on every client once the server has decided
+        /// this ship's fate - forces this outcome even if our own local damage simulation hadn't
+        /// (yet, or ever, due to RNG drift) reached it.
+        /// </summary>
+        public void ApplyDestroyedFromServer() => DestroyShip(announceToNetwork: false);
+
+        /// <summary>
+        /// Called via FleetController.RpcShipCaptured - see ApplyDestroyedFromServer.
+        /// </summary>
+        public void ApplyCapturedFromServer() => CaptureShip(announceToNetwork: false);
+
+        /// <summary>
+        /// Called via FleetController.RpcShipScuttled - see ApplyDestroyedFromServer. The scuttle
+        /// success/fail roll itself only happens on the server (see
+        /// TurnBasedCombatResolver.ProcessScuttleSide's NetworkServer.active guard); this just
+        /// applies that decided outcome here.
+        /// </summary>
+        public void ApplyScuttledFromServer()
+        {
+            if (ShipData == null || ShipData.Distroyed) return;
+            ShipData.IsScuttled = true;
+            SelfDestruct(announceToNetwork: false);
         }
 
         private void DestroyAllActiveBeams()
@@ -514,14 +586,15 @@ namespace BOTF3D.Combat
         /// Force-destroy this ship (Scuttle order: called before weapon fire begins).
         /// Identical to normal destruction path minus the capture check.
         /// </summary>
-        public void SelfDestruct()
+        public void SelfDestruct(bool announceToNetwork = true)
         {
             if (ShipData == null || ShipData.Distroyed) return;
 
+            var cc = CombatUIManager.Instance?.CurrentCombatController;
             ShipData.ShieldHealth = 0;
             ShipData.HullHealth = 0;
             ShipData.Distroyed = true;
-            CombatUIManager.Instance?.CurrentCombatController?.CombatData?.DestroyedShips.Add(ShipData);
+            cc?.CombatData?.DestroyedShips.Add(ShipData);
 
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
             if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
@@ -530,9 +603,13 @@ namespace BOTF3D.Combat
 
             if (explosionPrefab != null)
                 Instantiate(explosionPrefab, transform.position, transform.rotation);
-            CombatUIManager.Instance?.CurrentCombatController?.PlayExplosionSound(transform.position);
+            cc?.PlayExplosionSound(transform.position);
 
             DestroyAllActiveBeams();
+
+            if (announceToNetwork && NetworkServer.active)
+                cc?.GetInvolvedFleetAnchor()?.ServerBroadcastShipScuttled(ShipData.ShipID);
+
             Destroy(gameObject);
         }
 

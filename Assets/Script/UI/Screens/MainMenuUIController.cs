@@ -1,6 +1,8 @@
 // Ignore Spelling: Kling BOTF
 using BOTF3D.Audio;
+using BOTF3D.Civilization;
 using BOTF3D.Core;
+using BOTF3D.Galaxy;
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,9 +15,6 @@ using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using BOTF3D.Combat;
-using BOTF3D.Civilization;
-using BOTF3D.Galaxy;
 
 
 
@@ -49,14 +48,12 @@ namespace BOTF3D.UI
         private GameObject TipCanvas;
         [SerializeField]
         private GameObject mainMenuButton;
-        //ToDo for multiplayer lobby
-        //public CivEnum SelectedRemote0CivEnum;
-        //public CivEnum SelectedRemote1CivEnum;
-        //public CivEnum SelectedRemote2CivEnum;
-        //public CivEnum SelectedRemote3CivEnum;
-        //public CivEnum SelectedRemote4CivEnum;
-        //public CivEnum SelectedRemote5CivEnum;
+        [SerializeField]
+        private GameObject previousGameParamsButton; // "Button Return" in Panel-GameParametersMenu
         public bool IsSinglePlayer;
+        // Set by OnGameStartReceived, consumed by LoadGalaxySceneCoroutine right before galaxy
+        // generation - see the [Server]/[ClientRpc] pair on PlayerManager for how this is shared.
+        private int pendingGalaxySeed;
         [SerializeField]
         private GameObject panelLobby;
         [SerializeField]
@@ -66,9 +63,21 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject panelGamePara;
         [SerializeField]
-        private GameObject singlePlayToggleGroup;
+        private GameObject panelClientRoster;
         [SerializeField]
-        private GameObject mulitplayerToggleGroup;
+        private GameObject singlePlayToggleGroup;
+        //[SerializeField]
+        //private GameObject mulitplayerToggleGroup;
+        [SerializeField]
+        private TMP_InputField playerNameInputField;
+        [SerializeField]
+        private TMP_InputField hostIpInputField;
+        [SerializeField]
+        private TMP_InputField hostPortInputField;
+        [SerializeField]
+        private TMP_Text mulitplayerStatusText;
+        public ToggleGroup MultiplayerCivilizationGroup;
+        public Toggle[] MultiplayerCivToggles; // index-mapped to CivEnum (0=FED ... 6=TERRAN)
         [SerializeField]
         private GameObject mapToggleGroup;
         [SerializeField]
@@ -80,6 +89,7 @@ namespace BOTF3D.UI
         private string player = "You", computer = "Computer", notInGame = "Absent";
         [SerializeField]
         private LocalizeStringEvent[] playerLocalizers;
+        private TMP_Text[] playerTexts;
         //private LocalizeStringEvent playerFedLocalizer, playerRomLocalizer, playerKlingLocalizer,
         //                   playerCardLocalizer, playerDomLocalizer, playerBorgLocalizer, playerTerranLocalizer;
         private Toggle activeLocalPlayerToggle;
@@ -108,7 +118,6 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle, BorgLocalPlayerToggle, TerranLocalPlayerToggle;
 
         public ToggleGroup SinglePlayerCivilizationGroup;
-        //public ToggleGroup MultiplayerCivilizationGroup;// Can and should this be a group in the multiplayer setting, maybe.
         public Toggle FedOnOff, RomOnOff, KlingOnOff, CardOnOff, DomOnOff, BorgOnOff, TerranOnOff;
         public List<Toggle> OnOffToggles;
         private Toggle activeMapToggle;
@@ -136,6 +145,70 @@ namespace BOTF3D.UI
         [SerializeField] private Button buttonSpanish;
         [SerializeField] private Button buttonPolish;
         [SerializeField] private Button buttonPortuguese;
+
+        private bool rosterCallbackSubscribed;
+        private GameObject activeConfirmDialog;
+
+        private void OnEnable()
+        {
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+            if (Transport.active != null)
+            {
+                Transport.active.OnServerError -= OnHostTransportError;
+                Transport.active.OnServerError += OnHostTransportError;
+            }
+        }
+
+        private void OnDisable()
+        {
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            if (Transport.active != null)
+                Transport.active.OnServerError -= OnHostTransportError;
+            UnsubscribeRosterCallback();
+        }
+
+        // Fires for both StartHost (host's own embedded client) and StartClient once the
+        // transport-level connection completes. Moves the lobby straight to the roster panel
+        // so players pick civs there instead of behind a manual "Next" click.
+        private void OnNetworkClientConnected()
+        {
+            Debug.Log("[RosterDiag] OnNetworkClientConnected fired");
+            SubscribeRosterCallback();
+
+            if (IsSinglePlayer)
+                return;
+
+            if (panelMuliplayer != null)
+                panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(true);
+        }
+
+        // PlayerManager is a NetworkBehaviour, so Instance only exists once a host/client session
+        // is live - hook the roster SyncList here (not in OnEnable) so panelGamePara's player
+        // labels keep showing up-to-date remote player names even if someone changes their civ
+        // pick after the host has already moved past Panel_ClientRoster.
+        private void SubscribeRosterCallback()
+        {
+            if (rosterCallbackSubscribed || PlayerManager.Instance == null)
+                return;
+            PlayerManager.Instance.Roster.Callback += OnRosterChangedForLabels;
+            rosterCallbackSubscribed = true;
+        }
+
+        private void UnsubscribeRosterCallback()
+        {
+            if (!rosterCallbackSubscribed)
+                return;
+            if (PlayerManager.Instance != null)
+                PlayerManager.Instance.Roster.Callback -= OnRosterChangedForLabels;
+            rosterCallbackSubscribed = false;
+        }
+
+        private void OnRosterChangedForLabels(SyncList<RosterEntry>.Operation op, int index, RosterEntry oldItem, RosterEntry newItem)
+        {
+            UpdateNotInGame();
+        }
 
         private void Awake()
         {
@@ -213,6 +286,10 @@ namespace BOTF3D.UI
                 playerBorg.GetComponent<LocalizeStringEvent>(),
                 playerTerran.GetComponent<LocalizeStringEvent>()
             };
+            playerTexts = new TMP_Text[]
+            {
+                playerFed, playerRom, playerKling, playerCard, playerDom, playerBorg, playerTerran
+            };
             // ✅ Initialize toggle array
             civToggles = new Toggle[]
             {
@@ -226,16 +303,26 @@ namespace BOTF3D.UI
             //playerDomLocalizer = playerDom.GetComponent<LocalizeStringEvent>();
             //playerBorgLocalizer = playerBorg.GetComponent<LocalizeStringEvent>();
             //playerTerranLocalizer = playerTerran.GetComponent<LocalizeStringEvent>();
-            // Pending Multiplayer lobby if needed
-            //MultiplayerCivilizationGroup.enabled = true;
-            //MultiplayerCivilizationGroup = mulitplayerToggleGroup.GetComponent<ToggleGroup>();
-            //MultiplayerCivilizationGroup.RegisterToggle(FedLocalPalyerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(KlingLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(RomLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(CardLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(DomLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(BorgLocalPlayerToggle);
-            //MultiplayerCivilizationGroup.RegisterToggle(TerranLocalPlayerToggle);
+            // Multiplayer lobby: name/civ selection push to the local player's LocalHumanPlayerController
+            if (playerNameInputField != null)
+                playerNameInputField.onEndEdit.AddListener(OnPlayerNameEndEdit);
+            if (MultiplayerCivToggles != null)
+            {
+                for (int i = 0; i < MultiplayerCivToggles.Length; i++)
+                {
+                    if (MultiplayerCivToggles[i] == null)
+                    {
+                        Debug.LogWarning($"MainMenuUIController: MultiplayerCivToggles[{i}] is not assigned in the Inspector - skipping.");
+                        continue;
+                    }
+                    int civIndex = i;
+                    MultiplayerCivToggles[i].onValueChanged.AddListener((isOn) =>
+                    {
+                        if (isOn)
+                            OnMultiplayerCivToggleChanged(civIndex);
+                    });
+                }
+            }
 
             // ✅ Wire language buttons
             SetupLanguageButtons();
@@ -548,18 +635,47 @@ namespace BOTF3D.UI
             }
         }
 
-        // Call this when transitioning to gameplay (from Panel-GameParametersWindow)
+        // Call this when transitioning to gameplay (from Panel-GameParametersWindow). Only the host
+        // can reach this button (ApplyHostOnlyGating disables it for non-host clients), so this
+        // gathers the host's own local UI selections and broadcasts them to every connected client
+        // instead of transitioning only the clicking machine - see OnGameStartReceived below.
         public void LoadGalaxyScene()
         {
-            TimeManager.Instance.timeRunning = true;
-            TimeManager.Instance.StartTime();
             UpdateMapSelection();
             UpdateGalaxySizeSelection();
             UpdateTechLevelSelection();
             UpdateNotInGame();
-            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, this.MainMenuData.SelectedGalaxyType);
 
-            Debug.Log("LoadGalaxyScene: Starting clean scene transition");
+            // Shared seed so every client's minor-race selection shuffle (CivManager) and
+            // population/battery rolls (StarSysManager) - both still driven by the global
+            // UnityEngine.Random - replay identically instead of producing a different galaxy
+            // per client.
+            int seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+
+            Debug.Log("LoadGalaxyScene: Host broadcasting game start to all clients");
+            PlayerManager.Instance.ServerBroadcastStartGame(
+                (int)MainMenuData.SelectedGalaxySize,
+                (int)MainMenuData.SelectedTechLevel,
+                (int)MainMenuData.SelectedGalaxyType,
+                seed,
+                IsSinglePlayer);
+        }
+
+        // Runs on every client (including the host's own client) via PlayerManager.RpcStartGame -
+        // the single shared entry point that actually builds the galaxy, so remote clients use the
+        // host's real parameters instead of their own (gated-off, possibly stale) local toggle state.
+        public void OnGameStartReceived(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+        {
+            IsSinglePlayer = isSinglePlayer;
+            MainMenuData.SelectedGalaxySize = (GalaxySize)galaxySize;
+            MainMenuData.SelectedTechLevel = (TechLevel)techLevel;
+            MainMenuData.SelectedGalaxyType = (GalaxyMapType)galaxyType;
+            pendingGalaxySeed = seed;
+
+            TimeManager.Instance.timeRunning = true;
+            TimeManager.Instance.StartTime();
+
+            Debug.Log($"OnGameStartReceived: Starting clean scene transition (seed={seed})");
 
             // Store game settings before transition
             GameController.Instance.GameData.GameMode = IsSinglePlayer ? GameMode.SINGLEPLAYER : GameMode.MULTIPLAYER;
@@ -624,6 +740,13 @@ namespace BOTF3D.UI
 
             // Find and activate galaxy objects
             FindAndActivateGalaxySceneReferences();
+
+            // Seed immediately before generation so no unrelated UnityEngine.Random consumer
+            // (particle systems, other UI) can slip in between this and the deterministic
+            // minor-race/position/population rolls below - see CivManager/StarSysManager.
+            UnityEngine.Random.InitState(pendingGalaxySeed);
+
+            CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, MainMenuData.SelectedGalaxyType);
 
             // Initialize game systems
             CivManager.Instance.OnNewGameButtonClicked(
@@ -1014,23 +1137,76 @@ namespace BOTF3D.UI
         }
         private void UpdateNotInGame()
         {
+            // Multiplayer: map each civ claimed by a connected human player to either "You" (the
+            // local player's own claim) or that player's roster name, so this client always shows
+            // who is playing what instead of relying on the single-player toggle flow - which never
+            // runs in multiplayer, since the local civ pick comes from the ClientRosterPanel dropdown,
+            // not the civ on/off toggles here. Roster-driven, so it's correct regardless of whether
+            // the host or a remote client reaches this panel first.
+            Dictionary<CivEnum, string> remoteClaimedNames = null;
+            CivEnum? localClaimedCiv = null;
+            if (!IsSinglePlayer && PlayerManager.Instance != null)
+            {
+                int? localPlayerId = PlayerManager.Instance.LocalPlayerController?.netId.GetHashCode();
+                remoteClaimedNames = new Dictionary<CivEnum, string>();
+                foreach (RosterEntry entry in PlayerManager.Instance.Roster)
+                {
+                    if (entry.PlayerType != PlayerType.Local)
+                        continue;
+                    if (localPlayerId.HasValue && entry.PlayerId == localPlayerId.Value)
+                    {
+                        localClaimedCiv = entry.PlayerCiv;
+                        continue;
+                    }
+                    remoteClaimedNames[entry.PlayerCiv] = entry.PlayerName;
+                }
+            }
+
             for (int i = 0; i < civToggles.Length; i++)
             {
                 if (playerLocalizers[i] == null) continue;
 
+                if (localClaimedCiv.HasValue && (CivEnum)i == localClaimedCiv.Value)
+                {
+                    if (!playerLocalizers[i].enabled)
+                        playerLocalizers[i].enabled = true;
+                    SetLocalizedPlayerText(playerLocalizers[i], "You");
+                    continue;
+                }
+
+                if (remoteClaimedNames != null && remoteClaimedNames.TryGetValue((CivEnum)i, out string remoteName))
+                {
+                    // Claimed by a connected remote player - show their name instead of Computer/Absent.
+                    // Disable the localizer so it doesn't overwrite this on a locale change; UpdateNotInGame
+                    // re-enables it below once the civ is no longer claimed by another player.
+                    playerLocalizers[i].enabled = false;
+                    if (playerTexts[i] != null)
+                        playerTexts[i].text = remoteName;
+                    continue;
+                }
+
+                if (!playerLocalizers[i].enabled)
+                    playerLocalizers[i].enabled = true;
+
                 string currentKey = playerLocalizers[i].StringReference.TableEntryReference.Key;
 
-                if (!civToggles[i].isOn && currentKey != "You")
+                // In single-player, "You" is owned by ActivePlayerToggle()/ResetPlayers() and must
+                // be left alone here. In multiplayer, "You" is only ever assigned above (via
+                // localClaimedCiv) - if we land here with a stale "You" it means the local player
+                // switched off this civ to claim another one, so it must not be preserved or it
+                // lingers forever, showing up alongside the new "You".
+                if (IsSinglePlayer && currentKey == "You")
                 {
-                    // Civ is OFF and not the player → set to "Absent"
+                    // leave alone
+                }
+                else if (!civToggles[i].isOn)
+                {
                     SetLocalizedPlayerText(playerLocalizers[i], "Absent");
                 }
-                else if (civToggles[i].isOn && currentKey == "Absent")
+                else if (currentKey == "Absent" || currentKey == "You")
                 {
-                    // Civ turned back ON from "Absent" → set to "Computer"
                     SetLocalizedPlayerText(playerLocalizers[i], "Computer");
                 }
-                // ✅ If currentKey == "You", leave it alone (don't change it)
             }
         }
         private void ActivePlayerToggle()
@@ -1347,6 +1523,13 @@ namespace BOTF3D.UI
             GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
             UpdateNotInGame(); // Update player statuses based on toggles before starting the game
             //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
+
+            // Default the join fields to localhost so testing host+client on one machine doesn't
+            // require retyping these every time - user can still overwrite for a real LAN address.
+            if (hostIpInputField != null && string.IsNullOrEmpty(hostIpInputField.text))
+                hostIpInputField.text = "127.0.0.1";
+            if (hostPortInputField != null && string.IsNullOrEmpty(hostPortInputField.text))
+                hostPortInputField.text = "7777";
         }
 
         public void SetSinglePlayer() // button in Canvas MainMenu / Panel-Lobby when first loaded 
@@ -1493,6 +1676,371 @@ namespace BOTF3D.UI
             panelGamePara.SetActive(false);
             panelLobby.SetActive(true);
         }
+
+        private void SetLobbyStatus(string message)
+        {
+            if (mulitplayerStatusText != null)
+                mulitplayerStatusText.text = message;
+            Debug.Log($"MultiplayerLobby: {message}");
+        }
+
+        // Built entirely at runtime (no prefab/scene wiring needed) since there's no shared
+        // confirmation-dialog widget in this project yet. Only used for the Host-vs-Connect
+        // misclick guard above, so it's intentionally minimal.
+        private void ShowConfirmDialog(string message, string confirmLabel, System.Action onConfirm)
+        {
+            if (activeConfirmDialog != null)
+                Destroy(activeConfirmDialog);
+
+            Canvas parentCanvas = mainMenuCanvas != null ? mainMenuCanvas.GetComponentInParent<Canvas>() : null;
+            if (parentCanvas == null)
+                parentCanvas = FindFirstObjectByType<Canvas>();
+
+            GameObject overlay = new GameObject("HostConfirmDialog", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            overlay.transform.SetParent(parentCanvas != null ? parentCanvas.transform : transform, false);
+            var overlayRect = overlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+            overlay.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+
+            GameObject box = new GameObject("Box", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            box.transform.SetParent(overlay.transform, false);
+            var boxRect = box.GetComponent<RectTransform>();
+            boxRect.sizeDelta = new Vector2(440, 220);
+            boxRect.anchorMin = boxRect.anchorMax = new Vector2(0.5f, 0.5f);
+            boxRect.anchoredPosition = Vector2.zero;
+            box.GetComponent<Image>().color = new Color(0.12f, 0.12f, 0.12f, 0.97f);
+
+            GameObject textGO = new GameObject("Message", typeof(RectTransform));
+            textGO.transform.SetParent(box.transform, false);
+            var textRect = textGO.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0.35f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = new Vector2(16f, 0f);
+            textRect.offsetMax = new Vector2(-16f, -16f);
+            var messageText = textGO.AddComponent<TextMeshProUGUI>();
+            messageText.text = message;
+            messageText.fontSize = 22;
+            messageText.alignment = TextAlignmentOptions.Center;
+            messageText.color = Color.white;
+
+            void MakeButton(string label, Vector2 anchorMin, Vector2 anchorMax, Color color, UnityEngine.Events.UnityAction onClick)
+            {
+                GameObject btnGO = new GameObject(label + "Button", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+                btnGO.transform.SetParent(box.transform, false);
+                var btnRect = btnGO.GetComponent<RectTransform>();
+                btnRect.anchorMin = anchorMin;
+                btnRect.anchorMax = anchorMax;
+                btnRect.offsetMin = Vector2.zero;
+                btnRect.offsetMax = Vector2.zero;
+                btnGO.GetComponent<Image>().color = color;
+                btnGO.GetComponent<Button>().onClick.AddListener(onClick);
+
+                GameObject btnTextGO = new GameObject("Text", typeof(RectTransform));
+                btnTextGO.transform.SetParent(btnGO.transform, false);
+                var btnTextRect = btnTextGO.GetComponent<RectTransform>();
+                btnTextRect.anchorMin = Vector2.zero;
+                btnTextRect.anchorMax = Vector2.one;
+                btnTextRect.offsetMin = Vector2.zero;
+                btnTextRect.offsetMax = Vector2.zero;
+                var btnText = btnTextGO.AddComponent<TextMeshProUGUI>();
+                btnText.text = label;
+                btnText.alignment = TextAlignmentOptions.Center;
+                btnText.color = Color.white;
+                btnText.fontSize = 20;
+            }
+
+            MakeButton(confirmLabel, new Vector2(0.05f, 0.08f), new Vector2(0.48f, 0.28f), new Color(0.65f, 0.15f, 0.15f), () =>
+            {
+                Destroy(overlay);
+                activeConfirmDialog = null;
+                onConfirm?.Invoke();
+            });
+            MakeButton("Cancel", new Vector2(0.52f, 0.08f), new Vector2(0.95f, 0.28f), new Color(0.25f, 0.25f, 0.25f), () =>
+            {
+                Destroy(overlay);
+                activeConfirmDialog = null;
+            });
+
+            activeConfirmDialog = overlay;
+        }
+
+        private void OnPlayerNameEndEdit(string newName)
+        {
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerName(newName);
+        }
+
+        private void OnMultiplayerCivToggleChanged(int civIndex)
+        {
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv((CivEnum)civIndex);
+        }
+
+        // Called by LocalHumanPlayerController.OnStartLocalPlayer once this client's player object
+        // has spawned (StartHost is near-instant; StartClient spawns asynchronously after connecting),
+        // so whatever name the player already entered in the lobby UI gets pushed immediately.
+        // Civilization is no longer picked pre-connect - PlayerManager.RegisterPlayer defaults every
+        // connecting player to FED, and each client then picks their own civ post-connect via the
+        // dropdown on their row in Panel_ClientRoster (ClientRosterPanelUIController).
+        public void OnLocalPlayerReady(LocalHumanPlayerController localPlayer)
+        {
+            Debug.Log($"[RosterDiag] OnLocalPlayerReady fired, netId={localPlayer.netId} hash={localPlayer.netId.GetHashCode()}");
+            if (playerNameInputField != null && !string.IsNullOrWhiteSpace(playerNameInputField.text))
+                localPlayer.SubmitPlayerName(playerNameInputField.text);
+
+            // Panel_ClientRoster.RefreshPanel() may already have run once (it runs on OnEnable,
+            // which fires the instant we SetActive(true) it right after Host/Connect) - at that
+            // point PlayerManager.Instance.LocalPlayerController was still null, so every row was
+            // drawn as read-only text (GetLocalPlayerId() had nothing to match against). Now that
+            // it's set, force a redraw so this player's own row gets its civ dropdown.
+            ClientRosterPanelUIController.Instance?.RefreshPanel();
+        }
+
+        public void HostButton() // Button Host in Panel-MulitplayerLobby
+        {
+            if (NetworkManager.singleton == null)
+            {
+                SetLobbyStatus("NetworkManager not found.");
+                return;
+            }
+            if (NetworkServer.active || NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Already hosting or connected.");
+                return;
+            }
+
+            // A non-empty address field is a strong signal the player meant to type someone
+            // else's IP into Connect and clicked Host by mistake - confirm before hosting a
+            // brand-new, disconnected session out from under them.
+            string typedIp = hostIpInputField != null ? hostIpInputField.text.Trim() : "";
+            if (!string.IsNullOrEmpty(typedIp))
+            {
+                ShowConfirmDialog(
+                    $"You entered an address to Connect to ({typedIp}), but clicked Host instead.\n\nStart your own game here instead?",
+                    "Host Anyway",
+                    StartHostingNow);
+                return;
+            }
+
+            StartHostingNow();
+        }
+
+        private void StartHostingNow()
+        {
+            try
+            {
+                NetworkManager.singleton.StartHost();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"HostButton: StartHost() threw - {ex.Message}");
+                SetLobbyStatus($"Could not start hosting: {ex.Message}. The port may already be in use - if someone else is already hosting, use Connect instead.");
+                if (NetworkServer.active || NetworkClient.active)
+                    NetworkManager.singleton.StopHost();
+                return;
+            }
+
+            if (!NetworkServer.active)
+            {
+                SetLobbyStatus("Could not start hosting - the port may already be in use. If someone else is already hosting, use Connect instead.");
+                return;
+            }
+
+            SetLobbyStatus($"Hosting at {NetworkManager.singleton.networkAddress}. Select a civilization and press Next.");
+
+            // NetworkManager.RegisterClientMessages() (called internally by StartHost()) does
+            // "NetworkClient.OnConnectedEvent = OnClientConnectInternal" - a plain overwrite, not
+            // +=, which wipes out our OnEnable() subscription every time Start Host/Client runs.
+            // Re-subscribe now that StartHost() has finished re-registering its own handler.
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+
+            // StartHost() may have created a new Transport.active instance (or this is the first
+            // time it became non-null) - make sure our bind-failure listener is attached to it.
+            if (Transport.active != null)
+            {
+                Transport.active.OnServerError -= OnHostTransportError;
+                Transport.active.OnServerError += OnHostTransportError;
+            }
+
+            // Mirror's host path (NetworkClient.ConnectHost()) never raises OnConnectedEvent -
+            // that's only fired by a real transport handshake, which host mode skips since it's
+            // an in-memory local connection. Drive the same auto-transition directly here instead
+            // of relying on the event, since StartHost() completes synchronously.
+            OnNetworkClientConnected();
+        }
+
+        // Some transports (e.g. Telepathy's background accept thread) don't throw synchronously
+        // when the port is already in use - they report it asynchronously through this callback
+        // instead. Without this, a same-machine port conflict would leave the UI stuck claiming
+        // "Hosting at ..." even though nothing is actually listening.
+        private void OnHostTransportError(int connectionId, TransportError error, string reason)
+        {
+            Debug.LogError($"HostButton: transport reported a server error ({error}): {reason}");
+            SetLobbyStatus($"Hosting failed: {reason}. The port may already be in use - if someone else is already hosting, use Connect instead.");
+            if (NetworkServer.active)
+                NetworkManager.singleton.StopHost();
+        }
+
+        public void ConnectButton() // Button Connnect in Panel-MulitplayerLobby
+        {
+            if (NetworkManager.singleton == null)
+            {
+                SetLobbyStatus("NetworkManager not found.");
+                return;
+            }
+            if (NetworkServer.active || NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Already hosting or connected.");
+                return;
+            }
+
+            string ip = hostIpInputField != null ? hostIpInputField.text.Trim() : "";
+            if (string.IsNullOrEmpty(ip))
+            {
+                SetLobbyStatus("Enter a host IP address first.");
+                return;
+            }
+
+            string portText = hostPortInputField != null ? hostPortInputField.text.Trim() : "";
+            if (!string.IsNullOrEmpty(portText))
+            {
+                if (!ushort.TryParse(portText, out ushort port))
+                {
+                    SetLobbyStatus("Port must be a number between 0 and 65535.");
+                    return;
+                }
+                if (Transport.active is PortTransport portTransport)
+                    portTransport.Port = port;
+            }
+
+            NetworkManager.singleton.networkAddress = ip;
+            NetworkManager.singleton.StartClient();
+
+            // See matching comment in HostButton(): StartClient() -> RegisterClientMessages()
+            // overwrites NetworkClient.OnConnectedEvent with Mirror's own internal handler,
+            // silently dropping our OnEnable() subscription. Without this, OnNetworkClientConnected()
+            // never fires on the connecting client and the UI stays stuck on "Connecting...".
+            NetworkClient.OnConnectedEvent -= OnNetworkClientConnected;
+            NetworkClient.OnConnectedEvent += OnNetworkClientConnected;
+
+            SetLobbyStatus($"Connecting to {ip}...");
+        }
+
+        public void CancelButton() // Button Cancel in Panel-MulitplayerLobby - aborts setup and returns to Panel-Lobby
+        {
+            UnsubscribeRosterCallback();
+
+            if (NetworkManager.singleton != null)
+            {
+                if (NetworkServer.active && NetworkClient.isConnected)
+                    NetworkManager.singleton.StopHost();
+                else if (NetworkClient.active)
+                    NetworkManager.singleton.StopClient();
+                else if (NetworkServer.active)
+                    NetworkManager.singleton.StopServer();
+            }
+
+            SetLobbyStatus(string.Empty);
+            panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
+            panelCivSelection.SetActive(false);
+            panelGamePara.SetActive(false);
+            panelLobby.SetActive(true);
+        }
+
+        public void NextButton() // Button Next, moved onto Panel_ClientRoster - confirms civ picks, proceeds to game parameters
+        {
+            if (!NetworkServer.active && !NetworkClient.isConnected)
+            {
+                SetLobbyStatus("Host or connect before continuing.");
+                return;
+            }
+
+            IsSinglePlayer = false;
+            GameController.Instance.GameData.GameMode = GameMode.MULTIPLAYER;
+
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
+            panelMuliplayer.SetActive(false);
+            panelLobby.SetActive(false);
+            panelCivSelection.SetActive(false);
+            panelGamePara.SetActive(true);
+
+            ApplyRosterLocksToGameParams();
+            ApplyHostOnlyGating();
+
+            Debug.Log("NextButton: Proceeding to game parameters. Civs claimed by connected players are locked in.");
+        }
+
+        // UI-only host gate: a connected-but-non-host client must not be able to change galaxy
+        // parameters or start the game - only the host (or a single-player session) drives these.
+        // This does not implement networked scene-transition propagation to remote clients yet;
+        // it only prevents non-host clients from touching the controls locally.
+        private void ApplyHostOnlyGating()
+        {
+            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active;
+            if (isHostAuthoritative)
+                return; // host/single-player keeps full control; per-civ locks are handled by ApplyRosterLocksToGameParams()
+
+            SetToggleListInteractable(OnOffToggles, false);
+            SetToggleListInteractable(MapToggles, false);
+            SetToggleListInteractable(GalaxySizeToggles, false);
+            SetToggleListInteractable(TechLevelToggles, false);
+
+            if (mainMenuButton != null)
+            {
+                Button startButton = mainMenuButton.GetComponent<Button>();
+                if (startButton != null)
+                    startButton.interactable = false;
+            }
+
+            if (previousGameParamsButton != null)
+            {
+                Button backButton = previousGameParamsButton.GetComponent<Button>();
+                if (backButton != null)
+                    backButton.interactable = false;
+            }
+
+            SetLobbyStatus("Waiting for host to start the game...");
+        }
+
+        private static void SetToggleListInteractable(List<Toggle> toggles, bool interactable)
+        {
+            if (toggles == null)
+                return;
+            foreach (Toggle toggle in toggles)
+                if (toggle != null)
+                    toggle.interactable = interactable;
+        }
+
+        // Prevents the host from accidentally excluding a civ a connected human player already
+        // claimed in Panel_ClientRoster. Civs with no human claim stay toggleable so the host can
+        // still choose whether the AI plays them.
+        private void ApplyRosterLocksToGameParams()
+        {
+            if (civToggles == null || PlayerManager.Instance == null)
+                return;
+
+            var claimedCivs = new HashSet<CivEnum>();
+            foreach (RosterEntry entry in PlayerManager.Instance.Roster)
+                if (entry.PlayerType == PlayerType.Local)
+                    claimedCivs.Add(entry.PlayerCiv);
+
+            for (int i = 0; i < civToggles.Length; i++)
+            {
+                CivEnum civ = (CivEnum)i;
+                bool claimedByHuman = claimedCivs.Contains(civ);
+                if (claimedByHuman)
+                    civToggles[i].SetIsOnWithoutNotify(true);
+                civToggles[i].interactable = !claimedByHuman;
+            }
+
+            UpdateNotInGame();
+        }
+
         public void SaveButton()
         {
             Debug.Log($"SaveButton: localPlayerCiv = {localPlayerCiv} (index {(int)localPlayerCiv})");

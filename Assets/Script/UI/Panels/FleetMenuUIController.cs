@@ -221,6 +221,25 @@ namespace BOTF3D.UI
             // Menu system handles cleanup when transitioning between menus
             // Don't call MoveBack here - it deactivates UIs
 
+            // Evict any OTHER fleet's UI still parented in AFleetMenuView from a previous
+            // AFleetMenu view (e.g. a "New Fleet" deploy UI left open, then a different fleet is
+            // clicked on the map). GalaxyMenuUIController.HideMenuViews() only toggles
+            // AFleetMenuView's own active state during a menu transition - it never moves a stale
+            // child back to home storage, so that old fleet's UI silently reappears alongside the
+            // new one when this container is reactivated.
+            if (AFleetMenuView != null)
+            {
+                GameObject homeContainer = FleetManager.Instance?.FleetUI_ListContainer ?? FleetListContainer;
+                for (int i = AFleetMenuView.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = AFleetMenuView.transform.GetChild(i);
+                    if (child.gameObject == theFleetCon.FleetUIGameObject) continue;
+                    if (child.GetComponent<FleetUI_Fields>() == null) continue; // leave system UIs alone
+                    if (homeContainer != null) child.SetParent(homeContainer.transform, false);
+                    child.gameObject.SetActive(false);
+                }
+            }
+
             if (theFleetCon.FleetUIGameObject == null)
             {
                 Debug.LogError($"SetActiveSetParentUIGO: Fleet '{theFleetCon.name}' has no FleetUIGameObject!");
@@ -487,17 +506,22 @@ namespace BOTF3D.UI
                     }
                 }
 
-                // Set mini map position (one-time)
-                float x = fleetCon.FleetData.Position.x * 0.12f;
-                float z = fleetCon.FleetData.Position.z * 0.12f;
-                RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
-                if (dot != null)
-                    dot.anchoredPosition = new Vector2(x, z);
             }
             else
             {
                 Debug.Log($"SetupFleetUIElements: Re-wiring existing fleet '{fleetCon.name}'");
             }
+
+            // Refresh mini map position every time the UI opens (not just first-time setup).
+            // This block first runs at fleet-registration time (FleetManager.InstantiateFleetUIGameObject,
+            // triggered by the client's OnCivEnumChanged reconstruction) - on a non-host client that's
+            // before NetworkTransform has delivered its first position sync for this fleet, so
+            // fleetCon.transform.position was still stale there. Re-running on every open (in particular
+            // when the player actually clicks the fleet to view it) catches the by-then-synced position.
+            // FleetData.Position itself can't be used as the source here - it's never populated for a
+            // non-host client's locally-reconstructed fleets (see FleetController.OnCivEnumChanged; it's
+            // a plain field, not a SyncVar, and only the server writes it).
+            fleetCon.UpdateMinimapPosition();
 
             // ✅ 2, 3 & 4. Sync ships (Always run for both new and existing fleets to catch any missing UIs)
             Debug.Log($"🧩 SetupFleetUIElements: '{fleetCon.name}' opening with FleetData.ShipsList.Count={fleetCon.FleetData?.ShipsList?.Count ?? -1}, FleetShipContentGO={(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
@@ -646,57 +670,40 @@ namespace BOTF3D.UI
         {
             if (currentFleetCon == null || currentFleetCon.FleetData == null) return;
             if (currentFleetCon.TargetController != null)
-            {
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(currentFleetCon);
-            }
             if (currentFleetCon.FleetData.ShipsList.Count < 2) return;
 
             MousePointerChanger.Instance.ResetCursor();
-            var fleetManager = FleetManager.Instance;
-            FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)currentFleetCon.FleetData.CivEnum);
-            var position = currentFleetCon.FleetData.GetPosition();
-
-            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
-            FleetData fleetData = new FleetData(fleetSO);
-            fleetData.CurrentWarpFactor = 0f;
-            fleetData.CivLongName = thisCivData.CivLongName;
-            fleetData.CivShortName = thisCivData.CivShortName;
-            fleetData.CivEnum = thisCivData.CivEnum;
-            fleetData.PlayerId = thisCivData.PlayerId;
-            //Not fleetData.FleetInt, wait to get fleet num from instantiate fleet in = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
-            //Same goes for fleetData.Name = $"{thisCivData.CivLongName} Fleet {fleetData.FleetInt}";
-            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
-            // don't overwrite it with the civ's own insignia here.
-            fleetData.ShipsList = new List<ShipController>();
-            //Not fleetData.Position, wait for it = position;
-
-            var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-
-            // TopFleet (source) for deploy UI
             ShipDeployMenuUIController.Instance.TopFleet = currentFleetCon;
 
-            // Create an empty star system placeholder used by InstantiateFleet
-            var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
+            Debug.Log($"ClickNewFleetButton: requesting server-side split fleet from '{currentFleetCon.name}'.");
+            PlayerManager.Instance?.LocalPlayerController?.SubmitCreateSplitFleet(currentFleetCon);
+        }
 
-            // Create the new fleet (split off) in FleetManager
-            var newFleet = fleetManager.InstantiateFleet(currentFleetCon, emptyStarSysCon, fleetData, position, true);
+        public void OnSplitFleetCreated(uint sourceFleetNetId, uint newFleetNetId)
+        {
+            StartCoroutine(ResolveAndShowSplitDeployUI(sourceFleetNetId, newFleetNetId));
+        }
 
-            tempFleetController = newFleet;
-
-            // CRITICAL: Ensure the new fleet has its ShipListUIParent set up
-            if (newFleet.FleetData.ShipListUIParent == null)
+        private System.Collections.IEnumerator ResolveAndShowSplitDeployUI(uint sourceFleetNetId, uint newFleetNetId)
+        {
+            FleetController sourceFleet = null, newFleet = null;
+            for (int attempt = 0; attempt < 60; attempt++) // ~1s at 60fps, generous margin for the spawn message to arrive
             {
-                Debug.LogWarning($"New fleet '{newFleet?.name}' has no ShipListUIParent! Creating temporary container.");
-                // This should ideally be set up in InstantiateFleet or ShowShipDeployForFleetNewFleet
+                if (Mirror.NetworkClient.spawned.TryGetValue(sourceFleetNetId, out var srcIdentity)) sourceFleet = srcIdentity.GetComponent<FleetController>();
+                if (Mirror.NetworkClient.spawned.TryGetValue(newFleetNetId, out var newIdentity)) newFleet = newIdentity.GetComponent<FleetController>();
+                if (sourceFleet != null && newFleet != null) break;
+                yield return null;
+            }
+            if (sourceFleet == null || newFleet == null)
+            {
+                Debug.LogError($"ResolveAndShowSplitDeployUI: timed out waiting for fleets to spawn (source={sourceFleetNetId}, new={newFleetNetId}).");
+                yield break;
             }
 
-            Debug.Log($"ClickNewFleetButton: New fleet '{newFleet?.name}' created with ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
-
-            // Use the central GalaxyMenuUIController method so it performs full UI life-cycle and parents correctly.
-            Debug.Log($"ClickNewFleetButton: requesting ShipDeploy UI for new fleet '{newFleet?.name}' (from {currentFleetCon?.name})");
-            galaxyMenuUICon.ShowShipDeployForFleetNewFleet(currentFleetCon, newFleet);
-
-            Destroy(emptyStarSysCon.gameObject);
+            tempFleetController = newFleet;
+            Debug.Log($"ResolveAndShowSplitDeployUI: opening deploy UI for new fleet '{newFleet.name}' split from '{sourceFleet.name}'.");
+            GalaxyMenuUIController.Instance.ShowShipDeployForFleetNewFleet(sourceFleet, newFleet);
         }
         private void CancelFleetUIButton()
         {
@@ -759,7 +766,7 @@ namespace BOTF3D.UI
                         FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
                     FleetManager.Instance.TempFogRevealerFleet = null;
 
-                    FleetManager.Instance.DestroyFleetController(tempFleetController);
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitDestroyEmptyFleet(tempFleetController);
                     tempFleetController = null;
                 }
                 else
@@ -777,6 +784,20 @@ namespace BOTF3D.UI
                         }
                     }
 
+                    // Ships committed via drag-drop are still parented under the deploy UI's shared
+                    // BottomSlot (SetUpBottomShipLists never reparents them out again on commit) - move
+                    // them into this fleet's own permanent UI container now, or they'll keep sitting in
+                    // BottomSlot and show up as "ghost" ships the next time ANY new-fleet deploy session
+                    // reuses that same BottomSlot transform.
+                    if (tempFleetController.FleetData.ShipListUIParent != null)
+                    {
+                        foreach (var ship in tempFleetController.FleetData.ShipsList)
+                        {
+                            if (ship?.ShipListUIGameObject != null)
+                                ship.ShipListUIGameObject.transform.SetParent(tempFleetController.FleetData.ShipListUIParent.transform, false);
+                        }
+                    }
+
                     // Fleet has ships, so finalize it and keep it
                     tempFleetController = null; // Clear temp reference but don't destroy
                 }
@@ -784,6 +805,16 @@ namespace BOTF3D.UI
             else
             {
                 Debug.Log("CancelShipManageAfterCommit (Fleet): No temp fleet to process, proceeding to UI cleanup");
+            }
+
+            // ✅ If dragging ships out (e.g. into a brand-new split fleet) left the source fleet
+            // with no ships, it must be removed too - otherwise an empty fleet lingers in the
+            // galaxy while the ships it used to hold now live entirely in the new fleet.
+            var sourceFleet = ShipDeployMenuUIController.Instance != null ? ShipDeployMenuUIController.Instance.TopFleet : null;
+            if (sourceFleet != null && sourceFleet.FleetData != null && sourceFleet.FleetData.ShipsList.Count == 0)
+            {
+                Debug.Log($"CancelShipManageAfterCommit (Fleet): source fleet '{sourceFleet.name}' left with 0 ships, destroying it");
+                PlayerManager.Instance?.LocalPlayerController?.SubmitDestroyEmptyFleet(sourceFleet);
             }
 
             var galaxyUI = GalaxyMenuUIController.Instance;
@@ -898,14 +929,24 @@ namespace BOTF3D.UI
 
         public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
         {
-            if (fleetConWaitingForDestination == null) return;
+            if (fleetConWaitingForDestination == null)
+            {
+                Debug.LogWarning("SelectedDestinationCursor: fleetConWaitingForDestination is NULL - click ignored.");
+                return;
+            }
 
             if (fleetConWaitingForDestination.TargetController != null)
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
 
             bool isLocalPlayer = GameController.Instance != null &&
                                   GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum);
-            if (!isLocalPlayer) return;
+            if (!isLocalPlayer)
+            {
+                Debug.LogWarning($"SelectedDestinationCursor: fleet '{fleetConWaitingForDestination.name}' (civ={fleetConWaitingForDestination.FleetData?.CivEnum}) is NOT recognized as the local player's own fleet (GameController.Instance={(GameController.Instance != null ? "OK" : "NULL")}) - SetDestination mode NOT armed, click ignored.");
+                return;
+            }
+
+            Debug.Log($"SelectedDestinationCursor: arming SetDestination mode for fleet '{fleetConWaitingForDestination.name}'.");
 
             var fields = fleetConWaitingForDestination.FleetUIGameObject != null ? fleetConWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
@@ -927,7 +968,11 @@ namespace BOTF3D.UI
         }
         public void ClickSelectDestinationButton(FleetController fleetCon)
         {
-            if (fleetCon == null) return;
+            if (fleetCon == null)
+            {
+                Debug.LogWarning("ClickSelectDestinationButton: fleetCon is NULL - click ignored.");
+                return;
+            }
 
             if (fleetCon.TargetController != null)
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
@@ -935,8 +980,13 @@ namespace BOTF3D.UI
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
+                Debug.Log($"ClickSelectDestinationButton: arming SetDestination mode for fleet '{fleetCon.name}'.");
                 galaxyUI.BeginSetDestination(fleetCon);
                 MousePointerChanger.Instance?.SetDestinationCursor();
+            }
+            else
+            {
+                Debug.LogWarning("ClickSelectDestinationButton: GalaxyMenuUIController.Instance is NULL - could not arm SetDestination mode.");
             }
         }
         public void ClickCancelDestinationButton(FleetController fleetCon)

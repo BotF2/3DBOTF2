@@ -2,7 +2,6 @@
 using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -88,6 +87,7 @@ namespace BOTF3D.Civilization
                 SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
                 CivSOsInGame = _SOsInGame;
 
+                Debug.Log($"=== CANON galaxy generated: {CivSOsInGame.Count} civs: {string.Join(", ", CivSOsInGame.Select(c => c.CivShortName))} ===");
 
                 ////**** See all Civs -  ****
                 // CivSOsInGame = CivSOListAllPossible;
@@ -128,8 +128,9 @@ namespace BOTF3D.Civilization
                     }
                 }
 
-                // ✅ Shuffle using Fisher-Yates
-                availableMinors = availableMinors.OrderBy(x => Guid.NewGuid()).ToList();
+                // ✅ Shuffle - UnityEngine.Random (not Guid.NewGuid) so this replays identically
+                // across clients when seeded via UnityEngine.Random.InitState before generation.
+                availableMinors = availableMinors.OrderBy(x => UnityEngine.Random.value).ToList();
 
                 // ✅ Take the first N minors
                 int minorsToAdd = Mathf.Min(targetMinorCount, availableMinors.Count);
@@ -173,7 +174,9 @@ namespace BOTF3D.Civilization
         }
         private void SetRandomCanonCivsByGalaxySize(int galaxySize, List<CivSO> _SOsInGame)
         {
-            CivSOListAllPossible = CivSOListAllPossible.OrderBy(i => Guid.NewGuid()).ToList();
+            // UnityEngine.Random (not Guid.NewGuid) so this replays identically across clients
+            // when seeded via UnityEngine.Random.InitState before generation.
+            CivSOListAllPossible = CivSOListAllPossible.OrderBy(i => UnityEngine.Random.value).ToList();
 
             for (int i = 0; i < (50 * (1 + galaxySize)); i++)
             {

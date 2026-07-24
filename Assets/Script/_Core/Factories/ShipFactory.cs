@@ -132,6 +132,11 @@ namespace BOTF3D.Core
                     fleetCon.FleetData.ShipsList.Add(shipController);
                 }
 
+                // ShipID==0 means "not yet assigned" - see FleetData.GetNextShipCreationSeq for why
+                // this is scoped to the fleet's own stable FleetInt rather than a single global counter.
+                if (shipController.ShipData.ShipID == 0)
+                    shipController.ShipData.ShipID = fleetCon.SyncedFleetInt * 100000 + fleetCon.FleetData.GetNextShipCreationSeq();
+
                 shipController.ShipData.CurrentStarSysController = null;
                 Debug.Log($"  Ship '{shipController.ShipData.ShipName}' linked to fleet '{fleetCon.name}'");
             }
@@ -143,6 +148,13 @@ namespace BOTF3D.Core
                 {
                     sysCon.StarSysData.ShipsList.Add(shipController);
                 }
+
+                // +1,000,000,000 keeps this range disjoint from fleet-scoped IDs above (FleetInt/
+                // starSysInt are both small, low-valued counters, so without an offset a fleet and a
+                // system could easily compute the same ID and collide inside a fleet's ShipsList after
+                // a merge).
+                if (shipController.ShipData.ShipID == 0)
+                    shipController.ShipData.ShipID = 1_000_000_000 + sysCon.StarSysData.GetStarSysInt() * 100000 + sysCon.StarSysData.GetNextShipCreationSeq();
 
                 shipController.ShipData.CurrentFleetController = null;
                 Debug.Log($"  Ship '{shipController.ShipData.ShipName}' linked to system '{sysCon.name}'");

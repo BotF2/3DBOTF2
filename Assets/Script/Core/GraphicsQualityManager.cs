@@ -21,7 +21,7 @@ namespace BOTF3D.Core
         [SerializeField] private int targetWidth = 1920;
         [SerializeField] private int targetHeight = 1080;
         [SerializeField] private bool fullscreen = true;
-        [SerializeField] private FullScreenMode fullscreenMode = FullScreenMode.ExclusiveFullScreen;
+        [SerializeField] private FullScreenMode fullscreenMode = FullScreenMode.Windowed;
 
         [Header("Quality Settings")]
         [SerializeField] private int qualityLevel = 2; // 0=Low, 1=Medium, 2=High, 3=Ultra
