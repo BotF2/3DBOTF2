@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_119_SONA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 119
-  Position: {x: 1.46, y: -2.31, z: 88}
+  Position: {x: 1.46, y: -2.31, z: 88.00}
   SysName: SONA
   FirstOwner: 119
   CurrentOwner: 119

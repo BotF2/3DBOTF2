@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 0
   CivEnum: 0
-  CivShortName: FEDERATION
+  CivShortName: Federation
   CivLongName: United Federation of Planets
   CivHomeSystem: SOL
   WarLikeEnum: 1
@@ -24,6 +24,8 @@ MonoBehaviour:
   CivImage: {fileID: 21300000, guid: 9f337b818e6ce7f49ada896cbf5c1bd4, type: 3}
   Insignia: {fileID: 21300000, guid: 18273931b6c901041bb9c53c43cea038, type: 3}
   Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 80
   Credits: 0
   TechPoints: 0
   CivTechLevel: 100
@@ -46,3 +48,4 @@ MonoBehaviour:
     MISSION: TO EXPLORE STRANGE NEW WORLDS, TO SEEK OUT NEW LIFE AND NEW CIVILIZATIONS,
     TO BOLDLY GO WHERE NO ONE HAS GONE BEFORE!'
   IntelPoints: 0
+  QualityScore: 5

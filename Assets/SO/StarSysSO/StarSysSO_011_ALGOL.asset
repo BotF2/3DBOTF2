@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_011_ALGOL
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 11
-  Position: {x: -45.92, y: 0.34, z: -48.75}
+  Position: {x: -45.60, y: 0.34, z: -48.63}
   SysName: ALGOL
   FirstOwner: 11
   CurrentOwner: 11

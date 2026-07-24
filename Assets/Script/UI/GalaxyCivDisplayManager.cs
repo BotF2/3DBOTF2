@@ -91,99 +91,69 @@ namespace BOTF3D.UI
             }
 
             CivEnum localPlayerCiv = GameController.Instance.GameData.LocalPlayerCivEnum;
-            Debug.Log($"GalaxyCivDisplayManager: Loading UI for {localPlayerCiv}");
 
-            string civShortName = GetCivilizationShortName(localPlayerCiv);
+            string displayName = CivManager.Instance?.GetCivControllerByCivEnum(localPlayerCiv)?.CivData?.CivShortName;
+            if (string.IsNullOrEmpty(displayName))
+                displayName = GetFallbackDisplayName(localPlayerCiv);
 
-            // Load insignia
-            Sprite insignia = GetInsigniaForCivilization(civShortName);
+            Sprite insignia = GetInsigniaForCivilization(localPlayerCiv);
             if (insigniaImage != null && insignia != null)
-            {
                 insigniaImage.sprite = insignia;
-                Debug.Log($"✅ Loaded insignia for {civShortName}");
-            }
             else
-            {
-                Debug.LogWarning($"⚠️ Could not load insignia for {civShortName}");
-            }
+                Debug.LogWarning($"GalaxyCivDisplayManager: No insignia found for {localPlayerCiv}");
 
-            // Load race portrait
-            Sprite racePortrait = GetRacePortraitForCivilization(civShortName);
+            Sprite racePortrait = GetRacePortraitForCivilization(localPlayerCiv);
             if (raceImage != null && racePortrait != null)
-            {
                 raceImage.sprite = racePortrait;
-                Debug.Log($"✅ Loaded race portrait for {civShortName}");
-            }
             else
-            {
-                Debug.LogWarning($"⚠️ Could not load race portrait for {civShortName}");
-            }
+                Debug.LogWarning($"GalaxyCivDisplayManager: No race portrait found for {localPlayerCiv}");
 
-            // Set civ short name text
             if (civShortNameText != null)
-            {
-                civShortNameText.text = civShortName;
-                Debug.Log($"✅ Set civ short name to {civShortName}");
-            }
+                civShortNameText.text = displayName;
         }
 
-        /// <summary>
-        /// Get the short name for a civilization
-        /// </summary>
-        private string GetCivilizationShortName(CivEnum civEnum)
+        private string GetFallbackDisplayName(CivEnum civEnum)
         {
             switch (civEnum)
             {
-                case CivEnum.FED: return "FED";
-                case CivEnum.ROM: return "ROM";
-                case CivEnum.KLING: return "KLING";
-                case CivEnum.CARD: return "CARD";
-                case CivEnum.DOM: return "DOM";
-                case CivEnum.BORG: return "BORG";
-                case CivEnum.TERRAN: return "TERRAN";
-                default:
-                    Debug.LogWarning($"Unknown CivEnum: {civEnum}");
-                    return "UNKNOWN";
+                case CivEnum.FED:    return "Federation";
+                case CivEnum.ROM:    return "Romulan";
+                case CivEnum.KLING:  return "Klingon";
+                case CivEnum.CARD:   return "Cardassian";
+                case CivEnum.DOM:    return "Dominion";
+                case CivEnum.BORG:   return "Borg";
+                case CivEnum.TERRAN: return "Terran";
+                default:             return civEnum.ToString();
             }
         }
 
-        /// <summary>
-        /// Get insignia sprite for a civilization
-        /// </summary>
-        private Sprite GetInsigniaForCivilization(string civShortName)
+        private Sprite GetInsigniaForCivilization(CivEnum civEnum)
         {
-            switch (civShortName)
+            switch (civEnum)
             {
-                case "FED": return federationInsignia;
-                case "ROM": return romulanInsignia;
-                case "KLING": return klingonInsignia;
-                case "CARD": return cardassianInsignia;
-                case "DOM": return dominionInsignia;
-                case "BORG": return borgInsignia;
-                case "TERRAN": return terranInsignia;
-                default:
-                    Debug.LogWarning($"No insignia found for {civShortName}");
-                    return null;
+                case CivEnum.FED:    return federationInsignia;
+                case CivEnum.ROM:    return romulanInsignia;
+                case CivEnum.KLING:  return klingonInsignia;
+                case CivEnum.CARD:   return cardassianInsignia;
+                case CivEnum.DOM:    return dominionInsignia;
+                case CivEnum.BORG:   return borgInsignia;
+                case CivEnum.TERRAN: return terranInsignia;
+                default:             return null;
             }
         }
 
-        /// <summary>
-        /// Get race portrait sprite for a civilization
-        /// </summary>
-        private Sprite GetRacePortraitForCivilization(string civShortName)
+        private Sprite GetRacePortraitForCivilization(CivEnum civEnum)
         {
-            switch (civShortName)
+            switch (civEnum)
             {
-                case "FED": return federationRace;
-                case "ROM": return romulanRace;
-                case "KLING": return klingonRace;
-                case "CARD": return cardassianRace;
-                case "DOM": return dominionRace;
-                case "BORG": return borgRace;
-                case "TERRAN": return terranRace;
-                default:
-                    Debug.LogWarning($"No race portrait found for {civShortName}");
-                    return null;
+                case CivEnum.FED:    return federationRace;
+                case CivEnum.ROM:    return romulanRace;
+                case CivEnum.KLING:  return klingonRace;
+                case CivEnum.CARD:   return cardassianRace;
+                case CivEnum.DOM:    return dominionRace;
+                case CivEnum.BORG:   return borgRace;
+                case CivEnum.TERRAN: return terranRace;
+                default:             return null;
             }
         }
     }

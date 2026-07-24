@@ -13,19 +13,19 @@ MonoBehaviour:
   m_Name: StarSysSO_004_OMARIAN_NEBULA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 4
-  Position: {x: -57.44, y: 2.53, z: 62.14}
+  Position: {x: -57.38, y: 2.53, z: 62.28}
   SysName: OMARIAN NEBULA
   FirstOwner: 4
   CurrentOwner: 4
   StarType: 7
   StarSprit: {fileID: 21300000, guid: a1663c77f5363854caec319c3888c299, type: 3}
-  Dilitium: 2
+  Dilitium: 3
   PowerStations: 2
-  Factories: 2
-  ResearchCenters: 2
+  Factories: 1
+  ResearchCenters: 3
   Shipyards: 1
-  ShieldGenerators: 2
-  OrbitalBatteries: 10
+  ShieldGenerators: 3
+  OrbitalBatteries: 6
   Description: Description
   powerPlantSprite: {fileID: 21300000, guid: debd3118c20cd4543acef1038acddaf9, type: 3}
   factorySprite: {fileID: 21300000, guid: 536253e5b4a42c04d90b743b3d2fda2d, type: 3}

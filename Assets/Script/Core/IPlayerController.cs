@@ -18,7 +18,7 @@ public interface IPlayerController
     void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ);
     //void GiveCombatOrder(CombatOrders order, CombatController combatController, CivEnum civEnumLocalPlayer);
     void GiveDiplomacyOrder(NegotiationPloysEnum order, DiplomacyController diploCon, CivEnum civ);
-    void GiveIntelOrder(SecretActionsEnum order, CivEnum civ);
+    void GiveIntelOrder(SecretActionsEnum order, CivEnum actingCiv, CivEnum targetCiv);
     //......more orders as needed
 
 }

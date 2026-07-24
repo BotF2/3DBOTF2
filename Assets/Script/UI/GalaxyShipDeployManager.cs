@@ -191,6 +191,17 @@ namespace BOTF3D.UI
 
                 // Parent system UI to ASystemMenuView
                 var sysMenuView = StarSysMenuUIController.Instance?.ASystemMenuView?.gameObject;
+
+                // ✅ FIX: The ribbon "Close" button (GalaxyMenuUIController.CloseCurrentMenu)
+                // deactivates ASystemMenuView without resetting ship-deploy state. If the panel
+                // is reopened afterward, the reparented children were being set active but their
+                // parent was still inactive, so nothing was visible. Ensure the parent view itself
+                // is active, matching HandleFleetUIParenting's behavior.
+                if (sysMenuView != null && !sysMenuView.activeSelf)
+                {
+                    sysMenuView.SetActive(true);
+                }
+
                 if (sysMenuView != null && system.StarSysUIGameObject != null)
                 {
                     system.StarSysUIGameObject.transform.SetParent(sysMenuView.transform, false);
@@ -223,8 +234,10 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning($"System '{system.name}' missing ShipListUIParent - setting it up now");
 
-                var uiFields = system.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>();
-                if (uiFields?.shipContent != null)
+                var uiFields = system.StarSysUIGameObject != null
+                    ? system.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()
+                    : null;
+                if (uiFields != null && uiFields.shipContent != null)
                 {
                     system.StarSysData.ShipListUIParent = uiFields.shipContent.gameObject;
                     Debug.Log($"✅ Set ShipListUIParent for system '{system.name}'");
@@ -247,7 +260,7 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning($"Fleet '{fleet.name}' missing ShipListUIParent - setting it up now");
 
-                var uiFields = fleet.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                var uiFields = fleet.FleetUIGameObject != null ? fleet.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
                 if (uiFields?.FleetShipContentGO != null)
                 {
                     fleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
@@ -306,6 +319,14 @@ namespace BOTF3D.UI
 
                 // Parent fleet UIs to AFleetMenuView
                 var fleetMenuView = FleetMenuUIController.Instance?.AFleetMenuView?.gameObject;
+
+                // ✅ FIX: Same as ShowShipDeployForSystemNewFleet — ensure the parent view is
+                // reactivated in case it was left inactive by the ribbon "Close" button.
+                if (fleetMenuView != null && !fleetMenuView.activeSelf)
+                {
+                    fleetMenuView.SetActive(true);
+                }
+
                 if (fleetMenuView != null)
                 {
                     if (originalFleet.FleetUIGameObject != null)
@@ -424,7 +445,6 @@ namespace BOTF3D.UI
         public void BeginSetDestination(FleetController fleet)
         {
             FleetLookingForDestination = fleet;
-            Debug.Log($"GalaxyShipDeployManager: Fleet looking for destination set to {fleet?.name}");
         }
 
         /// <summary>
@@ -448,8 +468,6 @@ namespace BOTF3D.UI
         /// </summary>
         public void CancelShipDeploy()
         {
-            Debug.Log("GalaxyShipDeployManager: Canceling ship deploy");
-
             // Clear all state
             FleetLookingForShipDeploy = null;
             FleetSelectedForShipDeploy = null;
@@ -469,7 +487,6 @@ namespace BOTF3D.UI
         /// </summary>
         public void CompleteSetDestination()
         {
-            Debug.Log("GalaxyShipDeployManager: Completing set destination");
             FleetLookingForDestination = null;
         }
     }

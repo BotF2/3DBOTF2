@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_018_ARBAZ
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 18
-  Position: {x: -12.7, y: 1.18, z: -18.85}
+  Position: {x: -13.50, y: 1.18, z: -18.05}
   SysName: ARBAZ
   FirstOwner: 18
   CurrentOwner: 18

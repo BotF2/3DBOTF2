@@ -41,6 +41,44 @@ namespace BOTF3D.Galaxy
         public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitable or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
         public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
                                                // Consider adding other power sources and adjust this variable to be more general for total power output.
+        public int DilithiumStockpile; // Unallocated dilithium available for construction
+        public AIBuildMode AIBuildMode = AIBuildMode.Economy;
+        public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
+
+        // Subspace scanner: this system's own "fog of war" for detecting nearby enemy fleets,
+        // independent of the local player's rendering fog grid (FischlWorks_FogWar). Refreshed
+        // every turn by StarSysAIManager for every system regardless of owner, so it's available
+        // both for AI auto-Defence triggers and for future "set enemy fleet as destination" UI.
+        public float SubspaceScannerRadius = 250f;
+        public List<FleetController> DetectedEnemyFleets = new List<FleetController>();
+
+        // Dock slots for fleets sitting at this system (see FleetDockLayout). A null entry is a
+        // free slot a departed fleet left behind; the list only grows when every existing slot is
+        // occupied, so a system that regularly cycles fleets through doesn't leak slots.
+        public List<FleetController> FleetDockSlots = new List<FleetController>();
+
+        public int ClaimFleetDockSlot(FleetController fleet)
+        {
+            for (int i = 0; i < FleetDockSlots.Count; i++)
+            {
+                if (FleetDockSlots[i] == null)
+                {
+                    FleetDockSlots[i] = fleet;
+                    return i;
+                }
+            }
+            FleetDockSlots.Add(fleet);
+            return FleetDockSlots.Count - 1;
+        }
+
+        public void ReleaseFleetDockSlot(int slotIndex)
+        {
+            if (slotIndex >= 0 && slotIndex < FleetDockSlots.Count)
+                FleetDockSlots[slotIndex] = null;
+        }
+
+        public bool HasDilithium(int amount) => DilithiumStockpile >= amount;
+        public void DeductDilithium(int amount) => DilithiumStockpile = Mathf.Max(0, DilithiumStockpile - amount);
         public List<GameObject> PowerPlants;
         public List<GameObject> Factories;
         public List<GameObject> FactoryBuildQueue;
@@ -49,6 +87,12 @@ namespace BOTF3D.Galaxy
         public List<ShipData> ShipyardQueue;
         public List<GameObject> ShieldGenerators;
         public List<GameObject> OrbitalBatteries;
+        public List<GameObject> GroundForces = new List<GameObject>();
+        [Header("Population & Ground Forces")]
+        public int Population; // current population units; converts into GroundForces up to MaxGroundForceUnits
+        public float PopulationGrowthAccumulator; // fractional growth carried between stardates (see PopulationManager.GrowSystem)
+        public int MaxPopulation; // cap this system's Population can grow to (set by StarSysManager at creation)
+        public int MaxGroundForceUnits; // cap on GroundForces.Count; major homeworlds can reach GroundForceData.PopulationPerUnit-scaled 11
         public GameObject buildSlotItemImage;
         public List<GameObject> buildQueueImageList;
         public int BasePowerPerPlant = 20; // two power plants for major home systems so 40 total
@@ -61,6 +105,7 @@ namespace BOTF3D.Galaxy
         public ShieldGeneratorData ShieldGeneratorData;
         public OrbitalBatteryData OrbitalBatteryData;
         public ResearchCenterData ResearchCenterData;
+        public GroundForceData GroundForceData;
         [SerializeField]
         private Image powerPlant;
         [SerializeField]
@@ -96,6 +141,12 @@ namespace BOTF3D.Galaxy
         {
             return this.starSysInt;
         }
+
+        // Same purpose/reasoning as FleetData.GetNextShipCreationSeq - scoped to this system's own
+        // stable starSysInt (shared/deterministic across clients via the galaxy's generation seed)
+        // instead of a single global counter.
+        private int nextShipCreationSeq = 1; // 0 is reserved to mean "unassigned"
+        public int GetNextShipCreationSeq() => nextShipCreationSeq++;
         public Vector3 GetPosition(Vector3 vector3)
         {
             return this.position;

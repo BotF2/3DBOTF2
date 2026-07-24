@@ -6,10 +6,11 @@ namespace BOTF3D.Editor
 {
     /// <summary>
     /// Unity Editor menu items for combat debug tools.
-    /// Provides quick access to testing features.
+    /// Visual separators are produced automatically by priority gaps of 11+.
     /// </summary>
     public static class CombatDebugMenu
     {
+        // ── Group 1: recordings ──────────────────────────────────────────────
         [MenuItem("BOTF/Combat Testing/Open Recordings Folder", priority = 1)]
         public static void OpenRecordingsFolder()
         {
@@ -28,16 +29,14 @@ namespace BOTF3D.Editor
             CombatTestingHelper.PrintQuickGuide();
         }
 
-        [MenuItem("BOTF/Combat Testing/---", priority = 10)]
-        public static void Separator1() { }
-
-        [MenuItem("BOTF/Combat Testing/Open Test Runner", priority = 11)]
+        // ── Group 2: tools (gap ≥ 11 triggers separator) ────────────────────
+        [MenuItem("BOTF/Combat Testing/Open Test Runner", priority = 15)]
         public static void OpenTestRunner()
         {
             EditorApplication.ExecuteMenuItem("Window/General/Test Runner");
         }
 
-        [MenuItem("BOTF/Combat Testing/Open README", priority = 12)]
+        [MenuItem("BOTF/Combat Testing/Open README", priority = 16)]
         public static void OpenReadme()
         {
             string path = "Assets/Script/Combat/Testing/README_COMBAT_TESTING.md";
@@ -53,10 +52,8 @@ namespace BOTF3D.Editor
             }
         }
 
-        [MenuItem("BOTF/Combat Testing/---", priority = 20)]
-        public static void Separator2() { }
-
-        [MenuItem("BOTF/Combat Testing/Toggle Debug UI (F1)", priority = 21)]
+        // ── Group 3: in-play debug ───────────────────────────────────────────
+        [MenuItem("BOTF/Combat Testing/Toggle Debug UI (F1)", priority = 28)]
         public static void ToggleDebugUI()
         {
             if (!Application.isPlaying)
@@ -76,17 +73,15 @@ namespace BOTF3D.Editor
             return Application.isPlaying;
         }
 
-        [MenuItem("BOTF/Combat Testing/---", priority = 30)]
-        public static void Separator3() { }
-
-        [MenuItem("BOTF/Combat Testing/Run All Tests", priority = 31)]
+        // ── Group 4: test execution ──────────────────────────────────────────
+        [MenuItem("BOTF/Combat Testing/Run All Tests", priority = 40)]
         public static void RunAllTests()
         {
             EditorApplication.ExecuteMenuItem("Window/General/Test Runner");
             Debug.Log("💡 Test Runner opened. Click 'Run All' to execute tests.");
         }
 
-        [MenuItem("BOTF/Combat Testing/Clear All Recordings", priority = 32)]
+        [MenuItem("BOTF/Combat Testing/Clear All Recordings", priority = 41)]
         public static void ClearRecordings()
         {
             string path = System.IO.Path.Combine(Application.persistentDataPath, "CombatRecordings");
@@ -123,10 +118,8 @@ namespace BOTF3D.Editor
             }
         }
 
-        [MenuItem("BOTF/Combat Testing/---", priority = 40)]
-        public static void Separator4() { }
-
-        [MenuItem("BOTF/Combat Testing/About", priority = 41)]
+        // ── Group 5: about ───────────────────────────────────────────────────
+        [MenuItem("BOTF/Combat Testing/About", priority = 53)]
         public static void ShowAbout()
         {
             EditorUtility.DisplayDialog("Combat Debug & Testing Tools",

@@ -1,6 +1,7 @@
 using BOTF3D.Core;
 
 using System.Collections.Generic;
+using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -79,6 +80,9 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject encyclopediaBackground;
 
         [Header("Buttons")]
+        [SerializeField] private Button advanceTurnButton;
+        [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // green — turn in progress
+        [SerializeField] private Color turnNotReadyColor = Color.white;              // white — idle, ready for player click
         [SerializeField] private GameObject selectOtherSysOrFleetButtonGO;
         [SerializeField] private GameObject InteractionButtonGO;
         [SerializeField] private GameObject tradeButtonGO;
@@ -241,6 +245,10 @@ namespace BOTF3D.UI
             // Activate main galaxy menu
             ActivateMainGalaxyMenu();
 
+            // Initialize button state to match whatever phase TimeManager is already in
+            // (handles the case where TimeManager persisted from a prior DontDestroyOnLoad session)
+            OnTurnPhaseChanged(TimeManager.Instance?.TurnPhase ?? TurnPhase.InterTurn);
+
             Debug.Log("GalaxyMenuUIController: Start complete");
         }
 
@@ -321,6 +329,7 @@ namespace BOTF3D.UI
             WireHomeSystemButton();
             WireCloseMenuButton();
             WireReportButton();
+            WireAdvanceTurnButton();
         }
 
         private void WireHomeSystemButton()
@@ -361,9 +370,72 @@ namespace BOTF3D.UI
                 reportView.SetActive(false);
         }
 
+        private void WireAdvanceTurnButton()
+        {
+            if (advanceTurnButton == null) return;
+
+            advanceTurnButton.onClick.RemoveAllListeners();
+            advanceTurnButton.onClick.AddListener(OnAdvanceTurnButtonClicked);
+
+            RefreshAdvanceTurnButtonColor();
+
+            var phase = TimeManager.Instance != null
+                ? TimeManager.Instance.TurnPhase
+                : TurnPhase.InterTurn;
+            advanceTurnButton.interactable = (phase != TurnPhase.EncounterResolution);
+
+            Debug.Log("✅ AdvanceTurnButton wired");
+        }
+
         #endregion
 
         #region Button Handlers (Main Menu Ribbon)
+
+        private void OnAdvanceTurnButtonClicked()
+        {
+            if (TimeManager.Instance == null || GameController.Instance == null) return;
+            if (TimeManager.Instance.TurnPhase != TurnPhase.InterTurn) return;
+
+            CivEnum ourCiv = GameController.Instance.GetOurCiv();
+            bool currentlyReady = TimeManager.Instance.ReadyCivs.Contains(ourCiv);
+            // Relays to the server if we're not the host - see TimeManager.RequestSetCivReady.
+            // Un-readying does NOT pause the clock here - InterTurn is already paused, and
+            // TurnProgression readiness toggles are ignored server-side (see TimeManager.SetCivReady).
+            TimeManager.Instance.RequestSetCivReady(ourCiv, !currentlyReady);
+        }
+
+        /// <summary>Derives displayed ready state from TimeManager.ReadyCivs rather than a locally
+        /// tracked bool, so this button and GameControlOverlay's stay in sync with each other and
+        /// with un-ready/re-ready toggles made from either one.</summary>
+        private void RefreshAdvanceTurnButtonColor()
+        {
+            if (advanceTurnButton == null) return;
+            bool weAreReady = TimeManager.Instance != null && GameController.Instance != null
+                && TimeManager.Instance.ReadyCivs.Contains(GameController.Instance.GetOurCiv());
+            SetAdvanceTurnButtonColor(weAreReady ? turnReadyColor : turnNotReadyColor);
+        }
+
+        private void OnReadyCivsChanged(SyncList<CivEnum>.Operation op, int index, CivEnum oldItem, CivEnum newItem)
+        {
+            RefreshAdvanceTurnButtonColor();
+        }
+
+        private void OnTurnPhaseChanged(TurnPhase phase)
+        {
+            if (advanceTurnButton == null) return;
+
+            RefreshAdvanceTurnButtonColor();
+            advanceTurnButton.interactable = (phase != TurnPhase.EncounterResolution);
+        }
+
+        private void SetAdvanceTurnButtonColor(Color color)
+        {
+            if (advanceTurnButton == null) return;
+            var colors = advanceTurnButton.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = color * 1.2f; // slightly brighter on hover
+            advanceTurnButton.colors = colors;
+        }
 
         private void OnReportButtonClicked()
         {
@@ -389,8 +461,13 @@ namespace BOTF3D.UI
 
         public void FleetButtonPressed()
         {
+            // Only toggle-close when the ribbon's own multi-fleet list is already open. A single
+            // fleet's detail view (Menu.AFleetMenu, opened by clicking a fleet on the map) is a
+            // different container - clicking the ribbon button while that's open should replace it
+            // with the list, not just close it and show nothing (see OpenMenu's eviction of the
+            // previous menu for why switching away from AFleetMenu is now safe to do here).
             Menu current = uiStateManager.CurrentOpenMenu;
-            if (current == Menu.Fleet || current == Menu.FleetMenu || current == Menu.AFleetMenu)
+            if (current == Menu.Fleet || current == Menu.FleetMenu)
                 CloseMenu(current);
             else
                 OpenMenu(Menu.Fleet, null);
@@ -595,6 +672,21 @@ namespace BOTF3D.UI
             // Always close the report view when the close button is pressed
             if (reportView != null)
                 reportView.SetActive(false);
+
+            // Close the build queue panel if it is open
+            StarSysManager.Instance?.HideBuildUI();
+
+            // Close the cargo deploy panel if it is open
+            CargoDeployMenuUIController.Instance?.CloseCargoMenu();
+
+            // ✅ FIX: ShipDeployPanel is a direct child of CanvasGalaxy (not nested inside
+            // ASystemMenuView/AFleetMenuView), so HideMenuViews() above never touches it.
+            // Route through the same commit+cleanup path as the panel's own Save/Close
+            // button (OnSaveCloseButtonClicked -> ClickCancelShipManageButton) instead of
+            // just hiding it — this destroys any empty temp fleet created by "New Fleet"
+            // but keeps one that already has ships dragged into it, and resets click mode
+            // so a stray click on a system/fleet doesn't get misread as a deploy selection.
+            ShipDeployMenuUIController.Instance?.OnSaveCloseButtonClicked();
         }
 
         /// <summary>
@@ -746,6 +838,12 @@ namespace BOTF3D.UI
                         encyclopediaMenuView.SetActive(false);
                     break;
             }
+
+            // Only reset the state tracker when the menu being closed is the one that is tracked.
+            // Menus like BuildMenu are overlays that don't own the state tracker slot,
+            // so closing them must not evict the underlying system/fleet menu from state.
+            if (uiStateManager.CurrentOpenMenu == enumMenu)
+                uiStateManager.CloseCurrentMenu();
         }
 
         public void CloseAllMenus()
@@ -782,6 +880,10 @@ namespace BOTF3D.UI
             }
 
             HideShipDeployMenu();
+
+            // Close the build queue and cargo deploy panels if open
+            StarSysManager.Instance?.HideBuildUI();
+            CargoDeployMenuUIController.Instance?.CloseCargoMenu();
         }
 
         #endregion
@@ -994,6 +1096,24 @@ namespace BOTF3D.UI
         #endregion
 
         #region Cleanup
+
+        private void OnEnable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+                TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+                TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
+            }
+        }
 
         private void OnDestroy()
         {

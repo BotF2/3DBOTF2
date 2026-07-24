@@ -262,15 +262,6 @@ MonoBehaviour:
     m_Localized: Home
     m_Metadata:
       m_Items: []
-  - m_Id: 23097490120581120
-    m_Localized: Fleet
-    m_Metadata:
-      m_Items:
-      - rid: 3508330916595630394
-  - m_Id: 23097917499187200
-    m_Localized: Fleet
-    m_Metadata:
-      m_Items: []
   references:
     version: 2
     RefIds:
@@ -280,4 +271,3 @@ MonoBehaviour:
         m_Entries: 
         m_SharedEntries:
         - id: 23091831874461696
-        - id: 23097490120581120

@@ -18,6 +18,7 @@ public class ShipyardSO : ScriptableObject
     public string Name;
     public int StartStarDate; //start to build in factory queue
     public int BuildDuration;// duration to build can be reduced by number and output of factories
+    public int DilithiumCost = 0; // Li_2 crystals required to build
     public int PowerLoad;
     public Sprite ShipyardSprite;
     public string Description;

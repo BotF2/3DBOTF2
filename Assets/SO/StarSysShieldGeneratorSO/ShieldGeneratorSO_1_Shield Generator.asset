@@ -18,7 +18,8 @@ MonoBehaviour:
   Name: Shield Generators
   StartStarDate: 0
   BuildDuration: 4
+  DilithiumCost: 0
   PowerLoad: 2
-  ShieldGeneratorSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
+  ShieldGeneratorSprite: {fileID: 21300000, guid: debd116d16c28064d9b142cfd5358cb6, type: 3}
   Description: While the Romulan's advanced shields are integrated with cloaking
     devices, allowing seamless stealth and defense but they cannot hild a planet.

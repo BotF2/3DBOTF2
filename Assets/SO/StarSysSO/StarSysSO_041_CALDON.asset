@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_041_CALDON
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 41
-  Position: {x: 18.22, y: -0.55, z: -81.9}
+  Position: {x: 18.04, y: -0.55, z: -79.48}
   SysName: CALDON
   FirstOwner: 41
   CurrentOwner: 41

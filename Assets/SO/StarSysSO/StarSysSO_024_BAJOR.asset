@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_024_BAJOR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 24
-  Position: {x: -42.61, y: -1.2, z: -32.24}
+  Position: {x: -37.61, y: -1.20, z: -30.77}
   SysName: BAJOR
   FirstOwner: 24
   CurrentOwner: 24

@@ -241,27 +241,27 @@ MonoBehaviour:
       m_Items:
       - rid: 3508330916595630391
   - m_Id: 23091831937376256
-    m_Localized: Fleets
+    m_Localized: Floty
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376257
-    m_Localized: Diplomacy
+    m_Localized: Dyplomacja
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376258
-    m_Localized: Intelligence
+    m_Localized: Inteligencja
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376259
-    m_Localized: Report
+    m_Localized: Raport
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376260
-    m_Localized: Encyclopedia
+    m_Localized: Encyklopedia
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376261
-    m_Localized: Home
+    m_Localized: Dom
     m_Metadata:
       m_Items: []
   references:

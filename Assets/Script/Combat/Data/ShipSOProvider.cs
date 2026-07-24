@@ -139,7 +139,8 @@ namespace BOTF3D.Combat
                 return bestShip;
             }
 
-            Debug.LogWarning($"GetShipSOAtBestTechLevel: No {shipType} found for {civEnum} at or below {maxTechLevel}");
+            // Not every ship type is unlocked at every tech level (e.g. Cruiser-class hulls
+            // don't exist at EARLY for most civs) - this is expected, not a problem.
             return null;
         }
 

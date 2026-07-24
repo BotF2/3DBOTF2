@@ -111,6 +111,18 @@ namespace BOTF3D.UI
 
             if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("FactoryBuildSlot"))
             {
+                // Enforce max 5 queued items (count only actual drag items, not slot placeholders)
+                int queued = 0;
+                foreach (var t in StarSysController.sysBuildQueueList)
+                    if (t != null && t.GetComponent<FactoryBuildItemDrag>() != null) queued++;
+                if (queued >= 5)
+                {
+                    Debug.Log("FactoryBuildItemDrag: queue full (max 5)");
+                    transform.SetParent(originalParent);
+                    rectTransform.anchoredPosition = Vector2.zero;
+                    return;
+                }
+
                 // ✅ CRITICAL: Parent to the ACTUAL build queue, not the drop slot!
                 if (StarSysController.BuildListGridLayoutGroup != null)
                 {

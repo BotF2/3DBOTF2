@@ -12,26 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80299fdb14b4be145bb13b85e61b6789, type: 3}
   m_Name: Theme_Kling
   m_EditorClassIdentifier: 
-  CivInt: 0
+  CivInt: 2
   BackImage: {fileID: 21300000, guid: 832f5dea04a030e48b089286e39168b7, type: 3}
-  Insignia: {fileID: 21300000, guid: 314213c0075b78447b6dd9514ca2fe63, type: 3}
+  Insignia: {fileID: 21300000, guid: 6afc8123fa0e8a541a227321e6ab0fdd, type: 3}
   RaceImage: {fileID: 21300000, guid: b126cfe016a216d4ab3fc9d194dc64ed, type: 3}
   SystemImage: {fileID: 21300000, guid: 6edd26e2caaac94418b1dea0293fd801, type: 3}
   FleetShipImage: {fileID: 21300000, guid: db93c76bf93243745bf5cb975d161de8, type: 3}
   PowerPlantImage: {fileID: 21300000, guid: 0a34e6bbee394d04ca1f5b1eb0018ab6, type: 3}
-  FactoryImage: {fileID: 21300000, guid: 17c8200fe9f92774cb327da7987eb709, type: 3}
+  FactoryImage: {fileID: 21300000, guid: 3122b83fc111b524bb8d653746b72bd3, type: 3}
   ShipyardImage: {fileID: 21300000, guid: c152dfdeb8bac6446b038ad2c2714628, type: 3}
-  ShieldImage: {fileID: 21300000, guid: 786125c77cd5d4f458686e1dd6022656, type: 3}
+  ShieldImage: {fileID: 21300000, guid: c7f2e2e2bd5c0f64289fd241f58afcf6, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 84b01041788e5494d9f37411f4fc8649, type: 3}
-  ResearchCenterImage: {fileID: 21300000, guid: a7c14853469462b4ebea2f4505b3a651, type: 3}
+  ResearchCenterImage: {fileID: 21300000, guid: ce8c2536b4f642f4488292d2bf4faad3, type: 3}
   BackgroundColor: {r: 0.76, g: 0.23, b: 0.13, a: 1}
   ForegroundColor: {r: 0.55, g: 0.16, b: 0.09, a: 1}
   BoarderColor: {r: 0.3, g: 0.08, b: 0.05, a: 1}
   HighLightColor: {r: 1, g: 0.35, b: 0.24, a: 1}
   LowLightColor: {r: 0.48, g: 0.14, b: 0.08, a: 1}
   TextColor: {r: 1, g: 0.95, b: 0.9, a: 1}
-  TMP_Text: {fileID: 0}
+  CivFont: {fileID: 11400000, guid: 40ec980dbc4d19c49b1fc9540d2b1a5b, type: 2}
   ButtonSprite0: {fileID: 21300000, guid: 4b1c0ad4f5ead3f48a8304b71704af7c, type: 3}
   ButtonSprite1: {fileID: 21300000, guid: bc51cd9869ccf1b43911dd3354a7a855, type: 3}
   ButtonSprite2: {fileID: 21300000, guid: 92d184c9d7f391c4ab1e56c39ae2cce4, type: 3}
-  ButtonSprite3: {fileID: 21300000, guid: bc51cd9869ccf1b43911dd3354a7a855, type: 3}
+  ButtonSprite3: {fileID: 21300000, guid: cd2138d4de78fff4aa452ad435948cd6, type: 3}

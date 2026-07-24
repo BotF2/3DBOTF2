@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_162_DEBRUNE
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 162
-  Position: {x: 17.12, y: -0.14, z: -53.93}
+  Position: {x: 17.37, y: -0.14, z: -53.82}
   SysName: DEBRUNE
   FirstOwner: 162
   CurrentOwner: 162

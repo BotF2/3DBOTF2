@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_091_MINTAKA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 91
-  Position: {x: 8.61, y: -0.58, z: -37.97}
+  Position: {x: 8.61, y: -0.58, z: -37.76}
   SysName: MINTAKA
   FirstOwner: 91
   CurrentOwner: 91

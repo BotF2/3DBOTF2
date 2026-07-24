@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using BOTF3D.Core;
 using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
 
 namespace BOTF3D.Combat
 {
@@ -13,6 +14,9 @@ namespace BOTF3D.Combat
         public CivEnum CivEnumSideTwo;
         public CivController sideOneCiv;
         public CivController sideTwoCiv;
+        // Set only for SystemVsFleet/FleetVsSystem combats; null for FleetVsFleet. Lets post-combat
+        // resolution (e.g. Borg assimilation) know which system is being fought over.
+        public StarSysController StarSysCon;
         public CombatOrders SideOneOrder;
         public CombatOrders SideTwoOrder;
         public CombatType CombatType;

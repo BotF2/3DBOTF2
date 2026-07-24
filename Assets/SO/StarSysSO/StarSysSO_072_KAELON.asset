@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_072_KAELON
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 72
-  Position: {x: -6.32, y: 1.42, z: -82.93}
+  Position: {x: -6.35, y: 1.42, z: -84.73}
   SysName: KAELON
   FirstOwner: 72
   CurrentOwner: 72

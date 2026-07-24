@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Mirror;
 using BOTF3D.Combat;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
@@ -70,13 +71,16 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         {
             CurrentTurn++;
             CurrentPhase = CombatPhase.OrderSelection;
+            BroadcastPhaseChanged();
 
             Debug.Log($"📋 Turn {CurrentTurn}: Order Selection Phase");
 
-            // For Turn 1, orders were already selected in the UI before warp-in
+            // For Turn 1, orders were already submitted+resolved over the network before warp-in
+            // even started (see CombatUIManager.EnterShipCombatPhase / ApplyResolvedOrdersAndResolve's
+            // CombatPhase.Warping branch below) - combatData.SideOneOrder/SideTwoOrder are already
+            // both real, network-confirmed choices by the time we get here.
             if (CurrentTurn == 1)
             {
-                // Use the orders that were set in CombatController.CombatData
                 SideOneSelectedOrder = combatData.SideOneOrder;
                 SideTwoSelectedOrder = combatData.SideTwoOrder;
                 SideOneOrderLocked = true;
@@ -84,12 +88,11 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
                 Debug.Log($"✅ Turn 1 using pre-selected orders: Side1={SideOneSelectedOrder}, Side2={SideTwoSelectedOrder}");
 
-                // Start resolution immediately
                 StartCoroutine(ResolveTurn());
             }
             else
             {
-                // Reset locks so the UI can receive fresh order selections for this turn
+                // Reset locks so fresh submissions can come in for this turn
                 SideOneOrderLocked = false;
                 SideTwoOrderLocked = false;
 
@@ -110,13 +113,28 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         }
 
         /// <summary>
-        /// Player selects an order for their side
+        /// Server-only entry point for a submitted order (see FleetController.CmdSubmitCombatOrder).
+        /// Replaces the old locally-callable OnPlayerSelectOrder - only the server may decide when
+        /// both sides have locked in and a turn can resolve; clients (host included) then hear the
+        /// resolved orders back via FleetController.RpcOrdersResolved / ApplyResolvedOrdersAndResolve
+        /// below, so both sides always simulate from the same inputs.
         /// </summary>
-        public void OnPlayerSelectOrder(CombatOrders order, int side)
+        public void ServerSubmitOrder(CivEnum civ, CombatOrders order)
         {
-            if (CurrentPhase != CombatPhase.OrderSelection)
+            if (!NetworkServer.active) return;
+
+            // Warping: this is a turn-1 submission, made from the pre-warp menu before
+            // BeginOrderSelection has ever run. OrderSelection: turn 2+ resubmission.
+            if (CurrentPhase != CombatPhase.Warping && CurrentPhase != CombatPhase.OrderSelection)
             {
-                Debug.LogWarning("Cannot select order outside OrderSelection phase");
+                Debug.LogWarning($"ServerSubmitOrder: civ {civ} submitted {order} outside an order-selection window (phase {CurrentPhase}) - ignored.");
+                return;
+            }
+
+            int side = civ == combatData.CivEnumSideOne ? 1 : (civ == combatData.CivEnumSideTwo ? 2 : 0);
+            if (side == 0)
+            {
+                Debug.LogWarning($"ServerSubmitOrder: civ {civ} is not part of this combat ({combatData.CivEnumSideOne} vs {combatData.CivEnumSideTwo}) - ignored.");
                 return;
             }
 
@@ -124,20 +142,48 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             {
                 SideOneSelectedOrder = order;
                 SideOneOrderLocked = true;
-                Debug.Log($"✅ Side 1 locked in: {order}");
             }
             else
             {
                 SideTwoSelectedOrder = order;
                 SideTwoOrderLocked = true;
-                Debug.Log($"✅ Side 2 locked in: {order}");
+            }
+            Debug.Log($"✅ Side {side} locked in: {order}");
+
+            FleetController anchor = combatController.GetInvolvedFleetAnchor();
+            anchor?.ServerBroadcastOrderLocked(side);
+
+            if (SideOneOrderLocked && SideTwoOrderLocked)
+                anchor?.ServerBroadcastOrdersResolved(SideOneSelectedOrder, SideTwoSelectedOrder);
+        }
+
+        /// <summary>
+        /// Called on every client (including the host) via FleetController.RpcOrdersResolved once
+        /// the server has both sides' real orders for the current selection window.
+        /// </summary>
+        public void ApplyResolvedOrdersAndResolve(CombatOrders sideOneOrder, CombatOrders sideTwoOrder)
+        {
+            if (CurrentPhase == CombatPhase.Warping)
+            {
+                // Turn 1: feed BeginOrderSelection's pre-selected-order branch above, then let the
+                // (already-waiting) combat menu kick off warp-in now that both sides are confirmed.
+                combatData.SideOneOrder = sideOneOrder;
+                combatData.SideTwoOrder = sideTwoOrder;
+                BOTF3D.UI.CombatUIManager.Instance?.OnTurnOneOrdersResolved();
+                return;
             }
 
-            // If both sides ready, resolve turn
-            if (SideOneOrderLocked && SideTwoOrderLocked)
-            {
-                StartCoroutine(ResolveTurn());
-            }
+            SideOneSelectedOrder = sideOneOrder;
+            SideTwoSelectedOrder = sideTwoOrder;
+            SideOneOrderLocked = true;
+            SideTwoOrderLocked = true;
+            StartCoroutine(ResolveTurn());
+        }
+
+        private void BroadcastPhaseChanged()
+        {
+            if (!NetworkServer.active) return;
+            combatController.GetInvolvedFleetAnchor()?.ServerBroadcastCombatPhaseChanged(CurrentPhase);
         }
 
         /// <summary>
@@ -209,6 +255,7 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         private IEnumerator ResolveTurn()
         {
             CurrentPhase = CombatPhase.Resolution;
+            BroadcastPhaseChanged();
             Debug.Log($"⚔️ Turn {CurrentTurn}: Resolving {SideOneSelectedOrder} vs {SideTwoSelectedOrder}");
 
             // Apply orders to combat controller (for positioning/animation)
@@ -251,12 +298,14 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             if (IsCombatOver())
             {
                 CurrentPhase = CombatPhase.Victory;
+                BroadcastPhaseChanged();
                 yield return StartCoroutine(ShowVictoryScreen());
                 yield break;
             }
 
             // Show turn results
             CurrentPhase = CombatPhase.Results;
+            BroadcastPhaseChanged();
             yield return StartCoroutine(ShowTurnResults());
 
             // Start next turn
@@ -352,6 +401,32 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         }
 
         /// <summary>
+        /// Server-authoritative safety net: called whenever the server reconciles a ship
+        /// destroyed/captured report (see FleetController.ServerBroadcastShipDestroyed/Captured),
+        /// including reports from non-host clients whose local damage simulation diverged from the
+        /// host's and reached a kill the host's own ResolveTurn/IsCombatOver check missed. If
+        /// combat isn't already resolving (Resolution/Victory phase - ResolveTurn's own IsCombatOver
+        /// check already covers those) and the now-reconciled ship counts show one side eliminated,
+        /// force the win path immediately instead of waiting on the host's own turn loop, which may
+        /// never reach this conclusion on its own and would otherwise stall every client forever.
+        /// </summary>
+        [Server]
+        public void ServerCheckCombatOverAfterReconciliation()
+        {
+            if (combatController == null || combatController.CombatEnded) return;
+            if (CurrentPhase == CombatPhase.Resolution || CurrentPhase == CombatPhase.Victory) return;
+
+            int sideOneAlive = combatData.SideOneShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            int sideTwoAlive = combatData.SideTwoShipCons.Count(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport);
+            if (sideOneAlive > 0 && sideTwoAlive > 0) return;
+
+            Debug.Log($"🏆 ServerCheckCombatOverAfterReconciliation: reconciled ship state shows combat is over (side1Alive={sideOneAlive}, side2Alive={sideTwoAlive}) - forcing victory.");
+            CurrentPhase = CombatPhase.Victory;
+            BroadcastPhaseChanged();
+            StartCoroutine(ShowVictoryScreen());
+        }
+
+        /// <summary>
         /// Show victory/defeat screen
         /// </summary>
         private IEnumerator ShowVictoryScreen()
@@ -362,10 +437,21 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             string winner = sideOneAlive > 0 ? "Side One" : "Side Two";
             Debug.Log($"🏆 {winner} WINS!");
 
-            // Apply post-combat rewards for any captured ships
-            ApplyCaptureRewards();
+            // Reward-granting and system-assimilation mutate persistent CivData - only the server
+            // may decide/apply these, matching CombatController.EndCombat's fleet-cleanup gating below.
+            if (NetworkServer.active)
+            {
+                ApplyCaptureRewards();
 
-            // ✅ Show combat end panel via manager
+                // Borg have no diplomacy - they assimilate defended/attacked systems by winning combat instead.
+                CivEnum winningCivEnum = sideOneAlive > 0 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
+                if (winningCivEnum == CivEnum.BORG && combatData.StarSysCon != null)
+                {
+                    CivManager.Instance.AssimilateSystem(combatData.StarSysCon, CivEnum.BORG);
+                }
+            }
+
+            // ✅ Show combat end panel via manager (cosmetic - safe on every client)
             if (BOTF3D.UI.CombatUIManager.Instance != null)
             {
                 BOTF3D.UI.CombatUIManager.Instance.ShowCombatOverPanel();
@@ -374,8 +460,10 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
             yield return new WaitForSecondsRealtime(4f);
 
-            // End combat
-            combatController.EndCombat();
+            // End combat - only the server decides this; non-host clients tear down their own
+            // Combat scene view when FleetController.RpcCombatEnded arrives (see EndCombat/ServerNotifyCombatEnded).
+            if (NetworkServer.active)
+                combatController.EndCombat();
         }
 
         /// <summary>
@@ -494,14 +582,19 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         {
             if (order != CombatOrders.Scuttle) return;
 
+            // Unlike weapon-fire damage (left as redundant per-client simulation - see
+            // ShipController.TakeDamage), the scuttle success roll is a single discrete decision
+            // with no natural "both clients converge anyway" behavior, so only the server rolls it;
+            // non-host clients apply the outcome via ShipController.ApplyScuttledFromServer (see
+            // FleetController.RpcShipScuttled) instead of rolling their own independent chance.
+            if (!NetworkServer.active) return;
+
             // Iterate a snapshot so destruction during iteration is safe
             foreach (var ship in ships.ToList())
             {
                 if (ship == null || ship.ShipData.Distroyed || ship.ShipData.IsCaptured) continue;
 
-                int maxHP = ship.ShipData.ShipSO != null
-                    ? ship.ShipData.ShipSO.ShieldMaxHealth + ship.ShipData.ShipSO.HullMaxHealth
-                    : ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
+                int maxHP = ship.ShipData.ShieldMaxHealth + ship.ShipData.HullMaxHealth;
 
                 int currentHP = ship.ShipData.ShieldHealth + ship.ShipData.HullHealth;
                 float successChance = maxHP > 0 ? (float)currentHP / maxHP : 0f;

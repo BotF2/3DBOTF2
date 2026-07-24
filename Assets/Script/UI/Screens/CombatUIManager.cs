@@ -33,8 +33,17 @@ namespace BOTF3D.UI
         private GameObject panelCombatOver;
         private TextMeshProUGUI timerText;
         private TextMeshProUGUI combatOutcomeText;
+        private TextMeshProUGUI waitingForOpponentText;
+        private Button enterCombatButton;
         private Toggle engage, rush, retreat, formation, AttackTransports, capture, scuttle;
         private Toggle engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2;
+
+        // ✅ Networked order submission (see FleetController.RequestSubmitCombatOrder /
+        // TurnBasedCombatResolver.ServerSubmitOrder) - which physical toggle group belongs to the
+        // local human player, and whether we've already sent this window's order so a stray double
+        // click (button + timer expiry) can't submit twice.
+        private int LocalSide = 1;
+        private bool localOrderSubmitted = false;
 
         // ✅ Civilization & Ship Count Fields
         private TextMeshProUGUI sideOneCivName, sideTwoCivName;
@@ -103,6 +112,8 @@ namespace BOTF3D.UI
             currentCombat3DCanvas = combat3DCanvas;
             currentGameOverCanvas = gameOverCanvas;
             CivEnumLocalPlayer = GameController.Instance.GameData.LocalPlayerCivEnum;
+            LocalSide = CivEnumLocalPlayer == combatController.CombatData.CivEnumSideOne ? 1 : 2;
+            localOrderSubmitted = false;
 
             // ✅ Setup UI after scene loads
             StartCoroutine(SetupCombatUIAfterSceneLoad());
@@ -177,77 +188,128 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Called when timer ends or button clicked
+        /// Called when timer ends or button clicked. Submits only the LOCAL side's chosen order
+        /// over the network (FleetController.RequestSubmitCombatOrder) - the actual phase
+        /// transition (hiding this menu, starting warp-in / the next turn's resolution) only
+        /// happens once the server confirms both sides have locked in, via OnTurnOneOrdersResolved
+        /// (turn 1) or OnCombatPhaseChanged (turn 2+). This is what stops one client from advancing
+        /// combat alone - see TurnBasedCombatResolver.ServerSubmitOrder.
         /// </summary>
         private void EnterShipCombatPhase()
         {
             isTimerRunning = false;
 
-            if (CurrentCombatController != null)
-            {
-                // ✅ Hide combat menu, show 3D combat view
-                if (panelCombatMenu != null)
-                {
-                    panelCombatMenu.SetActive(false);
-                    Debug.Log("✅ Combat menu closed");
-                }
+            if (localOrderSubmitted) return; // guard against button + timer double-fire
 
-                if (panelShipCombat != null)
-                {
-                    panelShipCombat.SetActive(true);
-                    Debug.Log("✅ Ship combat panel activated");
-                }
-
-                // Handle turn-based vs real-time combat
-                if (CurrentCombatController.UseTurnBasedCombat)
-                {
-                    // Store the selected order for Turn 1 (will be submitted after warp-in)
-                    Debug.Log($"🎮 Turn-based combat: Side 1: {currentOrder}, Side 2: {currentOrderSideTwo}");
-
-                    // Set orders on controller so they're available during warp positioning
-                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne, 1);
-                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo, 2);
-
-                    // Notify TurnResolver of the selections (for Turn 2+)
-                    if (CurrentCombatController.TurnResolver != null)
-                    {
-                        CurrentCombatController.TurnResolver.OnPlayerSelectOrder(currentOrder, 1);
-                        CurrentCombatController.TurnResolver.OnPlayerSelectOrder(currentOrderSideTwo, 2);
-                    }
-
-                    // Random AI order is deactivated per request
-                    // CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
-                    //     ? CurrentCombatController.CombatData.CivEnumSideTwo
-                    //     : CurrentCombatController.CombatData.CivEnumSideOne;
-                    // CurrentCombatController.SetAIRandomOrder(aiCivEnum);
-
-                    // ✅ Start combat sequence (warp-in, then turn-based begins)
-                    if (CurrentCombatController.WarpingIn) // Only start sequence if not already in turn-based loop
-                    {
-                        StartCoroutine(StartCombatSequence());
-                    }
-                }
-                else
-                {
-                    // Original real-time combat
-                    CurrentCombatController.SetShipOrders(currentOrder, CurrentCombatController.CombatData.CivEnumSideOne, 1);
-                    CurrentCombatController.SetShipOrders(currentOrderSideTwo, CurrentCombatController.CombatData.CivEnumSideTwo, 2);
-
-                    // ✅ Random AI order is deactivated per request
-                    // CivEnum aiCivEnum = (CivEnumLocalPlayer == CurrentCombatController.CombatData.CivEnumSideOne)
-                    //     ? CurrentCombatController.CombatData.CivEnumSideTwo
-                    //     : CurrentCombatController.CombatData.CivEnumSideOne;
-                    // CurrentCombatController.SetAIRandomOrder(aiCivEnum);
-
-                    Debug.Log($"✅ Combat orders set - Side 1: {currentOrder}, Side 2: {currentOrderSideTwo}");
-
-                    // ✅ Start the new simplified warp-in animation
-                    StartCoroutine(StartCombatSequence());
-                }
-            }
-            else
+            if (CurrentCombatController == null)
             {
                 Debug.LogError("❌ Cannot start combat - controller is null!");
+                return;
+            }
+
+            localOrderSubmitted = true;
+
+            CombatOrders localOrder = LocalSide == 1 ? currentOrder : currentOrderSideTwo;
+            Debug.Log($"🎮 Submitting local order (Side {LocalSide}): {localOrder}");
+
+            CurrentCombatController.GetInvolvedFleetAnchor()?.RequestSubmitCombatOrder(localOrder);
+
+            SetLocalOrderControlsInteractable(false);
+            ShowWaitingForOpponent(true);
+        }
+
+        /// <summary>
+        /// Turn 1 only: fired via TurnBasedCombatResolver.ApplyResolvedOrdersAndResolve once the
+        /// server has confirmed both sides' pre-warp orders. Mirrors what EnterShipCombatPhase used
+        /// to do unconditionally - now gated on the network round trip so warp-in can't start until
+        /// both combatants have actually chosen.
+        /// </summary>
+        public void OnTurnOneOrdersResolved()
+        {
+            ShowWaitingForOpponent(false);
+
+            if (panelCombatMenu != null) panelCombatMenu.SetActive(false);
+            if (panelShipCombat != null) panelShipCombat.SetActive(true);
+
+            if (CurrentCombatController != null && CurrentCombatController.WarpingIn)
+            {
+                StartCoroutine(StartCombatSequence());
+            }
+        }
+
+        /// <summary>
+        /// Fired via FleetController.RpcOrderLocked the instant either side locks in (before both
+        /// have). side 1/2 identify which one - only used today to update the waiting-for-opponent
+        /// label; kept side-specific in case per-side status is added later.
+        /// </summary>
+        public void OnOrderLocked(int side)
+        {
+            Debug.Log($"🔒 Side {side} locked in an order.");
+        }
+
+        /// <summary>
+        /// Fired via FleetController.RpcCombatPhaseChanged on every phase transition the server
+        /// (and each client's own redundant simulation, see TurnBasedCombatResolver) makes. Turn 2+
+        /// panel swap (menu -> 3D view) happens here since, unlike turn 1, nothing else in the UI
+        /// layer drives that transition once orders resolve directly into ResolveTurn().
+        /// </summary>
+        public void OnCombatPhaseChanged(CombatPhase phase)
+        {
+            switch (phase)
+            {
+                case CombatPhase.Resolution:
+                    ShowWaitingForOpponent(false);
+                    if (panelCombatMenu != null) panelCombatMenu.SetActive(false);
+                    if (panelShipCombat != null) panelShipCombat.SetActive(true);
+                    break;
+                case CombatPhase.OrderSelection:
+                    ShowWaitingForOpponent(false);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Enables/disables the local player's own toggle group + Enter Combat button so they can't
+        /// resubmit while waiting on the opponent this window.
+        /// </summary>
+        private void SetLocalOrderControlsInteractable(bool interactable)
+        {
+            if (enterCombatButton != null) enterCombatButton.interactable = interactable;
+
+            Toggle[] localToggles = LocalSide == 1
+                ? new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle }
+                : new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 };
+
+            foreach (var t in localToggles)
+            {
+                if (t != null) t.interactable = interactable;
+            }
+        }
+
+        /// <summary>
+        /// The opponent's toggle group is read-only - only their own client's EnterShipCombatPhase
+        /// may submit their side's order (see TurnBasedCombatResolver.ServerSubmitOrder's sender
+        /// authorization). Called once at setup; SetLocalOrderControlsInteractable handles the
+        /// local side's own enable/disable across the submit/wait cycle.
+        /// </summary>
+        private void SetOpponentToggleGroupInteractable(bool interactable)
+        {
+            Toggle[] opponentToggles = LocalSide == 1
+                ? new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 }
+                : new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
+
+            foreach (var t in opponentToggles)
+            {
+                if (t != null) t.interactable = interactable;
+            }
+        }
+
+        private void ShowWaitingForOpponent(bool show)
+        {
+            if (waitingForOpponentText != null)
+            {
+                waitingForOpponentText.gameObject.SetActive(show);
+                if (show) waitingForOpponentText.text = "Waiting for opponent to lock in...";
             }
         }
 
@@ -516,10 +578,14 @@ namespace BOTF3D.UI
             }
 
             timerText = FindComponentByName<TextMeshProUGUI>(currentCombatUICanvas, "Timer Text");
+            waitingForOpponentText = FindComponentByName<TextMeshProUGUI>(currentCombatUICanvas, "WaitingForOpponentText");
+            if (waitingForOpponentText != null) waitingForOpponentText.gameObject.SetActive(false);
 
             SetupToggles();
             SetupButtons();
             FindAndSetupCivDataUI();
+            SetLocalOrderControlsInteractable(true);
+            SetOpponentToggleGroupInteractable(false);
 
             Debug.Log("FindAndSetupUI: Complete");
         }
@@ -889,6 +955,7 @@ namespace BOTF3D.UI
 
                 if (button.name == "ButtonEnterCombat")
                 {
+                    enterCombatButton = button;
                     button.onClick.RemoveAllListeners();
                     button.onClick.AddListener(EnterShipCombatPhase);
                 }
@@ -1044,6 +1111,10 @@ namespace BOTF3D.UI
             // Pre-select the orders from the previous turn so players see their last choice
             ApplyToggleForOrder(currentOrder, false);
             ApplyToggleForOrder(currentOrderSideTwo, true);
+
+            localOrderSubmitted = false;
+            SetLocalOrderControlsInteractable(true);
+            ShowWaitingForOpponent(false);
 
             remainingTime = 15f;
             isTimerRunning = true;
@@ -1228,6 +1299,10 @@ namespace BOTF3D.UI
             sideTwoTechLevel = null;
             s1Scouts = s1Destroyers = s1Cruisers = s1LtCruisers = s1HvyCruisers = s1Transports = s1Total = null;
             s2Scouts = s2Destroyers = s2Cruisers = s2LtCruisers = s2HvyCruisers = s2Transports = s2Total = null;
+
+            waitingForOpponentText = null;
+            enterCombatButton = null;
+            localOrderSubmitted = false;
 
             isTimerRunning = false;
         }

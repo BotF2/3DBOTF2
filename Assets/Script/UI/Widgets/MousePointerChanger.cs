@@ -90,12 +90,10 @@ namespace BOTF3D.UI
         internal void SetDestinationCursor(FleetController fleetCon)
         {
             ChangeToCivSpecificGalaxyMapCursor();
-            GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
         }
         internal void SetDestinationCursor()
         {
             ChangeToCivSpecificGalaxyMapCursor();
-            GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
         }
     }
 }

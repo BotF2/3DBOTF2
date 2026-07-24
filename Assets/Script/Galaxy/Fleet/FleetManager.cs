@@ -3,6 +3,7 @@ using BOTF3D.Combat;
 
 using BOTF3D.UI;
 using FischlWorks_FogWar;
+using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -68,7 +69,6 @@ namespace BOTF3D.Galaxy
         private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
         public csFogWar.FogRevealer TempFogRevealerFleet;
-        private float newFleetSpacer = 0f;
 
         // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
         [SerializeField] public GameObject FleetUI_ListContainer;
@@ -86,13 +86,26 @@ namespace BOTF3D.Galaxy
                 Debug.Log("FleetManager: Instance created");
                 FindGalaxyReferences();
             }
+
+            // Fleets are now Mirror network objects (NetworkIdentity + NetworkTransform on
+            // FleetPrefab) - clients need this prefab registered so they can spawn the
+            // GameObject Mirror tells them about when the server calls NetworkServer.Spawn.
+            if (fleetPrefab != null)
+                NetworkClient.RegisterPrefab(fleetPrefab.gameObject);
         }
 
         public void Start()
         {
-            for (int i = 0; i < CivManager.Instance.CivSOListAllPossible.Count; i++)
+            if (CivManager.Instance != null && CivManager.Instance.CivSOListAllPossible != null)
             {
-                fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new List<int>());
+                for (int i = 0; i < CivManager.Instance.CivSOListAllPossible.Count; i++)
+                {
+                    fleetNumsInUse.Add(CivManager.Instance.CivSOListAllPossible[i].CivEnum, new List<int>());
+                }
+            }
+            else
+            {
+                Debug.LogError("FleetManager.Start: CivManager.Instance or CivSOListAllPossible is null — fleet number tracking will be empty.");
             }
 
             // Find GalaxyCenter at start
@@ -249,6 +262,12 @@ namespace BOTF3D.Galaxy
 
         public void BuildFirstFleetsNearSyst(StarSysController systCon)
         {
+            // Fleet creation is now server-authoritative (see InstantiateFleet). Bail out before
+            // creating the placeholder empty FleetController below, otherwise on a non-host client
+            // InstantiateFleet would return early and leave that placeholder GameObject orphaned
+            // in the scene (it's normally destroyed inside InstantiateFleet).
+            if (!NetworkServer.active) return;
+
             // first path here is sent on loading the game for civs with warp, first fleets from Systems/Civs with warp
             FleetSO fleetSO = GetFleetSO_byInt((int)systCon.StarSysData.CurrentOwnerCivEnum);
             var position = systCon.StarSysData.GetPosition();
@@ -268,9 +287,67 @@ namespace BOTF3D.Galaxy
             return fleetController;
         }
 
+        /// <summary>
+        /// Headless equivalent of StarSysMenuUIController.ClickNewFleetButton + the manual
+        /// ship-drag-drop flow: forms a brand-new fleet at the system's position and transfers
+        /// the given ships straight into it, with no UI/drag components involved. Built for
+        /// AI-owned systems (e.g. StarSysAIManager War mode) that need to dispatch built ships
+        /// without a human dragging them into a fleet panel.
+        /// </summary>
+        public FleetController FormFleetFromSystemShips(StarSysController sysCon, List<ShipController> shipsToMove)
+        {
+            if (sysCon?.StarSysData == null || shipsToMove == null || shipsToMove.Count == 0) return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
+            var position = sysCon.StarSysData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
+            fleetData.ShipsList = new List<ShipController>();
+
+            FleetController newFleet = InstantiateFleet(null, sysCon, fleetData, position, true);
+            if (newFleet == null) return null;
+
+            foreach (var ship in shipsToMove)
+            {
+                if (ship == null) continue;
+
+                sysCon.StarSysData.ShipsList.Remove(ship);
+                ship.ShipData.CurrentStarSysController = null;
+
+                if (!newFleet.FleetData.ShipsList.Contains(ship))
+                    newFleet.FleetData.ShipsList.Add(ship);
+                ship.ShipData.CurrentFleetController = newFleet;
+                ship.transform.SetParent(newFleet.transform, false);
+            }
+
+            newFleet.UpdateMaxWarp();
+            return newFleet;
+        }
+
         public FleetController InstantiateFleet(FleetController existingFleetCon, StarSysController sysController,
             FleetData fleetData, Vector3 position, bool isNewFleet)
         {
+            // Server-authoritative: fleets are now Mirror network objects (NetworkServer.Spawn
+            // below), so only the server may build one - remote clients receive it automatically
+            // via Mirror's spawn message instead of running this method themselves. In single
+            // player / hosting, NetworkServer.active is true locally, so this is unaffected.
+            // NOTE: the 3 UI-driven call sites (FleetMenuUIController, ShipDeployMenuUIController,
+            // StarSysMenuUIController) currently call this directly and will no-op on non-host
+            // clients until those are converted to [Command]s (deferred follow-up work).
+            if (!NetworkServer.active)
+            {
+                Debug.LogWarning("FleetManager.InstantiateFleet: called on a non-server client; ignoring. Fleet creation must be server-authoritative.");
+                return null;
+            }
+
             // CRITICAL: Ensure GalaxyCenter exists before proceeding
             if (GalaxyCenter == null)
             {
@@ -285,6 +362,11 @@ namespace BOTF3D.Galaxy
 
             fleetData.ShipsList.RemoveAll(item => item == null);
             Transform newTrans = null;
+            // Exactly one of these is set below, picking which positioning scheme applies: a system
+            // dock slot (see FleetDockLayout) for a fleet appearing at a star system, or the simpler
+            // fleet-relative spacer for a fleet splitting off of an existing fleet.
+            StarSysController dockSystem = null;
+            FleetController spacerAnchorFleet = null;
 
             FleetController newFleet = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
 
@@ -303,52 +385,73 @@ namespace BOTF3D.Galaxy
             newFleet.FleetData = fleetData;
             newFleet.GalaxyCanvasGo = galaxyCanvasGO;
 
+            // Replicated to every client so FleetController.OnCivEnumChanged can run the same
+            // per-client visual/registration setup below (see RegisterFleetControllerAndSetupVisuals)
+            // on remote clients, who never run InstantiateFleet themselves - fleet creation is
+            // server-authoritative, but visibility/insignia depend on each client's own civ perspective.
+            newFleet.SyncedIsNewFleet = isNewFleet;
+            newFleet.SyncedCivEnum = fleetData.CivEnum;
+
             var transGalaxyCenter = GalaxyCenter.transform; // Safe now - we checked above
 
-            if (sysController.StarSysData != null && !isNewFleet)
+            if (sysController != null && sysController.StarSysData != null && !isNewFleet)
             {
                 newTrans = sysController.transform;
+                dockSystem = sysController;
                 Destroy(existingFleetCon.gameObject); // destroy the empty original fleet controller
             }
             else if (existingFleetCon != null && isNewFleet)
             {
                 newTrans = existingFleetCon.transform;
+                spacerAnchorFleet = existingFleetCon;
             }
-            else if (sysController.StarSysData != null && isNewFleet)
+            else if (sysController != null && sysController.StarSysData != null && isNewFleet)
             {
                 newTrans = sysController.transform;
+                dockSystem = sysController;
             }
 
             newFleet.transform.SetParent(transGalaxyCenter, true);
 
             if (newTrans != null)
             {
-                if (!isNewFleet)
+                if (dockSystem != null)
                 {
-                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y + 20f, newTrans.position.z + 10F));
+                    // Fleet 1 claims slot 0 (the original fixed spot); each subsequent fleet built/
+                    // formed at this system claims the next free slot in the outward spiral, and the
+                    // slot is freed automatically once that fleet moves away (see
+                    // FleetData.ReleaseDockSlotIfAny, called from FleetController's movement).
+                    int slot = dockSystem.StarSysData.ClaimFleetDockSlot(newFleet);
+                    Vector3 slotOffset = FleetDockLayout.GetSlotOffset(slot);
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y, newTrans.position.z) + slotOffset);
+                    fleetData.DockedStarSys = dockSystem;
+                    fleetData.DockedSlotIndex = slot;
                 }
-                else
+                else if (spacerAnchorFleet != null)
                 {
-                    if (newFleetSpacer > 10f)
-                        newFleetSpacer = 0;
-                    newFleet.transform.Translate(new Vector3(newTrans.position.x - 15f - newFleetSpacer, newTrans.position.y + 15f - newFleetSpacer, newTrans.position.z));
-                    newFleetSpacer = newFleetSpacer + 5f;
+                    // Simpler scheme for a fleet splitting off another fleet (not a system): nudge
+                    // outward each time, resetting as soon as the source fleet itself has moved.
+                    Vector3 spacerOffset = spacerAnchorFleet.FleetData.GetNextSplitOffset(newTrans.position);
+                    newFleet.transform.Translate(new Vector3(newTrans.position.x, newTrans.position.y, newTrans.position.z) + spacerOffset);
                 }
             }
 
             fleetData.Position = newFleet.transform.position;
-            InstantiateFleetUIGameObject(newFleet, isNewFleet);
-            // ✅ Now ships can find the ShipListUIParent when their UIs are created
-            if (!isNewFleet)
-                ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
 
-            newFleet.transform.localScale = new Vector3(0.7f, 0.7f, 1);
+            // Fleet name/number must be assigned BEFORE the fleet UI is instantiated below,
+            // since InstantiateFleetUIGameObject -> SetupFleetUIElements reads FleetData.FleetName
+            // to populate the "Fleet Name (TMP)" text on the FleetUI prefab. Assigning it after
+            // UI creation left that text blank on first instantiation.
+            newFleet.transform.localScale = new Vector3(0.4f, 0.4f, 1);
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             newFleet.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
             fleetData.FleetName = "Fleet " + fleetInt.ToString();
             newFleet.FleetData.FleetInt = fleetInt;
-            FleetControllersInGame.Add(newFleet);
             newFleet.FleetData.CurrentWarpFactor = 0f;
+            // Replicated so remote clients can rebuild this same name themselves - see
+            // FleetController.OnCivEnumChanged, which never runs InstantiateFleet and would
+            // otherwise have no FleetName at all.
+            newFleet.SyncedFleetInt = fleetInt;
 
             TextMeshProUGUI TheText = newFleet.gameObject.GetComponentInChildren<TextMeshProUGUI>();
             if (TheText != null)
@@ -357,13 +460,155 @@ namespace BOTF3D.Galaxy
                 fleetData.FleetName = TheText.text;
             }
 
+            InstantiateFleetUIGameObject(newFleet, isNewFleet);
+            // ✅ Now ships can find the ShipListUIParent when their UIs are created
+            if (!isNewFleet)
+                ShipManager.Instance.BuildShipsOfFirstFleet(newFleet);
+
+            RegisterFleetControllerAndSetupVisuals(newFleet, fleetData); // also sets up the DropLine
+
+            // SAFETY: Check GalaxyCenter still exists
+            if (GalaxyCenter != null)
+            {
+                newFleet.FleetData.Destination = GalaxyCenter;
+            }
+
+            foreach (var civCon in CivManager.Instance.CivControllersInGame)
+            {
+                if (civCon.CivData.CivEnum == fleetData.CivEnum)
+                {
+                    fleetData.CivController = civCon;
+                    break;
+                }
+            }
+
+            newFleet.gameObject.SetActive(true);
+            newFleet.UpdateMaxWarp();
+            InstantiateFleetUIGameObject(newFleet, isNewFleet);
+
+            // Replicate this fleet's NetworkIdentity + NetworkTransform to every connected client
+            // now that it's fully built - clients get the GameObject via Mirror's spawn message
+            // and start receiving position updates immediately.
+            Debug.LogWarning($"🛰️[MAXWARP] InstantiateFleet: spawning fleet '{newFleet.gameObject.name}' (civ={newFleet.FleetData.CivEnum}) - SyncedCivEnum={newFleet.SyncedCivEnum}, SyncedFleetInt={newFleet.SyncedFleetInt}, SyncedMaxWarpFactor={newFleet.SyncedMaxWarpFactor}, ShipsList.Count={newFleet.FleetData.ShipsList.Count}.");
+            NetworkServer.Spawn(newFleet.gameObject);
+
+            // ✅ NEW: Immediately set up ShipListUIParent for new fleet
+            if (isNewFleet && newFleet.FleetUIGameObject != null)
+            {
+                var uiFields = newFleet.FleetUIGameObject.GetComponent<FleetUI_Fields>();
+                if (uiFields != null && uiFields.FleetShipContentGO != null)
+                {
+                    newFleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
+                    Debug.Log($"✅ Set ShipListUIParent for new fleet '{newFleet.name}'");
+                }
+                else
+                {
+                    Debug.LogError($"❌ Cannot set ShipListUIParent for new fleet '{newFleet.name}' - FleetUI_Fields or FleetShipContentGO missing!");
+                }
+            }
+
+            return newFleet;
+        }
+
+        /// <summary>
+        /// Creates/positions the red line from a fleet's floating sprite down to its position on
+        /// the galaxy map plane. Originally ran only inline inside InstantiateFleet (server-only) -
+        /// factored out so it also runs from RegisterFleetControllerAndSetupVisuals on remote clients,
+        /// who never run InstantiateFleet themselves (see that method's comments) and were previously
+        /// left with no DropLine at all.
+        /// </summary>
+        private void SetUpDropLine(FleetController newFleet)
+        {
+            FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
+
+            // The line from Fleet to underlying galaxy image
+            MapLineMovable[] ourLineToGalaxyImageScript = newFleet.gameObject.GetComponentsInChildren<MapLineMovable>();
+
+            // VALIDATION: Check if MapLineMovable components exist
+            if (ourLineToGalaxyImageScript == null || ourLineToGalaxyImageScript.Length == 0)
+            {
+                Debug.LogError($"FleetManager.SetUpDropLine: No MapLineMovable found in FleetController prefab '{fleetPrefab.name}'! " +
+                               $"The DropLine cannot be created for fleet '{newFleet.name}'. " +
+                               $"Add a MapLineMovable component to the FleetController prefab in the Inspector.");
+                return;
+            }
+
+            // CRITICAL: Ensure galaxyImage exists before setting up DropLine
+            if (galaxyImage == null)
+            {
+                Debug.LogWarning($"FleetManager.SetUpDropLine: galaxyImage is null, attempting to find it again...");
+                FindGalaxyReferences();
+
+                if (galaxyImage == null)
+                {
+                    Debug.LogError($"FleetManager.SetUpDropLine: galaxyImage is STILL null! Cannot set up DropLine for fleet '{newFleet.name}'");
+                    return;
+                }
+            }
+
+            bool foundDropLine = false;
+
+            for (int i = 0; i < ourLineToGalaxyImageScript.Length; i++)
+            {
+                // SAFETY: Check fleetChildFields and DropLine exist
+                if (fleetChildFields == null || fleetChildFields.DropLine == null)
+                {
+                    Debug.LogWarning($"FleetManager.SetUpDropLine: fleetChildFields.DropLine is null for fleet '{newFleet.name}'");
+                    continue;
+                }
+
+                if (ourLineToGalaxyImageScript[i].gameObject == fleetChildFields.DropLine)
+                {
+                    ourLineToGalaxyImageScript[i].GetLineRenderer();
+                    ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
+                    ourLineToGalaxyImageScript[i].lineRenderer.endColor = Color.red;
+                    ourLineToGalaxyImageScript[i].transform.SetParent(newFleet.transform, false);
+
+                    Vector3 galaxyPlanePoint = new Vector3(newFleet.transform.position.x,
+                        galaxyImage.transform.position.y, newFleet.transform.position.z);
+                    Vector3[] points = { newFleet.transform.position, galaxyPlanePoint };
+                    ourLineToGalaxyImageScript[i].SetUpLine(points);
+                    newFleet.DropLine = ourLineToGalaxyImageScript[i];
+                    foundDropLine = true;
+                    Debug.Log($"✅ DropLine set up for fleet '{newFleet.name}'");
+                    break; // Found it, no need to continue
+                }
+            }
+
+            if (!foundDropLine)
+            {
+                Debug.LogWarning($"FleetManager.SetUpDropLine: Found {ourLineToGalaxyImageScript.Length} MapLineMovable(s) but none matched fleetChildFields.DropLine for fleet '{newFleet.name}'");
+            }
+        }
+
+        /// <summary>
+        /// Per-client-perspective visual setup (fog-of-war revealer vs. visibility agent, insignia
+        /// sprite enable/disable, FleetNameGO visibility) plus registration into FleetControllerList/
+        /// FleetControllersInGame. Originally ran only once, inline, inside InstantiateFleet (which is
+        /// now server-only) - factored out so FleetController.OnCivEnumChanged can also call it on
+        /// every remote client when a fleet's SyncedCivEnum arrives, since those clients never run
+        /// InstantiateFleet themselves.
+        /// </summary>
+        public void RegisterFleetControllerAndSetupVisuals(FleetController newFleet, FleetData fleetData)
+        {
+            if (!FleetControllerList.Contains(newFleet))
+                FleetControllerList.Add(newFleet);
+            if (!FleetControllersInGame.Contains(newFleet))
+                FleetControllersInGame.Add(newFleet);
+
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
-            srInsignia.sprite = newFleet.FleetData.Insignia;
+            srInsignia.sprite = fleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
 
             if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
             {
+                // Explicit SetActive (not just SpriteRenderer.enabled) so this branch is correct even
+                // if it ever runs for a freshly-spawned remote-client fleet object whose insignia
+                // GameObjects are still at their prefab-default (inactive) state - the non-local
+                // branch below always sets these explicitly for the same reason.
+                fleetChildFields.InsigniaGO.SetActive(true);
+                fleetChildFields.InsigniaUnknownGO.SetActive(false);
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
@@ -381,7 +626,8 @@ namespace BOTF3D.Galaxy
             else
             {
                 // If we already had contact with this civ, show the insignia and name
-                if (localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum))
+                bool hasContact = localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum);
+                if (hasContact)
                 {
                     fleetChildFields.FleetNameGO.SetActive(true);
                     srInsignia.enabled = true;
@@ -416,6 +662,14 @@ namespace BOTF3D.Galaxy
                             allRenderers.Remove(dropLineRenderer);
                         }
                     }
+
+                    // csFogVisibilityAgent.Update() force-sets `enabled` on every renderer in this
+                    // list to match raw fog-of-war visibility every frame, with no concept of
+                    // "insignia vs unknown". Whichever sprite lost the contact check above (srInsignia
+                    // when uncontacted, srInsigniaUnknown when contacted) must be excluded here or the
+                    // agent flips it back on the instant the tile is fog-visible - showing the real
+                    // insignia for a civ we've never met.
+                    allRenderers.Remove(hasContact ? srInsigniaUnknown : srInsignia);
 
                     ourFogVisibilityAgent.spriteRenderers = allRenderers;
 
@@ -453,106 +707,23 @@ namespace BOTF3D.Galaxy
                 }
             }
 
-            // The line from Fleet to underlying galaxy image
-            MapLineMovable[] ourLineToGalaxyImageScript = newFleet.gameObject.GetComponentsInChildren<MapLineMovable>();
+            // Self-guards on AreWeLocalPlayer, so safe to call unconditionally here - this is what
+            // actually builds the FleetUI GameObject the top-ribbon Fleet panel reads from
+            // (FleetMenuUIController.FleetControllerList). Without this, a remote client whose local
+            // player owns this fleet would have it registered in the list but with no UI to show.
+            InstantiateFleetUIGameObject(newFleet, false);
 
-            // VALIDATION: Check if MapLineMovable components exist
-            if (ourLineToGalaxyImageScript == null || ourLineToGalaxyImageScript.Length == 0)
-            {
-                Debug.LogError($"FleetManager.InstantiateFleet: No MapLineMovable found in FleetController prefab '{fleetPrefab.name}'! " +
-                               $"The DropLine cannot be created for fleet '{newFleet.name}'. " +
-                               $"Add a MapLineMovable component to the FleetController prefab in the Inspector.");
-            }
-            else
-            {
-                // CRITICAL: Ensure galaxyImage exists before setting up DropLine
-                if (galaxyImage == null)
-                {
-                    Debug.LogWarning($"FleetManager.InstantiateFleet: galaxyImage is null, attempting to find it again...");
-                    FindGalaxyReferences();
-
-                    if (galaxyImage == null)
-                    {
-                        Debug.LogError($"FleetManager.InstantiateFleet: galaxyImage is STILL null! Cannot set up DropLine for fleet '{newFleet.name}'");
-                    }
-                }
-
-                if (galaxyImage != null)
-                {
-                    bool foundDropLine = false;
-
-                    for (int i = 0; i < ourLineToGalaxyImageScript.Length; i++)
-                    {
-                        // SAFETY: Check fleetChildFields and DropLine exist
-                        if (fleetChildFields == null || fleetChildFields.DropLine == null)
-                        {
-                            Debug.LogWarning($"FleetManager.InstantiateFleet: fleetChildFields.DropLine is null for fleet '{newFleet.name}'");
-                            continue;
-                        }
-
-                        if (ourLineToGalaxyImageScript[i].gameObject == fleetChildFields.DropLine)
-                        {
-                            ourLineToGalaxyImageScript[i].GetLineRenderer();
-                            ourLineToGalaxyImageScript[i].lineRenderer.startColor = Color.red;
-                            ourLineToGalaxyImageScript[i].lineRenderer.endColor = Color.red;
-                            ourLineToGalaxyImageScript[i].transform.SetParent(newFleet.transform, false);
-
-                            Vector3 galaxyPlanePoint = new Vector3(newFleet.transform.position.x,
-                                galaxyImage.transform.position.y, newFleet.transform.position.z);
-                            Vector3[] points = { newFleet.transform.position, galaxyPlanePoint };
-                            ourLineToGalaxyImageScript[i].SetUpLine(points);
-                            newFleet.DropLine = ourLineToGalaxyImageScript[i];
-                            foundDropLine = true;
-                            Debug.Log($"✅ DropLine set up for fleet '{newFleet.name}'");
-                            break; // Found it, no need to continue
-                        }
-                    }
-
-                    if (!foundDropLine)
-                    {
-                        Debug.LogWarning($"FleetManager.InstantiateFleet: Found {ourLineToGalaxyImageScript.Length} MapLineMovable(s) but none matched fleetChildFields.DropLine for fleet '{newFleet.name}'");
-                    }
-                }
-            }
-
-            // SAFETY: Check GalaxyCenter still exists
-            if (GalaxyCenter != null)
-            {
-                newFleet.FleetData.Destination = GalaxyCenter;
-            }
-
-            foreach (var civCon in CivManager.Instance.CivControllersInGame)
-            {
-                if (civCon.CivData.CivEnum == fleetData.CivEnum)
-                {
-                    fleetData.CivController = civCon;
-                    break;
-                }
-            }
-
-            newFleet.gameObject.SetActive(true);
-            newFleet.UpdateMaxWarp();
-            InstantiateFleetUIGameObject(newFleet, isNewFleet);
-
-            // ✅ NEW: Immediately set up ShipListUIParent for new fleet
-            if (isNewFleet && newFleet.FleetUIGameObject != null)
-            {
-                var uiFields = newFleet.FleetUIGameObject.GetComponent<FleetUI_Fields>();
-                if (uiFields != null && uiFields.FleetShipContentGO != null)
-                {
-                    newFleet.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
-                    Debug.Log($"✅ Set ShipListUIParent for new fleet '{newFleet.name}'");
-                }
-                else
-                {
-                    Debug.LogError($"❌ Cannot set ShipListUIParent for new fleet '{newFleet.name}' - FleetUI_Fields or FleetShipContentGO missing!");
-                }
-            }
-
-            return newFleet;
+            // Server already sets this up inline inside InstantiateFleet before calling this method
+            // (SetUpDropLine is idempotent), but remote clients only ever reach fleet setup through
+            // here (see FleetController.OnCivEnumChanged) and previously never got a DropLine at all.
+            SetUpDropLine(newFleet);
         }
+
         private void InstantiateFleetUIGameObject(FleetController fleetCon, bool newFleet)
         {
+            if (!GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum))
+                return;
+
             // CRITICAL: Ensure fleetUIGOContentParent exists before creating UI
             if (fleetUIGOContentParent == null)
             {
@@ -567,31 +738,19 @@ namespace BOTF3D.Galaxy
 
             var shipManager = ShipManager.Instance;
 
-            // ✅ CRITICAL FIX: Create UI for ALL fleets (local player only shows it)
             if (fleetCon.FleetUIGameObject == null)
             {
                 GameObject thisFleetUIGameObject = (GameObject)Instantiate(fleetUIPrefab, new Vector3(0, 0, 0), Quaternion.identity);
-
-                // ✅ Only activate if local player
-                bool isLocalPlayer = GameController.Instance.AreWeLocalPlayer(fleetCon.FleetData.CivEnum);
-                thisFleetUIGameObject.SetActive(isLocalPlayer);
-
+                thisFleetUIGameObject.SetActive(false); // hidden until ShowFleetMenuView activates it
                 thisFleetUIGameObject.layer = 5;
                 fleetCon.FleetUIGameObject = thisFleetUIGameObject;
                 thisFleetUIGameObject.transform.SetParent(fleetUIGOContentParent.transform, false);
 
-                // ✅ CRITICAL: ALWAYS set ShipListUIParent (even for non-player fleets)
                 FleetUI_Fields fleetUI_Fields = thisFleetUIGameObject.GetComponent<FleetUI_Fields>();
                 if (fleetUI_Fields != null && fleetUI_Fields.FleetShipContentGO != null)
                 {
                     fleetCon.FleetData.ShipListUIParent = fleetUI_Fields.FleetShipContentGO;
-                    Debug.Log($"✅ Set ShipListUIParent for fleet '{fleetCon.name}' (LocalPlayer={isLocalPlayer})");
-
-                    // ✅ Only wire buttons if local player
-                    if (isLocalPlayer)
-                    {
-                        FleetMenuUIController.Instance?.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
-                    }
+                    FleetMenuUIController.Instance?.SetupFleetUIElements(fleetCon, thisFleetUIGameObject);
                 }
                 else
                 {
@@ -806,14 +965,153 @@ namespace BOTF3D.Galaxy
         internal void DestroyFleetController(FleetController fleetController)
         {
             if (fleetController == null) return;
+            fleetController.FleetData?.ReleaseDockSlotIfAny();
             RemoveFleetNumInUse(fleetController.FleetData.CivEnum, fleetController.FleetData.FleetInt);
             if (FleetControllersInGame.Contains(fleetController))
                 FleetControllersInGame.Remove(fleetController);
+            if (FleetControllerList.Contains(fleetController))
+                FleetControllerList.Remove(fleetController);
             if (fleetController.FleetUIGameObject != null)
                 Destroy(fleetController.FleetUIGameObject);
             if (fleetController.DropLine != null)
                 Destroy(fleetController.DropLine.gameObject);
-            Destroy(fleetController.gameObject);
+
+            // Spawned FleetControllers are Mirror NetworkIdentities (see InstantiateFleet's
+            // NetworkServer.Spawn) - a plain Destroy() on the server leaves a stale entry in
+            // NetworkServer.spawned and never tells clients to remove their own copy.
+            // NetworkServer.Destroy sends the proper destroy message first. On a genuine remote
+            // client (convoy/ship-transfer cleanup, still unnetworked - see SyncedIsNewFleet's
+            // comment) there's no server to route through, so fall back to the local-only Destroy
+            // exactly as before.
+            if (NetworkServer.active)
+                NetworkServer.Destroy(fleetController.gameObject);
+            else
+                Destroy(fleetController.gameObject);
+        }
+
+        // Distance (in galaxy-map units) beyond which a fleet-merge/deploy is routed through a
+        // temporary convoy fleet that travels at warp, instead of an instant transfer.
+        public const float ConvoyDistanceThreshold = 30f;
+
+        /// <summary>
+        /// Creates an empty temporary "convoy" fleet used to carry redeployed ships across a distance
+        /// too far for an instant merge. Ships are NOT added here — the caller uses the same
+        /// FleetController/StarSysController.AddToShipList used by every other ship transfer, then
+        /// configures IsConvoy/ConvoyMergeTarget/ConvoyMergeSystem and sets the convoy's destination
+        /// (SetInterceptTarget for a moving fleet target, or Destination for a system target).
+        /// Exactly one of sourceFleet/sourceSystem should be non-null; it supplies the spawn position.
+        /// </summary>
+        public FleetController CreateConvoyFleet(FleetController sourceFleet, StarSysController sourceSystem, CivEnum civEnum)
+        {
+            FleetSO fleetSO = GetFleetSO_byInt((int)civEnum);
+            if (fleetSO == null) return null;
+
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+            Vector3 position = sourceFleet != null ? sourceFleet.transform.position :
+                sourceSystem != null ? sourceSystem.StarSysData.GetPosition() : Vector3.zero;
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            // Insignia already set from fleetSO.Insignia by the FleetData(fleetSO) constructor above —
+            // don't overwrite it with the civ's own insignia here.
+            fleetData.ShipsList = new List<ShipController>();
+            fleetData.IsConvoy = true;
+
+            return InstantiateFleet(sourceFleet, sourceSystem, fleetData, position, true);
+        }
+
+        // Server-side counterpart of FleetMenuUIController.ClickNewFleetButton(FleetController) - splits
+        // an empty new fleet off of sourceFleet at its current position, for the player to drag ships
+        // into via the ship-deploy UI. Called via LocalHumanPlayerController.CmdCreateSplitFleet so this
+        // also works when a non-host client clicks the button (InstantiateFleet is server-only).
+        [Server]
+        public FleetController ServerCreateSplitFleet(FleetController sourceFleet)
+        {
+            if (sourceFleet == null || sourceFleet.FleetData == null || sourceFleet.FleetData.ShipsList.Count < 2)
+                return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sourceFleet.FleetData.CivEnum);
+            var position = sourceFleet.FleetData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.ShipsList = new List<ShipController>();
+
+            var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
+            FleetController newFleet = InstantiateFleet(sourceFleet, emptyStarSysCon, fleetData, position, true);
+            Destroy(emptyStarSysCon.gameObject);
+            return newFleet;
+        }
+
+        // Server-side counterpart of ShipListUI_Item's drag-and-drop ship reassignment. That UI item
+        // mutates its own client's local FleetData.ShipsList directly for instant visual feedback, but
+        // (like InstantiateFleet's callers above) never reaches the server on its own - on the host that
+        // local copy IS the server's authoritative copy, so it "just works" there, but a non-host
+        // client's edits silently never reach the server's real fleet data at all. Called via
+        // LocalHumanPlayerController.CmdTransferShip so the server's own ShipsList lists (which combat,
+        // fog of war, and every other system actually reads) stay correct regardless of which client
+        // performed the drag.
+        [Server]
+        public void ServerTransferShip(FleetController fromFleet, FleetController toFleet, int shipID)
+        {
+            if (fromFleet == null || toFleet == null || fromFleet.FleetData == null || toFleet.FleetData == null || shipID == 0)
+                return;
+            if (fromFleet == toFleet)
+                return;
+
+            ShipController ship = fromFleet.FleetData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShip: ship id {shipID} not found in fleet '{fromFleet.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromFleet.FleetData.ShipsList.Remove(ship);
+            if (!toFleet.FleetData.ShipsList.Contains(ship))
+                toFleet.FleetData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentFleetController = toFleet;
+            ship.ShipData.CurrentStarSysController = null;
+            if (ship.transform != null && toFleet.gameObject != null)
+                ship.transform.SetParent(toFleet.transform, false);
+
+            fromFleet.UpdateMaxWarp();
+            toFleet.UpdateMaxWarp();
+
+            Debug.Log($"ServerTransferShip: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to '{toFleet.name}'. fromFleet now has {fromFleet.FleetData.ShipsList.Count}, toFleet now has {toFleet.FleetData.ShipsList.Count}.");
+        }
+
+        // Server-side counterpart of StarSysMenuUIController.ClickNewFleetButton(StarSysController) -
+        // forms an empty new fleet at sysCon's position, for the player to drag docked ships into via
+        // the ship-deploy UI. Called via LocalHumanPlayerController.CmdCreateFleetFromSystem so this also
+        // works when a non-host client clicks the button (InstantiateFleet is server-only).
+        [Server]
+        public FleetController ServerCreateFleetFromSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData.ShipsList.Count == 0) return null;
+
+            FleetSO fleetSO = GetFleetSO_byInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
+            var position = sysCon.StarSysData.GetPosition();
+            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
+
+            FleetData fleetData = new FleetData(fleetSO);
+            fleetData.CurrentWarpFactor = 0f;
+            fleetData.CivLongName = thisCivData.CivLongName;
+            fleetData.CivShortName = thisCivData.CivShortName;
+            fleetData.CivEnum = thisCivData.CivEnum;
+            fleetData.PlayerId = thisCivData.PlayerId;
+            fleetData.ShipsList = new List<ShipController>();
+
+            return InstantiateFleet(null, sysCon, fleetData, position, true);
         }
 
         internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)

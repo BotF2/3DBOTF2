@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_098_NEZU
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 98
-  Position: {x: 54.48, y: -2.08, z: 80.8}
+  Position: {x: 54.48, y: -2.08, z: 80.80}
   SysName: NEZU
   FirstOwner: 98
   CurrentOwner: 98

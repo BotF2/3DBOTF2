@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_066_HAZARI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 66
-  Position: {x: 56.24, y: 1.8, z: 37.14}
+  Position: {x: 56.24, y: 1.80, z: 37.14}
   SysName: HAZARI
   FirstOwner: 66
   CurrentOwner: 66

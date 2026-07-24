@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_020_ARGRATHI
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 20
-  Position: {x: -28.72, y: 2.07, z: 68.9}
+  Position: {x: -28.72, y: 2.07, z: 68.90}
   SysName: ARGRATHI
   FirstOwner: 20
   CurrentOwner: 20

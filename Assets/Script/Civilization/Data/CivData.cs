@@ -55,6 +55,12 @@ namespace BOTF3D.Civilization
                 return Mathf.Clamp01(TechPoints / 100f) * band;
             }
         }
+        // Average of the four -2..+2 personality traits. All four enums share the convention
+        // that +2 is the more cooperative/trusting pole (Pacifist/Compassion/Honorable/Idealistic),
+        // so this lands Federation-like civs near +1.5/+2 and Romulan/Cardassian/Dominion-like
+        // civs near -1/-1.5, scaling every diplomacy-menu gesture (trade, aid, alliance, etc.).
+        public float DiplomaticAptitude => ((int)Warlike + (int)Xenophobia + (int)Ruthless + (int)Greedy) / 4f;
+
         public bool Playable;
         public bool PlayedByAI = true;
         public CivEnum LocalPlayerCivEnum;
@@ -64,6 +70,7 @@ namespace BOTF3D.Civilization
         //public List<CivController> CivControllersWeKnow;
         //public List<CivEnum> CivEnumsWeKnow;
         public float IntelPoints;
+        public int QualityScore = 5;
         private object SystemsOwned;
         public int PendingBuildTimeReduction = 0; // Consumed by next ship build at any owned shipyard; set from captured-ship BuildDuration / 2
 

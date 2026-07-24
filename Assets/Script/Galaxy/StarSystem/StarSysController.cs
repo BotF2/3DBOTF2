@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using BOTF3D.Civilization;
 using BOTF3D.Audio;
@@ -189,8 +190,9 @@ namespace BOTF3D.Galaxy
                 .ThenBy(t => t.localPosition.x)
                 .ToList();
 
-            // 2️⃣ THEN maybe start coroutine
-            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
+            // 2️⃣ Start build only when a turn is actively progressing
+            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0 &&
+                TimeManager.Instance?.TurnPhase == TurnPhase.TurnProgression)
             {
                 StarSysBuildManager.StartNextFacilityBuildIfAny();
             }
@@ -217,7 +219,8 @@ namespace BOTF3D.Galaxy
                 .ThenBy(t => t.localPosition.x)
                 .ToList();
 
-            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
+            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0 &&
+                TimeManager.Instance?.TurnPhase == TurnPhase.TurnProgression)
             {
                 StarSysBuildManager.StartNextShipBuildIfAny();
             }
@@ -247,10 +250,17 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
+            // See matching comment in FleetController.OnMouseDown: this raw physics click fires
+            // even when a UI button over this system's screen position was the actual click target.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             var clickedSystemCon = GetComponentInParent<StarSysController>();
             if (clickedSystemCon == null) return;
 
             var galaxyUI = GalaxyMenuUIController.Instance;
+
+            Debug.Log($"OnMouseDown: system '{clickedSystemCon.name}' clicked, CurrentClickMode={galaxyUI.CurrentClickMode}.");
 
             switch (galaxyUI.CurrentClickMode)
             {
@@ -278,6 +288,7 @@ namespace BOTF3D.Galaxy
                     break;
 
                 case GalaxyClickMode.SetDestination:
+                    Debug.Log($"OnMouseDown: SetDestination click on system '{clickedSystemCon.name}'.");
                     HandleDestinationClick(clickedSystemCon);
                     break;
 
@@ -439,8 +450,8 @@ namespace BOTF3D.Galaxy
                     var lookingSysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                     if (lookingSysUIFields != null && lookingSysUIFields.redDot != null)
                     {
-                        Vector3 lookingPos = starSysLooking.transform.position;
-                        lookingSysUIFields.redDot.anchoredPosition = new Vector2(lookingPos.x * 0.12f, lookingPos.z * 0.12f);
+                        Vector3 lookingPos = starSysLooking.transform.localPosition;
+                        lookingSysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(lookingPos);
                         Debug.Log($"Updated mini map for LOOKING system '{starSysLooking.name}'");
                     }
                 }
@@ -461,27 +472,31 @@ namespace BOTF3D.Galaxy
                 var thisSysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (thisSysUIFields != null && thisSysUIFields.redDot != null)
                 {
-                    Vector3 thisPos = this.transform.position;
-                    thisSysUIFields.redDot.anchoredPosition = new Vector2(thisPos.x * 0.12f, thisPos.z * 0.12f);
+                    Vector3 thisPos = this.transform.localPosition;
+                    thisSysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(thisPos);
                     Debug.Log($"Updated mini map for clicked system '{this.name}'");
                 }
             }
             else if (fleetLooking != null && starSysLooking == null)
             {
                 // Fleet to star system deploy
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.SetActive(true);
+                // ✅ Use ASystemMenuView (not AFleetMenuView) to match the proven-working
+                // "star system to star system deploy" branch above and HandleMergeSelection's
+                // Fleet-to-System case — this is the container with the VerticalLayoutGroup
+                // set up for stacking two prefab UIs on the left side of the deploy panel.
+                var aSysView = StarSysUI.ASystemMenuView.gameObject;
+                aSysView.SetActive(true);
 
                 // Parent fleet UI (top)
                 if (fleetLooking.FleetUIGameObject != null)
                 {
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
+                    fleetLooking.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
                     fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
                     fleetLooking.FleetUIGameObject.SetActive(true);
                 }
 
                 // Parent THIS system UI (bottom)
-                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
+                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
                 clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
                 clickedSystemCon.StarSysUIGameObject.SetActive(true);
 
@@ -496,8 +511,8 @@ namespace BOTF3D.Galaxy
                 var sysUIFields = this.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (sysUIFields != null && sysUIFields.redDot != null)
                 {
-                    Vector3 sysPos = this.transform.position;
-                    sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
+                    Vector3 sysPos = this.transform.localPosition;
+                    sysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(sysPos);
                     Debug.Log($"Updated mini map for system '{this.name}' in fleet-to-system deploy");
                 }
             }
@@ -525,18 +540,18 @@ namespace BOTF3D.Galaxy
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI == null)
             {
-                Debug.LogError("StarSysController.HandleDestinationClick: GalaxyMenuUIController.Instance is null");
+                Debug.LogWarning("HandleDestinationClick: GalaxyMenuUIController.Instance is NULL - click ignored.");
                 return;
             }
 
             FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-
-            // ✅ Add null check
             if (theFleetConLookingForDestination == null)
             {
-                Debug.LogWarning("StarSysController.HandleDestinationClick: No fleet is looking for a destination");
+                Debug.LogWarning($"HandleDestinationClick: galaxyUI.FleetLookingForDestination is NULL when clicking system '{clickedSystemCon.name}' - SetDestination mode was not armed for a fleet, click ignored.");
                 return;
             }
+
+            Debug.Log($"HandleDestinationClick: setting destination='{clickedSystemCon.name}' for fleet '{theFleetConLookingForDestination.name}'.");
 
             // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
             if (theFleetConLookingForDestination.TargetController != null)
@@ -618,12 +633,27 @@ namespace BOTF3D.Galaxy
         public void OnEnable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent += DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+            }
         }
         public void OnDisable()
         {
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+            }
+        }
+
+        private void OnTurnPhaseChanged(TurnPhase phase)
+        {
+            if (phase != TurnPhase.TurnProgression || StarSysBuildManager == null) return;
+            if (!StarSysBuildManager.IsBuildingFacility && sysBuildQueueList.Count > 0)
+                StarSysBuildManager.StartNextFacilityBuildIfAny();
+            if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0)
+                StarSysBuildManager.StartNextShipBuildIfAny();
         }
         private void DoDisaster(TrekRandomEventSO randomSpecialEvent)
         {
@@ -675,13 +705,12 @@ namespace BOTF3D.Galaxy
         public void BuildClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildUI(this);
-            GalaxyUI.OpenMenu(Menu.BuildMenu, null);
-
+            // Do NOT call GalaxyUI.OpenMenu(BuildMenu) — that triggers CloseCurrentMenu(),
+            // which hides ASystemMenuView before the build queue has even opened.
         }
         public void ShipClick(StarSysController sysCon) // open build and ship build list UI
         {
             StarSysManager.Instance.InstantiateSysBuildUI(this);
-            GalaxyUI.OpenMenu(Menu.BuildMenu, null);
         }
         public void FactoryButtonOnClicked(StarSysController starSysCon)
         {
@@ -919,15 +948,14 @@ namespace BOTF3D.Galaxy
 
         private void OnDestroy()
         {
-            // Remove fog revealer when system is destroyed
             if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
-            {
                 FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
-            }
 
-            // Existing cleanup code...
             if (TimeManager.Instance != null)
+            {
                 TimeManager.Instance.OnRandomSpecialEvent -= DoDisaster;
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+            }
         }
         public void CleanupStarSysUIs()
         {

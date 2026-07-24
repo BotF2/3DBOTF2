@@ -46,7 +46,7 @@ namespace BOTF3D.Combat.Testing
         private static readonly CombatOrders[] _orderValues;
         private static readonly string[] _orderNames;
 
-        public object Instance { get; private set; }
+        public static RuntimeScenarioEditorUI Instance { get; private set; }
 
         static RuntimeScenarioEditorUI()
         {

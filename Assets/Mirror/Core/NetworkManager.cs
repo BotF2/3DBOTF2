@@ -618,7 +618,10 @@ namespace Mirror
             // For Host client, call OnServerDisconnect before NetworkClient.Disconnect
             // because we need NetworkServer.localConnection to not be null
             // NetworkClient.Disconnect will set it null.
-            if (mode == NetworkManagerMode.Host)
+            // Guard against localConnection already being null here (e.g. during
+            // OnApplicationQuit teardown) - otherwise this throws and StopServer()
+            // never runs, leaking the transport socket/port for the rest of the process.
+            if (mode == NetworkManagerMode.Host && NetworkServer.localConnection != null)
                 OnServerDisconnect(NetworkServer.localConnection);
 
             // ask client -> transport to disconnect.

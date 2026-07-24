@@ -18,7 +18,8 @@ MonoBehaviour:
   Name: Shield Generators
   StartStarDate: 0
   BuildDuration: 4
+  DilithiumCost: 0
   PowerLoad: 2
-  ShieldGeneratorSprite: {fileID: 21300000, guid: 298cc62f36e90a34cb90c13a98e7c705, type: 3}
+  ShieldGeneratorSprite: {fileID: 21300000, guid: 6742ae701ae11d546a3ed26bdcc53c18, type: 3}
   Description: 'What the Cardassians lack in quality they more than make up for with
     quantity. '

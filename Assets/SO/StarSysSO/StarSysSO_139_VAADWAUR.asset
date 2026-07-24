@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_139_VAADWAUR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 139
-  Position: {x: 39.15, y: -2.87, z: 29.6}
+  Position: {x: 39.15, y: -2.87, z: 29.60}
   SysName: VAADWAUR
   FirstOwner: 139
   CurrentOwner: 139

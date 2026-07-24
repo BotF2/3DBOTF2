@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_181_DOPA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 181
-  Position: {x: -29.77, y: -3, z: 6.95}
+  Position: {x: -29.77, y: -3.00, z: 6.95}
   SysName: DOPA
   FirstOwner: 181
   CurrentOwner: 181

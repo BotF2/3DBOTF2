@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_092_MIRADORN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 92
-  Position: {x: -20.17, y: -1.8, z: -20.11}
+  Position: {x: -20.17, y: -1.80, z: -20.11}
   SysName: MIRADORN
   FirstOwner: 92
   CurrentOwner: 92

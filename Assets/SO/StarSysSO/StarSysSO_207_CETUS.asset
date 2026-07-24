@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_207_CETUS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 207
-  Position: {x: -15.3, y: 1.68, z: 35.13}
+  Position: {x: -15.30, y: 1.68, z: 35.13}
   SysName: CETUS
   FirstOwner: 207
   CurrentOwner: 207

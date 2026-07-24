@@ -96,6 +96,18 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
 
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
+            // Enforce max 5 queued items (count only actual cloned ShipBuildDrag children)
+            int queued = 0;
+            foreach (var t in StarSysController.sysShipBuildQueueList)
+                if (t != null && t.GetComponent<ShipBuildDrag>() != null) queued++;
+            if (queued >= 5)
+            {
+                Debug.Log("ShipBuildDrag: queue full (max 5)");
+                transform.SetParent(originalParent);
+                rectTransform.anchoredPosition = Vector2.zero;
+                return;
+            }
+
             // ✅ CRITICAL: Instantiate CLONE instead of moving original
             GameObject clone = Instantiate(gameObject);
 
@@ -133,12 +145,6 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
                 transform.SetParent(originalParent);
                 rectTransform.anchoredPosition = Vector2.zero;
                 return;
-            }
-
-            // ✅ Create visual icon in inventory
-            if (StarSysManager.Instance != null)
-            {
-                StarSysManager.Instance.NewImageInShipInventory(ShipType);
             }
 
             // ✅ Return ORIGINAL to palette

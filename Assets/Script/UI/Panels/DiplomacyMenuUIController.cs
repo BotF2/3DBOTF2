@@ -93,6 +93,8 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject combatButtonGO;
         [SerializeField]
+        private GameObject declareWarButtonGO;
+        [SerializeField]
         private GameObject closeDiplomacyButtonGO;
         int _scouts;
         int _destroyers;
@@ -391,6 +393,10 @@ namespace BOTF3D.UI
                         rectTransforms[i].gameObject.SetActive(true);
                         combatButtonGO = rectTransforms[i].gameObject;
                         break;
+                    case "DeclareWarButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        declareWarButtonGO = rectTransforms[i].gameObject;
+                        break;
                     case "ButtonCloseDiplomacytUI":
                         rectTransforms[i].gameObject.SetActive(true);
                         closeDiplomacyButtonGO = rectTransforms[i].gameObject;
@@ -525,10 +531,18 @@ namespace BOTF3D.UI
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.Sabatoge(diplomacyCon));
                         break;
+                    case "SystemReconButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => diplomacyCon.SystemRecon(diplomacyCon));
+                        break;
                     case "CombatButton":
                         //fleetCon.FleetData.FleetButtonUIClose = listButton;
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));
+                        break;
+                    case "DeclareWarButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() => diplomacyCon.DeclareWar(diplomacyCon));
                         break;
                     default:
                         break;

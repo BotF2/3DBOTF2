@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_165_ACHERNAR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 165
-  Position: {x: 39.15, y: -1.59, z: 12.1}
+  Position: {x: 39.15, y: -1.59, z: 12.10}
   SysName: ACHERNAR
   FirstOwner: 165
   CurrentOwner: 165

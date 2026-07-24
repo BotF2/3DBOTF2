@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_007_ACAMA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 7
-  Position: {x: -2.04, y: 0.34, z: -71.75}
+  Position: {x: -1.58, y: 0.34, z: -71.13}
   SysName: ACAMA
   FirstOwner: 7
   CurrentOwner: 7

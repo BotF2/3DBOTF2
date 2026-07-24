@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_025_BAKU
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 25
-  Position: {x: 8.61, y: -1.12, z: -86.97}
+  Position: {x: 8.89, y: -1.12, z: -88.00}
   SysName: BAKU
   FirstOwner: 25
   CurrentOwner: 25

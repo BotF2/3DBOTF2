@@ -106,8 +106,6 @@ namespace BOTF3D.Combat
         /// </summary>
         private void TryParentShipUI(ShipController shipCon, GameObject parentGO, ShipListUI_Item shipUiItem)
         {
-            bool parented = false;
-
             if (parentGO.TryGetComponent(out StarSysController sysCon))
             {
                 Debug.Log($"  Parent is StarSys: {sysCon.name}");
@@ -119,7 +117,6 @@ namespace BOTF3D.Combat
                         sysCon.StarSysData.ShipListUIParent.transform,
                         false
                     );
-                    parented = true;
                     Debug.Log($"  ✅ Parented to system ShipListUIParent");
                 }
                 else
@@ -140,7 +137,6 @@ namespace BOTF3D.Combat
                         fleetCon.FleetData.ShipListUIParent.transform,
                         false
                     );
-                    parented = true;
                     Debug.Log($"  ✅ Parented to fleet ShipListUIParent");
                 }
                 else

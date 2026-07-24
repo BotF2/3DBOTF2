@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_075_KELLERUN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 75
-  Position: {x: -53.28, y: -1.61, z: -78.02}
+  Position: {x: -53.28, y: -1.61, z: -79.49}
   SysName: KELLERUN
   FirstOwner: 75
   CurrentOwner: 75

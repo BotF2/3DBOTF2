@@ -15,8 +15,8 @@ namespace BOTF3D.Editor
         [MenuItem("BOTF/Theme/Apply Theme Buttons — Current Scene")]
         public static void ApplyThemeToCurrentScene()
         {
-            var buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            var toggles = Object.FindObjectsByType<Toggle>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include);
+            var toggles = Object.FindObjectsByType<Toggle>(FindObjectsInactive.Include);
             int added = 0, skipped = 0;
 
             foreach (var button in buttons)
@@ -62,7 +62,7 @@ namespace BOTF3D.Editor
         [MenuItem("BOTF/Theme/Remove Theme Buttons — Current Scene")]
         public static void RemoveThemeFromCurrentScene()
         {
-            var elements = Object.FindObjectsByType<ThemedUIElement>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var elements = Object.FindObjectsByType<ThemedUIElement>(FindObjectsInactive.Include);
             int removed = 0;
 
             foreach (var element in elements)

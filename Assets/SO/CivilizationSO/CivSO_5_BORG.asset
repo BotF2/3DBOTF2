@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 5
   CivEnum: 5
-  CivShortName: BORG
+  CivShortName: Borg
   CivLongName: Borg Collective
   CivHomeSystem: UNICOMPLEX
   WarLikeEnum: -2
@@ -24,6 +24,8 @@ MonoBehaviour:
   CivImage: {fileID: 21300000, guid: 6ed7684e500f6d341b5ba9b422dc3b30, type: 3}
   Insignia: {fileID: 21300000, guid: d6f9a44a9dc9a3a4ea7c0c1fedc3d44b, type: 3}
   Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 80
   Credits: 0
   TechPoints: 0
   CivTechLevel: 100
@@ -43,3 +45,4 @@ MonoBehaviour:
     way of life. In fact the Borg are twice as powerful as any other empire, since
     their cubes are gigantic and almost unbeatable, so: RESISTANCE IS FUTILE!'
   IntelPoints: 0
+  QualityScore: 10

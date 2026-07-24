@@ -36,6 +36,13 @@ namespace BOTF3D.Galaxy
         {
             controller = owner;
         }
+
+        // SliderBuildProgress/ShipSliderBuildProgress on StarSysMenuUIController are rewired to whichever
+        // system's build panel is currently open (see StarSysManager.InstantiateSysBuildUI); they are not
+        // scoped per system. Without this check, a system building in the background (e.g. an AI civ)
+        // would overwrite the currently-viewed system's slider with its own unrelated progress every frame.
+        private bool IsShowingThisSystemsBuildUI => StarSysManager.Instance?.CurrentBuildUISysCon == controller;
+
         private IEnumerator BuildFacilityCoroutine(Transform buildItem)
         {
             Debug.Log($"=== BuildFacilityCoroutine: START ===");
@@ -55,6 +62,14 @@ namespace BOTF3D.Galaxy
             int buildTime = GetBuildTimeDuration(buildDrag.FacilityType);
             if (buildTime <= 0) buildTime = 1;
 
+            // Deduct dilithium stockpile when a power plant build starts
+            if (buildDrag.FacilityType == StarSysFacilityType.PowerPlanet)
+            {
+                controller.StarSysData.DeductDilithium(
+                    ShipStatCalculator.GetPowerPlantDilithiumCost(controller.StarSysData.CurrentOwnerCivEnum));
+                RefreshCompactHeaderDilithium();
+            }
+
             int startDate = TimeManager.Instance.CurrentStarDate();
             int endDate = startDate + buildTime;
 
@@ -64,14 +79,10 @@ namespace BOTF3D.Galaxy
             Debug.Log($"  End date: {endDate}");
 
             // ✅ Reset slider to 0%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(0f);
                 Debug.Log("  Slider reset to 0%");
-            }
-            else
-            {
-                Debug.LogError("  ❌ StarSysMenuUIController.Instance is NULL!");
             }
 
             int loopCount = 0;
@@ -89,7 +100,7 @@ namespace BOTF3D.Galaxy
                 }
 
                 // ✅ Update the slider
-                if (StarSysMenuUIController.Instance != null)
+                if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
                 {
                     StarSysMenuUIController.Instance.SetBuildProgress(progress);
                 }
@@ -99,7 +110,7 @@ namespace BOTF3D.Galaxy
             }
 
             // ✅ Complete - set slider to 100%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(1f);
             }
@@ -111,21 +122,32 @@ namespace BOTF3D.Galaxy
             CompleteFacilityBuild(buildItem);
 
             // ✅ Reset slider
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetBuildProgress(0f);
             }
 
+            // Null the coroutine FIRST so IsBuildingFacility becomes false before
+            // StartNextFacilityBuildIfAny sets it back to true for the next item.
+            // (CompleteFacilityBuild no longer does this, to avoid clobbering the
+            //  new coroutine reference that StartNextFacilityBuildIfAny assigns.)
             buildCoroutine = null;
+            StartNextFacilityBuildIfAny();
+            StarSysMenuUIController.Instance?.RefreshQueueForSystem(controller);
         }
         internal void CompleteFacilityBuild(Transform buildItem)
         {
             if (buildItem == null) return;
 
+            // Explicit removal mirrors the ship-queue pattern and ensures the list is
+            // accurate before RefreshFacilityQueue reads it (startIndex depends on it).
+            controller.sysBuildQueueList.Remove(buildItem);
+
             var buildDrag = buildItem.GetComponentInChildren<FactoryBuildItemDrag>();
             if (buildDrag == null)
             {
                 Debug.LogWarning("CompleteFacilityBuild: FactoryBuildItemDrag missing on buildItem.");
+                UnityEngine.Object.Destroy(buildItem.gameObject);
                 return;
             }
 
@@ -180,8 +202,11 @@ namespace BOTF3D.Galaxy
                 newFacilityGO.transform.SetParent(controller.gameObject.transform, false);
 
             // Remove/cleanup temp build UI item used to represent the building process
-            buildItem.SetParent(buildDrag.originalParent, false);
-            UnityEngine.Object.Destroy(buildItem.gameObject);
+            if (buildItem != null)
+            {
+                buildItem.SetParent(buildDrag.originalParent, false);
+                UnityEngine.Object.Destroy(buildItem.gameObject);
+            }
 
             // ✅ AddSysFacility will now handle adding to the list AND updating UI
             if (StarSysMenuUIController.Instance != null && newFacilityGO != null)
@@ -199,9 +224,24 @@ namespace BOTF3D.Galaxy
                 Debug.LogWarning($"CompleteFacilityBuild: StarSysMenuUIController.Instance is null or newFacilityGO is null for system {controller.name}.");
             }
 
-            // Continue with build queue processing
-            buildCoroutine = null;
-            StartNextFacilityBuildIfAny();
+        }
+
+        /// <summary>
+        /// Pushes the current StarSysData.DilithiumStockpile to the always-visible
+        /// compact header, keeping it in sync whenever dilithium is spent.
+        /// </summary>
+        private void RefreshCompactHeaderDilithium()
+        {
+            // AI-controlled systems may never have a UI GameObject instantiated, so
+            // _starSysUIGameObject can be Unity's "fake null" — `?.` bypasses Unity's
+            // overloaded null check and still calls GetComponent, throwing. Use an
+            // explicit `== null` check instead.
+            if (controller.StarSysUIGameObject == null) return;
+
+            var fields = controller.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields == null || fields.compactHeader == null) return;
+
+            fields.compactHeader.RefreshDilithium();
         }
         public void StartNextFacilityBuildIfAny()
         {
@@ -236,6 +276,22 @@ namespace BOTF3D.Galaxy
             var drag = shipBuildItem.GetComponentInChildren<ShipBuildDrag>();
             if (drag == null) yield break;
 
+            // Validate and deduct dilithium before build begins
+            var civ = controller.StarSysData.CurrentCivController;
+            var techLevel = civ?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            var civEnum = controller.StarSysData.CurrentOwnerCivEnum;
+            int quality = civ?.CivData?.QualityScore ?? 5;
+            int shipDilithium = ShipStatCalculator.Calculate(drag.ShipType, techLevel, civEnum, quality).DilithiumCost;
+
+            if (!controller.StarSysData.HasDilithium(shipDilithium))
+            {
+                Debug.LogWarning($"BuildShipCoroutine: Not enough dilithium to build {drag.ShipType} (need {shipDilithium}, have {controller.StarSysData.DilithiumStockpile})");
+                shipBuildCoroutine = null;
+                yield break;
+            }
+            controller.StarSysData.DeductDilithium(shipDilithium);
+            RefreshCompactHeaderDilithium();
+
             int buildTime = ShipManager.Instance.GetShipBuildDuration(
                 drag.ShipType,
                 controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel,
@@ -243,7 +299,6 @@ namespace BOTF3D.Galaxy
             );
 
             // Apply any pending build-time reduction earned from captured ships
-            var civ = controller.StarSysData.CurrentCivController;
             if (civ?.CivData?.PendingBuildTimeReduction > 0)
             {
                 int reduction = Mathf.Min(civ.CivData.PendingBuildTimeReduction, buildTime - 1);
@@ -258,7 +313,7 @@ namespace BOTF3D.Galaxy
             Debug.Log($"BuildShipCoroutine: Building {drag.ShipType} for {buildTime} stardates (start={startDate}, end={endDate})");
 
             // ✅ Reset slider to 0%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
             }
@@ -271,7 +326,7 @@ namespace BOTF3D.Galaxy
                 float progress = Mathf.Clamp01((float)elapsedStardates / buildTime);
 
                 // ✅ Update the ship slider
-                if (StarSysMenuUIController.Instance != null)
+                if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
                 {
                     StarSysMenuUIController.Instance.SetShipBuildProgress(progress);
                 }
@@ -280,7 +335,7 @@ namespace BOTF3D.Galaxy
             }
 
             // ✅ Complete - set slider to 100%
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(1f);
             }
@@ -289,11 +344,14 @@ namespace BOTF3D.Galaxy
 
             ShipManager.Instance.BuildShipInSystem(drag.ShipType, controller);
 
-            UnityEngine.Object.Destroy(shipBuildItem.gameObject);
             controller.sysShipBuildQueueList.Remove(shipBuildItem);
+            if (shipBuildItem != null)
+                UnityEngine.Object.Destroy(shipBuildItem.gameObject);
+
+            StarSysMenuUIController.Instance?.RefreshQueueForSystem(controller);
 
             // ✅ Reset slider
-            if (StarSysMenuUIController.Instance != null)
+            if (IsShowingThisSystemsBuildUI && StarSysMenuUIController.Instance != null)
             {
                 StarSysMenuUIController.Instance.SetShipBuildProgress(0f);
             }
@@ -312,6 +370,53 @@ namespace BOTF3D.Galaxy
                 BuildShipCoroutine(controller.sysShipBuildQueueList[0])
             );
         }
+
+        // ── Code-driven queue API (used by AI; bypasses drag-and-drop UI) ──────────
+
+        /// <summary>
+        /// Enqueues a facility build without requiring UI drag-and-drop.
+        /// Creates a minimal headless GameObject carrying the FactoryBuildItemDrag
+        /// data the build coroutine expects.  Returns false if the queue is full.
+        /// </summary>
+        public bool QueueFacilityBuild(StarSysFacilityType type)
+        {
+            if (controller.sysBuildQueueList.Count >= 5) return false;
+
+            var go   = new GameObject($"AIBuild_{type}");
+            var drag = go.AddComponent<FactoryBuildItemDrag>();
+            drag.FacilityType      = type;
+            drag.StarSysController = controller;
+
+            controller.sysBuildQueueList.Add(go.transform);
+
+            if (!IsBuildingFacility)
+                StartNextFacilityBuildIfAny();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Enqueues a ship build without requiring UI drag-and-drop.
+        /// Creates a minimal headless GameObject carrying the ShipBuildDrag
+        /// data the build coroutine expects.  Returns false if the queue is full.
+        /// </summary>
+        public bool QueueShipBuild(ShipType type)
+        {
+            if (controller.sysShipBuildQueueList.Count >= 5) return false;
+
+            var go   = new GameObject($"AIBuild_{type}");
+            var drag = go.AddComponent<ShipBuildDrag>();
+            drag.ShipType          = type;
+            drag.StarSysController = controller;
+
+            controller.sysShipBuildQueueList.Add(go.transform);
+
+            if (!IsBuildingShip)
+                StartNextShipBuildIfAny();
+
+            return true;
+        }
+
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
         {
             int timeDuration = 1;

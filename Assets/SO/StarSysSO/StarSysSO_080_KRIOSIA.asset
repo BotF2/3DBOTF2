@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_080_KRIOSIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 80
-  Position: {x: 19.16, y: 1.84, z: -59.77}
+  Position: {x: 19.14, y: 1.84, z: -58.25}
   SysName: KRIOSIA
   FirstOwner: 80
   CurrentOwner: 80

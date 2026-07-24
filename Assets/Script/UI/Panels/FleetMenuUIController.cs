@@ -221,6 +221,25 @@ namespace BOTF3D.UI
             // Menu system handles cleanup when transitioning between menus
             // Don't call MoveBack here - it deactivates UIs
 
+            // Evict any OTHER fleet's UI still parented in AFleetMenuView from a previous
+            // AFleetMenu view (e.g. a "New Fleet" deploy UI left open, then a different fleet is
+            // clicked on the map). GalaxyMenuUIController.HideMenuViews() only toggles
+            // AFleetMenuView's own active state during a menu transition - it never moves a stale
+            // child back to home storage, so that old fleet's UI silently reappears alongside the
+            // new one when this container is reactivated.
+            if (AFleetMenuView != null)
+            {
+                GameObject homeContainer = FleetManager.Instance?.FleetUI_ListContainer ?? FleetListContainer;
+                for (int i = AFleetMenuView.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = AFleetMenuView.transform.GetChild(i);
+                    if (child.gameObject == theFleetCon.FleetUIGameObject) continue;
+                    if (child.GetComponent<FleetUI_Fields>() == null) continue; // leave system UIs alone
+                    if (homeContainer != null) child.SetParent(homeContainer.transform, false);
+                    child.gameObject.SetActive(false);
+                }
+            }
+
             if (theFleetCon.FleetUIGameObject == null)
             {
                 Debug.LogError($"SetActiveSetParentUIGO: Fleet '{theFleetCon.name}' has no FleetUIGameObject!");
@@ -312,20 +331,11 @@ namespace BOTF3D.UI
                     }
                     else if (starSysUIFields != null)
                     {
-                        Debug.Log($"    Moving SYSTEM UI '{child.name}' from AFleetMenuView back to system storage");
-
-                        // Move system UI back to its home storage
-                        var sysHomeContainer = StarSysManager.Instance?.StarSysUI_ListContainer;
-                        if (sysHomeContainer != null)
-                        {
-                            child.SetParent(sysHomeContainer.transform, false);
-                            child.gameObject.SetActive(false);
-                        }
-                        else if (StarSysMenuUIController.Instance?.SysListContainer != null)
-                        {
-                            child.SetParent(StarSysMenuUIController.Instance.SysListContainer.transform, false);
-                            child.gameObject.SetActive(false);
-                        }
+                        Debug.Log($"    Moving SYSTEM UI '{child.name}' from AFleetMenuView back to SysListContainer");
+                        var sysListContainer = StarSysMenuUIController.Instance?.SysListContainer;
+                        if (sysListContainer != null)
+                            child.SetParent(sysListContainer.transform, false);
+                        child.gameObject.SetActive(false);
                     }
                 }
 
@@ -404,20 +414,79 @@ namespace BOTF3D.UI
             {
                 fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
 
-                // Ensure Grid Layout Group for 2D UI layout
-                var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>();
-                if (grid == null)
+                // 8 ships per row, each cell 140×25. Rows wrap downward when expanded.
+                // In collapsed state the ShipScrollView height clips to one visible row.
+                var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>()
+                           ?? uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
+                grid.cellSize        = new Vector2(140, 25);
+                grid.spacing         = new Vector2(4, 4);
+                grid.startAxis       = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
+                grid.constraint      = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 8;
+
+                // Height controlled by the ShipScrollView RectTransform + Mask (collapsed)
+                // or by ContentSizeFitter (expanded). Width fills the container.
+                var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>()
+                             ?? uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+                fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+                fitter.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+                // Fix Content RectTransform so the GridLayoutGroup starts items
+                // at the top-left of the Viewport rather than below the panel.
+                var contentRect = uiFields.FleetShipContentGO.GetComponent<RectTransform>();
+                if (contentRect != null)
                 {
-                    grid = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                    grid.cellSize = new Vector2(100, 100); // Default cell size
-                    grid.spacing = new Vector2(5, 5);
+                    contentRect.anchorMin        = new Vector2(0f, 1f); // top-left anchor
+                    contentRect.anchorMax        = new Vector2(1f, 1f); // stretch horizontally
+                    contentRect.pivot            = new Vector2(0f, 1f); // pivot at top-left
+                    contentRect.anchoredPosition = Vector2.zero;        // flush with viewport top
+                    contentRect.sizeDelta        = Vector2.zero;        // width = viewport, height by fitter
                 }
 
-                var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>();
-                if (fitter == null)
+                if (uiFields.ShipScrollView != null)
                 {
-                    fitter = uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+                    var sr = uiFields.ShipScrollView.GetComponent<UnityEngine.UI.ScrollRect>();
+
+                    // Viewport must fill the ShipScrollView so the Mask clips correctly
+                    RectTransform viewportRect = sr != null && sr.viewport != null
+                        ? sr.viewport
+                        : uiFields.ShipScrollView.transform.childCount > 0
+                            ? uiFields.ShipScrollView.transform.GetChild(0).GetComponent<RectTransform>()
+                            : null;
+
+                    if (viewportRect != null)
+                    {
+                        viewportRect.anchorMin        = Vector2.zero;
+                        viewportRect.anchorMax        = Vector2.one;
+                        viewportRect.sizeDelta        = Vector2.zero;
+                        viewportRect.anchoredPosition = Vector2.zero;
+                    }
+
+                    // Disable ScrollRect — prevents scroll-wheel events reaching the galaxy map.
+                    // The Viewport Mask stays enabled to clip overflow in collapsed state.
+                    if (sr != null) sr.enabled = false;
+
+                    // Collapsed height — one visible row
+                    var svRect = uiFields.ShipScrollView.GetComponent<RectTransform>();
+                    if (svRect != null)
+                        svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, uiFields.CollapsedShipViewHeight);
+                }
+
+                // Show the expand button only when the fleet exceeds 6 full rows (48 ships).
+                // Smaller fleets fit within the normal Ship Scroll View height.
+                if (uiFields.ExpandShipsButton != null)
+                {
+                    int shipCount   = fleetCon.FleetData?.ShipsList?.Count ?? 0;
+                    bool needsExpand = shipCount > 6 * 8;
+
+                    uiFields.ExpandShipsButton.gameObject.SetActive(needsExpand);
+
+                    if (needsExpand)
+                    {
+                        uiFields.ExpandShipsButton.onClick.RemoveAllListeners();
+                        uiFields.ExpandShipsButton.onClick.AddListener(() => ToggleShipListExpansion(fleetCon, uiFields));
+                        SetExpandButtonLabel(uiFields, false);
+                    }
                 }
             }
 
@@ -437,19 +506,25 @@ namespace BOTF3D.UI
                     }
                 }
 
-                // Set mini map position (one-time)
-                float x = fleetCon.FleetData.Position.x * 0.12f;
-                float z = fleetCon.FleetData.Position.z * 0.12f;
-                RectTransform dot = uiFields.MinimapRedDot.GetComponent<RectTransform>();
-                if (dot != null)
-                    dot.anchoredPosition = new Vector2(x, z);
             }
             else
             {
                 Debug.Log($"SetupFleetUIElements: Re-wiring existing fleet '{fleetCon.name}'");
             }
 
+            // Refresh mini map position every time the UI opens (not just first-time setup).
+            // This block first runs at fleet-registration time (FleetManager.InstantiateFleetUIGameObject,
+            // triggered by the client's OnCivEnumChanged reconstruction) - on a non-host client that's
+            // before NetworkTransform has delivered its first position sync for this fleet, so
+            // fleetCon.transform.position was still stale there. Re-running on every open (in particular
+            // when the player actually clicks the fleet to view it) catches the by-then-synced position.
+            // FleetData.Position itself can't be used as the source here - it's never populated for a
+            // non-host client's locally-reconstructed fleets (see FleetController.OnCivEnumChanged; it's
+            // a plain field, not a SyncVar, and only the server writes it).
+            fleetCon.UpdateMinimapPosition();
+
             // ✅ 2, 3 & 4. Sync ships (Always run for both new and existing fleets to catch any missing UIs)
+            Debug.Log($"🧩 SetupFleetUIElements: '{fleetCon.name}' opening with FleetData.ShipsList.Count={fleetCon.FleetData?.ShipsList?.Count ?? -1}, FleetShipContentGO={(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
             if (uiFields.FleetShipContentGO != null && fleetCon.FleetData?.ShipsList != null)
             {
                 foreach (var shipCon in fleetCon.FleetData.ShipsList)
@@ -478,20 +553,34 @@ namespace BOTF3D.UI
             }
 
             // ✅ BUTTON WIRING: ALWAYS runs
-            uiFields.DestinationDragTarget.gameObject.SetActive(true);
+            // Design intent: one Select Destination button, one Cancel Destination button.
+            // The script detects whether a map click targets a fleet (intercept) or a fixed object
+            // automatically — the player never needs to choose a different button.
+            // SelectDestination, SelectDestinationCursor, and InterceptTargetButton all alias the
+            // same Button in the prefab; CancelDestination and CancelInterceptButton do the same.
+            // Only wire through SelectDestination and CancelDestination to avoid listener overwrites.
+            bool hasActiveDestination = fleetCon.FleetData?.Destination != null
+                && fleetCon.FleetData.Destination != FleetManager.Instance?.GalaxyCenter;
+            bool showCancel = hasActiveDestination || fleetCon.FleetData?.InterceptTarget != null;
+
+            uiFields.DestinationDragTarget.gameObject.SetActive(!hasActiveDestination);
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
             uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
             dragDestinationTargetButtonGO = uiFields.DestinationDragTarget.gameObject;
-
-            uiFields.CancelDestination.gameObject.SetActive(false);
-            uiFields.CancelDestination.onClick.RemoveAllListeners();
-            uiFields.CancelDestination.onClick.AddListener(() => fleetCon.ClickCancelDestinationButton());
-            cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
 
             uiFields.SelectDestination.gameObject.SetActive(true);
             uiFields.SelectDestination.onClick.RemoveAllListeners();
             uiFields.SelectDestination.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
             selectDestinationCursorButtonGO = uiFields.SelectDestination.gameObject;
+
+            uiFields.CancelDestination.gameObject.SetActive(showCancel);
+            uiFields.CancelDestination.onClick.RemoveAllListeners();
+            // AbortPendingConvoyMerge() alongside the stop-movement call: this is the only UI-driven
+            // cancel, so it's the one place a pending merge should actually be abandoned (see
+            // AbortPendingConvoyMerge's doc comment for why this can't live inside
+            // ClickCancelDestinationButton itself).
+            uiFields.CancelDestination.onClick.AddListener(() => { fleetCon.ClickCancelDestinationButton(); fleetCon.AbortPendingConvoyMerge(); });
+            cancelDestinationButtonGO = uiFields.CancelDestination.gameObject;
 
             uiFields.WarpUp.gameObject.SetActive(true);
             uiFields.WarpUp.onClick.RemoveAllListeners();
@@ -581,56 +670,40 @@ namespace BOTF3D.UI
         {
             if (currentFleetCon == null || currentFleetCon.FleetData == null) return;
             if (currentFleetCon.TargetController != null)
-            {
                 PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(currentFleetCon);
-            }
             if (currentFleetCon.FleetData.ShipsList.Count < 2) return;
 
             MousePointerChanger.Instance.ResetCursor();
-            var fleetManager = FleetManager.Instance;
-            FleetSO fleetSO = fleetManager.GetFleetSO_byInt((int)currentFleetCon.FleetData.CivEnum);
-            var position = currentFleetCon.FleetData.GetPosition();
-
-            CivData thisCivData = CivManager.Instance.GetCivDataByCivEnum(fleetSO.CivOwnerEnum);
-            FleetData fleetData = new FleetData(fleetSO);
-            fleetData.CurrentWarpFactor = 0f;
-            fleetData.CivLongName = thisCivData.CivLongName;
-            fleetData.CivShortName = thisCivData.CivShortName;
-            fleetData.CivEnum = thisCivData.CivEnum;
-            fleetData.PlayerId = thisCivData.PlayerId;
-            //Not fleetData.FleetInt, wait to get fleet num from instantiate fleet in = fleetManager.GetNewFleetInt(thisCivData.CivEnum);
-            //Same goes for fleetData.Name = $"{thisCivData.CivLongName} Fleet {fleetData.FleetInt}";
-            fleetData.Insignia = thisCivData.InsigniaSprite;
-            fleetData.ShipsList = new List<ShipController>();
-            //Not fleetData.Position, wait for it = position;
-
-            var galaxyMenuUICon = GalaxyMenuUIController.Instance;
-
-            // TopFleet (source) for deploy UI
             ShipDeployMenuUIController.Instance.TopFleet = currentFleetCon;
 
-            // Create an empty star system placeholder used by InstantiateFleet
-            var emptyStarSysCon = StarSysManager.Instance.InstantiateEmptyStarSysController();
+            Debug.Log($"ClickNewFleetButton: requesting server-side split fleet from '{currentFleetCon.name}'.");
+            PlayerManager.Instance?.LocalPlayerController?.SubmitCreateSplitFleet(currentFleetCon);
+        }
 
-            // Create the new fleet (split off) in FleetManager
-            var newFleet = fleetManager.InstantiateFleet(currentFleetCon, emptyStarSysCon, fleetData, position, true);
+        public void OnSplitFleetCreated(uint sourceFleetNetId, uint newFleetNetId)
+        {
+            StartCoroutine(ResolveAndShowSplitDeployUI(sourceFleetNetId, newFleetNetId));
+        }
 
-            tempFleetController = newFleet;
-
-            // CRITICAL: Ensure the new fleet has its ShipListUIParent set up
-            if (newFleet.FleetData.ShipListUIParent == null)
+        private System.Collections.IEnumerator ResolveAndShowSplitDeployUI(uint sourceFleetNetId, uint newFleetNetId)
+        {
+            FleetController sourceFleet = null, newFleet = null;
+            for (int attempt = 0; attempt < 60; attempt++) // ~1s at 60fps, generous margin for the spawn message to arrive
             {
-                Debug.LogWarning($"New fleet '{newFleet?.name}' has no ShipListUIParent! Creating temporary container.");
-                // This should ideally be set up in InstantiateFleet or ShowShipDeployForFleetNewFleet
+                if (Mirror.NetworkClient.spawned.TryGetValue(sourceFleetNetId, out var srcIdentity)) sourceFleet = srcIdentity.GetComponent<FleetController>();
+                if (Mirror.NetworkClient.spawned.TryGetValue(newFleetNetId, out var newIdentity)) newFleet = newIdentity.GetComponent<FleetController>();
+                if (sourceFleet != null && newFleet != null) break;
+                yield return null;
+            }
+            if (sourceFleet == null || newFleet == null)
+            {
+                Debug.LogError($"ResolveAndShowSplitDeployUI: timed out waiting for fleets to spawn (source={sourceFleetNetId}, new={newFleetNetId}).");
+                yield break;
             }
 
-            Debug.Log($"ClickNewFleetButton: New fleet '{newFleet?.name}' created with ShipListUIParent={(newFleet.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}");
-
-            // Use the central GalaxyMenuUIController method so it performs full UI life-cycle and parents correctly.
-            Debug.Log($"ClickNewFleetButton: requesting ShipDeploy UI for new fleet '{newFleet?.name}' (from {currentFleetCon?.name})");
-            galaxyMenuUICon.ShowShipDeployForFleetNewFleet(currentFleetCon, newFleet);
-
-            Destroy(emptyStarSysCon.gameObject);
+            tempFleetController = newFleet;
+            Debug.Log($"ResolveAndShowSplitDeployUI: opening deploy UI for new fleet '{newFleet.name}' split from '{sourceFleet.name}'.");
+            GalaxyMenuUIController.Instance.ShowShipDeployForFleetNewFleet(sourceFleet, newFleet);
         }
         private void CancelFleetUIButton()
         {
@@ -693,7 +766,7 @@ namespace BOTF3D.UI
                         FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
                     FleetManager.Instance.TempFogRevealerFleet = null;
 
-                    FleetManager.Instance.DestroyFleetController(tempFleetController);
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitDestroyEmptyFleet(tempFleetController);
                     tempFleetController = null;
                 }
                 else
@@ -703,11 +776,25 @@ namespace BOTF3D.UI
                     // ✅ NEW: Ensure the fleet has proper UI setup before keeping it
                     if (tempFleetController.FleetData.ShipListUIParent == null)
                     {
-                        var uiFields = tempFleetController.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+                        var uiFields = tempFleetController.FleetUIGameObject != null ? tempFleetController.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
                         if (uiFields != null && uiFields.FleetShipContentGO != null)
                         {
                             tempFleetController.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
                             Debug.Log($"  Set ShipListUIParent for kept fleet '{tempFleetController.name}'");
+                        }
+                    }
+
+                    // Ships committed via drag-drop are still parented under the deploy UI's shared
+                    // BottomSlot (SetUpBottomShipLists never reparents them out again on commit) - move
+                    // them into this fleet's own permanent UI container now, or they'll keep sitting in
+                    // BottomSlot and show up as "ghost" ships the next time ANY new-fleet deploy session
+                    // reuses that same BottomSlot transform.
+                    if (tempFleetController.FleetData.ShipListUIParent != null)
+                    {
+                        foreach (var ship in tempFleetController.FleetData.ShipsList)
+                        {
+                            if (ship?.ShipListUIGameObject != null)
+                                ship.ShipListUIGameObject.transform.SetParent(tempFleetController.FleetData.ShipListUIParent.transform, false);
                         }
                     }
 
@@ -718,6 +805,16 @@ namespace BOTF3D.UI
             else
             {
                 Debug.Log("CancelShipManageAfterCommit (Fleet): No temp fleet to process, proceeding to UI cleanup");
+            }
+
+            // ✅ If dragging ships out (e.g. into a brand-new split fleet) left the source fleet
+            // with no ships, it must be removed too - otherwise an empty fleet lingers in the
+            // galaxy while the ships it used to hold now live entirely in the new fleet.
+            var sourceFleet = ShipDeployMenuUIController.Instance != null ? ShipDeployMenuUIController.Instance.TopFleet : null;
+            if (sourceFleet != null && sourceFleet.FleetData != null && sourceFleet.FleetData.ShipsList.Count == 0)
+            {
+                Debug.Log($"CancelShipManageAfterCommit (Fleet): source fleet '{sourceFleet.name}' left with 0 ships, destroying it");
+                PlayerManager.Instance?.LocalPlayerController?.SubmitDestroyEmptyFleet(sourceFleet);
             }
 
             var galaxyUI = GalaxyMenuUIController.Instance;
@@ -793,57 +890,104 @@ namespace BOTF3D.UI
             }
         }
 
-        public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
+        private void ClickInterceptButton(FleetController fleetCon)
         {
-            if (fleetConWaitingForDestination == null) return;
+            if (fleetCon == null) return;
 
-            if (fleetConWaitingForDestination.TargetController != null)
+            FleetController.PendingInterceptFleet = fleetCon;
+            GalaxyMenuUIController.Instance?.SetClickMode(GalaxyClickMode.SelectForIntercept);
+            MousePointerChanger.Instance?.SetDestinationCursor();
+
+            // Swap button visibility while waiting for target pick
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields != null)
             {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
+                fields.InterceptTargetButton?.gameObject.SetActive(false);
+                fields.CancelInterceptButton?.gameObject.SetActive(true);
             }
 
-            if (GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum))
-            {
-                // Get buttons from the active fleet UI instead of using stale references
-                var fields = fleetConWaitingForDestination.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-                if (fields != null)
-                {
-                    if (fields.DestinationDragTarget != null)
-                        fields.DestinationDragTarget.gameObject.SetActive(false);
-                    if (fields.CancelDestination != null)
-                        fields.CancelDestination.gameObject.SetActive(true);
-                    if (fields.SelectDestination != null)
-                        fields.SelectDestination.gameObject.SetActive(false);
-                }
+            Debug.Log($"FleetMenuUIController: Intercept mode — waiting for target fleet click (pursuer: {fleetCon.name})");
+        }
 
-                var galaxyUI = GalaxyMenuUIController.Instance;
-                if (galaxyUI != null)
-                {
-                    galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
-                    galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-                    galaxyUI.FleetLookingForDestination = fleetConWaitingForDestination;
-                }
+        private void ClickCancelInterceptButton(FleetController fleetCon, FleetUI_Fields fields)
+        {
+            if (fleetCon == null) return;
+
+            fleetCon.CancelIntercept();
+            FleetController.PendingInterceptFleet = null;
+            GalaxyMenuUIController.Instance?.ResetClickMode();
+            MousePointerChanger.Instance?.ResetCursor();
+
+            if (fields != null)
+            {
+                fields.InterceptTargetButton?.gameObject.SetActive(true);
+                fields.CancelInterceptButton?.gameObject.SetActive(false);
+            }
+
+            Debug.Log($"FleetMenuUIController: Intercept cancelled for {fleetCon.name}");
+        }
+
+        public void SelectedDestinationCursor(FleetController fleetConWaitingForDestination)
+        {
+            if (fleetConWaitingForDestination == null)
+            {
+                Debug.LogWarning("SelectedDestinationCursor: fleetConWaitingForDestination is NULL - click ignored.");
+                return;
+            }
+
+            if (fleetConWaitingForDestination.TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetConWaitingForDestination);
+
+            bool isLocalPlayer = GameController.Instance != null &&
+                                  GameController.Instance.AreWeLocalPlayer(fleetConWaitingForDestination.FleetData.CivEnum);
+            if (!isLocalPlayer)
+            {
+                Debug.LogWarning($"SelectedDestinationCursor: fleet '{fleetConWaitingForDestination.name}' (civ={fleetConWaitingForDestination.FleetData?.CivEnum}) is NOT recognized as the local player's own fleet (GameController.Instance={(GameController.Instance != null ? "OK" : "NULL")}) - SetDestination mode NOT armed, click ignored.");
+                return;
+            }
+
+            Debug.Log($"SelectedDestinationCursor: arming SetDestination mode for fleet '{fleetConWaitingForDestination.name}'.");
+
+            var fields = fleetConWaitingForDestination.FleetUIGameObject != null ? fleetConWaitingForDestination.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields != null)
+            {
+                if (fields.DestinationDragTarget != null)
+                    fields.DestinationDragTarget.gameObject.SetActive(false);
+                if (fields.CancelDestination != null)
+                    fields.CancelDestination.gameObject.SetActive(true);
+                if (fields.SelectDestination != null)
+                    fields.SelectDestination.gameObject.SetActive(false);
+            }
+
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+            {
+                galaxyUI.BeginSetDestination(fleetConWaitingForDestination);
                 MousePointerChanger.Instance.SetDestinationCursor();
             }
         }
         public void ClickSelectDestinationButton(FleetController fleetCon)
         {
-            if (fleetCon == null) return;
-
-            // Destroy any existing player-defined target for this fleet
-            if (fleetCon.TargetController != null)
+            if (fleetCon == null)
             {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
+                Debug.LogWarning("ClickSelectDestinationButton: fleetCon is NULL - click ignored.");
+                return;
             }
 
-            // Change to destination selection mode
-            GalaxyMenuUIController.Instance?.SetClickMode(GalaxyClickMode.SetDestination);
-            GalaxyMenuUIController.Instance.FleetLookingForDestination = fleetCon;
+            if (fleetCon.TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(fleetCon);
 
-            // Update cursor
-            MousePointerChanger.Instance?.SetDestinationCursor();
-
-            Debug.Log($"FleetMenuUIController: Select Destination mode for fleet '{fleetCon.name}'");
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+            {
+                Debug.Log($"ClickSelectDestinationButton: arming SetDestination mode for fleet '{fleetCon.name}'.");
+                galaxyUI.BeginSetDestination(fleetCon);
+                MousePointerChanger.Instance?.SetDestinationCursor();
+            }
+            else
+            {
+                Debug.LogWarning("ClickSelectDestinationButton: GalaxyMenuUIController.Instance is NULL - could not arm SetDestination mode.");
+            }
         }
         public void ClickCancelDestinationButton(FleetController fleetCon)
         {
@@ -858,7 +1002,7 @@ namespace BOTF3D.UI
             MousePointerChanger.Instance.ResetCursor();
 
             // Get buttons from the specific fleet's UI
-            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
             if (fields != null)
             {
                 if (fields.DestinationName != null)
@@ -901,36 +1045,29 @@ namespace BOTF3D.UI
 
         public void SetAsDestination(string nameDestination, string newCoordinates)
         {
-            Debug.Log("=== SetAsDestination CALLED ===");
-            Debug.Log($"  nameDestination: '{nameDestination}'");
-            Debug.Log($"  newCoordinates: '{newCoordinates}'");
-
             var galaxyUI = GalaxyMenuUIController.Instance;
-
-            // ✅ Check if a fleet is waiting for destination
             if (galaxyUI?.FleetLookingForDestination == null)
             {
-                Debug.LogError("❌ No fleet waiting for destination! This shouldn't be called without setting FleetLookingForDestination first.");
+                Debug.LogError("SetAsDestination: FleetLookingForDestination is NULL");
                 return;
             }
 
             var fleetCon = galaxyUI.FleetLookingForDestination;
-
-            // Get text fields from the specific fleet's UI
-            var fields = fleetCon.FleetUIGameObject?.GetComponent<FleetUI_Fields>();
-            if (fields != null)
+            var fields = fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields == null)
             {
-                if (fields.DestinationName != null)
-                    fields.DestinationName.text = nameDestination;
-                if (fields.DestinationCoordinates != null)
-                    fields.DestinationCoordinates.text = newCoordinates;
-                if (fields.CancelDestination != null)
-                    fields.CancelDestination.gameObject.SetActive(true);
-                if (fields.DestinationDragTarget != null)
-                    fields.DestinationDragTarget.gameObject.SetActive(false);
-
-                Debug.Log($"✅ Set destination for fleet '{fleetCon.name}'");
+                Debug.LogError($"SetAsDestination: FleetUI_Fields not found on '{(fleetCon.FleetUIGameObject != null ? fleetCon.FleetUIGameObject.name : "NULL")}'");
+                return;
             }
+
+            if (fields.DestinationName != null)
+                fields.DestinationName.text = nameDestination;
+            if (fields.DestinationCoordinates != null)
+                fields.DestinationCoordinates.text = newCoordinates;
+            if (fields.CancelDestination != null)
+                fields.CancelDestination.gameObject.SetActive(true);
+            if (fields.DestinationDragTarget != null)
+                fields.DestinationDragTarget.gameObject.SetActive(false);
 
             MousePointerChanger.Instance.ResetCursor();
         }
@@ -960,7 +1097,10 @@ namespace BOTF3D.UI
         {
             if (fleetCon == null || fleetCon.FleetUIGameObject == null) return;
 
-            // Get buttons from the specific fleet's UI
+            var galaxyUI = GalaxyMenuUIController.Instance;
+            if (galaxyUI != null)
+                galaxyUI.BeginSetDestination(fleetCon); // sets FleetLookingForDestination AND click mode
+
             var fields = fleetCon.FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fields != null)
             {
@@ -972,7 +1112,6 @@ namespace BOTF3D.UI
                     fields.SelectDestination.gameObject.SetActive(true);
             }
 
-            GalaxyMenuUIController.Instance.CurrentClickMode = GalaxyClickMode.SetDestination;
             MousePointerChanger.Instance.SetDestinationCursor();
         }
         private void OnDisable()
@@ -1091,6 +1230,68 @@ namespace BOTF3D.UI
                 AFleetMenuView.SetActive(false);
                 Debug.Log("AFleetMenuView hidden");
             }
+        }
+
+        // Toggles the ship list between:
+        //   Collapsed — one visible row (Mask clips the rest), ▼ button
+        //   Expanded  — ShipScrollView grows to show all rows,  ▲ button
+        // Grid is always FixedColumnCount=8 — only height and Mask change.
+        private void ToggleShipListExpansion(FleetController fleetCon, FleetUI_Fields uiFields)
+        {
+            if (uiFields.ShipScrollView == null || uiFields.FleetShipContentGO == null) return;
+
+            var grid   = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+            var fitter = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.ContentSizeFitter>();
+            var svRect = uiFields.ShipScrollView.GetComponent<RectTransform>();
+            var mask   = uiFields.ShipScrollView.GetComponentInChildren<UnityEngine.UI.Mask>();
+
+            bool isCollapsed = mask == null || mask.enabled;
+
+            if (isCollapsed)
+            {
+                // ── Expand ────────────────────────────────────────────────────
+                // Calculate rows needed and target height
+                int shipCount = fleetCon?.FleetData?.ShipsList?.Count ?? 0;
+                int cols      = grid != null ? grid.constraintCount : 8;
+                int rows      = Mathf.Max(1, Mathf.CeilToInt(shipCount / (float)cols));
+                float rowH    = grid != null ? grid.cellSize.y + grid.spacing.y : 29f;
+                float neededH = rows * rowH + 8f;
+                float targetH = Mathf.Min(neededH, Screen.height * 0.85f);
+
+                if (svRect != null)
+                    svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, targetH);
+
+                // ContentSizeFitter drives height once mask is off
+                if (fitter != null)
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+
+                if (mask != null) mask.enabled = false;
+
+                SetExpandButtonLabel(uiFields, true);
+            }
+            else
+            {
+                // ── Collapse ──────────────────────────────────────────────────
+                if (fitter != null)
+                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+
+                if (svRect != null)
+                    svRect.sizeDelta = new Vector2(svRect.sizeDelta.x, uiFields.CollapsedShipViewHeight);
+
+                if (mask != null) mask.enabled = true;
+
+                SetExpandButtonLabel(uiFields, false);
+            }
+
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
+                uiFields.FleetShipContentGO.GetComponent<RectTransform>());
+        }
+
+        private static void SetExpandButtonLabel(FleetUI_Fields uiFields, bool expanded)
+        {
+            if (uiFields.ExpandShipsButton == null) return;
+            var txt = uiFields.ExpandShipsButton.GetComponentInChildren<TMPro.TMP_Text>();
+            if (txt != null) txt.text = expanded ? "▲" : "▼";
         }
     }
 }

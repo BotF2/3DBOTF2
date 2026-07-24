@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_206_HYDRA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 206
-  Position: {x: -23.4, y: -0.29, z: 30.5}
+  Position: {x: -23.40, y: -0.29, z: 30.50}
   SysName: HYDRA
   FirstOwner: 206
   CurrentOwner: 206

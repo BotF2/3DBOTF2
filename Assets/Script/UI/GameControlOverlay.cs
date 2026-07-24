@@ -2,7 +2,9 @@
 
 using BOTF3D.Core;
 using System.Reflection;
+using System.Text;
 using TMPro;
+using Mirror;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
@@ -29,6 +31,23 @@ namespace BOTF3D.UI
         [SerializeField] private TextMeshProUGUI volumeValueText;
         [SerializeField] private Button pauseButton;
         [SerializeField] private TextMeshProUGUI stardateText; // Displays current stardate
+        [SerializeField] private Button advanceTurnButton;
+        [SerializeField] private Button forceAdvanceTurnButton; // host-only escape hatch, see TimeManager.ForceAdvanceTurn
+
+        [Header("Advance Turn Colors")]
+        [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // stands out — ready to accept a click
+        [SerializeField] private Color turnProcessingColor = new Color(0.5f, 0.5f, 0.5f, 0.45f); // gray + transparent — turn is processing
+        [SerializeField] private Color turnWaitingColor = new Color(0.85f, 0.7f, 0.15f); // amber — we've readied, waiting on others
+
+        [Header("Turn Progress Bar")]
+        [SerializeField] private Image turnProgressBar;
+        [SerializeField] private GameObject progressBackground; // background panel behind the progress bar
+        [SerializeField] private Color progressBarActiveColor = new Color(0.2f, 0.8f, 0.2f);    // green while turn runs
+        [SerializeField] private Color progressBarIdleColor   = new Color(0.4f, 0.4f, 0.4f, 0.5f); // dim grey when waiting
+
+        [Header("Turn Phase Display")]
+        [SerializeField] private TextMeshProUGUI turnPhaseText;    // e.g. "READY" / "ADVANCING" / "ENCOUNTER"
+        [SerializeField] private TooltipTrigger turnPhaseTrigger;  // TooltipTrigger on the turnPhaseText GO — drives hover description
 
         [Header("Pause Button Display")]
         [SerializeField] private Image pauseButtonImage; // Image icon (optional)
@@ -51,7 +70,10 @@ namespace BOTF3D.UI
         private bool isPaused = false;
         private bool isInMainMenu = true;
         private bool isInCombat = false;
-        private bool isTogglingPause = false; // ✅ Add debounce flag
+        private bool isTogglingPause = false;
+        // Tracks whether the player explicitly clicked Pause (distinct from clock being stopped between turns)
+        private bool _playerPaused = false;
+        private Coroutine flashCoroutine;
 
         // Cached references are no longer needed for singletons
         private int lastToggleFrame = -999;
@@ -132,7 +154,15 @@ namespace BOTF3D.UI
             if (TimeManager.Instance != null)
             {
                 Debug.Log("✅ TimeManager ready - initializing button state");
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+                TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
+                TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
+                TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
+                TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
                 UpdateButtonState();
+                UpdateForceAdvanceButtonVisibility();
+                OnTurnPhaseChanged(TimeManager.Instance.TurnPhase);
             }
             else
             {
@@ -143,38 +173,36 @@ namespace BOTF3D.UI
         public void OnPauseButtonClicked()
         {
             if (TimeManager.Instance == null) return;
-
-            if (!TimeManager.Instance.timeRunning)
+            _playerPaused = !_playerPaused;
+            if (_playerPaused)
             {
-                TimeManager.Instance.ResumeTime();
+                Time.timeScale = 0f; // freeze FixedUpdate — ships and coroutines stop
+                TimeManager.Instance.PauseTime();
             }
             else
             {
-                TimeManager.Instance.PauseTime();
+                Time.timeScale = 1f;
+                if (TimeManager.Instance.TurnPhase == TurnPhase.TurnProgression)
+                    TimeManager.Instance.ResumeTime();
             }
-
             UpdateButtonState();
         }
+
         public void TogglePause()
         {
             int currentFrame = Time.frameCount;
-
-            // ✅ Ignore if called on the same frame
             if (currentFrame == lastToggleFrame)
             {
                 Debug.Log($"⚠️ TogglePause called AGAIN on frame {currentFrame} - ignoring double-click");
                 return;
             }
-
             lastToggleFrame = currentFrame;
-            Debug.Log($"🎯 TogglePause called on frame {currentFrame}");
+
             if (TimeManager.Instance == null)
             {
                 Debug.LogError("❌ GameControlOverlay: TimeManager.Instance is NULL");
                 return;
             }
-
-            // ✅ Debounce: Prevent multiple clicks in quick succession
             if (isTogglingPause)
             {
                 Debug.LogWarning("⚠️ TogglePause called while already toggling - ignoring");
@@ -182,22 +210,23 @@ namespace BOTF3D.UI
             }
 
             isTogglingPause = true;
+            _playerPaused = !_playerPaused;
 
-            // Toggle based on current state
-            if (TimeManager.Instance.IsPaused)
+            if (_playerPaused)
             {
-                TimeManager.Instance.ResumeTime();
-                Debug.Log("▶️ Game RESUMED");
+                Time.timeScale = 0f; // freeze FixedUpdate — ships and all coroutines stop
+                TimeManager.Instance.PauseTime();
+                Debug.Log("🛑 Game PAUSED by player — timeScale=0");
             }
             else
             {
-                TimeManager.Instance.PauseTime();
-                Debug.Log("🛑 Game PAUSED");
+                Time.timeScale = 1f;
+                // Only restart the turn clock if a turn was actually progressing
+                if (TimeManager.Instance.TurnPhase == TurnPhase.TurnProgression)
+                    TimeManager.Instance.ResumeTime();
+                Debug.Log("▶️ Player pause lifted — timeScale=1");
             }
 
-            Debug.Log($"🔄 After toggle: IsPaused={TimeManager.Instance.IsPaused}");
-
-            // ✅ Wait one frame for localization and layout to update
             StartCoroutine(UpdateButtonStateDelayed());
         }
         private System.Collections.IEnumerator UpdateButtonStateDelayed()
@@ -226,33 +255,28 @@ namespace BOTF3D.UI
                 return;
             }
 
-            bool isPaused = TimeManager.Instance.IsPaused;
+            Debug.Log($"🔄 UpdateButtonState: _playerPaused={_playerPaused}");
 
-            Debug.Log($"🔄 UpdateButtonState: isPaused={isPaused}");
-
-            // Update localization key
+            // Pause button label: "Resume" when player has explicitly paused, "Pause" otherwise
             if (pauseResumeTextLocalizer != null)
             {
-                string key = isPaused ? "Resume" : "Pause";
-
+                string key = _playerPaused ? "Resume" : "Pause";
                 Debug.Log($"🔄 Setting key to '{key}'");
-
                 pauseResumeTextLocalizer.StringReference.SetReference("StringTableCollection", key);
                 pauseResumeTextLocalizer.RefreshString();
-
                 if (pauseButtonTextTMP != null)
-                {
                     Debug.Log($"📝 Text is: '{pauseButtonTextTMP.text}'");
-                }
             }
 
-            // Update icon
             if (pauseButtonImage != null && pauseIcon != null && playIcon != null)
             {
-                pauseButtonImage.sprite = isPaused ? playIcon : pauseIcon;
+                pauseButtonImage.sprite = _playerPaused ? playIcon : pauseIcon;
                 pauseButtonImage.enabled = true;
                 Debug.Log($"🖼️ Icon: {pauseButtonImage.sprite.name}");
             }
+
+            // Re-evaluate which controls should be interactive
+            SetControlsInteractable();
         }
 
         /// <summary>
@@ -338,6 +362,22 @@ namespace BOTF3D.UI
             else
             {
                 Debug.LogWarning("GameControlOverlay: pauseButton not assigned in Inspector!");
+            }
+
+            // ✅ Initialize advance turn button
+            if (advanceTurnButton != null)
+            {
+                advanceTurnButton.onClick.RemoveAllListeners();
+                advanceTurnButton.onClick.AddListener(OnAdvanceTurnClicked);
+                SetAdvanceTurnProcessing(); // placeholder until real turn phase is known
+            }
+
+            // ✅ Initialize host-only force-advance button (hidden until we know we're the host)
+            if (forceAdvanceTurnButton != null)
+            {
+                forceAdvanceTurnButton.onClick.RemoveAllListeners();
+                forceAdvanceTurnButton.onClick.AddListener(OnForceAdvanceTurnClicked);
+                forceAdvanceTurnButton.gameObject.SetActive(false);
             }
 
             // ✅ Initialize toggle overlay button (optional)
@@ -480,12 +520,38 @@ namespace BOTF3D.UI
                 Debug.Log($"GameControlOverlay: PauseButton set to {showGameplayControls}");
             }
 
+            // Control advance turn button visibility (show when GalaxyScene loaded)
+            if (advanceTurnButton != null)
+            {
+                advanceTurnButton.gameObject.SetActive(showGameplayControls);
+            }
+
+            // Force-advance button additionally requires host + InterTurn - re-evaluated here so it
+            // doesn't linger visible/hidden incorrectly across a scene transition.
+            if (forceAdvanceTurnButton != null)
+            {
+                if (showGameplayControls)
+                    UpdateForceAdvanceButtonVisibility();
+                else
+                    forceAdvanceTurnButton.gameObject.SetActive(false);
+            }
+
             // Control stardate text visibility (show when GalaxyScene loaded)
             if (stardateText != null)
             {
                 stardateText.gameObject.SetActive(showGameplayControls);
                 Debug.Log($"GameControlOverlay: StardateText set to {showGameplayControls}");
             }
+
+            // Turn phase label — hidden until GalaxyScene is active
+            if (turnPhaseText != null)
+                turnPhaseText.gameObject.SetActive(showGameplayControls);
+
+            // Progress bar and its background — hidden until GalaxyScene is active
+            if (turnProgressBar != null)
+                turnProgressBar.gameObject.SetActive(showGameplayControls);
+            if (progressBackground != null)
+                progressBackground.SetActive(showGameplayControls);
 
             Debug.Log($"GameControlOverlay visibility: ActiveScene={activeSceneName}, GalaxySceneLoaded={isGalaxySceneLoaded}, MainMenu={isInMainMenu}, Combat={isInCombat}, Persistent={isPersistentScene}, ShowOverlay={shouldShowOverlay}, ShowGameplayControls={showGameplayControls}");
         }
@@ -550,25 +616,275 @@ namespace BOTF3D.UI
 
         private void OnEnable()
         {
-            // Subscribe to scene loaded event to update visibility
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+                TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
+                TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
+            }
         }
 
         private void OnDisable()
         {
-            // Unsubscribe from scene loaded event
             UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            if (TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+                TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
+                TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
+            }
+        }
+
+        private void OnAdvanceTurnClicked()
+        {
+            if (TimeManager.Instance == null)
+            {
+                Debug.LogWarning("OnAdvanceTurnClicked: TimeManager.Instance is NULL - click ignored.");
+                return;
+            }
+            if (TimeManager.Instance.TurnPhase != TurnPhase.InterTurn)
+            {
+                Debug.LogWarning($"OnAdvanceTurnClicked: TurnPhase is {TimeManager.Instance.TurnPhase}, not InterTurn - click ignored.");
+                return;
+            }
+            if (GameController.Instance == null)
+            {
+                Debug.LogWarning("OnAdvanceTurnClicked: GameController.Instance is NULL - click ignored.");
+                return;
+            }
+
+            CivEnum ourCiv = GameController.Instance.GetOurCiv();
+            bool currentlyReady = TimeManager.Instance.ReadyCivs.Contains(ourCiv);
+            Debug.Log($"OnAdvanceTurnClicked: toggling {ourCiv} ready {currentlyReady} -> {!currentlyReady}");
+            // Relays to the server if we're not the host - see TimeManager.RequestSetCivReady.
+            TimeManager.Instance.RequestSetCivReady(ourCiv, !currentlyReady);
+        }
+
+        private void OnForceAdvanceTurnClicked()
+        {
+            Debug.Log("OnForceAdvanceTurnClicked: host forcing turn advance.");
+            TimeManager.Instance?.ForceAdvanceTurn();
+        }
+
+        // SyncList<CivEnum>.Callback fires on every client (host included) whenever ReadyCivs
+        // changes, so the waiting notice and button color stay live without polling.
+        private void OnReadyCivsChanged(SyncList<CivEnum>.Operation op, int index, CivEnum oldItem, CivEnum newItem)
+        {
+            if (TimeManager.Instance == null) return;
+            if (TimeManager.Instance.TurnPhase == TurnPhase.InterTurn)
+                RefreshAdvanceTurnColorForReadyState();
+            UpdateTurnPhaseText(TimeManager.Instance.TurnPhase);
+        }
+
+        private void OnTurnPhaseChanged(TurnPhase phase)
+        {
+            UpdateForceAdvanceButtonVisibility();
+
+            if (advanceTurnButton == null)
+            {
+                UpdateTurnPhaseText(phase);
+                return;
+            }
+
+            switch (phase)
+            {
+                case TurnPhase.InterTurn:
+                    RefreshAdvanceTurnColorForReadyState();
+                    if (turnProgressBar != null)
+                    {
+                        turnProgressBar.fillAmount = 1f;
+                        turnProgressBar.color = progressBarActiveColor;
+                    }
+                    break;
+                case TurnPhase.TurnProgression:
+                    SetAdvanceTurnProcessing(); // gray + transparent — turn is processing, button looks inactive
+                    if (turnProgressBar != null)
+                    {
+                        turnProgressBar.color = progressBarActiveColor;
+                        UpdateTurnProgress();
+                    }
+                    break;
+                case TurnPhase.EncounterResolution:
+                    break;
+            }
+
+            UpdateTurnPhaseText(phase);
+            SetControlsInteractable();
+        }
+
+        /// <summary>Green when we haven't readied yet (click to ready up), amber once we have and
+        /// are waiting on the rest of the table (click again to un-ready and keep giving orders).</summary>
+        private void RefreshAdvanceTurnColorForReadyState()
+        {
+            bool weAreReady = TimeManager.Instance != null && GameController.Instance != null
+                && TimeManager.Instance.ReadyCivs.Contains(GameController.Instance.GetOurCiv());
+            SetAdvanceTurnColor(weAreReady ? turnWaitingColor : turnReadyColor);
+        }
+
+        private void UpdateForceAdvanceButtonVisibility()
+        {
+            if (forceAdvanceTurnButton == null) return;
+            bool show = NetworkServer.active
+                && TimeManager.Instance != null
+                && TimeManager.Instance.TurnPhase == TurnPhase.InterTurn;
+            forceAdvanceTurnButton.gameObject.SetActive(show);
+        }
+
+        private void UpdateTurnPhaseText(TurnPhase phase)
+        {
+            if (turnPhaseText == null) return;
+
+            StopFlash();
+
+            switch (phase)
+            {
+                case TurnPhase.InterTurn:
+                    turnPhaseText.enabled = true;
+                    UpdateInterTurnWaitingText();
+                    break;
+                case TurnPhase.TurnProgression:
+                    turnPhaseText.text = "ADVANCING";
+                    turnPhaseTrigger?.SetContent(
+                        "Stardate advancing — fleets are moving and production is underway.");
+                    flashCoroutine = StartCoroutine(FlashText());
+                    break;
+                case TurnPhase.EncounterResolution:
+                    turnPhaseText.text = "ENCOUNTER";
+                    turnPhaseText.enabled = true;
+                    turnPhaseTrigger?.SetContent(
+                        "An event requires your attention before time can continue.");
+                    break;
+            }
+        }
+
+        /// <summary>During InterTurn, shows "READY" if nobody (including us) has readied yet,
+        /// "WAITING (x/y)" listing who we're still waiting on once we've readied ourselves.</summary>
+        private void UpdateInterTurnWaitingText()
+        {
+            if (TimeManager.Instance == null || GameController.Instance == null)
+            {
+                turnPhaseText.text = "READY";
+                return;
+            }
+
+            CivEnum ourCiv = GameController.Instance.GetOurCiv();
+            bool weAreReady = TimeManager.Instance.ReadyCivs.Contains(ourCiv);
+
+            if (!weAreReady)
+            {
+                turnPhaseText.text = "READY";
+                turnPhaseTrigger?.SetContent(
+                    "Awaiting orders. Issue commands to fleets and systems, then click Turn.");
+                return;
+            }
+
+            var notReady = TimeManager.Instance.GetHumanCivsNotReady();
+            if (notReady.Count == 0)
+            {
+                // Everyone's ready — server is about to advance; show a transitional label.
+                turnPhaseText.text = "WAITING";
+                turnPhaseTrigger?.SetContent("All civilizations ready — advancing turn.");
+                return;
+            }
+
+            var sb = new StringBuilder("WAITING (");
+            for (int i = 0; i < notReady.Count; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                sb.Append(notReady[i]);
+            }
+            sb.Append(")");
+            turnPhaseText.text = sb.ToString();
+            turnPhaseTrigger?.SetContent(
+                "You're ready. Click Turn again to un-ready and make more changes while waiting.");
+        }
+
+        private void StopFlash()
+        {
+            if (flashCoroutine != null)
+            {
+                StopCoroutine(flashCoroutine);
+                flashCoroutine = null;
+            }
+            if (turnPhaseText != null)
+                turnPhaseText.enabled = true;
+        }
+
+        private System.Collections.IEnumerator FlashText()
+        {
+            while (true)
+            {
+                turnPhaseText.enabled = true;
+                yield return new WaitForSecondsRealtime(0.6f);
+                turnPhaseText.enabled = false;
+                yield return new WaitForSecondsRealtime(0.4f);
+            }
+        }
+
+        /// <summary>
+        /// Refresh interactability of all controls except the pause button.
+        /// The advance turn button is enabled only during InterTurn and only when
+        /// the player has not explicitly paused. The volume slider is disabled only
+        /// during an explicit player pause so the player can still adjust it
+        /// while issuing orders between turns.
+        /// </summary>
+        private void SetControlsInteractable()
+        {
+            if (masterVolumeSlider != null)
+                masterVolumeSlider.interactable = !_playerPaused;
+
+            if (advanceTurnButton != null)
+            {
+                bool wasInteractable = advanceTurnButton.interactable;
+                advanceTurnButton.interactable = !_playerPaused
+                    && (TimeManager.Instance?.TurnPhase == TurnPhase.InterTurn);
+                if (advanceTurnButton.interactable != wasInteractable)
+                    Debug.Log($"SetControlsInteractable: advanceTurnButton.interactable {wasInteractable} -> {advanceTurnButton.interactable} (_playerPaused={_playerPaused}, TimeManager.Instance={(TimeManager.Instance != null ? "OK" : "NULL")}, TurnPhase={TimeManager.Instance?.TurnPhase})");
+            }
+        }
+
+        private void UpdateTurnProgress()
+        {
+            if (turnProgressBar == null || TimeManager.Instance == null) return;
+            int perTurn = TimeManager.Instance.StarDatesPerTurn;
+            if (perTurn <= 0) return;
+            int elapsed = TimeManager.Instance.currentStardate % perTurn;
+            turnProgressBar.fillAmount = (float)elapsed / perTurn;
+        }
+
+        private void SetAdvanceTurnColor(Color color)
+        {
+            if (advanceTurnButton == null) return;
+            var cb = advanceTurnButton.colors;
+            cb.normalColor = color;
+            cb.highlightedColor = color * 1.2f;
+            cb.disabledColor = turnProcessingColor;
+            advanceTurnButton.colors = cb;
+        }
+
+        /// <summary>Grays out and fades the button while a turn is processing — Selectable renders
+        /// disabledColor (not normalColor) whenever interactable is false, so this is what actually
+        /// makes the button look inactive during TurnProgression.</summary>
+        private void SetAdvanceTurnProcessing()
+        {
+            if (advanceTurnButton == null) return;
+            var cb = advanceTurnButton.colors;
+            cb.normalColor = turnProcessingColor;
+            cb.highlightedColor = turnProcessingColor;
+            cb.disabledColor = turnProcessingColor;
+            advanceTurnButton.colors = cb;
         }
 
         private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
         {
+            // Clear any explicit player pause on scene transition and restore normal time
+            _playerPaused = false;
+            Time.timeScale = 1f;
             UpdateOverlayVisibility();
 
-            // Force unpause when returning to main menu
             if (scene.name.Contains("MainMenu") || scene.name.Contains("Lobby"))
-            {
                 ForceUnpause();
-            }
         }
     }
 }

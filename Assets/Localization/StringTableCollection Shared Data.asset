@@ -255,18 +255,6 @@ MonoBehaviour:
     m_Key: Ribbon.Home
     m_Metadata:
       m_Items: []
-  - m_Id: 23097490120581120
-    m_Key: Fleet
-    m_Metadata:
-      m_Items: []
-  - m_Id: 23097917499187200
-    m_Key: FleetKey
-    m_Metadata:
-      m_Items: []
-  - m_Id: 23098279618617344
-    m_Key: New Entry
-    m_Metadata:
-      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

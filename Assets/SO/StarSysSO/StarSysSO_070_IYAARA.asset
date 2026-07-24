@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_070_IYAARA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 70
-  Position: {x: 18.22, y: -1.48, z: -85.94}
+  Position: {x: 19.26, y: -1.48, z: -84.22}
   SysName: IYAARA
   FirstOwner: 70
   CurrentOwner: 70

@@ -1,12 +1,15 @@
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
+using Mirror;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using BOTF3D.Civilization;
-using BOTF3D.Audio;
 
 
 
@@ -17,13 +20,253 @@ namespace BOTF3D.Galaxy
     /// Controlling fleet movement and interactions while the matching FeetData class
     /// holds key info on status and for save game
     /// </summary>
-    public class FleetController : MonoBehaviour
+    public class FleetController : NetworkBehaviour
     {
         public void Initialize() { }
         public void UpdateState() { }
         //Fields
         private FleetData fleetData;
         public FleetData FleetData { get { return fleetData; } set { fleetData = value; } }
+
+        // Replicated alongside SyncedCivEnum below so OnCivEnumChanged can rebuild the same "Fleet N"
+        // name FleetManager.InstantiateFleet assigns server-side (see GetNewFleetInt). Declared before
+        // SyncedCivEnum so Mirror's weaver-generated deserializer assigns this field first within the
+        // same sync payload - OnCivEnumChanged's hook can then rely on it already being current.
+        [SyncVar]
+        public int SyncedFleetInt;
+
+        // FleetSO.MaxWarpFactor defaults to 0 and is only ever corrected by UpdateMaxWarp() computing
+        // the slowest ship's speed - a server-only call (FleetManager.InstantiateFleet, ship
+        // deploy/merge, etc.). A non-host client's reconstructed FleetData (see OnCivEnumChanged) has
+        // no ships to run that computation on, so it was permanently stuck at 0, which made the warp
+        // slider's maxValue 0 and every warp-up click get rejected. Declared before SyncedCivEnum for
+        // the same reason as SyncedFleetInt above - OnCivEnumChanged reads this field directly rather
+        // than waiting for its own hook, so it must already be current by then.
+        [SyncVar(hook = nameof(OnMaxWarpFactorChanged))]
+        public float SyncedMaxWarpFactor;
+
+        // True for fleets created empty via the ship-deploy UI (split off an existing fleet, or
+        // formed from a system's docked ships - see FleetManager.ServerCreateSplitFleet /
+        // ServerCreateFleetFromSystem), false for a civ's very first starting fleet. OnCivEnumChanged
+        // needs this to know whether its client-reconstructed FleetData should start with 0 ships or
+        // fall back to FleetSO.ShipsList's configured template ships - without it, every remote
+        // client's "new empty fleet" incorrectly starts pre-populated with that civ's FleetSO template
+        // ships (same ghost ship(s) every time, since fleetSO is one shared asset). Declared before
+        // SyncedCivEnum for the same field-ordering reason as SyncedFleetInt/SyncedMaxWarpFactor above.
+        [SyncVar]
+        public bool SyncedIsNewFleet;
+
+        // Fleet creation/position is server-authoritative (see FleetManager.InstantiateFleet), so
+        // remote clients never run InstantiateFleet themselves and their FleetData stays null. This
+        // SyncVar is the minimal piece of FleetData replicated to every client so each one can locally
+        // decide fog-of-war visibility/insignia and register the fleet in its own FleetManager lists -
+        // NOT a substitute for full FleetData sync (ships, warp factor, destination remain server-only
+        // for now).
+        [SyncVar(hook = nameof(OnCivEnumChanged))]
+        public CivEnum SyncedCivEnum;
+
+        // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the
+        // initial spawn sync. Keeps a non-host client's already-built FleetData/slider in sync with
+        // fleet composition changes it has no other way of detecting.
+        private void OnMaxWarpFactorChanged(float oldValue, float newValue)
+        {
+            Debug.LogWarning($"🛰️[MAXWARP] OnMaxWarpFactorChanged: fleet '{name}' oldValue={oldValue}, newValue={newValue}, NetworkServer.active={NetworkServer.active}, FleetData={(FleetData == null ? "NULL" : "OK")}.");
+            if (NetworkServer.active) return;
+            if (FleetData == null) return;
+
+            FleetData.MaxWarpFactor = newValue;
+            if (GalaxyUI != null)
+                FleetUI.UpdateFleetMaxWarpUI(this, newValue);
+        }
+
+        // Fires on every client whenever SyncedCivEnum changes, including the initial sync on spawn
+        // (same Mirror hook behavior relied on by LocalHumanPlayerController.OnPlayerCivChanged).
+        // NetworkServer.active (not isServer) is the right guard here: the host machine already ran
+        // the full setup directly inside FleetManager.InstantiateFleet, and NetworkServer.active is
+        // true there regardless of whether this particular NetworkIdentity has finished spawning yet.
+        // Mirror's weaver-generated SyncVar deserializer only invokes a hook when the incoming
+        // value differs from whatever the backing field already holds (see
+        // NetworkBehaviour.GeneratedSyncVarDeserialize) - including on the very first sync. Since
+        // CivEnum.FED is ordinal 0 (GameEnums.cs), that's also C#'s zero-init default for an
+        // unassigned CivEnum field, so this hook NEVER fires on a remote client for any fleet
+        // whose civ is FED: the synced value (FED) equals the field's pre-deserialize default
+        // (FED), so Mirror sees "no change" and skips the callback entirely. OnStartClient()
+        // below is the fallback for that case - this flag makes sure whichever of the two runs
+        // first (hook here, or the fallback there) is the only one that actually does the setup.
+        private bool _civSetupInitiated;
+
+        private void OnCivEnumChanged(CivEnum oldCiv, CivEnum newCiv)
+        {
+            if (NetworkServer.active) return;
+            if (_civSetupInitiated) return;
+            _civSetupInitiated = true;
+
+            // Two things HandleCivEnumChanged depends on can both be unresolved during a freshly-
+            // connected client's initial spawn-message burst for pre-existing fleets (e.g. the host's):
+            //
+            // 1. GameController.AreWeLocalPlayer(newCiv) (used by RegisterFleetControllerAndSetupVisuals)
+            //    falls back to GameData.LocalPlayerCivEnum (defaulted to CivEnum.FED - see GameData.cs,
+            //    "temp set to fed for now") whenever PlayerManager.LocalPlayerController hasn't been set
+            //    yet (only assigned from this client's own player object's OnStartLocalPlayer). If the
+            //    remote fleet's civ happens to equal that stale FED default (e.g. the host is actually
+            //    playing FED), it gets misclassified as "ours": RegisterFleetControllerAndSetupVisuals
+            //    takes the local-player branch, which never called SetActive on the insignia GameObjects
+            //    (fixed defensively in FleetManager, but relying on that is still guessing).
+            // 2. The 0.4-scale bake-in below reads FleetManager.Instance.GalaxyCenter.transform.lossyScale
+            //    (10,10,10) to compensate for this client copy being unparented. If GalaxyCenter hasn't
+            //    been resolved yet, it silently falls back to Vector3.one, baking in 0.4 instead of
+            //    0.4*10=4 - a fleet that renders 10x too small, with no later retry since this SyncVar
+            //    hook only fires once per value change.
+            //
+            // Both are the same class of bug as the InsigniaUnknownGO one above - defer until we can
+            // answer both reliably instead of guessing.
+            if (!IsReadyToHandleCivChange())
+            {
+                StartCoroutine(WaitThenHandleCivChanged(newCiv));
+                return;
+            }
+
+            HandleCivEnumChanged(newCiv);
+        }
+
+        // Fallback for the FED-hook-skip case described on _civSetupInitiated above. Mirror
+        // guarantees SyncVar deserialization (and any hooks it does invoke) completes before
+        // OnStartClient runs (NetworkClient.OnObjectSpawnFinished applies the spawn payload, then
+        // BootstrapIdentity -> OnStartClient - see NetworkClient.cs), so SyncedCivEnum is always
+        // current here, and this is guaranteed to run strictly after OnCivEnumChanged would have
+        // fired had Mirror invoked it. _civSetupInitiated is the shared guard, so this only does
+        // anything when the hook above never ran at all.
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            if (NetworkServer.active) return;
+            if (_civSetupInitiated) return;
+            _civSetupInitiated = true;
+
+            if (!IsReadyToHandleCivChange())
+            {
+                StartCoroutine(WaitThenHandleCivChanged(SyncedCivEnum));
+                return;
+            }
+
+            HandleCivEnumChanged(SyncedCivEnum);
+        }
+
+        private bool IsReadyToHandleCivChange()
+        {
+            if (PlayerManager.Instance == null || PlayerManager.Instance.LocalPlayerController == null)
+                return false;
+
+            if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
+                FleetManager.Instance.FindGalaxyReferences();
+
+            return FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null;
+        }
+
+        private IEnumerator WaitThenHandleCivChanged(CivEnum newCiv)
+        {
+            const float timeout = 5f;
+            float elapsed = 0f;
+            while (!IsReadyToHandleCivChange() && elapsed < timeout)
+            {
+                yield return null;
+                elapsed += Time.unscaledDeltaTime;
+            }
+
+            if (!IsReadyToHandleCivChange())
+                Debug.LogWarning($"FleetController.OnCivEnumChanged: local player/GalaxyCenter still unresolved after {timeout}s for fleet '{name}' - proceeding anyway, civ classification/scale may be wrong.");
+
+            HandleCivEnumChanged(newCiv);
+        }
+
+        private void HandleCivEnumChanged(CivEnum newCiv)
+        {
+            // NetworkTransform's coordinateSpace is set to World (needed so the fleet's synced
+            // position isn't misread as this unparented client copy's own local position - see
+            // FleetPrefab.prefab), but Mirror's NetworkTransformBase forcibly disables scale sync
+            // entirely whenever coordinateSpace is World (never implemented world/lossy-scale sync -
+            // see NetworkTransformBase.SetScale). FleetManager.InstantiateFleet's runtime scale
+            // (0.4, 0.4, 1) therefore never reaches any remote client. It's the same fixed constant
+            // for every fleet regardless of civ (one shared fleetPrefab - see InstantiateFleet), so
+            // just apply it locally here instead of relying on a sync that Mirror can't do.
+            //
+            // FleetManager.InstantiateFleet also parents the fleet under GalaxyCenter (scale 10,10,10
+            // in GalaxyScene.unity) BEFORE applying that 0.4 local scale, so the server/host's actual
+            // effective world scale is 0.4 * 10 = 4, not 0.4. This client copy is unparented (see
+            // above), so its local scale IS its world scale - it must bake in that same GalaxyCenter
+            // multiplier itself or it renders 10x too small, which is exactly the "hierarchy says 0.7
+            // but looks way smaller" symptom this was meant to fix in the first place.
+            // On a freshly-connected client, this hook can fire for pre-existing fleets (e.g. the
+            // host's) as part of the initial spawn-message burst, before this client's own
+            // FleetManager has resolved GalaxyCenter (that normally happens later during this
+            // client's own galaxy scene setup). Falling back to Vector3.one in that case silently
+            // bakes in the wrong scale forever (0.4 instead of 0.4*10=4) - retry the lookup first,
+            // same pattern as FleetManager.SetUpDropLine's galaxyImage retry.
+            if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
+                FleetManager.Instance.FindGalaxyReferences();
+
+            Vector3 galaxyScale = FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null
+                ? FleetManager.Instance.GalaxyCenter.transform.lossyScale
+                : Vector3.one;
+            // X and Y must stay equal (a fleet sprite billboard, not an oblong shape) - derive both
+            // from galaxyScale.x alone rather than scaling each axis independently, so a
+            // non-uniform GalaxyCenter (X != Y) can never stretch the sprite.
+            transform.localScale = new Vector3(0.4f * galaxyScale.x, 0.4f * galaxyScale.x, galaxyScale.z);
+
+            bool isFreshReconstruction = FleetData == null;
+            if (isFreshReconstruction)
+            {
+                FleetSO fleetSO = FleetManager.Instance.GetFleetSO_byInt((int)newCiv);
+                if (fleetSO == null)
+                {
+                    Debug.LogWarning($"FleetController.OnCivEnumChanged: no FleetSO found for civ {newCiv}; cannot set up remote fleet visuals for '{name}' - RegisterFleetControllerAndSetupVisuals (insignia/fog/DropLine) will NOT run for this fleet.");
+                    return;
+                }
+                FleetData = new FleetData(fleetSO);
+                if (SyncedIsNewFleet)
+                    FleetData.ShipsList = new List<ShipController>(); // start empty - see SyncedIsNewFleet comment
+                FleetData.CivEnum = newCiv;
+                // FleetData(FleetSO) doesn't set FleetName - only InstantiateFleet does that,
+                // server-side, and this client-reconstructed FleetData never goes through it. Without
+                // this, FleetNameText/the map label read FleetData.FleetName as null/empty.
+                FleetData.FleetInt = SyncedFleetInt;
+                FleetData.FleetName = "Fleet " + SyncedFleetInt.ToString();
+                // SyncedMaxWarpFactor is already deserialized at this point (declared before
+                // SyncedCivEnum - see its own comment), and reflects the server's real
+                // UpdateMaxWarp() result rather than the FleetSO's unconfigured 0 default.
+                Debug.LogWarning($"🛰️[MAXWARP] OnCivEnumChanged: fleet '{name}' raw SyncedMaxWarpFactor={SyncedMaxWarpFactor} at FleetData construction time (fleetSO default MaxWarpFactor={fleetSO.MaxWarpFactor}).");
+                if (SyncedMaxWarpFactor > 0f)
+                    FleetData.MaxWarpFactor = SyncedMaxWarpFactor;
+                if (FleetManager.Instance.GalaxyCenter != null)
+                    FleetData.Destination = FleetManager.Instance.GalaxyCenter;
+            }
+
+            Debug.Log($"OnCivEnumChanged: civ={newCiv} synced for fleet '{name}' (GalaxyCenter={(FleetManager.Instance.GalaxyCenter != null ? "OK" : "NULL")}) - calling RegisterFleetControllerAndSetupVisuals.");
+            FleetManager.Instance.RegisterFleetControllerAndSetupVisuals(this, FleetData);
+
+            // ShipController has no NetworkIdentity/SyncList - the server's own
+            // ShipManager.BuildShipsOfFirstFleet call inside InstantiateFleet (for a civ's original
+            // starting fleet, isNewFleet=false) never reaches this client. GetStartingFleetShips is a
+            // pure function of civ + tech level, so rebuilding it locally here reconstructs the same
+            // Scout/Destroyer/Transport (majors) or single ship (minors) the server already built,
+            // without needing to network ShipController itself. Player-created fleets
+            // (SyncedIsNewFleet) must stay empty here - they get their ships from the deploy UI drag
+            // session instead.
+            if (isFreshReconstruction && !SyncedIsNewFleet)
+                ShipManager.Instance?.BuildShipsOfFirstFleet(this);
+        }
+
+        // Non-host clients have no Mirror authority over any fleet (spawned via plain
+        // NetworkServer.Spawn with no owning connection - see FleetManager.InstantiateFleet), so every
+        // order-relay Command below uses requiresAuthority = false and checks this instead: the calling
+        // connection's own player civ (via its player-owned LocalHumanPlayerController) must match the
+        // civ of the fleet being commanded, so Player 2 can order their own fleet but not the Fed one.
+        private bool IsSenderAuthorizedForThisFleet(NetworkConnectionToClient sender)
+        {
+            if (sender?.identity == null) return false;
+            LocalHumanPlayerController playerCon = sender.identity.GetComponent<LocalHumanPlayerController>();
+            return playerCon != null && FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+        }
         [SerializeField]
         private GameObject _fleetUIGameObject;
 
@@ -43,17 +286,25 @@ namespace BOTF3D.Galaxy
         public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
-        private readonly float warpFudgeFactor = 10f;
+        // Units-per-second scaler. Tune this in the Inspector on the fleet prefab.
+        // 4f ≈ 60% slower than the original 10f baseline.
+        [SerializeField] private float warpFudgeFactor = 4f;
         private Rigidbody rb;
         private float updateInterval = 0.1f; // ~10 updates/sec (adjust for smoothness vs performance)
         private float lastUpdateTime;
+        private float lastDropLineUpdateTime;
         public MapLineMovable DropLine;
         public MapLineMovable DestinationLine;
         public GameObject BackgroundGalaxyImage;
+
+        // Which fleet we're currently pursuing (set via the Intercept button)
+        public static FleetController PendingInterceptFleet; // fleet waiting for player to pick a target
+        private Vector3 interceptPoint;
+        private float interceptUpdateTimer;
+        private const float INTERCEPT_UPDATE_INTERVAL = 0.5f;
         private float galaxyWidth = 1f;
         private float galaxyHeight = 1f;
         private float minimapWidth = 200f;
-        private float minimapHeight = 400f;
         private bool gotMapSizeFromGameManager = false;
         [SerializeField] private GameObject backgroundGalaxyImage;
         private Camera galaxyEventCamera;
@@ -73,8 +324,6 @@ namespace BOTF3D.Galaxy
         private Slider warpSlider;
         [SerializeField]
         private TextMeshProUGUI warpSliderText;
-        [SerializeField]
-        private float maxSliderValue = 10f;
         private readonly TMP_Dropdown shipDropdown;
 
         public GameObject ShipDropDownGO;
@@ -136,36 +385,211 @@ namespace BOTF3D.Galaxy
             galaxyWidth = GalaxyView.Instance.GalaxyWidth;
             galaxyHeight = GalaxyView.Instance.GalaxyHeight;
 
+            // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
+            // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
+            // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
+            // anchoredPosition (map center) instead of its real spawn position.
+            UpdateMinimapPosition();
         }
+        private void Update()
+        {
+            // DropLine is only otherwise refreshed from MoveToInterceptPoint/MoveToDesitinationGO,
+            // both of which only run from FixedUpdate while TimeManager.TurnPhase ==
+            // TurnProgression. A stationary fleet (e.g. a freshly-deployed one, never given a
+            // destination) never reaches either, so its very first placement - drawn inside
+            // FleetManager.SetUpDropLine at fleet-registration time - is the only one it ever gets.
+            // On a non-host client that registration happens inside FleetController.OnCivEnumChanged,
+            // which (same root cause as GetMapSise/UpdateMinimapPosition above) can fire before
+            // NetworkTransform has delivered this fleet's first synced position, leaving the line
+            // drawn from whatever stale/default position the local placeholder GameObject started at.
+            // Re-drawing it here every frame off the current (by-then-synced) transform.position is
+            // cheap and self-healing regardless of the exact timing that caused the mismatch.
+            if (DropLine == null) return;
+            if (Time.time - lastDropLineUpdateTime < updateInterval) return;
+            lastDropLineUpdateTime = Time.time;
+
+            Vector3 galaxyPlanePoint = new Vector3(transform.position.x, -60f, transform.position.z);
+            DropLine.SetUpLine(new Vector3[] { transform.position, galaxyPlanePoint });
+        }
+
         private void FixedUpdate()
         {
-            // Destroying Fleets with no ships is problematic
-            // The FleetController FeetData is still running in script
-            // and if the player clicks on or OnTrigerEntere.... it causes errors
-            if (FleetData != null && FleetData.Destination != null)
-            {
-                if (FleetData.Destination != FleetManager.Instance.GalaxyCenter && FleetData.CurrentWarpFactor > 0f)
-                {
-                    // Calculate distance for this frame
-                    distanceToDestination = Vector3.Distance(transform.position, FleetData.Destination.transform.position);
+            if (FleetData == null) return;
+            if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase != TurnPhase.TurnProgression) return;
 
-                    // Always move the fleet (physics)
+            // ── Intercept mode ────────────────────────────────────────────────
+            // Checked via IsPursuingIntercept rather than "InterceptTarget != null": a destroyed
+            // FleetController's reference compares equal to null (UnityEngine.Object's == override),
+            // so once the target dies, "InterceptTarget != null" is already false and would silently
+            // skip straight past the destroyed-target handling below without ever running it.
+            if (FleetData.IsPursuingIntercept)
+            {
+                if (FleetData.InterceptTarget == null)
+                {
+                    OnInterceptTargetLost(); // target was destroyed mid-pursuit
+                }
+                else if (FleetData.CurrentWarpFactor > 0f)
+                {
+                    interceptUpdateTimer -= Time.fixedDeltaTime;
+                    if (interceptUpdateTimer <= 0f)
+                    {
+                        interceptPoint = ComputeInterceptPoint();
+                        interceptUpdateTimer = INTERCEPT_UPDATE_INTERVAL;
+                    }
+
+                    MoveToInterceptPoint();
+
+                    if (!gotMapSizeFromGameManager) GetMapSise();
+                    if (Time.time - lastUpdateTime >= updateInterval)
+                    {
+                        DrawDestinationLine(interceptPoint);
+                        UpdateMinimapPosition();
+                        lastUpdateTime = Time.time;
+                    }
+                }
+                return;
+            }
+
+            // ── Normal destination mode ───────────────────────────────────────
+            if (FleetData.Destination != null && FleetData.CurrentWarpFactor > 0f)
+            {
+                if (FleetData.Destination != FleetManager.Instance?.GalaxyCenter)
+                {
+                    distanceToDestination = Vector3.Distance(transform.position, FleetData.Destination.transform.position);
                     MoveToDesitinationGO(GetDirection());
-                    if (!gotMapSizeFromGameManager)
-                        GetMapSise();
-                    // Throttle visual updates (line rendering, UI)
+                    if (!gotMapSizeFromGameManager) GetMapSise();
                     if (Time.time - lastUpdateTime >= updateInterval)
                     {
                         DrawDestinationLine(FleetData.Destination.transform.position);
-                        UpdateMinimapPosition(); // Add this
+                        UpdateMinimapPosition();
                         lastUpdateTime = Time.time;
                     }
                 }
             }
         }
 
+        // ── Intercept helpers ─────────────────────────────────────────────────
+
+        public void SetInterceptTarget(FleetController target)
+        {
+            FleetData.InterceptTarget = target;
+            FleetData.IsPursuingIntercept = true;
+            interceptPoint = target.transform.position;
+            interceptUpdateTimer = 0f; // force immediate recompute
+            FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor; // full speed ahead
+            Debug.Log($"{name}: intercept target set to '{target.name}'");
+
+            // Same reasoning as SetAsDestinationInUI/SliderOnValueChange: on a non-host client this
+            // only mutated a disconnected local FleetData copy - the server-authoritative fleet never
+            // learned about the intercept order, so it never actually moved. This was the root cause
+            // of giving an enemy fleet as a destination working for the host (whose own FleetController
+            // IS the server-authoritative instance) but silently doing nothing for a non-host client.
+            if (!isServer)
+            {
+                NetworkIdentity targetIdentity = target.GetComponent<NetworkIdentity>();
+                if (targetIdentity != null)
+                    CmdSetInterceptTarget(targetIdentity);
+            }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetInterceptTarget(NetworkIdentity targetIdentity, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetInterceptTarget: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            FleetController targetFleetCon = targetIdentity != null ? targetIdentity.GetComponent<FleetController>() : null;
+            if (targetFleetCon == null) return;
+            Debug.Log($"CmdSetInterceptTarget: connection {sender?.connectionId} authorized, setting intercept target='{targetFleetCon.name}' on fleet '{name}'.");
+            SetInterceptTarget(targetFleetCon);
+        }
+
+        public void CancelIntercept()
+        {
+            FleetData.InterceptTarget = null;
+            FleetData.IsPursuingIntercept = false;
+            interceptPoint = Vector3.zero;
+        }
+
+        /// <summary>Called when a pursued intercept target is destroyed mid-transit. Stops the fleet
+        /// in place rather than letting it silently coast toward a stale point.</summary>
+        private void OnInterceptTargetLost()
+        {
+            CancelIntercept();
+            FleetData.CurrentWarpFactor = 0f;
+            FleetUI?.UpdateFleetWarpUI(this, 0f);
+
+            var fields = FleetUIGameObject != null ? FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields != null)
+            {
+                fields.InterceptTargetButton?.gameObject.SetActive(true);
+                fields.CancelInterceptButton?.gameObject.SetActive(false);
+            }
+
+            // Clear any pending merge target regardless of IsConvoy — this also applies to a "real"
+            // fleet sent to merge into another via HandleShipMergeSelection.
+            OnConvoyTargetLost();
+
+            Debug.Log($"{name}: intercept target was destroyed — movement stopped");
+        }
+
+        private Vector3 ComputeInterceptPoint()
+        {
+            var target = FleetData.InterceptTarget;
+            if (target == null) return transform.position;
+
+            Vector3 targetPos = target.transform.position;
+
+            // If target is stopped, just go straight to it
+            if (target.FleetData.CurrentWarpFactor <= 0f ||
+                target.FleetData.Destination == null ||
+                target.FleetData.Destination == FleetManager.Instance.GalaxyCenter)
+                return targetPos;
+
+            Vector3 targetDest = target.FleetData.Destination.transform.position;
+            Vector3 targetDir = (targetDest - targetPos).normalized;
+            float targetSpeed = target.FleetData.CurrentWarpFactor * warpFudgeFactor;
+            float ourSpeed = FleetData.CurrentWarpFactor * warpFudgeFactor;
+            if (ourSpeed <= 0f) return targetPos;
+
+            // Estimate time to close the gap and predict where target will be
+            float dist = Vector3.Distance(transform.position, targetPos);
+            float timeEstimate = dist / ourSpeed;
+            Vector3 predicted = targetPos + targetDir * targetSpeed * timeEstimate;
+
+            // Don't predict past the target's own destination
+            float distToDest = Vector3.Distance(targetPos, targetDest);
+            if (Vector3.Distance(targetPos, predicted) > distToDest)
+                predicted = targetDest;
+
+            return predicted;
+        }
+
+        private void MoveToInterceptPoint()
+        {
+            // Movement is server-authoritative - NetworkTransform on this prefab replicates the
+            // resulting position out to every client. Clients must not also call MovePosition here,
+            // or their local Rigidbody would fight the incoming NetworkTransform replication.
+            if (isServer)
+            {
+                FleetData.ReleaseDockSlotIfAny(); // no-op once already released, so safe every tick
+
+                float howFast = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
+                Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
+                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                rb.MovePosition(nextPos);
+                FleetData.Position = nextPos;
+            }
+
+            Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
+            DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
+        }
+
         private void GetMapSise()
         {
+            if (FleetUIGameObject == null) return;
             var fleetUIFields = FleetUIGameObject.GetComponent<FleetUI_Fields>();
             if (fleetUIFields == null || fleetUIFields.MinimapRedDot == null) return;
             RectTransform minimapRect = fleetUIFields.MinimapRedDot.parent.GetComponent<RectTransform>();
@@ -174,7 +598,7 @@ namespace BOTF3D.Galaxy
             gotMapSizeFromGameManager = true;
         }
 
-        private void UpdateMinimapPosition()
+        public void UpdateMinimapPosition()
         {
             if (FleetUIGameObject == null) return;
 
@@ -243,56 +667,72 @@ namespace BOTF3D.Galaxy
 
                 if (collider.gameObject.TryGetComponent(out FleetController hitFleetCon))
                 {
-                    if (hitFleetCon == this && hitFleetCon == null) return; // ignore self
+                    if (hitFleetCon == this || hitFleetCon == null) return; // ignore self
+
+                    // Stop both fleets on contact (whether queued or immediate)
+                    bool contactIsIntercept = (FleetData.InterceptTarget == hitFleetCon);
+                    if (contactIsIntercept) CancelIntercept();
+
+                    if (isOurDestination || contactIsIntercept)
                     {
-                        if (isOurDestination)
+                        ClickCancelDestinationButton(); // we stop
+
+                        if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum) // enemy fleet
                         {
-                            ClickCancelDestinationButton();// we stop, cancel destination
-
-                            if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum)//if not one of ours
+                            // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
+                            // is only ever drained on the server (TimeManager's TimeProgression
+                            // coroutine returns early on non-host clients), and DiplomacyManager is a
+                            // plain, unnetworked per-client singleton - resolving this locally on
+                            // whichever client's physics happened to fire this trigger previously only
+                            // ever opened the Diplomacy UI on that one machine. ServerNotify*Encounter
+                            // (below) broadcasts the decision to every client via ClientRpc instead.
+                            if (isServer)
                             {
-                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                FleetUI.MoveBackAnyaFleetUIGO(); // close our fleet UI
-                                DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, hitFleetCon);
-                                //ToDo: resolve an encounter with galaxy object that does not have a civ, black hole, wormhole, trans-warp hub, etc
-                                EncounterUnknownFleetGetNameAndSprite(collider.gameObject); // set active sprite and name
+                                hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
 
-                                if (hitFleetCon.FleetData.Destination == this.gameObject) // they are coming for us
+                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+
+                                if (duringProgression)
                                 {
-                                    ClickCancelDestinationButton(); // they stop
-
-                                    CloseUnLoadFleetUI(this); // need more code to handle this encounter 
+                                    // Defer: queue and let ProcessTurnEvents handle it
+                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
+                                    Debug.Log($"OnTriggerEnter: FleetVsFleet queued (TurnProgression) — {name} vs {hitFleetCon.name}");
                                 }
+                                else
+                                {
+                                    OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                    ServerNotifyFleetVsFleetEncounter(hitFleetCon);
+                                }
+                            }
 
-                            }
-                            else //our fleet
-                            {
-                                // do ships management?
-                                OnADestinationThatIsOurOtherFleet(hitFleetCon); // we are the same civ fleets, do ships?
-                            }
+                            // Client-local visibility reveal (per-civ "have we met" cache) - every
+                            // client needs this for its own view, regardless of which machine's
+                            // physics fired this trigger.
+                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
+
+                            if (hitFleetCon.FleetData.Destination == this.gameObject)
+                                CloseUnLoadFleetUI(this);
                         }
-                        else
+                        else // friendly fleet
                         {
-                            // not our destination ignore for now
+                            OnADestinationThatIsOurOtherFleet(hitFleetCon);
                         }
                     }
                 }
-                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon)) // only the fleetController reports a collision for now, not the system
+                else if (collider.gameObject.TryGetComponent(out StarSysController sysCon))
                 {
                     if (isOurDestination)
                     {
-                        ClickCancelDestinationButton(); // we stop, cancel destination
+                        ClickCancelDestinationButton();
 
-                        // ✅ Check if uninhabited system
                         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
 
                         if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
-                            // ✅ Uninhabited system - check if habitable and show colonization UI
                             if (sysCon.StarSysData.IsHabitable)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
-
                                 if (weAreLocalPlayer)
                                 {
                                     FleetUI.MoveBackAnyaFleetUIGO();
@@ -301,28 +741,37 @@ namespace BOTF3D.Galaxy
                             }
                             else
                             {
-                                Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}' - no colonization possible");
+                                Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}'");
                             }
                         }
-                        else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum) // Foreign owned system (real civ)
+                        else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
                         {
-                            // ✅ Foreign civilization's system - trigger diplomacy
                             if (weAreLocalPlayer)
-                            {
                                 EncounterUnknownSystemShowName(collider.gameObject);
+
+                            // Same server-authoritative reasoning as the fleet-vs-fleet branch above.
+                            if (isServer)
+                            {
+                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
+                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
+
+                                if (duringProgression)
+                                {
+                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
+                                    Debug.Log($"OnTriggerEnter: FleetVsSystem queued (TurnProgression) — {name} at {sysCon.name}");
+                                }
+                                else
+                                {
+                                    ServerNotifyFleetVsSystemEncounter(sysCon);
+                                }
                             }
-                            FleetUI.MoveBackAnyaFleetUIGO();
-                            DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
                         }
-                        else // Our own system
+                        else
                         {
                             Debug.Log($"Fleet arrived at our own system '{sysCon.StarSysData.SysName}'");
-                            // ToDo: enter our system logic
+                            if (FleetData.IsConvoy && FleetData.ConvoyMergeSystem == sysCon)
+                                DepositConvoyAt(sysCon);
                         }
-                    }
-                    else
-                    {
-                        // not our destination ignore for now
                     }
                 }
                 else if (collider.gameObject.TryGetComponent(out PlayerDefinedTargetController targetCon))
@@ -338,8 +787,19 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
+            // OnMouseDown is a raw physics raycast (SendMouseEvents) that runs independently of
+            // uGUI - it fires even when the click actually landed on a UI button (e.g. the "New
+            // Fleet" button in AFleetMenu) that happens to sit over this fleet's screen position.
+            // Without this guard, clicking that button also re-triggers HandleNormalClick below,
+            // which calls OpenMenu(AFleetMenu) on the same fleet - closing/rebuilding the menu
+            // (and its buttons) between the button's pointer-down and pointer-up, which cancels
+            // the button's OnClick and makes the New Fleet action silently do nothing.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             var clickedFleetCon = GetComponentInParent<FleetController>();
 
+            Debug.Log($"FleetController.OnMouseDown: raw click on '{name}' (layer={gameObject.layer}), clickedFleetCon={(clickedFleetCon == null ? "NULL" : clickedFleetCon.name)}, CurrentClickMode={GalaxyUI?.CurrentClickMode}.");
             if (clickedFleetCon == null) return;
 
             switch (GalaxyUI.CurrentClickMode)
@@ -377,6 +837,9 @@ namespace BOTF3D.Galaxy
                     if (gameController.AreWeLocalPlayer(clickedFleetCon.FleetData.CivEnum))
                         HandleShipMergeSelection(clickedFleetCon);
                     break;
+                case GalaxyClickMode.SelectForIntercept:
+                    HandleInterceptSelection(clickedFleetCon);
+                    break;
             }
         }
 
@@ -394,20 +857,39 @@ namespace BOTF3D.Galaxy
         }
         private void HandleDestinationClick(FleetController clickedFleetCon)
         {
-            FleetController theFleetConLookingForDestination = galaxyUI.FleetLookingForDestination;
-            if (theFleetConLookingForDestination == null) return;
+            var pursuing = GalaxyUI.FleetLookingForDestination;
+            if (pursuing == null || clickedFleetCon == pursuing) return;
 
-            // ✅ Destroy any existing PlayerDefinedTarget before setting new destination
-            if (theFleetConLookingForDestination.TargetController != null)
+            if (pursuing.TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(pursuing);
+
+            // Clicked a moving fleet → use intercept logic
+            pursuing.SetInterceptTarget(clickedFleetCon);
+
+            var fields = pursuing.FleetUIGameObject != null ? pursuing.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields != null)
             {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(theFleetConLookingForDestination);
+                fields.InterceptTargetButton?.gameObject.SetActive(false);
+                fields.CancelInterceptButton?.gameObject.SetActive(true);
+                if (fields.DestinationName != null)
+                    fields.DestinationName.text = clickedFleetCon.FleetData.FleetName;
+                if (fields.DestinationCoordinates != null)
+                    fields.DestinationCoordinates.text = "";
             }
 
-            theFleetConLookingForDestination.fleetData.Destination = this.gameObject; // set the destination of the clicker fleet as this fleet clicked on
-            theFleetConLookingForDestination.SetAsDestinationInUI(clickedFleetCon.gameObject);
-
-            // Reset mode and cursor
             GalaxyUI.CompleteSetDestination();
+            MousePointerChanger.Instance?.ResetCursor();
+        }
+
+        private void HandleInterceptSelection(FleetController clickedFleetCon)
+        {
+            if (PendingInterceptFleet == null) return;
+            if (clickedFleetCon == PendingInterceptFleet) return; // can't intercept self
+            if (clickedFleetCon.FleetData.CivEnum == PendingInterceptFleet.FleetData.CivEnum) return; // same civ
+
+            PendingInterceptFleet.SetInterceptTarget(clickedFleetCon);
+            PendingInterceptFleet = null;
+            GalaxyUI.ResetClickMode();
             MousePointerChanger.Instance?.ResetCursor();
         }
 
@@ -464,8 +946,8 @@ namespace BOTF3D.Galaxy
                         var sysUIFields = starSysLooking.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                         if (sysUIFields != null && sysUIFields.redDot != null)
                         {
-                            Vector3 sysPos = starSysLooking.transform.position;
-                            sysUIFields.redDot.anchoredPosition = new Vector2(sysPos.x * 0.12f, sysPos.z * 0.12f);
+                            Vector3 sysPos = starSysLooking.transform.localPosition;
+                            sysUIFields.redDot.anchoredPosition = GalaxyPositionBounds.ToMiniMapPosition(sysPos);
                         }
                     }
                 }
@@ -493,45 +975,39 @@ namespace BOTF3D.Galaxy
 
             if (fleetLooking != null && fleetLooking != this) // Fleet-to-Fleet merge
             {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.gameObject.SetActive(true);
+                // Rather than opening the manual ship-deploy panel, send the entire source fleet to
+                // physically travel to the target fleet and auto-merge into it on arrival. Reuses the
+                // same arrival logic as a temporary convoy (see OnADestinationThatIsOurOtherFleet /
+                // MergeConvoyInto) — the source fleet is consumed (destroyed) once its ships are
+                // transferred into the target.
+                fleetLooking.FleetData.ConvoyMergeTarget = clickedFleetCon;
+                fleetLooking.SetInterceptTarget(clickedFleetCon);
 
-                // ✅ Add VerticalLayoutGroup if not present
-                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
-                if (layoutGroup == null)
+                // Use the existing destination UI (SelectDestination/CancelDestination + name/coords
+                // text), same fields SetAsDestinationInUI/SetAsDestination use for a normal move order,
+                // rather than the legacy InterceptTargetButton/CancelInterceptButton aliases. The Cancel
+                // Destination button is already wired (see FleetMenuUIController.SetupFleetUIElements)
+                // to fleetCon.ClickCancelDestinationButton(), which now also aborts the pending merge.
+                var fields = fleetLooking.FleetUIGameObject != null ? fleetLooking.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+                if (fields != null)
                 {
-                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
-                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
-                    layoutGroup.spacing = 20f; // Space between fleet UIs
-                    layoutGroup.childForceExpandHeight = false;
-                    layoutGroup.childForceExpandWidth = false;
-                    layoutGroup.childControlHeight = false;
-                    layoutGroup.childControlWidth = false;
+                    if (fields.DestinationDragTarget != null)
+                        fields.DestinationDragTarget.gameObject.SetActive(false);
+                    if (fields.CancelDestination != null)
+                        fields.CancelDestination.gameObject.SetActive(true);
+                    if (fields.DestinationName != null)
+                        fields.DestinationName.text = clickedFleetCon.FleetData.FleetName;
+                    if (fields.DestinationCoordinates != null)
+                        fields.DestinationCoordinates.text = "";
                 }
 
-                // Parent source fleet UI to container (TOP position)
-                if (fleetLooking.FleetUIGameObject != null)
-                {
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
-                    fleetLooking.FleetUIGameObject.SetActive(true);
-                    Debug.Log($"✅ Source fleet UI parented to AFleetMenuView (top)");
-                }
+                Debug.Log($"🚚 HandleShipMergeSelection: '{fleetLooking.name}' set to travel to and auto-merge into '{clickedFleetCon.name}'");
 
-                // Parent target fleet UI to container (BOTTOM position)
-                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
-                clickedFleetCon.FleetUIGameObject.SetActive(true);
-                Debug.Log($"✅ Target fleet UI parented to AFleetMenuView (bottom)");
-                List<BOTF3D.Combat.ShipController> combinedShipsList = new List<BOTF3D.Combat.ShipController>();
-
-                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
-                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
-
-                Debug.Log($"Merge Fleet-to-Fleet: {fleetLooking.FleetData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
-
-                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
-                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, fleetLooking, null, null);
+                galaxyUI.ClickCancelShipDeployButton(); // clears merge-selection state and click mode
+                galaxyUI.CloseMenu(Menu.AFleetMenu);
+                galaxyUI.CloseMenu(Menu.FleetMenu);
+                MousePointerChanger.Instance.ResetCursor();
+                return;
             }
             else if (starSysLooking != null) // System-to-Fleet merge
             {
@@ -654,22 +1130,39 @@ namespace BOTF3D.Galaxy
 
         void MoveToDesitinationGO(Vector3 direction)
         {
-            // distanceToDestination field is now updated in FixedUpdate
-            float howFast = this.FleetData.CurrentWarpFactor;
-            if (howFast > this.FleetData.MaxWarpFactor)
+            // Movement is server-authoritative - NetworkTransform on this prefab replicates the
+            // resulting position out to every client. Clients must not also call MovePosition here,
+            // or their local Rigidbody would fight the incoming NetworkTransform replication.
+            if (isServer)
             {
-                this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
+                FleetData.ReleaseDockSlotIfAny(); // no-op once already released, so safe every tick
+
+                float howFast = this.FleetData.CurrentWarpFactor;
+                if (howFast > this.FleetData.MaxWarpFactor)
+                    this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
+
+                Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
+                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                rb.MovePosition(nextPosition);
+                this.FleetData.Position = nextPosition;
             }
-            Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
-            howFast * warpFudgeFactor * Time.fixedDeltaTime);
-            rb.MovePosition(nextPosition); // kinematic with physics movement
-            this.FleetData.Position = nextPosition;
+
             Vector3 galaxyPlanePoint = new Vector3(rb.position.x, -60f, rb.position.z);
-            Vector3[] points = { rb.position, galaxyPlanePoint };
-            DropLine.SetUpLine(points);
+            DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
         }
         void DrawDestinationLine(Vector3 destinationPoint)
         {
+            // Destination lines are only meaningful to the civ giving the order - the host/server
+            // process runs FixedUpdate (and this draw call) for every fleet in the game, not just its
+            // own, so without this gate the host would see every civ's destination lines, not just
+            // its own local player's.
+            if (FleetData != null && GameController.Instance != null && !GameController.Instance.AreWeLocalPlayer(FleetData.CivEnum))
+            {
+                if (DestinationLine != null)
+                    DestinationLine.gameObject.SetActive(false);
+                return;
+            }
+
             if (DestinationLine != null) { }
             else
             {
@@ -693,6 +1186,112 @@ namespace BOTF3D.Galaxy
         {
             // Logic to handle what happens when the fleet arrives at our other fleet as destination
             // how do we manage both fleets trying to do something with the other fleet?
+            // Not gated on FleetData.IsConvoy: this also fires for a "real" fleet sent via
+            // HandleShipMergeSelection to travel to and merge into another of our fleets — IsConvoy is
+            // reserved for temporary carrier fleets spawned by CreateConvoyFleet.
+            if (FleetData.ConvoyMergeTarget == ourOtherFleet)
+                MergeConvoyInto(ourOtherFleet);
+        }
+
+        /// <summary>Transfers this fleet's ships into the fleet it was sent to merge into, then removes
+        /// the now-empty source fleet. Called once the source fleet physically reaches ConvoyMergeTarget,
+        /// whether via intercept pursuit (moving target) or a static destination (target happened to be
+        /// stationary). Used both for temporary convoy carrier fleets and for a whole real fleet sent to
+        /// merge into another via HandleShipMergeSelection.</summary>
+        private void MergeConvoyInto(FleetController targetFleet)
+        {
+            if (targetFleet == null) return;
+
+            // Guard against re-entrant/duplicate invocation (e.g. OnTriggerEnter firing more than
+            // once for the same arrival collision). Clearing the merge target immediately makes this
+            // call idempotent — a second call for the same arrival will see ConvoyMergeTarget == null
+            // and OnADestinationThatIsOurOtherFleet's guard will skip it before we get here again.
+            FleetData.ConvoyMergeTarget = null;
+
+            // Distinct() guards against a source ShipsList that already contains the same ship
+            // reference twice (possible from state formed before FleetData.AddToShipList's own
+            // duplicate guard was added) — without this, iterating a doubled entry would add the
+            // ship once (fine) then hit AddToShipList's "already in" warning on the second pass.
+            var ships = new List<ShipController>(FleetData.ShipsList.Distinct());
+            Debug.Log($"🚚 MergeConvoyInto: convoy '{name}' merging {ships.Count} ship(s) into target '{targetFleet.name}' " +
+                $"(target ShipsList.Count before={targetFleet.FleetData.ShipsList.Count}, target ShipListUIParent={(targetFleet.FleetData.ShipListUIParent != null ? targetFleet.FleetData.ShipListUIParent.name : "NULL")})");
+
+            foreach (var ship in ships)
+            {
+                if (ship == null)
+                {
+                    Debug.LogWarning("🚚 MergeConvoyInto: null ship reference in convoy ShipsList, skipping");
+                    continue;
+                }
+
+                var shipUIItem = ship.ShipListUIGameObject != null
+                    ? ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>()
+                    : null;
+
+                targetFleet.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = targetFleet;
+                ship.ShipData.CurrentStarSysController = null;
+
+                if (shipUIItem != null)
+                {
+                    shipUIItem.CurrentFleet = targetFleet;
+                    shipUIItem.CurrentStarSyst = null;
+                }
+
+                FleetData.RemoveFromShipList(ship);
+
+                Debug.Log($"🚚 MergeConvoyInto:   transferred '{ship.ShipData?.ShipName}' — target ShipsList.Count now={targetFleet.FleetData.ShipsList.Count}, " +
+                    $"ship.ShipListUIGameObject={(ship.ShipListUIGameObject != null ? "SET" : "NULL")}");
+            }
+
+            Debug.Log($"🚚 MergeConvoyInto: complete — target '{targetFleet.name}' ShipsList.Count final={targetFleet.FleetData.ShipsList.Count}, destroying convoy '{name}'");
+
+            targetFleet.UpdateMaxWarp();
+            FleetManager.Instance.DestroyFleetController(this);
+        }
+
+        /// <summary>Transfers this convoy's ships into the star system it was sent to deposit at, then
+        /// removes the now-empty convoy. Called from OnTriggerEnter's "arrived at our own system" branch
+        /// when this fleet is a convoy that has arrived at its ConvoyMergeSystem.</summary>
+        private void DepositConvoyAt(StarSysController targetSystem)
+        {
+            if (targetSystem == null) return;
+
+            // Same idempotency guard as MergeConvoyInto — clear the merge target immediately so a
+            // duplicate OnTriggerEnter for the same arrival is skipped instead of double-depositing.
+            FleetData.ConvoyMergeTarget = null;
+
+            var ships = new List<ShipController>(FleetData.ShipsList);
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+
+                var shipUIItem = ship.ShipListUIGameObject != null
+                    ? ship.ShipListUIGameObject.GetComponent<ShipListUI_Item>()
+                    : null;
+
+                targetSystem.AddToShipList(ship);
+                ship.ShipData.CurrentStarSysController = targetSystem;
+                ship.ShipData.CurrentFleetController = null;
+
+                if (shipUIItem != null)
+                {
+                    shipUIItem.CurrentStarSyst = targetSystem;
+                    shipUIItem.CurrentFleet = null;
+                }
+
+                FleetData.RemoveFromShipList(ship);
+            }
+
+            FleetManager.Instance.DestroyFleetController(this);
+        }
+
+        /// <summary>Called when this convoy's pursuit target is destroyed mid-transit (see
+        /// OnInterceptTargetLost). The convoy has already been stopped in place; this just clears the
+        /// stale merge target so a future SetInterceptTarget call isn't misread as still-pending.</summary>
+        private void OnConvoyTargetLost()
+        {
+            FleetData.ConvoyMergeTarget = null;
         }
         void OnADestinationThatIsPlayerTarget()
         {
@@ -714,6 +1313,8 @@ namespace BOTF3D.Galaxy
             // Add to FleetData (model). FleetData.AddToShipList should guard duplicates but check anyway.
             if (!FleetData.ShipsList.Contains(shipController))
                 FleetData.AddToShipList(shipController);
+            else
+                Debug.LogWarning($"AddToShipList: '{shipController.ShipData?.ShipName}' already in '{name}'.FleetData.ShipsList — skipped duplicate add");
 
             // Move the UI representation under the fleet's UI parent if available.
             if (shipController.ShipListUIGameObject != null && FleetData.ShipListUIParent != null)
@@ -759,6 +1360,15 @@ namespace BOTF3D.Galaxy
                 }
             }
             fleetData.MaxWarpFactor = maxWarp;
+            Debug.LogWarning($"🛰️[MAXWARP] UpdateMaxWarp: fleet '{name}' computed maxWarp={maxWarp} from {fleetData.ShipsList.Count} ship(s), isServer={isServer}, NetworkServer.active={NetworkServer.active}, SyncedMaxWarpFactor(before)={SyncedMaxWarpFactor}.");
+            // isServer requires the NetworkIdentity to have already been spawned (NetworkServer.Spawn),
+            // but InstantiateFleet calls UpdateMaxWarp() twice (ShipManager.BuildShipsOfFirstFleet and
+            // just before Spawn) while building the fleet, i.e. before Spawn has run - isServer reads
+            // false there even though this is unambiguously server code, so SyncedMaxWarpFactor was
+            // silently never assigned pre-spawn. NetworkServer.active is true in server code regardless
+            // of spawn timing - same reasoning as OnCivEnumChanged's NetworkServer.active guard above.
+            if (NetworkServer.active)
+                SyncedMaxWarpFactor = maxWarp;
             if (GalaxyUI != null)
                 FleetUI.UpdateFleetMaxWarpUI(this, maxWarp);
         }
@@ -779,8 +1389,10 @@ namespace BOTF3D.Galaxy
             {
                 warpChange = 0.1f;
             }
+            Debug.Log($"FleetOnWarpUpClick: fleet '{fleetCon.name}' current={fleetCon.FleetData.CurrentWarpFactor}, max={fleetCon.FleetData.MaxWarpFactor}, warpChange={warpChange}.");
             if (fleetCon.FleetData.CurrentWarpFactor + warpChange > fleetCon.FleetData.MaxWarpFactor)
             {
+                Debug.LogWarning($"🛰️[MAXWARP] FleetOnWarpUpClick: fleet '{fleetCon.name}' would exceed MaxWarpFactor ({fleetCon.FleetData.CurrentWarpFactor}+{warpChange} > {fleetCon.FleetData.MaxWarpFactor}) - click ignored.");
                 warpChange = 0f;
                 return;
             }
@@ -792,8 +1404,10 @@ namespace BOTF3D.Galaxy
             {
                 warpChange = -0.1f;
             }
+            Debug.Log($"FleetOnWarpDownClick: fleet '{fleetCon.name}' current={fleetCon.FleetData.CurrentWarpFactor}, max={fleetCon.FleetData.MaxWarpFactor}, warpChange={warpChange}.");
             if (fleetCon.FleetData.CurrentWarpFactor - warpChange < 0f)
             {
+                Debug.LogWarning($"🛰️[MAXWARP] FleetOnWarpDownClick: fleet '{fleetCon.name}' would go below 0 ({fleetCon.FleetData.CurrentWarpFactor}-{warpChange} < 0) - click ignored.");
                 warpChange = 0f;
                 return;
             }
@@ -802,6 +1416,7 @@ namespace BOTF3D.Galaxy
 
         public void SliderOnValueChange(float newWarpValue)
         {
+            Debug.Log($"SliderOnValueChange: fleet '{name}' requested newWarpValue={newWarpValue}, MaxWarpFactor={this.FleetData.MaxWarpFactor}.");
             float maxSliderValue = this.FleetData.MaxWarpFactor;
 
             if (newWarpValue < 0f)
@@ -814,7 +1429,29 @@ namespace BOTF3D.Galaxy
             }
 
             FleetData.CurrentWarpFactor = newWarpValue;
-            fleetUI.UpdateFleetWarpUI(this, newWarpValue);
+            FleetUI.UpdateFleetWarpUI(this, newWarpValue);
+
+            // Movement in FixedUpdate() reads FleetData off whichever machine's FleetController this
+            // is - on a non-host client that's a disconnected copy (see OnCivEnumChanged), so the order
+            // has to be relayed to the server-authoritative instance. isServer is true on the host, so
+            // this is a no-op there and the block above is all that ever runs.
+            if (!isServer)
+            {
+                Debug.Log($"SliderOnValueChange: non-host client relaying warp={newWarpValue} for fleet '{name}' via CmdSetWarpFactor.");
+                CmdSetWarpFactor(newWarpValue);
+            }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetWarpFactor(float newWarpValue, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetWarpFactor: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdSetWarpFactor: connection {sender?.connectionId} authorized, setting warp={newWarpValue} on fleet '{name}'.");
+            SliderOnValueChange(newWarpValue);
         }
 
         //internal void SelectedUsForShips(FleetController fleetCon)
@@ -904,25 +1541,68 @@ namespace BOTF3D.Galaxy
         }
         public void ClickCancelDestinationButton()
         {
-            // Destroy player-defined target if it exists
-            if (TargetController != null)
-            {
-                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
-            }
-            DestinationLine.gameObject.SetActive(false);
+            // Zero warp FIRST — unconditional stop before any failable lookups
             FleetData.LastDestination = FleetData.Destination;
-            FleetData.Destination = FleetManager.Instance.GalaxyCenter;
-            FleetData.CurrentWarpFactor = 0f; // stop the fleet
-            GalaxyUI.CompleteSetDestination();
-            FleetUI.ClickCancelDestinationButton(this);
-            GalaxyUI.SetClickMode(GalaxyClickMode.Normal);
-            MousePointerChanger.Instance.ResetCursor();
+            FleetData.CurrentWarpFactor = 0f;
+            FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
+
+            // Clear any active intercept (fleet-chasing) state
+            if (FleetData.IsPursuingIntercept)
+                CancelIntercept();
+            PendingInterceptFleet = null;
+
+            // Sync warp slider to 0 so scroll/drag can't silently restore a non-zero value
+            FleetUI?.UpdateFleetWarpUI(this, 0f);
+
+            if (TargetController != null)
+                PlayerDefinedTargetManager.Instance?.DestroyPlayerTarget(this);
+
+            if (DestinationLine != null)
+                DestinationLine.gameObject.SetActive(false);
+
+            GalaxyUI?.CompleteSetDestination();
+            FleetUI?.ClickCancelDestinationButton(this);
+            GalaxyUI?.SetClickMode(GalaxyClickMode.Normal);
+            MousePointerChanger.Instance?.ResetCursor();
+
+            // Same reasoning as SetAsDestinationInUI/SliderOnValueChange: on a non-host client this
+            // method only mutated a disconnected local FleetData copy. Without this relay, the
+            // server-authoritative fleet never learned the destination/warp were canceled, so the
+            // next TurnProgression tick resumed movement toward the "canceled" destination.
+            if (!isServer)
+                CmdCancelDestination();
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdCancelDestination(NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdCancelDestination: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdCancelDestination: connection {sender?.connectionId} authorized, canceling destination/warp on fleet '{name}'.");
+            FleetData.LastDestination = FleetData.Destination;
+            FleetData.CurrentWarpFactor = 0f;
+            FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
+            if (FleetData.IsPursuingIntercept)
+                CancelIntercept();
+        }
+
+        /// <summary>User-initiated abort of a pending convoy-deploy or fleet-merge. Deliberately kept
+        /// separate from ClickCancelDestinationButton(), which OnTriggerEnter also calls internally just
+        /// to stop movement on arrival — if that shared method cleared ConvoyMergeTarget/ConvoyMergeSystem
+        /// too, every normal arrival would wipe the merge target moments before
+        /// OnADestinationThatIsOurOtherFleet / the ConvoyMergeSystem check in OnTriggerEnter reads it,
+        /// silently breaking every convoy/fleet merge. Only wire this to the UI Cancel Destination button.</summary>
+        public void AbortPendingConvoyMerge()
+        {
+            FleetData.ConvoyMergeTarget = null;
+            FleetData.ConvoyMergeSystem = null;
         }
 
         public void SetAsDestinationInUI(GameObject hitObject)
         {
-            Debug.Log($"=== SetAsDestinationInUI: Fleet '{name}' selecting destination ===");
-
             fleetData.Destination = hitObject;
             GalaxyObjectType destinationType = GalaxyObjectType.None;
             string destinationNameText = "";
@@ -931,8 +1611,6 @@ namespace BOTF3D.Galaxy
                 + " / Y " + (hitObject.transform.position.y).ToString()
                 + " / Z " + (hitObject.transform.position.z).ToString();
 
-            Debug.Log($"  Coordinates: {coordiatesText}");
-
             if (hitObject.GetComponent<StarSysController>() != null)
             {
                 StarSysController starSysController = hitObject.GetComponent<StarSysController>();
@@ -940,28 +1618,23 @@ namespace BOTF3D.Galaxy
                 {
                     destinationType = 0;
                     destinationNameText += starSysController.StarSysData.SysName;
-                    Debug.Log($"  Destination is known system: '{destinationNameText}'");
                 }
                 else
                 {
                     destinationType = starSysController.StarSysData.SystemType;
-                    Debug.Log($"  Destination is unknown system type: {destinationType}");
                 }
             }
             else if (hitObject.GetComponent<FleetController>() != null)
             {
                 FleetController fleetCon = hitObject.GetComponent<FleetController>();
-
                 if (DiplomacyManager.Instance.FoundADiplomacyController(CivManager.Instance.LocalPlayerCivController, fleetCon.FleetData.CivController))
                 {
                     destinationType = GalaxyObjectType.Fleet;
                     destinationNameText = fleetCon.FleetData.FleetName;
-                    Debug.Log($"  Destination is known fleet: '{destinationNameText}'");
                 }
                 else
                 {
                     destinationType = GalaxyObjectType.UnknownFleet;
-                    Debug.Log($"  Destination is unknown fleet");
                 }
             }
 
@@ -1002,8 +1675,6 @@ namespace BOTF3D.Galaxy
                     destinationNameText = "Target at";
                     break;
                 case GalaxyObjectType.UnknownFleet:
-                    destinationNameText = "Fleet at";
-                    break;
                 case GalaxyObjectType.Fleet:
                     destinationNameText = "Fleet at";
                     break;
@@ -1012,19 +1683,409 @@ namespace BOTF3D.Galaxy
                     break;
             }
 
-            Debug.Log($"  Final destination name: '{destinationNameText}'");
-            Debug.Log($"  Calling FleetUI.SetAsDestination() - FleetUI is {(FleetUI != null ? "NOT NULL" : "NULL")}");
+            FleetMenuUIController.Instance?.SetAsDestination(destinationNameText, coordiatesText);
 
-            // ✅ CRITICAL FIX: Don't use cached FleetUI - use Instance directly!
-            if (FleetMenuUIController.Instance != null)
+            // Same reasoning as SliderOnValueChange: on a non-host client this method only mutated a
+            // disconnected local FleetData copy, so relay to the server-authoritative instance too.
+            if (!isServer)
+                RelayDestinationToServer(hitObject);
+        }
+
+        // hitObject can be a star system, a fleet, or GalaxyCenter - each needs its own Command since
+        // Mirror can only serialize GameObject/NetworkIdentity parameters for objects that have a
+        // spawned NetworkIdentity, and StarSysController/GalaxyCenter don't have one (only FleetController
+        // does - see Stage 1). A manually-placed player-defined target point also has no NetworkIdentity
+        // and isn't handled here; giving that kind of order on a non-host client is a known remaining gap.
+        private void RelayDestinationToServer(GameObject hitObject)
+        {
+            if (hitObject == FleetManager.Instance?.GalaxyCenter)
             {
-                FleetMenuUIController.Instance.SetAsDestination(destinationNameText, coordiatesText);
-                Debug.Log($"  ✅ Called FleetMenuUIController.Instance.SetAsDestination()");
+                Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=GalaxyCenter via CmdSetDestinationToGalaxyCenter.");
+                CmdSetDestinationToGalaxyCenter();
+                return;
             }
-            else
+
+            StarSysController starSysCon = hitObject.GetComponent<StarSysController>();
+            if (starSysCon != null)
             {
-                Debug.LogError($"  ❌ FleetMenuUIController.Instance is NULL! Cannot update destination UI!");
+                Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination='{starSysCon.StarSysData.GetSysName()}' via CmdSetDestinationToStarSystem.");
+                CmdSetDestinationToStarSystem(starSysCon.StarSysData.GetSysName());
+                return;
             }
+
+            FleetController targetFleetCon = hitObject.GetComponent<FleetController>();
+            if (targetFleetCon != null)
+            {
+                NetworkIdentity targetIdentity = targetFleetCon.GetComponent<NetworkIdentity>();
+                if (targetIdentity != null)
+                {
+                    Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=fleet '{targetFleetCon.name}' via CmdSetDestinationToFleet.");
+                    CmdSetDestinationToFleet(targetIdentity);
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"RelayDestinationToServer: '{hitObject.name}' has no networked relay path (e.g. a player-defined target point) - this order will not reach the server on a non-host client.");
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToGalaxyCenter(NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToGalaxyCenter: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            Debug.Log($"CmdSetDestinationToGalaxyCenter: connection {sender?.connectionId} authorized, setting destination on fleet '{name}'.");
+            FleetData.Destination = FleetManager.Instance?.GalaxyCenter;
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToStarSystem(string starSysName, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToStarSystem: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            StarSysController targetSys = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (targetSys == null)
+            {
+                Debug.LogWarning($"CmdSetDestinationToStarSystem: no star system named '{starSysName}' found server-side (possible galaxy-generation divergence between client and server).");
+                return;
+            }
+            Debug.Log($"CmdSetDestinationToStarSystem: connection {sender?.connectionId} authorized, setting destination='{starSysName}' on fleet '{name}'.");
+            FleetData.Destination = targetSys.gameObject;
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToFleet(NetworkIdentity targetFleetIdentity, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToFleet: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            if (targetFleetIdentity == null) return;
+            Debug.Log($"CmdSetDestinationToFleet: connection {sender?.connectionId} authorized, setting destination=fleet '{targetFleetIdentity.name}' on fleet '{name}'.");
+            FleetData.Destination = targetFleetIdentity.gameObject;
+        }
+
+        // ── Encounter/diplomacy/combat networking ─────────────────────────────
+        // DiplomacyManager and DiplomacyController are plain, unnetworked per-client singletons/
+        // MonoBehaviours - each client builds its own local DiplomacyController/UI from its own
+        // local-player perspective (see DiplomacyManager.OpenDiplomacyUI). GalaxyEncounterQueue is
+        // only ever drained on the server (TimeManager's TimeProgression coroutine returns early on
+        // non-host clients), so resolving an encounter there previously only ever updated the host's
+        // own local DiplomacyManager - Player 2 never got told. These Rpc/Command pairs broadcast the
+        // server's encounter/combat decisions to every client so each one runs its own local
+        // resolution/UI-open logic.
+
+        [Server]
+        public void ServerNotifyFleetVsFleetEncounter(FleetController otherFleet)
+        {
+            NetworkIdentity otherIdentity = otherFleet != null ? otherFleet.GetComponent<NetworkIdentity>() : null;
+            if (otherIdentity == null) return;
+            RpcFleetVsFleetEncounter(otherIdentity);
+        }
+
+        [ClientRpc]
+        private void RpcFleetVsFleetEncounter(NetworkIdentity otherFleetIdentity)
+        {
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            if (otherFleetCon == null) return;
+
+            // ClientRpc reaches every connected client, not just the two combatants - a bystander
+            // civ (no ships in this encounter) has no business having its Diplomacy UI opened.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherFleetCon.FleetData.CivEnum)) return;
+
+            FleetUI?.MoveBackAnyaFleetUIGO();
+            DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, otherFleetCon);
+        }
+
+        [Server]
+        public void ServerNotifyFleetVsSystemEncounter(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData == null) return;
+            RpcFleetVsSystemEncounter(sysCon.StarSysData.GetSysName());
+        }
+
+        [ClientRpc]
+        private void RpcFleetVsSystemEncounter(string starSysName)
+        {
+            StarSysController sysCon = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (sysCon == null) return;
+
+            // Same bystander guard as RpcFleetVsFleetEncounter above.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, sysCon.StarSysData.CurrentOwnerCivEnum)) return;
+
+            FleetUI?.MoveBackAnyaFleetUIGO();
+            DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
+        }
+
+        // Entry point called from DiplomacyController.Combat() - either combatant's client can click
+        // Combat from their own Diplomacy window, so this must reach the server regardless of which
+        // client (host or non-host) called it.
+        public void RequestStartCombat(FleetController otherFleetCon, StarSysController sysCon)
+        {
+            if (isServer)
+            {
+                ServerStartCombat(otherFleetCon, sysCon);
+                return;
+            }
+
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            CmdRequestStartCombat(otherIdentity, sysName);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdRequestStartCombat(NetworkIdentity otherFleetIdentity, string starSysName, NetworkConnectionToClient sender = null)
+        {
+            LocalHumanPlayerController playerCon = sender?.identity != null ? sender.identity.GetComponent<LocalHumanPlayerController>() : null;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"CmdRequestStartCombat: connection {sender?.connectionId} has no LocalHumanPlayerController.");
+                return;
+            }
+
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+
+            // Either combatant's own client may trigger combat: the attacking fleet (this), the
+            // defending fleet (otherFleetCon), or the owner of the defending star system (sysCon).
+            bool controlsThis = FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+            bool controlsOther = otherFleetCon != null && otherFleetCon.FleetData != null && playerCon.PlayerCiv == otherFleetCon.FleetData.CivEnum;
+            bool controlsSystem = sysCon != null && sysCon.StarSysData != null && playerCon.PlayerCiv == sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            if (!controlsThis && !controlsOther && !controlsSystem)
+            {
+                Debug.LogWarning($"CmdRequestStartCombat: connection {sender?.connectionId} (civ {playerCon.PlayerCiv}) is not a combatant in this encounter - request ignored.");
+                return;
+            }
+
+            ServerStartCombat(otherFleetCon, sysCon);
+        }
+
+        [Server]
+        private void ServerStartCombat(FleetController otherFleetCon, StarSysController sysCon)
+        {
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            RpcStartCombat(otherIdentity, sysName);
+        }
+
+        [ClientRpc]
+        private void RpcStartCombat(NetworkIdentity otherFleetIdentity, string starSysName)
+        {
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+
+            CivEnum otherCiv = otherFleetCon != null ? otherFleetCon.FleetData.CivEnum : sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            // Bystander civs (no ships in this fight) stay on the Galaxy map instead of being
+            // dragged into the Combat scene - see CmdRequestStartCombat's combatant check, which
+            // this mirrors client-side. They just get a lightweight notice instead.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherCiv))
+            {
+                CombatPausedNoticeUI.Instance?.Show(FleetData.CivEnum, otherCiv);
+                return;
+            }
+
+            SceneController.Instance.LoadCombatScene(this, otherFleetCon, sysCon);
+        }
+
+        // Shared by the encounter/combat Rpcs above: is our local human player one of the two
+        // civs actually involved, or just a bystander who happens to also be a connected client?
+        private static bool IsLocalPlayerACombatant(CivEnum civA, CivEnum civB)
+        {
+            return GameController.Instance != null &&
+                   (GameController.Instance.AreWeLocalPlayer(civA) || GameController.Instance.AreWeLocalPlayer(civB));
+        }
+
+        [Server]
+        public void ServerNotifyCombatEnded(CivEnum civA, CivEnum civB)
+        {
+            RpcCombatEnded(civA, civB);
+        }
+
+        [ClientRpc]
+        private void RpcCombatEnded(CivEnum civA, CivEnum civB)
+        {
+            // Bystanders who were shown the paused notice above hide it again.
+            CombatPausedNoticeUI.Instance?.Hide();
+
+            // Combatants tear down their own Combat scene view here. The server already ran
+            // CombatController.EndCombat() (that's what triggered this Rpc, via
+            // ServerNotifyCombatEnded) - EndCombat's own idempotency guard makes it safe to call
+            // again from the host's own client connection. Non-host combatants haven't run it yet,
+            // so this is their only trigger to leave the Combat scene.
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(civA, civB);
+            combatCon?.EndCombat();
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Turn-based combat order submission - CombatUIManager/TurnBasedCombatResolver aren't
+        // NetworkBehaviours, so they route through whichever FleetController belongs to the local
+        // player's own fleet in the active combat (see CombatController.GetInvolvedFleetAnchor).
+        // ---------------------------------------------------------------------------------------
+
+        public void RequestSubmitCombatOrder(CombatOrders order)
+        {
+            if (isServer)
+            {
+                ServerSubmitCombatOrder(GameController.Instance.GetOurCiv(), order);
+                return;
+            }
+            CmdSubmitCombatOrder(order);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSubmitCombatOrder(CombatOrders order, NetworkConnectionToClient sender = null)
+        {
+            LocalHumanPlayerController playerCon = sender?.identity != null ? sender.identity.GetComponent<LocalHumanPlayerController>() : null;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"CmdSubmitCombatOrder: connection {sender?.connectionId} has no LocalHumanPlayerController.");
+                return;
+            }
+            ServerSubmitCombatOrder(playerCon.PlayerCiv, order);
+        }
+
+        [Server]
+        private void ServerSubmitCombatOrder(CivEnum civ, CombatOrders order)
+        {
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCiv(civ);
+            if (combatCon == null || combatCon.TurnResolver == null)
+            {
+                Debug.LogWarning($"ServerSubmitCombatOrder: no active combat found for civ {civ} - order ignored.");
+                return;
+            }
+            combatCon.TurnResolver.ServerSubmitOrder(civ, order);
+        }
+
+        [Server]
+        public void ServerBroadcastOrderLocked(int side)
+        {
+            RpcOrderLocked(side);
+        }
+
+        [ClientRpc]
+        private void RpcOrderLocked(int side)
+        {
+            CombatUIManager.Instance?.OnOrderLocked(side);
+        }
+
+        [Server]
+        public void ServerBroadcastOrdersResolved(CombatOrders sideOne, CombatOrders sideTwo)
+        {
+            RpcOrdersResolved(sideOne, sideTwo);
+        }
+
+        [ClientRpc]
+        private void RpcOrdersResolved(CombatOrders sideOne, CombatOrders sideTwo)
+        {
+            CombatUIManager.Instance?.CurrentCombatController?.TurnResolver?.ApplyResolvedOrdersAndResolve(sideOne, sideTwo);
+        }
+
+        [Server]
+        public void ServerBroadcastCombatPhaseChanged(CombatPhase phase)
+        {
+            RpcCombatPhaseChanged(phase);
+        }
+
+        [ClientRpc]
+        private void RpcCombatPhaseChanged(CombatPhase phase)
+        {
+            CombatUIManager.Instance?.OnCombatPhaseChanged(phase);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Ship-outcome reconciliation. Each client redundantly simulates weapon fire/damage locally
+        // (see TurnBasedCombatResolver/ShipController) so mid-combat HP can drift slightly between
+        // the two combatants' clients, but the decisions below (a ship dies / is captured / is
+        // scuttled) are re-broadcast from whichever client made the call while NetworkServer.active,
+        // and applied idempotently everywhere via ShipController.ApplyXFromServer so both clients'
+        // final outcome (who survived) converges even if the exact HP trace didn't.
+        // ---------------------------------------------------------------------------------------
+
+        [Server]
+        public void ServerBroadcastShipDestroyed(int shipID)
+        {
+            RpcShipDestroyed(shipID);
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.TurnResolver?.ServerCheckCombatOverAfterReconciliation();
+        }
+
+        [ClientRpc]
+        private void RpcShipDestroyed(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyDestroyedFromServer();
+        }
+
+        [Server]
+        public void ServerBroadcastShipCaptured(int shipID)
+        {
+            RpcShipCaptured(shipID);
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.TurnResolver?.ServerCheckCombatOverAfterReconciliation();
+        }
+
+        [ClientRpc]
+        private void RpcShipCaptured(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyCapturedFromServer();
+        }
+
+        [Server]
+        public void ServerBroadcastShipScuttled(int shipID)
+        {
+            RpcShipScuttled(shipID);
+        }
+
+        [ClientRpc]
+        private void RpcShipScuttled(int shipID)
+        {
+            CombatManager.Instance?.GetActiveCombatControllerForCiv(FleetData.CivEnum)?.GetShipByID(shipID)?.ApplyScuttledFromServer();
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Non-host report path for the reconciliation above. Each client's damage simulation can
+        // reach a kill/capture decision before the host's does (or the host's simulation may never
+        // reach it at all - see ResolveTurn/IsCombatOver), which previously left the host's combat
+        // stuck waiting on its own local outcome forever. These let a non-host client that detects
+        // a kill/capture ask the server to adopt it immediately, so the server's ship-alive state
+        // (and thus IsCombatOver) converges regardless of which client noticed first.
+        // ---------------------------------------------------------------------------------------
+
+        public void RequestReportShipDestroyed(int shipID)
+        {
+            if (isServer)
+            {
+                ServerBroadcastShipDestroyed(shipID);
+                return;
+            }
+            CmdReportShipDestroyed(shipID);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdReportShipDestroyed(int shipID)
+        {
+            ServerBroadcastShipDestroyed(shipID);
+        }
+
+        public void RequestReportShipCaptured(int shipID)
+        {
+            if (isServer)
+            {
+                ServerBroadcastShipCaptured(shipID);
+                return;
+            }
+            CmdReportShipCaptured(shipID);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdReportShipCaptured(int shipID)
+        {
+            ServerBroadcastShipCaptured(shipID);
         }
 
         public void GetPlayerDefinedTargetDestination(FleetController fleetCon)
@@ -1035,9 +2096,7 @@ namespace BOTF3D.Galaxy
             var galaxyUI = GalaxyMenuUIController.Instance;
             if (galaxyUI != null)
             {
-                galaxyUI.BeginSetDestination(fleetCon); // ✅ This sets FleetLookingForDestination
-                galaxyUI.SetClickMode(GalaxyClickMode.SetDestination);
-                Debug.Log($"✅ Set FleetLookingForDestination to '{fleetCon.name}'");
+                galaxyUI.BeginSetDestination(fleetCon);
             }
 
             // Get buttons from the specific fleet's UI

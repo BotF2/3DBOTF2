@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_053_DREMA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 53
-  Position: {x: -21.21, y: -0.46, z: -84.42}
+  Position: {x: -20.82, y: -0.46, z: -83.52}
   SysName: DREMA
   FirstOwner: 53
   CurrentOwner: 53

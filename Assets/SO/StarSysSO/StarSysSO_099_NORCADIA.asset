@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_099_NORCADIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 99
-  Position: {x: 28.7, y: 0.42, z: 16.37}
+  Position: {x: 28.70, y: 0.42, z: 16.37}
   SysName: NORCADIA
   FirstOwner: 99
   CurrentOwner: 99

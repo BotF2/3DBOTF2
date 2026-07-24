@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_028_BARZA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 28
-  Position: {x: 12.89, y: 0.29, z: -84.93}
+  Position: {x: 12.33, y: 0.29, z: -85.92}
   SysName: BARZA
   FirstOwner: 28
   CurrentOwner: 28

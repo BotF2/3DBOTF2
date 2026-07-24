@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
+  m_Name: TERRAN_SCOUT_IV
+  m_EditorClassIdentifier: Assembly-CSharp::ShipSO
+  ShipFBX_ModelAsGOPrefab: {fileID: 0}
+  ShipName: TERRAN_SCOUT_IV
+  CivEnum: 6
+  TechLevel: 3
+  ShipType: 0
+  MinTechPointsRequired: 0
+  shipSprite: {fileID: 21300000, guid: 1ea87381d33c6f2488f822d76df54c3e, type: 3}
+  shipColor: {r: 0, g: 0, b: 0, a: 0}
+  maxWarpFactor: 9.8
+  ShieldMaxHealth: 52
+  HullMaxHealth: 24
+  TorpedoDamage: 24
+  BeamDamage: 24
+  BuildDuration: 8
+  ShipDescription: 

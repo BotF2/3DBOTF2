@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CivInt: 1
   CivEnum: 1
-  CivShortName: ROMULAN
+  CivShortName: Romulan
   CivLongName: Romulan Star Empire
   CivHomeSystem: ROMULUS
   WarLikeEnum: -1
@@ -24,6 +24,8 @@ MonoBehaviour:
   CivImage: {fileID: 21300000, guid: ce09c123ea9d6984ebb51c0f4c5327b6, type: 3}
   Insignia: {fileID: 21300000, guid: 1b5479184d7cea445b4270a277fa0adb, type: 3}
   Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 80
   Credits: 0
   TechPoints: 0
   CivTechLevel: 100
@@ -46,3 +48,4 @@ MonoBehaviour:
     use the deceptiveness of the Tal Shiar. WHEN KNOWLEDGE IS POWER, BEING UNKNOWN
     MEANS TO BE UNCONQUERABLE.
   IntelPoints: 0
+  QualityScore: 6

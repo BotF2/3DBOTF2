@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_034_BOSLIC
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 34
-  Position: {x: -14.86, y: 0.7, z: -28.46}
+  Position: {x: -14.86, y: 0.70, z: -28.46}
   SysName: BOSLIC
   FirstOwner: 34
   CurrentOwner: 34

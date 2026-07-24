@@ -1,6 +1,7 @@
 // Ignore Spelling: shiptype Sys hvy BOTF
+using BOTF3D.Civilization;
 using BOTF3D.Combat;
-
+using BOTF3D.Core;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
 using System.Collections.Generic;
@@ -8,9 +9,6 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using BOTF3D.Core;
-using BOTF3D.Civilization;
-using BOTF3D.Audio;
 
 
 
@@ -22,8 +20,8 @@ namespace BOTF3D.Galaxy
     /// </summary>
     public class StarSysManager : MonoBehaviour, IManager
     {
-        public void Initialize() {}
-        public void Cleanup() {}
+        public void Initialize() { }
+        public void Cleanup() { }
         public static StarSysManager Instance;
 
         [Header("Scene References")]
@@ -104,12 +102,13 @@ namespace BOTF3D.Galaxy
         private GameObject galaxyImage;
         [SerializeField]
         private GameObject canvasBuildList;
+        private StarSysController currentBuildUISysCon;
+        public StarSysController CurrentBuildUISysCon => currentBuildUISysCon;
         [SerializeField]
         private Sprite unknowSystem;
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
-        [SerializeField]
-        public GameObject StarSysUI_ListContainer;
+        // StarSysUI_ListContainer removed — system UIs live in SysListContainer (SystemsMenuView/Viewport/SysListContainer)
 
         // ✅ NEW: Random position pool for RANDOM galaxy type
         private List<Vector3> randomPositionPool;
@@ -245,24 +244,6 @@ namespace BOTF3D.Galaxy
                 }
             }
 
-            // ✅ NEW: Find your StarSysUI_ListContainer
-            if (StarSysUI_ListContainer == null)
-            {
-                var canvasGalaxy = GameObject.Find("CanvasGalaxy");
-                if (canvasGalaxy != null)
-                {
-                    StarSysUI_ListContainer = FindInHierarchy(canvasGalaxy.transform, "StarSysUI_ListContainer");
-
-                    if (StarSysUI_ListContainer != null)
-                    {
-                        Debug.Log($"StarSysManager: ✅ Found StarSysUI_ListContainer");
-                    }
-                    else
-                    {
-                        Debug.LogWarning("StarSysManager: ⚠️ StarSysUI_ListContainer not found - create it in CanvasGalaxy!");
-                    }
-                }
-            }
         }
 
         private GameObject FindInHierarchy(Transform parent, string name)
@@ -330,7 +311,9 @@ namespace BOTF3D.Galaxy
                 var shipBuildScript = prefab.GetComponent<ShipBuildDrag>();
                 if (shipBuildScript != null)
                 {
-                    shipBuildScript.BuildDuration = shipSO.BuildDuration;
+                    int q = CivManager.Instance?.GetCivDataByCivEnum(localCiv)?.QualityScore ?? 5;
+                    shipBuildScript.BuildDuration = BOTF3D.Combat.ShipStatCalculator.Calculate(
+                        shipSO.ShipType, shipSO.TechLevel, localCiv, q).BuildDuration;
                     shipBuildScript.ShipSprite = shipSO.shipSprite;
                     prefab.GetComponent<Image>().sprite = shipSO.shipSprite;
 
@@ -663,11 +646,25 @@ namespace BOTF3D.Galaxy
             if (civSO.HasWarp)
             {
                 FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon);
+            }
+
+            // Home system defense: majors always get their own lone Destroyer regardless of warp
+            // status; minors only get one once they've researched warp (HasWarp=true) - mirrors the
+            // major/minor split already used for starting-fleet composition
+            // (ShipSOProvider.GetStartingFleetShips) and for majority/minority checks elsewhere
+            // (DiplomacyController.cs uses the same CivEnum <= TERRAN cutoff).
+            bool isMajorCiv = starSysCon.StarSysData.CurrentOwnerCivEnum <= CivEnum.TERRAN;
+            if (isMajorCiv || civSO.HasWarp)
+            {
                 ShipManager.Instance.BuildShipInSystem(ShipType.Destroyer, starSysCon);
             }
 
             if (true)
             {
+                // Shared by orbital battery and population starting scale-down below so a fresh
+                // EARLY-era game doesn't spawn every system already fully built/settled.
+                TechLevel startingTechLevel = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+
                 int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
 
                 sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
@@ -675,8 +672,33 @@ namespace BOTF3D.Galaxy
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
-                sysData.OrbitalBatteries = AddSystemFacilities(starSysSO.OrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+                int startingOrbitalBatteries = DetermineStartingOrbitalBatteries(civSO, startingTechLevel, starSysSO.OrbitalBatteries);
+                sysData.OrbitalBatteries = AddSystemFacilities(startingOrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+
+                sysData.MaxPopulation = DetermineMaxPopulation(civSO, starSysSO);
+                sysData.MaxGroundForceUnits = DetermineMaxGroundForceUnits(civSO, starSysSO, sysData.MaxPopulation);
+                // Homeworlds start partially settled, scaled by the civ's starting TechLevel (see
+                // DetermineStartingPopulationFraction) - a fresh EARLY-era game no longer spawns every
+                // homeworld already at its population cap. Every other owned system still starts at 0
+                // and grows toward its cap over time via PopulationManager (see that class for the
+                // per-stardate growth/conversion tied to active Factories/ResearchCenters).
+                if (starSysSO.IsHomeworld)
+                {
+                    float startingFraction = DetermineStartingPopulationFraction(civSO, startingTechLevel);
+                    int startingTotalPopulation = Mathf.RoundToInt(sysData.MaxPopulation * startingFraction);
+
+                    // 10% of the starting population is already fielded as ground forces rather than
+                    // civilians - carved out of, not added on top of, the total so Population +
+                    // GroundForces.Count always equals the system's true total population.
+                    int initialGroundForces = Mathf.Clamp(
+                        Mathf.RoundToInt(startingTotalPopulation * 0.10f), 0, sysData.MaxGroundForceUnits);
+                    sysData.Population = startingTotalPopulation - initialGroundForces;
+
+                    for (int i = 0; i < initialGroundForces; i++)
+                        AddGroundForceUnit(starSysCon);
+                }
+
                 SetParentForFacilities(starSysCon.gameObject, sysData);
 
                 if (StarSysMenuUIController.Instance != null)
@@ -695,10 +717,40 @@ namespace BOTF3D.Galaxy
                 }
             }
 
+            InitializeDilithiumStockpile(starSysCon);
+
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
                 localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
             }
+        }
+
+        private void InitializeDilithiumStockpile(StarSysController sysCon)
+        {
+            var sysData = sysCon.StarSysData;
+            bool isPlayable = sysData.CurrentCivController?.CivData?.Playable == true;
+
+            if (!isPlayable)
+            {
+                sysData.DilithiumStockpile = 5;
+                return;
+            }
+
+            CivEnum civ    = sysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality    = sysData.CurrentCivController.CivData.QualityScore;
+
+            // Cost of the power plants that were pre-built at game start
+            int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(civ) * sysData.CurrentPowerPlantCount;
+
+            // Cost of the Destroyer placed in-system at game start
+            int shipLi2 = ShipStatCalculator.Calculate(ShipType.Destroyer, tech, civ, quality).DilithiumCost;
+
+            // Base buffer of 20 + 3 per power plant (more plants = more infrastructure to maintain)
+            int buffer = 20 + sysData.CurrentPowerPlantCount * 3;
+
+            sysData.DilithiumStockpile = ppLi2 + shipLi2 + buffer;
+            Debug.Log($"[Dilithium] {sysCon.name} ({civ}): pp={ppLi2}, ship={shipLi2}, buffer={buffer}, stockpile={sysData.DilithiumStockpile}");
         }
 
         // ... (rest of the methods remain the same - DetermineDilithiumCapacity, DetermineStartingPowerPlants, etc.)
@@ -710,7 +762,7 @@ namespace BOTF3D.Galaxy
             // ✅ Major race homeworlds
             if (civSO.Playable && starSysSO.IsHomeworld)
             {
-                return 2; // Federation, Romulan, Klingon, etc. homeworlds
+                return starSysSO.Dilitium; // set per-civ by CivBalanceCalculator
             }
 
             // ✅ Minor race systems
@@ -737,6 +789,129 @@ namespace BOTF3D.Galaxy
             //#nullable enable
             return 0;
         }
+
+        /// <summary>
+        /// Determine the Population cap for a system. Homeworlds use the civ's authored lore value
+        /// (CivSO.Population) if set. Major homeworlds otherwise use MaxHomePopulation directly (every
+        /// major is authored with the same fixed 80, so majors reliably reach the top GroundForce tier).
+        /// Minor homeworlds without a lore value instead roll randomly within Min/MaxHomePopulation,
+        /// where MaxHomePopulation itself was authored per-civ (randomized up to 40) so minor caps vary
+        /// across races. Non-home systems get smaller fixed starting caps until colonization
+        /// (transport-delivered population) is built out.
+        /// </summary>
+        private int DetermineMaxPopulation(CivSO civSO, StarSysSO starSysSO)
+        {
+            if (starSysSO.IsHomeworld)
+            {
+                if (civSO.Population > 0)
+                    return civSO.Population;
+
+                if (civSO.Playable)
+                    return civSO.MaxHomePopulation > 0 ? civSO.MaxHomePopulation : 80;
+
+                int min = civSO.MinHomePopulation > 0 ? civSO.MinHomePopulation : 10;
+                int max = civSO.MaxHomePopulation > min ? civSO.MaxHomePopulation : min + 20;
+                return UnityEngine.Random.Range(min, max + 1);
+            }
+
+            if (civSO.Playable)
+                return (starSysSO.IsHabitable || starSysSO.IsTerraformable) ? 20 : 0;
+
+            return 8; // minor-owned non-home system
+        }
+
+        /// <summary>
+        /// Fraction of MaxPopulation a homeworld starts with, based on the civ's TechLevel at creation
+        /// time. Majors get a fixed fraction per tier so they're predictable; minors roll within a
+        /// per-tier range so same-tech minors still vary. Population climbs from here toward
+        /// MaxPopulation over time via PopulationManager - it's no longer set to the cap outright.
+        /// </summary>
+        private float DetermineStartingPopulationFraction(CivSO civSO, TechLevel techLevel)
+        {
+            if (civSO.Playable)
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: return 0.25f;
+                    case TechLevel.DEVELOPED: return 0.50f;
+                    case TechLevel.ADVANCED: return 0.75f;
+                    default: return 1.0f; // SUPREME
+                }
+            }
+
+            switch (techLevel)
+            {
+                case TechLevel.EARLY: return UnityEngine.Random.Range(0.10f, 0.30f);
+                case TechLevel.DEVELOPED: return UnityEngine.Random.Range(0.30f, 0.55f);
+                case TechLevel.ADVANCED: return UnityEngine.Random.Range(0.55f, 0.80f);
+                default: return UnityEngine.Random.Range(0.80f, 1.0f); // SUPREME
+            }
+        }
+
+        /// <summary>
+        /// Number of orbital batteries a system starts with, scaled down from the designer-authored
+        /// starSysSO.OrbitalBatteries count by TechLevel so a fresh EARLY-era game doesn't spawn every
+        /// system already fully defended - the rest can be built up over time via StarSysBuildManager.
+        /// Majors use the same fixed 25/50/75/100% curve as starting population. Minors use the same
+        /// randomized per-tier range, then shift up or down per point of WarLikeEnum/XenophobiaEnum:
+        /// warlike and xenophobic civs field more batteries at any given tech tier, peaceful/open ones
+        /// field fewer.
+        /// </summary>
+        private int DetermineStartingOrbitalBatteries(CivSO civSO, TechLevel techLevel, int authoredCount)
+        {
+            if (authoredCount <= 0) return 0;
+
+            float fraction;
+            if (civSO.Playable)
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: fraction = 0.25f; break;
+                    case TechLevel.DEVELOPED: fraction = 0.50f; break;
+                    case TechLevel.ADVANCED: fraction = 0.75f; break;
+                    default: fraction = 1.0f; break; // SUPREME
+                }
+            }
+            else
+            {
+                switch (techLevel)
+                {
+                    case TechLevel.EARLY: fraction = UnityEngine.Random.Range(0.10f, 0.30f); break;
+                    case TechLevel.DEVELOPED: fraction = UnityEngine.Random.Range(0.30f, 0.55f); break;
+                    case TechLevel.ADVANCED: fraction = UnityEngine.Random.Range(0.55f, 0.80f); break;
+                    default: fraction = UnityEngine.Random.Range(0.80f, 1.0f); break; // SUPREME
+                }
+
+                // WarLikeEnum/XenophobiaEnum run -2 (Warlike/Xenophobia) to +2 (Pacifist/Compassion), so
+                // negating and summing gives a -4..4 "defensiveness" score. Each point shifts the
+                // fraction by 10% - a Warlike+Xenophobia minor fields noticeably more batteries than an
+                // equivalent-tech Pacifist+Compassion one.
+                int defensiveness = -(int)civSO.WarLikeEnum - (int)civSO.XenophbiaEnum;
+                fraction = Mathf.Clamp01(fraction + defensiveness * 0.10f);
+            }
+
+            return Mathf.Clamp(Mathf.RoundToInt(authoredCount * fraction), 0, authoredCount);
+        }
+
+        /// <summary>
+        /// Determine the GroundForces cap for a system. Home systems of major civs are the only
+        /// systems that can reach the absolute upper limit of 11 (matches groundForceGridLimit in
+        /// StarSysUI_Fields). Every other tier is scaled down from there so majors always field more
+        /// troops than minors, and homeworlds always field more than colonies.
+        /// </summary>
+        private int DetermineMaxGroundForceUnits(CivSO civSO, StarSysSO starSysSO, int maxPopulation)
+        {
+            if (maxPopulation <= 0) return 0;
+
+            int tierCeiling;
+            if (civSO.Playable && starSysSO.IsHomeworld) tierCeiling = 11;
+            else if (civSO.Playable) tierCeiling = 6;
+            else if (starSysSO.IsHomeworld) tierCeiling = 5;
+            else tierCeiling = 2;
+
+            return Mathf.Clamp(maxPopulation / GroundForceData.PopulationPerUnit, 1, tierCeiling);
+        }
+
         /// <summary>
         /// Determine starting power plants (always 1 for warp-capable, 0 otherwise)
         /// </summary>
@@ -786,6 +961,38 @@ namespace BOTF3D.Galaxy
             {
                 go.transform.SetParent(parent.transform, false);
             }
+            foreach (var go in starSysData.GroundForces)
+            {
+                go.transform.SetParent(parent.transform, false);
+            }
+        }
+
+        /// <summary>
+        /// Instantiates one ground force unit placeholder for the system and adds it to
+        /// StarSysData.GroundForces. Unlike other facilities, ground forces have no power load and
+        /// no on/off state (see GroundForceIconUI), so the placeholder needs no TextMeshProUGUI toggle -
+        /// it exists purely as a unique GameObject identity for the UI grid (StarSysUI_Fields.SyncGroundForceGrid)
+        /// to key off of. Called at homeworld creation and by PopulationManager as population grows.
+        /// </summary>
+        public GameObject AddGroundForceUnit(StarSysController sysController)
+        {
+            var sysData = sysController.StarSysData;
+
+            if (sysData.GroundForceData == null)
+            {
+                sysData.GroundForceData = new GroundForceData("null")
+                {
+                    CivEnum = sysData.CurrentOwnerCivEnum,
+                    FacilitiesEnumType = StarSysFacilityType.GroundForce
+                };
+            }
+
+            var newFacilityGO = new GameObject("GroundForceUnit");
+            newFacilityGO.layer = 5;
+            newFacilityGO.transform.SetParent(sysController.transform, false);
+            newFacilityGO.SetActive(false);
+            sysData.GroundForces.Add(newFacilityGO);
+            return newFacilityGO;
         }
         public List<GameObject> AddSystemFacilities(int numOf, GameObject prefab, int civInt, int onOff, StarSysController sysController)
         {
@@ -807,7 +1014,9 @@ namespace BOTF3D.Galaxy
                 powerPlantData.StartStarDate = startingStarDate;
                 powerPlantData.BuildDuration = powerPlantSO.BuildDuration;
                 powerPlantData.BasePowerOutput = powerPlantSO.PowerOutput;
-                powerPlantData.PowerPlantSprite = powerPlantSO.PowerPlantSprite;
+                // ✅ Sprite comes from ThemeSO (per-civ), not the facility SO — ThemeSO is the
+                // single source of truth for facility art so editing a theme updates the icon live.
+                powerPlantData.PowerPlantSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).PowerPlantImage;
                 powerPlantData.Description = powerPlantSO.Description;
                 sysController.StarSysData.PowerPlantData = powerPlantData;
 
@@ -836,7 +1045,7 @@ namespace BOTF3D.Galaxy
                 factoryData.StartStarDate = startingStarDate;
                 factoryData.PowerLoad = factorySO.PowerLoad;
                 factoryData.BuildDuration = factorySO.BuildDuration;
-                factoryData.FactorySprite = factorySO.FactorySprite;
+                factoryData.FactorySprite = ThemeManager.Instance.GetThemeByCivEnum(civ).FactoryImage;
                 factoryData.Description = factorySO.Description;
                 sysController.StarSysData.FactoryData = factoryData;
 
@@ -866,7 +1075,7 @@ namespace BOTF3D.Galaxy
                 syData.StartStarDate = startingStarDate;
                 syData.BuildDuration = sSO.BuildDuration;
                 syData.PowerLoad = sSO.PowerLoad;
-                syData.ShipyardSprite = sSO.ShipyardSprite;
+                syData.ShipyardSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ShipyardImage;
                 syData.Description = sSO.Description;
                 sysController.StarSysData.ShipyardData = syData;
 
@@ -895,7 +1104,7 @@ namespace BOTF3D.Galaxy
                 sgData.StartStarDate = startingStarDate;
                 sgData.BuildDuration = sgSO.BuildDuration;
                 sgData.PowerLoad = sgSO.PowerLoad;
-                sgData.ShieldGeneratorSprite = sgSO.ShieldGeneratorSprite;
+                sgData.ShieldGeneratorSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ShieldImage;
                 sgData.Description = sgSO.Description;
                 sysController.StarSysData.ShieldGeneratorData = sgData;
 
@@ -924,7 +1133,7 @@ namespace BOTF3D.Galaxy
                 obData.StartStarDate = startingStarDate;
                 obData.BuildDuration = obSO.BuildDuration;
                 obData.PowerLoad = obSO.PowerLoad;
-                obData.OrbitalBatterySprite = obSO.OrbitalBatterySprite;
+                obData.OrbitalBatterySprite = ThemeManager.Instance.GetThemeByCivEnum(civ).OrbitalBatteriesImage;
                 obData.Description = obSO.Description;
                 sysController.StarSysData.OrbitalBatteryData = obData;
 
@@ -953,7 +1162,7 @@ namespace BOTF3D.Galaxy
                 researchData.StartStarDate = startingStarDate;
                 researchData.BuildDuration = rSO.BuildDuration;
                 researchData.PowerLoad = rSO.PowerLoad;
-                researchData.ResearchCenterSprite = rSO.ResearchCenterSprite;
+                researchData.ResearchCenterSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ResearchCenterImage;
                 researchData.Description = rSO.Description;
                 sysController.StarSysData.ResearchCenterData = researchData;
 
@@ -1224,6 +1433,19 @@ namespace BOTF3D.Galaxy
 
         }
 
+        // StarSysController has no NetworkIdentity (it's a plain MonoBehaviour, not networked), so a
+        // fleet destination Command can't take one as a parameter directly - it sends the system name
+        // instead and this does the server-side lookup back to the actual GameObject.
+        public StarSysController GetStarSysControllerByName(string name)
+        {
+            for (int i = 0; i < StarSysControllerList.Count; i++)
+            {
+                if (StarSysControllerList[i].StarSysData.GetSysName().Equals(name))
+                    return StarSysControllerList[i];
+            }
+            return null;
+        }
+
         public void UpdateStarSystemOwner(CivEnum civCurrent, CivEnum civNew)
         {
             foreach (var sysCon in StarSysControllerList)
@@ -1302,6 +1524,9 @@ namespace BOTF3D.Galaxy
                 }
             }
 
+            // Refresh turn/Li_2 costs now that tech level has changed
+            PopulateBuildCostTexts(sysCon, buildUIInstance);
+
             Debug.Log("=== UpdateAvailableShipsByTechLevel: Complete ===");
         }
 
@@ -1351,23 +1576,49 @@ namespace BOTF3D.Galaxy
             // Final pass to process any items that were queued by InstantiateShipListUIGameObject
             shipManager.ProcessPendingShipUIs();
         }
+        public void HideBuildUI()
+        {
+            var buildUIFields = Object.FindFirstObjectByType<BuildUIFields>(FindObjectsInactive.Exclude);
+            if (buildUIFields != null)
+                buildUIFields.gameObject.SetActive(false);
+            // Do NOT deactivate canvasBuildList — ASystemMenuView may be a child of it,
+            // and SetActive(false) on a parent hides children even after SetActive(true) on the child.
+        }
+
         public void InstantiateSysBuildUI(StarSysController sysCon) // open the build queue UI
         {
             Debug.Log($"InstantiateSysBuildUI: Opening for system '{sysCon.name}'");
 
-            var existingBuildUI = GameObject.Find("SysBuildUIListPanel(Clone)");
-            if (existingBuildUI != null)
+            // Search inactive objects too — HideBuildUI deactivates rather than destroys
+            var existingBuildUIFields = Object.FindFirstObjectByType<BuildUIFields>(FindObjectsInactive.Include);
+            if (existingBuildUIFields != null)
             {
-                Debug.Log("  Destroying previous build UI");
-                Destroy(existingBuildUI);
+                if (currentBuildUISysCon == sysCon)
+                {
+                    // Same system reopened — just show the existing UI so the queue is preserved
+                    Debug.Log("  Reusing existing build UI for same system");
+                    existingBuildUIFields.gameObject.SetActive(true);
+                    canvasBuildList.SetActive(true);
+                    return;
+                }
+                Debug.Log("  Destroying previous build UI (different system): " + existingBuildUIFields.gameObject.name);
+                Destroy(existingBuildUIFields.gameObject);
+                currentBuildUISysCon = null;
             }
+            currentBuildUISysCon = sysCon;
 
             GameObject sysBuildListInstance = Instantiate(sysBuildUIListPrefab, new Vector3(0, -70, 0), Quaternion.identity);
             sysBuildListInstance.layer = 5;
 
+            // Populate system name header
+            var buildUIFields = sysBuildListInstance.GetComponent<BuildUIFields>();
+            if (buildUIFields?.systemNameTMP != null)
+                buildUIFields.systemNameTMP.text = sysCon.StarSysData.SysName;
+
             // ✅ Set civ-specific images FIRST (before anything else)
             SetFacilityBuildImages(sysCon, sysBuildListInstance);
             SetShipBuildImages(sysCon, sysBuildListInstance);
+            PopulateBuildCostTexts(sysCon, sysBuildListInstance);
 
             // Find GridLayoutGroups
             GridLayoutGroup[] grids = sysBuildListInstance.GetComponentsInChildren<GridLayoutGroup>();
@@ -1479,6 +1730,7 @@ namespace BOTF3D.Galaxy
             }
             SetShipBuildImages(sysCon, sysBuildListInstance);
             SetFacilityBuildImages(sysCon, sysBuildListInstance);
+            PopulateBuildCostTexts(sysCon, sysBuildListInstance);
 
             Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
             // ✅ NEW: Find and wire CloseBuilding button
@@ -1552,11 +1804,22 @@ namespace BOTF3D.Galaxy
             foreach (var shipDrag in shipDragItems)
             {
                 shipDrag.StarSysController = sysCon;
-                Debug.Log($"    Wired ship drag '{shipDrag.name}' to system '{sysCon.name}'");
+                shipDrag.ShipType = shipDrag.gameObject.name switch
+                {
+                    "ItemScout" => ShipType.Scout,
+                    "ItemDestroyer" => ShipType.Destroyer,
+                    "ItemCruiser" => ShipType.Cruiser,
+                    "ItemLtCruiser" => ShipType.LtCruiser,
+                    "ItemHvyCruiser" => ShipType.HvyCruiser,
+                    "ItemTransport" => ShipType.Transport,
+                    _ => shipDrag.ShipType
+                };
+                Debug.Log($"    Wired ship drag '{shipDrag.name}' (type={shipDrag.ShipType}) to system '{sysCon.name}'");
             }
 
             // ✅ NEW: Filter ship build items based on tech level
             UpdateAvailableShipsByTechLevel(sysCon, sysBuildListInstance);
+            ApplyDilithiumAvailability(sysCon, sysBuildListInstance);
 
             Debug.Log($"InstantiateStarSysBuildListUI: Complete for '{sysCon.name}'");
         }
@@ -1585,10 +1848,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObPower = Instantiate(powerPlantInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var powerPlantSO = GetPowrPlantSObyCivEnum(sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (powerPlantSO != null)
-                        imageObPower.GetComponentInChildren<Image>().sprite = powerPlantSO.PowerPlantSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObPower.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.PowerPlantImage;
                     imageObPower.transform.SetParent(powerPlantInventorySlot.transform, false);
+                    { var d = imageObPower.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.Factory:
@@ -1604,10 +1867,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObFactory = Instantiate(factoryInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var factorySO = GetFactorySObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (factorySO != null)
-                        imageObFactory.GetComponentInChildren<Image>().sprite = factorySO.FactorySprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObFactory.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
                     imageObFactory.transform.SetParent(factoryInventorySlot.transform, false);
+                    { var d = imageObFactory.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.Shipyard:
@@ -1623,10 +1886,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObShipyard = Instantiate(shipyardInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var shipyardSO = GetShipyardSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (shipyardSO != null)
-                        imageObShipyard.GetComponentInChildren<Image>().sprite = shipyardSO.ShipyardSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObShipyard.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
                     imageObShipyard.transform.SetParent(shipyardInventorySlot.transform, false);
+                    { var d = imageObShipyard.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.ShieldGenerator:
@@ -1642,10 +1905,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObShield = Instantiate(shieldGenInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var shieldSO = GetShieldGeneratorSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (shieldSO != null)
-                        imageObShield.GetComponentInChildren<Image>().sprite = shieldSO.ShieldGeneratorSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObShield.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
                     imageObShield.transform.SetParent(shieldGenInventorySlot.transform, false);
+                    { var d = imageObShield.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.OrbitalBattery:
@@ -1661,10 +1924,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObOB = Instantiate(orbitalBatteryInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var orbitalSO = GetOrbitalBatterySObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (orbitalSO != null)
-                        imageObOB.GetComponentInChildren<Image>().sprite = orbitalSO.OrbitalBatterySprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObOB.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.OrbitalBatteriesImage;
                     imageObOB.transform.SetParent(orbitalBatteryInventorySlot.transform, false);
+                    { var d = imageObOB.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 case StarSysFacilityType.ResearchCenter:
@@ -1680,10 +1943,10 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObRC = Instantiate(researchCenterInventorySlotPrefab, Vector3.zero, Quaternion.identity);
-                    var researchSO = GetResearchCenterSObyCivInt((int)sysCon.StarSysData.CurrentOwnerCivEnum);
-                    if (researchSO != null)
-                        imageObRC.GetComponentInChildren<Image>().sprite = researchSO.ResearchCenterSprite;
+                    if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
+                        imageObRC.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ResearchCenterImage;
                     imageObRC.transform.SetParent(researchCenterInventory_slot.transform, false);
+                    { var d = imageObRC.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
 
                 default:
@@ -1858,25 +2121,18 @@ namespace BOTF3D.Galaxy
             // Store reference on the controller
             sysCon.StarSysUIGameObject = newUI;
 
-            // ✅ CRITICAL: Parent to StarSysUI_ListContainer (home storage)
-            if (StarSysUI_ListContainer != null)
+            // Parent inside SysListContainer (SystemsMenuView/Viewport/SysListContainer) so the
+            // RectTransform is already in the right canvas subtree. The UI starts inactive and
+            // is activated when the Systems menu is opened.
+            var sysListContainer = StarSysMenuUIController.Instance?.SysListContainer;
+            if (sysListContainer != null)
             {
-                newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
-                Debug.Log($"  ✅ Parented to StarSysUI_ListContainer");
+                newUI.transform.SetParent(sysListContainer.transform, false);
+                Debug.Log($"  ✅ Parented to SysListContainer");
             }
             else
             {
-                Debug.LogWarning("  ⚠️ StarSysUI_ListContainer is null! Trying to find it...");
-                FindGalaxyReferences();
-
-                if (StarSysUI_ListContainer != null)
-                {
-                    newUI.transform.SetParent(StarSysUI_ListContainer.transform, false);
-                }
-                else
-                {
-                    Debug.LogError("  ❌ Still can't find StarSysUI_ListContainer! UI will be orphaned!");
-                }
+                Debug.LogError("  ❌ StarSysMenuUIController.SysListContainer is null — UI may render incorrectly. Check Inspector assignment on StarSysMenuUIController.");
             }
 
             // ✅ Set up ShipContent for ship UIs
@@ -1911,70 +2167,36 @@ namespace BOTF3D.Galaxy
             CivEnum localCiv = sysCon.StarSysData.CurrentOwnerCivEnum;
             Debug.Log($"SetFacilityBuildImages: Setting for {localCiv}");
 
+            // ✅ Use the theme for the system's owning civ, not whichever theme happens to be
+            // globally "current" (e.g. the local player's main-menu selection) - otherwise a
+            // system owned by another civ would show the wrong civ's facility art.
+            ThemeSO theme = ThemeManager.Instance?.GetThemeByCivEnum(localCiv);
+            if (theme == null) return;
+
             // Find all buildable items
             FactoryBuildItemDrag[] buildableItems = buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true);
 
             foreach (var item in buildableItems)
             {
-                Image itemImage = item.GetComponent<Image>();
-                if (itemImage == null) continue;
-
-                switch (item.name)
+                Sprite sprite = item.name switch
                 {
-                    case "ItemPowerPlant":
-                        var powerPlantSO = GetPowrPlantSObyCivEnum(localCiv);
-                        if (powerPlantSO != null && powerPlantSO.PowerPlantSprite != null)
-                        {
-                            itemImage.sprite = powerPlantSO.PowerPlantSprite;
-                            Debug.Log($"  ✅ Set PowerPlant sprite for {localCiv}");
-                        }
-                        break;
+                    "ItemPowerPlant" => theme.PowerPlantImage,
+                    "ItemFactory" => theme.FactoryImage,
+                    "ItemShipyard" => theme.ShipyardImage,
+                    "ItemShieldGenerator" => theme.ShieldImage,
+                    "ItemOrbitalBattery" => theme.OrbitalBatteriesImage,
+                    "ItemResearchCenter" => theme.ResearchCenterImage,
+                    _ => null
+                };
+                if (sprite == null) continue;
 
-                    case "ItemFactory":
-                        var factorySO = GetFactorySObyCivInt((int)localCiv);
-                        if (factorySO != null && factorySO.FactorySprite != null)
-                        {
-                            itemImage.sprite = factorySO.FactorySprite;
-                            Debug.Log($"  ✅ Set Factory sprite for {localCiv}");
-                        }
-                        break;
+                // ✅ Some item prefabs (e.g. ItemShipyard) render their icon via a nested child
+                // "Image" GameObject rather than the root's own Image component - update every
+                // Image under this item so the visible one always gets the themed sprite.
+                foreach (var img in item.GetComponentsInChildren<Image>(true))
+                    img.sprite = sprite;
 
-                    case "ItemShipyard":
-                        var shipyardSO = GetShipyardSObyCivInt((int)localCiv);
-                        if (shipyardSO != null && shipyardSO.ShipyardSprite != null)
-                        {
-                            itemImage.sprite = shipyardSO.ShipyardSprite;
-                            Debug.Log($"  ✅ Set Shipyard sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemShieldGenerator":
-                        var shieldSO = GetShieldGeneratorSObyCivInt((int)localCiv);
-                        if (shieldSO != null && shieldSO.ShieldGeneratorSprite != null)
-                        {
-                            itemImage.sprite = shieldSO.ShieldGeneratorSprite;
-                            Debug.Log($"  ✅ Set ShieldGenerator sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemOrbitalBattery":
-                        var orbitalSO = GetOrbitalBatterySObyCivInt((int)localCiv);
-                        if (orbitalSO != null && orbitalSO.OrbitalBatterySprite != null)
-                        {
-                            itemImage.sprite = orbitalSO.OrbitalBatterySprite;
-                            Debug.Log($"  ✅ Set OrbitalBattery sprite for {localCiv}");
-                        }
-                        break;
-
-                    case "ItemResearchCenter":
-                        var researchSO = GetResearchCenterSObyCivInt((int)localCiv);
-                        if (researchSO != null && researchSO.ResearchCenterSprite != null)
-                        {
-                            itemImage.sprite = researchSO.ResearchCenterSprite;
-                            Debug.Log($"  ✅ Set ResearchCenter sprite for {localCiv}");
-                        }
-                        break;
-                }
+                Debug.Log($"  ✅ Set {item.name} sprite for {localCiv}");
             }
         }
 
@@ -2012,19 +2234,29 @@ namespace BOTF3D.Galaxy
                 // ✅ Find matching ShipSO by type
                 ShipSO shipSO = availableShips.FirstOrDefault(s => s.ShipType == dragItem.ShipType);
 
+                // ✅ The per-slot background image (e.g. "ImageScoutBackground") sits alongside
+                // the draggable item under the same InventorySlot - mirror the item's sprite onto it.
+                Image bgImage = FindShipInventoryBackgroundImage(dragItem);
+                Image itemImage = dragItem.GetComponent<Image>();
+
                 if (shipSO != null)
                 {
                     // Set image and data
-                    Image itemImage = dragItem.GetComponent<Image>();
                     if (itemImage != null && shipSO.shipSprite != null)
                     {
                         itemImage.sprite = shipSO.shipSprite;
                         dragItem.ShipSprite = shipSO.shipSprite;
-                        dragItem.BuildDuration = shipSO.BuildDuration;
+                        int q2 = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+                        dragItem.BuildDuration = BOTF3D.Combat.ShipStatCalculator.Calculate(
+                            shipSO.ShipType, shipSO.TechLevel, localCiv, q2).BuildDuration;
                         dragItem.ShipType = shipSO.ShipType;
 
                         Debug.Log($"  ✅ Set {shipSO.ShipType} sprite for {localCiv}");
                     }
+
+                    // ✅ Ship is buildable - show the real item image, hide the locked preview
+                    if (itemImage != null)
+                        itemImage.enabled = true;
 
                     // ✅ Show this ship type - make it fully interactable
                     dragItem.gameObject.SetActive(true);
@@ -2035,6 +2267,15 @@ namespace BOTF3D.Galaxy
                         canvasGroup.alpha = 1.0f;
                         canvasGroup.interactable = true;
                         canvasGroup.blocksRaycasts = true;
+                    }
+
+                    if (bgImage != null && shipSO.shipSprite != null)
+                    {
+                        bgImage.sprite = shipSO.shipSprite;
+                        bgImage.enabled = true;
+                        bgImage.transform.SetAsLastSibling();
+                        Color c = bgImage.color;
+                        bgImage.color = new Color(c.r, c.g, c.b, 1f);
                     }
                 }
                 else
@@ -2057,9 +2298,210 @@ namespace BOTF3D.Galaxy
                     canvasGroup.interactable = false;
                     canvasGroup.blocksRaycasts = false;
 
+                    // ✅ Preview the ship's eventual look (this civ + type) even though it's
+                    // not buildable yet - the background shows what it'll be once unlocked,
+                    // dimmed to 30% alpha to read as inactive. Hide the item's default/stale
+                    // image underneath so it doesn't show through the preview.
+                    if (bgImage != null)
+                    {
+                        ShipSO futureShipSO = ShipManager.Instance.GetShipSO(localCiv, dragItem.ShipType);
+                        if (futureShipSO != null && futureShipSO.shipSprite != null)
+                        {
+                            bgImage.sprite = futureShipSO.shipSprite;
+                            bgImage.enabled = true;
+                            bgImage.transform.SetAsLastSibling();
+                            Color c = bgImage.color;
+                            bgImage.color = new Color(c.r, c.g, c.b, 0.3f);
+
+                            if (itemImage != null)
+                                itemImage.enabled = false;
+                        }
+                        else
+                        {
+                            bgImage.enabled = false;
+
+                            if (itemImage != null)
+                                itemImage.enabled = true;
+                        }
+                    }
+
                     Debug.Log($"  🔒 {dragItem.ShipType} locked (requires higher tech level)");
                 }
             }
+        }
+
+        /// <summary>
+        /// Locates the "Image{ShipType}Background" sibling that sits next to a ship's
+        /// draggable inventory item (e.g. "ImageScoutBackground" next to "ItemScout"),
+        /// mirroring how each facility's InventorySlot pairs a background image with its item.
+        /// </summary>
+        private Image FindShipInventoryBackgroundImage(ShipBuildDrag dragItem)
+        {
+            Transform slot = dragItem.transform.parent;
+            if (slot == null) return null;
+
+            string bgName = GetShipInventoryBackgroundName(dragItem.ShipType);
+            if (bgName == null) return null;
+
+            Transform bg = slot.Find(bgName);
+            return bg != null ? bg.GetComponent<Image>() : null;
+        }
+
+        private string GetShipInventoryBackgroundName(ShipType type)
+        {
+            switch (type)
+            {
+                case ShipType.Scout: return "ImageScoutBackground";
+                case ShipType.Destroyer: return "ImageDestroyerBackground";
+                case ShipType.Cruiser: return "ImageCruiserBackground";
+                case ShipType.LtCruiser: return "ImageLtCruiserBackground";
+                case ShipType.HvyCruiser: return "ImageHvyCruiserBackground";
+                case ShipType.Transport: return "ImageTransportBackground";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// Populates the turn-count and Li_2 text fields in the build UI.
+        /// Called on initial open and whenever tech level advances.
+        /// </summary>
+        public void PopulateBuildCostTexts(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon == null || buildUIInstance == null) return;
+            if (sysCon.StarSysData?.CurrentCivController?.CivData == null) return;
+
+            CivEnum civ = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+
+            // Build a name → TMP lookup so we can set each field in O(1)
+            var tmps = new Dictionary<string, TextMeshProUGUI>();
+            foreach (var t in buildUIInstance.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (!tmps.ContainsKey(t.gameObject.name))
+                    tmps[t.gameObject.name] = t;
+
+            // ── Facilities ────────────────────────────────────────────────────────────
+            SetCostText(tmps, "F_PowerTurns", "F_PowerLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.PowerPlanet),
+                ShipStatCalculator.GetPowerPlantDilithiumCost(civ));
+
+            SetCostText(tmps, "F_FactoryTurns", "F_FactoryLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.Factory),
+                GetFactorySObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_YardTurns", "F_YardLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.Shipyard),
+                GetShipyardSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_ShieldTurns", "F_ShieldLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.ShieldGenerator),
+                GetShieldGeneratorSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_ResearchTurns", "F_ResearchLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.ResearchCenter),
+                GetResearchCenterSObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            SetCostText(tmps, "F_OBTurns", "F_OBLi_2",
+                GetFacilityTurns(sysCon, StarSysFacilityType.OrbitalBattery),
+                GetOrbitalBatterySObyCivInt((int)civ)?.DilithiumCost ?? 0);
+
+            // ── Ships ──────────────────────────────────────────────────────────────────
+            SetShipCostText(tmps, "ScoutTurns", "ScoutLi_2", ShipType.Scout, tech, civ, quality);
+            SetShipCostText(tmps, "DestroyerTurns", "DestroyerLi_2", ShipType.Destroyer, tech, civ, quality);
+            SetShipCostText(tmps, "CruiserTurns", "CruiserLi_2", ShipType.Cruiser, tech, civ, quality);
+            SetShipCostText(tmps, "LtCruiserTurns", "LtCruiserLi_2", ShipType.LtCruiser, tech, civ, quality);
+            SetShipCostText(tmps, "HvyCruiserTurns", "HvyCruiserLi_2", ShipType.HvyCruiser, tech, civ, quality);
+            SetShipCostText(tmps, "TransTurns", "TransLi_2", ShipType.Transport, tech, civ, quality);
+
+            // ── Dilithium Stockpile ────────────────────────────────────────────────────
+            // The value text is named "DilithiumText" inside the "Ditlithium Stockpile" container
+            var stockpileRoot = buildUIInstance.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == "Dilithium Stockpile");
+            if (stockpileRoot != null)
+            {
+                var valueText = stockpileRoot.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (valueText != null)
+                    valueText.text = sysCon.StarSysData.DilithiumStockpile.ToString();
+            }
+        }
+
+        private void SetCostText(Dictionary<string, TextMeshProUGUI> tmps,
+            string turnsKey, string li2Key, int turns, int dilithium)
+        {
+            if (tmps.TryGetValue(turnsKey, out var t)) t.text = turns.ToString();
+            if (tmps.TryGetValue(li2Key, out var l)) l.text = dilithium.ToString();
+        }
+
+        private void SetShipCostText(Dictionary<string, TextMeshProUGUI> tmps,
+            string turnsKey, string li2Key,
+            ShipType shipType, TechLevel tech, CivEnum civ, int quality)
+        {
+            var stats = ShipStatCalculator.Calculate(shipType, tech, civ, quality);
+            if (tmps.TryGetValue(turnsKey, out var t)) t.text = stats.BuildDuration.ToString();
+            if (tmps.TryGetValue(li2Key, out var l)) l.text = stats.DilithiumCost.ToString();
+        }
+
+        private int GetFacilityTurns(StarSysController sysCon, StarSysFacilityType facilityType)
+        {
+            if (sysCon.StarSysBuildManager != null)
+                return sysCon.StarSysBuildManager.GetBuildTimeDuration(facilityType);
+
+            // Fallback: raw duration without tech-speed adjustment
+            return facilityType switch
+            {
+                StarSysFacilityType.PowerPlanet => sysCon.StarSysData.PowerPlantData?.BuildDuration ?? 5,
+                StarSysFacilityType.Factory => sysCon.StarSysData.FactoryData?.BuildDuration ?? 5,
+                StarSysFacilityType.Shipyard => sysCon.StarSysData.ShipyardData?.BuildDuration ?? 8,
+                StarSysFacilityType.ShieldGenerator => sysCon.StarSysData.ShieldGeneratorData?.BuildDuration ?? 6,
+                StarSysFacilityType.ResearchCenter => sysCon.StarSysData.ResearchCenterData?.BuildDuration ?? 6,
+                StarSysFacilityType.OrbitalBattery => sysCon.StarSysData.OrbitalBatteryData?.BuildDuration ?? 6,
+                _ => 5,
+            };
+        }
+
+        /// <summary>
+        /// Grays out and blocks drag for any build item whose dilithium cost exceeds the system stockpile.
+        /// Called after UpdateAvailableShipsByTechLevel so tech-locked items keep their existing state.
+        /// </summary>
+        private void ApplyDilithiumAvailability(StarSysController sysCon, GameObject buildUIInstance)
+        {
+            if (sysCon?.StarSysData?.CurrentCivController?.CivData == null) return;
+
+            int stockpile = sysCon.StarSysData.DilithiumStockpile;
+            CivEnum civ = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel tech = sysCon.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+            int quality = sysCon.StarSysData.CurrentCivController.CivData.QualityScore;
+
+            foreach (var drag in buildUIInstance.GetComponentsInChildren<ShipBuildDrag>(true))
+            {
+                int cost = ShipStatCalculator.Calculate(drag.ShipType, tech, civ, quality).DilithiumCost;
+                if (cost > 0 && stockpile < cost)
+                    SetBuildableUnavailable(drag.gameObject);
+            }
+
+            foreach (var drag in buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true))
+            {
+                int cost = drag.FacilityType switch
+                {
+                    StarSysFacilityType.PowerPlanet => ShipStatCalculator.GetPowerPlantDilithiumCost(civ),
+                    StarSysFacilityType.Factory => GetFactorySObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.Shipyard => GetShipyardSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.ShieldGenerator => GetShieldGeneratorSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.OrbitalBattery => GetOrbitalBatterySObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    StarSysFacilityType.ResearchCenter => GetResearchCenterSObyCivInt((int)civ)?.DilithiumCost ?? 0,
+                    _ => 0
+                };
+                if (cost > 0 && stockpile < cost)
+                    SetBuildableUnavailable(drag.gameObject);
+            }
+        }
+
+        private static void SetBuildableUnavailable(GameObject go)
+        {
+            var cg = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>();
+            cg.alpha = 0.4f;
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
         }
     }
 }

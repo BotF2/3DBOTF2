@@ -26,6 +26,11 @@ namespace BOTF3D.Civilization
         public EncounterType EncounterType;
         public bool firstContact = false;
 
+        // Minor-major "join the Federation" trust process: once true, DiplomacyPointsOfCivs drifts
+        // upward every turn (see DiplomacyController.TickCooperationPactDrift) instead of only moving
+        // via one-off player/AI gestures, heading toward Membership (full annexation).
+        public bool CooperationPactActive = false;
+
         public DiplomacyData() { }
         public DiplomacyData(CivEnum civOne, CivEnum civTwo) //, StarSysController starSysController)
         {
