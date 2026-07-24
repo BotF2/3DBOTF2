@@ -650,23 +650,35 @@ namespace FischlWorks_FogWar
         {
             string fullPath = Application.dataPath + levelScanDataPath + "/" + levelNameToSave + ".json";
 
-            if (Directory.Exists(Application.dataPath + levelScanDataPath) == false)
+            try
             {
-                Directory.CreateDirectory(Application.dataPath + levelScanDataPath);
+                if (Directory.Exists(Application.dataPath + levelScanDataPath) == false)
+                {
+                    Directory.CreateDirectory(Application.dataPath + levelScanDataPath);
 
-                Debug.LogFormat("level scan data folder at \"{0}\" is missing, creating...", levelScanDataPath);
+                    Debug.LogFormat("level scan data folder at \"{0}\" is missing, creating...", levelScanDataPath);
+                }
+
+                if (File.Exists(fullPath) == true)
+                {
+                    Debug.LogFormat("level scan data already exists, overwriting...");
+                }
+
+                string levelJson = JsonUtility.ToJson(levelData);
+
+                File.WriteAllText(fullPath, levelJson);
+
+                Debug.LogFormat("Successfully saved level scan data at \"{0}\"", fullPath);
             }
-
-            if (File.Exists(fullPath) == true)
+            catch (IOException e)
             {
-                Debug.LogFormat("level scan data already exists, overwriting...");
+                // Multiple processes (e.g. host + Multiplayer Play Mode virtual players) can share
+                // the same physical Assets/LevelData file and race to write it on new-game start.
+                // levelData is already fully populated in memory by ScanLevel() before this runs, so
+                // fog still works for this session even if the on-disk cache write loses the race -
+                // just skip it rather than let the exception abort the caller's galaxy-generation loop.
+                Debug.LogWarningFormat("Skipped saving level scan data at \"{0}\" (file locked by another process): {1}", fullPath, e.Message);
             }
-
-            string levelJson = JsonUtility.ToJson(levelData);
-
-            File.WriteAllText(fullPath, levelJson);
-
-            Debug.LogFormat("Successfully saved level scan data at \"{0}\"", fullPath);
         }
 #endif
 

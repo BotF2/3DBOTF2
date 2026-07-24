@@ -49,10 +49,10 @@ namespace BOTF3D.Galaxy
         // formed from a system's docked ships - see FleetManager.ServerCreateSplitFleet /
         // ServerCreateFleetFromSystem), false for a civ's very first starting fleet. OnCivEnumChanged
         // needs this to know whether its client-reconstructed FleetData should start with 0 ships or
-        // fall back to FleetSO.ShipsList's configured template ships - without it, every remote
-        // client's "new empty fleet" incorrectly starts pre-populated with that civ's FleetSO template
-        // ships (same ghost ship(s) every time, since fleetSO is one shared asset). Declared before
-        // SyncedCivEnum for the same field-ordering reason as SyncedFleetInt/SyncedMaxWarpFactor above.
+        // rebuild that civ's starting roster via ShipManager.BuildShipsOfFirstFleet (see below) -
+        // without it, every remote client's "new empty fleet" would incorrectly get repopulated with
+        // that civ's starting ships. Declared before SyncedCivEnum for the same field-ordering reason
+        // as SyncedFleetInt/SyncedMaxWarpFactor above.
         [SyncVar]
         public bool SyncedIsNewFleet;
 

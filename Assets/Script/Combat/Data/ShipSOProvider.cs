@@ -203,10 +203,26 @@ namespace BOTF3D.Combat
             return GetShipSO(ShipType.Destroyer, TechLevel.EARLY, CivEnum.FED);
         }
 
+        // Starting-fleet composition for playable major civs (FED..TERRAN), keyed by tech level:
+        // ship type -> how many of that type Fleet 1 starts with. Every major civ is built from
+        // this same table, sourced from its own per-civ ShipSO list, so parity across civs is
+        // automatic rather than hand-matched per civ. Add an entry here (and the matching
+        // TechLevel_ShipSO assets) when a higher tech level unlocks Cruiser-class hulls.
+        private static readonly Dictionary<TechLevel, Dictionary<ShipType, int>> MajorStartingFleetComposition =
+            new Dictionary<TechLevel, Dictionary<ShipType, int>>
+            {
+                [TechLevel.EARLY] = new Dictionary<ShipType, int>
+                {
+                    { ShipType.Scout, 6 },
+                    { ShipType.Destroyer, 6 },
+                    { ShipType.Transport, 2 },
+                }
+            };
+
         /// <summary>
-        /// Get ships for a civilization's starting fleet
-        /// Major races get 3 ships (Destroyer, Scout, Transport)
-        /// Minor races get 1 ship (Destroyer or Scout)
+        /// Get ships for a civilization's starting fleet.
+        /// Major races (FED..TERRAN) get the composition defined in MajorStartingFleetComposition
+        /// for the given tech level. Minor races get 1 ship (Destroyer, or Scout as fallback).
         /// </summary>
         public List<ShipSO> GetStartingFleetShips(TechLevel techLevel, CivEnum civEnum)
         {
@@ -234,16 +250,25 @@ namespace BOTF3D.Combat
 
             if (isMajorRace)
             {
-                // Major races get THREE ships
+                if (!MajorStartingFleetComposition.TryGetValue(techLevel, out var composition))
+                {
+                    Debug.LogWarning($"GetStartingFleetShips: No starting-fleet composition defined for {civEnum} at {techLevel}");
+                    return new List<ShipSO>();
+                }
+
                 List<ShipSO> startingFleet = new List<ShipSO>();
+                foreach (var entry in composition)
+                {
+                    ShipSO template = techLevelShips.FirstOrDefault(s => s.ShipType == entry.Key);
+                    if (template == null)
+                    {
+                        Debug.LogWarning($"GetStartingFleetShips: {civEnum} has no {entry.Key} at {techLevel}; skipping");
+                        continue;
+                    }
 
-                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
-                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
-                ShipSO transport = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Transport);
-
-                if (destroyer != null) startingFleet.Add(destroyer);
-                if (scout != null) startingFleet.Add(scout);
-                if (transport != null) startingFleet.Add(transport);
+                    for (int i = 0; i < entry.Value; i++)
+                        startingFleet.Add(template);
+                }
 
                 Debug.Log($"✅ GetStartingFleetShips: {civEnum} starting fleet has {startingFleet.Count} ships");
                 return startingFleet;

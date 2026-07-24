@@ -653,12 +653,34 @@ namespace BOTF3D.UI
             int seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
 
             Debug.Log("LoadGalaxyScene: Host broadcasting game start to all clients");
-            PlayerManager.Instance.ServerBroadcastStartGame(
-                (int)MainMenuData.SelectedGalaxySize,
-                (int)MainMenuData.SelectedTechLevel,
-                (int)MainMenuData.SelectedGalaxyType,
-                seed,
-                IsSinglePlayer);
+
+            // ServerBroadcastStartGame is [Server]-only. On the literal host machine (StartHost())
+            // this instance IS the server, so call it directly. A host-equivalent client connected
+            // to a true dedicated server (NetworkServer.active false locally - see
+            // IsLocalPlayerHostAuthority) has to route the same request through a Command instead,
+            // since calling the [Server] method directly would silently no-op on a non-server machine.
+            if (NetworkServer.active)
+            {
+                PlayerManager.Instance.ServerBroadcastStartGame(
+                    (int)MainMenuData.SelectedGalaxySize,
+                    (int)MainMenuData.SelectedTechLevel,
+                    (int)MainMenuData.SelectedGalaxyType,
+                    seed,
+                    IsSinglePlayer);
+            }
+            else
+            {
+                LocalHumanPlayerController localPlayer = PlayerManager.Instance.LocalPlayerController;
+                if (localPlayer != null)
+                {
+                    localPlayer.SubmitRequestStartGame(
+                        (int)MainMenuData.SelectedGalaxySize,
+                        (int)MainMenuData.SelectedTechLevel,
+                        (int)MainMenuData.SelectedGalaxyType,
+                        seed,
+                        IsSinglePlayer);
+                }
+            }
         }
 
         // Runs on every client (including the host's own client) via PlayerManager.RpcStartGame -
@@ -1981,7 +2003,7 @@ namespace BOTF3D.UI
         // it only prevents non-host clients from touching the controls locally.
         private void ApplyHostOnlyGating()
         {
-            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active;
+            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active || IsLocalPlayerHostAuthority();
             if (isHostAuthoritative)
                 return; // host/single-player keeps full control; per-civ locks are handled by ApplyRosterLocksToGameParams()
 
@@ -2005,6 +2027,16 @@ namespace BOTF3D.UI
             }
 
             SetLobbyStatus("Waiting for host to start the game...");
+        }
+
+        // True when this client's own player object is the one PlayerManager.HostAuthorityPlayerId
+        // currently points to - i.e. a client connected to a true dedicated server (StartServer()
+        // only, no local player) that auto-claimed game-master authority as the first connector.
+        // See PlayerManager.ClaimHostAuthorityIfUnclaimed and LocalHumanPlayerController.OnStartServer.
+        private bool IsLocalPlayerHostAuthority()
+        {
+            LocalHumanPlayerController localPlayer = PlayerManager.Instance != null ? PlayerManager.Instance.LocalPlayerController : null;
+            return localPlayer != null && PlayerManager.Instance.HostAuthorityPlayerId == localPlayer.netId.GetHashCode();
         }
 
         private static void SetToggleListInteractable(List<Toggle> toggles, bool interactable)

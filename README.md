@@ -90,7 +90,6 @@ Key Dependencies:
 Mirror Networking - Multiplayer framework (included in Assets)
 TextMesh Pro - UI text rendering (included)
 DOTween - Animation tweening (included in Plugins)
-CameraMultiTarget - Camera system (included)
 If packages are missing:
 
 Window → Package Manager

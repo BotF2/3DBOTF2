@@ -36,12 +36,13 @@ namespace BOTF3D.UI
         private TextMeshProUGUI waitingForOpponentText;
         private Button enterCombatButton;
         private Toggle engage, rush, retreat, formation, AttackTransports, capture, scuttle;
-        private Toggle engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2;
 
         // ✅ Networked order submission (see FleetController.RequestSubmitCombatOrder /
-        // TurnBasedCombatResolver.ServerSubmitOrder) - which physical toggle group belongs to the
-        // local human player, and whether we've already sent this window's order so a stray double
-        // click (button + timer expiry) can't submit twice.
+        // TurnBasedCombatResolver.ServerSubmitOrder) - which side (1 or 2) the local human player
+        // is on this combat, and whether we've already sent this window's order so a stray double
+        // click (button + timer expiry) can't submit twice. The client always enters its own order
+        // via the single COMBAT_ORDERS toggle group regardless of which side it's on - order entry
+        // for the other side's ships was removed now that real multiplayer clients handle that.
         private int LocalSide = 1;
         private bool localOrderSubmitted = false;
 
@@ -55,7 +56,6 @@ namespace BOTF3D.UI
         private float remainingTime = 15f; // Order selection time
         private bool isTimerRunning = false;
         private CombatOrders currentOrder = CombatOrders.Engage;
-        private CombatOrders currentOrderSideTwo = CombatOrders.Engage;
         public CivEnum CivEnumLocalPlayer;
 
         private void Awake()
@@ -151,8 +151,7 @@ namespace BOTF3D.UI
             ForceCanvasRebuild();
 
             // ✅ Re-apply toggle selections after rebuild (ForceCanvasRebuild must not clobber them)
-            ApplyToggleForOrder(currentOrder, false);
-            ApplyToggleForOrder(currentOrderSideTwo, true);
+            ApplyToggleForOrder(currentOrder);
 
             // ✅ Start timer
             remainingTime = 10f;
@@ -209,10 +208,9 @@ namespace BOTF3D.UI
 
             localOrderSubmitted = true;
 
-            CombatOrders localOrder = LocalSide == 1 ? currentOrder : currentOrderSideTwo;
-            Debug.Log($"🎮 Submitting local order (Side {LocalSide}): {localOrder}");
+            Debug.Log($"🎮 Submitting local order (Side {LocalSide}): {currentOrder}");
 
-            CurrentCombatController.GetInvolvedFleetAnchor()?.RequestSubmitCombatOrder(localOrder);
+            CurrentCombatController.GetInvolvedFleetAnchor()?.RequestSubmitCombatOrder(currentOrder);
 
             SetLocalOrderControlsInteractable(false);
             ShowWaitingForOpponent(true);
@@ -269,36 +267,16 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Enables/disables the local player's own toggle group + Enter Combat button so they can't
+        /// Enables/disables the toggle group + Enter Combat button so the player can't
         /// resubmit while waiting on the opponent this window.
         /// </summary>
         private void SetLocalOrderControlsInteractable(bool interactable)
         {
             if (enterCombatButton != null) enterCombatButton.interactable = interactable;
 
-            Toggle[] localToggles = LocalSide == 1
-                ? new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle }
-                : new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 };
+            Toggle[] localToggles = { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
 
             foreach (var t in localToggles)
-            {
-                if (t != null) t.interactable = interactable;
-            }
-        }
-
-        /// <summary>
-        /// The opponent's toggle group is read-only - only their own client's EnterShipCombatPhase
-        /// may submit their side's order (see TurnBasedCombatResolver.ServerSubmitOrder's sender
-        /// authorization). Called once at setup; SetLocalOrderControlsInteractable handles the
-        /// local side's own enable/disable across the submit/wait cycle.
-        /// </summary>
-        private void SetOpponentToggleGroupInteractable(bool interactable)
-        {
-            Toggle[] opponentToggles = LocalSide == 1
-                ? new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 }
-                : new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
-
-            foreach (var t in opponentToggles)
             {
                 if (t != null) t.interactable = interactable;
             }
@@ -463,6 +441,18 @@ namespace BOTF3D.UI
                     canvas3D = currentCombat3DCanvas.AddComponent<Canvas>();
                 }
 
+                // Combat3DCanvas is nested inside CombatUICanvas's hierarchy in the scene file
+                // (CombatUICanvas > PanelCombat_Menu > COMBAT_ORDERS > Header > Combat3DCanvas) -
+                // almost certainly an accidental drag during scene editing. As a non-root canvas
+                // sharing CombatUICanvas's canvas tree, forcing it to WorldSpace here was dragging
+                // the whole tree (including the real root, CombatUICanvas) into WorldSpace too.
+                // Detach it to a true scene root before touching renderMode; worldPositionStays
+                // keeps its current visual placement unchanged.
+                if (currentCombat3DCanvas.transform.parent != null)
+                {
+                    currentCombat3DCanvas.transform.SetParent(null, true);
+                }
+
                 canvas3D.renderMode = RenderMode.WorldSpace;
 
                 Camera combatCamera = ShipCombatCameraController.Instance?.GetComponentInChildren<Camera>();
@@ -585,7 +575,6 @@ namespace BOTF3D.UI
             SetupButtons();
             FindAndSetupCivDataUI();
             SetLocalOrderControlsInteractable(true);
-            SetOpponentToggleGroupInteractable(false);
 
             Debug.Log("FindAndSetupUI: Complete");
         }
@@ -768,36 +757,6 @@ namespace BOTF3D.UI
                         scuttle = toggle;
                         scuttle.onValueChanged.AddListener(OnToggleSCUTTLE);
                         break;
-
-                    // Side Two
-                    case "Toggle_ENGAGE2":
-                        engage2 = toggle;
-                        engage2.onValueChanged.AddListener(OnToggleENGAGE2);
-                        break;
-                    case "Toggle_RUSH2":
-                        rush2 = toggle;
-                        rush2.onValueChanged.AddListener(OnToggleRUSH2);
-                        break;
-                    case "Toggle_RETREAT2":
-                        retreat2 = toggle;
-                        retreat2.onValueChanged.AddListener(OnToggleRETREAT2);
-                        break;
-                    case "Toggle_FORMATION2":
-                        formation2 = toggle;
-                        formation2.onValueChanged.AddListener(OnToggleFORMATION2);
-                        break;
-                    case "Toggle_TARGET_TRANSPORTS2":
-                        AttackTransports2 = toggle;
-                        AttackTransports2.onValueChanged.AddListener(OnToggleTARGET_TRANSPORTS2);
-                        break;
-                    case "Toggle_CAPTURE2":
-                        capture2 = toggle;
-                        capture2.onValueChanged.AddListener(OnToggleCAPTURE2);
-                        break;
-                    case "Toggle_SCUTTLE2":
-                        scuttle2 = toggle;
-                        scuttle2.onValueChanged.AddListener(OnToggleSCUTTLE2);
-                        break;
                 }
             }
 
@@ -809,71 +768,42 @@ namespace BOTF3D.UI
                 if (capture != null) capture.group = engage.group;
                 if (scuttle != null) scuttle.group = engage.group;
             }
-            if (engage2?.group != null)
-            {
-                if (capture2 != null) capture2.group = engage2.group;
-                if (scuttle2 != null) scuttle2.group = engage2.group;
-            }
 
             // Phase 4: Apply the initial order from CombatData if already set by scenario runner,
             // otherwise fall back to Engage as default.
             CombatOrders initialSideOne = CombatOrders.Engage;
-            CombatOrders initialSideTwo = CombatOrders.Engage;
 
             if (CurrentCombatController != null && CurrentCombatController.CombatData != null)
             {
                 if (CurrentCombatController.CombatData.SideOneOrder != CombatOrders.None)
                     initialSideOne = CurrentCombatController.CombatData.SideOneOrder;
-                if (CurrentCombatController.CombatData.SideTwoOrder != CombatOrders.None)
-                    initialSideTwo = CurrentCombatController.CombatData.SideTwoOrder;
             }
 
-            ApplyToggleForOrder(initialSideOne, false);
-            ApplyToggleForOrder(initialSideTwo, true);
+            ApplyToggleForOrder(initialSideOne);
 
-            Debug.Log($"✅ Setup {toggles.Length} toggles. Side 1 order: {currentOrder}, Side 2 order: {currentOrderSideTwo}");
+            Debug.Log($"✅ Setup {toggles.Length} toggles. Order: {currentOrder}");
         }
 
         /// <summary>
-        /// Activates the toggle matching the given order for one side, clears all other side toggles,
-        /// and updates the tracked order field. Guarantees exactly one checkmark per side.
-        /// Pass isSideTwo=false for Side One, isSideTwo=true for Side Two.
+        /// Activates the toggle matching the given order, clears all other toggles,
+        /// and updates the tracked order field. Guarantees exactly one checkmark.
         /// </summary>
-        private void ApplyToggleForOrder(CombatOrders order, bool isSideTwo)
+        private void ApplyToggleForOrder(CombatOrders order)
         {
-            Toggle target = null;
+            currentOrder = order;
+            ClearSideToggleGraphics();
 
-            if (!isSideTwo)
+            Toggle target;
+            switch (order)
             {
-                currentOrder = order;
-                ClearSideToggleGraphics(false);
-                switch (order)
-                {
-                    case CombatOrders.Engage: target = engage; break;
-                    case CombatOrders.Rush: target = rush; break;
-                    case CombatOrders.Retreat: target = retreat; break;
-                    case CombatOrders.Formation: target = formation; break;
-                    case CombatOrders.AttackTransports: target = AttackTransports; break;
-                    case CombatOrders.Capture: target = capture; break;
-                    case CombatOrders.Scuttle: target = scuttle; break;
-                    default: target = engage; currentOrder = CombatOrders.Engage; break;
-                }
-            }
-            else
-            {
-                currentOrderSideTwo = order;
-                ClearSideToggleGraphics(true);
-                switch (order)
-                {
-                    case CombatOrders.Engage: target = engage2; break;
-                    case CombatOrders.Rush: target = rush2; break;
-                    case CombatOrders.Retreat: target = retreat2; break;
-                    case CombatOrders.Formation: target = formation2; break;
-                    case CombatOrders.AttackTransports: target = AttackTransports2; break;
-                    case CombatOrders.Capture: target = capture2; break;
-                    case CombatOrders.Scuttle: target = scuttle2; break;
-                    default: target = engage2; currentOrderSideTwo = CombatOrders.Engage; break;
-                }
+                case CombatOrders.Engage: target = engage; break;
+                case CombatOrders.Rush: target = rush; break;
+                case CombatOrders.Retreat: target = retreat; break;
+                case CombatOrders.Formation: target = formation; break;
+                case CombatOrders.AttackTransports: target = AttackTransports; break;
+                case CombatOrders.Capture: target = capture; break;
+                case CombatOrders.Scuttle: target = scuttle; break;
+                default: target = engage; currentOrder = CombatOrders.Engage; break;
             }
 
             if (target != null)
@@ -884,14 +814,12 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
-        /// Clears isOn and graphic for every toggle on the given side without firing callbacks.
+        /// Clears isOn and graphic for every toggle without firing callbacks.
         /// Called before activating a new selection so stale checkmarks can never accumulate.
         /// </summary>
-        private void ClearSideToggleGraphics(bool isSideTwo)
+        private void ClearSideToggleGraphics()
         {
-            Toggle[] side = isSideTwo
-                ? new[] { engage2, rush2, retreat2, formation2, AttackTransports2, capture2, scuttle2 }
-                : new[] { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
+            Toggle[] side = { engage, rush, retreat, formation, AttackTransports, capture, scuttle };
 
             foreach (var t in side)
             {
@@ -899,21 +827,6 @@ namespace BOTF3D.UI
                 t.SetIsOnWithoutNotify(false);
                 if (t.graphic != null) t.graphic.enabled = false;
             }
-        }
-
-        /// <summary>
-        /// Pre-loads the scenario-selected orders into the UI state and activates the matching toggles.
-        /// Call this after SetShipOrders so the UI reflects the editor selection before Enter Combat.
-        /// </summary>
-        public void PreloadOrdersFromScenario(CombatOrders sideOneOrder, CombatOrders sideTwoOrder)
-        {
-            if (sideOneOrder != CombatOrders.None)
-                ApplyToggleForOrder(sideOneOrder, false);
-
-            if (sideTwoOrder != CombatOrders.None)
-                ApplyToggleForOrder(sideTwoOrder, true);
-
-            Debug.Log($"✅ CombatUIManager: Preloaded scenario orders - Side 1: {currentOrder}, Side 2: {currentOrderSideTwo}");
         }
 
         /// <summary>
@@ -925,9 +838,9 @@ namespace BOTF3D.UI
             CivEnum s1Civ, TechLevel s1Tech,
             CivEnum s2Civ, TechLevel s2Tech)
         {
-            // Orders → toggles
-            if (s1Order != CombatOrders.None) ApplyToggleForOrder(s1Order, false);
-            if (s2Order != CombatOrders.None) ApplyToggleForOrder(s2Order, true);
+            // Local order → toggle (Side Two's order is set directly on CombatData by the scenario
+            // runner - there's no local toggle for it since real multiplayer clients submit it)
+            if (s1Order != CombatOrders.None) ApplyToggleForOrder(s1Order);
 
             // Civilization names
             if (sideOneCivName != null) sideOneCivName.text = s1Civ.ToString();
@@ -1050,48 +963,6 @@ namespace BOTF3D.UI
             if (scuttle?.graphic != null) scuttle.graphic.enabled = isOn;
         }
 
-        private void OnToggleENGAGE2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Engage;
-            if (engage2?.graphic != null) engage2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleRUSH2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Rush;
-            if (rush2?.graphic != null) rush2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleRETREAT2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Retreat;
-            if (retreat2?.graphic != null) retreat2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleFORMATION2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Formation;
-            if (formation2?.graphic != null) formation2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleTARGET_TRANSPORTS2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.AttackTransports;
-            if (AttackTransports2?.graphic != null) AttackTransports2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleCAPTURE2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Capture;
-            if (capture2?.graphic != null) capture2.graphic.enabled = isOn;
-        }
-
-        private void OnToggleSCUTTLE2(bool isOn)
-        {
-            if (isOn) currentOrderSideTwo = CombatOrders.Scuttle;
-            if (scuttle2?.graphic != null) scuttle2.graphic.enabled = isOn;
-        }
-
         /// <summary>
         /// Show order selection UI for next turn (turn-based combat)
         /// </summary>
@@ -1108,9 +979,8 @@ namespace BOTF3D.UI
             // Refresh ship counts — some may have been destroyed last turn
             UpdateCombatMenuData();
 
-            // Pre-select the orders from the previous turn so players see their last choice
-            ApplyToggleForOrder(currentOrder, false);
-            ApplyToggleForOrder(currentOrderSideTwo, true);
+            // Pre-select the order from the previous turn so the player sees their last choice
+            ApplyToggleForOrder(currentOrder);
 
             localOrderSubmitted = false;
             SetLocalOrderControlsInteractable(true);
@@ -1285,13 +1155,6 @@ namespace BOTF3D.UI
             AttackTransports = null;
             capture = null;
             scuttle = null;
-            engage2 = null;
-            rush2 = null;
-            retreat2 = null;
-            formation2 = null;
-            AttackTransports2 = null;
-            capture2 = null;
-            scuttle2 = null;
 
             sideOneCivName = null;
             sideTwoCivName = null;

@@ -40,12 +40,18 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         base.OnStartServer();
         if (PlayerManager.Instance != null)
+        {
             playerCiv = PlayerManager.Instance.RegisterPlayer(this, false, playerName, netId.GetHashCode(), PlayerType.Local);
+            PlayerManager.Instance.ClaimHostAuthorityIfUnclaimed(netId.GetHashCode());
+        }
     }
     public override void OnStopServer()
     {
         if (PlayerManager.Instance != null)
+        {
             PlayerManager.Instance.UnregisterPlayer(netId.GetHashCode());
+            PlayerManager.Instance.ReleaseHostAuthorityIfHeldBy(netId.GetHashCode());
+        }
         base.OnStopServer();
     }
     private void OnDestroy()
@@ -134,6 +140,16 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         if (isOwned)
             CmdSendIntelOrder(order, actingCiv, targetCiv);
+    }
+
+    // Used by MainMenuUIController.LoadGalaxyScene when this client holds host-equivalent
+    // authority (PlayerManager.HostAuthorityPlayerId) but isn't the literal server - e.g. a client
+    // connected to a true dedicated server. Calling PlayerManager.ServerBroadcastStartGame directly
+    // would silently no-op on a non-server machine since it's a [Server]-only method.
+    public void SubmitRequestStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        if (isOwned)
+            CmdRequestStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
     }
 
     [Command]
@@ -288,6 +304,18 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     void CmdSendIntelOrder(SecretActionsEnum order, CivEnum actingCiv, CivEnum targetCiv)
     {
         RpcApplyIntelOrder(order, actingCiv, targetCiv);
+    }
+
+    [Command]
+    void CmdRequestStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        int playerId = netId.GetHashCode();
+        if (PlayerManager.Instance == null || PlayerManager.Instance.HostAuthorityPlayerId != playerId)
+        {
+            Debug.LogWarning($"CmdRequestStartGame: player {playerId} does not hold host-equivalent authority; rejecting request.");
+            return;
+        }
+        PlayerManager.Instance.ServerBroadcastStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
     }
 
     [ClientRpc]

@@ -37,6 +37,14 @@ namespace BOTF3D.Core
     // Server-authoritative lobby roster, replicated to every client for the multiplayer lobby/status panel.
     public readonly SyncList<RosterEntry> Roster = new SyncList<RosterEntry>();
 
+    // Who currently has host-equivalent authority (sees/uses the host-only lobby controls and
+    // may trigger ServerBroadcastStartGame) - distinct from NetworkServer.active, which is only
+    // true on the literal machine running the server process. On a true dedicated server
+    // (StartServer() only, no local player - see PersistentSceneBootstrap.StartDedicatedServer)
+    // nobody has NetworkServer.active locally, so one connected client needs to stand in as game
+    // master instead. -1 = unclaimed.
+    [SyncVar] public int HostAuthorityPlayerId = -1;
+
     // RENAMED: PlayerData → PlayerInfo
     public List<GamePlayerInfo> PlayerInfoList { get; private set; } = new List<GamePlayerInfo>();
 
@@ -265,6 +273,34 @@ namespace BOTF3D.Core
     private void RpcStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
     {
         MainMenuUIController.Instance?.OnGameStartReceived(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+    }
+
+    // Called from LocalHumanPlayerController.OnStartServer for every newly-spawned player object -
+    // the first connector to find no one holding authority claims it automatically (chosen over an
+    // explicit "claim" action so a client just needs to Connect to a dedicated server to become its
+    // game master). Harmless when this machine is also the literal host (StartHost()): NetworkServer.active
+    // already grants that client full control via MainMenuUIController.ApplyHostOnlyGating, so this
+    // SyncVar just tracks it for consistency.
+    [Server]
+    public void ClaimHostAuthorityIfUnclaimed(int playerId)
+    {
+        if (HostAuthorityPlayerId == -1)
+        {
+            HostAuthorityPlayerId = playerId;
+            Debug.Log($"PlayerManager: player {playerId} claimed host-equivalent authority (first connector).");
+        }
+    }
+
+    // Called from LocalHumanPlayerController.OnStopServer. Releases authority rather than
+    // reassigning it here - the next player to connect claims it via ClaimHostAuthorityIfUnclaimed above.
+    [Server]
+    public void ReleaseHostAuthorityIfHeldBy(int playerId)
+    {
+        if (HostAuthorityPlayerId == playerId)
+        {
+            HostAuthorityPlayerId = -1;
+            Debug.Log($"PlayerManager: player {playerId} disconnected - host-equivalent authority released.");
+        }
     }
 
 

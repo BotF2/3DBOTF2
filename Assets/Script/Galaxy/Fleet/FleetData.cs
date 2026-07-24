@@ -105,7 +105,11 @@ namespace BOTF3D.Galaxy
         public FleetData(FleetSO fleetSO)
         {
             Insignia = fleetSO.Insignia;
-            ShipsList = new List<BOTF3D.Combat.ShipController>(fleetSO.ShipsList);
+            // Starts empty - real starting ships are built by ShipManager.BuildShipsOfFirstFleet
+            // (from each civ's own ShipSO list, see ShipSOProvider.GetStartingFleetShips), or by
+            // the ship-deploy UI for player-formed fleets. ShipController is a scene MonoBehaviour,
+            // so a ScriptableObject like FleetSO was never able to hold real ship references here.
+            ShipsList = new List<BOTF3D.Combat.ShipController>();
             MaxWarpFactor = fleetSO.MaxWarpFactor;
             description = fleetSO.Description;
             CivIndex = fleetSO.CivIndex;
