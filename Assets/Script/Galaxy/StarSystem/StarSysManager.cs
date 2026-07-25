@@ -736,9 +736,9 @@ namespace BOTF3D.Galaxy
                 return;
             }
 
-            CivEnum civ    = sysData.CurrentOwnerCivEnum;
+            CivEnum civ = sysData.CurrentOwnerCivEnum;
             TechLevel tech = sysData.CurrentCivController.CivData.CurrentTechLevel;
-            int quality    = sysData.CurrentCivController.CivData.QualityScore;
+            int quality = sysData.CurrentCivController.CivData.QualityScore;
 
             // Cost of the power plants that were pre-built at game start
             int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(civ) * sysData.CurrentPowerPlantCount;

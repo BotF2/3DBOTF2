@@ -97,7 +97,10 @@
       "Bash(Select-Object Name)",
       "Bash(echo \"tracked?:$?\")",
       "Read(//c/Users/kenne/.claude/projects/C--Users-kenne-Documents-Unity-3DBOTF2-100/**)",
-      "Read(//c/Users/kenne/.claude/projects/C--Users-kenne-Documents-Unity-3DBOTF2-100/memory/**)"
+      "Read(//c/Users/kenne/.claude/projects/C--Users-kenne-Documents-Unity-3DBOTF2-100/memory/**)",
+      "Bash(awk ' *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Join-Path *)"
     ]
   },
   "model": "claude-sonnet-5"

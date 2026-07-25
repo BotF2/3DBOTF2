@@ -54,11 +54,8 @@ namespace BOTF3D.Combat
         int _totalTransportsShips;
         public int rotationOnY = 90; // face right
 
-        public List<GameObject> CameraTargetList; // do not send directly to CameraMultiTarget, send to GameManager first
         private string[] arrayCountShipTypes; // change to array ship type
         private string[] arrayNames; //??? do we need this?
-
-        public List<GameObject> combatShips; // for CameraMultiTarget to use for camera targets
 
         //public GameObject Friend_0; // prefab empty game object to clone instantiate into the grids
         //public GameObject Enemy_0;

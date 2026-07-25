@@ -58,7 +58,7 @@ namespace BOTF3D.Audio
         private List<AudioSource> allPooledSources;
 
         // Volume Settings (0-1 range)
-        private float masterVolume = 1f;
+        private float masterVolume = 0.05f;
         private float musicVolume = 1f;
         private float sfxVolume = 1f;
         private float uiVolume = 1f;
@@ -273,18 +273,18 @@ namespace BOTF3D.Audio
         /// </summary>
         private void LoadVolumeSettings()
         {
-            masterVolume = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 1f);
+            masterVolume = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 0.05f);
             musicVolume = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 1f);
             sfxVolume = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f);
             uiVolume = PlayerPrefs.GetFloat(UI_VOLUME_KEY, 1f);
 
-            // Safety check: if master is 0 but was never set, default to 1
+            // Safety check: if master is 0 but was never set, default to 0.05 (5%)
             if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY) || masterVolume < 0.001f)
             {
                 if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY))
                 {
-                    masterVolume = 1f;
-                    Debug.Log("AudioManager: No master volume found in PlayerPrefs, defaulting to 1f");
+                    masterVolume = 0.05f;
+                    Debug.Log("AudioManager: No master volume found in PlayerPrefs, defaulting to 0.05f");
                 }
             }
 

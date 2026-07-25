@@ -14,4 +14,6 @@ RUN apt-get update && \
     apt-get clean && \
     update-ca-certificates
 
+EXPOSE 7777/udp
+
 CMD [ "/root/build/ServerBuild", "-batchmode", "-nographics", "$UNITY_COMMANDLINE_ARGS"]

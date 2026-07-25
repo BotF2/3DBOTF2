@@ -19,7 +19,6 @@ namespace BOTF3D.Galaxy
         public Sprite Insignia;
         public CivEnum CivOwnerEnum;
         public Vector3 Location;
-        public List<ShipController> ShipsList;
         public float MaxWarpFactor = 0f;
         public float CurrentWarpFactor = 0f;
         public string Name;

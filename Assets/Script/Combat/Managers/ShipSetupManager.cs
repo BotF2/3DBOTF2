@@ -219,8 +219,13 @@ namespace BOTF3D.Combat
             GameObject fbx = shipSO.ShipFBX_ModelAsGOPrefab;
             if (fbx == null)
             {
-                Debug.LogError($"❌ Ship FBX prefab is null for {ship.ShipData.ShipName} (ShipSO: {shipSO.ShipName})!");
-                return null;
+                fbx = ShipManager.Instance.GetFallbackFbx(shipSO.ShipType, shipSO.CivEnum);
+                if (fbx == null)
+                {
+                    Debug.LogError($"❌ Ship FBX prefab is null for {ship.ShipData.ShipName} (ShipSO: {shipSO.ShipName})! No fallback FBX found either.");
+                    return null;
+                }
+                Debug.LogWarning($"⚠️ Ship FBX prefab is null for {ship.ShipData.ShipName} (ShipSO: {shipSO.ShipName}) — using fallback model '{fbx.name}'");
             }
 
             GameObject shipModel = Object.Instantiate(fbx);

@@ -59,7 +59,9 @@ namespace BOTF3D.Combat
             );
 
             thisShipListUIGameObject.transform.localRotation = Quaternion.identity;
-            thisShipListUIGameObject.SetActive(true);
+            // Stays inactive until TryParentShipUI confirms a real ShipListUIParent - see the
+            // FallbackToCanvas removal below for why this must not be visible while unparented.
+            thisShipListUIGameObject.SetActive(false);
             thisShipListUIGameObject.name = "ShipListUI_" + shipCon.ShipData.ShipName + "_" + shipIndex;
             shipIndex++;
 
@@ -117,12 +119,12 @@ namespace BOTF3D.Combat
                         sysCon.StarSysData.ShipListUIParent.transform,
                         false
                     );
+                    shipCon.ShipListUIGameObject.SetActive(true);
                     Debug.Log($"  ✅ Parented to system ShipListUIParent");
                 }
                 else
                 {
-                    Debug.LogWarning($"  ⚠️ System '{sysCon.name}' ShipListUIParent is NULL - adding to pending queue");
-                    FallbackToCanvas(shipCon);
+                    Debug.LogWarning($"  ⚠️ System '{sysCon.name}' ShipListUIParent is NULL - queued pending, staying inactive");
                     shipConPendingShipUI.Add(shipCon);
                 }
             }
@@ -137,31 +139,18 @@ namespace BOTF3D.Combat
                         fleetCon.FleetData.ShipListUIParent.transform,
                         false
                     );
+                    shipCon.ShipListUIGameObject.SetActive(true);
                     Debug.Log($"  ✅ Parented to fleet ShipListUIParent");
                 }
                 else
                 {
-                    Debug.LogWarning($"  ⚠️ Fleet '{fleetCon.gameObject.name}' ShipListUIParent is NULL - adding to pending queue");
-                    FallbackToCanvas(shipCon);
+                    Debug.LogWarning($"  ⚠️ Fleet '{fleetCon.gameObject.name}' ShipListUIParent is NULL - queued pending, staying inactive");
                     shipConPendingShipUI.Add(shipCon);
                 }
             }
             else
             {
                 GameLogger.Log(GameLogger.LogCategory.Combat, $"  ❌ Parent '{parentGO.name}' is neither StarSys nor Fleet!");
-            }
-        }
-
-        /// <summary>
-        /// Fallback: temporarily parent to scene canvas
-        /// </summary>
-        private void FallbackToCanvas(ShipController shipCon)
-        {
-            var canvas = Object.FindAnyObjectByType<Canvas>();
-            if (canvas != null)
-            {
-                shipCon.ShipListUIGameObject.transform.SetParent(canvas.transform, false);
-                GameLogger.Log(GameLogger.LogCategory.Combat, $"  Temporarily parented to canvas: {canvas.name}");
             }
         }
 

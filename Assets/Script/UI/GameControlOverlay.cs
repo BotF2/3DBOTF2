@@ -32,7 +32,7 @@ namespace BOTF3D.UI
         [SerializeField] private Button pauseButton;
         [SerializeField] private TextMeshProUGUI stardateText; // Displays current stardate
         [SerializeField] private Button advanceTurnButton;
-        [SerializeField] private Button forceAdvanceTurnButton; // host-only escape hatch, see TimeManager.ForceAdvanceTurn
+        [SerializeField] private Button forceAdvanceTurnButton; // testing escape hatch for all clients, see TimeManager.RequestForceAdvanceTurn
 
         [Header("Advance Turn Colors")]
         [SerializeField] private Color turnReadyColor = new Color(0.2f, 0.8f, 0.2f); // stands out — ready to accept a click
@@ -372,7 +372,7 @@ namespace BOTF3D.UI
                 SetAdvanceTurnProcessing(); // placeholder until real turn phase is known
             }
 
-            // ✅ Initialize host-only force-advance button (hidden until we know we're the host)
+            // ✅ Initialize force-advance button (hidden until InterTurn - see UpdateForceAdvanceButtonVisibility)
             if (forceAdvanceTurnButton != null)
             {
                 forceAdvanceTurnButton.onClick.RemoveAllListeners();
@@ -400,7 +400,7 @@ namespace BOTF3D.UI
             {
                 return AudioManager.Instance.GetMasterVolume();
             }
-            return PlayerPrefs.GetFloat("MasterVolume", 1f);
+            return PlayerPrefs.GetFloat("MasterVolume", 0.05f);
         }
 
         /// <summary>
@@ -526,7 +526,7 @@ namespace BOTF3D.UI
                 advanceTurnButton.gameObject.SetActive(showGameplayControls);
             }
 
-            // Force-advance button additionally requires host + InterTurn - re-evaluated here so it
+            // Force-advance button additionally requires InterTurn - re-evaluated here so it
             // doesn't linger visible/hidden incorrectly across a scene transition.
             if (forceAdvanceTurnButton != null)
             {
@@ -663,8 +663,8 @@ namespace BOTF3D.UI
 
         private void OnForceAdvanceTurnClicked()
         {
-            Debug.Log("OnForceAdvanceTurnClicked: host forcing turn advance.");
-            TimeManager.Instance?.ForceAdvanceTurn();
+            Debug.Log("OnForceAdvanceTurnClicked: forcing turn advance.");
+            TimeManager.Instance?.RequestForceAdvanceTurn();
         }
 
         // SyncList<CivEnum>.Callback fires on every client (host included) whenever ReadyCivs
@@ -725,8 +725,9 @@ namespace BOTF3D.UI
         private void UpdateForceAdvanceButtonVisibility()
         {
             if (forceAdvanceTurnButton == null) return;
-            bool show = NetworkServer.active
-                && TimeManager.Instance != null
+            // Available to every client (not gated on host/NetworkServer.active) so testers can
+            // unstick a turn on a true dedicated server, where no client is ever the host.
+            bool show = TimeManager.Instance != null
                 && TimeManager.Instance.TurnPhase == TurnPhase.InterTurn;
             forceAdvanceTurnButton.gameObject.SetActive(show);
         }

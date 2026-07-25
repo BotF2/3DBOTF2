@@ -111,6 +111,13 @@
         "com.unity.test-framework.performance": "3.0.3"
       }
     },
+    "com.unity.dedicated-server": {
+      "version": "2.0.2",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
     "com.unity.dt.app-ui": {
       "version": "2.1.1",
       "depth": 1,
@@ -216,7 +223,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.netcode.gameobjects": {
-      "version": "2.13.0",
+      "version": "2.13.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -510,11 +517,11 @@
       }
     },
     "com.unity.visualscripting": {
-      "version": "1.9.11",
+      "version": "1.9.12",
       "depth": 0,
       "source": "registry",
       "dependencies": {
-        "com.unity.ugui": "1.0.0",
+        "com.unity.ugui": "2.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"

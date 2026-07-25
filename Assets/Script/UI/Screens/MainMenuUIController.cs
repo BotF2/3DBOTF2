@@ -384,7 +384,26 @@ namespace BOTF3D.UI
                     UpdateToggleBackgrounds(TerranLocalPlayerToggle);
                 }
             });
+            ApplyHostButtonEditorGate();
+
             Debug.Log("=== MainMenuUIController.Awake() COMPLETE ===");
+        }
+
+        // Host (StartHost) only makes sense for local/editor testing (Player2+Host in the Editor,
+        // or a future LAN party) - every standalone Player build (the client build handed to
+        // Edgegap testers, plus the Windows/Linux Server builds) should only ever Connect. Hidden
+        // here rather than gated by a scripting define since there's no LAN-party build yet; add a
+        // define-based gate instead if that's needed later without losing Editor testing.
+        private void ApplyHostButtonEditorGate()
+        {
+            if (panelMuliplayer == null)
+                return;
+
+            foreach (Button button in panelMuliplayer.GetComponentsInChildren<Button>(true))
+            {
+                if (button.gameObject.name == "Button Host")
+                    button.gameObject.SetActive(Application.isEditor);
+            }
         }
 
         private void Start()
@@ -635,10 +654,12 @@ namespace BOTF3D.UI
             }
         }
 
-        // Call this when transitioning to gameplay (from Panel-GameParametersWindow). Only the host
-        // can reach this button (ApplyHostOnlyGating disables it for non-host clients), so this
-        // gathers the host's own local UI selections and broadcasts them to every connected client
-        // instead of transitioning only the clicking machine - see OnGameStartReceived below.
+        // Call this when transitioning to gameplay (from Panel-GameParametersWindow). Any connected
+        // client can reach this button (ApplyHostOnlyGating no longer disables it, and
+        // CmdRequestStartGame no longer requires host authority - easier multiplayer testing), so
+        // this gathers the clicking client's local UI selections and broadcasts them to every
+        // connected client instead of transitioning only the clicking machine - see
+        // OnGameStartReceived below.
         public void LoadGalaxyScene()
         {
             UpdateMapSelection();
@@ -653,12 +674,34 @@ namespace BOTF3D.UI
             int seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
 
             Debug.Log("LoadGalaxyScene: Host broadcasting game start to all clients");
-            PlayerManager.Instance.ServerBroadcastStartGame(
-                (int)MainMenuData.SelectedGalaxySize,
-                (int)MainMenuData.SelectedTechLevel,
-                (int)MainMenuData.SelectedGalaxyType,
-                seed,
-                IsSinglePlayer);
+
+            // ServerBroadcastStartGame is [Server]-only. On the literal host machine (StartHost())
+            // this instance IS the server, so call it directly. A host-equivalent client connected
+            // to a true dedicated server (NetworkServer.active false locally - see
+            // IsLocalPlayerHostAuthority) has to route the same request through a Command instead,
+            // since calling the [Server] method directly would silently no-op on a non-server machine.
+            if (NetworkServer.active)
+            {
+                PlayerManager.Instance.ServerBroadcastStartGame(
+                    (int)MainMenuData.SelectedGalaxySize,
+                    (int)MainMenuData.SelectedTechLevel,
+                    (int)MainMenuData.SelectedGalaxyType,
+                    seed,
+                    IsSinglePlayer);
+            }
+            else
+            {
+                LocalHumanPlayerController localPlayer = PlayerManager.Instance.LocalPlayerController;
+                if (localPlayer != null)
+                {
+                    localPlayer.SubmitRequestStartGame(
+                        (int)MainMenuData.SelectedGalaxySize,
+                        (int)MainMenuData.SelectedTechLevel,
+                        (int)MainMenuData.SelectedGalaxyType,
+                        seed,
+                        IsSinglePlayer);
+                }
+            }
         }
 
         // Runs on every client (including the host's own client) via PlayerManager.RpcStartGame -
@@ -1799,6 +1842,14 @@ namespace BOTF3D.UI
 
         public void HostButton() // Button Host in Panel-MulitplayerLobby
         {
+            // Defense in depth - ApplyHostButtonEditorGate() already hides this button outside the
+            // Editor, but reject the action too in case it's ever reached another way (e.g. a
+            // leftover keyboard/gamepad UI navigation binding).
+            if (!Application.isEditor)
+            {
+                SetLobbyStatus("Hosting is only available in the Unity Editor. Use Connect instead.");
+                return;
+            }
             if (NetworkManager.singleton == null)
             {
                 SetLobbyStatus("NetworkManager not found.");
@@ -1981,7 +2032,7 @@ namespace BOTF3D.UI
         // it only prevents non-host clients from touching the controls locally.
         private void ApplyHostOnlyGating()
         {
-            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active;
+            bool isHostAuthoritative = IsSinglePlayer || NetworkServer.active || IsLocalPlayerHostAuthority();
             if (isHostAuthoritative)
                 return; // host/single-player keeps full control; per-civ locks are handled by ApplyRosterLocksToGameParams()
 
@@ -1990,12 +2041,10 @@ namespace BOTF3D.UI
             SetToggleListInteractable(GalaxySizeToggles, false);
             SetToggleListInteractable(TechLevelToggles, false);
 
-            if (mainMenuButton != null)
-            {
-                Button startButton = mainMenuButton.GetComponent<Button>();
-                if (startButton != null)
-                    startButton.interactable = false;
-            }
+            // Start/launch button (mainMenuButton) is intentionally left interactable here so any
+            // connected client can trigger LoadGalaxyScene() - easier multiplayer testing. Non-host
+            // clients relay through LocalHumanPlayerController.SubmitRequestStartGame ->
+            // CmdRequestStartGame, which no longer requires host authority either.
 
             if (previousGameParamsButton != null)
             {
@@ -2005,6 +2054,16 @@ namespace BOTF3D.UI
             }
 
             SetLobbyStatus("Waiting for host to start the game...");
+        }
+
+        // True when this client's own player object is the one PlayerManager.HostAuthorityPlayerId
+        // currently points to - i.e. a client connected to a true dedicated server (StartServer()
+        // only, no local player) that auto-claimed game-master authority as the first connector.
+        // See PlayerManager.ClaimHostAuthorityIfUnclaimed and LocalHumanPlayerController.OnStartServer.
+        private bool IsLocalPlayerHostAuthority()
+        {
+            LocalHumanPlayerController localPlayer = PlayerManager.Instance != null ? PlayerManager.Instance.LocalPlayerController : null;
+            return localPlayer != null && PlayerManager.Instance.HostAuthorityPlayerId == localPlayer.netId.GetHashCode();
         }
 
         private static void SetToggleListInteractable(List<Toggle> toggles, bool interactable)

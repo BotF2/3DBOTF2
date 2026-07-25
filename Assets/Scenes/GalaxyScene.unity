@@ -1391,7 +1391,7 @@ MonoBehaviour:
   systemListContainer: {fileID: 44498444}
   galaxyCameraDragMoveZoom: {fileID: 889922729}
   mainCamera: {fileID: 963194234}
-  createTestFleets: 1
+  createTestFleets: 0
   testScouts: 6
   testDestroyers: 6
   testTransports: 2
