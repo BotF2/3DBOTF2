@@ -400,7 +400,7 @@ namespace BOTF3D.UI
             {
                 return AudioManager.Instance.GetMasterVolume();
             }
-            return PlayerPrefs.GetFloat("MasterVolume", 1f);
+            return PlayerPrefs.GetFloat("MasterVolume", 0.05f);
         }
 
         /// <summary>
