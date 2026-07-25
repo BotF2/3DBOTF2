@@ -306,15 +306,14 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
         RpcApplyIntelOrder(order, actingCiv, targetCiv);
     }
 
+    // Host-authority check intentionally removed - any connected client can trigger game start
+    // (MainMenuUIController.ApplyHostOnlyGating no longer disables the Start button either), so
+    // testers on a dedicated server don't need a host-equivalent player to begin the game.
     [Command]
     void CmdRequestStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
     {
-        int playerId = netId.GetHashCode();
-        if (PlayerManager.Instance == null || PlayerManager.Instance.HostAuthorityPlayerId != playerId)
-        {
-            Debug.LogWarning($"CmdRequestStartGame: player {playerId} does not hold host-equivalent authority; rejecting request.");
+        if (PlayerManager.Instance == null)
             return;
-        }
         PlayerManager.Instance.ServerBroadcastStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
     }
 

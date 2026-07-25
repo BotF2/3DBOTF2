@@ -151,18 +151,33 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Host-only escape hatch for a stuck/AFK player - advances regardless of ReadyCivs.
-        /// No Command relay: only ever wired to a button that's shown/interactable exclusively on
-        /// the host's own client (NetworkServer.active is true there and nowhere else), matching
-        /// the pattern of every other host-only action in this codebase.
+        /// Entry point for the "Force Turn" button (GameControlOverlay) - advances the turn
+        /// immediately, skipping ReadyCivs. Shown/enabled for every connected client (testing aid,
+        /// including on a true dedicated server where no client has NetworkServer.active); non-host
+        /// clients relay through a requiresAuthority = false Command, same pattern as
+        /// RequestSetCivReady/CmdSetCivReady below.
         /// </summary>
-        public void ForceAdvanceTurn()
+        public void RequestForceAdvanceTurn()
         {
-            if (!NetworkServer.active)
+            if (isServer)
+                ForceAdvanceTurn();
+            else
             {
-                Debug.LogWarning("⏰ TimeManager: ForceAdvanceTurn called on a non-host client — ignored.");
-                return;
+                Debug.Log("⏰ TimeManager: RequestForceAdvanceTurn - relaying via CmdForceAdvanceTurn (non-host client).");
+                CmdForceAdvanceTurn();
             }
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdForceAdvanceTurn(NetworkConnectionToClient sender = null)
+        {
+            Debug.Log($"⏰ TimeManager: CmdForceAdvanceTurn received from connection {sender?.connectionId}");
+            ForceAdvanceTurn();
+        }
+
+        [Server]
+        private void ForceAdvanceTurn()
+        {
             Debug.LogWarning("⏰ TimeManager: ForceAdvanceTurn — advancing without waiting for all civs ready.");
             AdvanceTurn();
         }
