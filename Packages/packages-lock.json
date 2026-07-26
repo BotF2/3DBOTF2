@@ -1,15 +1,5 @@
 {
   "dependencies": {
-    "com.edgegap.unity-servers-plugin": {
-      "version": "https://github.com/edgegap/edgegap-unity-plugin.git",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.unity.modules.uielements": "1.0.0"
-      },
-      "hash": "ba2fdf10047458fd0a3c90040ba83c788b9e1a35"
-    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,

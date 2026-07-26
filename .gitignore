@@ -9,6 +9,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Mm]emoryCaptures/
+/[Uu]ser[Ss]ettings/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
@@ -63,8 +64,6 @@ TorpedoFirepower.xlsx
 ~$TorpedoFirepower.xlsx
 /Assets/Scenes/Copy (1) GalaxySceen.unity
 /Assets/Scenes/Copy (1) GalaxySceen.unity.meta
-UserSettings/Layouts/default-2021.dwlt
-/UserSettings/Layouts
 /Assets/Script/Combat/AutoBattleGameManager.cs
 /Assets/Script/Combat/BattleState.cs
 /Assets/Script/Combat/DeployState.cs
@@ -93,4 +92,3 @@ UserSettings/Layouts/default-2021.dwlt
 .claude/settingsOld*.json
 .claude/settingsOLD.json
 /Assets/LevelData/SuperCoolFogLevel.json.meta
-/UserSettings/AI.Pbr/MaterialGeneratorSettings.asset
