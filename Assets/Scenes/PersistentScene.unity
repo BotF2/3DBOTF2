@@ -5304,7 +5304,7 @@ MonoBehaviour:
   DualMode: 0
   NoDelay: 1
   Interval: 10
-  Timeout: 10000
+  Timeout: 30000
   RecvBufferSize: 7361536
   SendBufferSize: 7361536
   FastResend: 2

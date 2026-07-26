@@ -2,6 +2,7 @@
 using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -201,13 +202,21 @@ namespace BOTF3D.Civilization
                 }
             }
         }
-        public void CreateNewGameBySelections(int sizeGame, int gameTechLevel, int galaxyType, int localPlayerCivInt, bool isSingleVsMultiplayer)
+        public IEnumerator CreateNewGameBySelections(int sizeGame, int gameTechLevel, int galaxyType, int localPlayerCivInt, bool isSingleVsMultiplayer)
         {
-            MainMenuUIController.Instance.MainMenuData.SelectedGalaxySize = (GalaxySize)sizeGame;
+            // MainMenuUIController.Instance is null on a true dedicated server (no local player, no
+            // MainMenuScene ever loaded there) - this cache is purely for the menu UI's own reads
+            // elsewhere, so it's skipped when absent. GameController.Instance.GameData below is the
+            // one every downstream generation method (this class + StarSysManager) should read from,
+            // since that manager exists on every machine including a headless dedicated server.
+            if (MainMenuUIController.Instance != null)
+            {
+                MainMenuUIController.Instance.MainMenuData.SelectedGalaxySize = (GalaxySize)sizeGame;
+                MainMenuUIController.Instance.MainMenuData.SelectedTechLevel = (TechLevel)gameTechLevel;
+                MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType = (GalaxyMapType)galaxyType;
+            }
             GameController.Instance.GameData.GalaxySize = (GalaxySize)sizeGame;
-            MainMenuUIController.Instance.MainMenuData.SelectedTechLevel = (TechLevel)gameTechLevel;
             GameController.Instance.GameData.StartingTechLevel = (TechLevel)gameTechLevel;
-            MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType = (GalaxyMapType)galaxyType;
             GameController.Instance.GameData.GalaxyMapType = (GalaxyMapType)galaxyType;
             isSinglePlayer = isSingleVsMultiplayer;
             GameController.Instance.GameData.LocalPlayerCivEnum = (CivEnum)localPlayerCivInt;
@@ -218,10 +227,10 @@ namespace BOTF3D.Civilization
             if (ThemeManager.Instance != null)
                 ThemeManager.Instance.ApplyTheme((ThemeEnum)localPlayerCivInt);
 
-            CivDataFromSO(CivSOsInGame, localPlayerCivInt);
+            yield return CivDataFromSO(CivSOsInGame, localPlayerCivInt);
             CreateCivEnumList(CivSOsInGame);
         }
-        public void CivDataFromSO(List<CivSO> civSOList, int localPayerCivInt)
+        public IEnumerator CivDataFromSO(List<CivSO> civSOList, int localPayerCivInt)
         {
             Debug.Log($"=== CivDataFromSO: Creating {civSOList.Count} civilizations ===");
 
@@ -239,7 +248,7 @@ namespace BOTF3D.Civilization
                 civData.Greedy = civSOList[i].GreedyEnum;
                 civData.CivRaceSprite = civSOList[i].CivImage;
                 civData.InsigniaSprite = civSOList[i].Insignia;
-                TechLevel startLevel = MainMenuUIController.Instance.MainMenuData.SelectedTechLevel;
+                TechLevel startLevel = GameController.Instance.GameData.StartingTechLevel;
                 civData.TechPoints = CivData.TechThresholds[startLevel] + civSOList[i].TechPoints;
                 civData.Playable = civSOList[i].Playable;
                 civData.HasWarp = civSOList[i].HasWarp;
@@ -260,7 +269,7 @@ namespace BOTF3D.Civilization
             // CRITICAL: Check if StarSysManager exists
             if (StarSysManager.Instance != null)
             {
-                StarSysManager.Instance.SysDataFromSO(civSOList);
+                yield return StarSysManager.Instance.SysDataFromSO(civSOList);
                 Debug.Log($"CivDataFromSO: StarSysManager created systems");
             }
             else
@@ -322,9 +331,9 @@ namespace BOTF3D.Civilization
             return result;
 
         }
-        public void OnNewGameButtonClicked(int gameSize, int gameTechLevel, int galaxyType, int selectedLocalCiv, bool isSingle)
+        public IEnumerator OnNewGameButtonClicked(int gameSize, int gameTechLevel, int galaxyType, int selectedLocalCiv, bool isSingle)
         {
-            CreateNewGameBySelections(gameSize, gameTechLevel, galaxyType, selectedLocalCiv, isSingle);
+            yield return CreateNewGameBySelections(gameSize, gameTechLevel, galaxyType, selectedLocalCiv, isSingle);
         }
 
         public void AddSystemToOwnSystemListAndHomeSys(List<StarSysController> controllers)

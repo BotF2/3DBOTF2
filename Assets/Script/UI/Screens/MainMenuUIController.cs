@@ -389,11 +389,10 @@ namespace BOTF3D.UI
             Debug.Log("=== MainMenuUIController.Awake() COMPLETE ===");
         }
 
-        // Host (StartHost) only makes sense for local/editor testing (Player2+Host in the Editor,
-        // or a future LAN party) - every standalone Player build (the client build handed to
-        // Edgegap testers, plus the Windows/Linux Server builds) should only ever Connect. Hidden
-        // here rather than gated by a scripting define since there's no LAN-party build yet; add a
-        // define-based gate instead if that's needed later without losing Editor testing.
+        // Host (StartHost) is available in the Editor and in standalone Player builds, so one PC
+        // can Host a LAN/direct-IP playtest session and the others Connect to its IP - only the
+        // headless -batchmode Server build (which starts its own server in
+        // PersistentSceneBootstrap before this menu even loads) has no use for it.
         private void ApplyHostButtonEditorGate()
         {
             if (panelMuliplayer == null)
@@ -402,7 +401,7 @@ namespace BOTF3D.UI
             foreach (Button button in panelMuliplayer.GetComponentsInChildren<Button>(true))
             {
                 if (button.gameObject.name == "Button Host")
-                    button.gameObject.SetActive(Application.isEditor);
+                    button.gameObject.SetActive(!Application.isBatchMode);
             }
         }
 
@@ -791,8 +790,11 @@ namespace BOTF3D.UI
 
             CivManager.Instance.UpdatePlayableCivGameList(MainMenuData.InGamePlayableCivList, (int)MainMenuData.SelectedGalaxySize, MainMenuData.SelectedGalaxyType);
 
-            // Initialize game systems
-            CivManager.Instance.OnNewGameButtonClicked(
+            // Initialize game systems. Runs as a coroutine (rather than one synchronous call) so the
+            // ~60-system generation burst yields a frame between systems - see StarSysManager.SysDataFromSO
+            // for why: without it, the client's main thread can stall long enough to blow past the
+            // KcpTransport's Timeout and get disconnected mid-generation.
+            yield return CivManager.Instance.OnNewGameButtonClicked(
                 (int)MainMenuData.SelectedGalaxySize,
                 (int)MainMenuData.SelectedTechLevel,
                 (int)MainMenuData.SelectedGalaxyType,
@@ -1832,6 +1834,11 @@ namespace BOTF3D.UI
             if (playerNameInputField != null && !string.IsNullOrWhiteSpace(playerNameInputField.text))
                 localPlayer.SubmitPlayerName(playerNameInputField.text);
 
+            // Same race as ClientRosterPanelUIController below: SubscribeRosterCallback() was
+            // first tried from OnNetworkClientConnected, which on a real remote connection fires
+            // before PlayerManager.Instance exists yet - retry now that it's guaranteed set.
+            SubscribeRosterCallback();
+
             // Panel_ClientRoster.RefreshPanel() may already have run once (it runs on OnEnable,
             // which fires the instant we SetActive(true) it right after Host/Connect) - at that
             // point PlayerManager.Instance.LocalPlayerController was still null, so every row was
@@ -1842,12 +1849,12 @@ namespace BOTF3D.UI
 
         public void HostButton() // Button Host in Panel-MulitplayerLobby
         {
-            // Defense in depth - ApplyHostButtonEditorGate() already hides this button outside the
-            // Editor, but reject the action too in case it's ever reached another way (e.g. a
-            // leftover keyboard/gamepad UI navigation binding).
-            if (!Application.isEditor)
+            // Defense in depth - ApplyHostButtonEditorGate() already hides this button on a
+            // headless -batchmode server, but reject the action too in case it's ever reached
+            // another way (e.g. a leftover keyboard/gamepad UI navigation binding).
+            if (Application.isBatchMode)
             {
-                SetLobbyStatus("Hosting is only available in the Unity Editor. Use Connect instead.");
+                SetLobbyStatus("Hosting is not available on a dedicated server build.");
                 return;
             }
             if (NetworkManager.singleton == null)

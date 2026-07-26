@@ -61,6 +61,16 @@ namespace BOTF3D.Core
         // whenever it's available, falling back to the cache only if that reference isn't set yet.
         public bool AreWeLocalPlayer(CivEnum civ)
         {
+            // A true dedicated server (NetworkServer.active with no local client/player at all)
+            // never "is" any civ. GetOurCiv()'s GameData.LocalPlayerCivEnum fallback below is a
+            // per-machine default meant for a human client that hasn't finished syncing its
+            // LocalPlayerController yet - on a headless server that field is just an unused
+            // leftover default, and treating it as "ours" would make server-side per-turn logic
+            // (e.g. StarSysAIManager.ProcessAllSystems) wrongly auto-manage that one real human
+            // player's systems every turn.
+            if (Mirror.NetworkServer.active && !Mirror.NetworkClient.active)
+                return false;
+
             return civ == GetOurCiv();
         }
 

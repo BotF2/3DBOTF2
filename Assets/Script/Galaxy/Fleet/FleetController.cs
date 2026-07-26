@@ -370,7 +370,12 @@ namespace BOTF3D.Galaxy
         {
             rb = GetComponent<Rigidbody>();
             rb.isKinematic = true;
-            galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
+            // A headless dedicated server has no Camera in the scene at all, so this lookup
+            // legitimately returns null there - only wire up the camera-dependent UI (world-space
+            // canvas, minimap) when one actually exists, instead of throwing and aborting the rest
+            // of Start() (DestinationLine setup, UpdateMinimapPosition) on every fleet spawn.
+            GameObject mainCameraGo = GameObject.FindGameObjectWithTag("MainCamera");
+            galaxyEventCamera = mainCameraGo != null ? mainCameraGo.GetComponent<Camera>() : null;
             if (GalaxyCanvasGo != null)
                 FleetUICanvas = GalaxyCanvasGo.GetComponent<Canvas>();
             if (FleetUICanvas != null)

@@ -32,11 +32,13 @@ namespace BOTF3D.Combat
         {
             Debug.Log($"=== InstantiateShipListUI called for ship '{shipCon?.ShipData?.ShipName}' ===");
             Debug.Log($"  Ship CivEnum: {shipCon?.ShipData?.CivEnum}");
-            Debug.Log($"  LocalPlayerCivEnum: {GameController.Instance?.GameData?.LocalPlayerCivEnum}");
-            Debug.Log($"  Match: {shipCon?.ShipData?.CivEnum == GameController.Instance?.GameData?.LocalPlayerCivEnum}");
+            Debug.Log($"  OurCiv: {GameController.Instance?.GetOurCiv()}");
+            Debug.Log($"  Match: {shipCon != null && GameController.Instance != null && GameController.Instance.AreWeLocalPlayer(shipCon.ShipData.CivEnum)}");
 
-            // Only create UI for local player ships
-            if (shipCon.ShipData.CivEnum != GameController.Instance.GameData.LocalPlayerCivEnum)
+            // Only create UI for local player ships. GameData.LocalPlayerCivEnum is a racy cache
+            // (see GameController.AreWeLocalPlayer's comment) - reading it directly here left every
+            // remote client's own ship-list UI stuck comparing against the stale FED default.
+            if (!GameController.Instance.AreWeLocalPlayer(shipCon.ShipData.CivEnum))
             {
                 Debug.Log($"  Ship '{shipCon.ShipData.ShipName}' is NOT local player - no UI created");
                 return;

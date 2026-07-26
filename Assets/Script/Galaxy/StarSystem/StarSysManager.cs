@@ -4,6 +4,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using FischlWorks_FogWar;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -451,7 +452,12 @@ namespace BOTF3D.Galaxy
             return position;
         }
 
-        public void SysDataFromSO(List<CivSO> civSOList)
+        // A full galaxy is ~60 systems, each doing system+UI+fleet+facility instantiation - running
+        // that all synchronously in one frame can stall the main thread long enough to blow past the
+        // KcpTransport's Timeout (PersistentScene's Transport component), since Mirror/KCP only send
+        // and receive on Update(). Yielding a frame between systems keeps Update() (and so the
+        // network connection) alive throughout generation instead of freezing it for the whole burst.
+        public IEnumerator SysDataFromSO(List<CivSO> civSOList)
         {
             Debug.Log($"=== StarSysManager.SysDataFromSO: Creating systems for {civSOList.Count} civs ===");
 
@@ -459,11 +465,14 @@ namespace BOTF3D.Galaxy
             if (galaxyCenter == null)
             {
                 Debug.LogError("StarSysManager: galaxyCenter is NULL! Cannot create systems.");
-                return;
+                yield break;
             }
 
             // ✅ NEW: Initialize random positions if using RANDOM galaxy type
-            if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
+            // Reads from GameController.Instance.GameData rather than MainMenuUIController.Instance -
+            // the latter is null on a true dedicated server (no MainMenuScene loaded there), while
+            // GameData is kept in sync on every machine by CivManager.CreateNewGameBySelections.
+            if (GameController.Instance.GameData.GalaxyMapType == GalaxyMapType.RANDOM)
             {
                 InitializeRandomPositionPool();
             }
@@ -502,6 +511,8 @@ namespace BOTF3D.Galaxy
                 Debug.Log($"  Creating system: {SysData.SysName} for {civSOList[i].CivShortName}");
 
                 InstantiateSystem(SysData, civSOList[i], starSysSO);
+
+                yield return null;
             }
 
             starSysDatas.Remove(starSysDatas[0]); // pull out the null
@@ -521,13 +532,13 @@ namespace BOTF3D.Galaxy
             // ✅ Determine position based on galaxy type
             Vector3 systemLocalPosition;
 
-            if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RANDOM)
+            if (GameController.Instance.GameData.GalaxyMapType == GalaxyMapType.RANDOM)
             {
                 // ✅ RANDOM: Get next shuffled position from pool
                 systemLocalPosition = GetNextRandomPosition();
                 Debug.Log($"InstantiateSystem: RANDOM mode - Assigned '{sysData.SysName}' to position {systemLocalPosition}");
             }
-            else if (MainMenuUIController.Instance.MainMenuData.SelectedGalaxyType == GalaxyMapType.RING)
+            else if (GameController.Instance.GameData.GalaxyMapType == GalaxyMapType.RING)
             {
                 // TODO: Implement ring galaxy layout
                 systemLocalPosition = sysData.GetPosition();
