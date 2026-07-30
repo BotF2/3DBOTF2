@@ -197,6 +197,19 @@ namespace BOTF3D.UI
                     {
                         fleetCon.FleetUIGameObject.transform.SetParent(FleetListContainer.transform, false);
                     }
+
+                    // Diagnostic for the "fleet owner can't see their own fleet on the galaxy map"
+                    // bug: this UI list is confirmed reachable (fleetCon/FleetUIGameObject are both
+                    // non-null here) - dump the SEPARATE map-icon state (FleetChildFields/Insignia)
+                    // at the same moment, to see whether the two ever actually diverge.
+                    var diagFields = fleetCon.GetComponent<FleetChildFields>();
+                    GameLogger.Log(GameLogger.LogCategory.Fleet,
+                        $"[VisibilityDiag] SetupFleetUIData: fleet '{fleetCon.name}' civ={fleetCon.FleetData.CivEnum} " +
+                        $"gameObject.activeInHierarchy={fleetCon.gameObject.activeInHierarchy} " +
+                        $"position={fleetCon.transform.position} " +
+                        $"InsigniaGO.activeSelf={(diagFields?.InsigniaGO != null ? diagFields.InsigniaGO.activeSelf.ToString() : "null")} " +
+                        $"InsigniaSpriteRenderer.enabled={(diagFields?.InsigniaGO != null ? diagFields.InsigniaGO.GetComponent<SpriteRenderer>()?.enabled.ToString() : "null")}",
+                        this);
                 }
             }
         }

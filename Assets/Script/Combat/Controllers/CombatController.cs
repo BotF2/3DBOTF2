@@ -675,6 +675,23 @@ namespace BOTF3D.Combat
                 {
                     GameLogger.Log(GameLogger.LogCategory.Combat, $"  Fleet '{fleet.name}' survived with {shipCount} ships", this);
                     fleet.UpdateMaxWarp();
+
+                    // Diagnostic for the "fleet owner can't see their own surviving fleet on the
+                    // galaxy map after combat" bug: dump every piece of state that governs whether
+                    // this fleet's map icon should be visible, from THIS peer's own local
+                    // perspective, right at the moment combat cleanup decides to keep it alive.
+                    var diagFields = fleet.GetComponent<FleetChildFields>();
+                    bool diagIsLocalPlayer = GameController.Instance != null && GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum);
+                    GameLogger.Log(GameLogger.LogCategory.Combat,
+                        $"  [VisibilityDiag] Fleet '{fleet.name}' civ={fleet.FleetData.CivEnum} " +
+                        $"AreWeLocalPlayer={diagIsLocalPlayer} NetworkServer.active={NetworkServer.active} " +
+                        $"gameObject.activeInHierarchy={fleet.gameObject.activeInHierarchy} " +
+                        $"gameObject.activeSelf={fleet.gameObject.activeSelf} " +
+                        $"position={fleet.transform.position} parent={(fleet.transform.parent != null ? fleet.transform.parent.name : "null")} " +
+                        $"InsigniaGO.activeSelf={(diagFields?.InsigniaGO != null ? diagFields.InsigniaGO.activeSelf.ToString() : "null")} " +
+                        $"InsigniaSpriteRenderer.enabled={(diagFields?.InsigniaGO != null ? diagFields.InsigniaGO.GetComponent<SpriteRenderer>()?.enabled.ToString() : "null")} " +
+                        $"InsigniaUnknownGO.activeSelf={(diagFields?.InsigniaUnknownGO != null ? diagFields.InsigniaUnknownGO.activeSelf.ToString() : "null")}",
+                        this);
                 }
             }
 

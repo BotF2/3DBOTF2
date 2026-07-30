@@ -2046,6 +2046,26 @@ namespace BOTF3D.Galaxy
         public void ServerBroadcastOrdersResolved(CombatOrders sideOne, CombatOrders sideTwo)
         {
             RpcOrdersResolved(sideOne, sideTwo);
+
+            // A pure dedicated server (StartServer() only, no local NetworkClient - see
+            // PersistentSceneBootstrap.StartDedicatedServer) never receives its own ClientRpc:
+            // Rpc bodies only run on machines with an actual NetworkClient connection, which a
+            // headless server doesn't have. Without this, the server's own TurnResolver never
+            // advances past this turn (ApplyResolvedOrdersAndResolve is otherwise only reachable
+            // via RpcOrdersResolved above), so it can never detect combat-over or call
+            // CombatController.EndCombat() - leaving every real client stuck forever on its own
+            // locally-simulated victory panel, waiting for a resolution that never comes.
+            // CombatUIManager.Instance.CurrentCombatController is NOT usable here - it's only ever
+            // set by CombatManager.SetUpLocalPlayer's SetupForCombat() path, which deliberately
+            // skips itself entirely on a dedicated server (see CombatManager.SetUpLocalPlayer).
+            // Use the same UI-independent lookup ServerSubmitCombatOrder already uses instead.
+            // Skipped when NetworkClient.active (host mode) since the loopback client already
+            // delivers the Rpc above - calling this a second time here would double-resolve the turn.
+            if (!NetworkClient.active)
+            {
+                var resolver = CombatManager.Instance?.GetActiveCombatControllerForFleet(this)?.TurnResolver;
+                resolver?.ApplyResolvedOrdersAndResolve(sideOne, sideTwo);
+            }
         }
 
         [ClientRpc]

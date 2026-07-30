@@ -30,7 +30,7 @@ namespace BOTF3D.Combat
             { ShipType.LtCruiser, new BaseStats(44, 22, 22, 18, 4.5f, 11, 3) },
             { ShipType.Cruiser,   new BaseStats(58, 30, 30, 24, 4.0f, 14, 3) },
             { ShipType.HvyCruiser,new BaseStats(76, 42, 40, 32, 3.5f, 18, 4) },
-            { ShipType.Transport, new BaseStats(12, 30,  3,  0, 3.5f,  6, 4) },
+            { ShipType.Transport, new BaseStats(12, 30,  0,  0, 3.5f,  6, 4) },
         };
 
         // ── Tech-tier multipliers (derived from actual FED Scout_I–IV data) ──
@@ -128,7 +128,7 @@ namespace BOTF3D.Combat
             { CivEnum.KLING,  new CivFlavor(0.86f, 1.26f, 1.02f, 1.35f, 1.10f) },
             { CivEnum.CARD,   new CivFlavor(1.10f, 1.20f, 0.98f, 1.15f, 1.05f) }, // unchanged, own power tier
             { CivEnum.DOM,    new CivFlavor(1.28f, 0.92f, 1.15f, 1.00f, 1.00f) }, // unchanged, own power tier
-            { CivEnum.BORG,   new CivFlavor(1.45f, 1.32f, 1.08f, 1.08f, 0.85f) }, // unchanged, own power tier
+            { CivEnum.BORG,   new CivFlavor(1.45f, 1.32f, 1.40f, 1.40f, 0.85f) }, // Beam/Torp bumped from 1.08 to compensate for reduced EARLY starting-fleet ship count (see ShipSOProvider.MajorStartingFleetCompositionOverrides)
             // EffectiveHP(Scout) 0.95/0.95 → 28.5, already at target - unchanged
             { CivEnum.TERRAN, new CivFlavor(0.95f, 0.95f, 1.12f, 1.12f, 1.03f) },
         };
@@ -181,7 +181,10 @@ namespace BOTF3D.Combat
             {
                 ShieldMaxHealth = Mathf.Max(1, Mathf.RoundToInt(b.Shield * combat * f.Shield)),
                 HullMaxHealth   = Mathf.Max(1, Mathf.RoundToInt(b.Hull   * combat * f.Hull)),
-                BeamDamage      = Mathf.Max(1, Mathf.RoundToInt(b.Beam   * combat * f.Beam)),
+                // Transports carry no weapons - skip the min-1 floor below (it exists so combat
+                // ships never round down to a useless 0-damage beam) or they'd always end up
+                // with at least 1 beam damage even though their base Beam stat is 0.
+                BeamDamage      = shipType == ShipType.Transport ? 0 : Mathf.Max(1, Mathf.RoundToInt(b.Beam * combat * f.Beam)),
                 TorpedoDamage   = Mathf.Max(0, Mathf.RoundToInt(b.Torp   * combat * f.Torp)),
                 MaxWarpFactor   = b.Warp * warpMult * f.Warp,
                 BuildDuration   = Mathf.Max(1, Mathf.RoundToInt(b.Build  * buildMult)),

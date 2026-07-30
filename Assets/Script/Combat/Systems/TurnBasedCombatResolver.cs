@@ -512,8 +512,12 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 }
             }
 
-            // ✅ Show combat end panel via manager (cosmetic - safe on every client)
-            if (BOTF3D.UI.CombatUIManager.Instance != null)
+            // Show combat end panel via manager - cosmetic, so skip entirely on a pure dedicated
+            // server (same guard as ShowOrderSelectionUI above): nobody is watching it there, and
+            // a headless server has no resolved Localization SelectedLocale, so a localized text
+            // lookup reached from this UI path throws and would otherwise kill this coroutine
+            // before EndCombat() below ever runs, leaving every client stuck on the results panel.
+            if (!(NetworkServer.active && !NetworkClient.active) && BOTF3D.UI.CombatUIManager.Instance != null)
             {
                 BOTF3D.UI.CombatUIManager.Instance.ShowCombatOverPanel();
                 BOTF3D.UI.CombatUIManager.Instance.SetCombatOutcomeText(combatData);

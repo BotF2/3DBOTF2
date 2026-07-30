@@ -165,7 +165,9 @@ namespace BOTF3D.UI
             }
 
             row.lastValidIndex = index;
-            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv(row.dropdownCivs[index]);
+            var localCon = PlayerManager.Instance?.LocalPlayerController;
+            Debug.Log($"[RosterDiag] OnDropdownValueChanged: submitting civ={row.dropdownCivs[index]} via LocalPlayerController netId={(localCon != null ? localCon.netId.ToString() : "null")}");
+            localCon?.SubmitPlayerCiv(row.dropdownCivs[index]);
         }
 
         private void PopulateRow(RowState r, RosterEntry entry, IReadOnlyList<RosterEntry> roster, int? localPlayerId)

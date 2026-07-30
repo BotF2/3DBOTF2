@@ -113,7 +113,12 @@
       "Bash(echo \"---exit:$?\")",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(gh api *)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(docker version *)",
+      "Bash(docker info *)",
+      "Bash(docker manifest inspect *)",
+      "Bash(docker buildx *)",
+      "Bash(sort -k1)"
     ]
   },
   "model": "claude-sonnet-5"

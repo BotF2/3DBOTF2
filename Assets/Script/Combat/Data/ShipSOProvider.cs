@@ -219,10 +219,65 @@ namespace BOTF3D.Combat
                 }
             };
 
+        // Per-civ overrides of MajorStartingFleetComposition above, keyed by (civ, tech level).
+        // FED/ROM/KLING/TERRAN share QualityScore=5 and are calibrated to near-equal per-ship power
+        // (see ShipStatCalculator.Flavor), so the shared 6/6/2 baseline above already balances their
+        // first fleets 1-for-1 and none of them need an entry here.
+        //
+        // CARD/DOM/BORG sit on ShipStatCalculator's QualityScore "quantity vs quality" axis instead
+        // (QualityScore 1/8/10 respectively - see CivSO tooltip), which scales per-ship combat power
+        // directly (QualCombat[] in ShipStatCalculator) on top of their existing Flavor multipliers.
+        // A same-size fleet is therefore never fair for these three; ship COUNT has to move the other
+        // way to compensate. These are sized off FULL-FLEET totals (not a single Scout-tier ratio),
+        // because Total Offense scales linearly with ship count and Beam fires many times per 30s
+        // turn while Torpedo fires once - so per-ship power indices alone under/over-correct:
+        //   CARD (9/9/3=21) → Total Offense ≈1.01x, Beam-only ≈0.84x, EffectiveHP ≈1.42x Romulan's
+        //   DOM  (4/6/2=12) → Total Offense ≈0.95x, Beam-only ≈0.92x, EffectiveHP ≈1.31x Romulan's
+        //   BORG (3/5/1=9)  → Total Offense ≈1.10x, Beam-only ≈0.98x, EffectiveHP ≈1.34x Romulan's
+        //     (BORG Beam/Torp Flavor also bumped 1.08→1.40 alongside this resize - see
+        //     ShipStatCalculator.Flavor[CivEnum.BORG] - since count alone couldn't reach parity)
+        // Same Scout:Destroyer:Transport shape as the baseline in each case, just resized. Only
+        // EARLY is populated for now (matches MajorStartingFleetComposition above); treat these as a
+        // first pass - like every other number in ShipStatCalculator.Flavor, tune from actual
+        // CombatRecordings turn-log results rather than this static estimate alone.
+        private static readonly Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>> MajorStartingFleetCompositionOverrides =
+            new Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>>
+            {
+                [CivEnum.CARD] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
+                {
+                    [TechLevel.EARLY] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 9 },
+                        { ShipType.Destroyer, 9 },
+                        { ShipType.Transport, 3 },
+                    }
+                },
+                [CivEnum.DOM] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
+                {
+                    [TechLevel.EARLY] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 4 },
+                        { ShipType.Destroyer, 6 },
+                        { ShipType.Transport, 2 },
+                    }
+                },
+                [CivEnum.BORG] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
+                {
+                    [TechLevel.EARLY] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 3 },
+                        { ShipType.Destroyer, 5 },
+                        { ShipType.Transport, 1 },
+                    }
+                },
+            };
+
         /// <summary>
         /// Get ships for a civilization's starting fleet.
-        /// Major races (FED..TERRAN) get the composition defined in MajorStartingFleetComposition
-        /// for the given tech level. Minor races get 1 ship (Destroyer, or Scout as fallback).
+        /// Major races (FED..TERRAN) get the composition defined in
+        /// MajorStartingFleetCompositionOverrides for their civ+tech level if one exists, otherwise
+        /// the shared MajorStartingFleetComposition baseline. Minor races get 1 ship (Destroyer, or
+        /// Scout as fallback).
         /// </summary>
         public List<ShipSO> GetStartingFleetShips(TechLevel techLevel, CivEnum civEnum)
         {
@@ -250,7 +305,10 @@ namespace BOTF3D.Combat
 
             if (isMajorRace)
             {
-                if (!MajorStartingFleetComposition.TryGetValue(techLevel, out var composition))
+                Dictionary<ShipType, int> composition;
+                if (!(MajorStartingFleetCompositionOverrides.TryGetValue(civEnum, out var civOverrides)
+                        && civOverrides.TryGetValue(techLevel, out composition))
+                    && !MajorStartingFleetComposition.TryGetValue(techLevel, out composition))
                 {
                     Debug.LogWarning($"GetStartingFleetShips: No starting-fleet composition defined for {civEnum} at {techLevel}");
                     return new List<ShipSO>();
