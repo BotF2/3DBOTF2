@@ -5,6 +5,7 @@ using BOTF3D.UI;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
 
@@ -198,6 +199,18 @@ public GameObject HealthbarPrefab;
         /// </summary>
         public void SetUpLocalPlayer()
         {
+            // A true dedicated server (NetworkServer.active, no NetworkClient.active) has no local
+            // player - GameController.GetOurCiv() falls back to the unset GameData.LocalPlayerCivEnum
+            // default there (see GameController.cs). If CombatUIManager were set up anyway, its own
+            // order-selection countdown timer would independently expire and auto-submit an order
+            // for whatever that stale default civ happens to be, via the exact same ServerSubmitOrder
+            // path real submissions use - silently re-locking and re-broadcasting orders for a live
+            // combat side out from under the real human/AI submissions and corrupting turn state.
+            // The dedicated server's own AI orders are already handled server-side by
+            // TurnBasedCombatResolver.ServerAutoSubmitAIOrder, and real human orders always arrive via
+            // that client's own Cmd, so this local-order UI has no legitimate purpose on a server here.
+            if (NetworkServer.active && !NetworkClient.active) return;
+
             StartCoroutine(SetUpLocalPlayerAfterSceneLoad());
         }
 
@@ -314,6 +327,28 @@ public GameObject HealthbarPrefab;
                 bool matchesForward = controller.CombatData.CivEnumSideOne == civA && controller.CombatData.CivEnumSideTwo == civB;
                 bool matchesReverse = controller.CombatData.CivEnumSideOne == civB && controller.CombatData.CivEnumSideTwo == civA;
                 if (matchesForward || matchesReverse)
+                    return controller;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Finds the active (not-yet-ended) combat that the given fleet is a combatant in. Unlike
+        /// <see cref="GetActiveCombatControllerForCivs"/>, this is unambiguous even when two
+        /// combats share the same civ pair (e.g. back-to-back same-matchup test battles), since a
+        /// given fleet can only be fighting in one active combat at a time.
+        /// </summary>
+        public CombatController GetActiveCombatControllerForFleet(FleetController fleet)
+        {
+            if (fleet == null) return null;
+
+            var allCombatControllers = combatInstantiator.GetAllCombatControllers();
+            for (int i = 0; i < allCombatControllers.Count; i++)
+            {
+                CombatController controller = allCombatControllers[i];
+                if (controller.CombatEnded || controller.CombatData == null) continue;
+
+                if (controller.InvolvesFleet(fleet))
                     return controller;
             }
             return null;

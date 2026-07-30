@@ -79,6 +79,13 @@ namespace BOTF3D.Combat
         // NetworkBehaviour and needs one to reach the network.
         public FleetController GetInvolvedFleetAnchor() => _involvedFleets.Find(f => f != null);
 
+        // Used by RpcCombatEnded to identify which of possibly several concurrent same-civ-pair
+        // combats it belongs to - a fleet can only be a combatant in one active combat at a time,
+        // so this is unambiguous where civ-pair matching (the old approach) was not. See
+        // FleetController.RpcCombatEnded for why civ-pair matching broke under back-to-back
+        // same-civ-pair test battles.
+        public bool InvolvesFleet(FleetController fleet) => fleet != null && _involvedFleets.Contains(fleet);
+
         // === DEBUG & TESTING ===
         private BOTF3D.Combat.Testing.CombatRecorder combatRecorder;
         private BOTF3D.Combat.Debugging.CombatDebugUI combatDebugUI;
@@ -86,7 +93,7 @@ namespace BOTF3D.Combat
         private void Awake()
         {
             CombatID = GetInstanceID();
-            Debug.Log($"✅ CombatController {CombatID}: Created");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"✅ CombatController {CombatID}: Created", this);
 
             // Add turn-based resolver component
             if (UseTurnBasedCombat)
@@ -121,7 +128,7 @@ namespace BOTF3D.Combat
             combatDebugUI = gameObject.AddComponent<BOTF3D.Combat.Debugging.CombatDebugUI>();
             combatDebugUI.ShowOnStart = false; // Press F1 to show
 
-            Debug.Log("🐛 Debug tools initialized (F1 for debug UI)");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "🐛 Debug tools initialized (F1 for debug UI)", this);
         }
 
         void Update()
@@ -146,7 +153,7 @@ namespace BOTF3D.Combat
 
                 if (sideOneAlive == 0 || sideTwoAlive == 0)
 {
-                    Debug.Log($"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"🏁 Combat ended! Side 1: {sideOneAlive} ships, Side 2: {sideTwoAlive} ships", this);
                     combatEnded = true;
                     targetingSystem.StopAllWeaponFire();
 
@@ -205,7 +212,7 @@ namespace BOTF3D.Combat
         {
             if (theCombatController != this) return;
 
-            Debug.Log("=== Starting Ship Setup ===");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "=== Starting Ship Setup ===", this);
 
             // Capture fleet refs before any ship deaths can occur during combat
             CaptureInvolvedFleets();
@@ -226,7 +233,7 @@ namespace BOTF3D.Combat
                 TurnResolver.Initialize(this);
             }
 
-            Debug.Log("=== Ship Setup Complete ===");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "=== Ship Setup Complete ===", this);
         }
 
         // ShipID -> ShipController, used to apply networked per-ship outcome Rpcs (destroyed/
@@ -267,7 +274,7 @@ namespace BOTF3D.Combat
                         _involvedFleets.Add(ship.ShipData.CurrentFleetController);
                 }
             }
-            Debug.Log($"  Captured {_involvedFleets.Count} fleet refs for end-of-combat cleanup");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"  Captured {_involvedFleets.Count} fleet refs for end-of-combat cleanup", this);
         }
 
         /// <summary>
@@ -322,12 +329,12 @@ namespace BOTF3D.Combat
                 if (TurnResolver != null)
                 {
                     // Already Initialize()'d in PopulateShipData, before warp-in - see comment there.
-                    Debug.Log("🎮 Starting Turn-Based Combat");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, "🎮 Starting Turn-Based Combat", this);
                     TurnResolver.BeginOrderSelection();
                 }
                 else
                 {
-                    Debug.LogError("❌ TurnResolver is null! Cannot start turn-based combat.");
+                    GameLogger.LogError(GameLogger.LogCategory.Combat, "❌ TurnResolver is null! Cannot start turn-based combat.", this);
                 }
             }
             else
@@ -337,7 +344,7 @@ namespace BOTF3D.Combat
                 targetingSystem.AssignTargetsToAllShips();
                 yield return StartAllShipWeaponFire();
                 isMoving = true;
-                Debug.Log($"✅ Combat Controller {CombatID}: Order-based movement ENABLED");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"✅ Combat Controller {CombatID}: Order-based movement ENABLED", this);
             }
         }
 
@@ -366,7 +373,7 @@ namespace BOTF3D.Combat
                 if (isFlankingShip)
                 {
                     ship.transform.rotation = Quaternion.Euler(0, baseYRotation, 0);
-                    Debug.Log($"  🛸 {ship.ShipData.ShipName} ({ship.ShipData.ShipType}): Forward rotation {baseYRotation}°");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  🛸 {ship.ShipData.ShipName} ({ship.ShipData.ShipType}): Forward rotation {baseYRotation}°", this);
                 }
             }
         }
@@ -378,7 +385,7 @@ namespace BOTF3D.Combat
         {
             if (ShipCombatCameraController.Instance == null)
             {
-                Debug.LogError("❌ ShipCombatCameraController.Instance is null!");
+                GameLogger.LogError(GameLogger.LogCategory.Combat, "❌ ShipCombatCameraController.Instance is null!", this);
                 return;
             }
 
@@ -400,13 +407,13 @@ namespace BOTF3D.Combat
                 }
             }
 
-            Debug.Log($"📷 Setting camera to track {allShips.Count} ships");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"📷 Setting camera to track {allShips.Count} ships", this);
 
             ShipCombatCameraController.Instance.SetTargets(allShips.ToArray());
             ShipCombatCameraController.Instance.SetWarpingIn(false);
             ShipCombatCameraController.Instance.SetWarpingInOver(true);
 
-            Debug.Log("✅ Camera targets configured");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "✅ Camera targets configured", this);
         }
 
         /// <summary>
@@ -414,7 +421,7 @@ namespace BOTF3D.Combat
         /// </summary>
         public void BeginOrderBasedMovement()
         {
-            Debug.Log("📊 Beginning order-based movement...");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "📊 Beginning order-based movement...", this);
             isMoving = true;
         }
 
@@ -439,7 +446,7 @@ namespace BOTF3D.Combat
         /// </summary>
         public IEnumerator StartAllShipWeaponFire()
         {
-            Debug.Log("🔫 Starting weapon fire for all ships with balanced timing...");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "🔫 Starting weapon fire for all ships with balanced timing...", this);
 
             yield return new WaitForSecondsRealtime(0.5f);
 
@@ -469,7 +476,7 @@ namespace BOTF3D.Combat
                 {
                     float delay = index1 < side1Delays.Count ? side1Delays[index1] : 0f;
                     StartCoroutine(ShipFireLoopProxy(ship, delay));
-                    Debug.Log($"  Side 1: {ship.ShipData.ShipName} starting in {delay:F2}s");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  Side 1: {ship.ShipData.ShipName} starting in {delay:F2}s", this);
                     index1++;
                 }
             }
@@ -482,12 +489,12 @@ namespace BOTF3D.Combat
                 {
                     float delay = index2 < side2Delays.Count ? side2Delays[index2] : 0f;
                     StartCoroutine(ShipFireLoopProxy(ship, delay));
-                    Debug.Log($"  Side 2: {ship.ShipData.ShipName} starting in {delay:F2}s");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  Side 2: {ship.ShipData.ShipName} starting in {delay:F2}s", this);
                     index2++;
                 }
             }
 
-            Debug.Log($"✅ Weapon fire started for {index1 + index2} ships");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"✅ Weapon fire started for {index1 + index2} ships", this);
             yield return null;
         }
 
@@ -526,13 +533,13 @@ namespace BOTF3D.Combat
             {
                 CombatData.SideOneOrder = order;
                 sideShips = CombatData.SideOneShipCons;
-                Debug.Log($"Side One order set to: {order}");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"Side One order set to: {order}", this);
             }
             else if (side == 2 || (side == 0 && civEnum == CombatData.CivEnumSideTwo))
             {
                 CombatData.SideTwoOrder = order;
                 sideShips = CombatData.SideTwoShipCons;
-                Debug.Log($"Side Two order set to: {order}");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"Side Two order set to: {order}", this);
             }
 
             // Propagate order to individual ships
@@ -552,56 +559,8 @@ namespace BOTF3D.Combat
             if (CombatData.SideOneOrder != CombatOrders.None && CombatData.SideTwoOrder != CombatOrders.None)
             {
                 string summary = CombatOrderHelper.GetOrderSummary(CombatData.SideOneOrder, CombatData.SideTwoOrder);
-                Debug.Log($"📊 Combat Orders: {summary}");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"📊 Combat Orders: {summary}", this);
             }
-        }
-
-        /// <summary>
-        /// Set random AI order for a side
-        /// </summary>
-        public void SetAIRandomOrder(CivEnum aiCivEnum)
-        {
-            // Check if random orders are disabled in config
-            if (CombatManager.Instance != null && CombatManager.Instance.gameConfig != null)
-            {
-                if (CombatManager.Instance.gameConfig.disableRandomSideTwoOrders)
-                {
-                    Debug.Log($"🤖 AI ({aiCivEnum}): Random orders DISABLED by config. Skipping random order assignment.");
-                    return;
-                }
-            }
-
-            int side = 0;
-
-            if (aiCivEnum == CombatData.CivEnumSideOne)
-            {
-                side = 1;
-            }
-            else if (aiCivEnum == CombatData.CivEnumSideTwo)
-            {
-                side = 2;
-            }
-
-            var availableOrders = new List<CombatOrders>
-            {
-                CombatOrders.Engage,
-                CombatOrders.Formation,
-                CombatOrders.Rush,
-                CombatOrders.Retreat
-            };
-
-            bool enemyHasTransports = CombatOrderHelper.HasTransports(CombatData, side == 1 ? 2 : 1);
-            if (enemyHasTransports)
-            {
-                availableOrders.Add(CombatOrders.AttackTransports);
-                Debug.Log($"🎯 Enemy has transports - AttackTransports order available for AI");
-            }
-
-            CombatOrders randomOrder = availableOrders[Random.Range(0, availableOrders.Count)];
-
-            Debug.Log($"🤖 AI ({aiCivEnum}) selected order: {randomOrder}");
-
-            SetShipOrders(randomOrder, aiCivEnum, side);
         }
 
         /// <summary>
@@ -617,12 +576,12 @@ namespace BOTF3D.Combat
         /// </summary>
         private IEnumerator ShowCombatEndSequence(bool sideOneWon)
         {
-            Debug.Log("Combat End Phase 1: Stopping movement and weapons");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "Combat End Phase 1: Stopping movement and weapons", this);
             isMoving = false;
 
             yield return new WaitForSecondsRealtime(0.5f);
 
-            Debug.Log("Combat End Phase 2: Showing victory panel");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "Combat End Phase 2: Showing victory panel", this);
             if (CombatUIManager.Instance != null)
             {
                 CombatUIManager.Instance.ShowCombatOverPanel();
@@ -630,19 +589,19 @@ namespace BOTF3D.Combat
                 CivEnum winner = sideOneWon ? CombatData.CivEnumSideOne : CombatData.CivEnumSideTwo;
                 CivEnum loser = sideOneWon ? CombatData.CivEnumSideTwo : CombatData.CivEnumSideOne;
 
-                Debug.Log($"🏆 Victory for: {winner}");
-                Debug.Log($"💀 Defeated: {loser}");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🏆 Victory for: {winner}", this);
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"💀 Defeated: {loser}", this);
             }
 
             yield return new WaitForSecondsRealtime(2f);
 
-            Debug.Log("Combat End Phase 3: Returning to galaxy");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "Combat End Phase 3: Returning to galaxy", this);
             EndCombat();
 }
 
         public void OnReturnToGalaxyButtonClicked()
         {
-            Debug.Log("Player clicked return to galaxy");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "Player clicked return to galaxy", this);
             EndCombat();
         }
 
@@ -654,7 +613,7 @@ namespace BOTF3D.Combat
             var torpedoes = FindObjectsByType<Torpedo>(FindObjectsSortMode.None);
             if (torpedoes.Length > 0)
             {
-                Debug.Log($"⚠️ Found {torpedoes.Length} orphaned torpedoes - destroying silently");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"⚠️ Found {torpedoes.Length} orphaned torpedoes - destroying silently", this);
 
                 foreach (var torpedo in torpedoes)
                 {
@@ -675,7 +634,12 @@ namespace BOTF3D.Combat
             if (combatEnded) return;
             combatEnded = true;
 
-            Debug.Log("=== EndCombat: Starting cleanup ===");
+            // Signals CombatQueueManager.ProcessCombatQueue's wait loop that this combat is
+            // wrapping up, independent of whether/when ActiveCombatController gets nulled out
+            // below via CombatManager.OnCombatEnded.
+            isClosing = true;
+
+            GameLogger.Log(GameLogger.LogCategory.Combat, "=== EndCombat: Starting cleanup ===", this);
 
             // Grab a stable fleet ref before the cleanup loop below can destroy entries in
             // _involvedFleets, so we still have something to broadcast the combat-ended Rpc through.
@@ -693,23 +657,23 @@ namespace BOTF3D.Combat
             }
 
             // Use pre-captured fleet refs (collected at combat start, before any ship deaths)
-            Debug.Log($"  Processing {_involvedFleets.Count} fleets for end-of-combat cleanup");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"  Processing {_involvedFleets.Count} fleets for end-of-combat cleanup", this);
 
             foreach (var fleet in _involvedFleets)
             {
                 if (fleet == null) continue;
 
                 int shipCount = fleet.FleetData?.ShipsList?.Count ?? 0;
-                Debug.Log($"  Fleet '{fleet.name}': {shipCount} ships remaining");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"  Fleet '{fleet.name}': {shipCount} ships remaining", this);
 
                 if (shipCount == 0)
                 {
-                    Debug.Log($"  Fleet '{fleet.name}' has no ships remaining - destroying");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  Fleet '{fleet.name}' has no ships remaining - destroying", this);
                     FleetManager.Instance?.DestroyFleetController(fleet);
                 }
                 else
                 {
-                    Debug.Log($"  Fleet '{fleet.name}' survived with {shipCount} ships");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  Fleet '{fleet.name}' survived with {shipCount} ships", this);
                     fleet.UpdateMaxWarp();
                 }
             }
@@ -729,7 +693,7 @@ namespace BOTF3D.Combat
                 CombatUIManager.Instance.CleanupCombat();
             }
 
-            Debug.Log("=== EndCombat: Cleanup complete ===");
+            GameLogger.Log(GameLogger.LogCategory.Combat, "=== EndCombat: Cleanup complete ===", this);
 
             // Unload combat scene
             SceneController.Instance.UnloadCombatScene();
@@ -756,6 +720,14 @@ namespace BOTF3D.Combat
             if (TimeManager.Instance != null)
             {
                 TimeManager.Instance.ResumeTime();
+            }
+
+            // Notify the queue this combat is done so it can dequeue the next one - was previously
+            // nested inside the TimeManager null check above, which meant a null TimeManager.Instance
+            // (unrelated to combat state) would silently leave ActiveCombatController set forever and
+            // stall the entire combat queue.
+            if (CombatManager.Instance != null)
+            {
                 CombatManager.Instance.OnCombatEnded(this);
             }
 
@@ -780,7 +752,7 @@ namespace BOTF3D.Combat
 
                 if (ship.ShipData != null && ship.ShipData.CurrentFleetController != null)
                 {
-                    Debug.Log($"  ✅ Ship '{ship.name}' survived - returning to fleet");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"  ✅ Ship '{ship.name}' survived - returning to fleet", this);
 
                     // Remove combat-specific children
                     List<Transform> childrenToDestroy = new List<Transform>();
@@ -808,7 +780,7 @@ namespace BOTF3D.Combat
                     ship.transform.localScale = Vector3.one;
                     ship.gameObject.SetActive(true);
 
-                    Debug.Log($"    ✅ Ship cleaned and returned to fleet");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"    ✅ Ship cleaned and returned to fleet", this);
                 }
             }
         }

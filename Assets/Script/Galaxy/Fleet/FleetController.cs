@@ -101,7 +101,7 @@ namespace BOTF3D.Galaxy
             if (_civSetupInitiated) return;
             _civSetupInitiated = true;
 
-            // Two things HandleCivEnumChanged depends on can both be unresolved during a freshly-
+            // Three things HandleCivEnumChanged depends on can all be unresolved during a freshly-
             // connected client's initial spawn-message burst for pre-existing fleets (e.g. the host's):
             //
             // 1. GameController.AreWeLocalPlayer(newCiv) (used by RegisterFleetControllerAndSetupVisuals)
@@ -117,10 +117,19 @@ namespace BOTF3D.Galaxy
             //    been resolved yet, it silently falls back to Vector3.one, baking in 0.4 instead of
             //    0.4*10=4 - a fleet that renders 10x too small, with no later retry since this SyncVar
             //    hook only fires once per value change.
+            // 3. FleetData's constructor (called below when isFreshReconstruction) reads
+            //    CivManager.Instance.GetCivDataByCivEnum(civ).CivLongName. CivManager.CivDataInGameList
+            //    is populated by this client's own CivDataFromSO run, which - like PlayerManager's
+            //    LocalPlayerController above - hasn't necessarily finished by the time pre-existing
+            //    fleets' spawn messages arrive. GetCivDataByCivEnum returns null rather than throwing,
+            //    so this surfaced as a NullReferenceException inside FleetData's constructor (crashing
+            //    Mirror's OnDeserialize for this object, and failing the spawn entirely) rather than a
+            //    silently-wrong value like the other two - so it can't be defended against downstream,
+            //    it must be caught here before HandleCivEnumChanged ever runs.
             //
-            // Both are the same class of bug as the InsigniaUnknownGO one above - defer until we can
-            // answer both reliably instead of guessing.
-            if (!IsReadyToHandleCivChange())
+            // All three are the same class of bug as the InsigniaUnknownGO one above - defer until we
+            // can answer all of them reliably instead of guessing.
+            if (!IsReadyToHandleCivChange(newCiv))
             {
                 StartCoroutine(WaitThenHandleCivChanged(newCiv));
                 return;
@@ -143,7 +152,7 @@ namespace BOTF3D.Galaxy
             if (_civSetupInitiated) return;
             _civSetupInitiated = true;
 
-            if (!IsReadyToHandleCivChange())
+            if (!IsReadyToHandleCivChange(SyncedCivEnum))
             {
                 StartCoroutine(WaitThenHandleCivChanged(SyncedCivEnum));
                 return;
@@ -152,7 +161,7 @@ namespace BOTF3D.Galaxy
             HandleCivEnumChanged(SyncedCivEnum);
         }
 
-        private bool IsReadyToHandleCivChange()
+        private bool IsReadyToHandleCivChange(CivEnum civ)
         {
             if (PlayerManager.Instance == null || PlayerManager.Instance.LocalPlayerController == null)
                 return false;
@@ -160,21 +169,41 @@ namespace BOTF3D.Galaxy
             if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
                 FleetManager.Instance.FindGalaxyReferences();
 
-            return FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null;
+            if (FleetManager.Instance == null || FleetManager.Instance.GalaxyCenter == null)
+                return false;
+
+            // See point 3 in OnCivEnumChanged's comment above - HandleCivEnumChanged's FleetData(fleetSO)
+            // construction needs this civ's CivData to already exist in this client's own CivManager.
+            if (CivManager.Instance == null || CivManager.Instance.GetCivDataByCivEnum(civ) == null)
+                return false;
+
+            // CivData existing isn't enough - FleetData(FleetSO)'s constructor also resolves
+            // CivController from CivManager.CivControllersInGame (a separate list, populated on its
+            // own schedule) and silently leaves it null via FirstOrDefault() if that civ's controller
+            // hasn't been added yet. A null CivController here doesn't surface until much later, when
+            // DiplomacyManager.FleetControllerVsOtherCivFleet dereferences
+            // otherFleet.FleetData.CivController.CivData - which throws inside a ClientRpc handler and
+            // gets that client disconnected by Mirror (see conversation: "Disconnecting connection...
+            // caused an Exception"). Gate reconstruction on this too so it retries via
+            // WaitThenHandleCivChanged instead of ever producing a fleet with no CivController.
+            if (CivManager.Instance.GetCivControllerByCivEnum(civ) == null)
+                return false;
+
+            return true;
         }
 
         private IEnumerator WaitThenHandleCivChanged(CivEnum newCiv)
         {
             const float timeout = 5f;
             float elapsed = 0f;
-            while (!IsReadyToHandleCivChange() && elapsed < timeout)
+            while (!IsReadyToHandleCivChange(newCiv) && elapsed < timeout)
             {
                 yield return null;
                 elapsed += Time.unscaledDeltaTime;
             }
 
-            if (!IsReadyToHandleCivChange())
-                Debug.LogWarning($"FleetController.OnCivEnumChanged: local player/GalaxyCenter still unresolved after {timeout}s for fleet '{name}' - proceeding anyway, civ classification/scale may be wrong.");
+            if (!IsReadyToHandleCivChange(newCiv))
+                Debug.LogWarning($"FleetController.OnCivEnumChanged: local player/GalaxyCenter/CivManager still unresolved after {timeout}s for fleet '{name}' - proceeding anyway, civ classification/scale/FleetData may be wrong or throw.");
 
             HandleCivEnumChanged(newCiv);
         }
@@ -208,10 +237,16 @@ namespace BOTF3D.Galaxy
             Vector3 galaxyScale = FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null
                 ? FleetManager.Instance.GalaxyCenter.transform.lossyScale
                 : Vector3.one;
-            // X and Y must stay equal (a fleet sprite billboard, not an oblong shape) - derive both
-            // from galaxyScale.x alone rather than scaling each axis independently, so a
-            // non-uniform GalaxyCenter (X != Y) can never stretch the sprite.
-            transform.localScale = new Vector3(0.4f * galaxyScale.x, 0.4f * galaxyScale.x, galaxyScale.z);
+            // All three axes must stay equal (a fleet sprite billboard, not an oblong shape) -
+            // derive all of them from galaxyScale.x alone rather than scaling each axis
+            // independently. Billboard.cs fully matches the camera's rotation (not a Y-axis-only
+            // cylindrical billboard), so a non-uniform local scale here still shows up as visible
+            // stretching once rotated to face the shallow-angle top-down galaxy camera - leaving Z
+            // at the raw galaxyScale.z previously stretched the sprite ~2.5x taller than wide and
+            // (since the SphereCollider is a sibling component on this same transform, and bakes
+            // the largest lossyScale axis into its effective radius) made the collider ~2.5x too
+            // big as well.
+            transform.localScale = new Vector3(0.4f * galaxyScale.x, 0.4f * galaxyScale.x, 0.4f * galaxyScale.x);
 
             bool isFreshReconstruction = FleetData == null;
             if (isFreshReconstruction)
@@ -1878,6 +1913,20 @@ namespace BOTF3D.Galaxy
             NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
             string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
             RpcStartCombat(otherIdentity, sysName);
+
+            // RpcStartCombat above is a ClientRpc - Mirror only runs it on machines with an active
+            // local client. A true dedicated server (NetworkServer.active, no NetworkClient.active -
+            // see PersistentSceneBootstrap.StartDedicatedServer) has none, so it never loads
+            // CombatScene and never gets its own CombatController/TurnBasedCombatResolver. Without
+            // that, ServerSubmitCombatOrder below can never find an active combat to resolve into,
+            // so every order submission - human or AI - silently no-ops and combat freezes forever.
+            // A dedicated server must simulate every combat in the world regardless of which civs
+            // are involved (it has no "local player" to filter by, unlike RpcStartCombat's
+            // IsLocalPlayerACombatant bystander check), so trigger it directly here instead.
+            if (NetworkServer.active && !NetworkClient.active)
+            {
+                SceneController.Instance.LoadCombatScene(this, otherFleetCon, sysCon);
+            }
         }
 
         [ClientRpc]
@@ -1925,7 +1974,19 @@ namespace BOTF3D.Galaxy
             // ServerNotifyCombatEnded) - EndCombat's own idempotency guard makes it safe to call
             // again from the host's own client connection. Non-host combatants haven't run it yet,
             // so this is their only trigger to leave the Combat scene.
-            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(civA, civB);
+            //
+            // Look up by "this" fleet (the networked FleetController this Rpc is running on -
+            // ServerNotifyCombatEnded is always called on combatEndedAnchor, one of the combat's
+            // own involved fleets), NOT by civ pair. Civ-pair matching broke under back-to-back
+            // same-civ-pair test battles: if a second FED-vs-KLING combat's scene finished loading
+            // on a client before the first FED-vs-KLING combat's delayed end-of-combat broadcast
+            // (ShowCombatEndSequence has ~2.5s of WaitForSecondsRealtime before EndCombat() even
+            // runs) arrived, GetActiveCombatControllerForCivs(FED, KLING) would match whichever
+            // combat happened to be first from that ambiguous, non-unique civ-pair search - which
+            // could be the brand new combat instead of the one that actually ended, tearing down a
+            // fight that had just started. A fleet can only be a combatant in one active combat at
+            // a time, so matching on "this" fleet's identity is unambiguous.
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForFleet(this);
             combatCon?.EndCombat();
         }
 

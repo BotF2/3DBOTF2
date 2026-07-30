@@ -393,6 +393,16 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
         { // already not one of our fleets
             reportingPlayerFleet.FleetData.ShipsList.RemoveAll(item => item == null);
             otherFleet.FleetData.ShipsList.RemoveAll(item => item == null);
+            // FleetData.CivController can still be null here for a just-reconstructed remote client
+            // fleet (see FleetController.IsReadyToHandleCivChange, which now gates against this race,
+            // but this Rpc handler runs on every client and a crash here gets that client disconnected
+            // by Mirror - don't trust the caller-side fix alone).
+            if (reportingPlayerFleet?.FleetData?.CivController == null || otherFleet?.FleetData?.CivController == null)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.Diplomacy,
+                    $"FleetControllerVsOtherCivFleet: CivController not yet resolved for '{reportingPlayerFleet?.name}' or '{otherFleet?.name}' - skipping this encounter, it will re-fire on next contact.");
+                return;
+            }
             StarSysController sysConEmpty = StarSysManager.Instance.InstantiateEmptyStarSysController();
             if (reportingPlayerFleet != null)
             {

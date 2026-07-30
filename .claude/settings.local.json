@@ -102,7 +102,18 @@
       "PowerShell(Get-Command *)",
       "PowerShell(Join-Path *)",
       "Bash(node -e \"console.log\\('node ok'\\)\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Test-Path *)",
+      "Bash(dotnet build *)",
+      "Bash(awk '/enum CivEnum/,/^    }/' \"/c/Users/kenne/Documents/Unity/3DBOTF2_99/Assets/Script/_Core/Utilities/GameEnums.cs\")",
+      "Bash(awk '/public enum CivEnum/{flag=1} flag{print} flag && /^    }/{exit}' \"/c/Users/kenne/Documents/Unity/3DBOTF2_99/Assets/Script/_Core/Utilities/GameEnums.cs\")",
+      "Bash(find Library/PackageCache -maxdepth 1 -iname \"*edgegap*\" -o -iname \"*mirror*\")",
+      "Bash(find . -maxdepth 3 -iname \"*edgegap*\")",
+      "Bash(echo \"---exit:$?\")",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "model": "claude-sonnet-5"

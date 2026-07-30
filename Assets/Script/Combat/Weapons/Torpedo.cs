@@ -26,6 +26,7 @@ namespace BOTF3D.Combat
 
         [Header("Torpedo Identity")]
         public CivEnum OwnerCivEnum;
+        public ShipController OwnerShip;
 
         [Header("Damage (Set by Ship)")]
         public int TorpedoDamage;
@@ -86,7 +87,7 @@ namespace BOTF3D.Combat
             if (torpedoFireSound != null && AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX3DClip(torpedoFireSound, transform.position);
 
-            Debug.Log($"🚀 Torpedo launched → {Target.name}, velocity={Velocity}, damage={TorpedoDamage}");
+            Debug.Log($"🚀 {OwnerCivEnum} torpedo launched → {Target.name}, velocity={Velocity}, damage={TorpedoDamage}");
         }
 
         private void Update()
@@ -145,23 +146,36 @@ namespace BOTF3D.Combat
             ShipController targetShip = Target.GetComponentInParent<ShipController>();
             if (targetShip != null && OwnerCivEnum != targetShip.ShipData.CivEnum)
             {
+                // Rolled once here (not inside ApplyDamageAndLog) so the delayed and immediate paths
+                // both apply/log the same value - see CombatDamageRandomizer for why this exists.
+                int actualDamage = CombatDamageRandomizer.ApplyVariance(TorpedoDamage);
+
                 // Delay damage so the red explosion is visible for a moment before
                 // a potential blue ship-destruction explosion appears on top of it
                 var cc = CombatUIManager.Instance?.CurrentCombatController;
                 if (cc != null)
-                    cc.StartCoroutine(ApplyDamageAfterDelay(targetShip, TorpedoDamage, 0.15f));
+                    cc.StartCoroutine(ApplyDamageAfterDelay(OwnerShip, targetShip, actualDamage, distanceTraveled, 0.15f));
                 else
-                    targetShip.TakeDamage(TorpedoDamage);
+                    ApplyDamageAndLog(OwnerShip, targetShip, actualDamage, distanceTraveled);
             }
 
             Destroy(gameObject);
         }
 
-        private static IEnumerator ApplyDamageAfterDelay(ShipController target, int damage, float delay)
+        private static IEnumerator ApplyDamageAfterDelay(ShipController owner, ShipController target, int damage, float distance, float delay)
         {
             yield return new WaitForSecondsRealtime(delay);
             if (target != null && target.ShipData != null && !target.ShipData.Distroyed)
-                target.TakeDamage(damage);
+                ApplyDamageAndLog(owner, target, damage, distance);
+        }
+
+        private static void ApplyDamageAndLog(ShipController owner, ShipController target, int damage, float distance)
+        {
+            bool wasAliveBeforeHit = !target.ShipData.Distroyed;
+            target.TakeDamage(damage);
+            bool destroyedByThisHit = wasAliveBeforeHit && target.ShipData.Distroyed;
+
+            BOTF3D.Combat.Testing.CombatShotLog.LogShot(owner, target, "Torpedo", damage, distance, destroyedByThisHit);
         }
     }
 }

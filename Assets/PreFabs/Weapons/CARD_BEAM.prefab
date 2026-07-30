@@ -174,11 +174,11 @@ MonoBehaviour:
   _weaponAndTargetTrans:
   - {fileID: 0}
   - {fileID: 0}
-  minEffectiveRange: 50
-  maxEffectiveRange: 300
-  minDamageMultiplier: 0.2
-  longRangeThreshold: 500
-  longRangePenalty: 0.5
+  minEffectiveRange: 100
+  maxEffectiveRange: 400
+  minDamageMultiplier: 0.4
+  longRangeThreshold: 600
+  longRangePenalty: 0.65
   minBeamWidth: 0.12
   maxBeamWidth: 0.6
   minCameraDistance: 200

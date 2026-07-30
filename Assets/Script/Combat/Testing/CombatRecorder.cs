@@ -49,6 +49,7 @@ namespace BOTF3D.Combat.Testing
                 SideOneRetreated = result.SideOneRetreated,
                 SideTwoRetreated = result.SideTwoRetreated,
                 ShipsDestroyed = new List<string>(result.ShipsDestroyed),
+                Shots = new List<ShotRecord>(result.Shots),
                 SideOneShips = CaptureShipStates(combatController.CombatData.SideOneShipCons),
                 SideTwoShips = CaptureShipStates(combatController.CombatData.SideTwoShipCons)
             };
@@ -168,6 +169,7 @@ namespace BOTF3D.Combat.Testing
                 snapshots.Add(new ShipSnapshot
                 {
                     ShipName = ship.ShipData.ShipName,
+                    ShipID = ship.ShipData.ShipID,
                     ShipType = ship.ShipData.ShipType.ToString(),
                     ShieldHealth = ship.ShipData.ShieldHealth,
                     HullHealth = ship.ShipData.HullHealth,
@@ -236,6 +238,7 @@ namespace BOTF3D.Combat.Testing
         public bool SideOneRetreated;
         public bool SideTwoRetreated;
         public List<string> ShipsDestroyed;
+        public List<ShotRecord> Shots;
         public List<ShipSnapshot> SideOneShips;
         public List<ShipSnapshot> SideTwoShips;
     }
@@ -244,6 +247,7 @@ namespace BOTF3D.Combat.Testing
     public class ShipSnapshot
     {
         public string ShipName;
+        public int ShipID;
         public string ShipType;
         public int ShieldHealth;
         public int HullHealth;

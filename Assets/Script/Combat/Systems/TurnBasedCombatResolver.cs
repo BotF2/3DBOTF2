@@ -9,6 +9,7 @@ using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
 using BOTF3D.Audio;
+using BOTF3D.Combat.Testing;
 
 
 
@@ -62,6 +63,13 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             resultsUI.Initialize(this);
 
             Debug.Log("🎮 Turn-Based Combat Resolver initialized");
+
+            // Turn 1 orders are submitted from the pre-warp combat menu (see CombatUIManager /
+            // FleetController.CmdSubmitCombatOrder → ServerSubmitOrder above). If either side has
+            // no connected human player, nothing would ever submit for it and combat would hang
+            // forever waiting on both locks - auto-submit for AI-controlled sides here instead.
+            ServerAutoSubmitAIOrder(1);
+            ServerAutoSubmitAIOrder(2);
         }
 
         /// <summary>
@@ -97,6 +105,11 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 SideTwoOrderLocked = false;
 
                 ShowOrderSelectionUI();
+
+                // Same reasoning as Initialize() above - auto-submit for any side with no human
+                // player so a stalled AI side can't freeze subsequent turns either.
+                ServerAutoSubmitAIOrder(1);
+                ServerAutoSubmitAIOrder(2);
             }
         }
 
@@ -105,6 +118,18 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         /// </summary>
         private void ShowOrderSelectionUI()
         {
+            // Purely cosmetic for a local human player's screen (opens the order menu, restarts the
+            // countdown timer). A pure dedicated server has no player watching it, but CombatUIManager
+            // still exists there as a scene object (its Awake sets Instance regardless of who's
+            // looking) - without this guard, ShowOrderSelectionForNextTurn's own timer would run to
+            // completion server-side every turn from turn 2 onward (SetUpLocalPlayer's guard in
+            // CombatManager only covers the turn-1 SetupForCombat path, not this one) and
+            // EnterShipCombatPhase would then auto-submit a phantom order via the server's stale
+            // GameController.GetOurCiv() fallback civ - which ServerSubmitOrder has no guard against
+            // re-locking, so it can re-broadcast and kick off a second overlapping ResolveTurn() on
+            // every client mid-turn, corrupting combat state.
+            if (NetworkServer.active && !NetworkClient.active) return;
+
             if (BOTF3D.UI.CombatUIManager.Instance != null)
             {
                 // Re-open the combat menu for next turn
@@ -135,6 +160,21 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             if (side == 0)
             {
                 Debug.LogWarning($"ServerSubmitOrder: civ {civ} is not part of this combat ({combatData.CivEnumSideOne} vs {combatData.CivEnumSideTwo}) - ignored.");
+                return;
+            }
+
+            // Once a side is locked for this turn, ignore further submissions for it - a duplicate
+            // submission (e.g. a stray/phantom source) re-locking an already-locked side would
+            // re-broadcast ServerBroadcastOrdersResolved below and could kick off a second, overlapping
+            // ResolveTurn() coroutine on every client mid-turn.
+            if (side == 1 && SideOneOrderLocked)
+            {
+                Debug.LogWarning($"ServerSubmitOrder: side 1 ({civ}) already locked in this turn - ignoring duplicate {order} submission.");
+                return;
+            }
+            if (side == 2 && SideTwoOrderLocked)
+            {
+                Debug.LogWarning($"ServerSubmitOrder: side 2 ({civ}) already locked in this turn - ignoring duplicate {order} submission.");
                 return;
             }
 
@@ -187,35 +227,36 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         }
 
         /// <summary>
-        /// AI selects a random order
+        /// Server-only: if the given side has no connected human player (see IsAIControlled),
+        /// pick and submit an order for it through the same ServerSubmitOrder path a human's
+        /// FleetController.CmdSubmitCombatOrder would use, so the lock/broadcast/resolve
+        /// machinery below behaves identically regardless of who (or what) submitted the order.
+        /// No-ops if the side already has a locked order or is human-controlled.
         /// </summary>
-        private void SelectAIOrder(int side)
+        private void ServerAutoSubmitAIOrder(int side)
         {
-            // Check if random orders are disabled in config for Side Two
-            if (side == 2 && CombatManager.Instance != null && CombatManager.Instance.gameConfig != null)
-            {
-                if (CombatManager.Instance.gameConfig.disableRandomSideTwoOrders)
-                {
-                    Debug.Log($"🤖 AI Side 2: Random orders DISABLED by config. Using current order: {SideTwoSelectedOrder}");
-                    SideTwoOrderLocked = true;
-                    return;
-                }
-            }
+            if (!NetworkServer.active) return;
+            if (side == 1 && SideOneOrderLocked) return;
+            if (side == 2 && SideTwoOrderLocked) return;
 
-            CombatOrders aiOrder = PickAIOrder(side);
+            CivEnum civ = side == 1 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
+            if (!IsAIControlled(civ)) return;
 
-            if (side == 1)
+            CombatOrders order;
+            if (side == 2 && CombatManager.Instance != null && CombatManager.Instance.gameConfig != null
+                && CombatManager.Instance.gameConfig.disableRandomSideTwoOrders)
             {
-                SideOneSelectedOrder = aiOrder;
-                SideOneOrderLocked = true;
+                // Random orders disabled for Side Two: keep whatever order is already selected
+                // (e.g. set up by a test harness) instead of rolling a new one.
+                order = SideTwoSelectedOrder != CombatOrders.None ? SideTwoSelectedOrder : CombatOrders.Engage;
             }
             else
             {
-                SideTwoSelectedOrder = aiOrder;
-                SideTwoOrderLocked = true;
+                order = PickAIOrder(side);
             }
 
-            Debug.Log($"🤖 AI Side {side} selected: {aiOrder}");
+            Debug.Log($"🤖 AI Side {side} ({civ}) auto-submitting: {order}");
+            ServerSubmitOrder(civ, order);
         }
 
         /// <summary>
@@ -273,9 +314,23 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             int side1StartHP = (int)GetTotalHP(1);
             int side2StartHP = (int)GetTotalHP(2);
 
+            // Reset per-turn shot instrumentation - Beam/Torpedo hits log into this during
+            // AnimateShipPositioning() below (see CombatShotLog, BeamWeapon.Fire, Torpedo.OnReachedTarget).
+            CombatShotLog.BeginTurn();
+
             // Animate ships moving, fighting - THIS IS THE VISUAL COMBAT!
             // Ships will move based on orders, fire weapons, deal damage
             yield return StartCoroutine(AnimateShipPositioning());
+
+            // Destroyed ships are removed from SideOneShipCons/SideTwoShipCons entirely by
+            // ShipController.DestroyShip (see CombatManager.RemoveThisShipController), so they
+            // can't be found by diffing the post-combat roster - read kills back from the shot
+            // log itself instead (covers both TakeDamage kills and reconciled-from-server kills).
+            var shipsDestroyedThisTurn = CombatShotLog.Shots
+                .Where(s => s.TargetDestroyed)
+                .Select(s => s.TargetName)
+                .Distinct()
+                .ToList();
 
             // Calculate what happened during combat
             LastTurnResult = new TurnResult
@@ -286,10 +341,16 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 SideOneDamageDealt = side2StartHP - (int)GetTotalHP(2), // Damage = HP lost by enemy
                 SideTwoDamageDealt = side1StartHP - (int)GetTotalHP(1),
                 SideOneRetreated = SideOneSelectedOrder == CombatOrders.Retreat,
-                SideTwoRetreated = SideTwoSelectedOrder == CombatOrders.Retreat
+                SideTwoRetreated = SideTwoSelectedOrder == CombatOrders.Retreat,
+                ShipsDestroyed = shipsDestroyedThisTurn,
+                Shots = new List<ShotRecord>(CombatShotLog.Shots)
             };
 
-            Debug.Log($"💥 Turn {CurrentTurn} Damage: Side1 dealt {LastTurnResult.SideOneDamageDealt}, Side2 dealt {LastTurnResult.SideTwoDamageDealt}");
+            Debug.Log($"💥 Turn {CurrentTurn} Damage: Side1({combatData.CivEnumSideOne}) dealt {LastTurnResult.SideOneDamageDealt}, " +
+                      $"Side2({combatData.CivEnumSideTwo}) dealt {LastTurnResult.SideTwoDamageDealt} — " +
+                      $"HP remaining: Side1={GetTotalHP(1):F0}, Side2={GetTotalHP(2):F0}");
+
+            BOTF3D.Combat.Testing.CombatTestingHelper.PrintTurnSummary(LastTurnResult);
 
             // Record this turn for debugging/replay
             RecordTurnResult(LastTurnResult);
@@ -477,13 +538,21 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         }
 
         /// <summary>
-        /// Check if a civilization is AI-controlled
+        /// Check if a civilization is AI-controlled: true unless a connected human player has
+        /// claimed it (see PlayerManager.Roster, populated by LocalHumanPlayerController.OnStartServer).
+        /// AiPlayerController is never actually spawned, so "no roster entry" is the only signal
+        /// we have for "nobody is playing this civ" - treat that as AI-controlled.
         /// </summary>
         private bool IsAIControlled(CivEnum civEnum)
         {
-            // TODO: Check if this civ is AI or human player
-            // For now, assume Side Two is AI in single-player
-            return civEnum == combatData.CivEnumSideTwo;
+            if (PlayerManager.Instance == null) return true;
+
+            var roster = PlayerManager.Instance.Roster;
+            for (int i = 0; i < roster.Count; i++)
+            {
+                if (roster[i].PlayerCiv == civEnum) return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -709,5 +778,6 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         public bool SideOneRetreated;
         public bool SideTwoRetreated;
         public List<string> ShipsDestroyed = new List<string>();
+        public List<ShotRecord> Shots = new List<ShotRecord>();
     }
 }

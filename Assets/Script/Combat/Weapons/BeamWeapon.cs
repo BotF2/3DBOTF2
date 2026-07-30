@@ -1,4 +1,5 @@
 using BOTF3D.Audio;
+using BOTF3D.Core;
 
 using UnityEngine;
 
@@ -38,26 +39,34 @@ namespace BOTF3D.Combat
         private AudioClip beamImpactSound;
 
         // ✅ Distance-based damage settings
+        // Flattened from the original (50/300/0.2/500/0.5) — under Engage, ships fly past each
+        // other rather than holding at range (ShipMovementController.cs), so combat's 400u start
+        // distance and the pass-through dynamic meant most of a fight happened deep in the falloff
+        // zone. Wider full-damage band and a higher floor mean beam-reliant kits realize more of
+        // their stat advantage across a whole turn instead of only during the brief crossing
+        // window. Applies identically to all civs (see per-civ *_BEAM.prefab overrides, which all
+        // mirror these same values — the C# defaults here are just the fallback for a beam that
+        // isn't spawned from one of those prefabs).
         [Header("Distance-Based Damage")]
         [Tooltip("Distance at which beam does full damage")]
-        [SerializeField] private float minEffectiveRange = 50f;
+        [SerializeField] private float minEffectiveRange = 100f;
 
         [Tooltip("Maximum range - damage drops to minimum beyond this")]
-        [SerializeField] private float maxEffectiveRange = 300f;
+        [SerializeField] private float maxEffectiveRange = 400f;
 
-        [Tooltip("Minimum damage multiplier at max range (0.2 = 20% damage)")]
-        [SerializeField] private float minDamageMultiplier = 0.2f;
+        [Tooltip("Minimum damage multiplier at max range (0.4 = 40% damage)")]
+        [SerializeField] private float minDamageMultiplier = 0.4f;
 
         [Tooltip("Distance beyond which an additional long-range penalty is applied (aligns with TorpedoMaxRange — Formation/Retreat engagement distance)")]
-        [SerializeField] private float longRangeThreshold = 350f;
-        [Tooltip("Multiplier applied on top of base falloff beyond longRangeThreshold (0.35 = only 35% of already-reduced damage gets through)")]
-        [SerializeField] private float longRangePenalty = 0.35f;
+        [SerializeField] private float longRangeThreshold = 600f;
+        [Tooltip("Multiplier applied on top of base falloff beyond longRangeThreshold (0.65 = 65% of already-reduced damage gets through)")]
+        [SerializeField] private float longRangePenalty = 0.65f;
         private void Start()
         {
             LineRenderer = GetComponent<LineRenderer>();
             if (LineRenderer == null)
             {
-                Debug.LogError("BeamWeapon: LineRenderer component not found!");
+                GameLogger.LogError(GameLogger.LogCategory.Combat, "BeamWeapon: LineRenderer component not found!", this);
                 enabled = false;
                 return;
             }
@@ -122,7 +131,7 @@ namespace BOTF3D.Combat
             beamFireSound = fireSound;
             beamImpactSound = impactSound;
 
-            Debug.Log($"🔫 BeamWeapon initialized: damage={damage}, hasFireSound={fireSound != null}");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"🔫 BeamWeapon initialized: damage={damage}, hasFireSound={fireSound != null}", this);
         }
 
         /// <summary>
@@ -133,7 +142,7 @@ namespace BOTF3D.Combat
         {
             if (targetShip == null || WeaponTransform == null || TargetTransform == null)
             {
-                Debug.LogWarning("BeamWeapon.Fire: Missing target or transform!");
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat, "BeamWeapon.Fire: Missing target or transform!", this);
                 return;
             }
 
@@ -149,13 +158,19 @@ namespace BOTF3D.Combat
             // ✅ Calculate damage falloff based on distance
             float damageFalloff = CalculateDistanceFalloff(distance);
 
-            // ✅ Calculate final damage (int) after applying falloff
-            int actualDamage = Mathf.RoundToInt(beamDamage * damageFalloff);
+            // ✅ Calculate final damage (int) after applying falloff, then a small symmetric random
+            // roll (see CombatDamageRandomizer) so evenly matched fights aren't fully deterministic.
+            int actualDamage = CombatDamageRandomizer.ApplyVariance(Mathf.RoundToInt(beamDamage * damageFalloff));
 
-            Debug.Log($"🔫 Beam fired: distance={distance:F0}u, baseDamage={beamDamage}, falloff={damageFalloff:F2}, actualDamage={actualDamage}");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"🔫 {ownerShip?.ShipData?.CivEnum} {ownerShip?.ShipData?.ShipName} beam → {targetShip.ShipData.ShipName}: " +
+                      $"distance={distance:F0}u, baseDamage={beamDamage}, falloff={damageFalloff:F2}, actualDamage={actualDamage}", this);
 
             // ✅ Apply damage to target
+            bool wasAliveBeforeHit = !targetShip.ShipData.Distroyed;
             targetShip.TakeDamage(actualDamage);
+            bool destroyedByThisHit = wasAliveBeforeHit && targetShip.ShipData.Distroyed;
+
+            BOTF3D.Combat.Testing.CombatShotLog.LogShot(ownerShip, targetShip, "Beam", actualDamage, distance, destroyedByThisHit);
 
             // ✅ Play impact sound at hit location (optional)
             if (beamImpactSound != null && AudioManager.Instance != null)
@@ -166,9 +181,9 @@ namespace BOTF3D.Combat
 
         /// <summary>
         /// Calculate damage falloff based on distance.
-        /// Returns 1.0 (100%) at close range, down to minDamageMultiplier (20%) at max range.
-        /// Beyond longRangeThreshold (~500u), an additional longRangePenalty (0.5x) is applied
-        /// to halve beam damage at the Formation-vs-Retreat engagement range (~600 units).
+        /// Returns 1.0 (100%) at close range, down to minDamageMultiplier (40%) at max range.
+        /// Beyond longRangeThreshold (~600u), an additional longRangePenalty (0.65x) is applied
+        /// for the Formation-vs-Retreat engagement range and other extreme-separation cases.
         /// </summary>
         private float CalculateDistanceFalloff(float distance)
         {
