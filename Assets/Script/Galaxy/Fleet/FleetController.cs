@@ -9,6 +9,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 
@@ -233,6 +234,29 @@ namespace BOTF3D.Galaxy
             // same pattern as FleetManager.SetUpDropLine's galaxyImage retry.
             if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
                 FleetManager.Instance.FindGalaxyReferences();
+
+            // Mirror places a newly-spawned client copy into whatever scene happens to be active on
+            // THIS client when its spawn message is processed - it isn't necessarily GalaxyScene. If
+            // that message arrives while SceneController.LoadCombatSceneAdditive has already called
+            // SceneManager.SetActiveScene(combatScene) (e.g. this fleet just came into network
+            // relevance/fog-of-war contact for the first time, mid-load), the fleet becomes a root
+            // object of CombatScene instead - invisible to SceneController's GalaxyScene
+            // deactivate/reactivate sweep, so it stays permanently visible over every future combat
+            // instead of being hidden with the rest of the galaxy. Pin every client-reconstructed
+            // fleet to GalaxyScene explicitly so its scene membership never depends on load timing.
+            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+            if (galaxyScene.IsValid() && gameObject.scene != galaxyScene)
+                SceneManager.MoveGameObjectToScene(gameObject, galaxyScene);
+
+            // Re-homing into GalaxyScene above only fixes future combats' deactivate/reactivate
+            // sweeps (SceneController.LoadCombatSceneAdditive/ReturnToGalaxyFromCombat) - it doesn't
+            // retroactively hide this fleet if its setup is running mid-combat, after this combat's
+            // own Step 2 sweep already happened (e.g. a fleet just coming into fog-of-war/network
+            // relevance for the first time while Combat scene is loaded). Galaxy fleet icons should
+            // never be visible while a combat is up, so match that state immediately here too.
+            Scene combatScene = SceneManager.GetSceneByName("CombatScene");
+            if (combatScene.IsValid() && combatScene.isLoaded)
+                gameObject.SetActive(false);
 
             Vector3 galaxyScale = FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter != null
                 ? FleetManager.Instance.GalaxyCenter.transform.lossyScale
