@@ -422,14 +422,21 @@ namespace BOTF3D.Galaxy
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
-            galaxyWidth = GalaxyView.Instance.GalaxyWidth;
-            galaxyHeight = GalaxyView.Instance.GalaxyHeight;
+            // GalaxyView.Instance can legitimately be null here on a headless dedicated server
+            // (no galaxy map view is ever created there) or if this fleet spawns before the galaxy
+            // map finishes building on a client - fall back to the 1f defaults above and skip the
+            // minimap update rather than throwing and aborting the rest of Start().
+            if (GalaxyView.Instance != null)
+            {
+                galaxyWidth = GalaxyView.Instance.GalaxyWidth;
+                galaxyHeight = GalaxyView.Instance.GalaxyHeight;
 
-            // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
-            // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
-            // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
-            // anchoredPosition (map center) instead of its real spawn position.
-            UpdateMinimapPosition();
+                // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
+                // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
+                // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
+                // anchoredPosition (map center) instead of its real spawn position.
+                UpdateMinimapPosition();
+            }
         }
         private void Update()
         {

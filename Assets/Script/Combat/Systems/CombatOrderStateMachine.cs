@@ -145,7 +145,7 @@ namespace BOTF3D.Combat
 
         private ShipController FindFallbackEnemy()
         {
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return null;
 
             bool isSideOne = Side == 1;
@@ -182,7 +182,7 @@ namespace BOTF3D.Combat
                 return;
 
             // In turn-based combat, only execute orders during Resolution phase
-            var combatController = BOTF3D.UI.CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController != null && combatController.UseTurnBasedCombat)
             {
                 // Only move/fight during Resolution phase
@@ -368,7 +368,7 @@ namespace BOTF3D.Combat
             currentState = OrderState.MovingWithGroup;
 
             // Prefer retreating or scuttling ships as targets (they are capturable)
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController != null)
             {
                 bool isSideOne = Side == 1;
@@ -434,7 +434,7 @@ namespace BOTF3D.Combat
         #region Helper Methods
         private ShipController FindCenterEnemy()
         {
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return null;
 
             bool isSideOne = Side == 1;
@@ -451,7 +451,7 @@ namespace BOTF3D.Combat
 
         private ShipController FindEnemyTransport()
         {
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return null;
 
             bool isSideOne = Side == 1;
@@ -466,7 +466,7 @@ namespace BOTF3D.Combat
         {
             if (!isTransport) return;
 
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return;
 
             bool isSideOne = Side == 1;
@@ -502,7 +502,7 @@ namespace BOTF3D.Combat
 
         private ShipController FindEnemyTargetingMe()
         {
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return null;
 
             bool isSideOne = Side == 1;
@@ -522,7 +522,7 @@ namespace BOTF3D.Combat
 
         private Vector3 CheckForTransportBlocking()
         {
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipController.ShipData.CivEnum);
             if (combatController == null) return Vector3.zero;
 
             bool isSideOne = Side == 1;

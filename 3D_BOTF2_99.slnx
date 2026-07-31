@@ -79,6 +79,7 @@
   <Project Path="glTFast.Export.csproj" />
   <Project Path="Unity.VisualEffectGraph.Runtime.csproj" />
   <Project Path="Unity.AppUI.Navigation.Editor.csproj" />
+  <Project Path="Unity.Services.Multiplayer.Server.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetStatsMonitor.Component.csproj" />
   <Project Path="Unity.AI.Image.csproj" />
   <Project Path="Mirror.csproj" />
@@ -110,6 +111,7 @@
   <Project Path="Unity.InternalAPIEditorBridge.013.csproj" />
   <Project Path="kcp2k.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetworkSimulator.Runtime.csproj" />
+  <Project Path="Unity.Services.Authentication.Server.csproj" />
   <Project Path="Unity.Multiplayer.Tools.MetricTestData.csproj" />
   <Project Path="Unity.Multiplayer.Center.NetcodeForGameObjectsExample.csproj" />
   <Project Path="Unity.Multiplayer.Tools.NetworkProfiler.Editor.csproj" />

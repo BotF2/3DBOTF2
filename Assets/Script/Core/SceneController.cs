@@ -195,6 +195,14 @@ namespace BOTF3D.Core
                 Debug.Log("  ✅ Galaxy scene deactivated");
             }
 
+            // ✅ STEP 2b: Explicitly hide all fleets via FleetManager's tracked list.
+            // Networked fleets are re-parented under GalaxyCenter on the server (see
+            // FleetManager.InstantiateFleet), but Mirror doesn't replicate that re-parenting to
+            // remote clients - on a client a fleet can end up as its own scene root outside
+            // GalaxyCenter's hierarchy and get skipped by the root-object sweep above, leaving it
+            // (and its DestinationLine) visibly rendering behind CombatScene.
+            HideAllFleets();
+
             // ✅ STEP 3: Set combat scene as active
             if (combatScene.isLoaded)
             {
@@ -328,6 +336,9 @@ namespace BOTF3D.Core
                 go.SetActive(true);
             }
             Debug.Log("  ✅ Galaxy scene objects reactivated");
+
+            // ✅ Reactivate fleets that were explicitly hidden in HideAllFleets (see LoadCombatSceneAdditive)
+            ShowAllFleets();
 
             // ✅ CRITICAL: Wait TWO frames for Awake() and Start() to complete
             yield return null;
@@ -487,6 +498,45 @@ namespace BOTF3D.Core
             Debug.Log("  ✅ Created EventSystem for Galaxy scene");
         }
 
+        /// <summary>
+        /// Explicitly hides every tracked fleet, regardless of which scene/root it actually lives
+        /// under. Uses FleetManager.FleetControllerList instead of scene-root enumeration because
+        /// remote clients don't receive the server's GalaxyCenter re-parenting for spawned fleets
+        /// (see FleetController.cs comments near InstantiateFleet), so a fleet can sit outside
+        /// GalaxyScene's expected root hierarchy and be missed by SetActive sweeps over scene roots.
+        /// </summary>
+        private void HideAllFleets()
+        {
+            if (FleetManager.Instance == null) return;
+
+            int hiddenCount = 0;
+            foreach (var fleetController in FleetManager.Instance.FleetControllerList)
+            {
+                if (fleetController == null) continue;
+                fleetController.gameObject.SetActive(false);
+                hiddenCount++;
+            }
+            Debug.Log($"  ✅ Explicitly hid {hiddenCount} tracked fleet(s)");
+        }
+
+        /// <summary>
+        /// Reverses HideAllFleets. See that method for why fleets are tracked/toggled explicitly
+        /// rather than relying solely on scene-root activation.
+        /// </summary>
+        private void ShowAllFleets()
+        {
+            if (FleetManager.Instance == null) return;
+
+            int shownCount = 0;
+            foreach (var fleetController in FleetManager.Instance.FleetControllerList)
+            {
+                if (fleetController == null) continue;
+                fleetController.gameObject.SetActive(true);
+                shownCount++;
+            }
+            Debug.Log($"  ✅ Reactivated {shownCount} tracked fleet(s)");
+        }
+
         private void HideScene(string sceneName)
         {
             Scene scene = SceneManager.GetSceneByName(sceneName);
@@ -568,6 +618,9 @@ namespace BOTF3D.Core
             {
                 go.SetActive(true);
             }
+
+            // ✅ Reactivate fleets that were explicitly hidden in HideAllFleets (see LoadCombatSceneAdditive)
+            ShowAllFleets();
 
             // ✅ STEP 5: Re-enable Galaxy EventSystem
             foreach (GameObject go in galaxyScene.GetRootGameObjects())
