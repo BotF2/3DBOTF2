@@ -987,13 +987,24 @@ namespace BOTF3D.Galaxy
             // Spawned FleetControllers are Mirror NetworkIdentities (see InstantiateFleet's
             // NetworkServer.Spawn) - a plain Destroy() on the server leaves a stale entry in
             // NetworkServer.spawned and never tells clients to remove their own copy.
-            // NetworkServer.Destroy sends the proper destroy message first. On a genuine remote
-            // client (convoy/ship-transfer cleanup, still unnetworked - see SyncedIsNewFleet's
-            // comment) there's no server to route through, so fall back to the local-only Destroy
-            // exactly as before.
+            // NetworkServer.Destroy sends the proper destroy message first. On a genuinely
+            // unnetworked call (convoy/ship-transfer cleanup - see SyncedIsNewFleet's comment)
+            // there's no server to route through, so fall back to the local-only Destroy.
+            //
+            // A connected client (NetworkClient.active but not NetworkServer.active) must NOT take
+            // that local-only fallback for a server-spawned fleet: this method is also reached from
+            // CombatController.EndCombat(), which runs its full body on every peer including plain
+            // clients (see EndCombat's per-peer DestroyFleetController call for a fleet with 0 ships
+            // left). Calling Destroy() directly there bypasses Mirror's NetworkClient.spawned
+            // bookkeeping for that netId, so when the server's own authoritative destroy message for
+            // the same object arrives moments later, Mirror finds a stale/already-destroyed entry and
+            // logs spawn/sync errors - which can derail EndCombat() or later spawn messages on that
+            // client. A connected client should just skip the local destroy entirely and let the
+            // server's own NetworkServer.Destroy (reached when the server runs this same code path)
+            // sync the removal down normally.
             if (NetworkServer.active)
                 NetworkServer.Destroy(fleetController.gameObject);
-            else
+            else if (!NetworkClient.active)
                 Destroy(fleetController.gameObject);
         }
 

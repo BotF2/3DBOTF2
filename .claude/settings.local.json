@@ -118,7 +118,15 @@
       "Bash(docker info *)",
       "Bash(docker manifest inspect *)",
       "Bash(docker buildx *)",
-      "Bash(sort -k1)"
+      "Bash(sort -k1)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Get-WinEvent *)",
+      "PowerShell(Get-CimInstance *)",
+      "Bash(awk '/^--- !u!120/{print NR\": \"$0; capture=1; count=0} capture{print NR\": \"$0; count++; if\\(count>60\\){capture=0}}' \"Assets/PreFabs/Fleet/FleetPrefab.prefab\")",
+      "Bash(awk '/&8954736760069204259$/{f=1} f{print; if\\(/m_Name/\\){exit}}' \"Assets/PreFabs/Fleet/FleetPrefab.prefab\")",
+      "Bash(awk '/&1265230437340074653$/{f=1} f{print; if\\(/m_Name/\\){exit}}' \"Assets/PreFabs/Fleet/FleetPrefab.prefab\")"
     ]
   },
   "model": "claude-sonnet-5"

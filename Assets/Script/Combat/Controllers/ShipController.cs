@@ -156,7 +156,7 @@ namespace BOTF3D.Combat
                 return;
             }
 
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             if (combatController == null) return;
 
             // ✅ General Line of Sight Check
@@ -221,7 +221,7 @@ namespace BOTF3D.Combat
                     !ShipData.TargetThisShipController.gameObject.activeInHierarchy)
                 {
                     // Stop permanently if no active enemies remain on the other side
-                    var cc = CombatUIManager.Instance?.CurrentCombatController;
+                    var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
                     if (cc != null)
                     {
                         bool isSide1 = cc.CombatData.SideOneShipCons.Contains(this);
@@ -309,7 +309,7 @@ namespace BOTF3D.Combat
         /// </summary>
         private ShipController FindNearestTorpedoTarget()
         {
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             if (cc == null) return null;
 
             bool isSide1 = cc.CombatData.SideOneShipCons.Contains(this);
@@ -424,7 +424,7 @@ namespace BOTF3D.Combat
             if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured) return;
 
             // No damage after combat has ended
-            if (CombatUIManager.Instance?.CurrentCombatController?.CombatEnded == true) return;
+            if (CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum)?.CombatEnded == true) return;
 
             // ✅ Ships are invulnerable during warp-out
             var orderStateMachine = GetComponent<CombatOrderStateMachine>();
@@ -435,7 +435,7 @@ namespace BOTF3D.Combat
             }
 
             // Shield overlap: nearby friendly ships provide overlapping shield coverage
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             if (cc != null)
             {
                 const float SHIELD_OVERLAP_RANGE = 40f;
@@ -469,7 +469,7 @@ namespace BOTF3D.Combat
             if (ShipData.HullHealth <= 0)
             {
                 // Check capture condition: enemy has Capture, this ship has Retreat or failed Scuttle
-                var ccc = CombatUIManager.Instance?.CurrentCombatController;
+                var ccc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
                 if (ccc != null)
                 {
                     bool isSideOne = ccc.CombatData.SideOneShipCons.Contains(this);
@@ -498,7 +498,7 @@ namespace BOTF3D.Combat
         {
             if (ShipData.IsCaptured || ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.IsCaptured = true;
             ShipData.HullHealth = 0;
             if (cc != null && !cc.CombatData.CapturedShips.Contains(this))
@@ -524,7 +524,7 @@ namespace BOTF3D.Combat
         {
             if (ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.Distroyed = true;
             cc?.CombatData?.DestroyedShips.Add(ShipData);
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
@@ -636,7 +636,7 @@ namespace BOTF3D.Combat
         {
             if (ShipData == null || ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.ShieldHealth = 0;
             ShipData.HullHealth = 0;
             ShipData.Distroyed = true;

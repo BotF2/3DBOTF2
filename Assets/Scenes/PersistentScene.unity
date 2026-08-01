@@ -2279,7 +2279,7 @@ MonoBehaviour:
   targetWidth: 1920
   targetHeight: 1080
   fullscreen: 1
-  fullscreenMode: 4
+  fullscreenMode: 3
   qualityLevel: 2
   vSyncCount: 1
   targetFrameRate: -1
