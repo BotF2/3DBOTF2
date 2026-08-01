@@ -16,11 +16,16 @@ public class FindEventCamera : MonoBehaviour
     void Start()
     {
         Canvas = GetComponent<Canvas>();
-        Camera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
+        // A headless dedicated server has no Camera in the scene, so this legitimately returns
+        // null there - skip wiring the world-space canvas rather than throwing on every spawn.
+        GameObject mainCameraGo = GameObject.FindGameObjectWithTag("MainCamera");
+        if (mainCameraGo == null) return;
+        Camera = mainCameraGo.GetComponent<Camera>();
         Canvas.worldCamera = Camera;
     }
     private void OnMouseDown()
     {
+        if (Camera == null) return;
         Ray ray = Camera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit))

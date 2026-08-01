@@ -143,31 +143,31 @@ namespace BOTF3D.UI
         /// </summary>
         private System.Collections.IEnumerator InitializeButtonStateWhenReady()
         {
-            // Wait until TimeManager is available
+            // Wait until TimeManager is available. On a genuine remote client (vs local host
+            // testing), TimeManager is a Mirror scene object that only becomes non-null once the
+            // server finishes spawning/syncing it after connection - which can easily take longer
+            // than a few seconds over a real network. Previously this gave up permanently after 5s
+            // with no retry and no event-driven fallback, permanently leaving the turn bar/text
+            // stuck at their default values for the rest of the session if that sync was slow.
             int attempts = 0;
-            while (TimeManager.Instance == null && attempts < 50)
+            while (TimeManager.Instance == null)
             {
-                yield return new WaitForSeconds(0.1f);
                 attempts++;
+                if (attempts % 50 == 0)
+                    Debug.LogWarning($"⏳ GameControlOverlay: still waiting on TimeManager.Instance after {attempts * 0.1f:F0}s...");
+                yield return new WaitForSeconds(0.1f);
             }
 
-            if (TimeManager.Instance != null)
-            {
-                Debug.Log("✅ TimeManager ready - initializing button state");
-                TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
-                TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
-                TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
-                TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
-                TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
-                TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
-                UpdateButtonState();
-                UpdateForceAdvanceButtonVisibility();
-                OnTurnPhaseChanged(TimeManager.Instance.TurnPhase);
-            }
-            else
-            {
-                Debug.LogError("❌ TimeManager not found after 5 seconds - button state not initialized");
-            }
+            Debug.Log("✅ TimeManager ready - initializing button state");
+            TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
+            TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
+            TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
+            TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
+            TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
+            TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
+            UpdateButtonState();
+            UpdateForceAdvanceButtonVisibility();
+            OnTurnPhaseChanged(TimeManager.Instance.TurnPhase);
         }
 
         public void OnPauseButtonClicked()
@@ -600,18 +600,27 @@ namespace BOTF3D.UI
         /// <summary>
         /// Update stardate text display from TimeManager
         /// </summary>
+        private string cachedStardateLabel;
+
         private void UpdateStardateDisplay()
         {
             if (stardateText == null) return;
 
             if (!stardateText.gameObject.activeInHierarchy) return;
 
-            // Get current stardate from TimeManager
-            string label = BOTF3D.Core.Loc.Get("Stardate", "Stardate");
+            // Resolve the localized "Stardate" label once and cache it, rather than re-resolving
+            // via Loc.Get() every single frame. This UI object stays active (and thus this method
+            // keeps running) even on the headless Edgegap dedicated server, which has no resolved
+            // Localization SelectedLocale - every failed GetLocalizedStringAsync call there gets
+            // logged by Unity's own ResourceManager regardless of the fallback Loc.Get() returns,
+            // so doing this every frame flooded the server log with one exception per frame forever.
+            if (cachedStardateLabel == null)
+                cachedStardateLabel = BOTF3D.Core.Loc.Get("Stardate", "Stardate");
+
             if (TimeManager.Instance != null)
-                stardateText.text = $"{label}: {TimeManager.Instance.currentStardate}";
+                stardateText.text = $"{cachedStardateLabel}: {TimeManager.Instance.currentStardate}";
             else
-                stardateText.text = $"{label}: --";
+                stardateText.text = $"{cachedStardateLabel}: --";
         }
 
         private void OnEnable()

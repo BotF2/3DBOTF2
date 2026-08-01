@@ -134,8 +134,17 @@ namespace BOTF3D.Core
 
                 // ShipID==0 means "not yet assigned" - see FleetData.GetNextShipCreationSeq for why
                 // this is scoped to the fleet's own stable FleetInt rather than a single global counter.
+                // SyncedCivEnum is folded in as the high-order component because FleetInt itself resets
+                // per civilization (FleetManager.GetNewFleetInt keys fleetNumsInUse by CivEnum) - e.g.
+                // the Federation's "Fleet 1" and the Klingons' "Fleet 1" would otherwise produce
+                // identical ShipIDs whenever their ship counts line up. That silently corrupted
+                // CombatController.shipsByID (one dictionary shared by both sides of a battle, keyed by
+                // ShipID) so every server-authoritative destroy/capture/scuttle RPC
+                // (FleetController.RpcShipDestroyed etc.) resolved via GetShipByID landed on whichever
+                // side's ship was inserted into the dictionary last, misapplying kills meant for one
+                // civ's ship onto the other civ's same-ID ship instead.
                 if (shipController.ShipData.ShipID == 0)
-                    shipController.ShipData.ShipID = fleetCon.SyncedFleetInt * 100000 + fleetCon.FleetData.GetNextShipCreationSeq();
+                    shipController.ShipData.ShipID = (int)fleetCon.SyncedCivEnum * 5_000_000 + fleetCon.SyncedFleetInt * 100_000 + fleetCon.FleetData.GetNextShipCreationSeq();
 
                 shipController.ShipData.CurrentStarSysController = null;
                 Debug.Log($"  Ship '{shipController.ShipData.ShipName}' linked to fleet '{fleetCon.name}'");

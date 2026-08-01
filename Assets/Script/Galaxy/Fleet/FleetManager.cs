@@ -442,7 +442,15 @@ namespace BOTF3D.Galaxy
             // since InstantiateFleetUIGameObject -> SetupFleetUIElements reads FleetData.FleetName
             // to populate the "Fleet Name (TMP)" text on the FleetUI prefab. Assigning it after
             // UI creation left that text blank on first instantiation.
-            newFleet.transform.localScale = new Vector3(0.4f, 0.4f, 1);
+            // Must be uniform (0.4, 0.4, 0.4), not (0.4, 0.4, 1) - GalaxyCenter's own scale is
+            // uniform (10,10,10), but leaving Z at 1 meant this fleet's world Z-scale inherited
+            // GalaxyCenter's raw 10 instead of the intended 0.4*10=4, stretching the fleet 2.5x
+            // along Z relative to X/Y. Billboard.cs fully matches the camera's rotation (not a
+            // Y-axis-only cylindrical billboard), so that Z-stretch was visible on-screen as a
+            // taller-than-wide sprite, and it also inflated the sibling SphereCollider (fileID
+            // 3551361942835502933 in FleetPrefab.prefab), which bakes the largest lossyScale axis
+            // into its effective radius (1.1 * 10 = 11 instead of the intended 1.1 * 4 = 4.4).
+            newFleet.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
             int fleetInt = GetNewFleetInt(fleetData.CivEnum);
             newFleet.gameObject.name = fleetData.CivShortName.ToString() + " Fleet " + fleetInt.ToString();
             fleetData.FleetName = "Fleet " + fleetInt.ToString();
@@ -979,13 +987,24 @@ namespace BOTF3D.Galaxy
             // Spawned FleetControllers are Mirror NetworkIdentities (see InstantiateFleet's
             // NetworkServer.Spawn) - a plain Destroy() on the server leaves a stale entry in
             // NetworkServer.spawned and never tells clients to remove their own copy.
-            // NetworkServer.Destroy sends the proper destroy message first. On a genuine remote
-            // client (convoy/ship-transfer cleanup, still unnetworked - see SyncedIsNewFleet's
-            // comment) there's no server to route through, so fall back to the local-only Destroy
-            // exactly as before.
+            // NetworkServer.Destroy sends the proper destroy message first. On a genuinely
+            // unnetworked call (convoy/ship-transfer cleanup - see SyncedIsNewFleet's comment)
+            // there's no server to route through, so fall back to the local-only Destroy.
+            //
+            // A connected client (NetworkClient.active but not NetworkServer.active) must NOT take
+            // that local-only fallback for a server-spawned fleet: this method is also reached from
+            // CombatController.EndCombat(), which runs its full body on every peer including plain
+            // clients (see EndCombat's per-peer DestroyFleetController call for a fleet with 0 ships
+            // left). Calling Destroy() directly there bypasses Mirror's NetworkClient.spawned
+            // bookkeeping for that netId, so when the server's own authoritative destroy message for
+            // the same object arrives moments later, Mirror finds a stale/already-destroyed entry and
+            // logs spawn/sync errors - which can derail EndCombat() or later spawn messages on that
+            // client. A connected client should just skip the local destroy entirely and let the
+            // server's own NetworkServer.Destroy (reached when the server runs this same code path)
+            // sync the removal down normally.
             if (NetworkServer.active)
                 NetworkServer.Destroy(fleetController.gameObject);
-            else
+            else if (!NetworkClient.active)
                 Destroy(fleetController.gameObject);
         }
 

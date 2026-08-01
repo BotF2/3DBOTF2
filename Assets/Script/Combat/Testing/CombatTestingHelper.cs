@@ -1,4 +1,5 @@
 using BOTF3D.Core;
+using System.Linq;
 using UnityEngine;
 
 namespace BOTF3D.Combat.Testing
@@ -64,13 +65,35 @@ namespace BOTF3D.Combat.Testing
         {
             if (result == null) return;
 
+            string destroyedList = result.ShipsDestroyed.Count > 0
+                ? string.Join(", ", result.ShipsDestroyed)
+                : "none";
+
             GameLogger.Log(GameLogger.LogCategory.Combat,
                 $"📊 TURN {result.TurnNumber} RESULTS\n" +
                 $"   Orders: {result.SideOneOrder} vs {result.SideTwoOrder}\n" +
                 $"   Side 1 dealt: {result.SideOneDamageDealt} damage\n" +
                 $"   Side 2 dealt: {result.SideTwoDamageDealt} damage\n" +
-                $"   Ships destroyed: {result.ShipsDestroyed.Count}"
+                $"   Ships destroyed ({result.ShipsDestroyed.Count}): {destroyedList}"
             );
+
+            if (result.Shots != null && result.Shots.Count > 0)
+            {
+                var byCivWeapon = result.Shots
+                    .GroupBy(s => (s.ShooterCiv, s.WeaponType))
+                    .OrderBy(g => g.Key.ShooterCiv).ThenBy(g => g.Key.WeaponType);
+
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🎯 SHOT LOG ({result.Shots.Count} total shots):");
+                foreach (var group in byCivWeapon)
+                {
+                    int shotCount = group.Count();
+                    int totalDamage = group.Sum(s => s.Damage);
+                    int kills = group.Count(s => s.TargetDestroyed);
+                    float firstShotTime = group.Min(s => s.TimeInTurn);
+                    GameLogger.Log(GameLogger.LogCategory.Combat,
+                        $"   {group.Key.ShooterCiv} {group.Key.WeaponType}: {shotCount} shots, {totalDamage} dmg, {kills} kills, first shot @ {firstShotTime:F1}s");
+                }
+            }
         }
 
         /// <summary>

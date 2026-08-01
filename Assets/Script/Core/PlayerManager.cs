@@ -4,8 +4,10 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 
 using Mirror;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
@@ -259,6 +261,17 @@ namespace BOTF3D.Core
         Debug.Log("SetMajorCivsInGameForMultiPlayer: Multiplayer setup pending implementation");
     }
 
+    // Set once the galaxy has actually been generated for this server's lifetime - guards against
+    // CmdRequestStartGame/LoadGalaxyScene being invoked a second time (e.g. a reconnecting player's
+    // client clicking "Start Game" again, since there's no "rejoin in-progress game" flow yet).
+    // Without this, ServerLoadGalaxyAndGenerate reseeds and reruns CivManager/StarSysManager
+    // generation from scratch, producing a second differently-randomized civ list layered on top
+    // of the first (duplicate systems, fleet numbering never resetting) and crashing
+    // FleetManager.GetNewFleetInt with a KeyNotFoundException for any civ that only exists in the
+    // second pass (e.g. TALAXIANS) - and RpcStartGame below would also make every ALREADY-connected
+    // client redundantly rerun its own local CivManager.UpdatePlayableCivGameList/OnNewGameButtonClicked.
+    private bool galaxyGenerationStarted = false;
+
     // Host-only entry point (called from MainMenuUIController.LoadGalaxyScene, which only the host
     // can reach). Broadcasts the host's chosen game parameters - including a shared RNG seed - to
     // every connected client so galaxy generation (CivManager/StarSysManager, both driven by the
@@ -266,7 +279,68 @@ namespace BOTF3D.Core
     [Server]
     public void ServerBroadcastStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
     {
+        if (galaxyGenerationStarted)
+        {
+            Debug.LogWarning("ServerBroadcastStartGame: galaxy already generated for this server - ignoring duplicate start-game request (likely a reconnecting client).");
+            return;
+        }
+        galaxyGenerationStarted = true;
+
+        // RpcStartGame below only runs on machines genuinely acting as a client (including a
+        // host's own loopback client). A true dedicated server (StartServer() only, no local
+        // player) never receives its own ClientRpc, so CivManager/StarSysManager never build
+        // their civ/system data there - leaving StarSysManager.Instance's system list empty and
+        // NRE'ing the first Command that touches it (e.g. CmdCreateFleetFromSystem). Run the same
+        // generation directly here when there's no local client to receive the Rpc.
+        if (!NetworkClient.active)
+        {
+            Debug.Log("[DEDICATED-SERVER-GEN-v2] ServerBroadcastStartGame: no local client detected - starting server-side GalaxyScene load + generation.");
+            StartCoroutine(ServerLoadGalaxyAndGenerate(galaxySize, techLevel, galaxyType, seed, isSinglePlayer));
+        }
+
         RpcStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+    }
+
+    // PersistentSceneBootstrap.StartDedicatedServer only calls NetworkManager.StartServer() - it
+    // never loads GalaxyScene. StarSysManager/FleetManager/etc. all live inside GalaxyScene
+    // ("No DontDestroyOnLoad - dies with GalaxyScene" - see StarSysManager.Awake) and stay null
+    // until it's loaded, so a true dedicated server must load it here before generating, whereas
+    // a host's own client already loads it via MainMenuUIController.LoadGalaxySceneCoroutine.
+    private IEnumerator ServerLoadGalaxyAndGenerate(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    {
+        Debug.Log("[DEDICATED-SERVER-GEN-v2] ServerLoadGalaxyAndGenerate: coroutine started.");
+        Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene");
+        if (!galaxyScene.IsValid() || !galaxyScene.isLoaded)
+        {
+            Debug.Log("[DEDICATED-SERVER-GEN-v2] GalaxyScene not yet loaded - loading additively now.");
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("GalaxyScene", LoadSceneMode.Additive);
+            while (!asyncLoad.isDone)
+                yield return null;
+        }
+        Debug.Log($"[DEDICATED-SERVER-GEN-v2] GalaxyScene loaded. StarSysManager.Instance null? {StarSysManager.Instance == null}");
+
+        // Same 2-frame settle MainMenuUIController.LoadGalaxySceneCoroutine/GalaxySceneInitializer
+        // use after a fresh scene load, so scene-object Awake/Start calls have run before use.
+        yield return null;
+        yield return null;
+
+        // Seed immediately before generation, same as MainMenuUIController.LoadGalaxySceneCoroutine,
+        // so the server's UnityEngine.Random-driven generation matches every client's exactly.
+        UnityEngine.Random.InitState(seed);
+
+        // Mirrors MainMenuUIController's hardcoded MainMenuData.InGamePlayableCivList - every
+        // client always initializes it to all 7 majors regardless of user choice (the per-civ
+        // on/off toggles aren't actually wired to this list), so there's no per-game selection
+        // to replicate from the host here.
+        List<CivEnum> playableCivs = new List<CivEnum>
+        {
+            CivEnum.FED, CivEnum.ROM, CivEnum.KLING, CivEnum.CARD,
+            CivEnum.DOM, CivEnum.BORG, CivEnum.TERRAN
+        };
+        CivManager.Instance.UpdatePlayableCivGameList(playableCivs, galaxySize, (GalaxyMapType)galaxyType);
+
+        yield return CivManager.Instance.OnNewGameButtonClicked(
+            galaxySize, techLevel, galaxyType, (int)CivEnum.FED, isSinglePlayer);
     }
 
     [ClientRpc]

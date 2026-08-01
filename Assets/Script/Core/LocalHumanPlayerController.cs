@@ -28,6 +28,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     // is read from when the galaxy actually loads (see MainMenuUIController.OnNewGameButtonClicked call).
     private void OnPlayerCivChanged(CivEnum oldCiv, CivEnum newCiv)
     {
+        Debug.Log($"[RosterDiag] OnPlayerCivChanged netId={netId} isOwned={isOwned} isServer={isServer} isClient={isClient} oldCiv={oldCiv} newCiv={newCiv} (LocalPlayerController=={(PlayerManager.Instance != null && PlayerManager.Instance.LocalPlayerController == this)})");
         if (!isOwned)
             return;
         if (GameController.Instance != null && GameController.Instance.GameData != null)
@@ -166,6 +167,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     void CmdSetPlayerCiv(CivEnum civ)
     {
         int playerId = netId.GetHashCode();
+        Debug.Log($"[RosterDiag] CmdSetPlayerCiv (server) received civ={civ} from netId={netId} playerId={playerId} connectionToClient={connectionToClient?.connectionId.ToString() ?? "null"}");
         if (PlayerManager.Instance != null && PlayerManager.Instance.IsCivTakenByAnotherPlayer(civ, playerId))
         {
             Debug.LogWarning($"CmdSetPlayerCiv: {civ} is already taken by another player; rejecting request from player {playerId}.");

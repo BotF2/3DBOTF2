@@ -63,7 +63,7 @@ namespace BOTF3D.Combat
             data.DilithiumCost    = stats.DilithiumCost;
             data.CargoCapacity    = stats.CargoCapacity;
 
-            Debug.Log($"ShipDataInitializer: Initialized '{data.ShipName}' — " +
+            Debug.Log($"ShipDataInitializer: Initialized {data.CivEnum} '{data.ShipName}' ({data.ShipType} T{(int)data.TechLevel}) — " +
                       $"Sh:{data.ShieldMaxHealth} Hu:{data.HullMaxHealth} " +
                       $"Be:{data.BeamDamage} To:{data.TorpedoDamage} " +
                       $"Wp:{data.maxWarpFactor:F1} Bd:{data.BuildDuration} Li2:{data.DilithiumCost} (Q{quality})");

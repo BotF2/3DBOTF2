@@ -109,6 +109,11 @@ namespace BOTF3D.Core
         {
             int count = 0;
 
+            // StarSysWeOwn is only assigned once a civ is given a home system
+            // (CivManager.AddSystemToOwnSystemListAndHomeSys) - it stays null otherwise,
+            // so guard it here the same way every other reader of this list does.
+            if (civ.CivData.StarSysWeOwn == null) return count;
+
             foreach (var system in civ.CivData.StarSysWeOwn)
             {
                 if (system?.StarSysData == null) continue;

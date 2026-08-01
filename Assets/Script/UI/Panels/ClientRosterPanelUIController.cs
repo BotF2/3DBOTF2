@@ -46,6 +46,7 @@ namespace BOTF3D.UI
         }
 
         private readonly List<RowState> rows = new List<RowState>();
+        private bool rosterCallbackSubscribed;
 
         private void Awake()
         {
@@ -60,15 +61,28 @@ namespace BOTF3D.UI
 
         private void OnEnable()
         {
-            if (PlayerManager.Instance != null)
-                PlayerManager.Instance.Roster.Callback += OnRosterChanged;
+            TrySubscribeRosterCallback();
             RefreshPanel();
         }
 
         private void OnDisable()
         {
-            if (PlayerManager.Instance != null)
+            if (rosterCallbackSubscribed && PlayerManager.Instance != null)
                 PlayerManager.Instance.Roster.Callback -= OnRosterChanged;
+            rosterCallbackSubscribed = false;
+        }
+
+        // OnEnable fires the instant the lobby activates this panel (as soon as the transport
+        // connects), which on a real remote connection is well before PlayerManager.Instance
+        // exists - so a single check-and-bail there misses the subscription forever. Retrying
+        // here on every RefreshPanel() call (including the guaranteed later one from
+        // OnLocalPlayerReady) catches it as soon as PlayerManager.Instance actually appears.
+        private void TrySubscribeRosterCallback()
+        {
+            if (rosterCallbackSubscribed || PlayerManager.Instance == null)
+                return;
+            PlayerManager.Instance.Roster.Callback += OnRosterChanged;
+            rosterCallbackSubscribed = true;
         }
 
         private void OnRosterChanged(SyncList<RosterEntry>.Operation op, int index, RosterEntry oldItem, RosterEntry newItem)
@@ -78,6 +92,8 @@ namespace BOTF3D.UI
 
         public void RefreshPanel()
         {
+            TrySubscribeRosterCallback();
+
             if (content == null)
             {
                 Debug.LogWarning("ClientRosterPanelUIController: 'content' is not wired in the Inspector.");
@@ -149,7 +165,9 @@ namespace BOTF3D.UI
             }
 
             row.lastValidIndex = index;
-            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv(row.dropdownCivs[index]);
+            var localCon = PlayerManager.Instance?.LocalPlayerController;
+            Debug.Log($"[RosterDiag] OnDropdownValueChanged: submitting civ={row.dropdownCivs[index]} via LocalPlayerController netId={(localCon != null ? localCon.netId.ToString() : "null")}");
+            localCon?.SubmitPlayerCiv(row.dropdownCivs[index]);
         }
 
         private void PopulateRow(RowState r, RosterEntry entry, IReadOnlyList<RosterEntry> roster, int? localPlayerId)

@@ -139,7 +139,7 @@ namespace BOTF3D.Combat
             }
         }
 
-        internal void FireWeapons(bool beam)
+        internal void FireWeapons()
         {
             // ✅ Safety checks: Don't fire if destroyed, captured, no target, or a transport
             if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured || ShipData.ShipType == ShipType.Transport) return;
@@ -152,11 +152,11 @@ namespace BOTF3D.Combat
             // ✅ Friendly fire check (primary target)
             if (target.ShipData.CivEnum == this.ShipData.CivEnum)
             {
-                Debug.LogWarning($"⚠️ {ShipData.ShipName} attempted to fire on friendly {target.ShipData.ShipName} - Aborting.");
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat, $"⚠️ {ShipData.ShipName} attempted to fire on friendly {target.ShipData.ShipName} - Aborting.", this);
                 return;
             }
 
-            var combatController = CombatUIManager.Instance?.CurrentCombatController;
+            var combatController = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             if (combatController == null) return;
 
             // ✅ General Line of Sight Check
@@ -171,7 +171,7 @@ namespace BOTF3D.Combat
                 // If a friendly ship is in the way, stop the shot to avoid hitting them
                 if (blocker.ShipData.CivEnum == this.ShipData.CivEnum)
                 {
-                    Debug.Log($"🚫 {ShipData.ShipName} holding fire - {blocker.ShipData.ShipName} is in the way!");
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"🚫 {ShipData.ShipName} holding fire - {blocker.ShipData.ShipName} is in the way!", this);
                     return;
                 }
 
@@ -186,13 +186,9 @@ namespace BOTF3D.Combat
                 target = blocker;
             }
 
-            if (beam && ShipData.BeamDamage > 0)
+            if (ShipData.BeamDamage > 0)
             {
                 FireBeam(target.transform);
-            }
-            else if (!beam && ShipData.TorpedoDamage > 0)
-            {
-                FireTorpedo(target.transform);
             }
         }
 
@@ -225,7 +221,7 @@ namespace BOTF3D.Combat
                     !ShipData.TargetThisShipController.gameObject.activeInHierarchy)
                 {
                     // Stop permanently if no active enemies remain on the other side
-                    var cc = CombatUIManager.Instance?.CurrentCombatController;
+                    var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
                     if (cc != null)
                     {
                         bool isSide1 = cc.CombatData.SideOneShipCons.Contains(this);
@@ -240,26 +236,28 @@ namespace BOTF3D.Combat
                 // First shot: torpedo if available and within launch range.
                 // Torpedo range is limited so Formation-vs-Retreat ships (400 u apart at start)
                 // never receive a torpedo salvo; beams fire instead until ships close in.
+                // Fires at the nearest enemy in range rather than requiring this ship's
+                // specific (round-robin assigned) beam target to be the one in range - under
+                // Engage, ships cross the whole enemy formation, so the assigned target is
+                // often never close even though other enemies pass within torpedo range.
                 if (!hasFiredTorpedo && ShipData.TorpedoDamage > 0)
                 {
-                    float distToTarget = Vector3.Distance(
-                        transform.position,
-                        ShipData.TargetThisShipController.transform.position);
+                    ShipController torpTarget = FindNearestTorpedoTarget();
 
-                    if (distToTarget <= TorpedoMaxRange)
+                    if (torpTarget != null)
                     {
-                        FireWeapons(false); // torpedo
+                        FireTorpedo(torpTarget.transform);
                         hasFiredTorpedo = true;
                     }
                     else
                     {
-                        FireWeapons(true); // beam while out of torpedo range
+                        FireWeapons(); // beam while no enemy is in torpedo range
                     }
                 }
                 else
                 {
                     // All subsequent shots: beams only
-                    FireWeapons(true); // Fire beam
+                    FireWeapons(); // Fire beam
                 }
 
                 float refireDelay = UnityEngine.Random.Range(minRefireDelay, maxRefireDelay);
@@ -272,7 +270,7 @@ namespace BOTF3D.Combat
                 }
 
                 // While waiting for the next beam, poll torpedo range every 0.25 s so
-                // the torpedo fires as soon as ships close into range, regardless of orders.
+                // the torpedo fires as soon as any enemy closes into range, regardless of orders.
                 if (!hasFiredTorpedo && ShipData.TorpedoDamage > 0)
                 {
                     float elapsed = 0f;
@@ -285,11 +283,10 @@ namespace BOTF3D.Combat
                         // Ship may have been destroyed during the yield
                         if (this == null || ShipData == null || ShipData.Distroyed) yield break;
 
-                        var tgt = ShipData.TargetThisShipController;
-                        if (tgt != null && !tgt.ShipData.Distroyed && tgt.gameObject.activeInHierarchy &&
-                            Vector3.Distance(transform.position, tgt.transform.position) <= TorpedoMaxRange)
+                        ShipController tgt = FindNearestTorpedoTarget();
+                        if (tgt != null)
                         {
-                            FireWeapons(false); // torpedo — triggered by range crossing
+                            FireTorpedo(tgt.transform); // torpedo — triggered by range crossing
                             hasFiredTorpedo = true;
                             float remaining = refireDelay - elapsed;
                             if (remaining > 0f)
@@ -302,6 +299,44 @@ namespace BOTF3D.Combat
                     yield return new WaitForSecondsRealtime(refireDelay);
                 }
             }
+        }
+
+        /// <summary>
+        /// Nearest living enemy ship within TorpedoMaxRange, or null if none are in range.
+        /// Torpedo firing checks this instead of this ship's assigned beam target so a
+        /// torpedo isn't wasted for the whole turn just because the specific ship this one
+        /// was assigned to shoot happens to be on the far side of the enemy formation.
+        /// </summary>
+        private ShipController FindNearestTorpedoTarget()
+        {
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
+            if (cc == null) return null;
+
+            bool isSide1 = cc.CombatData.SideOneShipCons.Contains(this);
+            List<ShipController> enemies = isSide1 ? cc.CombatData.SideTwoShipCons : cc.CombatData.SideOneShipCons;
+            bool canTargetTransports = isSide1
+                ? cc.CombatData.SideOneOrder == CombatOrders.AttackTransports
+                : cc.CombatData.SideTwoOrder == CombatOrders.AttackTransports;
+
+            ShipController nearest = null;
+            float nearestDist = TorpedoMaxRange;
+
+            foreach (ShipController enemy in enemies)
+            {
+                if (enemy == null || enemy.ShipData.Distroyed || enemy.ShipData.IsCaptured || !enemy.gameObject.activeInHierarchy)
+                    continue;
+                if (enemy.ShipData.ShipType == ShipType.Transport && !canTargetTransports)
+                    continue;
+
+                float dist = Vector3.Distance(transform.position, enemy.transform.position);
+                if (dist <= nearestDist)
+                {
+                    nearestDist = dist;
+                    nearest = enemy;
+                }
+            }
+
+            return nearest;
         }
 
         /// <summary>
@@ -324,16 +359,17 @@ namespace BOTF3D.Combat
             {
                 torpedo.Target = targetTransform;
                 torpedo.OwnerCivEnum = ShipData.CivEnum;
+                torpedo.OwnerShip = this;
 
                 // Torpedo must outrun the firing ship; Rush ships move at maxWarpFactor * 28 units/sec
                 float torpedoVelocity = Mathf.Max(400f, ShipData.maxWarpFactor * 60f);
                 torpedo.Initialize(ShipData.TorpedoDamage, clipTorpedoFire, null, torpedoVelocity);
 
-                Debug.Log($"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Damage: {ShipData.TorpedoDamage}, Velocity: {torpedoVelocity})");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🚀 {ShipData.ShipName} fired torpedo at {targetTransform.name} (Damage: {ShipData.TorpedoDamage}, Velocity: {torpedoVelocity})", this);
             }
             else
             {
-                Debug.LogError($"Torpedo prefab missing Torpedo component!");
+                GameLogger.LogError(GameLogger.LogCategory.Combat, $"Torpedo prefab missing Torpedo component!", this);
                 Destroy(torpedoGO);
             }
         }
@@ -359,7 +395,7 @@ namespace BOTF3D.Combat
                 if (targetShip != null)
                     beam.Fire(targetShip);
 
-                Debug.Log($"   {ShipData.ShipName} fired beam at {targetTransform.name} (Damage: {ShipData.BeamDamage})");
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"   {ShipData.ShipName} fired beam at {targetTransform.name} (Damage: {ShipData.BeamDamage})", this);
 
                 if (gameObject.activeInHierarchy)
                     StartCoroutine(DestroyBeamAfterDelay(beamGO, 0.2f));
@@ -368,7 +404,7 @@ namespace BOTF3D.Combat
             }
             else
             {
-                Debug.LogError($"Beam prefab missing BeamWeapon component!");
+                GameLogger.LogError(GameLogger.LogCategory.Combat, $"Beam prefab missing BeamWeapon component!", this);
                 Destroy(beamGO);
             }
         }
@@ -388,7 +424,7 @@ namespace BOTF3D.Combat
             if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured) return;
 
             // No damage after combat has ended
-            if (CombatUIManager.Instance?.CurrentCombatController?.CombatEnded == true) return;
+            if (CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum)?.CombatEnded == true) return;
 
             // ✅ Ships are invulnerable during warp-out
             var orderStateMachine = GetComponent<CombatOrderStateMachine>();
@@ -399,7 +435,7 @@ namespace BOTF3D.Combat
             }
 
             // Shield overlap: nearby friendly ships provide overlapping shield coverage
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             if (cc != null)
             {
                 const float SHIELD_OVERLAP_RANGE = 40f;
@@ -427,10 +463,13 @@ namespace BOTF3D.Combat
 
             ShipData.HullHealth = Mathf.Max(ShipData.HullHealth, 0);
 
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"💢 {ShipData.CivEnum} {ShipData.ShipName} took {weaponDamageInt} dmg → " +
+                      $"Sh:{ShipData.ShieldHealth}/{ShipData.ShieldMaxHealth} Hu:{ShipData.HullHealth}/{ShipData.HullMaxHealth}", this);
+
             if (ShipData.HullHealth <= 0)
             {
                 // Check capture condition: enemy has Capture, this ship has Retreat or failed Scuttle
-                var ccc = CombatUIManager.Instance?.CurrentCombatController;
+                var ccc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
                 if (ccc != null)
                 {
                     bool isSideOne = ccc.CombatData.SideOneShipCons.Contains(this);
@@ -459,13 +498,13 @@ namespace BOTF3D.Combat
         {
             if (ShipData.IsCaptured || ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.IsCaptured = true;
             ShipData.HullHealth = 0;
             if (cc != null && !cc.CombatData.CapturedShips.Contains(this))
                 cc.CombatData.CapturedShips.Add(this);
             DestroyAllActiveBeams();
-            Debug.Log($"🎯 {ShipData.ShipName} CAPTURED by {cc?.CombatData.CivEnumSideOne}/{cc?.CombatData.CivEnumSideTwo}!");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"🎯 {ShipData.ShipName} CAPTURED by {cc?.CombatData.CivEnumSideOne}/{cc?.CombatData.CivEnumSideTwo}!", this);
 
             if (announceToNetwork)
             {
@@ -485,7 +524,7 @@ namespace BOTF3D.Combat
         {
             if (ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.Distroyed = true;
             cc?.CombatData?.DestroyedShips.Add(ShipData);
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
@@ -496,7 +535,7 @@ namespace BOTF3D.Combat
             if (explosionPrefab != null)
             {
                 Instantiate(explosionPrefab, transform.position, transform.rotation);
-                GameLogger.Log(GameLogger.LogCategory.Combat, $"💥..💥Ship Explosion {ShipData.ShipName}", this);
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"💥..💥Ship DESTROYED: {ShipData.CivEnum} {ShipData.ShipName}", this);
             }
             cc?.PlayExplosionSound(transform.position);
 
@@ -517,9 +556,16 @@ namespace BOTF3D.Combat
         /// <summary>
         /// Called via FleetController.RpcShipDestroyed on every client once the server has decided
         /// this ship's fate - forces this outcome even if our own local damage simulation hadn't
-        /// (yet, or ever, due to RNG drift) reached it.
+        /// (yet, or ever, due to RNG drift) reached it. Logged distinctly from CombatShotLog.LogShot
+        /// since this ship was never damaged locally - TakeDamage was never called for this kill.
         /// </summary>
-        public void ApplyDestroyedFromServer() => DestroyShip(announceToNetwork: false);
+        public void ApplyDestroyedFromServer()
+        {
+            bool wasAliveLocally = ShipData != null && !ShipData.Distroyed;
+            if (wasAliveLocally)
+                BOTF3D.Combat.Testing.CombatShotLog.LogReconciledKill(this);
+            DestroyShip(announceToNetwork: false);
+        }
 
         /// <summary>
         /// Called via FleetController.RpcShipCaptured - see ApplyDestroyedFromServer.
@@ -565,15 +611,15 @@ namespace BOTF3D.Combat
             if (torpedoPrefab == null)
             {
                 torpedoPrefab = torpedoPrefabs.FirstOrDefault();
-                Debug.LogWarning($"⚠️ {ShipData.ShipName}: no torpedo prefab matched '{civKey}', using fallback '{torpedoPrefab?.name}'");
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat, $"⚠️ {ShipData.ShipName}: no torpedo prefab matched '{civKey}', using fallback '{torpedoPrefab?.name}'", this);
             }
             if (beamWeaponPrefab == null)
             {
                 beamWeaponPrefab = beamPrefabs.FirstOrDefault();
-                Debug.LogWarning($"⚠️ {ShipData.ShipName}: no beam prefab matched '{civKey}', using fallback '{beamWeaponPrefab?.name}'");
+                GameLogger.LogWarning(GameLogger.LogCategory.Combat, $"⚠️ {ShipData.ShipName}: no beam prefab matched '{civKey}', using fallback '{beamWeaponPrefab?.name}'", this);
             }
 
-            Debug.Log($"🔧 {ShipData.ShipName} ({civKey}): torpedo={torpedoPrefab?.name ?? "NULL"}, beam={beamWeaponPrefab?.name ?? "NULL"}");
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"🔧 {ShipData.ShipName} ({civKey}): torpedo={torpedoPrefab?.name ?? "NULL"}, beam={beamWeaponPrefab?.name ?? "NULL"}", this);
         }
 
         public void SetWeaponAudioClips(AudioClip beamClip, AudioClip torpedoClip)
@@ -590,7 +636,7 @@ namespace BOTF3D.Combat
         {
             if (ShipData == null || ShipData.Distroyed) return;
 
-            var cc = CombatUIManager.Instance?.CurrentCombatController;
+            var cc = CombatManager.Instance?.GetActiveCombatControllerForCiv(ShipData.CivEnum);
             ShipData.ShieldHealth = 0;
             ShipData.HullHealth = 0;
             ShipData.Distroyed = true;
