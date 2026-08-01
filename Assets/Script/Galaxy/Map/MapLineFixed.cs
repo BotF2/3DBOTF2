@@ -33,5 +33,11 @@ namespace BOTF3D.Galaxy
                 }
             }
         }
+
+        public void SetVisible(bool visible)
+        {
+            if (lineRenderer != null)
+                lineRenderer.enabled = visible;
+        }
     }
 }
