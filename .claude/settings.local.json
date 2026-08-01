@@ -118,7 +118,8 @@
       "Bash(docker info *)",
       "Bash(docker manifest inspect *)",
       "Bash(docker buildx *)",
-      "Bash(sort -k1)"
+      "Bash(sort -k1)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3DBOTF2_99\" -Directory)"
     ]
   },
   "model": "claude-sonnet-5"

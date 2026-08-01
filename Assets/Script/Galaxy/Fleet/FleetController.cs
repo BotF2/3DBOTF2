@@ -1559,6 +1559,12 @@ namespace BOTF3D.Galaxy
                 FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
             }
 
+            if (serverPlayerTargetMarker != null)
+            {
+                Destroy(serverPlayerTargetMarker);
+                serverPlayerTargetMarker = null;
+            }
+
             // Existing cleanup code...
             //StopAllCoroutines();
             if (this.FleetData != null)
@@ -1755,11 +1761,12 @@ namespace BOTF3D.Galaxy
                 RelayDestinationToServer(hitObject);
         }
 
-        // hitObject can be a star system, a fleet, or GalaxyCenter - each needs its own Command since
-        // Mirror can only serialize GameObject/NetworkIdentity parameters for objects that have a
-        // spawned NetworkIdentity, and StarSysController/GalaxyCenter don't have one (only FleetController
-        // does - see Stage 1). A manually-placed player-defined target point also has no NetworkIdentity
-        // and isn't handled here; giving that kind of order on a non-host client is a known remaining gap.
+        // hitObject can be a star system, a fleet, GalaxyCenter, or a manually-placed player-defined
+        // target point - each needs its own Command since Mirror can only serialize
+        // GameObject/NetworkIdentity parameters for objects that have a spawned NetworkIdentity, and
+        // StarSysController/GalaxyCenter/player-defined targets don't have one (only FleetController
+        // does - see Stage 1). Player-defined targets are relayed by raw world position instead (see
+        // CmdSetDestinationToPlayerTarget) since the dragged marker itself only exists client-side.
         private void RelayDestinationToServer(GameObject hitObject)
         {
             if (hitObject == FleetManager.Instance?.GalaxyCenter)
@@ -1789,7 +1796,14 @@ namespace BOTF3D.Galaxy
                 }
             }
 
-            Debug.LogWarning($"RelayDestinationToServer: '{hitObject.name}' has no networked relay path (e.g. a player-defined target point) - this order will not reach the server on a non-host client.");
+            if (hitObject.GetComponent<PlayerDefinedTargetController>() != null)
+            {
+                Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=player-defined target at {hitObject.transform.position} via CmdSetDestinationToPlayerTarget.");
+                CmdSetDestinationToPlayerTarget(hitObject.transform.position);
+                return;
+            }
+
+            Debug.LogWarning($"RelayDestinationToServer: '{hitObject.name}' has no networked relay path - this order will not reach the server on a non-host client.");
         }
 
         [Command(requiresAuthority = false)]
@@ -1833,6 +1847,32 @@ namespace BOTF3D.Galaxy
             if (targetFleetIdentity == null) return;
             Debug.Log($"CmdSetDestinationToFleet: connection {sender?.connectionId} authorized, setting destination=fleet '{targetFleetIdentity.name}' on fleet '{name}'.");
             FleetData.Destination = targetFleetIdentity.gameObject;
+        }
+
+        // A player-defined target point is a client-only drag marker with no NetworkIdentity, so it
+        // can't be sent as a GameObject/NetworkIdentity Command parameter like the other destination
+        // types. Instead we relay its raw world position and hold a lightweight, unspawned marker
+        // GameObject server-side purely so FleetData.Destination.transform.position has somewhere to
+        // read from - the server never needs to render this marker, only use its position.
+        private GameObject serverPlayerTargetMarker;
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetDestinationToPlayerTarget(Vector3 targetPosition, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetDestinationToPlayerTarget: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            if (serverPlayerTargetMarker == null)
+            {
+                serverPlayerTargetMarker = new GameObject($"ServerPlayerTargetMarker_{name}");
+                if (FleetManager.Instance?.GalaxyCenter != null)
+                    serverPlayerTargetMarker.transform.SetParent(FleetManager.Instance.GalaxyCenter.transform, true);
+            }
+            serverPlayerTargetMarker.transform.position = targetPosition;
+            Debug.Log($"CmdSetDestinationToPlayerTarget: connection {sender?.connectionId} authorized, setting destination=player-defined target at {targetPosition} on fleet '{name}'.");
+            FleetData.Destination = serverPlayerTargetMarker;
         }
 
         // ── Encounter/diplomacy/combat networking ─────────────────────────────
