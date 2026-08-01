@@ -301,7 +301,22 @@ namespace BOTF3D.Core
         {
             Debug.Log("ReturnToGalaxyFromCombat: Starting");
 
-            // ✅ 1. Unload combat scene
+            // Was previously duplicated by a separate synchronous UnloadCombatScene() method that
+            // EndCombat() called right before this one - both independently unloaded CombatScene
+            // and reactivated GalaxyScene's root objects, racing against each other (one
+            // synchronous, one spread across frames as a coroutine) and calling
+            // SceneManager.UnloadSceneAsync on the same scene twice. That's the kind of
+            // non-deterministic, client-only glitch that produced symptoms like fleets rendering
+            // behind combat ships or ending up displaced after combat on non-host clients. Folded
+            // that method's unique cleanup (ShipCombatCameraController.Instance reset here;
+            // FogPlaneParent/KeyboardInputManagerGalactica below) into this single coroutine so
+            // combat-end cleanup only ever runs once.
+            if (ShipCombatCameraController.Instance != null)
+            {
+                ShipCombatCameraController.Instance = null;
+                Debug.Log("  ✅ Cleared ShipCombatCameraController.Instance");
+            }
+
             StartCoroutine(UnloadCombatSceneAndResumeGalaxy());
         }
 
@@ -402,6 +417,43 @@ namespace BOTF3D.Core
             {
                 GalaxyCameraDragMoveZoom.Instance.enabled = true;
                 Debug.Log("  ✅ Re-enabled galaxy camera");
+            }
+
+            // ✅ Make sure the galaxy camera's GameObject/Camera component are active too (folded in
+            // from the old UnloadCombatScene() - GalaxyCameraDragMoveZoom.enabled above only
+            // re-enables the drag/zoom script, not the GameObject or Camera component themselves).
+            var galaxyCameraDandD = GetGalaxyCameraDragNDrop();
+            if (galaxyCameraDandD != null)
+            {
+                galaxyCameraDandD.SetActive(true);
+
+                if (GalaxyCameraDragMoveZoom.Instance != null)
+                {
+                    var camera = GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>();
+                    if (camera != null)
+                    {
+                        camera.enabled = true;
+                        Debug.Log("  ✅ Galaxy camera component enabled");
+                    }
+                }
+            }
+
+            // ✅ Show fog of war (folded in from the old UnloadCombatScene())
+            for (int i = 0; i < persistentObjects.Count; i++)
+            {
+                if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
+                {
+                    persistentObjects[i].SetActive(true);
+                    Debug.Log("  ✅ FogPlaneParent shown");
+                }
+            }
+
+            // ✅ Re-enable galaxy input (folded in from the old UnloadCombatScene())
+            var keyboardInput = FindFirstObjectByType<KeyboardInputManagerGalactica>();
+            if (keyboardInput != null)
+            {
+                keyboardInput.enabled = true;
+                Debug.Log("  ✅ Galaxy input re-enabled");
             }
 
             // ✅ Resume time
@@ -573,121 +625,6 @@ namespace BOTF3D.Core
             }
         }
 
-        public void UnloadCombatScene()
-        {
-            Debug.Log("=== UnloadCombatScene: Starting ===");
-
-            // ✅ STEP 1: Clear ShipCombatCameraController instance reference
-            if (ShipCombatCameraController.Instance != null)
-            {
-                ShipCombatCameraController.Instance = null;
-                Debug.Log("  ✅ Cleared ShipCombatCameraController.Instance");
-            }
-
-            // ✅ STEP 2: Get scene references
-            Scene combatScene = SceneManager.GetSceneByName("CombatScene");
-            Scene galaxyScene = SceneManager.GetSceneByName("GalaxyScene"); // ✅ ADD THIS LINE!
-
-            // Validate galaxy scene exists
-            if (!galaxyScene.isLoaded)
-            {
-                Debug.LogError("UnloadCombatScene: GalaxyScene is not loaded!");
-                return;
-            }
-
-            // ✅ STEP 3: Disable Combat EventSystem BEFORE unloading
-            if (combatScene.isLoaded)
-            {
-                foreach (GameObject go in combatScene.GetRootGameObjects())
-                {
-                    var eventSystem = go.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
-                    if (eventSystem != null)
-                    {
-                        eventSystem.enabled = false;
-                        Debug.Log($"  ✅ Disabled EventSystem in Combat scene on: '{go.name}'");
-                    }
-                }
-
-                SceneManager.UnloadSceneAsync(combatScene);
-                Debug.Log("  ✅ Combat scene unloading...");
-            }
-
-            // ✅ STEP 4: Activate galaxy scene objects FIRST (so we can find references)
-            Debug.Log("  Activating Galaxy scene objects...");
-            foreach (GameObject go in galaxyScene.GetRootGameObjects())
-            {
-                go.SetActive(true);
-            }
-
-            // ✅ Reactivate fleets that were explicitly hidden in HideAllFleets (see LoadCombatSceneAdditive)
-            ShowAllFleets();
-
-            // ✅ STEP 5: Re-enable Galaxy EventSystem
-            foreach (GameObject go in galaxyScene.GetRootGameObjects())
-            {
-                var eventSystem = go.GetComponentInChildren<UnityEngine.EventSystems.EventSystem>(true);
-                if (eventSystem != null)
-                {
-                    eventSystem.enabled = true;
-                    Debug.Log($"  ✅ Re-enabled EventSystem in Galaxy scene on: '{go.name}'");
-                }
-            }
-
-            // ✅ STEP 6: Set Galaxy as active scene
-            SceneManager.SetActiveScene(galaxyScene);
-            Debug.Log("  ✅ Galaxy scene set as active");
-
-            // ✅ STEP 7: NOW find and show galaxy camera (objects are active now)
-            var galaxyCameraDandD = GetGalaxyCameraDragNDrop();
-            if (galaxyCameraDandD != null)
-            {
-                galaxyCameraDandD.SetActive(true);
-
-                if (GalaxyCameraDragMoveZoom.Instance != null)
-                {
-                    var camera = GalaxyCameraDragMoveZoom.Instance.GetComponentInChildren<Camera>();
-                    if (camera != null)
-                    {
-                        camera.enabled = true;
-                        Debug.Log("  ✅ Galaxy camera enabled");
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogWarning("  ⚠️ Could not find GalaxyCameraDragMoveZoom - may need manual camera setup");
-            }
-
-            // ✅ STEP 8: Show fog of war
-            for (int i = 0; i < persistentObjects.Count; i++)
-            {
-                if (persistentObjects[i] != null && persistentObjects[i].name == "FogPlaneParent")
-                {
-                    persistentObjects[i].SetActive(true);
-                    Debug.Log("  ✅ FogPlaneParent shown");
-                }
-            }
-
-            // ✅ STEP 9: Re-enable galaxy input
-            var keyboardInput = FindFirstObjectByType<KeyboardInputManagerGalactica>();
-            if (keyboardInput != null)
-            {
-                keyboardInput.enabled = true;
-                Debug.Log("  ✅ Galaxy input re-enabled");
-            }
-
-            // ✅ STEP 10: Resume time
-            if (TimeManager.Instance != null)
-            {
-                TimeManager.Instance.ResumeTime();
-                Debug.Log("  ✅ Time resumed");
-            }
-
-            Debug.Log("=== UnloadCombatScene: Complete ===");
-        }
-    
-
-    
         public void Cleanup() { }
         private void OnDestroy()
         {
