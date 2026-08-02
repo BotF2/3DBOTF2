@@ -2,32 +2,22 @@ using System.Collections.Generic;
 using Mirror;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using BOTF3D.Core;
 
 namespace BOTF3D.UI
 {
     // Attach to Panel-ClientRoster. Mirrors PlayerManager.Instance.Roster (a Mirror SyncList
-    // replicated to every client) into one ClientRosterPrefab row per connected player.
+    // replicated to every client) onto 7 fixed slots (Players/Slot0..Slot6, each carrying a
+    // RosterSlotUI) rather than instantiating a row prefab per player - the slot count is fixed
+    // at the same 7 as SelectableCivs, so there's always exactly one slot per possible player.
     //
     // Inspector wiring:
-    //   content         -> Panel-ClientRoster (Transform rows get instantiated under)
-    //   rosterRowPrefab -> ClientRosterPrefab asset
-    //
-    // ClientRosterPrefab child-name contract (find-by-name):
-    //   "PlayerName"          TextMeshProUGUI - player's chosen name
-    //   "CivilizationName"    TextMeshProUGUI - read-only civ label, shown for every row except
-    //                         the local player's own row
-    //   "CivilizationDropdown" TMP_Dropdown   - civ picker, shown/interactable only on the local
-    //                         player's own row; options are the 7 major civs minus whichever ones
-    //                         other connected players already hold (server rejects duplicates too -
-    //                         see LocalHumanPlayerController.CmdSetPlayerCiv - this is just the UI side)
+    //   slots -> Players/Slot0..Slot6's RosterSlotUI components, in slot order
     public class ClientRosterPanelUIController : MonoBehaviour
     {
         public static ClientRosterPanelUIController Instance { get; private set; }
 
-        [SerializeField] private Transform content;
-        [SerializeField] private GameObject rosterRowPrefab;
+        [SerializeField] private RosterSlotUI[] slots;
 
         private static readonly CivEnum[] SelectableCivs =
         {
@@ -36,7 +26,7 @@ namespace BOTF3D.UI
 
         private class RowState
         {
-            public GameObject root;
+            public RosterSlotUI slot;
             public TextMeshProUGUI playerNameText;
             public TextMeshProUGUI civilizationNameText;
             public TMP_Dropdown civilizationDropdown;
@@ -51,6 +41,7 @@ namespace BOTF3D.UI
         private void Awake()
         {
             Instance = this;
+            BuildRows();
         }
 
         private void OnDestroy()
@@ -90,18 +81,41 @@ namespace BOTF3D.UI
             RefreshPanel();
         }
 
+        private void BuildRows()
+        {
+            if (rows.Count > 0 || slots == null)
+                return;
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                RosterSlotUI slot = slots[i];
+                if (slot == null)
+                {
+                    Debug.LogWarning($"ClientRosterPanelUIController: slot {i} is not wired in the Inspector.");
+                    continue;
+                }
+
+                var row = new RowState
+                {
+                    slot = slot,
+                    playerNameText = slot.PlayerNameText,
+                    civilizationNameText = slot.CivilizationNameText,
+                    civilizationDropdown = slot.CivilizationDropdown
+                };
+                if (row.civilizationDropdown != null)
+                    row.civilizationDropdown.onValueChanged.AddListener(index => OnDropdownValueChanged(row, index));
+                rows.Add(row);
+            }
+        }
+
         public void RefreshPanel()
         {
             TrySubscribeRosterCallback();
+            BuildRows();
 
-            if (content == null)
+            if (rows.Count == 0)
             {
-                Debug.LogWarning("ClientRosterPanelUIController: 'content' is not wired in the Inspector.");
-                return;
-            }
-            if (rosterRowPrefab == null)
-            {
-                Debug.LogWarning("ClientRosterPanelUIController: 'rosterRowPrefab' is not wired in the Inspector.");
+                Debug.LogWarning("ClientRosterPanelUIController: 'slots' is not wired in the Inspector.");
                 return;
             }
             if (PlayerManager.Instance == null)
@@ -111,20 +125,13 @@ namespace BOTF3D.UI
             int? localPlayerId = GetLocalPlayerId();
             Debug.Log($"[RosterDiag] RefreshPanel: rosterCount={roster.Count} localPlayerId={(localPlayerId.HasValue ? localPlayerId.Value.ToString() : "null")}");
 
-            while (rows.Count < roster.Count)
-                rows.Add(BuildRow());
-
-            for (int i = 0; i < roster.Count; i++)
-                PopulateRow(rows[i], roster[i], roster, localPlayerId);
-
-            for (int i = roster.Count; i < rows.Count; i++)
-                rows[i].root.SetActive(false);
-
-            // Newly instantiated/reactivated rows don't reliably retrigger VerticalLayoutGroup's
-            // own dirty-tracking (SetActive doesn't fire OnTransformChildrenChanged), so without
-            // this a just-joined player's row can be left at a stale/default position instead of
-            // being stacked under the previous row.
-            LayoutRebuilder.ForceRebuildLayoutImmediate(content as RectTransform);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (i < roster.Count)
+                    PopulateRow(rows[i], i, roster[i], roster, localPlayerId);
+                else
+                    PopulateEmptySlot(rows[i], i);
+            }
         }
 
         private static int? GetLocalPlayerId()
@@ -133,21 +140,6 @@ namespace BOTF3D.UI
             if (localController == null)
                 return null;
             return localController.netId.GetHashCode();
-        }
-
-        private RowState BuildRow()
-        {
-            GameObject go = Instantiate(rosterRowPrefab, content);
-            var row = new RowState
-            {
-                root = go,
-                playerNameText = FindTMP(go, "PlayerName"),
-                civilizationNameText = FindTMP(go, "CivilizationName"),
-                civilizationDropdown = FindDropdown(go, "CivilizationDropdown")
-            };
-            if (row.civilizationDropdown != null)
-                row.civilizationDropdown.onValueChanged.AddListener(index => OnDropdownValueChanged(row, index));
-            return row;
         }
 
         private static void OnDropdownValueChanged(RowState row, int index)
@@ -170,16 +162,16 @@ namespace BOTF3D.UI
             localCon?.SubmitPlayerCiv(row.dropdownCivs[index]);
         }
 
-        private void PopulateRow(RowState r, RosterEntry entry, IReadOnlyList<RosterEntry> roster, int? localPlayerId)
+        private void PopulateRow(RowState r, int slotIndex, RosterEntry entry, IReadOnlyList<RosterEntry> roster, int? localPlayerId)
         {
-            r.root.SetActive(true);
-            if (r.playerNameText != null) r.playerNameText.text = entry.PlayerName;
+            string displayName = string.IsNullOrEmpty(entry.PlayerName) ? $"Player {slotIndex + 1}" : entry.PlayerName;
+            if (r.playerNameText != null) r.playerNameText.text = displayName;
 
             bool isLocalRow = localPlayerId.HasValue && entry.PlayerId == localPlayerId.Value;
 
             if (r.civilizationDropdown == null)
             {
-                // No dropdown wired on this prefab (older/placeholder rows) - fall back to read-only text.
+                // No dropdown wired on this slot - fall back to read-only text.
                 if (r.civilizationNameText != null) r.civilizationNameText.text = GetDisplayName(entry.PlayerCiv);
                 return;
             }
@@ -226,6 +218,18 @@ namespace BOTF3D.UI
             r.lastValidIndex = selectedIndex;
         }
 
+        private static void PopulateEmptySlot(RowState r, int slotIndex)
+        {
+            if (r.playerNameText != null) r.playerNameText.text = $"Player {slotIndex + 1}";
+
+            r.civilizationDropdown?.gameObject.SetActive(false);
+            if (r.civilizationNameText != null)
+            {
+                r.civilizationNameText.gameObject.SetActive(true);
+                r.civilizationNameText.text = "";
+            }
+        }
+
         private static string GetDisplayName(CivEnum civ)
         {
             switch (civ)
@@ -247,22 +251,6 @@ namespace BOTF3D.UI
                 if (roster[i].PlayerCiv == civ && roster[i].PlayerId != excludingPlayerId)
                     return true;
             return false;
-        }
-
-        private static TextMeshProUGUI FindTMP(GameObject root, string childName)
-        {
-            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
-                if (t.name == childName)
-                    return t.GetComponent<TextMeshProUGUI>();
-            return null;
-        }
-
-        private static TMP_Dropdown FindDropdown(GameObject root, string childName)
-        {
-            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
-                if (t.name == childName)
-                    return t.GetComponent<TMP_Dropdown>();
-            return null;
         }
     }
 }
