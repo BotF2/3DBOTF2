@@ -160,6 +160,15 @@ namespace BOTF3D.UI
             var localCon = PlayerManager.Instance?.LocalPlayerController;
             Debug.Log($"[RosterDiag] OnDropdownValueChanged: submitting civ={row.dropdownCivs[index]} via LocalPlayerController netId={(localCon != null ? localCon.netId.ToString() : "null")}");
             localCon?.SubmitPlayerCiv(row.dropdownCivs[index]);
+
+            // This dropdown is only shown/interactable on the local player's own row (see class
+            // header contract), so the chosen civ is always this client's own - unlike
+            // SubmitPlayerCiv above (a SyncVar, replicated to every client for gameplay), the theme
+            // is local-only cosmetic state and was never being updated here, so ThemedUIElement-driven
+            // UI (e.g. the "Button Create Galaxy Map" background/colors) stayed on the default Fed
+            // theme for any client that picked their civ via this roster dropdown - same code path
+            // for LAN and Edgegap dedicated-server multiplayer, since both use this same panel.
+            ThemeManager.Instance?.ApplyTheme((ThemeEnum)(int)row.dropdownCivs[index]);
         }
 
         private void PopulateRow(RowState r, int slotIndex, RosterEntry entry, IReadOnlyList<RosterEntry> roster, int? localPlayerId)

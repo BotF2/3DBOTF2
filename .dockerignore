@@ -1,0 +1,15 @@
+# The Edgegap "Containerize with Docker" tool (Assets/Mirror/Hosting/Edgegap) uses the whole
+# project root as the build context, but the Dockerfile only COPYs the Builds/<name> server
+# output. Excluding everything else keeps huge/constantly-churning folders like Library/
+# (Unity rewrites Library/PackageCache on every package resolve) out of the context, which
+# also caused a stale-path "resolve ... GetFileAttributesEx" Docker build failure.
+Library/
+Temp/
+Logs/
+obj/
+.git/
+.vs/
+.vscode/
+.idea/
+UserSettings/
+Builds/*/BurstDebugInformation_DoNotShip/

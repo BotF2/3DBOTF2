@@ -100,11 +100,35 @@ namespace BOTF3D.Combat
         //   TERRAN: mirror-Fed militarized doctrine — same chassis as FED but traded defense for
         //           firepower and a slightly faster posture; distinct from FED, not a clone. Already
         //           near the EffectiveHP target, essentially unchanged by this pass.
-        //   CARD:   durable hulls, methodical (good torpedoes), slower — cheap/fast to build, weak
-        //           in a straight fight (unchanged, Cardassian is an intentional low power tier)
-        //   DOM:    polaron-powered shields dominate; strong beam weapons (unchanged)
-        //   BORG:   near-impenetrable shields and hull; slow to produce (unchanged)
+        //   CARD:   durable hulls, methodical (good torpedoes), slower — cheap/fast to build, so it
+        //           fields MORE ships than the majors at EARLY; Beam/Torp bumped alongside its EARLY
+        //           starting-fleet resize (see the Flavor entry below) after cutting ship count made
+        //           it too weak
+        //   DOM:    polaron-powered shields dominate; strong beam weapons — high per-ship power lets
+        //           it field FEWER ships than the majors at EARLY (Beam/Torp bumped alongside a
+        //           further EARLY starting-fleet cut - see the Flavor entry below)
+        //   BORG:   near-impenetrable shields and hull, hardest-hitting weapons — highest per-ship
+        //           power of any civ, so it fields the FEWEST ships of any civ at EARLY. Even at a
+        //           linearly-"balanced" fleet-total ratio, concentrating that much power into so few
+        //           ships still won attrition fights (few, tanky, hard-hitting ships survive focus
+        //           fire far longer than the linear sum predicts) - trimming Shield/Hull/Beam/Torp
+        //           below the majors' band fixed that, but read as an over-correction in the other
+        //           direction (too weak), so it's been walked up and back down since across seven
+        //           passes, landing at 1.40/1.28/1.44/1.44 - just inside the majors' band rather than
+        //           below it. An eighth pass then deliberately pushed Beam/Torp to 1.70/1.70, to bring
+        //           Total Offense up to full Romulan parity (1.00x), overriding the concentration-effect
+        //           discount described above - a ninth pass backed that off to 1.60/1.60 (Total Offense
+        //           ≈0.94x), still above the concentration-adjusted band but pulling back from full
+        //           parity. Warp deliberately excluded from every pass of this tuning - see the Flavor
+        //           entry below
         //   MINOR:  baseline (no flavor entry = 1.0 on all stats)
+        //
+        //   Unifying EARLY starting-fleet philosophy (all seven playable civs): ship COUNT, not raw
+        //   per-ship stats, is the primary lever used to land every civ's first fleet inside the same
+        //   overall combat-power band (see ShipSOProvider.MajorStartingFleetCompositionOverrides for
+        //   the full ratio methodology and history) - civs with weaker per-ship stats get more ships,
+        //   civs with stronger per-ship stats get fewer, so "more evenly matched combat and combat
+        //   outcomes" holds regardless of which civ's fleet a player is fighting.
         private static readonly Dictionary<CivEnum, CivFlavor> Flavor = new Dictionary<CivEnum, CivFlavor>
         {
             // EffectiveHP(Scout) 1.09/1.06 → 32.4 down to 0.99/0.96 → 29.4
@@ -126,9 +150,9 @@ namespace BOTF3D.Combat
             // hull size - see the verification table in conversation/git history for the full
             // per-ship-type breakdown.
             { CivEnum.KLING,  new CivFlavor(0.86f, 1.26f, 1.02f, 1.35f, 1.10f) },
-            { CivEnum.CARD,   new CivFlavor(1.10f, 1.20f, 0.98f, 1.15f, 1.05f) }, // unchanged, own power tier
-            { CivEnum.DOM,    new CivFlavor(1.28f, 0.92f, 1.15f, 1.00f, 1.00f) }, // unchanged, own power tier
-            { CivEnum.BORG,   new CivFlavor(1.45f, 1.32f, 1.40f, 1.40f, 0.85f) }, // Beam/Torp bumped from 1.08 to compensate for reduced EARLY starting-fleet ship count (see ShipSOProvider.MajorStartingFleetCompositionOverrides)
+            { CivEnum.CARD,   new CivFlavor(0.95f, 1.02f, 1.05f, 1.25f, 1.05f) }, // Shield/Hull/Beam/Torp all pulled back down toward neutral (from 1.10/1.20/1.26/1.48) as EARLY starting-fleet ship count went back up 7/7→8/8 - see ShipSOProvider.MajorStartingFleetCompositionOverrides. Warp intentionally left untouched.
+            { CivEnum.DOM,    new CivFlavor(1.21f, 0.87f, 1.24f, 1.14f, 1.00f) }, // Small increase from 1.19/0.86/1.22/1.12 - a smaller step this time (not the previous midpoint's full jump), bringing EffHP≈0.99x, Offense≈0.84x right up to the majors' band's low edge without crossing into it. Ship count (3/5) and Warp (1.00, left alone) untouched. See ShipSOProvider.MajorStartingFleetCompositionOverrides for the full history and resulting ratios
+            { CivEnum.BORG,   new CivFlavor(1.40f, 1.28f, 1.60f, 1.60f, 0.85f) }, // Beam/Torp backed off from the 1.70/1.70 full-parity pass to 1.60/1.60 - Total Offense now ≈0.94x (down from 1.00x), Beam-only ≈0.85x (back at the top of every other civ's 0.78x-0.85x range instead of above it). Shield/Hull untouched (EffectiveHP stays ≈1.03x), Warp (0.85) untouched by every pass of this tuning. See ShipSOProvider.MajorStartingFleetCompositionOverrides for the full history and resulting ratios
             // EffectiveHP(Scout) 0.95/0.95 → 28.5, already at target - unchanged
             { CivEnum.TERRAN, new CivFlavor(0.95f, 0.95f, 1.12f, 1.12f, 1.03f) },
         };

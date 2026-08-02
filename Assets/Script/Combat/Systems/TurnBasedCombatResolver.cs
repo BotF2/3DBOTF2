@@ -209,7 +209,22 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 // (already-waiting) combat menu kick off warp-in now that both sides are confirmed.
                 combatData.SideOneOrder = sideOneOrder;
                 combatData.SideTwoOrder = sideTwoOrder;
-                BOTF3D.UI.CombatUIManager.Instance?.OnTurnOneOrdersResolved();
+
+                // A pure dedicated server has no local player, so CombatManager.SetUpLocalPlayer
+                // never calls CombatUIManager.SetupForCombat there and CurrentCombatController stays
+                // null (see that method's comment). OnTurnOneOrdersResolved's warp-in kickoff is
+                // gated on CurrentCombatController, so on a headless server it silently no-ops and
+                // StartWarpInAnimation/BeginOrderSelection never run - permanently stalling combat
+                // right after turn 1's orders lock in. Drive warp-in directly here in that case.
+                if (NetworkServer.active && !NetworkClient.active)
+                {
+                    if (combatController.WarpingIn)
+                        StartCoroutine(combatController.StartWarpInAnimation());
+                }
+                else
+                {
+                    BOTF3D.UI.CombatUIManager.Instance?.OnTurnOneOrdersResolved();
+                }
                 return;
             }
 

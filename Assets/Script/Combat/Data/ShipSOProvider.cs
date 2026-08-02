@@ -230,16 +230,121 @@ namespace BOTF3D.Combat
         // A same-size fleet is therefore never fair for these three; ship COUNT has to move the other
         // way to compensate. These are sized off FULL-FLEET totals (not a single Scout-tier ratio),
         // because Total Offense scales linearly with ship count and Beam fires many times per 30s
-        // turn while Torpedo fires once - so per-ship power indices alone under/over-correct:
-        //   CARD (9/9/3=21) → Total Offense ≈1.01x, Beam-only ≈0.84x, EffectiveHP ≈1.42x Romulan's
-        //   DOM  (4/6/2=12) → Total Offense ≈0.95x, Beam-only ≈0.92x, EffectiveHP ≈1.31x Romulan's
-        //   BORG (3/5/1=9)  → Total Offense ≈1.10x, Beam-only ≈0.98x, EffectiveHP ≈1.34x Romulan's
-        //     (BORG Beam/Torp Flavor also bumped 1.08→1.40 alongside this resize - see
-        //     ShipStatCalculator.Flavor[CivEnum.BORG] - since count alone couldn't reach parity)
-        // Same Scout:Destroyer:Transport shape as the baseline in each case, just resized. Only
-        // EARLY is populated for now (matches MajorStartingFleetComposition above); treat these as a
-        // first pass - like every other number in ShipStatCalculator.Flavor, tune from actual
-        // CombatRecordings turn-log results rather than this static estimate alone.
+        // turn while Torpedo fires once - so per-ship power indices alone under/over-correct.
+        //
+        // Transport is EXCLUDED from all three ratios below (it carries no Beam/Torp/weapons, so it
+        // has zero combat power and shouldn't factor into a combat-power calculation) and is instead
+        // fixed at 2 for every playable civ, majors and CARD/DOM/BORG alike - only Scout and
+        // Destroyer counts are the balancing lever. Ratios are Scout+Destroyer fleet totals against
+        // Romulan's 6 Scout + 6 Destroyer baseline (Transport excluded from that baseline too):
+        //   CARD (8/8) → Total Offense ≈0.99x, Beam-only ≈0.82x, EffectiveHP ≈1.07x Romulan's
+        //     History of this entry, in order:
+        //       9/9, Flavor Beam/Torp 0.98/1.15 → Total Offense ≈1.01x, EffectiveHP ≈1.41x. Playtest
+        //       with a live Federation fleet showed that 18-ship fleet consistently wiping FED out
+        //       despite the static Total Offense sum reading near-parity - this combat resolver fires
+        //       every live ship simultaneously every turn, so a fleet with 50% more shooters (18 vs
+        //       FED's 12) gets a compounding focus-fire/attrition advantage a linear total-damage sum
+        //       doesn't capture (the same "EffectiveHP compounds faster than a flat edge" lesson
+        //       already learned for FED-vs-KLING above, just via ship COUNT instead of per-ship HP).
+        //       7/7, Flavor Beam/Torp 1.26/1.48 → Total Offense ≈1.00x, EffectiveHP ≈1.10x. Cut hard
+        //       to a 17% count edge over the majors' 12 and raised Beam/Torp flavor to restore Total
+        //       Offense parity. Next playtest: ship count now read as too low, even though the
+        //       aggregate ratios looked reasonable.
+        //       8/8, Flavor Shield/Hull/Beam/Torp 0.95/1.02/1.05/1.25 (was 1.10/1.20/1.26/1.48) →
+        //       current. Brought count back up toward (but still below) the original 9/9, and pulled
+        //       Shield/Hull/Beam/Torp all back down toward neutral so the extra ship count doesn't
+        //       reinflate the fleet-total ratios past where they were at 7/7. Warp (1.05) left
+        //       untouched throughout.
+        //   DOM  (3/5) → Total Offense ≈0.84x, Beam-only ≈0.78x, EffectiveHP ≈0.99x Romulan's
+        //     History of this entry, in order:
+        //       4/6, Flavor Beam/Torp 1.15/1.00 → Total Offense ≈0.95x, EffectiveHP ≈1.30x - already
+        //       below the majors' own baseline despite Dominion's supposedly stronger ships, because
+        //       DOM's per-ship offense edge over Romulan was only ~9%, too thin to carry a 10-ship
+        //       fleet. Bumped Beam/Torp to 1.20/1.10 to bring it up to ≈1.02x/1.30x - technically
+        //       "balanced" by the linear metric, but per the CARD 9/9 lesson above, EffectiveHP that
+        //       far above the majors' ~1.0x still wins attrition fights it shouldn't.
+        //       3/5, Flavor Beam/Torp bumped again to 1.31/1.20 - cut ship count from 10 to 8 combat
+        //       ships to pull EffectiveHP down from 1.30x into the majors' 1.00x-1.10x band, then
+        //       raised Beam/Torp again to bring Total Offense from the resulting ≈0.71x back up into
+        //       the majors' 0.87x-1.00x band without re-inflating EffectiveHP (Beam/Torp changes don't
+        //       touch Shield/Hull). EffHP≈1.06x, Offense≈0.89x. Playtest reported this as a bit too
+        //       strong.
+        //       3/5, Flavor Shield/Hull/Beam/Torp trimmed proportionally to 1.22/0.88/1.25/1.15 - all
+        //       four pulled down together to bring EffectiveHP from ≈1.06x to ≈1.00x and Total Offense
+        //       from ≈0.89x to ≈0.84x. Playtest still read this as a bit too strong even at Romulan
+        //       parity / the band's low edge.
+        //       3/5, Flavor trimmed again to Shield/Hull/Beam/Torp 1.16/0.84/1.19/1.09 - another ~5%
+        //       cut across all four, deliberately landing below the majors' band (EffectiveHP≈0.95x,
+        //       Total Offense≈0.80x) rather than at its low edge, the same way Borg's concentration-
+        //       effect tuning sits below the band with fewer ships than the majors.
+        //       3/5, Flavor given a bit back at Shield/Hull/Beam/Torp 1.19/0.86/1.22/1.12 - the midpoint
+        //       between the 1.16/0.84/1.19/1.09 undershoot and the prior "a bit too strong"
+        //       1.22/0.88/1.25/1.15, at EffectiveHP≈0.98x, Total Offense≈0.82x - still deliberately
+        //       below the majors' band, just less far below it.
+        //       3/5 (current), Flavor given a small increase to Shield/Hull/Beam/Torp 1.21/0.87/1.24/1.14
+        //       (see ShipStatCalculator.Flavor[CivEnum.DOM]) - a smaller step than the previous
+        //       midpoint jump, bringing EffectiveHP≈0.99x and Total Offense≈0.84x right up to the
+        //       majors' band's low edge without crossing into it. Ship count (3/5) and Warp (1.00)
+        //       untouched.
+        //   BORG (2/4) → Total Offense ≈0.94x, Beam-only ≈0.85x, EffectiveHP ≈1.03x Romulan's
+        //     History of this entry, in order:
+        //       3/5, Flavor Beam/Torp 1.08 → later bumped to 1.40/1.40 → Total Offense ≈1.10x,
+        //       EffectiveHP ≈1.42x - same over-tuned problem as DOM's 4/6 entry above, just more
+        //       extreme since Borg has the highest per-ship power of any civ (QualityScore 10).
+        //       2/4, Flavor Beam/Torp bumped again to 1.48/1.48 (Shield/Hull left at 1.45/1.32) - cut
+        //       ship count from 8 to 6 combat ships, the fewest of any civ, to pull EffectiveHP down
+        //       to ≈1.08x and Offense to ≈0.89x, both landing inside the majors' band. Playtest still
+        //       showed one-sided Borg wins - concentrating that much per-ship power (highest
+        //       EffectiveHP AND highest offense of any civ, QualityScore 10) into only 6 ships lets
+        //       them out-survive attrition far past what the linear fleet-total ratio predicts, the
+        //       same non-linearity as the CARD 9/9 ship-COUNT lesson but via per-ship stat
+        //       concentration instead of count.
+        //       2/4, Flavor cut to Shield/Hull/Beam/Torp 1.25/1.15/1.32/1.32 - deliberately pushed
+        //       EffectiveHP (≈0.92x) and Offense (≈0.78x) BELOW the majors' band (unlike every other
+        //       civ's entry above) to offset the concentration effect. Playtest reported this as an
+        //       over-correction the other way - too harsh a nerf.
+        //       2/4, Flavor walked back up to Shield/Hull/Beam/Torp 1.35/1.24/1.40/1.40 - a midpoint
+        //       between the too-strong 1.45/1.32/1.48/1.48 and the too-weak 1.25/1.15/1.32/1.32
+        //       (EffHP≈1.00x, Offense≈0.82x). Playtest still reported this as weak.
+        //       2/4, Flavor bumped again to Shield/Hull/Beam/Torp 1.40/1.28/1.44/1.44 (EffHP≈1.03x,
+        //       Offense≈0.85x) - moved further back toward the original too-strong values. Playtest
+        //       reported this as a bit too strong again.
+        //       2/4, Flavor settled at Shield/Hull/Beam/Torp 1.38/1.26/1.42/1.42 - the midpoint of the
+        //       previous two passes (1.35/1.24/1.40/1.40, too weak, and 1.40/1.28/1.44/1.44, a bit too
+        //       strong). Presented but not yet playtested before the next pass superseded it.
+        //       2/4, Flavor hand-picked at Shield/Hull/Beam/Torp 1.40/1.27/1.44/1.43 - user-specified
+        //       directly, close to but not identical to the "a bit too strong" 1.40/1.28/1.44/1.44 pass
+        //       (Hull and Torp trimmed a hair). EffHP≈1.03x, Offense≈0.85x, Beam≈0.76x. Not yet
+        //       playtested before the next pass reverted it.
+        //       2/4, Flavor back to Shield/Hull/Beam/Torp 1.40/1.28/1.44/1.44 - user re-selected the
+        //       earlier "a bit too strong" values directly, undoing the 1.40/1.27/1.44/1.43 trim.
+        //       EffHP≈1.03x, Offense≈0.85x, Beam≈0.76x.
+        //       2/4, Beam/Torp bumped hard to 1.70/1.70 (Shield/Hull left at 1.40/1.28) - explicit
+        //       request to bring Total Offense up to full Romulan parity (1.00x) rather than sitting at
+        //       the concentration-effect-adjusted band's low edge. At only 2/4 ships this needed a much
+        //       bigger per-ship jump than any other civ's Offense correction required, and pushed
+        //       Beam-only to ≈0.90x - above every other civ's 0.78x-0.85x range.
+        //       2/4 (current), Beam/Torp backed off to 1.60/1.60 (see
+        //       ShipStatCalculator.Flavor[CivEnum.BORG]) - explicit pull-back from the full-parity
+        //       pass. Total Offense ≈0.94x (down from 1.00x), Beam-only ≈0.85x (back at the top of the
+        //       other six civs' 0.78x-0.85x range instead of above it). EffHP unchanged at ≈1.03x
+        //       (Shield/Hull untouched throughout). Ship count held at 2/4 throughout all nine passes
+        //       above (still the fewest of any civ) and Warp (0.85) has never been touched by any of
+        //       this tuning.
+        // Five of seven playable civs land in the same target band: Total Offense ≈0.84x-1.00x,
+        // EffectiveHP ≈1.00x-1.10x, Beam-only ≈0.75x-0.85x (Romulan-relative) - CARD reaches it with
+        // the MOST ships (8/8, weakest per-ship stats), majors in between. BORG and DOM both field FEWER
+        // ships than the majors (2/4 and 3/5, strongest per-ship stats of the seven) and both were
+        // deliberately tuned BELOW this band per the concentration-effect lesson above (a linearly-
+        // "balanced" fleet-total ratio still reads too strong once that power is concentrated into so
+        // few ships) - DOM currently sits at EffectiveHP≈0.99x/Offense≈0.84x/Beam≈0.78x, just below the
+        // band. BORG has been pushed back up by explicit request, first to full 1.00x Offense parity,
+        // then backed off to the current ≈0.94x Offense/≈0.85x Beam-only - now sitting at or just above
+        // the majors' band instead of below it, unlike DOM. Treat both civs' numbers as still a work in
+        // progress pending further playtest. Only EARLY is populated for now (matches
+        // MajorStartingFleetComposition above); treat these as a first pass - like every other number
+        // in ShipStatCalculator.Flavor, tune from actual CombatRecordings turn-log results rather than
+        // this static estimate alone.
         private static readonly Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>> MajorStartingFleetCompositionOverrides =
             new Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>>
             {
@@ -247,17 +352,17 @@ namespace BOTF3D.Combat
                 {
                     [TechLevel.EARLY] = new Dictionary<ShipType, int>
                     {
-                        { ShipType.Scout, 9 },
-                        { ShipType.Destroyer, 9 },
-                        { ShipType.Transport, 3 },
+                        { ShipType.Scout, 8 },
+                        { ShipType.Destroyer, 8 },
+                        { ShipType.Transport, 2 },
                     }
                 },
                 [CivEnum.DOM] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
                 {
                     [TechLevel.EARLY] = new Dictionary<ShipType, int>
                     {
-                        { ShipType.Scout, 4 },
-                        { ShipType.Destroyer, 6 },
+                        { ShipType.Scout, 3 },
+                        { ShipType.Destroyer, 5 },
                         { ShipType.Transport, 2 },
                     }
                 },
@@ -265,9 +370,9 @@ namespace BOTF3D.Combat
                 {
                     [TechLevel.EARLY] = new Dictionary<ShipType, int>
                     {
-                        { ShipType.Scout, 3 },
-                        { ShipType.Destroyer, 5 },
-                        { ShipType.Transport, 1 },
+                        { ShipType.Scout, 2 },
+                        { ShipType.Destroyer, 4 },
+                        { ShipType.Transport, 2 },
                     }
                 },
             };

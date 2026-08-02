@@ -446,14 +446,21 @@ namespace BOTF3D.Galaxy
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
-            galaxyWidth = GalaxyView.Instance.GalaxyWidth;
-            galaxyHeight = GalaxyView.Instance.GalaxyHeight;
+            // GalaxyView.Instance can legitimately be null here on a headless dedicated server
+            // (no galaxy map view is ever created there) or if this fleet spawns before the galaxy
+            // map finishes building on a client - fall back to the 1f defaults above and skip the
+            // minimap update rather than throwing and aborting the rest of Start().
+            if (GalaxyView.Instance != null)
+            {
+                galaxyWidth = GalaxyView.Instance.GalaxyWidth;
+                galaxyHeight = GalaxyView.Instance.GalaxyHeight;
 
-            // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
-            // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
-            // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
-            // anchoredPosition (map center) instead of its real spawn position.
-            UpdateMinimapPosition();
+                // Otherwise a fleet that never moves (e.g. a freshly split fleet, which by definition
+                // starts at CurrentWarpFactor=0 with no destination) never runs the movement-branch calls
+                // to UpdateMinimapPosition() below, leaving its red dot at the prefab's default
+                // anchoredPosition (map center) instead of its real spawn position.
+                UpdateMinimapPosition();
+            }
         }
         private void Update()
         {
@@ -2066,6 +2073,17 @@ namespace BOTF3D.Galaxy
             // a time, so matching on "this" fleet's identity is unambiguous.
             CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForFleet(this);
             combatCon?.EndCombat();
+
+            // DiplomacyData.CombatIntiated is a one-shot latch set by DiplomacyController.Combat()
+            // to stop the Combat button from double-firing while combat is loading/running - it's
+            // never cleared elsewhere, so without this reset a civ pair could only ever fight once
+            // per game, and the Combat button would silently do nothing on any later encounter.
+            if (DiplomacyManager.Instance != null)
+            {
+                DiplomacyController diploCon = DiplomacyManager.Instance.ReturnADiplomacyController(civA, civB);
+                if (diploCon != null && diploCon.DiplomacyData != null)
+                    diploCon.DiplomacyData.CombatIntiated = false;
+            }
         }
 
         // ---------------------------------------------------------------------------------------

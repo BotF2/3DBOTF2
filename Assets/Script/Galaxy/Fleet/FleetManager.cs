@@ -24,6 +24,15 @@ namespace BOTF3D.Galaxy
         public void Initialize() {}
         public void Cleanup() {}
         public static FleetManager Instance;
+
+        // World-unit sight range given to every local-player fleet's FogRevealer (see
+        // RegisterFleetControllerAndSetupVisuals below). Shared with StarSysData.SubspaceScannerRadius
+        // so the Borg home system's fog-of-war reveal (StarSysAIManager.UpdateSubspaceScanner /
+        // StarSysManager.RefreshBorgConcealment) fires at the same distance a fleet would actually
+        // see it appear out of the fog, instead of an independently-tuned radius that drifts out
+        // of sync with this value.
+        public const float LocalPlayerFogSightRange = 200f;
+
         public GameObject scoutBluePrintPrefab;
         public GameObject destroyerBluePrintPrefab;
         public GameObject cruiserBluePrintPrefab;
@@ -650,6 +659,17 @@ namespace BOTF3D.Galaxy
                 FleetControllersInGame.Add(newFleet);
 
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
+
+            // InstantiateFleet (server-only) sets this same text directly on its own local
+            // GameObject instance right after creating it, but that never reaches any client's
+            // separately-spawned copy of this networked fleet (TMP text isn't a SyncVar). Every
+            // client only ever sets up its fleets through this method (see
+            // FleetController.HandleCivEnumChanged), so without this the TMP field is left at
+            // whatever placeholder text the prefab shipped with - most visibly for a client's own
+            // locally-owned fleet, which never goes through InstantiateFleet at all.
+            if (fleetChildFields.FleetName != null)
+                fleetChildFields.FleetName.text = fleetData.FleetName;
+
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
             srInsignia.sprite = fleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
@@ -669,7 +689,7 @@ namespace BOTF3D.Galaxy
                 if (fogWar != null)
                 {
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
-                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, 200, false); // FALSE = always update
+                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, (int)LocalPlayerFogSightRange, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
                     TempFogRevealerFleet = ourFogRevealerFleet;
 
@@ -1032,13 +1052,24 @@ namespace BOTF3D.Galaxy
             // Spawned FleetControllers are Mirror NetworkIdentities (see InstantiateFleet's
             // NetworkServer.Spawn) - a plain Destroy() on the server leaves a stale entry in
             // NetworkServer.spawned and never tells clients to remove their own copy.
-            // NetworkServer.Destroy sends the proper destroy message first. On a genuine remote
-            // client (convoy/ship-transfer cleanup, still unnetworked - see SyncedIsNewFleet's
-            // comment) there's no server to route through, so fall back to the local-only Destroy
-            // exactly as before.
+            // NetworkServer.Destroy sends the proper destroy message first. On a genuinely
+            // unnetworked call (convoy/ship-transfer cleanup - see SyncedIsNewFleet's comment)
+            // there's no server to route through, so fall back to the local-only Destroy.
+            //
+            // A connected client (NetworkClient.active but not NetworkServer.active) must NOT take
+            // that local-only fallback for a server-spawned fleet: this method is also reached from
+            // CombatController.EndCombat(), which runs its full body on every peer including plain
+            // clients (see EndCombat's per-peer DestroyFleetController call for a fleet with 0 ships
+            // left). Calling Destroy() directly there bypasses Mirror's NetworkClient.spawned
+            // bookkeeping for that netId, so when the server's own authoritative destroy message for
+            // the same object arrives moments later, Mirror finds a stale/already-destroyed entry and
+            // logs spawn/sync errors - which can derail EndCombat() or later spawn messages on that
+            // client. A connected client should just skip the local destroy entirely and let the
+            // server's own NetworkServer.Destroy (reached when the server runs this same code path)
+            // sync the removal down normally.
             if (NetworkServer.active)
                 NetworkServer.Destroy(fleetController.gameObject);
-            else
+            else if (!NetworkClient.active)
                 Destroy(fleetController.gameObject);
         }
 

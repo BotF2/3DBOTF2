@@ -639,11 +639,52 @@ namespace BOTF3D.Combat
             // below via CombatManager.OnCombatEnded.
             isClosing = true;
 
-            GameLogger.Log(GameLogger.LogCategory.Combat, "=== EndCombat: Starting cleanup ===", this);
+            // The whole cleanup body below is wrapped in try/finally: any single exception here
+            // (e.g. a null ref while walking a surviving fleet's diagnostics, or a scene-unload
+            // failure) used to silently abort EndCombat() before it ever reached the
+            // ServerNotifyCombatEnded broadcast at the bottom - meaning RpcCombatEnded never
+            // reached any client and their Combat Over panel stayed up forever with no visible
+            // error except whatever the server happened to log for the exception itself. The
+            // finally block guarantees that broadcast still fires (so clients can always leave
+            // the Combat scene) even if some cleanup step throws, and logs the exception so the
+            // real cause is visible instead of just "the panel never closed."
+            try
+            {
+                EndCombatCleanup();
+            }
+            catch (System.Exception ex)
+            {
+                GameLogger.LogError(GameLogger.LogCategory.Combat, $"❌ EndCombat: exception during cleanup - {ex}", this);
+            }
+            finally
+            {
+                // Tell bystanders (see FleetController.RpcCombatEnded) they can hide the paused
+                // notice, and combatants that haven't run EndCombat() locally yet (any non-host
+                // client) tear down their own Combat scene view.
+                //
+                // Look this up now, AFTER EndCombatCleanup's fleet cleanup loop has already
+                // destroyed any fleet that ended combat with 0 ships - _involvedFleets.Find(f =>
+                // f != null) uses FleetController's overridden UnityEngine.Object == operator, so
+                // a destroyed fleet is correctly skipped here. Previously this was captured
+                // *before* that loop ran, so on a decisive victory it could grab the very fleet
+                // the loop was about to destroy; calling ServerNotifyCombatEnded() through `?.` on
+                // that now-destroyed MonoBehaviour doesn't short-circuit the way it would for a
+                // real null (`?.` uses the raw C# reference, not Unity's overridden equality), so
+                // it threw a MissingReferenceException that aborted EndCombat() right before this
+                // broadcast.
+                FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
+                if (NetworkServer.active && combatEndedAnchor != null)
+                    combatEndedAnchor.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
+            }
+        }
 
-            // Grab a stable fleet ref before the cleanup loop below can destroy entries in
-            // _involvedFleets, so we still have something to broadcast the combat-ended Rpc through.
-            FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
+        /// <summary>
+        /// EndCombat's actual cleanup work, split out so EndCombat() can wrap it in a single
+        /// try/finally that guarantees the end-of-combat network broadcast always fires.
+        /// </summary>
+        private void EndCombatCleanup()
+        {
+            GameLogger.Log(GameLogger.LogCategory.Combat, "=== EndCombat: Starting cleanup ===", this);
 
             // Clean up ships
             if (CombatData.SideOneShipCons != null)
@@ -750,10 +791,6 @@ namespace BOTF3D.Combat
             {
                 CombatManager.Instance.OnCombatEnded(this);
             }
-
-            // Tell bystanders (see FleetController.RpcCombatEnded) they can hide the paused notice.
-            if (NetworkServer.active)
-                combatEndedAnchor?.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
         }
 
         /// <summary>

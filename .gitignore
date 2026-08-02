@@ -9,6 +9,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Mm]emoryCaptures/
+/[Uu]ser[Ss]ettings/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
@@ -94,3 +95,5 @@ TorpedoFirepower.xlsx
 
 # UserSettings holds per-machine Editor state (layouts, package caches, etc.) - never share via git
 /UserSettings/
+/Assets/_Recovery/1 (5).unity
+/Assets/_Recovery/1 (5).unity.meta
