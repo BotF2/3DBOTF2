@@ -614,6 +614,17 @@ namespace BOTF3D.Galaxy
                 FleetControllersInGame.Add(newFleet);
 
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
+
+            // InstantiateFleet (server-only) sets this same text directly on its own local
+            // GameObject instance right after creating it, but that never reaches any client's
+            // separately-spawned copy of this networked fleet (TMP text isn't a SyncVar). Every
+            // client only ever sets up its fleets through this method (see
+            // FleetController.HandleCivEnumChanged), so without this the TMP field is left at
+            // whatever placeholder text the prefab shipped with - most visibly for a client's own
+            // locally-owned fleet, which never goes through InstantiateFleet at all.
+            if (fleetChildFields.FleetName != null)
+                fleetChildFields.FleetName.text = fleetData.FleetName;
+
             SpriteRenderer srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
             srInsignia.sprite = fleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
