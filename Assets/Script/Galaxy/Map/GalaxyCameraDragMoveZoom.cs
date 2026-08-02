@@ -46,7 +46,7 @@ public static GalaxyCameraDragMoveZoom Instance;
     [SerializeField]
     private bool atHomePosition = true;
     [SerializeField]
-    private float homeXRotation = 31f;
+    private float homeXRotation = 21f;
     public float galaxyXRotation = 21f;
     private float homeYRotation = 0f;
     private bool initialOrientationApplied = false;

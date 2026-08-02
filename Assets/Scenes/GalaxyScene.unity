@@ -11465,7 +11465,7 @@ MonoBehaviour:
   lastCameraPosition: {x: 0, y: 0, z: 0}
   foundHomePosition: 0
   atHomePosition: 1
-  homeXRotation: 31
+  homeXRotation: 21
   galaxyXRotation: 21
 --- !u!1 &895974088
 GameObject:
@@ -12423,7 +12423,7 @@ MonoBehaviour:
   lastCameraPosition: {x: 0, y: 0, z: 0}
   foundHomePosition: 0
   atHomePosition: 1
-  homeXRotation: 31
+  homeXRotation: 21
   galaxyXRotation: 21
 --- !u!1 &966764655
 GameObject:
