@@ -69,7 +69,31 @@ namespace BOTF3D.Core
         public List<TrekRandomEventSO> RandomEvents;
         public List<TrekStardateEventSO> StardateEvents;
 
-        public int StaringStardate = 1010; // the starting stardate
+        public int StaringStardate = 1010; // starting stardate for TechLevel.EARLY, and the app-launch default before a game is created
+        public int StardateDeveloped = 1510; // starting stardate for TechLevel.DEVELOPED
+        public int StardateAdvanced = 3010;  // starting stardate for TechLevel.ADVANCED
+        public int StardateSupreme = 4010;   // starting stardate for TechLevel.SUPREME
+
+        public int GetStartingStardateFor(TechLevel level)
+        {
+            switch (level)
+            {
+                case TechLevel.DEVELOPED: return StardateDeveloped;
+                case TechLevel.ADVANCED: return StardateAdvanced;
+                case TechLevel.SUPREME: return StardateSupreme;
+                default: return StaringStardate;
+            }
+        }
+
+        // Called once per new game (CivManager.CreateNewGameBySelections) once the player's chosen
+        // StartingTechLevel is known, so the clock starts at the right point for that era instead of
+        // always EARLY's 1010 - covers every play mode (SP host, MP host) since it just re-assigns the
+        // same SyncVar Start() seeds at app launch. Server-only, same reasoning as Start()'s guard below.
+        [Server]
+        public void ApplyStartingStardate(TechLevel level)
+        {
+            syncedStardate = GetStartingStardateFor(level);
+        }
 
         void Awake()
         {

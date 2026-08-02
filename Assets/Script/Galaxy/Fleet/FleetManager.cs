@@ -110,6 +110,51 @@ namespace BOTF3D.Galaxy
 
             // Find GalaxyCenter at start
             FindGalaxyReferences();
+
+            // Low-frequency, self-healing check (not per-frame) that visually separates stationary
+            // fleets sitting on top of each other - see UnstackOverlappingFleets. Only the server
+            // actually moves anything; the resulting position change replicates to clients the same
+            // way any other fleet movement does.
+            InvokeRepeating(nameof(UnstackOverlappingFleets), 2f, 2f);
+        }
+
+        [SerializeField] private float fleetUnstackMinDistance = 10f;
+
+        // Two fleets parked at the same system (or otherwise arrived at the same point) end up with
+        // identical positions and therefore perfectly overlapping SphereColliders, making it impossible
+        // to click one without the other stealing the click. Runs every 2s rather than every frame since
+        // this only matters for fleets that have stopped moving, and fleet counts are small compared to
+        // star systems. Only handles stationary fleets (CurrentWarpFactor <= 0) - fleets flying in
+        // formation together are expected to overlap in transit.
+        private void UnstackOverlappingFleets()
+        {
+            if (!NetworkServer.active) return;
+
+            var stationary = FleetControllerList.FindAll(f => f != null && f.FleetData != null && f.FleetData.CurrentWarpFactor <= 0f);
+            for (int i = 0; i < stationary.Count; i++)
+            {
+                for (int j = i + 1; j < stationary.Count; j++)
+                {
+                    FleetController a = stationary[i];
+                    FleetController b = stationary[j];
+
+                    Vector3 delta = b.transform.position - a.transform.position;
+                    delta.y = 0f; // separate on the galaxy plane only
+                    float dist = delta.magnitude;
+                    if (dist >= fleetUnstackMinDistance) continue;
+
+                    // Exactly coincident fleets have a zero-length delta with no direction to push
+                    // along - fall back to a deterministic direction from the fleets' own numbers so
+                    // the same pair always splits the same way instead of jittering.
+                    Vector3 dir = dist > 0.01f
+                        ? delta.normalized
+                        : Quaternion.Euler(0f, 45f * ((a.SyncedFleetInt + b.SyncedFleetInt) % 8), 0f) * Vector3.right;
+
+                    float push = (fleetUnstackMinDistance - dist) * 0.5f;
+                    a.NudgePosition(-dir * push);
+                    b.NudgePosition(dir * push);
+                }
+            }
         }
         /// <summary>
         /// Sets galaxy scene references needed by FleetManager.

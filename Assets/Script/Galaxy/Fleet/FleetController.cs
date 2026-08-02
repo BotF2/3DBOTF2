@@ -651,6 +651,20 @@ namespace BOTF3D.Galaxy
             DropLine.SetUpLine(new Vector3[] { rb.position, galaxyPlanePoint });
         }
 
+        // Server-only, tiny positional nudge used by FleetManager.UnstackOverlappingFleets to visually
+        // separate stationary fleets that end up on top of each other (e.g. two fleets parked at the
+        // same system), so each keeps its own clickable SphereCollider instead of fighting for the same
+        // click. Goes through rb.MovePosition + FleetData.Position exactly like real movement above so
+        // NetworkTransform replicates it normally instead of a client-local offset getting overwritten
+        // by the next incoming sync (see MoveToInterceptPoint's comment on why clients must not do this).
+        [Server]
+        public void NudgePosition(Vector3 delta)
+        {
+            Vector3 newPos = rb.position + delta;
+            rb.MovePosition(newPos);
+            FleetData.Position = newPos;
+        }
+
         private void GetMapSise()
         {
             if (FleetUIGameObject == null) return;
