@@ -753,8 +753,11 @@ namespace BOTF3D.Combat
 
             GameLogger.Log(GameLogger.LogCategory.Combat, "=== EndCombat: Cleanup complete ===", this);
 
-            // Unload combat scene
-            SceneController.Instance.UnloadCombatScene();
+            // Unload combat scene and reactivate the galaxy scene. Previously called both
+            // UnloadCombatScene() and ReturnToGalaxyFromCombat() back-to-back - two independent
+            // routines that each unloaded CombatScene and reactivated GalaxyScene's root objects,
+            // racing each other (see SceneController.ReturnToGalaxyFromCombat's comment). Folded
+            // UnloadCombatScene's unique cleanup into ReturnToGalaxyFromCombat so this only runs once.
             SceneController.Instance.ReturnToGalaxyFromCombat();
 
             // Re-enable galaxy camera
