@@ -2186,6 +2186,15 @@ namespace BOTF3D.UI
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
 
+            // Single Player still runs as a local Mirror host (see SetSinglePlayer's StartHost()
+            // call), so GameController.GetOurCiv() prefers LocalPlayerController.PlayerCiv (the
+            // networked SyncVar) over the GameData cache set above. Without this relay, playerCiv
+            // stays stuck at whatever PlayerManager.RegisterPlayer auto-assigned on connect (FED,
+            // the first entry in AssignableCivs) regardless of what's picked here, breaking
+            // AreWeLocalPlayer() for every non-FED single-player civ. Same relay the multiplayer
+            // roster dropdown already uses (see OnMultiplayerCivToggleChanged).
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv((CivEnum)((int)index));
+
             // ✅ NULL-SAFE: Check ThemeManager
             if (ThemeManager.Instance != null)
             {

@@ -28,11 +28,11 @@ public static GalaxyCameraDragMoveZoom Instance;
     [SerializeField]
     private float minX = -600f;
     [SerializeField]
-    private float maxX = 600f;
+    private float maxX = 650f;
     [SerializeField]
     private float minZ = -1140f;
     [SerializeField]
-    private float maxZ = 500f;
+    private float maxZ = 1150f;
     [SerializeField]
     private Vector3 lastMousePosition;
     [SerializeField]
@@ -48,6 +48,8 @@ public static GalaxyCameraDragMoveZoom Instance;
     [SerializeField]
     private float homeXRotation = 31f;
     public float galaxyXRotation = 21f;
+    private float homeYRotation = 0f;
+    private bool initialOrientationApplied = false;
 
     private UIControls uiControls;
     private bool isActive = false; // Track if this camera controller is active
@@ -92,7 +94,27 @@ public static GalaxyCameraDragMoveZoom Instance;
         {
             uiControls.Enable();
         }
+        ApplyInitialCivOrientation();
         Debug.Log("GalaxyCameraDragMoveZoom: Camera control enabled");
+    }
+
+    // Called once on the first genuine entry into the galaxy scene (EnableCameraControl is
+    // also called every time combat ends and control returns to the galaxy, so this must not
+    // re-fire then). Borg/Dominion homeworlds sit in the map's far corner (see the matching
+    // flip in SetCameraToLocalPlayerHome), so the default starting view - authored looking
+    // toward the opposite corner - needs the same 180 degree flip around the galactic center
+    // (GalaxyCenter sits at world origin) so the initial view and the Home-button view agree.
+    private void ApplyInitialCivOrientation()
+    {
+        if (initialOrientationApplied) return;
+        if (GameController.Instance == null) return;
+        initialOrientationApplied = true;
+
+        var localCivEneum = GameController.Instance.GameData.LocalPlayerCivEnum;
+        if (localCivEneum != CivEnum.BORG && localCivEneum != CivEnum.DOM) return;
+
+        transform.position = new Vector3(-transform.position.x, transform.position.y, -transform.position.z);
+        transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 180f, transform.eulerAngles.z);
     }
 
     // Call this when switching back to main menu
@@ -272,18 +294,22 @@ public static GalaxyCameraDragMoveZoom Instance;
             if (mouse.rightButton.wasPressedThisFrame && !spacePressed)
             {
                 var pos = mouse.position.ReadValue();
-                lastMousePosition.y = pos.y;
+                lastMousePosition = new Vector3(pos.x, pos.y, 0f);
             }
             if (mouse.rightButton.isPressed && !spacePressed)
             {
-                var rotation = transform.eulerAngles.x;
-                float delta = rotation;
                 var pos = mouse.position.ReadValue();
+                float pitchDelta = transform.eulerAngles.x;
                 if ((pos.y - lastMousePosition.y) != 0f)
                 {
-                    delta = rotation += (pos.y - lastMousePosition.y) / (mouseSpeed * 10f);
+                    pitchDelta += (pos.y - lastMousePosition.y) / (mouseSpeed * 10f);
                 }
-                transform.eulerAngles = new Vector3(delta, transform.eulerAngles.y, transform.eulerAngles.z);
+                float yawDelta = transform.eulerAngles.y;
+                if ((pos.x - lastMousePosition.x) != 0f)
+                {
+                    yawDelta += (pos.x - lastMousePosition.x) / (mouseSpeed * 10f);
+                }
+                transform.eulerAngles = new Vector3(pitchDelta, yawDelta, transform.eulerAngles.z);
 
                 lastMousePosition = new Vector3(pos.x, pos.y, 0f);
                 Vector3 currentRotation = transform.eulerAngles;
@@ -295,17 +321,21 @@ public static GalaxyCameraDragMoveZoom Instance;
         {
             if (Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.Space))
             {
-                lastMousePosition.y = Input.mousePosition.y;
+                lastMousePosition = Input.mousePosition;
             }
             if (Input.GetMouseButton(1) && !Input.GetKey(KeyCode.Space))
             {
-                var rotation = transform.eulerAngles.x;
-                float delta = rotation;
+                float pitchDelta = transform.eulerAngles.x;
                 if ((Input.mousePosition.y - lastMousePosition.y) != 0f)
                 {
-                    delta = rotation += (Input.mousePosition.y - lastMousePosition.y) / (mouseSpeed * 10f);
+                    pitchDelta += (Input.mousePosition.y - lastMousePosition.y) / (mouseSpeed * 10f);
                 }
-                transform.eulerAngles = new Vector3(delta, transform.eulerAngles.y, transform.eulerAngles.z);
+                float yawDelta = transform.eulerAngles.y;
+                if ((Input.mousePosition.x - lastMousePosition.x) != 0f)
+                {
+                    yawDelta += (Input.mousePosition.x - lastMousePosition.x) / (mouseSpeed * 10f);
+                }
+                transform.eulerAngles = new Vector3(pitchDelta, yawDelta, transform.eulerAngles.z);
 
                 lastMousePosition = Input.mousePosition;
                 Vector3 currentRotation = transform.eulerAngles;
@@ -360,9 +390,19 @@ public static GalaxyCameraDragMoveZoom Instance;
                 if (listStarSystems[i].StarSysData.CurrentOwnerCivEnum == localCivEneum)
                 {
                     lastCameraPosition = transform.position;
+
+                    // Borg/Dominion homeworlds sit in the map's far corner (near
+                    // GalaxyPositionBounds.XMax/ZMax), so approaching from the default -Z side
+                    // puts almost the entire map behind the camera. Flip both the approach side
+                    // and facing 180 degrees around the homeworld so the bulk of the map reads
+                    // as "beyond" the homeworld instead of "behind the viewer".
+                    bool approachFromFarSide = localCivEneum == CivEnum.BORG || localCivEneum == CivEnum.DOM;
+                    float zOffset = approachFromFarSide ? 200f : -200f;
+                    homeYRotation = approachFromFarSide ? 180f : 0f;
+
                     transform.position = new Vector3(listStarSystems[i].transform.position.x,
-                        listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z - 200f);
-                    transform.rotation = Quaternion.Euler(homeXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
+                        listStarSystems[i].transform.position.y + 125f, listStarSystems[i].transform.position.z + zOffset);
+                    transform.rotation = Quaternion.Euler(homeXRotation, homeYRotation, transform.eulerAngles.z);
                     homePosition = transform.position;
                     foundHomePosition = true;
                     atHomePosition = true;
@@ -379,7 +419,7 @@ public static GalaxyCameraDragMoveZoom Instance;
         else
         {
             transform.position = homePosition;
-            transform.rotation = Quaternion.Euler(homeXRotation, transform.eulerAngles.y, transform.eulerAngles.z);
+            transform.rotation = Quaternion.Euler(homeXRotation, homeYRotation, transform.eulerAngles.z);
             atHomePosition = true;
         }
     }
