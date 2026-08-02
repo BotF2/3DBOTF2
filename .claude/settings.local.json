@@ -137,7 +137,8 @@
       "Bash(sed -n '1p;$p')",
       "Bash(awk -F',' '{print $2}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")",
       "Bash(awk -F',' '{print $4}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")",
-      "Bash(awk -F',' 'BEGIN{sx=-7.37; sz=-39.37} {x=$2; z=$4; name=$5; d=sqrt\\(\\(x-sx\\)^2+\\(z-sz\\)^2\\); print d, name}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")"
+      "Bash(awk -F',' 'BEGIN{sx=-7.37; sz=-39.37} {x=$2; z=$4; name=$5; d=sqrt\\(\\(x-sx\\)^2+\\(z-sz\\)^2\\); print d, name}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")",
+      "Bash(curl -sI https://github.com)"
     ]
   },
   "model": "claude-sonnet-5"

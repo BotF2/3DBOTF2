@@ -16,9 +16,14 @@ public class FindEventCamera : MonoBehaviour
     void Start()
     {
         Canvas = GetComponent<Canvas>();
-        // A headless dedicated server has no Camera in the scene, so this legitimately returns
-        // null there - skip wiring the world-space canvas rather than throwing on every spawn.
-        GameObject mainCameraGo = GameObject.FindGameObjectWithTag("MainCamera");
+        // GalaxyCameraDragMoveZoom.Instance is the single authoritative galaxy camera for this
+        // process (see Billboard.cs for the full rationale) - GameObject.FindGameObjectWithTag
+        // returns whichever "MainCamera"-tagged object happens to exist, which could be the wrong
+        // one on host in multiplayer. Fall back to the tag lookup for safety; a headless dedicated
+        // server legitimately has no camera at all, so this can still return null.
+        GameObject mainCameraGo = GalaxyCameraDragMoveZoom.Instance != null
+            ? GalaxyCameraDragMoveZoom.Instance.gameObject
+            : GameObject.FindGameObjectWithTag("MainCamera");
         if (mainCameraGo == null) return;
         Camera = mainCameraGo.GetComponent<Camera>();
         Canvas.worldCamera = Camera;
