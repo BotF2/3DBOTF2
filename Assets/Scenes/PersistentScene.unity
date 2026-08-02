@@ -364,6 +364,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 17312f4bc30a3254093bd6d06a7512da, type: 2}
   - {fileID: 11400000, guid: e141730a814a005469338b50ff11913c, type: 2}
   StaringStardate: 1010
+  StardateDeveloped: 1510
+  StardateAdvanced: 3010
+  StardateSupreme: 4010
 --- !u!114 &86532935
 MonoBehaviour:
   m_ObjectHideFlags: 0
