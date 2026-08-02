@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_037_BREEN
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 37
-  Position: {x: -35.12, y: -1.08, z: -23.66}
+  Position: {x: -42.6, y: -1.08, z: -16.66}
   SysName: BREEN
   FirstOwner: 37
   CurrentOwner: 37
