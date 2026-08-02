@@ -2940,6 +2940,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CombatPausedNoticeUI_prefab
       objectReference: {fileID: 0}
+    - target: {fileID: 831538345491686447, guid: d9b1d42b1e655204a905822076dd407d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8673671129721489044, guid: d9b1d42b1e655204a905822076dd407d, type: 3}
       propertyPath: m_Pivot.x
       value: 0

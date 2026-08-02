@@ -86,6 +86,7 @@ namespace BOTF3D.Galaxy
                     if (sysCon?.StarSysData == null) continue;
 
                     UpdateSubspaceScanner(sysCon);
+                    if (StarSysManager.Instance != null) StarSysManager.Instance.RefreshBorgConcealment(sysCon);
 
                     // Off is a human-only manual mode. AI-played majors and minor races
                     // are never left un-managed, so they default to Economy.
@@ -206,7 +207,8 @@ namespace BOTF3D.Galaxy
             var detected = sysCon.StarSysData.DetectedEnemyFleets;
             if (detected != null && detected.Count > 0)
             {
-                Vector3 origin = sysCon.StarSysData.GetPosition();
+                // Real world position - see the matching comment in UpdateSubspaceScanner above.
+                Vector3 origin = sysCon.transform.position;
                 FleetController nearestFleet = null;
                 float nearestSqr = float.MaxValue;
                 foreach (var fleet in detected)
@@ -292,7 +294,8 @@ namespace BOTF3D.Galaxy
         {
             StarSysController nearest = null;
             float nearestDistSqr = float.MaxValue;
-            Vector3 origin = sysCon.StarSysData.GetPosition();
+            // Real world position - see the matching comment in UpdateSubspaceScanner above.
+            Vector3 origin = sysCon.transform.position;
 
             foreach (var diploCon in DiplomacyManager.Instance.DiplomacyControllers)
             {
@@ -313,7 +316,15 @@ namespace BOTF3D.Galaxy
                 foreach (var enemySysCon in enemyCiv.CivData.StarSysWeOwn)
                 {
                     if (enemySysCon?.StarSysData == null) continue;
-                    float distSqr = (enemySysCon.StarSysData.GetPosition() - origin).sqrMagnitude;
+
+                    // The Borg home system is invisible to AI targeting (as well as rendering,
+                    // see StarSysManager.RefreshBorgConcealment) until this civ has discovered
+                    // it - an AI war party must not path toward a system it hasn't found yet.
+                    if (enemySysCon.StarSysData.SystemType == GalaxyObjectType.UniComplex &&
+                        !enemySysCon.StarSysData.DiscoveredByCivs.Contains(civData.CivEnum))
+                        continue;
+
+                    float distSqr = (enemySysCon.transform.position - origin).sqrMagnitude;
                     if (distSqr < nearestDistSqr)
                     {
                         nearestDistSqr = distSqr;
@@ -338,7 +349,13 @@ namespace BOTF3D.Galaxy
 
             if (FleetManager.Instance?.FleetControllersInGame == null) return;
 
-            Vector3 origin = data.GetPosition();
+            // sysCon.transform.position (real world space, scaled by GalaxyCenter's localScale=10)
+            // - NOT data.GetPosition(), which stores the raw unscaled local position set at
+            // InstantiateSystem and is 10x smaller than where the system actually sits. Comparing
+            // that against fleet.transform.position (always true world space) below made every
+            // distance check wildly wrong, so a fleet parked right on top of the system still read
+            // as ~10x SubspaceScannerRadius away.
+            Vector3 origin = sysCon.transform.position;
             float radiusSqr = data.SubspaceScannerRadius * data.SubspaceScannerRadius;
             var fogWar = csFogWar.Instance;
 
@@ -361,6 +378,12 @@ namespace BOTF3D.Galaxy
                 }
 
                 data.DetectedEnemyFleets.Add(fleet);
+
+                // The Borg home system is concealed (StarSysManager.RefreshBorgConcealment) until
+                // a civ's own fleet scans a hostile contact in range of it - record that here so
+                // the reveal is permanent rather than re-evaluated fresh every turn.
+                if (data.SystemType == GalaxyObjectType.UniComplex)
+                    data.DiscoveredByCivs.Add(fleet.FleetData.CivEnum);
             }
         }
 

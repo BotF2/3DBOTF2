@@ -307,15 +307,28 @@ namespace BOTF3D.Civilization
                 Debug.Log($"✅ Diplomacy closed, requesting combat scene...");
 
                 // SceneController.LoadCombatScene is not itself networked - it's a purely local scene
-                // load. FleetControllerCivOne is always a real, networked fleet (see ValidCombatCheck),
-                // so route the request through it: RequestStartCombat relays to the server if needed
-                // and the server broadcasts the result to every client via RpcStartCombat, so both
-                // combatants' clients load the Combat scene together instead of just whichever one
-                // clicked the button.
-                diplomacyController.DiplomacyData.FleetControllerCivOne.RequestStartCombat(
-                    diplomacyController.DiplomacyData.FleetContollerCivTwo,
-                    diplomacyController.DiplomacyData.StarSysController
-                );
+                // load. RequestStartCombat must be called on a real, network-spawned FleetController;
+                // ValidCombatCheck guarantees at least one of CivOne/CivTwo is real, but which one
+                // depends on which side sorted first by CivEnum (see InstantiateDiplomacyController) -
+                // e.g. a system-defender encounter (Borg, or any fleet-vs-system fight) only ever has
+                // one real fleet, and it can land on either side. Pick whichever side is actually real.
+                FleetController callerFleet = diplomacyController.DiplomacyData.FleetControllerCivOne != null
+                    ? diplomacyController.DiplomacyData.FleetControllerCivOne
+                    : diplomacyController.DiplomacyData.FleetContollerCivTwo;
+                FleetController otherFleet = callerFleet == diplomacyController.DiplomacyData.FleetControllerCivOne
+                    ? diplomacyController.DiplomacyData.FleetContollerCivTwo
+                    : diplomacyController.DiplomacyData.FleetControllerCivOne;
+
+                // RequestStartCombat relays to the server if needed and the server broadcasts the
+                // result to every client via RpcStartCombat, so both combatants' clients load the
+                // Combat scene together instead of just whichever one clicked the button.
+                if (callerFleet != null)
+                {
+                    callerFleet.RequestStartCombat(
+                        otherFleet,
+                        diplomacyController.DiplomacyData.StarSysController
+                    );
+                }
             }
             //*******load combat menu for local player and do AI civs
         }

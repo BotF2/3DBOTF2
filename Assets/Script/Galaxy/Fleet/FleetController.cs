@@ -2019,6 +2019,17 @@ namespace BOTF3D.Galaxy
             // a time, so matching on "this" fleet's identity is unambiguous.
             CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForFleet(this);
             combatCon?.EndCombat();
+
+            // DiplomacyData.CombatIntiated is a one-shot latch set by DiplomacyController.Combat()
+            // to stop the Combat button from double-firing while combat is loading/running - it's
+            // never cleared elsewhere, so without this reset a civ pair could only ever fight once
+            // per game, and the Combat button would silently do nothing on any later encounter.
+            if (DiplomacyManager.Instance != null)
+            {
+                DiplomacyController diploCon = DiplomacyManager.Instance.ReturnADiplomacyController(civA, civB);
+                if (diploCon != null && diploCon.DiplomacyData != null)
+                    diploCon.DiplomacyData.CombatIntiated = false;
+            }
         }
 
         // ---------------------------------------------------------------------------------------

@@ -49,8 +49,24 @@ namespace BOTF3D.Galaxy
         // independent of the local player's rendering fog grid (FischlWorks_FogWar). Refreshed
         // every turn by StarSysAIManager for every system regardless of owner, so it's available
         // both for AI auto-Defence triggers and for future "set enemy fleet as destination" UI.
-        public float SubspaceScannerRadius = 250f;
+        // Derived from FleetManager.LocalPlayerFogSightRange (the real world-unit sight range
+        // given to the player's own fleet's fog revealer) so it stays traceable to fog-of-war
+        // rather than an unrelated hand-picked number. An earlier /4 quartering here was a
+        // mistaken compensation for what turned out to be a coordinate-space bug in
+        // StarSysAIManager.UpdateSubspaceScanner (it compared this position against fleets'
+        // true WORLD position while StarSysData.position stores the raw, unscaled local
+        // position - 10x smaller than reality because GalaxyCenter's transform has
+        // localScale=10). With that bug fixed, the raw galaxy is actually ~2176 world units
+        // across, not ~218, so the full sight range no longer spans the map.
+        public float SubspaceScannerRadius = BOTF3D.Galaxy.FleetManager.LocalPlayerFogSightRange;
         public List<FleetController> DetectedEnemyFleets = new List<FleetController>();
+
+        // Which civs have ever scanned a hostile fleet within range of this system. Only ever
+        // populated for GalaxyObjectType.UniComplex (the Borg home system) by
+        // StarSysAIManager.UpdateSubspaceScanner - drives permanent fog-of-war reveal of the
+        // Borg system's sprite/drop-line/text (StarSysManager.RefreshBorgConcealment) and gates
+        // AI war-targeting (StarSysAIManager.FindNearestEnemySystem) until a civ has found it.
+        public HashSet<CivEnum> DiscoveredByCivs = new HashSet<CivEnum>();
 
         // Dock slots for fleets sitting at this system (see FleetDockLayout). A null entry is a
         // free slot a departed fleet left behind; the list only grows when every existing slot is

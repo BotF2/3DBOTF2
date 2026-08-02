@@ -107,6 +107,8 @@ namespace BOTF3D.Galaxy
         public StarSysController CurrentBuildUISysCon => currentBuildUISysCon;
         [SerializeField]
         private Sprite unknowSystem;
+        [SerializeField]
+        private Sprite anomalyStarSprite; // Assets/Art/Stars/Anomaly.png - Borg UniComplex placeholder shown once scanned but before first contact
         private int starSystemCounter = 0;
         private List<CivEnum> localPlayerCanSeeMyNameList = new List<CivEnum>();
         // StarSysUI_ListContainer removed — system UIs live in SysListContainer (SystemsMenuView/Viewport/SysListContainer)
@@ -625,6 +627,8 @@ namespace BOTF3D.Galaxy
             starSysCon.name = sysData.GetSysName();
             starSysCon.StarSysData = sysData;
 
+            RefreshBorgConcealment(starSysCon);
+
             CivController[] controllers = CivManager.Instance.CivControllersInGame.ToArray();
             for (int i = 0; controllers.Length > 0; i++)
             {
@@ -734,6 +738,59 @@ namespace BOTF3D.Galaxy
             {
                 localPlayerTheme = ThemeManager.Instance.GetLocalPlayerTheme();
             }
+        }
+
+        // The Borg home system (GalaxyObjectType.UniComplex) goes through three reveal stages for
+        // every other civ, each permanent once reached:
+        //   1) Undiscovered - sprite, drop line, name text, insignia, and click collider all off.
+        //   2) Scanned (StarSysData.DiscoveredByCivs, set by StarSysAIManager.UpdateSubspaceScanner
+        //      when a hostile fleet enters SubspaceScannerRadius) - sprite/line/text/collider turn
+        //      on, but the star sprite shows as an unidentified Anomaly rather than the real
+        //      UniComplex art, and the Borg insignia stays hidden.
+        //   3) First contact (a DiplomacyController exists between the civ and BORG, opened via
+        //      fleet/system collision - see FleetController.OnTriggerEnter) - the real UniComplex
+        //      sprite and the Borg insignia both become visible.
+        // Called once at InstantiateSystem and again every turn from StarSysAIManager.ProcessAllSystems
+        // so a fresh scan or contact is reflected immediately without re-instantiating the system.
+        public void RefreshBorgConcealment(StarSysController starSysCon)
+        {
+            if (starSysCon == null) return;
+            StarSysData sysData = starSysCon.StarSysData;
+            if (sysData == null || sysData.SystemType != GalaxyObjectType.UniComplex) return;
+
+            CivEnum ourCiv = GameController.Instance.GetOurCiv();
+            bool isBorgPlayer = ourCiv == CivEnum.BORG;
+            bool contactMade = isBorgPlayer || (DiplomacyManager.Instance != null &&
+                DiplomacyManager.Instance.ReturnADiplomacyController(ourCiv, CivEnum.BORG) != null);
+            // Contact can be established via a direct fleet/system collision before the subspace
+            // scanner's own per-turn pass ever adds this civ to DiscoveredByCivs (e.g. a fleet
+            // warping straight into the system) - contact always implies at least the scanned tier
+            // so a made-contact civ is never left seeing the pre-scan fully-hidden state.
+            bool discovered = isBorgPlayer || contactMade || sysData.DiscoveredByCivs.Contains(ourCiv);
+
+            StarSysChildFields fields = starSysCon.GetComponent<StarSysChildFields>();
+            if (fields != null && fields.StarSpriteGO != null)
+            {
+                SpriteRenderer srStar = fields.StarSpriteGO.GetComponent<SpriteRenderer>();
+                if (srStar != null)
+                {
+                    srStar.enabled = discovered;
+                    srStar.sprite = contactMade ? sysData.StarSprit : anomalyStarSprite;
+                }
+            }
+            if (fields != null && fields.SysName != null) fields.SysName.gameObject.SetActive(discovered);
+
+            if (fields != null && fields.OwnerInsigniaGO != null)
+            {
+                SpriteRenderer srInsignia = fields.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
+                if (srInsignia != null) srInsignia.enabled = contactMade;
+            }
+
+            MapLineFixed dropLine = starSysCon.GetComponentInChildren<MapLineFixed>(true);
+            if (dropLine != null) dropLine.SetVisible(discovered);
+
+            Collider col = starSysCon.GetComponent<Collider>();
+            if (col != null) col.enabled = discovered;
         }
 
         private void InitializeDilithiumStockpile(StarSysController sysCon)

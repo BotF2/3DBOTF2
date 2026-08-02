@@ -2186,6 +2186,14 @@ namespace BOTF3D.UI
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
 
+            // Single-player's civ toggle only used to update the local GameData cache (which the
+            // ribbon/theme reads directly), never the networked LocalHumanPlayerController.playerCiv
+            // SyncVar - the multiplayer roster dropdown does this via OnMultiplayerCivToggleChanged,
+            // but single player still hosts a real Mirror session (see SetSinglePlayer), so
+            // GameController.GetOurCiv()/AreWeLocalPlayer() were left resolving to the default FED
+            // SyncVar value regardless of what was picked here, misclassifying the home system/fleet.
+            PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv((CivEnum)((int)index));
+
             // ✅ NULL-SAFE: Check ThemeManager
             if (ThemeManager.Instance != null)
             {
