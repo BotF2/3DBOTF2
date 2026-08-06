@@ -202,13 +202,21 @@ namespace BOTF3D.Civilization
             }
             diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyCon);
             diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
+            diplomacyCon.DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
             InstantiateDiplomacyUIGameObject(diplomacyCon);
-            
+
             // ✅ Open via GalaxyMenuUIController to ensure other menus close correctly
             GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyCon.gameObject);
-            
+
             DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(diplomacyCon.DiplomacyUIGameObject,
                 diplomacyCon.gameObject, shipsToSeeInLocalPayerDiploUI);
+
+            // First contact previously never got an AI auto-response - CheckForAIDiplomacy (the
+            // only other caller of DoAIDiplomacy) is exclusively wired into the repeat-encounter
+            // branches below. Without this, an AI-controlled side meeting a fleet for the first
+            // time (e.g. an AI-owned system's defenders) never picked Fight/Withdraw, leaving the
+            // fleet frozen forever waiting on a response nothing would ever produce.
+            diplomacyCon.DoAIDiplomacy();
 
             return diplomacyCon;
         }
@@ -276,6 +284,15 @@ namespace BOTF3D.Civilization
                 ourDiplomacyController.DiplomacyData.FleetControllerCivOne = fleetOne;
                 ourDiplomacyController.DiplomacyData.FleetContollerCivTwo = fleetTwo;
                 ourDiplomacyController.DiplomacyData.StarSysController = sysCon;
+
+                // Fresh encounter decision - clear any Fight/Withdraw response left over from a
+                // previous encounter between this civ pair (per-encounter, not a standing order).
+                ourDiplomacyController.DiplomacyData.ResponseSideOne = DiplomacyData.EncounterResponse.Undecided;
+                ourDiplomacyController.DiplomacyData.ResponseSideTwo = DiplomacyData.EncounterResponse.Undecided;
+                ourDiplomacyController.DiplomacyData.EncounterResolved = false;
+                // Restart the unresponsive-side timeout (DiplomacyController.Update) for this fresh
+                // decision, so a prior encounter's elapsed wait time doesn't carry over.
+                ourDiplomacyController.DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
 
                 if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
                 {
@@ -447,50 +464,35 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                     if (!DiplomacyControllers.Contains(newDiplomacyCon))
                         DiplomacyControllers.Add(newDiplomacyCon);
                     IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
-                    FirstContactFleetVsFleet(reportingPlayerFleet, otherFleet); // and add new diplomacy controller
                     Destroy(sysConEmpty.gameObject); // we do not need the empty system controller anymore
                 }
                 else
                 {
-                    DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
-                    UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
-                    // ✅ Open UI and ensure participants are updated so Combat button works
-                    OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
+                    // Repeat encounter: if relations are Neutral or better, let both fleets pass
+                    // without opening the UI. Below Neutral (UnFriendly/Hostile/ColdWar/War), or if
+                    // no diplomacy controller was found for some reason, fall through to the normal
+                    // paused decision path.
+                    DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civSideOne, civSideTwo);
+                    bool autoResolve = ourDiplomacyController != null &&
+                        ourDiplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
+
+                    if (autoResolve)
+                    {
+                        sideOneFleetCon.ServerDecrementPendingEncounters();
+                        sideTwoFleetCon.ServerDecrementPendingEncounters();
+                    }
+                    else
+                    {
+                        DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
+                        UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
+                        // ✅ Open UI and ensure participants are updated so Combat button works
+                        OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
+                    }
                     Destroy(sysConEmpty.gameObject);
                 }
             }
         }
 
-        private void FirstContactFleetVsFleet(FleetController reportingPlayerFleet, FleetController otherFleet)
-        {
-            var diplomacyData = EntereDiplomacyData(reportingPlayerFleet, otherFleet);
-            diplomacyData.EncounterType = EncounterType.FirstContact;
-
-            // Instantiate a DiplomacyController MonoBehaviour from prefab (or add component) so it's a Unity-managed component
-            DiplomacyController diplomacyController = null;
-            if (diplomacControllerPrefab != null)
-            {
-                GameObject dipGo = Instantiate(diplomacControllerPrefab, Vector3.zero, Quaternion.identity);
-                dipGo.SetActive(true);
-                dipGo.layer = 5;
-                dipGo.transform.SetParent(this.transform, false);
-                diplomacyController = dipGo.GetComponent<DiplomacyController>();
-                if (diplomacyController == null)
-                    diplomacyController = dipGo.AddComponent<DiplomacyController>();
-            }
-            else
-            {
-                GameObject dipGo = new GameObject("DiplomacyController");
-                dipGo.transform.SetParent(this.transform, false);
-                diplomacyController = dipGo.AddComponent<DiplomacyController>();
-            }
-
-            diplomacyController.DiplomacyData = diplomacyData;
-            diplomacyController.DiplomacyData.firstContact = true;
-
-            if (!DiplomacyControllers.Contains(diplomacyController))
-                DiplomacyControllers.Add(diplomacyController);
-        }
         private void ExposeCivToLocalPlayer(CivEnum civToExpose)
         {
             Debug.Log($"DiplomacyManager: Exposing {civToExpose} to Local Player.");
@@ -498,15 +500,6 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             FleetManager.Instance.ExposeAllFleetInsigniaSprites(civToExpose);
         }
 
-        private DiplomacyData EntereDiplomacyData(FleetController fleetConA, FleetController fleetConB)
-{
-            DiplomacyData diplomacyData = new DiplomacyData();
-            diplomacyData.FleetControllerCivOne = fleetConA;
-            diplomacyData.CivOne = fleetConA.FleetData.CivController;
-            diplomacyData.FleetContollerCivTwo = fleetConB;
-            diplomacyData.CivTwo = fleetConB.FleetData.CivController;
-            return diplomacyData;
-        }
         private DiplomacyData EntereDiplomacyData(FleetController fleetConA, StarSysController starSysCon)
         {
             DiplomacyData diplomacyData = new DiplomacyData();
@@ -572,7 +565,6 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                     }
                     else
                     { // not first contact
-                        CheckForAIDiplomacy(sideOneFleetCon, otherCivSysCon);
                         FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
                         //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                     }
@@ -646,9 +638,18 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             DiplomacyController diplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
             if (diplomacyController != null)
             {
+                // Repeat encounter: if relations are Neutral or better, let the fleet pass
+                // without opening the UI (mirrors the fleet-vs-fleet auto-resolve gate above).
+                if (diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral)
+                {
+                    fleetA.ServerDecrementPendingEncounters();
+                    return;
+                }
+
+                CheckForAIDiplomacy(fleetA, sysCon);
                 diplomacyController.DiplomacyData.EncounterType = EncounterType.Diplomacy;
                 // ✅ Open UI and update participants so Combat button works
-                OpenDiplomacyUI(civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList, 
+                OpenDiplomacyUI(civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList,
                     (fleetA.FleetData.CivController == civPartyOne ? fleetA : null),
                     (fleetA.FleetData.CivController == civPartyTwo ? fleetA : null),
                     sysCon);

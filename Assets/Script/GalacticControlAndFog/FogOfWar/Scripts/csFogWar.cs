@@ -220,6 +220,13 @@ namespace FischlWorks_FogWar
             private int sightRange = 200;
             public int _SightRange => sightRange;
 
+            // Lets external systems (e.g. TechManager's tech-driven fog range staging) update an
+            // already-registered revealer's range in place, instead of removing/re-adding it.
+            public void SetSightRange(int newSightRange)
+            {
+                sightRange = newSightRange;
+            }
+
             [SerializeField]
             private bool updateOnlyOnMove = true;
             public bool _UpdateOnlyOnMove => updateOnlyOnMove;
@@ -482,7 +489,10 @@ namespace FischlWorks_FogWar
 
 
 
-        private void ForceUpdateFog()
+        // Public so callers that mutate a revealer's sight range directly (e.g. TechManager's
+        // tech-driven fog range staging) can force an immediate recompute rather than waiting for
+        // a moving/always-update revealer to happen to trigger one via Update().
+        public void ForceUpdateFog()
         {
             UpdateFogField();
 

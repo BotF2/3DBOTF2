@@ -4,6 +4,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -540,9 +541,17 @@ namespace BOTF3D.UI
             Debug.Log($"🧩 SetupFleetUIElements: '{fleetCon.name}' opening with FleetData.ShipsList.Count={fleetCon.FleetData?.ShipsList?.Count ?? -1}, FleetShipContentGO={(uiFields.FleetShipContentGO != null ? "SET" : "NULL")}");
             if (uiFields.FleetShipContentGO != null && fleetCon.FleetData?.ShipsList != null)
             {
-                foreach (var shipCon in fleetCon.FleetData.ShipsList)
+                // Grid position follows sibling index, not ShipsList order - sort here (by ShipType)
+                // rather than reordering FleetData.ShipsList itself, since other systems (ShipID
+                // sequencing, combat order assignment) depend on ships staying in add order.
+                var sortedShips = fleetCon.FleetData.ShipsList
+                    .Where(s => s != null)
+                    .OrderBy(s => (int)s.ShipData.ShipType)
+                    .ToList();
+
+                for (int i = 0; i < sortedShips.Count; i++)
                 {
-                    if (shipCon == null) continue;
+                    var shipCon = sortedShips[i];
 
                     // 2. Create the UI item if it doesn't exist yet
                     if (shipCon.ShipListUIGameObject == null)
@@ -559,9 +568,15 @@ namespace BOTF3D.UI
                         shipCon.ShipListUIGameObject.SetActive(true);
                         Debug.Log($"  Re-parented ship UI '{shipCon.ShipData?.ShipName}' to FleetShipContent");
                     }
+
+                    // 4. Keep grid position grouped by ShipType regardless of ShipsList add order
+                    if (shipCon.ShipListUIGameObject != null)
+                    {
+                        shipCon.ShipListUIGameObject.transform.SetSiblingIndex(i);
+                    }
                 }
 
-                // 4. Flush any items that landed in the pending queue
+                // 5. Flush any items that landed in the pending queue
                 ShipManager.Instance?.ProcessPendingShipUIs();
             }
 

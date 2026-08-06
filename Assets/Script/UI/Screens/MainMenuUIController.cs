@@ -1631,8 +1631,29 @@ namespace BOTF3D.UI
             // ✅ Only start if not already running
             if (!NetworkServer.active && !NetworkClient.isConnected)
             {
-                NetworkManager.singleton.StartHost();
-                Debug.Log("  ✅ Started host (network manager)");
+                try
+                {
+                    NetworkManager.singleton.StartHost();
+                    Debug.Log("  ✅ Started host (network manager)");
+                }
+                catch (System.Exception ex)
+                {
+                    // Same port-conflict handling as the multiplayer HostButton path
+                    // (StartHostingNow above) - without this, a bind failure (e.g. a stale
+                    // socket from a previous Play session still holding the port) throws past
+                    // the panelCivSelection.SetActive(true) above and leaves the player stuck
+                    // on a dead civ-selection screen with no host and no way back.
+                    Debug.LogError($"SetSinglePlayer: StartHost() threw - {ex.Message}");
+                    SetLobbyStatus($"Could not start single player: {ex.Message}. The port may already be in use - try again, or restart the Editor if it persists.");
+                    if (NetworkServer.active || NetworkClient.active)
+                        NetworkManager.singleton.StopHost();
+
+                    IsSinglePlayer = false;
+                    panelCivSelection.SetActive(false);
+                    singlePlayToggleGroup.SetActive(false);
+                    panelLobby.SetActive(true);
+                    return;
+                }
             }
             else
             {

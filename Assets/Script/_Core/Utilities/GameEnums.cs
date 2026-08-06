@@ -233,6 +233,28 @@ namespace BOTF3D.Core
         LARGE,
         EXTREME,
     }
+
+    public static class GalaxySizeExtensions
+    {
+        // The galaxy map's physical bounds stay fixed for every GalaxySize - a bigger
+        // size only packs more star systems into the same area rather than growing the
+        // map. This is the deterministic star-count curve used to approximate that
+        // density (7 base civs + 40 more stars per size step above SMALL).
+        public static int ApproxStarCount(this GalaxySize size)
+        {
+            return 7 + ((int)size + 1) * 40;
+        }
+
+        // Fleet speed multiplier that simulates a proportionally larger map: SMALL is the
+        // tuning baseline (1x), and larger sizes are slowed down by the same ratio their
+        // star count grew relative to SMALL. Because the baseline lives here, tuning fleet
+        // speed against a Small game (via warpFudgeFactor) keeps Medium/Large/Extreme
+        // proportionally consistent without a separate tuning pass per size.
+        public static float SpeedScale(this GalaxySize size)
+        {
+            return GalaxySize.SMALL.ApproxStarCount() / (float)size.ApproxStarCount();
+        }
+    }
     public enum TechLevel
     {
         EARLY,     // 0–99 TechPoints   — starting level; no threshold required

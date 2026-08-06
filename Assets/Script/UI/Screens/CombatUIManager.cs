@@ -1067,6 +1067,62 @@ namespace BOTF3D.UI
 
             if (combatOutcomeText != null)
                 combatOutcomeText.text = report;
+
+            PushCombatReportEntry(combatData, report);
+        }
+
+        /// <summary>
+        /// Adds a one-line combat summary (with the full per-side breakdown as expandable detail)
+        /// to the GalaxyScene Report panel, from this client's local-player perspective.
+        /// </summary>
+        private void PushCombatReportEntry(CombatData combatData, string detail)
+        {
+            CivEnum localCiv = GameController.Instance != null
+                ? GameController.Instance.GameData.LocalPlayerCivEnum
+                : CivEnum.None;
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            string summary = BuildOutcomeSummaryLine(combatData, localCiv);
+            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate, summary, detail));
+        }
+
+        /// <summary>
+        /// One-line result from the local player's perspective: victory if every enemy combat ship
+        /// was destroyed/captured, defeat if every local combat ship was destroyed/captured, else a draw
+        /// (e.g. either side retreated with combat ships still standing).
+        /// </summary>
+        private string BuildOutcomeSummaryLine(CombatData combatData, CivEnum localCivEnum)
+        {
+            bool localIsSideTwo = combatData.CivEnumSideTwo == localCivEnum && combatData.CivEnumSideOne != localCivEnum;
+            List<ShipController> localShips = localIsSideTwo ? combatData.SideTwoShipCons : combatData.SideOneShipCons;
+            List<ShipController> enemyShips = localIsSideTwo ? combatData.SideOneShipCons : combatData.SideTwoShipCons;
+            CivEnum localSideCiv = localIsSideTwo ? combatData.CivEnumSideTwo : combatData.CivEnumSideOne;
+
+            // Destroyed ships are removed from SideOneShipCons/SideTwoShipCons entirely (see
+            // ShipController.DestroyShip -> CombatManager.RemoveThisShipController), so surviving
+            // counts come from the live roster (captured ships stay in it, flagged) but lost/destroyed
+            // counts must come from CombatData.DestroyedShips, the only place those snapshots remain.
+            int enemyCombatAlive = enemyShips.Count(s => s != null && s.ShipData.ShipType != ShipType.Transport
+                                                          && !s.ShipData.IsCaptured);
+            int localCombatAlive = localShips.Count(s => s != null && s.ShipData.ShipType != ShipType.Transport
+                                                          && !s.ShipData.IsCaptured);
+
+            string outcome = enemyCombatAlive == 0 ? "Victory" : localCombatAlive == 0 ? "Defeat" : "Draw";
+
+            var localDestroyed = combatData.DestroyedShips != null
+                ? combatData.DestroyedShips.Where(sd => sd != null && sd.CivEnum == localSideCiv).ToList()
+                : new List<ShipData>();
+
+            int combatDestroyed = localDestroyed.Count(sd => sd.ShipType != ShipType.Transport);
+            int combatCaptured = localShips.Count(s => s != null && s.ShipData.ShipType != ShipType.Transport && s.ShipData.IsCaptured);
+            int combatLost = combatDestroyed + combatCaptured;
+
+            int transportDestroyed = localDestroyed.Count(sd => sd.ShipType == ShipType.Transport);
+            int transportCaptured = localShips.Count(s => s != null && s.ShipData.ShipType == ShipType.Transport && s.ShipData.IsCaptured);
+            int transportLost = transportDestroyed + transportCaptured;
+            int transportSurviving = localShips.Count(s => s != null && s.ShipData.ShipType == ShipType.Transport
+                                                            && !s.ShipData.IsCaptured);
+
+            return $"{outcome} — Combat ships lost {combatLost}, surviving {localCombatAlive}. Transports lost {transportLost}, surviving {transportSurviving}.";
         }
 
         private string BuildOutcomeReport(CombatData combatData)

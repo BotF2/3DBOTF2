@@ -92,6 +92,301 @@ namespace BOTF3D.Galaxy
         }
 
         private GameController gameController;
+
+        [Header("Star Visual (Phase 1)")]
+        // Sprite Brightness values (3-6, see StarVisualLibrary) push the glow sprite into HDR
+        // range so Bloom picks up its bright core - but applied at full strength they clip the
+        // sprite's authored surface detail (granulation, corona wisps) to solid white. Scale
+        // it down so the texture's detail survives while its brightest pixels still cross the
+        // Bloom threshold.
+        [SerializeField] private float spriteBrightnessScale = 0.35f;
+
+        [Header("Star Visual - Surface Noise (Phase 3)")]
+        // Replaces an earlier whole-sprite brightness pulse (read as the sprite fading in/out,
+        // not as a boiling surface). Instead Shaders/StarSurfaceNoise.shader warps the glow
+        // sprite's own UVs with scrolling value noise, so its existing baked-in
+        // granulation/corona detail (see the star textures) visibly churns in place. Shared
+        // across every star (see GetOrCreateStarSurfaceMaterial) since it's a global look
+        // knob, not a per-star-type one - StarVisualLibrary still owns per-type color/size.
+        // Tuned at GalaxyCameraDragMoveZoom's referenceFieldOfViewForStarNoise (default 50deg,
+        // roughly the Home-button distance). SetFieldOfViewForSurfaceNoise rescales
+        // NoiseScale/DistortStrength around these as the camera zooms so the boiling reads at
+        // a consistent apparent size rather than being tuned for one specific zoom level.
+        [SerializeField] private float surfaceNoiseScale = 4f;
+        [SerializeField] private float surfaceNoiseSpeed = 0.7f;
+        [SerializeField, Range(0f, 0.3f)] private float surfaceDistortStrength = 0.025f;
+        [SerializeField, Range(0f, 1f)] private float surfaceBrightnessNoise = 0.2f;
+        private static Material starSurfaceNoiseMaterial;
+        private static Material nebulaAdditiveMaterial;
+        private static float cachedNoiseScale = 4f;
+        private static float cachedNoiseSpeed = 0.7f;
+        private static float cachedDistortStrength = 0.025f;
+        private static float cachedBrightnessNoise = 0.2f;
+        private static float zoomNoiseScaleMultiplier = 1f;
+
+        [Header("Star Visual - Selected (Phase 2)")]
+        // World-space radius, scaled by the star type's own SizeMultiplier so bigger/brighter
+        // stars get a proportionally bigger ring, and sized so the ring sits outside the star
+        // sprite/name label rather than covering them. Absolute value, calibrated by eye -
+        // sprite.bounds-derived sizing was tried and proved unreliable (~5x off).
+        [SerializeField] private float ringRadius = 1.2f;
+        [SerializeField] private float ringWidthFraction = 0.08f; // line width, relative to ringRadius
+        [SerializeField] private float ringAlpha = 0.6f;
+        [SerializeField] private float ringBrightnessMultiplier = 2f;
+        private const int ringSegments = 64;
+        private bool isSelected;
+        private GameObject selectionRingGO;
+        private StarVisualProfile cachedVisualProfile;
+        private bool hasVisualProfile;
+        private SpriteRenderer starGlowSpriteRenderer;
+
+        // Boosts the star's glow sprite into HDR range so Bloom picks up its bright core, and
+        // swaps in the shared boiling-surface-noise shader. No-ops for non-star, non-nebula
+        // GalaxyObjectTypes (BlackHole, WormHole, UniComplex, Station, ...), which keep their
+        // existing sprite-only rendering untouched.
+        public void ApplyStarVisual(GalaxyObjectType starType, SpriteRenderer glowSpriteRenderer)
+        {
+            if (IsNebulaType(starType))
+            {
+                // Nebula art bakes a fully-opaque near-black halo around the cloud instead of a
+                // clean alpha cutout (visible as a dark patch against the map's non-black
+                // background). Additive blending makes black contribute nothing regardless of
+                // what's behind it, fixing this without touching the source art. See
+                // NebulaAdditive.shader.
+                if (glowSpriteRenderer != null)
+                {
+                    Material nebulaMaterial = GetOrCreateNebulaAdditiveMaterial();
+                    if (nebulaMaterial != null)
+                        glowSpriteRenderer.sharedMaterial = nebulaMaterial;
+                }
+                return;
+            }
+
+            if (!StarVisualLibrary.TryGetProfile(starType, out StarVisualProfile profile))
+                return;
+
+            cachedVisualProfile = profile;
+            hasVisualProfile = true;
+            starGlowSpriteRenderer = glowSpriteRenderer;
+
+            if (glowSpriteRenderer != null)
+            {
+                glowSpriteRenderer.color = Color.white * profile.Brightness * spriteBrightnessScale;
+
+                Material surfaceMaterial = GetOrCreateStarSurfaceMaterial();
+                if (surfaceMaterial != null)
+                    glowSpriteRenderer.sharedMaterial = surfaceMaterial;
+
+                // One-time random roll around the view axis so identically-shaped star sprites
+                // (same texture, same corona/rim shape) don't all look identical when several of
+                // the same star type are visible at once. The sprite inherits its parent
+                // LookAtCameraHolder's camera-facing rotation every frame (BillboardCameraGalactica),
+                // so this local Z rotation just adds a per-star twist on top of that for free -
+                // no per-frame cost.
+                glowSpriteRenderer.transform.localRotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f));
+            }
+
+            ApplySurfaceNoiseTunables();
+        }
+
+        // Lazily builds the single Material shared by every star's glow sprite. Shared (not
+        // per-instance) so tuning the noise sliders affects the whole galaxy map at once and
+        // stars don't pay for one material each; per-star variation instead comes from the
+        // shader hashing each sprite's world position into its own noise phase.
+        private static Material GetOrCreateStarSurfaceMaterial()
+        {
+            if (starSurfaceNoiseMaterial != null)
+                return starSurfaceNoiseMaterial;
+
+            Shader shader = Shader.Find("Custom/StarSurfaceNoise");
+            if (shader == null)
+            {
+                Debug.LogError("StarSysController: Shader 'Custom/StarSurfaceNoise' not found - star surface noise disabled.");
+                return null;
+            }
+
+            starSurfaceNoiseMaterial = new Material(shader) { name = "Mat_StarSurfaceNoise" };
+            return starSurfaceNoiseMaterial;
+        }
+
+        private static bool IsNebulaType(GalaxyObjectType type)
+        {
+            return type == GalaxyObjectType.Nebula
+                || type == GalaxyObjectType.OmarianNebula
+                || type == GalaxyObjectType.ORIONNEBULA;
+        }
+
+        // Lazily builds the single Material shared by every nebula sprite, mirroring
+        // GetOrCreateStarSurfaceMaterial above.
+        private static Material GetOrCreateNebulaAdditiveMaterial()
+        {
+            if (nebulaAdditiveMaterial != null)
+                return nebulaAdditiveMaterial;
+
+            Shader shader = Shader.Find("Custom/NebulaAdditive");
+            if (shader == null)
+            {
+                Debug.LogError("StarSysController: Shader 'Custom/NebulaAdditive' not found - nebula additive blending disabled.");
+                return null;
+            }
+
+            nebulaAdditiveMaterial = new Material(shader) { name = "Mat_NebulaAdditive" };
+            return nebulaAdditiveMaterial;
+        }
+
+        // Caches this controller's Inspector tunables as the zoom-neutral "base" values, then
+        // pushes them (scaled by the current zoom multiplier) onto the shared surface-noise
+        // material. Called from ApplyStarVisual (initial setup) and OnValidate (live Play Mode
+        // tuning). Cached statically (rather than read live off this instance) so
+        // SetFieldOfViewForSurfaceNoise can reapply them on zoom changes without needing to
+        // hold a reference to whichever StarSysController happened to set them last.
+        private void ApplySurfaceNoiseTunables()
+        {
+            cachedNoiseScale = surfaceNoiseScale;
+            cachedNoiseSpeed = surfaceNoiseSpeed;
+            cachedDistortStrength = surfaceDistortStrength;
+            cachedBrightnessNoise = surfaceBrightnessNoise;
+            PushSurfaceNoiseMaterialProperties();
+        }
+
+        private static void PushSurfaceNoiseMaterialProperties()
+        {
+            Material surfaceMaterial = GetOrCreateStarSurfaceMaterial();
+            if (surfaceMaterial == null)
+                return;
+
+            surfaceMaterial.SetFloat("_NoiseScale", cachedNoiseScale * zoomNoiseScaleMultiplier);
+            surfaceMaterial.SetFloat("_NoiseSpeed", cachedNoiseSpeed);
+            surfaceMaterial.SetFloat("_DistortStrength", cachedDistortStrength / Mathf.Max(zoomNoiseScaleMultiplier, 0.01f));
+            surfaceMaterial.SetFloat("_BrightnessNoiseStrength", cachedBrightnessNoise);
+        }
+
+        // Called by GalaxyCameraDragMoveZoom whenever the galaxy camera's field of view
+        // changes. A fixed UV-space noise scale/distortion covers more or fewer screen pixels
+        // as the star sprite's on-screen size changes with FOV, so values tuned at one zoom
+        // level look too fine when zoomed out or too strong/rubbery when zoomed in. Apparent
+        // size scales with tan(FOV/2), so re-deriving the multiplier from that ratio keeps the
+        // boiling reading at roughly the same screen-space cell size/wobble at any zoom.
+        public static void SetFieldOfViewForSurfaceNoise(float fieldOfView, float referenceFieldOfView)
+        {
+            float currentTan = Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad);
+            float referenceTan = Mathf.Tan(referenceFieldOfView * 0.5f * Mathf.Deg2Rad);
+            if (currentTan <= 0.0001f || referenceTan <= 0.0001f)
+                return;
+
+            zoomNoiseScaleMultiplier = referenceTan / currentTan;
+            PushSurfaceNoiseMaterialProperties();
+        }
+
+        // Lets the Inspector tunables above actually be tuned live in Play Mode - without
+        // this, ApplyStarVisual/CreateSelectionRing only ever ran once at star creation, so
+        // editing a slider had no visible effect until the star was recreated.
+        private void OnValidate()
+        {
+            if (!hasVisualProfile)
+                return;
+
+            ApplySurfaceNoiseTunables();
+
+            if (selectionRingGO != null)
+            {
+                bool wasActive = selectionRingGO.activeSelf;
+                Destroy(selectionRingGO);
+                selectionRingGO = null;
+                CreateSelectionRing();
+                selectionRingGO.SetActive(wasActive);
+            }
+        }
+
+        // Push notification from StarSysMenuUIController when this system's detail UI is
+        // opened/closed (SetActiveSetParentUIGO / MoveBackAnyStarSysUIGO). Shows/hides a
+        // static ring around the star; no-ops for non-star objects, which never get a cached
+        // visual profile from ApplyStarVisual. Deliberately does not touch the star sprite
+        // itself (no dimming/pulsing) - the sprite's own look (including its boiling surface
+        // noise, see ApplyStarVisual) is Phase 1/3's job, not the selection indicator's.
+        public void SetSelected(bool selected)
+        {
+            if (selected == isSelected || !hasVisualProfile)
+                return;
+
+            isSelected = selected;
+
+            if (isSelected)
+            {
+                if (selectionRingGO == null)
+                    CreateSelectionRing();
+                selectionRingGO.SetActive(true);
+            }
+            else if (selectionRingGO != null)
+            {
+                selectionRingGO.SetActive(false);
+            }
+        }
+
+        // Simple static ring around the currently selected star, sized to sit outside the
+        // star sprite and its name label rather than covering them. No rotation/animation -
+        // just a steady attention marker. Parented directly to the glow sprite's own
+        // transform (a child of LookAtCameraHolder - see Billboard.cs) so it inherits the
+        // sprite's billboard rotation for free: its local XY plane always faces the camera,
+        // exactly like the sprite, with no per-frame position sync needed.
+        private void CreateSelectionRing()
+        {
+            selectionRingGO = new GameObject("SelectionRing");
+            Transform parentTransform = starGlowSpriteRenderer != null ? starGlowSpriteRenderer.transform : this.transform;
+            selectionRingGO.transform.SetParent(parentTransform, false);
+            selectionRingGO.transform.localPosition = Vector3.zero;
+            selectionRingGO.transform.localRotation = Quaternion.identity;
+            selectionRingGO.transform.localScale = Vector3.one;
+            selectionRingGO.layer = this.gameObject.layer;
+
+            float radius = ringRadius * cachedVisualProfile.SizeMultiplier;
+            Vector3[] points = new Vector3[ringSegments];
+            for (int i = 0; i < ringSegments; i++)
+            {
+                float angle = i * Mathf.PI * 2f / ringSegments;
+                points[i] = new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
+            }
+            float width = radius * ringWidthFraction;
+
+            Color color = cachedVisualProfile.Color * ringBrightnessMultiplier;
+            color.a = ringAlpha;
+
+            LineRenderer lr = selectionRingGO.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.loop = true;
+            lr.alignment = LineAlignment.TransformZ;
+            lr.positionCount = points.Length;
+            lr.SetPositions(points);
+            lr.startWidth = width;
+            lr.endWidth = width;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lr.receiveShadows = false;
+            lr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            lr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+            {
+                Material material = new Material(shader) { name = "Mat_SelectionRing" };
+                material.SetColor("_BaseColor", color);
+                // Default URP Unlit material is opaque, which would ignore ringAlpha entirely.
+                // Explicitly configure standard alpha blending.
+                material.SetFloat("_Surface", 1f); // Transparent
+                material.SetFloat("_Blend", 0f); // Alpha
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.SetInt("_ZWrite", 0);
+                // The star's glow sprite uses the built-in Sprites-Default material (queue
+                // 3000) and, via its billboard holder's baked -0.5 local Z offset, sits
+                // physically closer to the camera than most other transparent geometry at this
+                // position. Push this material's queue past the sprite's so it draws after and
+                // wins ties in the transparent (back-to-front) sort.
+                material.renderQueue = 3100;
+                lr.material = material;
+            }
+        }
+
         public GameObject ShipListUIParent
         {
             get => StarSysData?.ShipListUIParent;

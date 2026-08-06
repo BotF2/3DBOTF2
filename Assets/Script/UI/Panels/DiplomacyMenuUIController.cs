@@ -93,6 +93,8 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject combatButtonGO;
         [SerializeField]
+        private GameObject withdrawButtonGO;
+        [SerializeField]
         private GameObject declareWarButtonGO;
         [SerializeField]
         private GameObject closeDiplomacyButtonGO;
@@ -393,6 +395,10 @@ namespace BOTF3D.UI
                         rectTransforms[i].gameObject.SetActive(true);
                         combatButtonGO = rectTransforms[i].gameObject;
                         break;
+                    case "WithdrawButton":
+                        rectTransforms[i].gameObject.SetActive(true);
+                        withdrawButtonGO = rectTransforms[i].gameObject;
+                        break;
                     case "DeclareWarButton":
                         rectTransforms[i].gameObject.SetActive(true);
                         declareWarButtonGO = rectTransforms[i].gameObject;
@@ -539,6 +545,18 @@ namespace BOTF3D.UI
                         //fleetCon.FleetData.FleetButtonUIClose = listButton;
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));
+                        break;
+                    case "WithdrawButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() =>
+                        {
+                            // isSideOne must match DiplomacyData.CivOne/FleetControllerCivOne, not
+                            // CivEnumSideOne (which OpenDiplomacyUI reassigns to "whichever civ is
+                            // the local player" purely for display) - see DiplomacyController.SetResponse.
+                            bool isSideOne = diplomacyCon.DiplomacyData.CivOne != null &&
+                                GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivOne.CivData.CivEnum);
+                            diplomacyCon.SetResponse(isSideOne, DiplomacyData.EncounterResponse.Withdraw);
+                        });
                         break;
                     case "DeclareWarButton":
                         listButton.onClick.RemoveAllListeners();
