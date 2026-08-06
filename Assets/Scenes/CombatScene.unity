@@ -8192,7 +8192,7 @@ GameObject:
   - component: {fileID: 1747052975}
   - component: {fileID: 1747052974}
   m_Layer: 5
-  m_Name: GameOverCanvas
+  m_Name: CombatOverCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

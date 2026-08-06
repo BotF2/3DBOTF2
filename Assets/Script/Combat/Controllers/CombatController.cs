@@ -675,6 +675,22 @@ namespace BOTF3D.Combat
                 FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
                 if (NetworkServer.active && combatEndedAnchor != null)
                     combatEndedAnchor.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
+
+                // The Fight branch of a Fight/Withdraw encounter (see DiplomacyController.
+                // TryResolveEncounter) forces combat without ever decrementing the fleets'
+                // pending-encounter SyncVar counters - only Withdraw does that directly, since
+                // Fight's participants are about to leave the Galaxy scene entirely for the
+                // duration of the fight. Decrement here instead, once combat is actually over, so
+                // survivors resume galaxy movement instead of staying frozen forever. Use the
+                // Unity-overridden != null (not ?.) since CaptureInvolvedFleets ran before
+                // EndCombatCleanup may have destroyed a 0-ship loser - see the comment above on
+                // combatEndedAnchor for why a raw C# null-conditional would misbehave here too.
+                if (NetworkServer.active)
+                {
+                    foreach (var fleet in _involvedFleets)
+                        if (fleet != null)
+                            fleet.ServerDecrementPendingEncounters();
+                }
             }
         }
 

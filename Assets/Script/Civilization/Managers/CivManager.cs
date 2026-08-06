@@ -2,6 +2,7 @@
 using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
+using Mirror;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -220,6 +221,14 @@ namespace BOTF3D.Civilization
             GameController.Instance.GameData.GalaxyMapType = (GalaxyMapType)galaxyType;
             isSinglePlayer = isSingleVsMultiplayer;
             GameController.Instance.GameData.LocalPlayerCivEnum = (CivEnum)localPlayerCivInt;
+
+            // Stardate is a server-authoritative SyncVar (TimeManager.syncedStardate) - only the
+            // server may assign it, but this coroutine runs on every client (see comment above on
+            // MainMenuUIController.Instance). Re-applying it here (not just once at app launch in
+            // TimeManager.Start()) also makes sure a second game started in the same app session
+            // resets the clock instead of carrying over the previous game's stardate.
+            if (NetworkServer.active && TimeManager.Instance != null)
+                TimeManager.Instance.ApplyStartingStardate((TechLevel)gameTechLevel);
 
             // Keep ThemeManager.CurrentTheme in sync with the final local player civ.
             // MainMenuUIController.SetLocalCivilization() updates both together during civ browsing,

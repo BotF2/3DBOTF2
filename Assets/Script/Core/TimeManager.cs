@@ -69,7 +69,31 @@ namespace BOTF3D.Core
         public List<TrekRandomEventSO> RandomEvents;
         public List<TrekStardateEventSO> StardateEvents;
 
-        public int StaringStardate = 1010; // the starting stardate
+        public int StaringStardate = 1010; // starting stardate for TechLevel.EARLY, and the app-launch default before a game is created
+        public int StardateDeveloped = 1510; // starting stardate for TechLevel.DEVELOPED
+        public int StardateAdvanced = 3010;  // starting stardate for TechLevel.ADVANCED
+        public int StardateSupreme = 4010;   // starting stardate for TechLevel.SUPREME
+
+        public int GetStartingStardateFor(TechLevel level)
+        {
+            switch (level)
+            {
+                case TechLevel.DEVELOPED: return StardateDeveloped;
+                case TechLevel.ADVANCED: return StardateAdvanced;
+                case TechLevel.SUPREME: return StardateSupreme;
+                default: return StaringStardate;
+            }
+        }
+
+        // Called once per new game (CivManager.CreateNewGameBySelections) once the player's chosen
+        // StartingTechLevel is known, so the clock starts at the right point for that era instead of
+        // always EARLY's 1010 - covers every play mode (SP host, MP host) since it just re-assigns the
+        // same SyncVar Start() seeds at app launch. Server-only, same reasoning as Start()'s guard below.
+        [Server]
+        public void ApplyStartingStardate(TechLevel level)
+        {
+            syncedStardate = GetStartingStardateFor(level);
+        }
 
         void Awake()
         {
@@ -268,19 +292,6 @@ namespace BOTF3D.Core
             return result;
         }
 
-        /// <summary>
-        /// Called by GalaxyEncounterQueue (or diplomacy panel close) when all queued
-        /// encounters for this turn have been resolved.
-        /// </summary>
-        public void OnEncounterQueueEmpty()
-        {
-            if (TurnPhase == TurnPhase.EncounterResolution)
-            {
-                SetTurnPhase(TurnPhase.InterTurn);
-                Debug.Log("⏰ TimeManager: All encounters resolved — InterTurn");
-            }
-        }
-
         private void SetTurnPhase(TurnPhase phase)
         {
             // Assigning the SyncVar replicates to every client; OnTurnPhaseSynced fires the
@@ -352,7 +363,7 @@ namespace BOTF3D.Core
         /// Refresh build UIs for all systems owned by a civilization
         /// Call this when tech level changes to update available ships
         /// </summary>
-        private void RefreshBuildUIsForCiv(CivEnum civEnum)
+        public void RefreshBuildUIsForCiv(CivEnum civEnum)
         {
             if (StarSysManager.Instance == null) return;
 
@@ -361,10 +372,18 @@ namespace BOTF3D.Core
 
             Debug.Log($"  Refreshing build UIs for {civController.CivData.StarSysWeOwn.Count} systems owned by {civEnum}");
 
+            // Re-point already-built shipyards at their new tier's art - RefreshSystemBuildUI below
+            // only touches the (not-yet-built) build menu, not a facility that already exists.
+            var theme = ThemeManager.Instance?.GetThemeByCivEnum(civEnum);
+            TechLevel currentTechLevel = civController.CivData.CurrentTechLevel;
+
             foreach (var system in civController.CivData.StarSysWeOwn)
             {
                 if (system != null)
                 {
+                    if (theme != null && system.StarSysData?.ShipyardData != null)
+                        system.StarSysData.ShipyardData.ShipyardSprite = theme.GetShipyardImage(currentTechLevel);
+
                     // If the build UI is currently open for this system, refresh it
                     RefreshSystemBuildUI(system);
                 }
@@ -394,13 +413,19 @@ namespace BOTF3D.Core
                         // ✅ Also refresh item/background sprites so newly-unlocked ships get their
                         // real art (and previously-locked ones drop their "coming soon" preview)
                         StarSysManager.Instance.SetShipBuildImages(sysCon, buildUI);
+
+                        // ✅ Facility icons (shipyard in particular) are also tech-tiered art now
+                        StarSysManager.Instance.SetFacilityBuildImages(sysCon, buildUI);
                     }
                 }
             }
         }
         /// <summary>
         /// Process all turn-based events (research, production, etc.) then pause the clock.
-        /// Encounters queued during TurnProgression are drained before returning to InterTurn.
+        /// Encounters are now resolved per-fleet as they happen (see GalaxyEncounterQueue.
+        /// ProcessPendingForThisTick), not deferred to this turn boundary, so fleets still
+        /// awaiting an encounter decision simply stay paused via FleetController's own
+        /// per-fleet gate while everyone else keeps moving next turn.
         /// </summary>
         private void ProcessTurnEvents()
         {
@@ -409,23 +434,8 @@ namespace BOTF3D.Core
 
             // TODO: population growth, credits/income, random events
 
-            var queue = BOTF3D.Galaxy.GalaxyEncounterQueue.Instance;
-            if (queue != null && queue.HasPending)
-            {
-                SetTurnPhase(TurnPhase.EncounterResolution);
-                PauseTime();
-                queue.DrainAll();
-                // DrainAll() resolves every queued encounter synchronously (opening any diplomacy
-                // panels non-blocking) and returns immediately - it does not wait on player input.
-                // Nothing else calls back into TimeManager when it's done, so we must return to
-                // InterTurn here ourselves or turn advancement soft-locks forever.
-                OnEncounterQueueEmpty();
-            }
-            else
-            {
-                SetTurnPhase(TurnPhase.InterTurn);
-                PauseTime();
-            }
+            SetTurnPhase(TurnPhase.InterTurn);
+            PauseTime();
         }
 
         // Check for special events and trigger corresponding actions

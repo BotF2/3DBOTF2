@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_003_CARDASSIA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 3
-  Position: {x: -42.61, y: 1.44, z: -35.77}
+  Position: {x: -52.61, y: 1.44, z: -5.2}
   SysName: CARDASSIA
   FirstOwner: 3
   CurrentOwner: 3

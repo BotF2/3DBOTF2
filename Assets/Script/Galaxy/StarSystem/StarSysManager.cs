@@ -593,11 +593,30 @@ namespace BOTF3D.Galaxy
             StarSysChildFields starSysFields = starSysCon.GetComponent<StarSysChildFields>();
             if (!GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
-                starSysFields.SysName.text = "UNKNOWN";
+                starSysFields.SysName.text = StarVisualLibrary.GetGenericName(sysData.SystemType);
             }
             else
             {
                 starSysFields.SysName.text = sysData.GetSysName();
+
+                // Every system the local player owns (including their home system) clears fog
+                // of war around itself permanently, same as one of their fleets would - mirrors
+                // FleetManager.RegisterFleetControllerAndSetupVisuals's fleet FogRevealer, but
+                // updateOnlyOnMove=TRUE since a system's transform never moves after placement.
+                // Sight range is staged off the owning civ's TechPoints (see
+                // TechManager.GetFogSightRange) - kept in sync afterward by
+                // TechManager.RefreshLocalPlayerFogSightRangeIfChanged as tech advances.
+                csFogWar fogOfWar = csFogWar.Instance;
+                if (fogOfWar != null)
+                {
+                    CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(sysData.CurrentOwnerCivEnum);
+                    int fogSightRange = TechManager.Instance != null
+                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                        : (int)FleetManager.LocalPlayerFogSightRange;
+
+                    fogOfWar.AddFogRevealer(
+                        new csFogWar.FogRevealer(starSysCon.transform, fogSightRange, true));
+                }
             }
 
             MapLineFixed ourDropLine = starSysCon.GetComponentInChildren<MapLineFixed>();
@@ -624,6 +643,7 @@ namespace BOTF3D.Galaxy
             SpriteRenderer srStar = starSysField.StarSpriteGO.GetComponent<SpriteRenderer>();
             srStar.sprite = sysData.StarSprit;
             srStar.sortingOrder = 1;
+            starSysCon.ApplyStarVisual(sysData.SystemType, srStar);
             starSysCon.name = sysData.GetSysName();
             starSysCon.StarSysData = sysData;
 
@@ -1143,7 +1163,12 @@ namespace BOTF3D.Galaxy
                 syData.StartStarDate = startingStarDate;
                 syData.BuildDuration = sSO.BuildDuration;
                 syData.PowerLoad = sSO.PowerLoad;
-                syData.ShipyardSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).ShipyardImage;
+                // ✅ Sprite reflects the civ's CURRENT tech level, not the `techLevel` local above
+                // (that's seeded from GameData.StartingTechLevel - correct for initial map setup,
+                // but this method is also called for player-initiated builds mid-game via
+                // StarSysBuildManager, by which point the civ may have advanced further).
+                TechLevel civCurrentTechLevel = CivManager.Instance.GetCivDataByCivEnum(civ)?.CurrentTechLevel ?? techLevel;
+                syData.ShipyardSprite = ThemeManager.Instance.GetThemeByCivEnum(civ).GetShipyardImage(civCurrentTechLevel);
                 syData.Description = sSO.Description;
                 sysController.StarSysData.ShipyardData = syData;
 
@@ -1954,8 +1979,18 @@ namespace BOTF3D.Galaxy
                     }
 
                     GameObject imageObShipyard = Instantiate(shipyardInventorySlotPrefab, Vector3.zero, Quaternion.identity);
+                    // ✅ Unlike the other facility items, ItemShipyard has a SECOND Image component
+                    // on a nested child GameObject - that's the one actually rendered (root's Image
+                    // sprite is left empty in the prefab). GetComponentInChildren<Image>() (singular)
+                    // would grab the root's unused Image instead, leaving the visible icon blank -
+                    // see the same workaround/comment in SetFacilityBuildImages above.
                     if (ThemeManager.Instance != null && ThemeManager.Instance.CurrentTheme != null)
-                        imageObShipyard.GetComponentInChildren<Image>().sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                    {
+                        TechLevel ownerTechLevel = sysCon.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+                        Sprite shipyardSprite = ThemeManager.Instance.CurrentTheme.GetShipyardImage(ownerTechLevel);
+                        foreach (var img in imageObShipyard.GetComponentsInChildren<Image>(true))
+                            img.sprite = shipyardSprite;
+                    }
                     imageObShipyard.transform.SetParent(shipyardInventorySlot.transform, false);
                     { var d = imageObShipyard.GetComponent<FactoryBuildItemDrag>(); if (d != null) d.StarSysController = sysCon; }
                     break;
@@ -2241,6 +2276,9 @@ namespace BOTF3D.Galaxy
             ThemeSO theme = ThemeManager.Instance?.GetThemeByCivEnum(localCiv);
             if (theme == null) return;
 
+            // Shipyard art is tech-tiered - use the owning civ's current level, not EARLY's default.
+            TechLevel shipyardTechLevel = sysCon.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+
             // Find all buildable items
             FactoryBuildItemDrag[] buildableItems = buildUIInstance.GetComponentsInChildren<FactoryBuildItemDrag>(true);
 
@@ -2250,7 +2288,7 @@ namespace BOTF3D.Galaxy
                 {
                     "ItemPowerPlant" => theme.PowerPlantImage,
                     "ItemFactory" => theme.FactoryImage,
-                    "ItemShipyard" => theme.ShipyardImage,
+                    "ItemShipyard" => theme.GetShipyardImage(shipyardTechLevel),
                     "ItemShieldGenerator" => theme.ShieldImage,
                     "ItemOrbitalBattery" => theme.OrbitalBatteriesImage,
                     "ItemResearchCenter" => theme.ResearchCenterImage,
@@ -2283,24 +2321,15 @@ namespace BOTF3D.Galaxy
 
             Debug.Log($"SetShipBuildImages: Civ={localCiv}, TechLevel={techLevel}");
 
-            // ✅ Get ships available at or below current tech level
-            List<ShipSO> availableShips = ShipManager.Instance.GetAvailableShipsForCiv(localCiv, techLevel);
-
-            if (availableShips.Count == 0)
-            {
-                Debug.LogWarning($"  ⚠️ No ships found for {localCiv} at or below {techLevel}!");
-                return;
-            }
-
-            Debug.Log($"  Found {availableShips.Count} ships: {string.Join(", ", availableShips.Select(s => s.ShipType))}");
-
             // Find all ship drag items in build UI
             ShipBuildDrag[] shipDragItems = buildUIInstance.GetComponentsInChildren<ShipBuildDrag>(true);
 
             foreach (var dragItem in shipDragItems)
             {
-                // ✅ Find matching ShipSO by type
-                ShipSO shipSO = availableShips.FirstOrDefault(s => s.ShipType == dragItem.ShipType);
+                // ✅ Highest tier at or below current tech level (NOT the first match in an
+                // ascending-sorted list - that would keep picking the tier-I ship even after
+                // unlocking tier-II, since tier-I still qualifies as "at or below").
+                ShipSO shipSO = ShipManager.Instance.GetShipSOAtBestTechLevel(dragItem.ShipType, techLevel, localCiv);
 
                 // ✅ The per-slot background image (e.g. "ImageScoutBackground") sits alongside
                 // the draggable item under the same InventorySlot - mirror the item's sprite onto it.

@@ -1,3 +1,4 @@
+using BOTF3D.Core;
 using TMPro;
 using UnityEngine;
 
@@ -19,6 +20,8 @@ public class ThemeSO : ScriptableObject
     public Sprite PowerPlantImage;
     public Sprite FactoryImage;
     public Sprite ShipyardImage;
+    // Indexed by TechLevel (EARLY, DEVELOPED, ADVANCED, SUPREME) - per-tier shipyard art.
+    public Sprite[] ShipyardImagesByTechLevel = new Sprite[4];
     public Sprite ShieldImage;
     public Sprite OrbitalBatteriesImage;
     public Sprite ResearchCenterImage;
@@ -33,4 +36,18 @@ public class ThemeSO : ScriptableObject
     public Sprite ButtonSprite1;
     public Sprite ButtonSprite2;
     public Sprite ButtonSprite3;
+
+    // Falls back to the flat ShipyardImage when a tier's slot hasn't been populated yet
+    // (e.g. art not made for that tech level, or this civ's ThemeSO predates the array).
+    public Sprite GetShipyardImage(TechLevel techLevel)
+    {
+        int index = (int)techLevel;
+        if (ShipyardImagesByTechLevel != null && index >= 0 && index < ShipyardImagesByTechLevel.Length
+            && ShipyardImagesByTechLevel[index] != null)
+        {
+            return ShipyardImagesByTechLevel[index];
+        }
+
+        return ShipyardImage;
+    }
 }

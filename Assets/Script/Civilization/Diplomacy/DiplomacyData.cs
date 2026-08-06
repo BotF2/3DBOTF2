@@ -31,6 +31,27 @@ namespace BOTF3D.Civilization
         // via one-off player/AI gestures, heading toward Membership (full annexation).
         public bool CooperationPactActive = false;
 
+        // Per-encounter Fight/Withdraw capture (NOT a persisted standing order - reset with each new
+        // encounter, unlike DiplomacyStatusEnumOfCivs which is a long-lived civ-pair relationship).
+        // Either side choosing Fight forces combat; both choosing Withdraw releases both fleets to
+        // continue their prior movement unimpeded. See DiplomacyController.TryResolveEncounter.
+        public enum EncounterResponse { Undecided, Fight, Withdraw }
+        public EncounterResponse ResponseSideOne = EncounterResponse.Undecided;
+        public EncounterResponse ResponseSideTwo = EncounterResponse.Undecided;
+
+        // Guards DiplomacyController.TryResolveEncounter's action side-effects (forcing combat or
+        // releasing both fleets) against firing more than once for the same encounter if the
+        // resolving network broadcast is received more than once. Reset alongside the responses
+        // above whenever a fresh encounter decision is opened (see DiplomacyManager.OpenDiplomacyUI).
+        public bool EncounterResolved = false;
+
+        // Server-side wall-clock stamp of when the current Fight/Withdraw decision became active -
+        // reset alongside the responses above (see DiplomacyManager.OpenDiplomacyUI and
+        // InstantiateDiplomacyController). DiplomacyController.Update polls this to force a default
+        // response on whichever side is still Undecided once UnresponsiveSideTimeoutSeconds elapses,
+        // so a fleet doesn't freeze forever waiting on a human who never opens/answers the popup.
+        public float EncounterStartRealTime;
+
         public DiplomacyData() { }
         public DiplomacyData(CivEnum civOne, CivEnum civTwo) //, StarSysController starSysController)
         {

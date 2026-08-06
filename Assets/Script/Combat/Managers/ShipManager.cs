@@ -452,7 +452,7 @@ public GameObject[] beamWeaponPrefabs;
             var filtered = allCivShips.Where(s => s.TechLevel == techLevel).ToList();
 
             Debug.Log($"GetShipSOsForCivAndTech: Found {filtered.Count}/{allCivShips.Count} ships for {civ} at {techLevel}");
-            return new List<ShipSO> { Test };
+            return filtered;
         }
 #if UNITY_EDITOR
         [ContextMenu("Auto-Populate Ship Lists from Assets")]

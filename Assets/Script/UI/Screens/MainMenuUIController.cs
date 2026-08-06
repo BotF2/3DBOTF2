@@ -1631,8 +1631,29 @@ namespace BOTF3D.UI
             // ✅ Only start if not already running
             if (!NetworkServer.active && !NetworkClient.isConnected)
             {
-                NetworkManager.singleton.StartHost();
-                Debug.Log("  ✅ Started host (network manager)");
+                try
+                {
+                    NetworkManager.singleton.StartHost();
+                    Debug.Log("  ✅ Started host (network manager)");
+                }
+                catch (System.Exception ex)
+                {
+                    // Same port-conflict handling as the multiplayer HostButton path
+                    // (StartHostingNow above) - without this, a bind failure (e.g. a stale
+                    // socket from a previous Play session still holding the port) throws past
+                    // the panelCivSelection.SetActive(true) above and leaves the player stuck
+                    // on a dead civ-selection screen with no host and no way back.
+                    Debug.LogError($"SetSinglePlayer: StartHost() threw - {ex.Message}");
+                    SetLobbyStatus($"Could not start single player: {ex.Message}. The port may already be in use - try again, or restart the Editor if it persists.");
+                    if (NetworkServer.active || NetworkClient.active)
+                        NetworkManager.singleton.StopHost();
+
+                    IsSinglePlayer = false;
+                    panelCivSelection.SetActive(false);
+                    singlePlayToggleGroup.SetActive(false);
+                    panelLobby.SetActive(true);
+                    return;
+                }
             }
             else
             {
@@ -2186,12 +2207,13 @@ namespace BOTF3D.UI
             GameManager.Instance.GameController.GameData.LocalPlayerCivEnum = (CivEnum)((int)index);
             localPlayerCiv = (CivEnum)((int)index);
 
-            // Single-player's civ toggle only used to update the local GameData cache (which the
-            // ribbon/theme reads directly), never the networked LocalHumanPlayerController.playerCiv
-            // SyncVar - the multiplayer roster dropdown does this via OnMultiplayerCivToggleChanged,
-            // but single player still hosts a real Mirror session (see SetSinglePlayer), so
-            // GameController.GetOurCiv()/AreWeLocalPlayer() were left resolving to the default FED
-            // SyncVar value regardless of what was picked here, misclassifying the home system/fleet.
+            // Single Player still runs as a local Mirror host (see SetSinglePlayer's StartHost()
+            // call), so GameController.GetOurCiv() prefers LocalPlayerController.PlayerCiv (the
+            // networked SyncVar) over the GameData cache set above. Without this relay, playerCiv
+            // stays stuck at whatever PlayerManager.RegisterPlayer auto-assigned on connect (FED,
+            // the first entry in AssignableCivs) regardless of what's picked here, breaking
+            // AreWeLocalPlayer() for every non-FED single-player civ. Same relay the multiplayer
+            // roster dropdown already uses (see OnMultiplayerCivToggleChanged).
             PlayerManager.Instance?.LocalPlayerController?.SubmitPlayerCiv((CivEnum)((int)index));
 
             // ✅ NULL-SAFE: Check ThemeManager

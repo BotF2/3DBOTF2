@@ -13,19 +13,20 @@ namespace BOTF3D.Core
     {
         private Camera cameraGal;
 
-        void Start()
-        {
-            foreach (Camera camera in Camera.allCameras)
-            {
-                if (camera.tag == "MainCamera")
-                {
-                    cameraGal = camera;
-                }
-            }
-        }
-
         void LateUpdate()
         {
+            if (cameraGal == null)
+            {
+                // See Billboard.cs for the full rationale: GalaxyCameraDragMoveZoom.Instance is the
+                // single authoritative galaxy camera for this process, unlike scanning
+                // Camera.allCameras for a "MainCamera" tag, which could latch onto the wrong camera
+                // on host in multiplayer.
+                cameraGal = GalaxyCameraDragMoveZoom.Instance != null
+                    ? GalaxyCameraDragMoveZoom.Instance.GetComponent<Camera>()
+                    : Camera.main;
+                if (cameraGal == null) return;
+            }
+
             transform.LookAt(cameraGal.transform, Vector3.up);
             transform.rotation = cameraGal.transform.rotation;
         }
