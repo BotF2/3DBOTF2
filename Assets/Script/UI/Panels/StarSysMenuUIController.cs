@@ -554,6 +554,7 @@ namespace BOTF3D.UI
 
             var allSystems = StarSysManager.Instance.StarSysControllerList;
             int populatedCount = 0;
+            _currentExpandedSysCon = null;
 
             foreach (var sysCon in allSystems)
             {
@@ -588,13 +589,9 @@ namespace BOTF3D.UI
                     fields.compactHeader?.Populate(sysCon);
                     fields.WireAIModeToggles(sysCon);
 
-                    // The system at the top of the list defaults to expanded; its Expand
-                    // button is hidden since there's nothing left to promote it to.
-                    bool isTopOfList = sysCon.StarSysUIGameObject.transform.GetSiblingIndex() == 0;
-                    fields.expandedContent?.SetActive(isTopOfList);
-                    fields.compactHeader?.SetExpandButtonActive(!isTopOfList);
-                    if (isTopOfList)
-                        _currentExpandedSysCon = sysCon;
+                    // All entries load collapsed with their Expand button visible.
+                    fields.expandedContent?.SetActive(false);
+                    fields.compactHeader?.SetExpandButtonActive(true);
                 }
 
                 populatedCount++;
@@ -679,8 +676,8 @@ namespace BOTF3D.UI
                 lastSysCon = theSysCon;
                 theSysCon.SetSelected(true);
 
-                // Single-system detail view: always show ExpandedContent and hide the
-                // Expand button since there's no list to move within.
+                // Single-system detail view: always show ExpandedContent, with the
+                // Expand button also visible so it can toggle collapse.
                 var soloFields = theSysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
                 if (soloFields != null)
                 {
@@ -689,7 +686,7 @@ namespace BOTF3D.UI
                     // never have been populated via the systems-list path (PopulateSystemsList) —
                     // e.g. when the player opens the solo detail view straight from the galaxy map.
                     soloFields.compactHeader?.Populate(theSysCon);
-                    soloFields.compactHeader?.SetExpandButtonActive(false);
+                    soloFields.compactHeader?.SetExpandButtonActive(true);
                 }
 
                 Debug.Log($"SetActiveSetParentUIGO: Successfully displayed system '{theSysCon.name}'");
@@ -1780,7 +1777,16 @@ namespace BOTF3D.UI
         /// </summary>
         public void ExpandSystem(StarSysController sysCon)
         {
-            if (sysCon == null || sysCon == _currentExpandedSysCon) return;
+            if (sysCon == null) return;
+
+            // Clicking the Expand button on the currently-expanded system toggles it closed
+            if (sysCon == _currentExpandedSysCon)
+            {
+                CollapseSystemUI(sysCon);
+                _currentExpandedSysCon = null;
+                RebuildListLayout();
+                return;
+            }
 
             // Collapse whatever was open before and restore its Expand button
             if (_currentExpandedSysCon != null)
@@ -1792,13 +1798,13 @@ namespace BOTF3D.UI
             // Move to the top of the scroll list
             sysUI.transform.SetSiblingIndex(0);
 
-            // Show full content, hide its own Expand button (nothing left to promote it
-            // to), and refresh the dilithium value in the compact header
+            // Show full content, keep the Expand button visible so it can toggle back to
+            // collapsed, and refresh the dilithium value in the compact header
             var fields = sysUI.GetComponent<StarSysUI_Fields>();
             if (fields != null)
             {
                 fields.expandedContent?.SetActive(true);
-                fields.compactHeader?.SetExpandButtonActive(false);
+                fields.compactHeader?.SetExpandButtonActive(true);
                 fields.compactHeader?.RefreshDilithium();
                 fields.WireAIModeToggles(sysCon);
             }

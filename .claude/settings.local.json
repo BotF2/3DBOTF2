@@ -139,14 +139,13 @@
       "Bash(awk -F',' '{print $4}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")",
       "Bash(awk -F',' 'BEGIN{sx=-7.37; sz=-39.37} {x=$2; z=$4; name=$5; d=sqrt\\(\\(x-sx\\)^2+\\(z-sz\\)^2\\); print d, name}' \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Editor\\\\Data\\\\StarSystems.csv\")",
       "Bash(curl -sI https://github.com)",
-      "Bash(Get-ChildItem -Recurse -Filter \"*GalaxyScene*\" -ErrorAction SilentlyContinue)",
-      "Bash(findstr /r \"cdffe16343cc464458ebe6e017fc3ded\" Assets/Settings/*.asset Assets/Settings/**/*.asset)",
-      "Read(//c/Users/kende/Documents/Unity/**)",
-      "Bash(find Assets -name \"*Galaxy*Profile*\" -o -name \"*Galaxy*Volume*\")",
-      "Bash(findstr /i \"StarSprite\" \"Assets\\\\PreFabs\\\\StarSystem\\\\SysPrefab.prefab\")",
-      "Bash(findstr /r \"166\\\\|starCount\\\\|maxSystems\\\\|galaxySize\" Assets\\\\Script\\\\Galaxy\\\\*.cs)",
-      "Bash(findstr /i \"MaterialPropertyBlock\\\\|m_Materials\" Assets\\\\Script\\\\Galaxy\\\\StarSystem\\\\StarSysManager.cs)",
-      "Bash(pip show *)"
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\('C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Art\\\\Galaxy\\\\Galaxy.png'\\); \"$\\($img.Width\\) x $\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\Art\\\\Themes\\\\KlingMapBorder.png\"\\); \"$\\($img.Width\\) x $\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell([guid]::NewGuid\\(\\).ToString\\(\"N\"\\))",
+      "Bash(mv \"Assets/Materials/KlingBorder.mat\" \"Assets/Materials/Themes/KlingBorder.mat\")",
+      "Bash(mv \"Assets/Materials/KlingBorder.mat.meta\" \"Assets/Materials/Themes/KlingBorder.mat.meta\")",
+      "Bash(mv \"Assets/Materials/KlingBorder_Graph.shadergraph\" \"Assets/Materials/Themes/KlingBorder_Graph.shadergraph\")",
+      "Bash(mv \"Assets/Materials/KlingBorder_Graph.shadergraph.meta\" \"Assets/Materials/Themes/KlingBorder_Graph.shadergraph.meta\")"
     ]
   },
   "model": "claude-sonnet-5"
