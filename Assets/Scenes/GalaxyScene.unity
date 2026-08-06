@@ -1979,6 +1979,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &153549987
 GameObject:
@@ -2830,6 +2833,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &220414241
 GameObject:
@@ -3383,6 +3389,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &269906028
 GameObject:
@@ -3523,6 +3532,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &270094163
 GameObject:
@@ -4720,6 +4732,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &342226117
 GameObject:
@@ -5134,6 +5149,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &347602720
 GameObject:
@@ -6852,6 +6870,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &541028721
 GameObject:
@@ -8987,6 +9008,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &698673085
 GameObject:
@@ -9394,6 +9418,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &712194258
 MonoBehaviour:
@@ -9411,6 +9438,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &727388542
 GameObject:
@@ -10598,6 +10628,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &780859656
 GameObject:
@@ -12682,6 +12715,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1000509539
 GameObject:
@@ -12928,6 +12964,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1259275946}
+  - {fileID: 9990000002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!120 &1013187647
@@ -13550,6 +13587,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1068267038
 GameObject:
@@ -14288,6 +14328,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 3
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1105118640
 GameObject:
@@ -14697,6 +14740,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 4
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1114228549
 GameObject:
@@ -15076,6 +15122,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1139967784
 GameObject:
@@ -15341,6 +15390,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1169095161
 GameObject:
@@ -15645,6 +15697,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &1197047112
 MonoBehaviour:
@@ -16348,6 +16403,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1221198288
 GameObject:
@@ -17908,6 +17966,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 0
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1352713651
 GameObject:
@@ -18473,6 +18534,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1365870092
 GameObject:
@@ -19910,6 +19974,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 3
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1464904045
 GameObject:
@@ -20235,6 +20302,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1478907052
 GameObject:
@@ -21042,6 +21112,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &1562204149
 MonoBehaviour:
@@ -22542,6 +22615,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1675832419
 GameObject:
@@ -24036,6 +24112,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1784209281
 GameObject:
@@ -24081,7 +24160,7 @@ MonoBehaviour:
   saveDataOnScan: 1
   levelNameToSave: SuperCoolFogLevel
   levelDimensionX: 130
-  levelDimensionY: 195
+  levelDimensionY: 190
   unitScale: 10
   scanSpacingPerUnit: 5
   rayStartHeight: 60
@@ -24681,6 +24760,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1850390553
 GameObject:
@@ -25525,6 +25607,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 2
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &1962392801
 GameObject:
@@ -27743,6 +27828,118 @@ RectTransform:
   m_AnchoredPosition: {x: 713, y: 0}
   m_SizeDelta: {x: 236, y: 70}
   m_Pivot: {x: 0, y: 1}
+--- !u!1 &9990000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9990000002}
+  - component: {fileID: 9990000003}
+  - component: {fileID: 9990000004}
+  m_Layer: 6
+  m_Name: GalaxyImageBorder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9990000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9990000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: -0.1}
+  m_LocalScale: {x: 29, y: 26.9, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1013187646}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
+--- !u!212 &9990000003
+SpriteRenderer:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9990000001}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 1
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 21300000, guid: b55f01d08041815468c2309d39091a02, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 1
+  m_Size: {x: 66.9, y: 53.2}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_SpriteSortPoint: 0
+--- !u!114 &9990000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9990000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568138fcf3f61a14da594344aeb35b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ThemeTarget: 1
+  ButtonSpriteSlot: 0
+  ColorType: 2
+  ImageType: 11
+  ScaleSyncSource: {fileID: 1259275946}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
+  ApplyOnStart: 1
 --- !u!224 &1114481898289475905
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28296,6 +28493,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &5230930717438585736
 MonoBehaviour:
@@ -28313,6 +28513,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &5230930717438585737
 MonoBehaviour:
@@ -28330,6 +28533,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &5602244710987754122
 MonoBehaviour:

@@ -24,6 +24,7 @@ MonoBehaviour:
   ShieldImage: {fileID: 21300000, guid: debd116d16c28064d9b142cfd5358cb6, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 1fae35ea715631547bbe39a271dadfe3, type: 3}
   ResearchCenterImage: {fileID: 21300000, guid: 2b904c438dd69c244b126ecf6e60bf8b, type: 3}
+  BorderImage: {fileID: 21300000, guid: 1eaf29a90a3b6ec468b21683fc2e8cf5, type: 3}
   BackgroundColor: {r: 0.25, g: 0.69, b: 0.35, a: 1}
   ForegroundColor: {r: 0.18, g: 0.5, b: 0.26, a: 1}
   BoarderColor: {r: 0.1, g: 0.3, b: 0.16, a: 1}

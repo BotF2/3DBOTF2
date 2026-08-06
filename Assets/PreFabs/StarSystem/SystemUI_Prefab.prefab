@@ -6335,6 +6335,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &4945801356080388011
 GameObject:
@@ -6370,7 +6373,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00096120354}
+  m_AnchoredPosition: {x: 0, y: 0.00097317924}
   m_SizeDelta: {x: 0, y: 200}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4945801356080388009
@@ -13275,6 +13278,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!1 &4945801357670904616
 GameObject:
@@ -14350,6 +14356,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &620548366229554032
 MonoBehaviour:
@@ -16143,6 +16152,9 @@ MonoBehaviour:
   ButtonSpriteSlot: 0
   ColorType: 6
   ImageType: 1
+  ScaleSyncSource: {fileID: 0}
+  BorderMetallic: 0.8
+  BorderSmoothness: 0.6
   ApplyOnStart: 1
 --- !u!114 &3986941980413018032
 MonoBehaviour:

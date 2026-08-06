@@ -30,6 +30,16 @@ namespace BOTF3D.UI
         [Tooltip("Which image from ThemeSO to display (used when ThemeTarget is Image)")]
         public ThemeImageType ImageType = ThemeImageType.Insignia;
 
+        [Header("Border Settings (only used when ImageType is Border)")]
+        [Tooltip("Transform whose localScale this element's localScale should match (e.g. GalaxyImage), so the border always frames it exactly")]
+        public Transform ScaleSyncSource;
+        [Tooltip("Metallic value applied to this element's material when ImageType is Border")]
+        [Range(0, 1)]
+        public float BorderMetallic = 0.8f;
+        [Tooltip("Smoothness value applied to this element's material when ImageType is Border")]
+        [Range(0, 1)]
+        public float BorderSmoothness = 0.6f;
+
         [Header("Auto-Apply")]
         [Tooltip("Automatically apply theme on Start?")]
         public bool ApplyOnStart = true;
@@ -133,10 +143,21 @@ namespace BOTF3D.UI
             if (spriteRenderer != null)
             {
                 spriteRenderer.sprite = sprite;
+                if (ImageType == ThemeImageType.Border)
+                    ApplyBorderTransformAndMaterial();
                 return;
             }
 
             GameLogger.LogWarning(GameLogger.LogCategory.UI, $"ThemedUIElement on {gameObject.name}: No Image or SpriteRenderer found");
+        }
+
+        private void ApplyBorderTransformAndMaterial()
+        {
+            if (ScaleSyncSource != null)
+                transform.localScale = ScaleSyncSource.localScale;
+
+            spriteRenderer.material.SetFloat("_Metallic", BorderMetallic);
+            spriteRenderer.material.SetFloat("_Smoothness", BorderSmoothness);
         }
 
         private void ApplyTextTheme(global::ThemeSO theme)
@@ -191,6 +212,7 @@ namespace BOTF3D.UI
                 case ThemeImageType.Shield: return theme.ShieldImage;
                 case ThemeImageType.OrbitalBattery: return theme.OrbitalBatteriesImage;
                 case ThemeImageType.ResearchCenter: return theme.ResearchCenterImage;
+                case ThemeImageType.Border: return theme.BorderImage;
                 default: return null;
             }
         }
@@ -242,6 +264,7 @@ namespace BOTF3D.UI
         Shipyard,
         Shield,
         OrbitalBattery,
-        ResearchCenter
+        ResearchCenter,
+        Border
     }
 }

@@ -22,6 +22,7 @@ public class ThemeSO : ScriptableObject
     public Sprite ShieldImage;
     public Sprite OrbitalBatteriesImage;
     public Sprite ResearchCenterImage;
+    public Sprite BorderImage;
     public Color BackgroundColor;
     public Color ForegroundColor;
     public Color BoarderColor;
