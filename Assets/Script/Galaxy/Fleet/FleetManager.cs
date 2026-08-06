@@ -688,8 +688,16 @@ namespace BOTF3D.Galaxy
                 // SAFETY: Only add fog revealer if fogWar exists
                 if (fogWar != null)
                 {
+                    // Sight range is staged off the owning civ's TechPoints (see
+                    // TechManager.GetFogSightRange) - kept in sync afterward by
+                    // TechManager.RefreshLocalPlayerFogSightRangeIfChanged as tech advances.
+                    CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(fleetData.CivEnum);
+                    int fogSightRange = TechManager.Instance != null
+                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                        : (int)LocalPlayerFogSightRange;
+
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
-                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, (int)LocalPlayerFogSightRange, false); // FALSE = always update
+                    var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, fogSightRange, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
                     TempFogRevealerFleet = ourFogRevealerFleet;
 

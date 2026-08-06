@@ -51,6 +51,14 @@ public static GalaxyCameraDragMoveZoom Instance;
     private float homeYRotation = 0f;
     private bool initialOrientationApplied = false;
 
+    [SerializeField]
+    // FOV that StarSysController's surface-noise tunables (surfaceNoiseScale/
+    // surfaceDistortStrength) were calibrated at - matches this scene's Camera's default
+    // field of view (50). Adjust if the boiling looks over/under scaled at the default
+    // Home-button view.
+    private float referenceFieldOfViewForStarNoise = 50f;
+    private float lastFieldOfViewForStarNoise = float.NaN;
+
     private UIControls uiControls;
     private bool isActive = false; // Track if this camera controller is active
 
@@ -95,15 +103,17 @@ public static GalaxyCameraDragMoveZoom Instance;
             uiControls.Enable();
         }
         ApplyInitialCivOrientation();
+        UpdateSurfaceNoiseForCurrentFieldOfView();
         Debug.Log("GalaxyCameraDragMoveZoom: Camera control enabled");
     }
 
     // Called once on the first genuine entry into the galaxy scene (EnableCameraControl is
     // also called every time combat ends and control returns to the galaxy, so this must not
-    // re-fire then). Borg/Dominion homeworlds sit in the map's far corner (see the matching
-    // flip in SetCameraToLocalPlayerHome), so the default starting view - authored looking
-    // toward the opposite corner - needs the same 180 degree flip around the galactic center
-    // (GalaxyCenter sits at world origin) so the initial view and the Home-button view agree.
+    // re-fire then). On a CANON map, Borg/Dominion homeworlds always sit in the map's far
+    // corner (see the matching flip in SetCameraToLocalPlayerHome), so the default starting
+    // view - authored looking toward the opposite corner - needs the same 180 degree flip
+    // around the galactic center (GalaxyCenter sits at world origin) so the initial view and
+    // the Home-button view agree.
     private void ApplyInitialCivOrientation()
     {
         if (initialOrientationApplied) return;
@@ -111,10 +121,45 @@ public static GalaxyCameraDragMoveZoom Instance;
         initialOrientationApplied = true;
 
         var localCivEneum = GameController.Instance.GameData.LocalPlayerCivEnum;
-        if (localCivEneum != CivEnum.BORG && localCivEneum != CivEnum.DOM) return;
+        if (!ShouldApproachFromFarSide(localCivEneum)) return;
 
         transform.position = new Vector3(-transform.position.x, transform.position.y, -transform.position.z);
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y + 180f, transform.eulerAngles.z);
+    }
+
+    // CANON maps hand-author Borg/Dominion homeworlds into the far corner (near
+    // GalaxyPositionBounds.XMax/ZMax) every time, so the per-civ shortcut is reliable there.
+    // RANDOM/RING/WHATEVER maps don't guarantee that placement, so for anything other than
+    // CANON this decides off the actual home system's Z coordinate instead: Z > 0 sits on the
+    // same far-corner side Borg/Dominion use on canon maps, Z <= 0 sits on the default
+    // near side and needs no flip.
+    private bool ShouldApproachFromFarSide(CivEnum localCiv)
+    {
+        bool civHeuristic = localCiv == CivEnum.BORG || localCiv == CivEnum.DOM;
+
+        var mapType = GameController.Instance?.GameData?.GalaxyMapType ?? GalaxyMapType.CANON;
+        if (mapType == GalaxyMapType.CANON) return civHeuristic;
+
+        float? homeZ = FindHomeSystemZ(localCiv);
+        // Home system not spawned yet (e.g. called before the galaxy finishes generating) -
+        // fall back to the civ heuristic rather than guessing at a flip.
+        if (!homeZ.HasValue) return civHeuristic;
+
+        return homeZ.Value > 0f;
+    }
+
+    private float? FindHomeSystemZ(CivEnum localCiv)
+    {
+        var listStarSystems = StarSysManager.Instance?.StarSysControllerList;
+        if (listStarSystems == null) return null;
+
+        for (int i = 0; i < listStarSystems.Count; i++)
+        {
+            if (listStarSystems[i].StarSysData.CurrentOwnerCivEnum == localCiv)
+                return listStarSystems[i].transform.position.z;
+        }
+
+        return null;
     }
 
     // Call this when switching back to main menu
@@ -165,11 +210,24 @@ public static GalaxyCameraDragMoveZoom Instance;
         if (!isActive) return; // Don't process input if not active
 
         DoZoom();
+        UpdateSurfaceNoiseForCurrentFieldOfView();
         KeyboardInputs();
         if (!playerTargetDrag)
             DrageCameraWithLeftMouse();
         RotateCamerWithRightMouse();
         CameraMoveLimits();
+    }
+
+    // Only pushes to the shared star-surface-noise material (StarSysController) when the FOV
+    // actually moved this frame - cheap either way since it's one shared material, but this
+    // avoids redundant SetFloat calls while the player isn't scrolling.
+    private void UpdateSurfaceNoiseForCurrentFieldOfView()
+    {
+        if (galaxyCam == null) return;
+        if (Mathf.Approximately(galaxyCam.fieldOfView, lastFieldOfViewForStarNoise)) return;
+
+        lastFieldOfViewForStarNoise = galaxyCam.fieldOfView;
+        StarSysController.SetFieldOfViewForSurfaceNoise(galaxyCam.fieldOfView, referenceFieldOfViewForStarNoise);
     }
 
     public void SetPlayerTargetDrag(bool value)
@@ -391,12 +449,13 @@ public static GalaxyCameraDragMoveZoom Instance;
                 {
                     lastCameraPosition = transform.position;
 
-                    // Borg/Dominion homeworlds sit in the map's far corner (near
-                    // GalaxyPositionBounds.XMax/ZMax), so approaching from the default -Z side
-                    // puts almost the entire map behind the camera. Flip both the approach side
-                    // and facing 180 degrees around the homeworld so the bulk of the map reads
-                    // as "beyond" the homeworld instead of "behind the viewer".
-                    bool approachFromFarSide = localCivEneum == CivEnum.BORG || localCivEneum == CivEnum.DOM;
+                    // A homeworld sitting in the map's far corner (near
+                    // GalaxyPositionBounds.XMax/ZMax) would put almost the entire map behind
+                    // the camera if approached from the default -Z side. Flip both the approach
+                    // side and facing 180 degrees around the homeworld so the bulk of the map
+                    // reads as "beyond" the homeworld instead of "behind the viewer" - see
+                    // ShouldApproachFromFarSide for the CANON-vs-random map decision.
+                    bool approachFromFarSide = ShouldApproachFromFarSide(localCivEneum);
                     float zOffset = approachFromFarSide ? 200f : -200f;
                     homeYRotation = approachFromFarSide ? 180f : 0f;
 

@@ -17,7 +17,7 @@ namespace BOTF3D.UI
     ///
     /// ReportEntryPrefab child-name contract (find-by-name):
     ///   "CategoryText"  TextMeshProUGUI  — category label (COMBAT / DIPL / INTEL)
-    ///   "TurnText"      TextMeshProUGUI  — turn stamp
+    ///   "TurnText"      TextMeshProUGUI  — stardate stamp
     ///   "SummaryText"   TextMeshProUGUI  — 1-2 line summary, always visible
     ///   "ExpandButton"  Button           — toggles DetailPanel; hidden when no detail
     ///   "DetailPanel"   GameObject       — starts inactive; contains DetailText
@@ -111,12 +111,12 @@ namespace BOTF3D.UI
                 detail  = $"The operation against {target} failed without detection.";
             }
 
-            PushReport(new ReportEntry(ReportCategory.Intel, GetTurn(), summary, detail));
+            PushReport(new ReportEntry(ReportCategory.Intel, GetStardate(), summary, detail));
         }
 
         private void OnNewContact(CivEnum civ)
         {
-            PushReport(new ReportEntry(ReportCategory.Intel, GetTurn(),
+            PushReport(new ReportEntry(ReportCategory.Intel, GetStardate(),
                 $"First contact: {civ}",
                 $"Your forces have established first contact with the {civ} civilization."));
         }
@@ -124,7 +124,7 @@ namespace BOTF3D.UI
         private void OnCombatEnded(CivEnum victor)
         {
             string detail = CombatUIManager.LastCombatReport;
-            PushReport(new ReportEntry(ReportCategory.Combat, GetTurn(),
+            PushReport(new ReportEntry(ReportCategory.Combat, GetStardate(),
                 $"Combat ended — Victor: {victor}",
                 string.IsNullOrEmpty(detail) ? "No further detail available." : detail));
         }
@@ -138,7 +138,7 @@ namespace BOTF3D.UI
             CivEnum other   = civA == local ? civB : civA;
             string  summary = BuildDiplomacySummary(state, other);
             string  detail  = BuildDiplomacyDetail(state, local, other);
-            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetTurn(), summary, detail));
+            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail));
         }
 
         // ── Static API — call from anywhere to inject a report ────────────────
@@ -236,7 +236,7 @@ namespace BOTF3D.UI
             r.root.SetActive(true);
 
             if (r.categoryText != null) r.categoryText.text = CategoryLabel(entry.Category);
-            if (r.turnText     != null) r.turnText.text     = $"T{entry.Turn}";
+            if (r.turnText     != null) r.turnText.text     = $"SD{entry.Stardate}";
             if (r.summaryText  != null) r.summaryText.text  = entry.Summary;
             if (r.detailText   != null) r.detailText.text   = entry.Detail;
 
@@ -262,8 +262,8 @@ namespace BOTF3D.UI
 
         // ── Text helpers ──────────────────────────────────────────────────────
 
-        private static int GetTurn() =>
-            TimeManager.Instance != null ? TimeManager.Instance.CurrentTurn : 0;
+        private static int GetStardate() =>
+            TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
 
         private static string CategoryLabel(ReportCategory cat)
         {

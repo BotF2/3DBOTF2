@@ -21,6 +21,11 @@ MonoBehaviour:
   PowerPlantImage: {fileID: 21300000, guid: 1255299b7026dcf4aa5bdd8e328db099, type: 3}
   FactoryImage: {fileID: 21300000, guid: a3345f76412f410488f69695db9b7a11, type: 3}
   ShipyardImage: {fileID: 21300000, guid: 1dfc6e22d45d82e428d809dbf5b4bd52, type: 3}
+  ShipyardImagesByTechLevel:
+  - {fileID: 21300000, guid: 1dfc6e22d45d82e428d809dbf5b4bd52, type: 3}
+  - {fileID: 21300000, guid: 504b9afc7ec6606449b9b61524be23ff, type: 3}
+  - {fileID: 21300000, guid: a268ea6a5675fb04e97c3ee916d63202, type: 3}
+  - {fileID: 21300000, guid: a268ea6a5675fb04e97c3ee916d63202, type: 3}
   ShieldImage: {fileID: 21300000, guid: 4295db0fa1e244d4ea790c13a3c9e2bc, type: 3}
   OrbitalBatteriesImage: {fileID: 21300000, guid: 316c6f0bf922f2444bc3f0f2e9b6378f, type: 3}
   ResearchCenterImage: {fileID: 21300000, guid: 8b7bb6f780e13784894e48c9e10be39e, type: 3}

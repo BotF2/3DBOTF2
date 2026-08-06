@@ -173,7 +173,7 @@ namespace BOTF3D.Galaxy
 
             if (sysCon.sysShipBuildQueueList != null && sysCon.sysShipBuildQueueList.Count == 0)
             {
-                var shipType = PickWarPartyShipType(civData, data, enemyEnum);
+                var shipType = PickWarPartyShipType(civData, data, enemyEnum, sysCon);
                 if (shipType.HasValue && CanAffordShip(sysCon, shipType.Value))
                     sysCon.StarSysBuildManager.QueueShipBuild(shipType.Value);
             }
@@ -247,6 +247,34 @@ namespace BOTF3D.Galaxy
             type == ShipType.Destroyer || type == ShipType.Cruiser ||
             type == ShipType.LtCruiser || type == ShipType.HvyCruiser;
 
+        // Heaviest-to-lightest combat hull ladder, used to step a trait-picked hull down to
+        // whatever tier this civ actually has ShipSO templates for. LtCruiser/HvyCruiser only
+        // exist for the seven major civs - minor races only ever have Destroyer_I/Cruiser_II -
+        // so a minor civ whose Warlike/Ruthless/Xenophobia traits land on LtCruiser or HvyCruiser
+        // needs to fall back to a tier it actually has, rather than queuing an unbuildable ship
+        // every turn forever (BuildShipInSystem silently rejects it, and since traits never
+        // change, the same unavailable type would be re-picked indefinitely).
+        private static readonly ShipType[] CombatHullTiersHeaviestFirst =
+            { ShipType.HvyCruiser, ShipType.Cruiser, ShipType.LtCruiser, ShipType.Destroyer };
+
+        private static ShipType ResolveAvailableHullType(ShipType preferred, StarSysController sysCon)
+        {
+            var civ = sysCon.StarSysData.CurrentCivController;
+            TechLevel techLevel = civ.CivData.CurrentTechLevel;
+            CivEnum civEnum = sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            int startIndex = System.Array.IndexOf(CombatHullTiersHeaviestFirst, preferred);
+            if (startIndex < 0) return preferred; // not part of the hull ladder (e.g. Transport)
+
+            for (int i = startIndex; i < CombatHullTiersHeaviestFirst.Length; i++)
+            {
+                if (ShipManager.Instance.GetShipSOAtBestTechLevel(CombatHullTiersHeaviestFirst[i], techLevel, civEnum) != null)
+                    return CombatHullTiersHeaviestFirst[i];
+            }
+
+            return ShipType.Destroyer; // guaranteed baseline - every playable/minor civ has this
+        }
+
         private static void CountWarPartyShips(StarSysData data, out int combatCount, out int transportCount)
         {
             combatCount = 0;
@@ -266,16 +294,16 @@ namespace BOTF3D.Galaxy
         /// since a raid with no landing capacity can't do anything to a system's ground
         /// once combat is extended to system defences.
         /// </summary>
-        private static ShipType? PickWarPartyShipType(CivData civData, StarSysData data, CivEnum? enemyEnum)
+        private static ShipType? PickWarPartyShipType(CivData civData, StarSysData data, CivEnum? enemyEnum, StarSysController sysCon)
         {
             if (!enemyEnum.HasValue)
-                return PickWarShipType(civData);
+                return PickWarShipType(civData, sysCon);
 
             var (requiredCombat, requiredTransports) = GetWarPartyRequirement(enemyEnum.Value);
             CountWarPartyShips(data, out int currentCombat, out int currentTransports);
 
             if (currentTransports < requiredTransports) return ShipType.Transport;
-            if (currentCombat < requiredCombat) return PickWarShipType(civData);
+            if (currentCombat < requiredCombat) return PickWarShipType(civData, sysCon);
             return null; // war party already at full strength - waiting on DispatchFleetToWar
         }
 
@@ -407,19 +435,31 @@ namespace BOTF3D.Galaxy
         /// More warlike + ruthless civs commit to heavier hulls; gentler civs field
         /// cheaper Destroyers/LtCruisers instead.
         /// </summary>
-        private static ShipType PickWarShipType(CivData civData)
+        private static ShipType PickWarShipType(CivData civData, StarSysController sysCon)
         {
             int aggression = -(int)civData.Warlike - (int)civData.Ruthless; // range -4..+4, higher = more aggressive
-            if (aggression >= 3) return ShipType.HvyCruiser;
-            if (aggression >= 1) return ShipType.Cruiser;
-            if (aggression >= -1) return ShipType.LtCruiser;
-            return ShipType.Destroyer;
+            ShipType preferred;
+            if (aggression >= 3) preferred = ShipType.HvyCruiser;
+            else if (aggression >= 1) preferred = ShipType.Cruiser;
+            else if (aggression >= -1) preferred = ShipType.LtCruiser;
+            else preferred = ShipType.Destroyer;
+            return ResolveAvailableHullType(preferred, sysCon);
         }
 
         private static bool CanAffordShip(StarSysController sysCon, ShipType shipType)
         {
             var civ = sysCon.StarSysData.CurrentCivController;
             if (civ?.CivData == null) return false;
+
+            // PickWarShipType/PickDefenceShipType pick purely off Warlike/Ruthless/Xenophobia
+            // traits, with no idea whether this civ actually has a ShipSO template for that
+            // type - LtCruiser/HvyCruiser only exist for major civs, not minors, so a
+            // trait-driven minor civ could otherwise queue a build that BuildShipInSystem then
+            // silently rejects every turn (ShipStatCalculator.Calculate computes a cost from
+            // formulas regardless of whether a template exists, so it doesn't catch this).
+            if (ShipManager.Instance.GetShipSOAtBestTechLevel(
+                    shipType, civ.CivData.CurrentTechLevel, sysCon.StarSysData.CurrentOwnerCivEnum) == null)
+                return false;
 
             int cost = ShipStatCalculator.Calculate(
                 shipType, civ.CivData.CurrentTechLevel, sysCon.StarSysData.CurrentOwnerCivEnum, civ.CivData.QualityScore
@@ -452,7 +492,7 @@ namespace BOTF3D.Galaxy
 
             if (sysCon.sysShipBuildQueueList != null && sysCon.sysShipBuildQueueList.Count == 0)
             {
-                var shipType = PickDefenceShipType(civData);
+                var shipType = PickDefenceShipType(civData, sysCon);
                 if (CanAffordShip(sysCon, shipType))
                     sysCon.StarSysBuildManager.QueueShipBuild(shipType);
             }
@@ -493,9 +533,10 @@ namespace BOTF3D.Galaxy
         /// Xenophobic civs favor cheap Destroyers in numbers; more trusting civs field
         /// slightly heavier LtCruisers instead. Either way this is picket duty, not a fleet.
         /// </summary>
-        private static ShipType PickDefenceShipType(CivData civData)
+        private static ShipType PickDefenceShipType(CivData civData, StarSysController sysCon)
         {
-            return (int)civData.Xenophobia <= 0 ? ShipType.Destroyer : ShipType.LtCruiser;
+            ShipType preferred = (int)civData.Xenophobia <= 0 ? ShipType.Destroyer : ShipType.LtCruiser;
+            return ResolveAvailableHullType(preferred, sysCon);
         }
 
         /// <summary>
