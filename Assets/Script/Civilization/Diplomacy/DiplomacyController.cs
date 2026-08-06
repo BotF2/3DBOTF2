@@ -5,6 +5,7 @@ using UnityEngine;
 using BOTF3D.Combat;
 using BOTF3D.Galaxy;
 using BOTF3D.Audio;
+using Mirror;
 
 
 
@@ -41,7 +42,147 @@ namespace BOTF3D.Civilization
             {
                 if (DiplomacyUIGameObject != null)
                     DiplomacyUIGameObject.SetActive(true);
-                //ToDo: AI civ diplomacy actions for on or both civs that are AI.
+            }
+
+            // AI responses are server-authoritative only - there's no LocalHumanPlayerController to
+            // relay an AI civ's response through (see FleetController.CmdSetEncounterResponse's
+            // authorization check). Every client still runs DoAIDiplomacy (to open its own local UI
+            // above if it's playing against this AI), but only the server applies/broadcasts the
+            // actual Fight/Withdraw decision, via the [Server] entry point that skips the Cmd relay.
+            if (!NetworkServer.active) return;
+
+            bool aiIsSideOne = this.DiplomacyData.CivOne != null && this.DiplomacyData.CivOne.CivData.PlayedByAI;
+            bool aiIsSideTwo = !aiIsSideOne && this.DiplomacyData.CivTwo != null && this.DiplomacyData.CivTwo.CivData.PlayedByAI;
+            if (!aiIsSideOne && !aiIsSideTwo) return;
+
+            ServerForceResponse(aiIsSideOne, DefaultResponseForCurrentStatus());
+        }
+
+        // Status-based default: fight if relations are already Hostile or worse, otherwise withdraw
+        // rather than escalate. Used both for AI civs' own decisions (DoAIDiplomacy) and to fill in
+        // for a side that never responded in time (see UnresponsiveSideTimeoutSeconds below).
+        private DiplomacyData.EncounterResponse DefaultResponseForCurrentStatus()
+        {
+            return this.DiplomacyData.DiplomacyStatusEnumOfCivs <= DiplomacyStatusEnum.Hostile
+                ? DiplomacyData.EncounterResponse.Fight
+                : DiplomacyData.EncounterResponse.Withdraw;
+        }
+
+        // Applies an authoritative response to one side of this encounter, server-side. Shared by
+        // DoAIDiplomacy (AI civ's own decision) and the unresponsive-side timeout (Update below).
+        private void ServerForceResponse(bool isSideOne, DiplomacyData.EncounterResponse response)
+        {
+            FleetController targetFleet = isSideOne ? this.DiplomacyData.FleetControllerCivOne : this.DiplomacyData.FleetContollerCivTwo;
+            FleetController otherFleet = isSideOne ? this.DiplomacyData.FleetContollerCivTwo : this.DiplomacyData.FleetControllerCivOne;
+
+            if (targetFleet != null)
+            {
+                targetFleet.ServerSetEncounterResponse(isSideOne, response, otherFleet, this.DiplomacyData.StarSysController);
+            }
+            else if (otherFleet != null)
+            {
+                // This side is the star system's own defenders, not a moving fleet -
+                // StarSysController has no NetworkBehaviour of its own to carry the ClientRpc. Relay
+                // through the other side's real fleet instead: RpcSetEncounterResponse only needs
+                // *a* networked FleetController to broadcast through, since the response applies to
+                // isSideOne/isSideTwo, not to whichever object carried the call. Pass
+                // otherFleetCon:null + StarSysController (instead of otherFleet again) so the
+                // client-side lookup in RpcSetEncounterResponse resolves "the other side" back to
+                // the system's owning civ, not to otherFleet's own civ.
+                //
+                // Without this fallback, targetFleet==null used to just return here, leaving that
+                // side permanently Undecided - TryResolveEncounter can never reach its Withdraw
+                // branch (which requires BOTH sides), so a fleet that met an AI-owned system and
+                // got Undecided back from the defenders would stay frozen forever with no error.
+                otherFleet.ServerSetEncounterResponse(isSideOne, response, null, this.DiplomacyData.StarSysController);
+            }
+        }
+
+        // How long a Fight/Withdraw decision waits on an unresponsive side (human who never clicks,
+        // or - defensively - any other silent failure) before the game forces the same status-based
+        // default an AI civ would pick, rather than freezing the involved fleet(s) forever.
+        private const float UnresponsiveSideTimeoutSeconds = 60f;
+
+        // Server-only: forces a default response onto whichever side is still Undecided once the
+        // encounter has been open longer than UnresponsiveSideTimeoutSeconds. Covers the case where
+        // a human player simply never opens or answers the Diplomacy popup (e.g. AFK) - AI civs
+        // already respond immediately via DoAIDiplomacy, so in practice this only ever fires for a
+        // human side, but it isn't restricted to that in case of some other stall.
+        private void Update()
+        {
+            if (!NetworkServer.active) return;
+            if (this.DiplomacyData == null || this.DiplomacyData.EncounterResolved) return;
+            if (this.DiplomacyData.ResponseSideOne != DiplomacyData.EncounterResponse.Undecided &&
+                this.DiplomacyData.ResponseSideTwo != DiplomacyData.EncounterResponse.Undecided) return;
+
+            // Only a genuine Fight/Withdraw encounter actually freezes a fleet (see
+            // FleetController.IsAwaitingEncounterResolution / ServerIncrementPendingEncounters).
+            // DiplomacyController instances also back plain UI browsing - a player revisiting a
+            // known system/fleet via ResolveDiplomacyForClickSystemWeKnow, or an uninhabited-system
+            // contact - which also flow through OpenDiplomacyUI's Undecided/EncounterStartRealTime
+            // reset but never pause anything. Without this check, idly leaving one of those popups
+            // open past the timeout would force an unwanted Fight/Withdraw and could even trigger
+            // combat.
+            bool sideOneAwaiting = this.DiplomacyData.FleetControllerCivOne != null && this.DiplomacyData.FleetControllerCivOne.IsAwaitingEncounterResolution;
+            bool sideTwoAwaiting = this.DiplomacyData.FleetContollerCivTwo != null && this.DiplomacyData.FleetContollerCivTwo.IsAwaitingEncounterResolution;
+            if (!sideOneAwaiting && !sideTwoAwaiting) return;
+
+            if (Time.realtimeSinceStartup - this.DiplomacyData.EncounterStartRealTime < UnresponsiveSideTimeoutSeconds) return;
+
+            DiplomacyData.EncounterResponse fallback = DefaultResponseForCurrentStatus();
+            if (this.DiplomacyData.ResponseSideOne == DiplomacyData.EncounterResponse.Undecided)
+                ServerForceResponse(true, fallback);
+            if (this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Undecided)
+                ServerForceResponse(false, fallback);
+        }
+
+        // Called by a Fight/Withdraw UI click (isSideOne = true if the clicking player is CivOne in
+        // this DiplomacyData), or applied locally when a network broadcast carries the authoritative
+        // decision (relayToNetwork = false - see FleetController.RpcSetEncounterResponse). Relaying
+        // is what actually reaches the server and comes back around via that Rpc; TryResolveEncounter
+        // only runs once the broadcast is applied, not on the optimistic local click, so the fleets'
+        // pending-encounter counters (server-authoritative SyncVars) are never decremented twice.
+        public void SetResponse(bool isSideOne, DiplomacyData.EncounterResponse response, bool relayToNetwork = true)
+        {
+            if (isSideOne) this.DiplomacyData.ResponseSideOne = response;
+            else this.DiplomacyData.ResponseSideTwo = response;
+
+            if (relayToNetwork)
+            {
+                FleetController callerFleet = isSideOne ? this.DiplomacyData.FleetControllerCivOne : this.DiplomacyData.FleetContollerCivTwo;
+                FleetController otherFleet = isSideOne ? this.DiplomacyData.FleetContollerCivTwo : this.DiplomacyData.FleetControllerCivOne;
+                callerFleet?.RequestSetEncounterResponse(isSideOne, response, otherFleet, this.DiplomacyData.StarSysController);
+            }
+            else
+            {
+                TryResolveEncounter();
+            }
+        }
+
+        // Either side choosing Fight forces combat; both choosing Withdraw releases both fleets to
+        // continue their prior movement. Any Undecided response leaves the encounter paused.
+        public void TryResolveEncounter()
+        {
+            if (this.DiplomacyData.EncounterResolved) return;
+
+            if (this.DiplomacyData.ResponseSideOne == DiplomacyData.EncounterResponse.Fight ||
+                this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Fight)
+            {
+                this.DiplomacyData.EncounterResolved = true;
+                Combat(this);
+                return;
+            }
+
+            if (this.DiplomacyData.ResponseSideOne == DiplomacyData.EncounterResponse.Withdraw &&
+                this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Withdraw)
+            {
+                this.DiplomacyData.EncounterResolved = true;
+
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu);
+
+                this.DiplomacyData.FleetControllerCivOne?.ServerDecrementPendingEncounters();
+                this.DiplomacyData.FleetContollerCivTwo?.ServerDecrementPendingEncounters();
             }
         }
         public void UpdateDiplomacyControllerData(DiplomacyData diplomacyData)

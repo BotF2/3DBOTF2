@@ -4,15 +4,15 @@ namespace BOTF3D.Core
 
     public class ReportEntry
     {
-        public ReportCategory Category { get; }
-        public int            Turn     { get; }
-        public string         Summary  { get; }
-        public string         Detail   { get; }
+        public ReportCategory Category  { get; }
+        public int            Stardate  { get; }
+        public string         Summary   { get; }
+        public string         Detail    { get; }
 
-        public ReportEntry(ReportCategory category, int turn, string summary, string detail = "")
+        public ReportEntry(ReportCategory category, int stardate, string summary, string detail = "")
         {
             Category = category;
-            Turn     = turn;
+            Stardate = stardate;
             Summary  = summary;
             Detail   = detail ?? "";
         }

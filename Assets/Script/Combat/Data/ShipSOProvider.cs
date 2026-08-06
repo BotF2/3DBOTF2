@@ -216,6 +216,38 @@ namespace BOTF3D.Combat
                     { ShipType.Scout, 6 },
                     { ShipType.Destroyer, 6 },
                     { ShipType.Transport, 2 },
+                },
+                // First pass: same Scout/Destroyer/Transport counts as EARLY, plus a Cruiser for every
+                // Destroyer (Cruiser is the ship type that newly unlocks at DEVELOPED). Not yet balance
+                // -tuned like the EARLY table above - revisit once there's playtest data at this tier.
+                [TechLevel.DEVELOPED] = new Dictionary<ShipType, int>
+                {
+                    { ShipType.Scout, 6 },
+                    { ShipType.Destroyer, 6 },
+                    { ShipType.Transport, 2 },
+                    { ShipType.Cruiser, 6 },
+                },
+                // Same Scout/Destroyer/Transport/Cruiser counts as DEVELOPED - the TechLevel.ADVANCED
+                // lookup key alone is enough for GetStartingFleetShips to resolve each civ's Advanced-
+                // tier (_III) ShipSO templates instead of Developed's (_II).
+                [TechLevel.ADVANCED] = new Dictionary<ShipType, int>
+                {
+                    { ShipType.Scout, 6 },
+                    { ShipType.Destroyer, 6 },
+                    { ShipType.Transport, 2 },
+                    { ShipType.Cruiser, 6 },
+                },
+                // Cruiser-class hull splits into LtCruiser/HvyCruiser at SUPREME (LtCruiser is the
+                // direct Cruiser equivalent at this tier, HvyCruiser is new). HvyCruiser count is
+                // ~25% of DEVELOPED's Cruiser count (6 * 0.25 = 1.5, rounded to 2), with LtCruiser
+                // making up the remaining 4 so the 6-ship total is unchanged.
+                [TechLevel.SUPREME] = new Dictionary<ShipType, int>
+                {
+                    { ShipType.Scout, 6 },
+                    { ShipType.Destroyer, 6 },
+                    { ShipType.Transport, 2 },
+                    { ShipType.LtCruiser, 4 },
+                    { ShipType.HvyCruiser, 2 },
                 }
             };
 
@@ -341,10 +373,13 @@ namespace BOTF3D.Combat
         // band. BORG has been pushed back up by explicit request, first to full 1.00x Offense parity,
         // then backed off to the current ≈0.94x Offense/≈0.85x Beam-only - now sitting at or just above
         // the majors' band instead of below it, unlike DOM. Treat both civs' numbers as still a work in
-        // progress pending further playtest. Only EARLY is populated for now (matches
-        // MajorStartingFleetComposition above); treat these as a first pass - like every other number
-        // in ShipStatCalculator.Flavor, tune from actual CombatRecordings turn-log results rather than
-        // this static estimate alone.
+        // progress pending further playtest. DEVELOPED entries below reuse each civ's EARLY
+        // Scout/Destroyer/Transport counts unchanged and add Cruisers - CARD gets one per Destroyer
+        // (matching MajorStartingFleetComposition's DEVELOPED entry above), but DOM/BORG each get one
+        // fewer than their Destroyer count, keeping their smaller-but-stronger fleet concentration
+        // intent instead of just mirroring the majors' 1:1 ratio - not balance-tuned yet; treat these
+        // as a first pass - like every other number in ShipStatCalculator.Flavor, tune from actual
+        // CombatRecordings turn-log results rather than this static estimate alone.
         private static readonly Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>> MajorStartingFleetCompositionOverrides =
             new Dictionary<CivEnum, Dictionary<TechLevel, Dictionary<ShipType, int>>>
             {
@@ -355,6 +390,29 @@ namespace BOTF3D.Combat
                         { ShipType.Scout, 8 },
                         { ShipType.Destroyer, 8 },
                         { ShipType.Transport, 2 },
+                    },
+                    [TechLevel.DEVELOPED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 8 },
+                        { ShipType.Destroyer, 8 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.Cruiser, 8 },
+                    },
+                    [TechLevel.ADVANCED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 8 },
+                        { ShipType.Destroyer, 8 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.Cruiser, 8 },
+                    },
+                    // HvyCruiser = 25% of DEVELOPED's 8 Cruisers (exact), LtCruiser makes up the rest.
+                    [TechLevel.SUPREME] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 8 },
+                        { ShipType.Destroyer, 8 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.LtCruiser, 6 },
+                        { ShipType.HvyCruiser, 2 },
                     }
                 },
                 [CivEnum.DOM] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
@@ -364,6 +422,34 @@ namespace BOTF3D.Combat
                         { ShipType.Scout, 3 },
                         { ShipType.Destroyer, 5 },
                         { ShipType.Transport, 2 },
+                    },
+                    [TechLevel.DEVELOPED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 3 },
+                        { ShipType.Destroyer, 5 },
+                        { ShipType.Transport, 2 },
+                        // One fewer than Destroyer count (unlike the majors' 1:1 Cruiser:Destroyer
+                        // default) - DOM's per-ship stats are deliberately tuned above the majors'
+                        // band (see the tuning notes further up this file), so a smaller Developed
+                        // fleet keeps that concentration-effect intent instead of just mirroring EARLY.
+                        { ShipType.Cruiser, 4 },
+                    },
+                    [TechLevel.ADVANCED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 3 },
+                        { ShipType.Destroyer, 5 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.Cruiser, 4 },
+                    },
+                    // HvyCruiser = 25% of DEVELOPED's 4 Cruisers (exact); LtCruiser trimmed one
+                    // further below that (2, not 3) per explicit user request.
+                    [TechLevel.SUPREME] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 3 },
+                        { ShipType.Destroyer, 5 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.LtCruiser, 2 },
+                        { ShipType.HvyCruiser, 1 },
                     }
                 },
                 [CivEnum.BORG] = new Dictionary<TechLevel, Dictionary<ShipType, int>>
@@ -373,6 +459,32 @@ namespace BOTF3D.Combat
                         { ShipType.Scout, 2 },
                         { ShipType.Destroyer, 4 },
                         { ShipType.Transport, 2 },
+                    },
+                    [TechLevel.DEVELOPED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 2 },
+                        { ShipType.Destroyer, 4 },
+                        { ShipType.Transport, 2 },
+                        // One fewer than Destroyer count, same reasoning as DOM above - Borg has the
+                        // highest per-ship power of any civ, so its Developed fleet stays the smallest.
+                        { ShipType.Cruiser, 3 },
+                    },
+                    [TechLevel.ADVANCED] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 2 },
+                        { ShipType.Destroyer, 4 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.Cruiser, 3 },
+                    },
+                    // HvyCruiser = 25% of DEVELOPED's 3 Cruisers (0.75, rounded to 1); LtCruiser
+                    // trimmed one further below that (1, not 2) per explicit user request.
+                    [TechLevel.SUPREME] = new Dictionary<ShipType, int>
+                    {
+                        { ShipType.Scout, 2 },
+                        { ShipType.Destroyer, 4 },
+                        { ShipType.Transport, 2 },
+                        { ShipType.LtCruiser, 1 },
+                        { ShipType.HvyCruiser, 1 },
                     }
                 },
             };

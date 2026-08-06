@@ -2,14 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using BOTF3D.Core;
 using BOTF3D.Civilization;
+using Mirror;
 
 namespace BOTF3D.Galaxy
 {
     /// <summary>
-    /// Collects fleet/system encounter events that fire during TurnProgression
-    /// and replays them one at a time during EncounterResolution (InterTurn).
-    /// Attach to a persistent Galaxy scene GameObject.
+    /// Collects fleet/system encounter events that fire during the same physics tick and resolves
+    /// them together at the end of that tick, grouped by connected component (see
+    /// ProcessPendingForThisTick), so simultaneous convergence on the same system draws every
+    /// participant into one shared decision instead of whichever collider fired first getting an
+    /// initiative advantage. Attach to a persistent Galaxy scene GameObject.
     /// </summary>
+    [DefaultExecutionOrder(100)] // after FleetController.FixedUpdate, so a tick's OnTriggerEnter calls are all queued first
     public class GalaxyEncounterQueue : MonoBehaviour, IManager
     {
         public void Initialize() { }
@@ -65,48 +69,118 @@ namespace BOTF3D.Galaxy
             Debug.Log($"EncounterQueue: queued FleetVsSystem — {fleet.name} at {sys.name} ({pending.Count} pending)");
         }
 
+        public void Clear() => pending.Clear();
+
+        // Server-only: this queue's state (and the SyncVar counters it mutates) only means anything
+        // authoritatively on the server. Non-host clients never populate `pending` in the first place
+        // (EnqueueFleetVsFleet/EnqueueFleetVsSystem are only ever called from FleetController's
+        // isServer-gated OnTriggerEnter branches), so this is a no-op on them regardless.
+        private void FixedUpdate()
+        {
+            if (!NetworkServer.active) return;
+            ProcessPendingForThisTick();
+        }
+
         /// <summary>
-        /// Resolve and remove the next encounter in the queue.
-        /// Call repeatedly (e.g. from a "Next" button on the diplomacy panel) until HasPending is false.
+        /// Resolves every encounter queued during this physics tick, grouped by connected component
+        /// (union-find over shared fleets/systems) so a 3+-way simultaneous convergence freezes every
+        /// participant before any single pair is resolved through the normal 2-party Diplomacy UI.
         /// </summary>
-        public void ResolveNext()
+        public void ProcessPendingForThisTick()
         {
             if (pending.Count == 0) return;
 
-            var record = pending[0];
-            pending.RemoveAt(0);
+            var records = new List<EncounterRecord>(pending);
+            pending.Clear();
 
-            // Skip records whose actors were destroyed between queuing and resolution.
-            // Resolution is broadcast to every client (see FleetController.ServerNotify*Encounter)
-            // instead of calling DiplomacyManager directly here, since DrainAll only ever runs on the
-            // server and DiplomacyManager is an unnetworked per-client singleton - calling it directly
-            // here would only ever open the Diplomacy UI on the host's own screen.
-            if (record.Kind == EncounterKind.FleetVsFleet)
+            // Union-find over participants (FleetController or StarSysController as Object keys).
+            var parent = new Dictionary<Object, Object>();
+            Object Find(Object x)
             {
-                if (record.FleetA != null && record.FleetB != null)
-                    record.FleetA.ServerNotifyFleetVsFleetEncounter(record.FleetB);
-                else if (HasPending)
-                    ResolveNext();
+                while (parent[x] != x)
+                {
+                    parent[x] = parent[parent[x]]; // path compression
+                    x = parent[x];
+                }
+                return x;
             }
-            else
+            void Union(Object a, Object b)
             {
-                if (record.FleetA != null && record.StarSys != null)
-                    record.FleetA.ServerNotifyFleetVsSystemEncounter(record.StarSys);
-                else if (HasPending)
-                    ResolveNext();
+                Object rootA = Find(a);
+                Object rootB = Find(b);
+                if (rootA != rootB) parent[rootA] = rootB;
+            }
+            void EnsureRegistered(Object x)
+            {
+                if (!parent.ContainsKey(x)) parent[x] = x;
+            }
+
+            foreach (var record in records)
+            {
+                if (record.Kind == EncounterKind.FleetVsFleet)
+                {
+                    if (record.FleetA == null || record.FleetB == null) continue;
+                    EnsureRegistered(record.FleetA);
+                    EnsureRegistered(record.FleetB);
+                    Union(record.FleetA, record.FleetB);
+                }
+                else
+                {
+                    if (record.FleetA == null || record.StarSys == null) continue;
+                    EnsureRegistered(record.FleetA);
+                    EnsureRegistered(record.StarSys);
+                    Union(record.FleetA, record.StarSys);
+                }
+            }
+
+            // Group records by connected component root.
+            var groups = new Dictionary<Object, List<EncounterRecord>>();
+            foreach (var record in records)
+            {
+                Object anchor = record.FleetA;
+                if (anchor == null) continue;
+                if (!parent.ContainsKey(anchor)) continue; // was skipped above (null participant)
+
+                Object root = Find(anchor);
+                if (!groups.TryGetValue(root, out var list))
+                {
+                    list = new List<EncounterRecord>();
+                    groups[root] = list;
+                }
+                list.Add(record);
+            }
+
+            foreach (var group in groups.Values)
+            {
+                // Freeze every participant in this component before resolving any pair within it -
+                // this is what removes the "whichever collider fired first" initiative advantage.
+                var participants = new HashSet<Object>();
+                foreach (var record in group)
+                {
+                    participants.Add(record.FleetA);
+                    if (record.Kind == EncounterKind.FleetVsFleet) participants.Add(record.FleetB);
+                    // FleetVsSystem: the StarSysController side has no pending-encounter counter of
+                    // its own (only FleetController does - a system can't "move"), so nothing to
+                    // increment there.
+                }
+                foreach (var participant in participants)
+                {
+                    if (participant is FleetController fleetCon)
+                        fleetCon.ServerIncrementPendingEncounters();
+                }
+
+                // Resolve each pair. For components of 3+ participants this runs pairwise, sequentially,
+                // through the existing 2-party Diplomacy UI while the whole group stays frozen - no new
+                // N-way UI (per confirmed scope).
+                foreach (var record in group)
+                {
+                    if (record.Kind == EncounterKind.FleetVsFleet)
+                        record.FleetA.ServerNotifyFleetVsFleetEncounter(record.FleetB);
+                    else
+                        record.FleetA.ServerNotifyFleetVsSystemEncounter(record.StarSys);
+                }
             }
         }
-
-        /// <summary>
-        /// Drain the entire queue at once (called from TimeManager.ProcessTurnEvents).
-        /// </summary>
-        public void DrainAll()
-        {
-            while (HasPending)
-                ResolveNext();
-        }
-
-        public void Clear() => pending.Clear();
 
         private void OnDestroy()
         {

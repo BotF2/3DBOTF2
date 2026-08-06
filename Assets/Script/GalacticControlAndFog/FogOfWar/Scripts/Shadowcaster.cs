@@ -441,6 +441,18 @@ namespace FischlWorks_FogWar
 
         private bool IsTileEmpty(Vector2Int quadrantPoint)
         {
+            // IsTileObstacle() and IsTileEmpty() both query the raw obstacle grid, and
+            // ProcessLevelData() relies on the two being consistent (a tile is either
+            // obstacle or empty, never both/neither) to decide when to split or continue
+            // a column. Excluding self-obstacle depth only from IsTileObstacle left
+            // IsTileEmpty still reporting those same cells as non-empty, which halted
+            // outward propagation at the self-collider's own ring in every quadrant -
+            // this mirrors the exclusion here so the two stay consistent.
+            if (quadrantPoint.x <= selfShadowExclusionDepth)
+            {
+                return true;
+            }
+
             Vector2Int levelCoordinates = quadrantIterator.QuadrantToLevel(quadrantPoint);
 
             if (fogWar.CheckLevelGridRange(levelCoordinates) == false)
@@ -453,8 +465,24 @@ namespace FischlWorks_FogWar
 
 
 
+        // A revealer sitting exactly on top of its own obstacle footprint (e.g. a star system's
+        // click/selection collider, which shares the fog obstacle layer and is wide enough to
+        // spill into the level grid cells immediately touching the system's own position) would
+        // otherwise get its own light walled off one cell out in every direction - a "half circle"
+        // instead of full 360-degree coverage, since roughly half of each 90-degree quadrant's
+        // continuation gets cut off at the first ring. Real obstacles belonging to OTHER systems
+        // are always many cells further away than this, so suppressing obstacle-ness within this
+        // radius of the CURRENT revealer's own origin only ever masks a revealer's self-overlap -
+        // occlusion from neighboring stars is untouched.
+        private const int selfShadowExclusionDepth = 1;
+
         private bool IsTileObstacle(Vector2Int quadrantPoint)
         {
+            if (quadrantPoint.x <= selfShadowExclusionDepth)
+            {
+                return false;
+            }
+
             Vector2Int levelCoordinates = quadrantIterator.QuadrantToLevel(quadrantPoint);
 
             if (fogWar.CheckLevelGridRange(levelCoordinates) == false)

@@ -66,6 +66,30 @@ namespace BOTF3D.Galaxy
         [SyncVar(hook = nameof(OnCivEnumChanged))]
         public CivEnum SyncedCivEnum;
 
+        // Counter (not bool) because a fleet can be a party to more than one concurrent encounter
+        // group (see GalaxyEncounterQueue's simultaneous-convergence batching) - a bool would risk one
+        // resolution path clearing a flag another still-pending encounter needs. Server-detected state,
+        // never set from client code directly - mutate only via the Server helpers below so non-host
+        // clients still see it replicate (see standing project note on FleetData mutations needing an
+        // explicit relay or silently no-op-ing on non-host clients).
+        [SyncVar]
+        private int syncedPendingEncounterCount = 0;
+        public bool IsAwaitingEncounterResolution => syncedPendingEncounterCount > 0;
+
+        [Server]
+        public void ServerIncrementPendingEncounters()
+        {
+            syncedPendingEncounterCount++;
+            Debug.Log($"[EncounterGate] {name}: pending++ -> {syncedPendingEncounterCount}");
+        }
+
+        [Server]
+        public void ServerDecrementPendingEncounters()
+        {
+            syncedPendingEncounterCount = Mathf.Max(0, syncedPendingEncounterCount - 1);
+            Debug.Log($"[EncounterGate] {name}: pending-- -> {syncedPendingEncounterCount}");
+        }
+
         // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the
         // initial spawn sync. Keeps a non-host client's already-built FleetData/slider in sync with
         // fleet composition changes it has no other way of detecting.
@@ -345,7 +369,9 @@ namespace BOTF3D.Galaxy
         public GameObject GalaxyCanvasGo;
         public string Name;
         public int intName = 1;
-        // Units-per-second scaler. Tune this in the Inspector on the fleet prefab.
+        // Units-per-second scaler. Tune this in the Inspector on the fleet prefab, against
+        // a Small game (GalaxySizeExtensions.SpeedScale() == 1x there) - Medium/Large/Extreme
+        // are then automatically slowed proportionally, see GalaxySizeSpeedScale below.
         // 4f ≈ 60% slower than the original 10f baseline.
         [SerializeField] private float warpFudgeFactor = 4f;
         private Rigidbody rb;
@@ -420,6 +446,24 @@ namespace BOTF3D.Galaxy
         private GameController gameController;
         private float distanceToDestination;
 
+        // Cached per-fleet since GalaxySize is fixed for the life of a game; see
+        // GalaxySizeExtensions.SpeedScale for why this keeps larger maps' fleet speed
+        // proportional to the Small-map tuning baseline instead of needing its own pass.
+        private float? galaxySizeSpeedScale;
+        private float GalaxySizeSpeedScale
+        {
+            get
+            {
+                if (galaxySizeSpeedScale == null)
+                {
+                    galaxySizeSpeedScale = GameController.Instance != null
+                        ? GameController.Instance.GameData.GalaxySize.SpeedScale()
+                        : 1f;
+                }
+                return galaxySizeSpeedScale.Value;
+            }
+        }
+
         private void Awake()
         {
             gameController = GameController.Instance;
@@ -486,7 +530,8 @@ namespace BOTF3D.Galaxy
         private void FixedUpdate()
         {
             if (FleetData == null) return;
-            if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase != TurnPhase.TurnProgression) return;
+            if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase == TurnPhase.InterTurn) return;
+            if (IsAwaitingEncounterResolution) return;
 
             // ── Intercept mode ────────────────────────────────────────────────
             // Checked via IsPursuingIntercept rather than "InterceptTarget != null": a destroyed
@@ -649,7 +694,7 @@ namespace BOTF3D.Galaxy
 
                 float howFast = Mathf.Min(FleetData.CurrentWarpFactor, FleetData.MaxWarpFactor);
                 Vector3 nextPos = Vector3.MoveTowards(rb.position, interceptPoint,
-                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                    howFast * warpFudgeFactor * GalaxySizeSpeedScale * Time.fixedDeltaTime);
                 rb.MovePosition(nextPos);
                 FleetData.Position = nextPos;
             }
@@ -765,30 +810,20 @@ namespace BOTF3D.Galaxy
                         if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum) // enemy fleet
                         {
                             // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
-                            // is only ever drained on the server (TimeManager's TimeProgression
-                            // coroutine returns early on non-host clients), and DiplomacyManager is a
-                            // plain, unnetworked per-client singleton - resolving this locally on
-                            // whichever client's physics happened to fire this trigger previously only
-                            // ever opened the Diplomacy UI on that one machine. ServerNotify*Encounter
-                            // (below) broadcasts the decision to every client via ClientRpc instead.
+                            // is only ever processed on the server, and DiplomacyManager is a plain,
+                            // unnetworked per-client singleton - resolving this locally on whichever
+                            // client's physics happened to fire this trigger would only ever open the
+                            // Diplomacy UI on that one machine. Always queue rather than resolving
+                            // inline here: GalaxyEncounterQueue.ProcessPendingForThisTick (run once per
+                            // physics step, after every fleet's own FixedUpdate) groups everything that
+                            // arrived in the same tick before resolving any of it, so two fleets that
+                            // converge on each other simultaneously are drawn into the same decision
+                            // instead of whichever collider fired first getting an initiative advantage.
                             if (isServer)
                             {
                                 hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
-
-                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
-                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
-
-                                if (duringProgression)
-                                {
-                                    // Defer: queue and let ProcessTurnEvents handle it
-                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
-                                    Debug.Log($"OnTriggerEnter: FleetVsFleet queued (TurnProgression) — {name} vs {hitFleetCon.name}");
-                                }
-                                else
-                                {
-                                    OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                    ServerNotifyFleetVsFleetEncounter(hitFleetCon);
-                                }
+                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
                             }
 
                             // Client-local visibility reveal (per-civ "have we met" cache) - every
@@ -834,22 +869,11 @@ namespace BOTF3D.Galaxy
                             if (weAreLocalPlayer)
                                 EncounterUnknownSystemShowName(collider.gameObject);
 
-                            // Same server-authoritative reasoning as the fleet-vs-fleet branch above.
+                            // Same server-authoritative reasoning as the fleet-vs-fleet branch above -
+                            // always queue and let GalaxyEncounterQueue.ProcessPendingForThisTick group
+                            // and resolve it, instead of resolving inline here.
                             if (isServer)
-                            {
-                                bool duringProgression = BOTF3D.Core.TimeManager.Instance != null &&
-                                    BOTF3D.Core.TimeManager.Instance.TurnPhase == BOTF3D.Core.TurnPhase.TurnProgression;
-
-                                if (duringProgression)
-                                {
-                                    GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
-                                    Debug.Log($"OnTriggerEnter: FleetVsSystem queued (TurnProgression) — {name} at {sysCon.name}");
-                                }
-                                else
-                                {
-                                    ServerNotifyFleetVsSystemEncounter(sysCon);
-                                }
-                            }
+                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
                         }
                         else
                         {
@@ -1227,7 +1251,7 @@ namespace BOTF3D.Galaxy
                     this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
 
                 Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
-                    howFast * warpFudgeFactor * Time.fixedDeltaTime);
+                    howFast * warpFudgeFactor * GalaxySizeSpeedScale * Time.fixedDeltaTime);
                 rb.MovePosition(nextPosition);
                 this.FleetData.Position = nextPosition;
             }
@@ -1921,8 +1945,16 @@ namespace BOTF3D.Galaxy
             if (otherFleetCon == null) return;
 
             // ClientRpc reaches every connected client, not just the two combatants - a bystander
-            // civ (no ships in this encounter) has no business having its Diplomacy UI opened.
-            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherFleetCon.FleetData.CivEnum)) return;
+            // civ (no ships in this encounter) has no business having its Diplomacy UI opened. The
+            // host is the one exception: DiplomacyController.DoAIDiplomacy's AI Fight/Withdraw
+            // decision (and the unresponsive-human timeout fallback) only ever runs where
+            // NetworkServer.active is true, but DiplomacyManager is an unnetworked per-client
+            // singleton - if the host bailed out here as a bystander, no DiplomacyController for
+            // this pair would ever exist anywhere, and an AI-vs-AI (or AI-owned-system) encounter
+            // with neither party played by the host would freeze forever with nothing to resolve
+            // it. The host still processes headlessly here; UI only opens for whichever side is
+            // actually the local player (see InstantiateDiplomacyUIGameObject/DoAIDiplomacy).
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherFleetCon.FleetData.CivEnum) && !NetworkServer.active) return;
 
             FleetUI?.MoveBackAnyaFleetUIGO();
             DiplomacyManager.Instance.FleetControllerVsOtherCivFleet(this, otherFleetCon);
@@ -1941,8 +1973,8 @@ namespace BOTF3D.Galaxy
             StarSysController sysCon = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
             if (sysCon == null) return;
 
-            // Same bystander guard as RpcFleetVsFleetEncounter above.
-            if (!IsLocalPlayerACombatant(FleetData.CivEnum, sysCon.StarSysData.CurrentOwnerCivEnum)) return;
+            // Same bystander/host guard as RpcFleetVsFleetEncounter above.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, sysCon.StarSysData.CurrentOwnerCivEnum) && !NetworkServer.active) return;
 
             FleetUI?.MoveBackAnyaFleetUIGO();
             DiplomacyManager.Instance.ResolveEncounterOtherCivSystem(this, sysCon);
@@ -2040,6 +2072,73 @@ namespace BOTF3D.Galaxy
         {
             return GameController.Instance != null &&
                    (GameController.Instance.AreWeLocalPlayer(civA) || GameController.Instance.AreWeLocalPlayer(civB));
+        }
+
+        // Entry point called from DiplomacyController.SetResponse for a human player's Fight/
+        // Withdraw click - mirrors RequestStartCombat's relay pattern. isSideOne means "this
+        // response belongs to the DiplomacyData.CivOne/FleetControllerCivOne party" and is passed
+        // through as plain data, not inferred from "this" fleet, which is only the transport.
+        public void RequestSetEncounterResponse(bool isSideOne, DiplomacyData.EncounterResponse response, FleetController otherFleetCon, StarSysController sysCon)
+        {
+            if (isServer)
+            {
+                ServerSetEncounterResponse(isSideOne, response, otherFleetCon, sysCon);
+                return;
+            }
+
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            CmdSetEncounterResponse(isSideOne, response, otherIdentity, sysName);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetEncounterResponse(bool isSideOne, DiplomacyData.EncounterResponse response, NetworkIdentity otherFleetIdentity, string starSysName, NetworkConnectionToClient sender = null)
+        {
+            LocalHumanPlayerController playerCon = sender?.identity != null ? sender.identity.GetComponent<LocalHumanPlayerController>() : null;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"CmdSetEncounterResponse: connection {sender?.connectionId} has no LocalHumanPlayerController.");
+                return;
+            }
+
+            if (FleetData == null || playerCon.PlayerCiv != FleetData.CivEnum)
+            {
+                Debug.LogWarning($"CmdSetEncounterResponse: connection {sender?.connectionId} (civ {playerCon.PlayerCiv}) does not control this fleet - request ignored.");
+                return;
+            }
+
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+            ServerSetEncounterResponse(isSideOne, response, otherFleetCon, sysCon);
+        }
+
+        // Also called directly (no Cmd/human sender) from DiplomacyController.DoAIDiplomacy for an
+        // AI-controlled side, since there's no LocalHumanPlayerController to authorize a Cmd for -
+        // the server already has full authority over every spawned object, AI-owned or not.
+        [Server]
+        public void ServerSetEncounterResponse(bool isSideOne, DiplomacyData.EncounterResponse response, FleetController otherFleetCon, StarSysController sysCon)
+        {
+            NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
+            RpcSetEncounterResponse(isSideOne, response, otherIdentity, sysName);
+        }
+
+        [ClientRpc]
+        private void RpcSetEncounterResponse(bool isSideOne, DiplomacyData.EncounterResponse response, NetworkIdentity otherFleetIdentity, string starSysName)
+        {
+            FleetController otherFleetCon = otherFleetIdentity != null ? otherFleetIdentity.GetComponent<FleetController>() : null;
+            StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
+            CivEnum otherCiv = otherFleetCon != null ? otherFleetCon.FleetData.CivEnum
+                : (sysCon != null ? sysCon.StarSysData.CurrentOwnerCivEnum : FleetData.CivEnum);
+
+            // Same bystander/host guard as RpcFleetVsFleetEncounter above - the host must still
+            // apply the authoritative response to its own headless DiplomacyController even when
+            // it isn't a combatant, so TryResolveEncounter's Fight/Withdraw side effects actually
+            // fire server-side.
+            if (!IsLocalPlayerACombatant(FleetData.CivEnum, otherCiv) && !NetworkServer.active) return;
+
+            DiplomacyController diploCon = DiplomacyManager.Instance?.ReturnADiplomacyController(FleetData.CivEnum, otherCiv);
+            diploCon?.SetResponse(isSideOne, response, false);
         }
 
         [Server]

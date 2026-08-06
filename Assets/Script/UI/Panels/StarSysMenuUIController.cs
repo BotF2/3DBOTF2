@@ -487,7 +487,10 @@ namespace BOTF3D.UI
                 if (fields.factoryImage != null)
                     fields.factoryImage.sprite = ThemeManager.Instance.CurrentTheme.FactoryImage;
                 if (fields.shipyardImage != null)
-                    fields.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.ShipyardImage;
+                {
+                    TechLevel ownerTechLevel = sysCon.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+                    fields.shipyardImage.sprite = ThemeManager.Instance.CurrentTheme.GetShipyardImage(ownerTechLevel);
+                }
                 if (fields.shieldPlanetImage != null)
                     fields.shieldPlanetImage.sprite = ThemeManager.Instance.CurrentTheme.ShieldImage;
                 if (fields.orbitalBatteriesImage != null)
@@ -671,6 +674,7 @@ namespace BOTF3D.UI
                 theSysCon.StarSysUIGameObject.transform.SetParent(ASystemMenuView.transform, false);
                 theSysCon.StarSysUIGameObject.SetActive(true); // ✅ Ensure it's active
                 lastSysCon = theSysCon;
+                theSysCon.SetSelected(true);
 
                 // Single-system detail view: always show ExpandedContent, with the
                 // Expand button also visible so it can toggle collapse.
@@ -1548,6 +1552,12 @@ namespace BOTF3D.UI
                         child.gameObject.SetActive(false);
                     }
                 }
+            }
+
+            if (lastSysCon != null)
+            {
+                lastSysCon.SetSelected(false);
+                lastSysCon = null;
             }
 
             ActiveStarSysController = null;
