@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_218_BRENTARIS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 218
-  Position: {x: -52, y: 0, z: 45}
+  Position: {x: -20.99, y: 0, z: -72.69}
   SysName: BRENTARIS
   FirstOwner: 218
   CurrentOwner: 218

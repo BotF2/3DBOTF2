@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_215_DRENNAKAR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 215
-  Position: {x: -50, y: 0, z: 30}
+  Position: {x: -36.45, y: 0, z: -34.47}
   SysName: DRENNAKAR
   FirstOwner: 215
   CurrentOwner: 215

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_217_NAKOVA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 217
-  Position: {x: -25, y: 0, z: 48}
+  Position: {x: -51.4, y: 0, z: -42.22}
   SysName: NAKOVA
   FirstOwner: 217
   CurrentOwner: 217

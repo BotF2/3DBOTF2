@@ -1410,7 +1410,15 @@ namespace BOTF3D.Galaxy
 
             }
         }
-        private StarSysSO GetStarSObyInt(int sysInt)
+        /// <summary>
+        /// Looks up a StarSysSO by its StarSysInt - the robust join key between a CivSO and its home
+        /// system (CivInt == CivEnum ordinal == the matching StarSysSO.StarSysInt for every civ, see
+        /// CivManager's quadrant/major-balancing code). Prefer this over GetStarSysSOByName for any
+        /// civ-to-home-system resolution: CivSO.CivHomeSystem is free-text and can drift out of sync
+        /// with StarSysSO.SysName (e.g. "OMARIAN_NEBULA" vs "OMARIAN NEBULA" for the Dominion) even
+        /// when the underlying data is otherwise correct.
+        /// </summary>
+        public StarSysSO GetStarSObyInt(int sysInt)
         {
             if (starSysSOList == null || starSysSOList.Count == 0)
             {

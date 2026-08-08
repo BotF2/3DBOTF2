@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_234_VESTIGAR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 234
-  Position: {x: -52.39, y: 0, z: 63.7}
+  Position: {x: 11.65, y: 0, z: 57.66}
   SysName: VESTIGAR
   FirstOwner: 234
   CurrentOwner: 234

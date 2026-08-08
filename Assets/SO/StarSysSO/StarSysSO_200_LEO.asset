@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_200_LEO
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 200
-  Position: {x: 13.94, y: 0.42, z: -25.09}
+  Position: {x: -12.52, y: 0.42, z: -9.33}
   SysName: LEO
   FirstOwner: 200
   CurrentOwner: 200

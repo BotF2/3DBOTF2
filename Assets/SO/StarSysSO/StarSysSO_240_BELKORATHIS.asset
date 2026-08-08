@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_240_BELKORATHIS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 240
-  Position: {x: -62.96, y: 0, z: 28.88}
+  Position: {x: -26.38, y: 0, z: -13.56}
   SysName: BELKORATHIS
   FirstOwner: 240
   CurrentOwner: 240

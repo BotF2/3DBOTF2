@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_220_KRYNTHOS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 220
-  Position: {x: -40, y: 0, z: 68}
+  Position: {x: -26.62, y: 0, z: -56.29}
   SysName: KRYNTHOS
   FirstOwner: 220
   CurrentOwner: 220

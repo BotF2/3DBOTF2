@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_236_XALOR_PRIME
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 236
-  Position: {x: -59.06, y: 0, z: 33.82}
+  Position: {x: -61.78, y: 0, z: -38.94}
   SysName: XALOR PRIME
   FirstOwner: 236
   CurrentOwner: 236

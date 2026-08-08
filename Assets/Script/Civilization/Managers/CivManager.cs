@@ -69,12 +69,13 @@ namespace BOTF3D.Civilization
         {
             if (galaxyType == GalaxyMapType.CANON)
             {
-                // Quadrant-stratified selection (see SelectQuadrantStratifiedCanonCivs): every
-                // quadrant (Alpha/Beta/Delta/Gamma) always gets its own majors, then is topped up to
-                // an identical per-quadrant civ/placeholder target from its own pool only - so no
-                // quadrant can crowd out another's minors/placeholders the way the old single
-                // shuffle-over-everything approach could.
-                List<CivSO> _SOsInGame = SelectQuadrantStratifiedCanonCivs((GalaxySize)galaxySize);
+                // Nearest-major-stratified selection (see SelectMajorStratifiedCanonCivs): every one
+                // of the 7 majors always gets included, then is topped up to an identical per-major
+                // civ/placeholder target from the minors/placeholders actually closest to ITS home
+                // system (not just "same quadrant" - a system near a quadrant border is grouped with
+                // whichever major it's genuinely nearest to, majors included). No major's territory
+                // can crowd out another's the way the old single shuffle-over-everything approach could.
+                List<CivSO> _SOsInGame = SelectMajorStratifiedCanonCivs((GalaxySize)galaxySize);
                 CivSOsInGame = _SOsInGame;
 
                 Debug.Log($"=== CANON galaxy generated: {CivSOsInGame.Count} civs: {string.Join(", ", CivSOsInGame.Select(c => c.CivShortName))} ===");
@@ -135,7 +136,7 @@ namespace BOTF3D.Civilization
                 Debug.LogWarning("RING galaxy type not yet implemented - using CANON logic");
 
                 // ✅ Fallback to CANON for now
-                CivSOsInGame = SelectQuadrantStratifiedCanonCivs((GalaxySize)galaxySize);
+                CivSOsInGame = SelectMajorStratifiedCanonCivs((GalaxySize)galaxySize);
             }
             else if (galaxyType == GalaxyMapType.WHATEVER)
             {
@@ -144,140 +145,154 @@ namespace BOTF3D.Civilization
             }
 
         }
-        /// <summary>
-        /// The four galaxy quadrants, classified the same way the Background of the quadrant-balancing
-        /// change describes it and the way GalaxyPositionBounds-relative StarSysSO.Position signs work:
-        /// Beta = (x>=0, z&lt;0), Alpha = (x&lt;0, z&lt;0), Delta = (x>=0, z>=0, home to Borg),
-        /// Gamma = (x&lt;0, z>=0, home to Dominion).
-        /// </summary>
-        private enum Quadrant { Alpha, Beta, Delta, Gamma }
-
-        private static Quadrant ClassifyQuadrant(Vector3 position)
-        {
-            bool xNonNegative = position.x >= 0f;
-            bool zNonNegative = position.z >= 0f;
-            if (xNonNegative && !zNonNegative) return Quadrant.Beta;
-            if (!xNonNegative && !zNonNegative) return Quadrant.Alpha;
-            if (xNonNegative && zNonNegative) return Quadrant.Delta;
-            return Quadrant.Gamma;
-        }
-
-        /// <summary>Per-quadrant civ/placeholder targets for CANON galaxy generation - identical
-        /// targets in every quadrant by design (see Phase 6 of the quadrant-balancing change).</summary>
-        private static (int civTarget, int placeholderTarget) GetQuadrantTargets(GalaxySize galaxySize)
+        /// <summary>Per-major civ/placeholder targets for CANON galaxy generation - identical targets
+        /// for every one of the 7 majors by design. EXTREME's (25, 7) is the actual minimum any major's
+        /// nearest-territory can currently supply (CARD/TERRAN have 25 minors nearby, FED/BORG have 7
+        /// habitable placeholders nearby) - every major can reach it without falling back. Recompute
+        /// these caps if BuildMajorPools's per-major territory sizes change materially (e.g. a new
+        /// major, or a large batch of new minors/placeholders added near a specific major).</summary>
+        private static (int civTarget, int placeholderTarget) GetMajorTargets(GalaxySize galaxySize)
         {
             switch (galaxySize)
             {
-                case GalaxySize.SMALL: return (12, 4);
-                case GalaxySize.MEDIUM: return (24, 8);
-                case GalaxySize.LARGE: return (36, 12);
-                case GalaxySize.EXTREME: return (48, 16);
-                default: return (12, 4);
+                case GalaxySize.SMALL: return (6, 2);
+                case GalaxySize.MEDIUM: return (13, 4);
+                case GalaxySize.LARGE: return (19, 5);
+                case GalaxySize.EXTREME: return (25, 7);
+                default: return (6, 2);
             }
         }
 
-        private class QuadrantCivPools
+        private class MajorCivPools
         {
-            public readonly List<CivSO> Majors = new List<CivSO>();
+            public CivSO Major;
             public readonly List<CivSO> Minors = new List<CivSO>();
             public readonly List<CivSO> Placeholders = new List<CivSO>();
         }
 
         /// <summary>
-        /// Classifies every CivSO in CivSOListAllPossible into its home quadrant's majors/minors/
-        /// placeholders pool by looking up its CivHomeSystem's StarSysSO.Position sign. Civs whose
-        /// home system can't be resolved (e.g. a data-entry mismatch between CivHomeSystem and any
-        /// StarSysSO.SysName) are logged and skipped rather than guessed at.
+        /// Classifies every non-major CivSO in CivSOListAllPossible into whichever of the 7 majors'
+        /// home system it is geometrically nearest to (weighted distance, same XWeight/ZWeight metric
+        /// GalaxyPositionBounds already uses for system spacing) - a proper Voronoi partition around
+        /// the majors' fixed canon positions, not a quadrant-boundary lookup. This is what makes a
+        /// system near a quadrant border land with whichever major it's actually closest to.
+        ///
+        /// Resolves each civ's home system via GetStarSObyInt(civSO.CivInt) - the robust integer join
+        /// (CivInt == the matching StarSysSO.StarSysInt) - rather than GetStarSysSOByName(CivHomeSystem),
+        /// since the free-text CivHomeSystem field can drift out of sync with StarSysSO.SysName (found
+        /// during this change: DOM's CivHomeSystem is "OMARIAN_NEBULA" but the actual SysName is
+        /// "OMARIAN NEBULA" - string lookup silently drops the Dominion as a major entirely). Civs
+        /// whose home system genuinely can't be resolved by int are logged and skipped rather than
+        /// guessed at.
         /// </summary>
-        private Dictionary<Quadrant, QuadrantCivPools> BuildQuadrantPools()
+        private Dictionary<CivEnum, MajorCivPools> BuildMajorPools()
         {
-            var pools = new Dictionary<Quadrant, QuadrantCivPools>
-            {
-                { Quadrant.Alpha, new QuadrantCivPools() },
-                { Quadrant.Beta, new QuadrantCivPools() },
-                { Quadrant.Delta, new QuadrantCivPools() },
-                { Quadrant.Gamma, new QuadrantCivPools() },
-            };
+            var pools = new Dictionary<CivEnum, MajorCivPools>();
+            var majorPositions = new Dictionary<CivEnum, Vector3>();
 
             foreach (CivSO civSO in CivSOListAllPossible)
             {
-                if (civSO == null) continue;
-
-                StarSysSO homeSystem = StarSysManager.Instance != null
-                    ? StarSysManager.Instance.GetStarSysSOByName(civSO.CivHomeSystem)
-                    : null;
-
+                if (civSO == null || !civSO.Playable) continue;
+                StarSysSO homeSystem = StarSysManager.Instance?.GetStarSObyInt(civSO.CivInt);
                 if (homeSystem == null)
                 {
                     GameLogger.LogWarning(GameLogger.LogCategory.General,
-                        $"[CivManager] Could not resolve home system '{civSO.CivHomeSystem}' for civ " +
-                        $"'{civSO.CivShortName}' while building quadrant pools for CANON selection - " +
+                        $"[CivManager] Could not resolve home system (CivInt {civSO.CivInt}) for major " +
+                        $"'{civSO.CivShortName}' while building major pools for CANON selection.");
+                    continue;
+                }
+                majorPositions[civSO.CivEnum] = homeSystem.Position;
+                pools[civSO.CivEnum] = new MajorCivPools { Major = civSO };
+            }
+
+            foreach (CivSO civSO in CivSOListAllPossible)
+            {
+                if (civSO == null || civSO.Playable) continue;
+
+                StarSysSO homeSystem = StarSysManager.Instance?.GetStarSObyInt(civSO.CivInt);
+                if (homeSystem == null)
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
+                        $"[CivManager] Could not resolve home system (CivInt {civSO.CivInt}) for civ " +
+                        $"'{civSO.CivShortName}' while building major pools for CANON selection - " +
                         "it will be excluded from this game's civ list.");
                     continue;
                 }
 
-                Quadrant quadrant = ClassifyQuadrant(homeSystem.Position);
-                QuadrantCivPools quadrantPools = pools[quadrant];
+                CivEnum nearestMajor = NearestMajor(homeSystem.Position, majorPositions);
+                MajorCivPools majorPools = pools[nearestMajor];
 
-                if (civSO.Playable)
-                    quadrantPools.Majors.Add(civSO);
-                else if (civSO.CivEnum.ToString().StartsWith("ZZUNINHABITED"))
-                    quadrantPools.Placeholders.Add(civSO);
+                if (civSO.CivEnum.ToString().StartsWith("ZZUNINHABITED"))
+                    majorPools.Placeholders.Add(civSO);
                 else
-                    quadrantPools.Minors.Add(civSO);
+                    majorPools.Minors.Add(civSO);
             }
 
             return pools;
         }
 
+        private static CivEnum NearestMajor(Vector3 position, Dictionary<CivEnum, Vector3> majorPositions)
+        {
+            CivEnum nearest = default;
+            float nearestDist = float.MaxValue;
+            foreach (var kvp in majorPositions)
+            {
+                float dx = (position.x - kvp.Value.x) * GalaxyPositionBounds.XWeight;
+                float dz = (position.z - kvp.Value.z) * GalaxyPositionBounds.ZWeight;
+                float dist = Mathf.Sqrt(dx * dx + dz * dz);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearest = kvp.Key;
+                }
+            }
+            return nearest;
+        }
+
         /// <summary>
         /// Replaces the old SetRandomCanonCivsByGalaxySize single-shuffle-over-everything approach
-        /// (which had a loop-indexing quirk capping it at ~96% total coverage and no per-quadrant
-        /// awareness) with quadrant-aware selection: every quadrant always gets its own majors, then
-        /// is randomly topped up to an identical per-quadrant civ target from its own minor pool only
-        /// (never borrowing from another quadrant), then likewise for its placeholder target from its
-        /// own ZZUNINHABITED* pool. If a quadrant's pool can't reach a target, everything available is
-        /// included and a warning is logged instead of throwing.
+        /// (which had a loop-indexing quirk capping it at ~96% total coverage and no per-major
+        /// awareness) with nearest-major-aware selection: every major is always included, then is
+        /// randomly topped up to an identical per-major civ target from the minors actually closest to
+        /// IT (never borrowing from another major's territory), then likewise for its placeholder
+        /// target from its own nearest ZZUNINHABITED* pool. If a major's pool can't reach a target,
+        /// everything available is included and a warning is logged instead of throwing.
         /// </summary>
-        private List<CivSO> SelectQuadrantStratifiedCanonCivs(GalaxySize galaxySize)
+        private List<CivSO> SelectMajorStratifiedCanonCivs(GalaxySize galaxySize)
         {
-            (int civTarget, int placeholderTarget) = GetQuadrantTargets(galaxySize);
-            Dictionary<Quadrant, QuadrantCivPools> pools = BuildQuadrantPools();
+            (int civTarget, int placeholderTarget) = GetMajorTargets(galaxySize);
+            Dictionary<CivEnum, MajorCivPools> pools = BuildMajorPools();
             List<CivSO> result = new List<CivSO>();
 
-            foreach (Quadrant quadrant in new[] { Quadrant.Alpha, Quadrant.Beta, Quadrant.Delta, Quadrant.Gamma })
+            foreach (MajorCivPools majorPools in pools.Values)
             {
-                QuadrantCivPools quadrantPools = pools[quadrant];
+                // Always include the major itself.
+                result.Add(majorPools.Major);
 
-                // Always include majors homed in this quadrant.
-                result.AddRange(quadrantPools.Majors);
-
-                // Randomly fill up to the civ target from this quadrant's own minor pool only.
+                // Randomly fill up to the civ target from this major's own nearest-minors pool only.
                 // UnityEngine.Random (not Guid.NewGuid) so this replays identically across clients
                 // when seeded via UnityEngine.Random.InitState before generation.
-                int minorSlotsRemaining = Mathf.Max(0, civTarget - quadrantPools.Majors.Count);
-                List<CivSO> shuffledMinors = quadrantPools.Minors.OrderBy(_ => UnityEngine.Random.value).ToList();
-                int minorsToTake = Mathf.Min(minorSlotsRemaining, shuffledMinors.Count);
-                if (minorsToTake < minorSlotsRemaining)
+                List<CivSO> shuffledMinors = majorPools.Minors.OrderBy(_ => UnityEngine.Random.value).ToList();
+                int minorsToTake = Mathf.Min(civTarget, shuffledMinors.Count);
+                if (minorsToTake < civTarget)
                 {
                     GameLogger.LogWarning(GameLogger.LogCategory.General,
-                        $"[CivManager] {quadrant} quadrant minor pool exhausted for {galaxySize} CANON " +
-                        $"generation: wanted {minorSlotsRemaining} more civs to reach target {civTarget} " +
-                        $"(after {quadrantPools.Majors.Count} majors), only {shuffledMinors.Count} minors " +
-                        "available in this quadrant's pool. Including all available instead.");
+                        $"[CivManager] {majorPools.Major.CivShortName}'s minor pool exhausted for " +
+                        $"{galaxySize} CANON generation: wanted {civTarget}, only {shuffledMinors.Count} " +
+                        "available nearby. Including all available instead.");
                 }
                 result.AddRange(shuffledMinors.Take(minorsToTake));
 
-                // Randomly fill up to the placeholder target from this quadrant's own
+                // Randomly fill up to the placeholder target from this major's own nearest
                 // ZZUNINHABITED*-owned pool only.
-                List<CivSO> shuffledPlaceholders = quadrantPools.Placeholders.OrderBy(_ => UnityEngine.Random.value).ToList();
+                List<CivSO> shuffledPlaceholders = majorPools.Placeholders.OrderBy(_ => UnityEngine.Random.value).ToList();
                 int placeholdersToTake = Mathf.Min(placeholderTarget, shuffledPlaceholders.Count);
                 if (placeholdersToTake < placeholderTarget)
                 {
                     GameLogger.LogWarning(GameLogger.LogCategory.General,
-                        $"[CivManager] {quadrant} quadrant placeholder pool exhausted for {galaxySize} " +
-                        $"CANON generation: wanted {placeholderTarget}, only {shuffledPlaceholders.Count} " +
-                        "available in this quadrant's pool. Including all available instead.");
+                        $"[CivManager] {majorPools.Major.CivShortName}'s placeholder pool exhausted for " +
+                        $"{galaxySize} CANON generation: wanted {placeholderTarget}, only " +
+                        $"{shuffledPlaceholders.Count} available nearby. Including all available instead.");
                 }
                 result.AddRange(shuffledPlaceholders.Take(placeholdersToTake));
             }
