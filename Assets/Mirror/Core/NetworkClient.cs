@@ -423,6 +423,17 @@ namespace Mirror
         //            => which we do by setting the state to Disconnected!
         internal static void OnTransportDisconnected()
         {
+            // TEMP DIAGNOSTIC (2026-08-07f): chasing a bug where a bystander client's entire Mirror
+            // state (including its own player object, netId=5, and every fleet by its real original
+            // netId) gets rebuilt from scratch mid-game with zero visible disconnect/reconnect text
+            // anywhere in the console - proven happening via app-level evidence (OnPlayerCivChanged
+            // re-firing with oldCiv defaulting back to FED), but never caught directly at the source.
+            // This is Mirror's one guaranteed entry point for ANY disconnect, transport-initiated or
+            // StopClient-triggered - if it fires, this log (with connectState logged BEFORE the
+            // early-return check, so double-fires are visible too) proves it and the stack trace
+            // shows why. Remove once root-caused.
+            Debug.LogWarning($"💔[ClientDisconnectDiag] OnTransportDisconnected called - connectState={connectState}\nStackTrace:\n{UnityEngine.StackTraceUtility.ExtractStackTrace()}");
+
             // StopClient called from user code triggers Disconnected event
             // from transport which calls StopClient again, so check here
             // and short circuit running the Shutdown process twice.
@@ -1176,6 +1187,17 @@ namespace Mirror
                 return true;
             }
 
+            // TEMP DIAGNOSTIC (2026-08-07): chasing a bystander-client fleet-duplication bug (see
+            // project_bystander_fleet_duplication memory). Stack trace removed (2026-08-07b) -
+            // ExtractStackTrace() is expensive and this fires in a tight burst when the bug happens
+            // (6+ times in a row observed), raising a real risk that the diagnostic itself was
+            // causing a frame hitch long enough for KCP to treat the connection as lost and silently
+            // resync it - which would produce exactly this symptom (a full spawn burst with no
+            // visible app-level disconnect). Keeping only the cheap dictionary-lookup info. Remove
+            // entirely once root-caused.
+            bool keyExisted = spawned.ContainsKey(message.netId);
+            Debug.LogWarning($"🔍[SpawnDupeDiag] FindOrSpawnObject: netId={message.netId} assetId={message.assetId} not found as live identity - keyExistedInSpawnedDict={keyExisted} (about to Instantiate a new copy). spawned.Count={spawned.Count}");
+
             if (message.assetId == 0 && message.sceneId == 0)
             {
                 Debug.LogError($"OnSpawn message with netId '{message.netId}' has no AssetId or sceneId");
@@ -1299,6 +1321,12 @@ namespace Mirror
         internal static void OnObjectSpawnStarted(ObjectSpawnStartedMessage _)
         {
             // Debug.Log("SpawnStarted");
+            // TEMP DIAGNOSTIC (2026-08-07): chasing bystander-fleet-teleport bug. If this fires
+            // while isSpawnFinished=true, the server sent a SECOND ObjectSpawnStartedMessage
+            // mid-game (i.e. SpawnObserversForConnection was called again for this client).
+            // That is the re-burst trigger that resets all SyncVar state via ApplySpawnPayload.
+            // Tag: 🌅[SpawnStartDiag] Remove once root-caused.
+            Debug.LogWarning($"🌅[SpawnStartDiag] OnObjectSpawnStarted: isSpawnFinished(was)={isSpawnFinished} spawned.Count={spawned.Count} ready={ready}\n{System.Environment.StackTrace}");
             PrepareToSpawnSceneObjects();
             pendingSpawns.Clear();
             isSpawnFinished = false;
@@ -1697,6 +1725,12 @@ namespace Mirror
         // Note: NetworkServer.CleanupNetworkIdentities does the same on server.
         public static void DestroyAllClientObjects()
         {
+            // TEMP DIAGNOSTIC (2026-08-07): chasing bystander-fleet-teleport bug. If this fires
+            // on Player 3 mid-game, something called Shutdown() or DestroyAllClientObjects()
+            // directly without going through OnTransportDisconnected. Tag: 🧨[ClientDestroyAllDiag]
+            // Remove once root-caused.
+            Debug.LogWarning($"🧨[ClientDestroyAllDiag] DestroyAllClientObjects() called. spawned.Count={spawned.Count} isSpawnFinished={isSpawnFinished} ready={ready}\n{System.Environment.StackTrace}");
+
             // user can modify spawned lists which causes InvalidOperationException
             // list can modified either in UnSpawnHandler or in OnDisable/OnDestroy
             // we need the Try/Catch so that the rest of the shutdown does not get stopped
@@ -1791,6 +1825,12 @@ namespace Mirror
 
                 // remove from dictionary no matter how it is unspawned
                 connection.owned.Remove(identity); // if any
+                // TEMP DIAGNOSTIC (2026-08-07): chasing bystander-fleet-teleport bug. Log every
+                // individual removal from spawned. If these fire on Player 3 mid-game for fleet
+                // netIds, the server sent ObjectHide/Destroy messages for them (which removes them
+                // from spawned before the re-spawn burst arrives, explaining keyExistedInSpawnedDict=False).
+                // Tag: 🗑️[SpawnedRemoveDiag] Remove once root-caused.
+                Debug.LogWarning($"🗑️[SpawnedRemoveDiag] DestroyObject: removing netId={netId} from spawned (was {identity.name}). spawned.Count before={spawned.Count}");
                 spawned.Remove(netId);
             }
             //else Debug.LogWarning($"Did not find target for destroy message for {netId}");

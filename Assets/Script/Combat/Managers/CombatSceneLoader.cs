@@ -70,12 +70,15 @@ namespace BOTF3D.Combat
 
             if (GameOverCanvas == null)
             {
-                Debug.LogError("❌ GameOverCanvas not found!");
+                // Scene object is named "CombatOverCanvas" (see CheckAndAssignCanvases) - kept as
+                // "GameOverCanvas" here since that's the public property name CombatManager/
+                // CombatUIManager already consume; only the scene-name lookup needed to change.
+                Debug.LogError("❌ CombatOverCanvas not found!");
                 success = false;
             }
             else
             {
-                Debug.Log($"✅ GameOverCanvas found: {GameOverCanvas.name}");
+                Debug.Log($"✅ CombatOverCanvas found: {GameOverCanvas.name}");
             }
 
             return success;
@@ -94,7 +97,7 @@ namespace BOTF3D.Combat
             {
                 Combat3DCanvas = obj;
             }
-            else if (obj.name == "GameOverCanvas" && GameOverCanvas == null)
+            else if (obj.name == "CombatOverCanvas" && GameOverCanvas == null)
             {
                 GameOverCanvas = obj;
             }
