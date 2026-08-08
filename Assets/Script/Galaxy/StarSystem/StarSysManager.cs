@@ -693,6 +693,13 @@ namespace BOTF3D.Galaxy
             if (civSO.HasWarp)
             {
                 FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon);
+
+                // Starting transports dock here instead of joining Fleet 1's roster - see
+                // ShipSOProvider.GetStartingHomeSystemShips / ShipManager.BuildHomeSystemTransports.
+                // Ungated by NetworkServer.active (unlike BuildFirstFleetsNearSyst above) because
+                // galaxy ships aren't Mirror-networked; every client rebuilds them locally here from
+                // the same civ + tech level, same as the home-defense Destroyer just below.
+                ShipManager.Instance.BuildHomeSystemTransports(starSysCon, starSysCon.StarSysData.CurrentOwnerCivEnum);
             }
 
             // Home system defense: majors always get their own lone Destroyer regardless of warp
