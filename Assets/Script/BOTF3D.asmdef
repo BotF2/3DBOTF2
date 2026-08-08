@@ -3,6 +3,7 @@
     "rootNamespace": "BOTF3D",
     "references": [
         "Mirror",
+        "Mirror.Components",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",

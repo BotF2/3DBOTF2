@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Mirror;
 using Scene = UnityEngine.SceneManagement.Scene;
 using BOTF3D.Civilization;
 using BOTF3D.Galaxy;
@@ -565,6 +566,11 @@ namespace BOTF3D.Core
             foreach (var fleetController in FleetManager.Instance.FleetControllerList)
             {
                 if (fleetController == null) continue;
+                // TEMP DIAGNOSTIC (2026-08-07): pinning the bystander-fleet-displaced-after-combat
+                // bug (see project_turn_structure memory) - logs each fleet's civ/position right
+                // before it's deactivated so a later ShowAllFleets log can be diffed against it.
+                // Remove once that bug is root-caused.
+                Debug.Log($"  [FleetHideShowDiag] HIDE '{fleetController.name}' civ={fleetController.FleetData?.CivEnum} pos={fleetController.transform.position} isServer={NetworkServer.active}");
                 fleetController.gameObject.SetActive(false);
                 hiddenCount++;
             }
@@ -585,6 +591,24 @@ namespace BOTF3D.Core
                 if (fleetController == null) continue;
                 fleetController.gameObject.SetActive(true);
                 shownCount++;
+                // TEMP DIAGNOSTIC (2026-08-07): see matching HIDE log in HideAllFleets - diff the
+                // two to see whether this fleet's position actually changed while hidden, and if
+                // so, whether it already differs at this point (server truth) or only shows up
+                // later (client-side interpolation/reconstruction). Remove once root-caused.
+                Debug.Log($"  [FleetHideShowDiag] SHOW '{fleetController.name}' civ={fleetController.FleetData?.CivEnum} pos={fleetController.transform.position} isServer={NetworkServer.active}");
+
+                // REVERTED (2026-08-07): a ServerTeleport-based resync used to run here, on the
+                // theory that NetworkTransformReliable's snapshot buffer was corrupting position
+                // across the SetActive(false) gap of a whole combat. Retesting showed it made
+                // things worse, not better - ALL fleets (including the two actual combatants, not
+                // just a bystander) ended up displaced to a large -Z position after combat, only
+                // resolving further (to yet another wrong spot) once movement resumed via Force
+                // Turn. That's consistent with the teleport call itself injecting the bad
+                // coordinate rather than fixing a pre-existing interpolation artifact - possibly a
+                // parent (GalaxyCenter)/scale timing issue at the exact moment ShowAllFleets runs,
+                // not yet root-caused. See [[project_turn_structure]] / ask before re-attempting -
+                // next time, get position values logged immediately before and after any resync
+                // call rather than guessing at Mirror internals blind.
             }
             Debug.Log($"  ✅ Reactivated {shownCount} tracked fleet(s)");
         }

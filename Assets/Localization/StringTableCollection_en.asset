@@ -20,11 +20,11 @@ MonoBehaviour:
     - rid: 3508330916595630394
   m_TableData:
   - m_Id: 62150139904
-    m_Localized: Singleplayer
+    m_Localized: Single Player
     m_Metadata:
       m_Items: []
   - m_Id: 311542483984384
-    m_Localized: Multiplayer
+    m_Localized: Multiple Players
     m_Metadata:
       m_Items: []
   - m_Id: 72856576000

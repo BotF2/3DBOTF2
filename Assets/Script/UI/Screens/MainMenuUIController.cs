@@ -1095,9 +1095,37 @@ namespace BOTF3D.UI
 
         public void ReturnToLobbyMenu()
         {
+            // This is the actual handler wired to the scene's "Button Previous" OnClick (see
+            // MainMenuScene.unity) - PreviousButton() below it in this file is NOT wired to
+            // anything and was dead code. SetSinglePlayer() starts a Mirror host as soon as the
+            // player reaches panelCivSelection, before confirming/starting the actual game -
+            // without stopping that session here, it kept running silently in the background and
+            // the multiplayer Host/Connect buttons' own guards (NetworkServer.active ||
+            // NetworkClient.isConnected) then reported "Already hosting or connected." against
+            // that leftover session. Same cleanup as the multiplayer lobby's own CancelButton,
+            // but checking NetworkServer.active first regardless of NetworkClient.isConnected -
+            // StopHost() correctly tears down the client half too, and CancelButton's original
+            // "both must be true" ordering can leave the server side still running if this fires
+            // in the brief window after StartHost() where the local client hasn't finished
+            // registering as connected yet (very plausible here, since Previous is often clicked
+            // immediately after Singleplay's StartHost() call).
+            if (NetworkManager.singleton != null)
+            {
+                if (NetworkServer.active)
+                    NetworkManager.singleton.StopHost();
+                else if (NetworkClient.active)
+                    NetworkManager.singleton.StopClient();
+                Debug.Log($"ReturnToLobbyMenu: network cleanup done - NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}, NetworkClient.isConnected={NetworkClient.isConnected}");
+            }
+            UnsubscribeRosterCallback();
+            IsSinglePlayer = false;
+            SetLobbyStatus(string.Empty);
+
             ResetPlayers(-1); // resets all to "Computer"
             panelLobby.SetActive(true);
             panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(false);
         }
@@ -1737,7 +1765,35 @@ namespace BOTF3D.UI
 
         public void PreviousButton()
         {
+            // SetSinglePlayer() (Singleplay button, reached via panelCivSelection - one of the
+            // screens this same Previous button backs out of) starts a Mirror host as soon as it
+            // runs, before the player has actually confirmed anything - it's not gated behind
+            // NextButton/game start. Previously this method only swapped UI panels back, leaving
+            // that host session (and IsSinglePlayer=true) running silently in the background.
+            // Clicking Multiplay afterward then hit a NetworkManager that was already
+            // hosting/connected from the abandoned single-player attempt, so Host/Connect either
+            // silently no-op'd (see the !NetworkServer.active && !NetworkClient.isConnected guards
+            // throughout this file) or bound against an already-open port. Same cleanup as
+            // CancelButton (the multiplayer lobby's equivalent back-out) below, generalized to
+            // whichever of host/client/server state actually got left running.
+            UnsubscribeRosterCallback();
+
+            if (NetworkManager.singleton != null)
+            {
+                if (NetworkServer.active && NetworkClient.isConnected)
+                    NetworkManager.singleton.StopHost();
+                else if (NetworkClient.active)
+                    NetworkManager.singleton.StopClient();
+                else if (NetworkServer.active)
+                    NetworkManager.singleton.StopServer();
+            }
+
+            IsSinglePlayer = false;
+            SetLobbyStatus(string.Empty);
+
             panelMuliplayer.SetActive(false);
+            if (panelClientRoster != null)
+                panelClientRoster.SetActive(false);
             panelCivSelection.SetActive(false);
             panelGamePara.SetActive(false);
             panelLobby.SetActive(true);

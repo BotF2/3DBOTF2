@@ -22,6 +22,21 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     [SyncVar(hook = nameof(OnPlayerCivChanged))] private CivEnum playerCiv = CivEnum.FED;
     public string PlayerName => playerName;
 
+    // playerCiv defaults to CivEnum.FED (ordinal 0, same "zero-init default is a valid real value"
+    // ambiguity as FleetController.SyncedCivEnum) and only gets its real, player-confirmed value once
+    // CmdSetPlayerCiv actually runs (i.e. after the lobby civ-selection UI submits a pick) - but
+    // PlayerManager.Instance.LocalPlayerController is already assigned well before that, as soon as
+    // OnStartLocalPlayer fires on connect. In that window, GameController.GetOurCiv() (which only
+    // null-checks LocalPlayerController, not this flag) returns the still-default FED for every
+    // connecting player regardless of which civ they'll actually end up as. If Federation's own
+    // fleet happens to reconstruct on a non-Federation client during that exact window,
+    // AreWeLocalPlayer(FED) wrongly returns true and FleetManager.RegisterFleetControllerAndSetupVisuals
+    // permanently misclassifies it as "our own fleet" - unconditionally revealing its real insignia
+    // to that player with zero contact ever having happened. Explicit bool (not another CivEnum) so
+    // false/true is unambiguous regardless of which civ ends up chosen.
+    [SyncVar] private bool civConfirmed = false;
+    public bool CivConfirmed => civConfirmed;
+
     // Fires on every client whenever the server-authoritative playerCiv changes (including the
     // initial sync on join). GameData is per-client/local (not networked), so only the owning
     // client's civ pick should ever update it - that's what GameController.GameData.LocalPlayerCivEnum
@@ -175,6 +190,7 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             return;
         }
         playerCiv = civ;
+        civConfirmed = true;
         PlayerManager.Instance?.UpdateRosterEntry(playerId, playerName, playerCiv);
     }
 

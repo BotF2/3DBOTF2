@@ -1283,6 +1283,12 @@ namespace Mirror
         static void SpawnObserversForConnection(NetworkConnectionToClient conn)
         {
             //Debug.Log($"Spawning {spawned.Count} objects for conn {conn}");
+            // TEMP DIAGNOSTIC (2026-08-07): chasing bystander-fleet-teleport bug. Log every call
+            // with a stack trace. If this fires for Player 3's connection mid-game (after initial
+            // connect), that is the ROOT CAUSE: the server is re-sending the full spawn burst to
+            // Player 3. The stack trace identifies why (SetClientReady, ReplacePlayer, etc.).
+            // Tag: 📡[SpawnObserversDiag] Remove once root-caused.
+            Debug.LogWarning($"📡[SpawnObserversDiag] SpawnObserversForConnection: conn={conn.connectionId} isReady={conn.isReady} observing={conn.observing.Count} spawned={spawned.Count}\n{System.Environment.StackTrace}");
 
             if (!conn.isReady)
             {
@@ -1576,6 +1582,18 @@ namespace Mirror
 
         static void SpawnObject(GameObject obj, NetworkConnectionToClient ownerConnection)
         {
+            // TEMP DIAGNOSTIC (2026-08-07c): chasing a bystander-client fleet-duplication bug (see
+            // project_bystander_fleet_duplication memory) - this is the single choke point every
+            // public NetworkServer.Spawn(...) overload funnels through, server-side, regardless of
+            // caller (project code or Mirror's own internals). FleetManager.InstantiateFleet is the
+            // only known project-code caller for a fleet and is confirmed to only fire once per
+            // starting fleet this session, yet a bystander client is receiving brand-new netIds for
+            // fleet-shaped objects (assetId 1965110186) it's never seen before - which can only mean
+            // a real Spawn() call is happening somewhere. Logging every call here, with a stack
+            // trace, on the HOST's own console will show exactly where. Remove once root-caused.
+            obj.TryGetComponent(out NetworkIdentity diagIdentityPreCheck);
+            Debug.LogWarning($"🎯[ServerSpawnDiag] SpawnObject called: obj='{obj.name}' assetId={(diagIdentityPreCheck != null ? diagIdentityPreCheck.assetId.ToString() : "NO_IDENTITY")} sceneId={(diagIdentityPreCheck != null ? diagIdentityPreCheck.sceneId.ToString("X") : "?")} existingNetId={(diagIdentityPreCheck != null ? diagIdentityPreCheck.netId.ToString() : "?")}\nStackTrace:\n{UnityEngine.StackTraceUtility.ExtractStackTrace()}");
+
             // verify if we can spawn this
             if (Utils.IsPrefab(obj))
             {
@@ -1639,6 +1657,12 @@ namespace Mirror
 
                 // callback after all fields were set
                 identity.OnStartServer();
+
+                // TEMP DIAGNOSTIC (2026-08-07d): the earlier 🎯[ServerSpawnDiag] log (top of
+                // SpawnObject) printed identity.netId BEFORE it's actually assigned - always 0, so
+                // it couldn't answer "what netId did Federation/Klingon really get". This is the
+                // ACTUAL assigned value, right after GetNextNetworkId(). Remove once root-caused.
+                Debug.LogWarning($"🎯[ServerSpawnDiag] netId ASSIGNED: obj='{identity.gameObject.name}' assetId={identity.assetId} netId={identity.netId}");
             }
 
             // Debug.Log($"SpawnObject instance ID {identity.netId} asset ID {identity.assetId}");

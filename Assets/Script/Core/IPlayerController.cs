@@ -13,6 +13,7 @@ public interface IPlayerController
     GamePlayerInfo PlayerInfo { get; set; }
     CivEnum PlayerCiv { get; }
     bool controllerIsLocalPlayer { get; }
+    bool CivConfirmed { get; }
     string PlayerName { get; }
 
     void GiveCombatOrder(CombatOrders order, CombatController combatCon, CivEnum civ);
