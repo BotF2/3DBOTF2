@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_178_CELTRIS
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 178
-  Position: {x: 21.38, y: 1.07, z: -8.51}
+  Position: {x: 8, y: 1.07, z: 8}
   SysName: CELTRIS
   FirstOwner: 178
   CurrentOwner: 178

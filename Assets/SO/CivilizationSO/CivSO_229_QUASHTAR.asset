@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5751d0611b14fb4f8de49a3a8fd4206, type: 3}
+  m_Name: CivSO_229_QUASHTAR
+  m_EditorClassIdentifier: 
+  CivInt: 229
+  CivEnum: 229
+  CivShortName: QUASHTAR
+  CivLongName: The Quashtar Dominion Remnant
+  CivHomeSystem: QUASHTARIS
+  WarLikeEnum: -1
+  XenophbiaEnum: -1
+  RuthlessEnum: -2
+  GreedyEnum: -2
+  CivImage: {fileID: 0}
+  Insignia: {fileID: 0}
+  Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 30
+  Credits: 0
+  TechPoints: 0
+  CivTechLevel: 100
+  Playable: 0
+  HasWarp: 1
+  Decription: Former Dominion-collaborator elites who now rule in comfort behind heavy fortifications after profiting during the occupation. They are distrusted by nearly all their neighbors.
+  IntelPoints: 0
+  QualityScore: 5

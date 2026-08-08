@@ -69,31 +69,16 @@ namespace BOTF3D.Civilization
         {
             if (galaxyType == GalaxyMapType.CANON)
             {
-                #region COMMENT OUT SELECTIVE CIS AND TURN ON ALL CIVS BELOW
-                //// **********TURN OFF SELECTIVE CIVS HERE AND TURN ON ALL CIVS BELOW *******
-                ///
-
-                List<CivSO> _SOsInGame = new List<CivSO>();
-                for (int i = 0; i < listPlayableCivEnumForCivSOs.Count; i++)
-                {
-                    if (listPlayableCivEnumForCivSOs[i] != CivEnum.ZZUNINHABITED1)
-                    {
-                        _SOsInGame.Add(CivSOListAllPossible[i]); // add the playable
-                        _SOsInGame.Add(smallMapMinorNeighborsInGame[i]); // add playable's minor races
-                        if (galaxySize >= 1)
-                            _SOsInGame.Add(mediumMapMinorNeighborsInGame[i]);
-                        if (galaxySize >= 2)
-                            _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
-                    }
-                }
-                SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
+                // Nearest-major-stratified selection (see SelectMajorStratifiedCanonCivs): every one
+                // of the 7 majors always gets included, then is topped up to an identical per-major
+                // civ/placeholder target from the minors/placeholders actually closest to ITS home
+                // system (not just "same quadrant" - a system near a quadrant border is grouped with
+                // whichever major it's genuinely nearest to, majors included). No major's territory
+                // can crowd out another's the way the old single shuffle-over-everything approach could.
+                List<CivSO> _SOsInGame = SelectMajorStratifiedCanonCivs((GalaxySize)galaxySize);
                 CivSOsInGame = _SOsInGame;
 
                 Debug.Log($"=== CANON galaxy generated: {CivSOsInGame.Count} civs: {string.Join(", ", CivSOsInGame.Select(c => c.CivShortName))} ===");
-
-                ////**** See all Civs -  ****
-                // CivSOsInGame = CivSOListAllPossible;
-                #endregion TURN ON ALL CIVs WITH LAST LINE ABOVE
             }
             else if (galaxyType == GalaxyMapType.RANDOM)
             {
@@ -151,21 +136,7 @@ namespace BOTF3D.Civilization
                 Debug.LogWarning("RING galaxy type not yet implemented - using CANON logic");
 
                 // ✅ Fallback to CANON for now
-                List<CivSO> _SOsInGame = new List<CivSO>();
-                for (int i = 0; i < listPlayableCivEnumForCivSOs.Count; i++)
-                {
-                    if (listPlayableCivEnumForCivSOs[i] != CivEnum.ZZUNINHABITED1)
-                    {
-                        _SOsInGame.Add(CivSOListAllPossible[i]);
-                        _SOsInGame.Add(smallMapMinorNeighborsInGame[i]);
-                        if (galaxySize >= 1)
-                            _SOsInGame.Add(mediumMapMinorNeighborsInGame[i]);
-                        if (galaxySize == 2)
-                            _SOsInGame.Add(largeMapMinorNeighborsInGame[i]);
-                    }
-                }
-                SetRandomCanonCivsByGalaxySize(galaxySize, _SOsInGame);
-                CivSOsInGame = _SOsInGame;
+                CivSOsInGame = SelectMajorStratifiedCanonCivs((GalaxySize)galaxySize);
             }
             else if (galaxyType == GalaxyMapType.WHATEVER)
             {
@@ -174,34 +145,159 @@ namespace BOTF3D.Civilization
             }
 
         }
-        private void SetRandomCanonCivsByGalaxySize(int galaxySize, List<CivSO> _SOsInGame)
+        /// <summary>Per-major civ/placeholder targets for CANON galaxy generation - identical targets
+        /// for every one of the 7 majors by design. EXTREME's (25, 7) is the actual minimum any major's
+        /// nearest-territory can currently supply (CARD/TERRAN have 25 minors nearby, FED/BORG have 7
+        /// habitable placeholders nearby) - every major can reach it without falling back. Recompute
+        /// these caps if BuildMajorPools's per-major territory sizes change materially (e.g. a new
+        /// major, or a large batch of new minors/placeholders added near a specific major).</summary>
+        private static (int civTarget, int placeholderTarget) GetMajorTargets(GalaxySize galaxySize)
         {
-            // UnityEngine.Random (not Guid.NewGuid) so this replays identically across clients
-            // when seeded via UnityEngine.Random.InitState before generation.
-            CivSOListAllPossible = CivSOListAllPossible.OrderBy(i => UnityEngine.Random.value).ToList();
-
-            for (int i = 0; i < (50 * (1 + galaxySize)); i++)
+            switch (galaxySize)
             {
-                for (int j = 0; j < CivSOListAllPossible.Count; j++)
+                case GalaxySize.SMALL: return (6, 2);
+                case GalaxySize.MEDIUM: return (13, 4);
+                case GalaxySize.LARGE: return (19, 5);
+                case GalaxySize.EXTREME: return (25, 7);
+                default: return (6, 2);
+            }
+        }
+
+        private class MajorCivPools
+        {
+            public CivSO Major;
+            public readonly List<CivSO> Minors = new List<CivSO>();
+            public readonly List<CivSO> Placeholders = new List<CivSO>();
+        }
+
+        /// <summary>
+        /// Classifies every non-major CivSO in CivSOListAllPossible into whichever of the 7 majors'
+        /// home system it is geometrically nearest to (weighted distance, same XWeight/ZWeight metric
+        /// GalaxyPositionBounds already uses for system spacing) - a proper Voronoi partition around
+        /// the majors' fixed canon positions, not a quadrant-boundary lookup. This is what makes a
+        /// system near a quadrant border land with whichever major it's actually closest to.
+        ///
+        /// Resolves each civ's home system via GetStarSObyInt(civSO.CivInt) - the robust integer join
+        /// (CivInt == the matching StarSysSO.StarSysInt) - rather than GetStarSysSOByName(CivHomeSystem),
+        /// since the free-text CivHomeSystem field can drift out of sync with StarSysSO.SysName (found
+        /// during this change: DOM's CivHomeSystem is "OMARIAN_NEBULA" but the actual SysName is
+        /// "OMARIAN NEBULA" - string lookup silently drops the Dominion as a major entirely). Civs
+        /// whose home system genuinely can't be resolved by int are logged and skipped rather than
+        /// guessed at.
+        /// </summary>
+        private Dictionary<CivEnum, MajorCivPools> BuildMajorPools()
+        {
+            var pools = new Dictionary<CivEnum, MajorCivPools>();
+            var majorPositions = new Dictionary<CivEnum, Vector3>();
+
+            foreach (CivSO civSO in CivSOListAllPossible)
+            {
+                if (civSO == null || !civSO.Playable) continue;
+                StarSysSO homeSystem = StarSysManager.Instance?.GetStarSObyInt(civSO.CivInt);
+                if (homeSystem == null)
                 {
-                    int oneMoreCiv = j;
-                    {
-                        if (!_SOsInGame.Contains(CivSOListAllPossible[i]))
-                        {
-                            _SOsInGame.Add(CivSOListAllPossible[i]);
-                            break;
-                        }
-                        else if (!_SOsInGame.Contains(CivSOListAllPossible[i + 1]))
-                        {
-                            _SOsInGame.Add(CivSOListAllPossible[i + 1]);
-                            j++;
-                            break;
-                        }
-                        else
-                            j++;
-                    }
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
+                        $"[CivManager] Could not resolve home system (CivInt {civSO.CivInt}) for major " +
+                        $"'{civSO.CivShortName}' while building major pools for CANON selection.");
+                    continue;
+                }
+                majorPositions[civSO.CivEnum] = homeSystem.Position;
+                pools[civSO.CivEnum] = new MajorCivPools { Major = civSO };
+            }
+
+            foreach (CivSO civSO in CivSOListAllPossible)
+            {
+                if (civSO == null || civSO.Playable) continue;
+
+                StarSysSO homeSystem = StarSysManager.Instance?.GetStarSObyInt(civSO.CivInt);
+                if (homeSystem == null)
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
+                        $"[CivManager] Could not resolve home system (CivInt {civSO.CivInt}) for civ " +
+                        $"'{civSO.CivShortName}' while building major pools for CANON selection - " +
+                        "it will be excluded from this game's civ list.");
+                    continue;
+                }
+
+                CivEnum nearestMajor = NearestMajor(homeSystem.Position, majorPositions);
+                MajorCivPools majorPools = pools[nearestMajor];
+
+                if (civSO.CivEnum.ToString().StartsWith("ZZUNINHABITED"))
+                    majorPools.Placeholders.Add(civSO);
+                else
+                    majorPools.Minors.Add(civSO);
+            }
+
+            return pools;
+        }
+
+        private static CivEnum NearestMajor(Vector3 position, Dictionary<CivEnum, Vector3> majorPositions)
+        {
+            CivEnum nearest = default;
+            float nearestDist = float.MaxValue;
+            foreach (var kvp in majorPositions)
+            {
+                float dx = (position.x - kvp.Value.x) * GalaxyPositionBounds.XWeight;
+                float dz = (position.z - kvp.Value.z) * GalaxyPositionBounds.ZWeight;
+                float dist = Mathf.Sqrt(dx * dx + dz * dz);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearest = kvp.Key;
                 }
             }
+            return nearest;
+        }
+
+        /// <summary>
+        /// Replaces the old SetRandomCanonCivsByGalaxySize single-shuffle-over-everything approach
+        /// (which had a loop-indexing quirk capping it at ~96% total coverage and no per-major
+        /// awareness) with nearest-major-aware selection: every major is always included, then is
+        /// randomly topped up to an identical per-major civ target from the minors actually closest to
+        /// IT (never borrowing from another major's territory), then likewise for its placeholder
+        /// target from its own nearest ZZUNINHABITED* pool. If a major's pool can't reach a target,
+        /// everything available is included and a warning is logged instead of throwing.
+        /// </summary>
+        private List<CivSO> SelectMajorStratifiedCanonCivs(GalaxySize galaxySize)
+        {
+            (int civTarget, int placeholderTarget) = GetMajorTargets(galaxySize);
+            Dictionary<CivEnum, MajorCivPools> pools = BuildMajorPools();
+            List<CivSO> result = new List<CivSO>();
+
+            foreach (MajorCivPools majorPools in pools.Values)
+            {
+                // Always include the major itself.
+                result.Add(majorPools.Major);
+
+                // Randomly fill up to the civ target from this major's own nearest-minors pool only.
+                // UnityEngine.Random (not Guid.NewGuid) so this replays identically across clients
+                // when seeded via UnityEngine.Random.InitState before generation.
+                List<CivSO> shuffledMinors = majorPools.Minors.OrderBy(_ => UnityEngine.Random.value).ToList();
+                int minorsToTake = Mathf.Min(civTarget, shuffledMinors.Count);
+                if (minorsToTake < civTarget)
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
+                        $"[CivManager] {majorPools.Major.CivShortName}'s minor pool exhausted for " +
+                        $"{galaxySize} CANON generation: wanted {civTarget}, only {shuffledMinors.Count} " +
+                        "available nearby. Including all available instead.");
+                }
+                result.AddRange(shuffledMinors.Take(minorsToTake));
+
+                // Randomly fill up to the placeholder target from this major's own nearest
+                // ZZUNINHABITED*-owned pool only.
+                List<CivSO> shuffledPlaceholders = majorPools.Placeholders.OrderBy(_ => UnityEngine.Random.value).ToList();
+                int placeholdersToTake = Mathf.Min(placeholderTarget, shuffledPlaceholders.Count);
+                if (placeholdersToTake < placeholderTarget)
+                {
+                    GameLogger.LogWarning(GameLogger.LogCategory.General,
+                        $"[CivManager] {majorPools.Major.CivShortName}'s placeholder pool exhausted for " +
+                        $"{galaxySize} CANON generation: wanted {placeholderTarget}, only " +
+                        $"{shuffledPlaceholders.Count} available nearby. Including all available instead.");
+                }
+                result.AddRange(shuffledPlaceholders.Take(placeholdersToTake));
+            }
+
+            return result;
         }
         public IEnumerator CreateNewGameBySelections(int sizeGame, int gameTechLevel, int galaxyType, int localPlayerCivInt, bool isSingleVsMultiplayer)
         {

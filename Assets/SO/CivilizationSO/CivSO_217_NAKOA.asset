@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5751d0611b14fb4f8de49a3a8fd4206, type: 3}
+  m_Name: CivSO_217_NAKOA
+  m_EditorClassIdentifier: 
+  CivInt: 217
+  CivEnum: 217
+  CivShortName: NAKOA
+  CivLongName: The Nakoa Ascendancy
+  CivHomeSystem: NAKOVA
+  WarLikeEnum: 1
+  XenophbiaEnum: 2
+  RuthlessEnum: 1
+  GreedyEnum: 0
+  CivImage: {fileID: 0}
+  Insignia: {fileID: 0}
+  Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 30
+  Credits: 0
+  TechPoints: 0
+  CivTechLevel: 100
+  Playable: 0
+  HasWarp: 1
+  Decription: A young civilization that achieved warp flight only within living memory. They are intensely - perhaps too intensely - curious about the wormhole and rumors of Alpha Quadrant powers.
+  IntelPoints: 0
+  QualityScore: 5

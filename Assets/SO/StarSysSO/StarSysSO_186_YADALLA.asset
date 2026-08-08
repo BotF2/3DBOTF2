@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_186_YADALLA
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 186
-  Position: {x: 31.03, y: 1.44, z: -42.08}
+  Position: {x: -30.83, y: 1.44, z: -24.28}
   SysName: YADALLA
   FirstOwner: 186
   CurrentOwner: 186

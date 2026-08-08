@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5751d0611b14fb4f8de49a3a8fd4206, type: 3}
+  m_Name: CivSO_218_BRENTARI
+  m_EditorClassIdentifier: 
+  CivInt: 218
+  CivEnum: 218
+  CivShortName: BRENTARI
+  CivLongName: The Brentari Order
+  CivHomeSystem: BRENTARIS
+  WarLikeEnum: 0
+  XenophbiaEnum: 0
+  RuthlessEnum: 0
+  GreedyEnum: 1
+  CivImage: {fileID: 0}
+  Insignia: {fileID: 0}
+  Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 30
+  Credits: 0
+  TechPoints: 0
+  CivTechLevel: 100
+  Playable: 0
+  HasWarp: 1
+  Decription: An ascetic monastic order that renounced advanced technology after a catastrophic AI conflict. They live simply, but retain enough latent knowledge to be dangerous if provoked.
+  IntelPoints: 0
+  QualityScore: 5

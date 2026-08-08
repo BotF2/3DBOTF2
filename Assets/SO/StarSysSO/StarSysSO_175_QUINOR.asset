@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_175_QUINOR
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 175
-  Position: {x: 59.43, y: -2.08, z: -9.70}
+  Position: {x: 25, y: -2.08, z: 85}
   SysName: QUINOR
   FirstOwner: 175
   CurrentOwner: 175
