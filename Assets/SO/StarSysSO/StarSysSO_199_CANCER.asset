@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StarSysSO_199_CANCER
   m_EditorClassIdentifier: Assembly-CSharp::StarSysSO
   StarSysInt: 199
-  Position: {x: 28.89, y: 0.16, z: -4.38}
+  Position: {x: 58, y: 0.16, z: 20}
   SysName: CANCER
   FirstOwner: 199
   CurrentOwner: 199

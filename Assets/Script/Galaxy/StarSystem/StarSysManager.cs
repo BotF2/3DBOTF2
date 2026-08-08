@@ -197,6 +197,18 @@ namespace BOTF3D.Galaxy
             }
         }
 
+        /// <summary>
+        /// Looks up the config-time StarSysSO for a system by SysName (e.g. so CivManager can read a
+        /// civ's home system Position for quadrant classification without duplicating the
+        /// AssetDatabase/serialized-list loading this manager already owns). Returns null - and lets
+        /// the caller decide how to handle it - if starSysSOList isn't loaded yet or no match exists.
+        /// </summary>
+        public StarSysSO GetStarSysSOByName(string sysName)
+        {
+            if (string.IsNullOrEmpty(sysName) || starSysSOList == null) return null;
+            return starSysSOList.FirstOrDefault(s => s != null && s.SysName == sysName);
+        }
+
         public void SetGalaxyReferences(GameObject center, GameObject systemContainer)
         {
             galaxyCenter = center;

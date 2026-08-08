@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5751d0611b14fb4f8de49a3a8fd4206, type: 3}
+  m_Name: CivSO_220_KRYNTH
+  m_EditorClassIdentifier: 
+  CivInt: 220
+  CivEnum: 220
+  CivShortName: KRYNTH
+  CivLongName: The Krynth Mining Guild
+  CivHomeSystem: KRYNTHOS
+  WarLikeEnum: 0
+  XenophbiaEnum: 0
+  RuthlessEnum: -2
+  GreedyEnum: -2
+  CivImage: {fileID: 0}
+  Insignia: {fileID: 0}
+  Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 30
+  Credits: 0
+  TechPoints: 0
+  CivTechLevel: 100
+  Playable: 0
+  HasWarp: 1
+  Decription: A militaristic mining guild controlling a resource-rich asteroid belt. They sell raw dilithium to whoever pays, holding no political loyalty to anyone.
+  IntelPoints: 0
+  QualityScore: 5

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5751d0611b14fb4f8de49a3a8fd4206, type: 3}
+  m_Name: CivSO_234_VESTIGON
+  m_EditorClassIdentifier: 
+  CivInt: 234
+  CivEnum: 234
+  CivShortName: VESTIGON
+  CivLongName: The Vestigon Successor State
+  CivHomeSystem: VESTIGAR
+  WarLikeEnum: 1
+  XenophbiaEnum: 0
+  RuthlessEnum: 1
+  GreedyEnum: 1
+  CivImage: {fileID: 0}
+  Insignia: {fileID: 0}
+  Population: 0
+  MinHomePopulation: 10
+  MaxHomePopulation: 30
+  Credits: 0
+  TechPoints: 0
+  CivTechLevel: 100
+  Playable: 0
+  HasWarp: 1
+  Decription: Descendants of a once-spacefaring empire that collapsed from over-expansion. Humbled by their history, they actively avoid repeating their ancestors' empire-building.
+  IntelPoints: 0
+  QualityScore: 5
