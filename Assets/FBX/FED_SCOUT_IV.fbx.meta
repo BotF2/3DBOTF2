@@ -9,6 +9,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Hull
     second: {fileID: 2100000, guid: 416c41c47e2109d45be8bfeb76796475, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: blue_glow
+    second: {fileID: 2100000, guid: a9d569b11380a8c718b2d955d8e7d8b4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: red_glow
+    second: {fileID: 2100000, guid: a9d569b11380a8c718b2d955d8e7d8b4, type: 2}
   materials:
     materialImportMode: 1
     materialName: 1

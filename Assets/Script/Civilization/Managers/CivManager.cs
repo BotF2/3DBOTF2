@@ -340,6 +340,19 @@ namespace BOTF3D.Civilization
             return result;
 
         }
+        /// <summary>
+        /// Looks up the config-time CivSO for a civ (e.g. for GlowColor and other authored visuals
+        /// that live on the SO, not the runtime CivData). Checks CivSOsInGame first since that's the
+        /// authoritative list for the current game; falls back to CivSOListAllPossible so this still
+        /// resolves for lookups that happen before/outside an active game.
+        /// </summary>
+        public CivSO GetCivSOByCivEnum(CivEnum civEnum)
+        {
+            CivSO result = CivSOsInGame?.FirstOrDefault(c => c != null && c.CivEnum == civEnum);
+            if (result == null)
+                result = CivSOListAllPossible?.FirstOrDefault(c => c != null && c.CivEnum == civEnum);
+            return result;
+        }
         public IEnumerator OnNewGameButtonClicked(int gameSize, int gameTechLevel, int galaxyType, int selectedLocalCiv, bool isSingle)
         {
             yield return CreateNewGameBySelections(gameSize, gameTechLevel, galaxyType, selectedLocalCiv, isSingle);

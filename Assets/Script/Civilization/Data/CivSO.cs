@@ -24,6 +24,11 @@ namespace BOTF3D.Civilization
         public GreedyEnum GreedyEnum;
         public Sprite CivImage;
         public Sprite Insignia;
+        [Header("Ship Rendering")]
+        [Tooltip("Shared across all of this civilization's ships. Applied at runtime via " +
+            "MaterialPropertyBlock to the shared Ship_Glow material's _EmissionColor — " +
+            "do not author per-ship glow colors on ShipSO.")]
+        public Color GlowColor = Color.white;
         [Tooltip("Authored home-system population (e.g. a Star Trek lore figure). Leave 0 for minor " +
             "races without a canon number to instead roll a random value in [MinHomePopulation, MaxHomePopulation].")]
         public int Population;
