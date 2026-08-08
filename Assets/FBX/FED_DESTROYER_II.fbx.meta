@@ -9,6 +9,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Material.003
     second: {fileID: 2100000, guid: 48603fba94004ad4f855675edda9092c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: glowRed.001
+    second: {fileID: 2100000, guid: a9d569b11380a8c718b2d955d8e7d8b4, type: 2}
   materials:
     materialImportMode: 1
     materialName: 1

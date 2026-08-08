@@ -37,6 +37,10 @@ namespace BOTF3D.Combat
 
         private const int SPACING = 50;
 
+        // Reused across ships to avoid per-instantiation allocation.
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private readonly MaterialPropertyBlock glowPropertyBlock = new MaterialPropertyBlock();
+
         public ShipSetupManager(CombatController controller)
         {
             combatController = controller;
@@ -238,8 +242,39 @@ namespace BOTF3D.Combat
 
             DisableStencilOnShipRenderers(shipModel);
             SetLayerRecursively(ship.gameObject, LayerMask.NameToLayer("Default"));
+            ApplyCivGlowColor(shipModel, shipSO.CivEnum);
 
             return shipModel;
+        }
+
+        /// <summary>
+        /// Tints every renderer slot using the shared Ship_Glow material to this civ's GlowColor
+        /// (see CivSO.GlowColor) via MaterialPropertyBlock — keeps every ship on the one shared glow
+        /// material asset (SRP Batcher friendly) instead of needing a per-civ material duplicate.
+        /// </summary>
+        private void ApplyCivGlowColor(GameObject shipModel, CivEnum civEnum)
+        {
+            if (shipModel == null) return;
+
+            CivSO civSO = CivManager.Instance?.GetCivSOByCivEnum(civEnum);
+            if (civSO == null)
+            {
+                Debug.LogWarning($"⚠️ ApplyCivGlowColor: no CivSO found for {civEnum} — Ship_Glow left at its authored default color");
+                return;
+            }
+
+            foreach (Renderer renderer in shipModel.GetComponentsInChildren<Renderer>())
+            {
+                Material[] mats = renderer.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] == null || !mats[i].name.Contains("Ship_Glow")) continue;
+
+                    renderer.GetPropertyBlock(glowPropertyBlock, i);
+                    glowPropertyBlock.SetColor(EmissionColorId, civSO.GlowColor);
+                    renderer.SetPropertyBlock(glowPropertyBlock, i);
+                }
+            }
         }
 
         /// <summary>

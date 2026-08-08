@@ -18,7 +18,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: A_RedGlow
-    second: {fileID: 2100000, guid: 88ce341f73a34004d92d5d7671c578dd, type: 2}
+    second: {fileID: 2100000, guid: a9d569b11380a8c718b2d955d8e7d8b4, type: 2}
   materials:
     materialImportMode: 1
     materialName: 1
