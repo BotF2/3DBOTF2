@@ -384,6 +384,43 @@ public GameObject[] beamWeaponPrefabs;
         }
 
 
+        /// <summary>
+        /// Adds a civ's starting transports directly to its home star system's docked ships
+        /// (StarSysData.ShipsList) rather than Fleet 1's roster - see
+        /// ShipSOProvider.GetStartingHomeSystemShips. Called from StarSysManager.InstantiateSystem
+        /// unconditionally (no NetworkServer.active gate), the same way that method already builds
+        /// the home-defense Destroyer via BuildShipInSystem: galaxy ships aren't Mirror-networked,
+        /// so every client deterministically reconstructs them locally from civ + tech level.
+        /// </summary>
+        public void BuildHomeSystemTransports(StarSysController sysCon, CivEnum civEnum)
+        {
+            if (sysCon == null || sysCon.StarSysData == null)
+            {
+                Debug.LogWarning("BuildHomeSystemTransports: sysCon or its StarSysData is null - skipping.");
+                return;
+            }
+
+            TechLevel techLevel = CivManager.Instance.GetCivDataByCivEnum(civEnum).CurrentTechLevel;
+            List<ShipSO> transports = shipSOProvider.GetStartingHomeSystemShips(techLevel, civEnum);
+
+            if (transports == null || transports.Count == 0)
+                return;
+
+            List<ShipController> shipCons = InstantiateShipControllersWithDataFromSO(transports, sysCon.gameObject);
+
+            foreach (ShipController shipCon in shipCons)
+            {
+                if (shipCon != null)
+                {
+                    shipCon.transform.SetParent(sysCon.transform);
+                    shipCon.ShipData.CurrentStarSysController = sysCon;
+                    shipCon.ShipData.CurrentFleetController = null;
+                }
+            }
+
+            Debug.Log($"✅ BuildHomeSystemTransports: {civEnum} home system '{sysCon.name}' added {shipCons.Count} starting transport(s); system now has {sysCon.StarSysData.ShipsList.Count} ships");
+        }
+
         public void BuildShipsOfFirstFleet(FleetController fleetCon)
         {
             CivEnum civEnum = fleetCon.FleetData.CivEnum;

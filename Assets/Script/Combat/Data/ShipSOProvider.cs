@@ -493,8 +493,9 @@ namespace BOTF3D.Combat
         /// Get ships for a civilization's starting fleet.
         /// Major races (FED..TERRAN) get the composition defined in
         /// MajorStartingFleetCompositionOverrides for their civ+tech level if one exists, otherwise
-        /// the shared MajorStartingFleetComposition baseline. Minor races get 1 ship (Destroyer, or
-        /// Scout as fallback).
+        /// the shared MajorStartingFleetComposition baseline - minus Transport, which is left out of
+        /// Fleet 1 entirely and instead docked at the home system by GetStartingHomeSystemShips.
+        /// Minor races get 1 ship (Destroyer, or Scout as fallback).
         /// </summary>
         public List<ShipSO> GetStartingFleetShips(TechLevel techLevel, CivEnum civEnum)
         {
@@ -534,6 +535,12 @@ namespace BOTF3D.Combat
                 List<ShipSO> startingFleet = new List<ShipSO>();
                 foreach (var entry in composition)
                 {
+                    // Transports dock at the home system instead of joining Fleet 1's roster - see
+                    // GetStartingHomeSystemShips, which pulls the same count from this composition
+                    // table so the two stay in lockstep.
+                    if (entry.Key == ShipType.Transport)
+                        continue;
+
                     ShipSO template = techLevelShips.FirstOrDefault(s => s.ShipType == entry.Key);
                     if (template == null)
                     {
@@ -566,6 +573,53 @@ namespace BOTF3D.Combat
                 Debug.LogError($"❌ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout!");
                 return new List<ShipSO>();
             }
+        }
+
+        /// <summary>
+        /// Get the starting transport ships that dock at a civ's home star system rather than
+        /// joining Fleet 1's roster (see GetStartingFleetShips, which skips ShipType.Transport for
+        /// this reason). Reads the Transport count from the same MajorStartingFleetComposition /
+        /// MajorStartingFleetCompositionOverrides tables above, so it always matches whatever Fleet
+        /// 1 would have carried. Minor races never get a starting transport.
+        /// </summary>
+        public List<ShipSO> GetStartingHomeSystemShips(TechLevel techLevel, CivEnum civEnum)
+        {
+            bool isMajorRace = civEnum >= CivEnum.FED && civEnum <= CivEnum.TERRAN;
+            if (!isMajorRace) return new List<ShipSO>();
+
+            List<ShipSO> allCivShips = GetShipSOListByCiv(civEnum);
+            if (allCivShips == null || allCivShips.Count == 0) return new List<ShipSO>();
+
+            var techLevelShips = allCivShips
+                .Where(s => s != null && s.TechLevel == techLevel)
+                .ToList();
+            if (techLevelShips.Count == 0) return new List<ShipSO>();
+
+            Dictionary<ShipType, int> composition;
+            if (!(MajorStartingFleetCompositionOverrides.TryGetValue(civEnum, out var civOverrides)
+                    && civOverrides.TryGetValue(techLevel, out composition))
+                && !MajorStartingFleetComposition.TryGetValue(techLevel, out composition))
+            {
+                Debug.LogWarning($"GetStartingHomeSystemShips: No starting-fleet composition defined for {civEnum} at {techLevel}");
+                return new List<ShipSO>();
+            }
+
+            if (!composition.TryGetValue(ShipType.Transport, out int transportCount) || transportCount <= 0)
+                return new List<ShipSO>();
+
+            ShipSO template = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Transport);
+            if (template == null)
+            {
+                Debug.LogWarning($"GetStartingHomeSystemShips: {civEnum} has no Transport at {techLevel}; skipping");
+                return new List<ShipSO>();
+            }
+
+            List<ShipSO> startingTransports = new List<ShipSO>();
+            for (int i = 0; i < transportCount; i++)
+                startingTransports.Add(template);
+
+            Debug.Log($"✅ GetStartingHomeSystemShips: {civEnum} home system starts with {startingTransports.Count} transport(s)");
+            return startingTransports;
         }
 
         /// <summary>
