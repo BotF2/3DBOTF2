@@ -4763,7 +4763,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
   m_IsGlobal: 1
   priority: 10
@@ -8113,8 +8113,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -1.2, y: 0.5}
-  m_SizeDelta: {x: 4, y: 4}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &661622817
 MonoBehaviour:
@@ -9039,7 +9039,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.7, y: 0.6999999, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 661622816}
@@ -11500,6 +11500,7 @@ MonoBehaviour:
   atHomePosition: 1
   homeXRotation: 21
   galaxyXRotation: 21
+  referenceFieldOfViewForStarNoise: 50
 --- !u!1 &895974088
 GameObject:
   m_ObjectHideFlags: 0
@@ -11643,7 +11644,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!120 &901772571
 LineRenderer:
@@ -11695,8 +11696,8 @@ LineRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Positions:
-  - {x: -11, y: -10, z: 1}
-  - {x: -11, y: -60, z: 1}
+  - {x: 0, y: -10, z: 1}
+  - {x: 0, y: -60, z: 1}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1
@@ -12166,7 +12167,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
@@ -12190,7 +12191,7 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 1.5
-  m_Center: {x: -1, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &933850027
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12458,6 +12459,7 @@ MonoBehaviour:
   atHomePosition: 1
   homeXRotation: 21
   galaxyXRotation: 21
+  referenceFieldOfViewForStarNoise: 50
 --- !u!1 &966764655
 GameObject:
   m_ObjectHideFlags: 0
@@ -16779,7 +16781,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: b80de05f9dd0b1e42a203ad4294b55d0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 941147588bc30c946b3a8dcc77583864, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -22125,7 +22127,6 @@ GameObject:
   - component: {fileID: 1645135766}
   - component: {fileID: 1645135765}
   - component: {fileID: 1645135764}
-  - component: {fileID: 1645135767}
   m_Layer: 5
   m_Name: IntelPanel
   m_TagString: Untagged
@@ -22228,29 +22229,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1645135762}
   m_CullTransparentMesh: 1
---- !u!114 &1645135767
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1645135762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7de32992300607409f9ef57fc33f766, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.IntelligenceUIController
-  civTableContainer: {fileID: 1274479397}
-  civEntryPrefab: {fileID: 5340841644682658009, guid: 967565b13d7619346a6d3e89f7325cc4, type: 3}
-  activeProjectContainer: {fileID: 347602721}
-  projectEntryPrefab: {fileID: 2870435794981593293, guid: 66fbd57571099df43a007b6b40638f7a, type: 3}
-  headerText: {fileID: 0}
-  intelPointsText: {fileID: 1667080820}
-  perTurnRateText: {fileID: 401676631}
-  feedbackText: {fileID: 298006748}
-  closeButton: {fileID: 0}
-  IntelUIToggle: {fileID: 265760873}
-  IntelUITable: {fileID: 1645135762}
 --- !u!1 &1658775525
 GameObject:
   m_ObjectHideFlags: 0
@@ -26806,6 +26784,7 @@ MonoBehaviour:
   disinformationButtonGO: {fileID: 0}
   sabatogeButtonGO: {fileID: 0}
   combatButtonGO: {fileID: 0}
+  withdrawButtonGO: {fileID: 0}
   declareWarButtonGO: {fileID: 0}
   closeDiplomacyButtonGO: {fileID: 0}
   ListOfDiplomacyUiGos: []
@@ -27671,7 +27650,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -1.2, y: -5.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!65 &2141650971

@@ -335,9 +335,23 @@ namespace BOTF3D.Galaxy
             FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);
         }
 
+        /// <summary>
+        /// Creates a throwaway, data-only FleetController - either a sentinel about to be discarded
+        /// by InstantiateFleet (see BuildFirstFleetsNearSyst), or a "we don't actually have this
+        /// side's fleet" stand-in (see DiplomacyManager.ResolveEncounterOtherCivSystem). Neither
+        /// caller wants it ever rendered: it's the full FleetPrefab (sprite, insignia, DropLine),
+        /// instantiated at world (0,0,0) and never positioned or DropLine-configured like a real
+        /// fleet (see SetUpDropLine) before its owner destroys it. If that destroy is ever skipped -
+        /// e.g. an exception on a bystander client during diplomacy/intelligence setup, the same
+        /// remote-client race class documented at length in FleetController.OnCivEnumChanged - a
+        /// live placeholder left visible looks like a short, wrongly-colored dropline hanging off
+        /// GalaxyCenter at the origin. Deactivating immediately means that never happens, regardless
+        /// of whether cleanup downstream succeeds.
+        /// </summary>
         public FleetController InsatiateEmptyFleetController()
         {
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+            fleetController.gameObject.SetActive(false);
             return fleetController;
         }
 
