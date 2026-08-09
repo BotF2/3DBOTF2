@@ -41,6 +41,13 @@ namespace BOTF3D.Combat
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         private readonly MaterialPropertyBlock glowPropertyBlock = new MaterialPropertyBlock();
 
+        private static readonly int StencilCompId = Shader.PropertyToID("_StencilComp");
+        private static readonly int StencilId = Shader.PropertyToID("_Stencil");
+        private static readonly int StencilOpId = Shader.PropertyToID("_StencilOp");
+        private static readonly int StencilWriteMaskId = Shader.PropertyToID("_StencilWriteMask");
+        private static readonly int StencilReadMaskId = Shader.PropertyToID("_StencilReadMask");
+        private readonly MaterialPropertyBlock stencilPropertyBlock = new MaterialPropertyBlock();
+
         public ShipSetupManager(CombatController controller)
         {
             combatController = controller;
@@ -365,13 +372,17 @@ namespace BOTF3D.Combat
             Renderer[] renderers = shipModel.GetComponentsInChildren<Renderer>();
             foreach (var renderer in renderers)
             {
-                if (renderer != null && renderer.material != null)
+                if (renderer != null && renderer.sharedMaterial != null)
                 {
-                    renderer.material.SetInt("_StencilComp", 0);
-                    renderer.material.SetInt("_Stencil", 0);
-                    renderer.material.SetInt("_StencilOp", 0);
-                    renderer.material.SetInt("_StencilWriteMask", 0);
-                    renderer.material.SetInt("_StencilReadMask", 0);
+                    // Use a MaterialPropertyBlock instead of renderer.material so we don't
+                    // clone a new Material instance per ship (leaks memory, breaks SRP batching).
+                    renderer.GetPropertyBlock(stencilPropertyBlock);
+                    stencilPropertyBlock.SetInt(StencilCompId, 0);
+                    stencilPropertyBlock.SetInt(StencilId, 0);
+                    stencilPropertyBlock.SetInt(StencilOpId, 0);
+                    stencilPropertyBlock.SetInt(StencilWriteMaskId, 0);
+                    stencilPropertyBlock.SetInt(StencilReadMaskId, 0);
+                    renderer.SetPropertyBlock(stencilPropertyBlock);
                 }
             }
         }

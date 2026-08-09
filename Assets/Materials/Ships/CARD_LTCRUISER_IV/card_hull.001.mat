@@ -36,7 +36,7 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
+    m_TexEnvs: []
     m_Ints: []
     m_Floats: []
     m_Colors:
