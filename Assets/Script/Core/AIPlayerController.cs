@@ -16,6 +16,7 @@ public class AiPlayerController : NetworkBehaviour, IPlayerController
     public GamePlayerInfo PlayerInfo { get; set; }
     public CivEnum PlayerCiv { get; private set; }
     public bool controllerIsLocalPlayer => false;
+    public bool CivConfirmed => true;
     //private static int aiNumber = 1; // Static counter to differentiate AI players
     [SyncVar] public string playerName = "Ai Player";
     public string PlayerName => playerName;

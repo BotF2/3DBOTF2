@@ -1,4 +1,4 @@
-// Ignore Spelling: Nums Revealer
+﻿// Ignore Spelling: Nums Revealer
 using BOTF3D.Combat;
 
 using BOTF3D.UI;
@@ -335,9 +335,23 @@ namespace BOTF3D.Galaxy
             FleetController aFleet = InstantiateFleet(emptyFleet, systCon, fleetData, position, false);
         }
 
+        /// <summary>
+        /// Creates a throwaway, data-only FleetController - either a sentinel about to be discarded
+        /// by InstantiateFleet (see BuildFirstFleetsNearSyst), or a "we don't actually have this
+        /// side's fleet" stand-in (see DiplomacyManager.ResolveEncounterOtherCivSystem). Neither
+        /// caller wants it ever rendered: it's the full FleetPrefab (sprite, insignia, DropLine),
+        /// instantiated at world (0,0,0) and never positioned or DropLine-configured like a real
+        /// fleet (see SetUpDropLine) before its owner destroys it. If that destroy is ever skipped -
+        /// e.g. an exception on a bystander client during diplomacy/intelligence setup, the same
+        /// remote-client race class documented at length in FleetController.OnCivEnumChanged - a
+        /// live placeholder left visible looks like a short, wrongly-colored dropline hanging off
+        /// GalaxyCenter at the origin. Deactivating immediately means that never happens, regardless
+        /// of whether cleanup downstream succeeds.
+        /// </summary>
         public FleetController InsatiateEmptyFleetController()
         {
             FleetController fleetController = Instantiate(fleetPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+            fleetController.gameObject.SetActive(false);
             return fleetController;
         }
 
@@ -579,7 +593,7 @@ namespace BOTF3D.Galaxy
         /// who never run InstantiateFleet themselves (see that method's comments) and were previously
         /// left with no DropLine at all.
         /// </summary>
-        private void SetUpDropLine(FleetController newFleet)
+        public void SetUpDropLine(FleetController newFleet)
         {
             FleetChildFields fleetChildFields = newFleet.GetComponent<FleetChildFields>();
 
@@ -674,7 +688,12 @@ namespace BOTF3D.Galaxy
             srInsignia.sprite = fleetData.Insignia;
             SpriteRenderer srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
 
-            if (GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum))
+            bool isLocalPlayer = GameController.Instance.AreWeLocalPlayer(fleetData.CivEnum);
+            bool alreadyHasAgent = newFleet.gameObject.GetComponent<csFogVisibilityAgent>() != null;
+            Debug.LogWarning($"\ud83d\udd2d[FogInsigniaDiag] fleet='{newFleet.name}' civ={fleetData.CivEnum} " +
+                             $"isLocalPlayer={isLocalPlayer} alreadyHasAgent={alreadyHasAgent}");
+
+            if (isLocalPlayer)
             {
                 // Explicit SetActive (not just SpriteRenderer.enabled) so this branch is correct even
                 // if it ever runs for a freshly-spawned remote-client fleet object whose insignia
@@ -726,7 +745,7 @@ namespace BOTF3D.Galaxy
                 }
 
                 // CRITICAL FIX: Add visibility agent AFTER all children exist
-                if (fogWar != null)
+                if (fogWar != null && !alreadyHasAgent)
                 {
                     var ourFogVisibilityAgent = newFleet.gameObject.AddComponent<csFogVisibilityAgent>();
                     ourFogVisibilityAgent.FogWar = fogWar;

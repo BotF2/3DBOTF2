@@ -255,6 +255,19 @@ namespace FischlWorks_FogWar
         [SerializeField]
         private Transform levelMidPoint = null;
         public Transform _LevelMidPoint => levelMidPoint;
+
+        // levelMidPoint is Inspector-wired to GalaxyCenter, an ordinary scene object - but this
+        // component's own GameObject is promoted to DontDestroyOnLoad in Awake() below, so it
+        // outlives GalaxyCenter across every GalaxyScene reload after the first (new game after
+        // returning to the menu, reconnect, etc.). Nothing ever re-pointed the field, so every
+        // reload after the first left it referencing a destroyed Transform, throwing
+        // MissingReferenceException the moment GetUnitX/GetUnitY touched levelMidPoint.position
+        // during the next galaxy's system/fleet generation. Called from
+        // StarSysManager.SysDataFromSO, which always holds the current scene's real GalaxyCenter.
+        public void SetLevelMidPoint(Transform newMidPoint)
+        {
+            levelMidPoint = newMidPoint;
+        }
         [SerializeField]
         [Range(1, 30)]
         private float FogRefreshRate = 10;

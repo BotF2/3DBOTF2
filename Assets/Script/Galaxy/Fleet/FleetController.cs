@@ -191,6 +191,20 @@ namespace BOTF3D.Galaxy
             if (PlayerManager.Instance == null || PlayerManager.Instance.LocalPlayerController == null)
                 return false;
 
+            // LocalPlayerController existing isn't enough on its own: its PlayerCiv SyncVar defaults
+            // to CivEnum.FED (see LocalHumanPlayerController.playerCiv) and only gets its real,
+            // player-confirmed value once CmdSetPlayerCiv actually runs - but LocalPlayerController
+            // itself is assigned much earlier, as soon as OnStartLocalPlayer fires on connect. In
+            // that window, GameController.AreWeLocalPlayer(FED) wrongly returns true for every
+            // connecting player (their real civ hasn't synced yet), regardless of which civ they'll
+            // actually end up as. If Federation's own fleet happens to reconstruct on a non-Federation
+            // client during that exact window, RegisterFleetControllerAndSetupVisuals permanently
+            // misclassifies it as "our own fleet" - unconditionally revealing its real insignia with
+            // zero contact ever having happened (observed: Player 2/3 seeing Federation's real sprite
+            // through fog of war before any first contact, intermittently, on a fresh game).
+            if (!PlayerManager.Instance.LocalPlayerController.CivConfirmed)
+                return false;
+
             if (FleetManager.Instance != null && FleetManager.Instance.GalaxyCenter == null)
                 FleetManager.Instance.FindGalaxyReferences();
 
@@ -324,7 +338,20 @@ namespace BOTF3D.Galaxy
                     FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
 
-            Debug.Log($"OnCivEnumChanged: civ={newCiv} synced for fleet '{name}' (GalaxyCenter={(FleetManager.Instance.GalaxyCenter != null ? "OK" : "NULL")}) - calling RegisterFleetControllerAndSetupVisuals.");
+            // isFreshReconstruction=false here would mean this SyncVar hook fired AGAIN for a fleet
+            // that already has FleetData - i.e. a stray re-fire, not the expected once-per-client
+            // initial spawn sync. TEMP: also logs position while diagnosing the bystander-fleet-
+            // displaced-after-combat bug, to see whether a re-fire (and its Vector3.one-fallback
+            // scale/position math a few lines up) coincides with the displacement.
+            //
+            // netId + SyncedFleetInt added (2026-08-07c): this log previously printed identically for
+            // a genuine duplicate of an already-existing fleet vs. a legitimately new fleet (e.g. one
+            // created mid-session via ship split/deploy) reaching this client for the first time -
+            // both look like "isFreshReconstruction=True" with no way to tell them apart. FleetInt=1
+            // means "this claims to be the same fleet number as the original starting fleet" (a real
+            // duplicate); FleetInt=2/3/etc. would mean a genuinely different, separate fleet.
+            var diagIdentity = GetComponent<NetworkIdentity>();
+            Debug.Log($"OnCivEnumChanged: civ={newCiv} synced for fleet '{name}' netId={(diagIdentity != null ? diagIdentity.netId.ToString() : "NULL")} SyncedFleetInt={SyncedFleetInt} (GalaxyCenter={(FleetManager.Instance.GalaxyCenter != null ? "OK" : "NULL")}, isFreshReconstruction={isFreshReconstruction}, pos={transform.position}) - calling RegisterFleetControllerAndSetupVisuals.");
             FleetManager.Instance.RegisterFleetControllerAndSetupVisuals(this, FleetData);
 
             // ShipController has no NetworkIdentity/SyncList - the server's own
@@ -519,9 +546,20 @@ namespace BOTF3D.Galaxy
             // drawn from whatever stale/default position the local placeholder GameObject started at.
             // Re-drawing it here every frame off the current (by-then-synced) transform.position is
             // cheap and self-healing regardless of the exact timing that caused the mismatch.
-            if (DropLine == null) return;
             if (Time.time - lastDropLineUpdateTime < updateInterval) return;
             lastDropLineUpdateTime = Time.time;
+
+            if (DropLine == null)
+            {
+                // DropLine can still be null here if FleetManager.SetUpDropLine's own one-shot
+                // galaxyImage-readiness retry lost the race when this fleet was first reconstructed
+                // (most likely for a client's OWN starting fleet - it's in the earliest spawn-message
+                // burst on connect, before this client's galaxyImage/GalaxyCenter refs are necessarily
+                // resolved). SetUpDropLine is idempotent and cheap to no-op once it succeeds, so keep
+                // retrying at the same throttled rate as the position refresh below until it does.
+                FleetManager.Instance?.SetUpDropLine(this);
+                return;
+            }
 
             Vector3 galaxyPlanePoint = new Vector3(transform.position.x, -60f, transform.position.z);
             DropLine.SetUpLine(new Vector3[] { transform.position, galaxyPlanePoint });
@@ -803,11 +841,40 @@ namespace BOTF3D.Galaxy
                     bool contactIsIntercept = (FleetData.InterceptTarget == hitFleetCon);
                     if (contactIsIntercept) CancelIntercept();
 
+                    bool isEnemyFleet = FleetData.CivEnum != hitFleetCon.FleetData.CivEnum;
+
+                    // Client-local visibility reveal (per-civ "have we met" cache) - deliberately
+                    // NOT gated behind isOurDestination/contactIsIntercept below. Those two only
+                    // describe whether THIS fleet was the one actively approaching hitFleetCon -
+                    // when it's the other way around (hitFleetCon set THIS fleet as its own
+                    // destination and did the approaching), this fleet's own OnTriggerEnter still
+                    // fires on physical overlap (Unity raises it on both colliders), but previously
+                    // never reached this call, so the approached side's owner never saw the
+                    // encountered civ's insignia update - even though the diplomacy encounter
+                    // itself opened fine for both sides (GalaxyEncounterQueue resolves that
+                    // separately, not gated the same way). Recognition on contact should be mutual
+                    // regardless of who initiated the approach.
+                    //
+                    // MUST additionally be gated on "is the local player actually one of these two
+                    // civs" - regression found 2026-08-08: OnTriggerEnter fires from LOCAL physics on
+                    // EVERY client independently (colliders overlap identically everywhere once synced
+                    // positions genuinely overlap, regardless of which machine's collider pair this
+                    // is), not just the two participants'. Without this check, a bystander with zero
+                    // relationship to either side (e.g. Romulan watching Federation and Klingon meet
+                    // each other) got ExposeAllFleetInsigniaSprites called on their own client purely
+                    // because their own local physics also detected the same collision - revealing
+                    // BOTH sides' real insignia through fog-of-war with no contact of their own ever
+                    // having happened. weAreLocalPlayer (this fleet's civ) was already computed above;
+                    // also check hitFleetCon's civ so either participant's own client still reveals
+                    // correctly regardless of which of the two fleets' OnTriggerEnter this is.
+                    if (isEnemyFleet && (weAreLocalPlayer || gameController.AreWeLocalPlayer(hitFleetCon.FleetData.CivEnum)))
+                        EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
+
                     if (isOurDestination || contactIsIntercept)
                     {
                         ClickCancelDestinationButton(); // we stop
 
-                        if (FleetData.CivEnum != hitFleetCon.FleetData.CivEnum) // enemy fleet
+                        if (isEnemyFleet)
                         {
                             // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
                             // is only ever processed on the server, and DiplomacyManager is a plain,
@@ -825,11 +892,6 @@ namespace BOTF3D.Galaxy
                                 OnADestinationThatIsOtherCivFleet(hitFleetCon);
                                 GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
                             }
-
-                            // Client-local visibility reveal (per-civ "have we met" cache) - every
-                            // client needs this for its own view, regardless of which machine's
-                            // physics fired this trigger.
-                            EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
 
                             if (hitFleetCon.FleetData.Destination == this.gameObject)
                                 CloseUnLoadFleetUI(this);
@@ -894,6 +956,24 @@ namespace BOTF3D.Galaxy
             }
 
         }
+        // TEMP DEBUG (2026-08-07e): dev-only hover tooltip showing this fleet's TRUE civ/name
+        // regardless of contact status, purely for testing/verifying which civ a sprite actually is
+        // (see project_bystander_fleet_duplication - distinguishing minor civs like XINDI/MALON from
+        // Federation/Klingon). Deliberately NOT wired into any real gameplay path - HandleNormalClick
+        // has no branch at all for an unowned, uncontacted fleet (confirmed: clicking one currently
+        // does nothing), and this must never change that. Uses OnGUI so it's fully self-contained,
+        // touches no real UI/Canvas, and is trivial to delete once done. REMOVE BEFORE SHIPPING.
+        private bool debugHovered;
+        private void OnMouseEnter() => debugHovered = true;
+        private void OnMouseExit() => debugHovered = false;
+        private void OnGUI()
+        {
+            if (!debugHovered || FleetData == null) return;
+            Vector2 mousePos = Event.current.mousePosition;
+            GUI.Box(new Rect(mousePos.x + 12, mousePos.y, 240, 24),
+                $"[DEBUG] {FleetData.CivEnum} - {FleetData.FleetName}");
+        }
+
         private void OnMouseDown()
         {
             // OnMouseDown is a raw physics raycast (SendMouseEvents) that runs independently of
@@ -1598,17 +1678,30 @@ namespace BOTF3D.Galaxy
         }
         private void OnDestroy()
         {
+            // TEMP DIAGNOSTIC (2026-08-07): chasing the bystander-client fleet-duplication bug (see
+            // project_bystander_fleet_duplication memory). Mirror's NetworkClient.FindOrSpawnObject
+            // treats a Unity "fake-null" spawned[netId] entry (dictionary key still present, but
+            // pointing at a destroyed UnityEngine.Object) as "never spawned", so if THIS GameObject
+            // gets destroyed for ANY reason - explicit Destroy() call, or Unity's own scene-unload
+            // GC silently killing it because it ended up parented under the wrong active scene -
+            // without Mirror's own NetworkServer.Destroy/ObjectDestroyMessage path running, the next
+            // update for this netId spawns a brand-new duplicate copy instead of updating this one.
+            // OnDestroy() fires regardless of *how* the object died, so this is the one place that
+            // can catch every case, including a bare scene-unload with no explicit Destroy() call
+            // anywhere in project code. Remove once root-caused.
+            // Stack trace removed (2026-08-07b) - see matching note in NetworkClient.FindOrSpawnObject.
+            // This call site fires far less often (only ever seen 5x, all benign empty-placeholder
+            // destroys) so it was lower-risk, but simplified for consistency while diagnosing.
+            var diagNetId = GetComponent<NetworkIdentity>();
+            Debug.LogWarning($"🪦[FleetDestroyDiag] OnDestroy: fleet '{name}' civ={FleetData?.CivEnum} netId={(diagNetId != null ? diagNetId.netId.ToString() : "NULL")} scene='{gameObject.scene.name}' NetworkServer.active={NetworkServer.active} NetworkClient.active={NetworkClient.active} pos={transform.position}");
+
             // Remove fog revealer when fleet is destroyed
             if (FischlWorks_FogWar.csFogWar.Instance != null && transform != null)
             {
                 FischlWorks_FogWar.csFogWar.Instance.RemoveRevealer(transform);
             }
 
-            if (serverPlayerTargetMarker != null)
-            {
-                Destroy(serverPlayerTargetMarker);
-                serverPlayerTargetMarker = null;
-            }
+            ServerClearPlayerTargetMarker();
 
             // Existing cleanup code...
             //StopAllCoroutines();
@@ -1686,6 +1779,8 @@ namespace BOTF3D.Galaxy
             // next TurnProgression tick resumed movement toward the "canceled" destination.
             if (!isServer)
                 CmdCancelDestination();
+            else
+                ServerClearPlayerTargetMarker(); // host calling this directly never goes through the Cmd above
         }
 
         [Command(requiresAuthority = false)]
@@ -1702,6 +1797,7 @@ namespace BOTF3D.Galaxy
             FleetData.Destination = FleetManager.Instance != null ? FleetManager.Instance.GalaxyCenter : null;
             if (FleetData.IsPursuingIntercept)
                 CancelIntercept();
+            ServerClearPlayerTargetMarker();
         }
 
         /// <summary>User-initiated abort of a pending convoy-deploy or fleet-merge. Deliberately kept
@@ -1900,6 +1996,25 @@ namespace BOTF3D.Galaxy
         // GameObject server-side purely so FleetData.Destination.transform.position has somewhere to
         // read from - the server never needs to render this marker, only use its position.
         private GameObject serverPlayerTargetMarker;
+
+        // Destroys the server-only marker (if any) so it doesn't outlive the destination it stood
+        // in for. Previously only OnDestroy() did this - i.e. only when the fleet itself died - so
+        // every other way of clearing a player-defined-target destination (arriving normally, or
+        // CmdCancelDestination/ClickCancelDestinationButton canceling one) left an orphaned
+        // "ServerPlayerTargetMarker_<fleet>" GameObject sitting under GalaxyCenter forever.
+        // Deliberately NOT [Server]-attributed: OnDestroy() below calls this unconditionally on
+        // every machine's copy of a destroyed fleet, server or client - on a client,
+        // serverPlayerTargetMarker is always null (only CmdSetDestinationToPlayerTarget, a
+        // server-only Command body, ever assigns it), so this is already a harmless no-op there;
+        // a [Server] guard would just add a spurious warning log to every client's OnDestroy.
+        private void ServerClearPlayerTargetMarker()
+        {
+            if (serverPlayerTargetMarker != null)
+            {
+                Destroy(serverPlayerTargetMarker);
+                serverPlayerTargetMarker = null;
+            }
+        }
 
         [Command(requiresAuthority = false)]
         private void CmdSetDestinationToPlayerTarget(Vector3 targetPosition, NetworkConnectionToClient sender = null)

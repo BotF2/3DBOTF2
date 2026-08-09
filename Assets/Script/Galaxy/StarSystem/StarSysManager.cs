@@ -482,6 +482,15 @@ namespace BOTF3D.Galaxy
                 yield break;
             }
 
+            // csFogWar is a DontDestroyOnLoad singleton, but its levelMidPoint field is wired to
+            // GalaxyCenter - an ordinary object that dies on every GalaxyScene reload after the
+            // first. Re-point it at the current (guaranteed-fresh) galaxyCenter before any
+            // system/fleet creation below can touch fog-of-war, or csFogWar throws
+            // MissingReferenceException on the second+ galaxy built in this process. See
+            // csFogWar.SetLevelMidPoint for the full story.
+            if (csFogWar.Instance != null)
+                csFogWar.Instance.SetLevelMidPoint(galaxyCenter.transform);
+
             // ✅ NEW: Initialize random positions if using RANDOM galaxy type
             // Reads from GameController.Instance.GameData rather than MainMenuUIController.Instance -
             // the latter is null on a true dedicated server (no MainMenuScene loaded there), while
@@ -693,6 +702,13 @@ namespace BOTF3D.Galaxy
             if (civSO.HasWarp)
             {
                 FleetManager.Instance.BuildFirstFleetsNearSyst(starSysCon);
+
+                // Starting transports dock here instead of joining Fleet 1's roster - see
+                // ShipSOProvider.GetStartingHomeSystemShips / ShipManager.BuildHomeSystemTransports.
+                // Ungated by NetworkServer.active (unlike BuildFirstFleetsNearSyst above) because
+                // galaxy ships aren't Mirror-networked; every client rebuilds them locally here from
+                // the same civ + tech level, same as the home-defense Destroyer just below.
+                ShipManager.Instance.BuildHomeSystemTransports(starSysCon, starSysCon.StarSysData.CurrentOwnerCivEnum);
             }
 
             // Home system defense: majors always get their own lone Destroyer regardless of warp

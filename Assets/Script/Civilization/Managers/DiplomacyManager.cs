@@ -39,11 +39,22 @@ namespace BOTF3D.Civilization
 
         }
 
+        // Fires after every DiplomacyProject resolves: (proposalType, proposer, target, accepted).
+        // Mirrors IntelligenceManager.OnProjectResolved so UI can hook it the same way.
+        public static event System.Action<NegotiationPloysEnum, CivEnum, CivEnum, bool> OnDiplomacyProjectResolved;
+
         private void OnEnable()
         {
             if (TimeManager.Instance != null)
             {
+                // TickDiplomacyProjects registered first (mirrors IntelligenceManager's
+                // TickIntelProjects-before-ProcessAIIntelForAllCivs order): ages proposals already
+                // pending before any new one gets created this turn, so a project an AI civ starts
+                // this turn always waits at least one full OnTurnAdvanced cycle before resolving,
+                // instead of ticking its 1-turn duration down to 0 in the same call it was created.
+                TimeManager.Instance.OnTurnAdvanced += TickDiplomacyProjects;
                 TimeManager.Instance.OnTurnAdvanced += ProcessAIDiplomacyForAllCivs;
+                TimeManager.Instance.OnTurnAdvanced += ProcessAutoImproveRelations;
                 TimeManager.Instance.OnTurnAdvanced += ProcessCooperationPactDrift;
             }
         }
@@ -52,9 +63,195 @@ namespace BOTF3D.Civilization
         {
             if (TimeManager.Instance != null)
             {
+                TimeManager.Instance.OnTurnAdvanced -= TickDiplomacyProjects;
                 TimeManager.Instance.OnTurnAdvanced -= ProcessAIDiplomacyForAllCivs;
+                TimeManager.Instance.OnTurnAdvanced -= ProcessAutoImproveRelations;
                 TimeManager.Instance.OnTurnAdvanced -= ProcessCooperationPactDrift;
             }
+        }
+
+        /// <summary>
+        /// Human-player counterpart to ProcessAIDiplomacyForAllCivs: for every pair with
+        /// AutoImproveRelations opted in (see DiplomacyData) and no proposal already pending,
+        /// automatically sends the same tiered goodwill gesture AI civs pick for themselves. Unlike
+        /// the AI tick this has no per-turn chance roll - it's an explicit player opt-in, so it fires
+        /// deterministically every turn a slot is free rather than "sometimes", which would read as
+        /// broken to a player who just turned it on. CivEnumSideOne must be the human's own civ here
+        /// (true whenever this was toggled from that civ's own open Diplomacy card - see
+        /// OpenDiplomacyUI's CivEnumSideOne-normalizes-to-local-player behavior).
+        /// </summary>
+        private void ProcessAutoImproveRelations()
+        {
+            foreach (var diploCon in DiplomacyControllers)
+            {
+                if (diploCon?.DiplomacyData == null || !diploCon.DiplomacyData.AutoImproveRelations) continue;
+
+                CivEnum proposerEnum = diploCon.DiplomacyData.CivEnumSideOne;
+                if (proposerEnum == CivEnum.BORG) continue;
+                if (diploCon.DiplomacyData.ActiveProjects.Exists(p => !p.IsComplete)) continue;
+
+                DiplomacyStatusEnum status = diploCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
+                if (status >= DiplomacyStatusEnum.Friendly)
+                    diploCon.OfferAlliance(diploCon);
+                else if (status >= DiplomacyStatusEnum.Neutral)
+                    diploCon.SendAid(diploCon);
+                else
+                    diploCon.ProposeTrade(diploCon);
+            }
+        }
+
+        // ─── Project creation ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Starts a multi-turn diplomatic proposal from proposerCiv to targetCiv. Returns false if
+        /// the proposal cannot start (no contact record, duplicate proposal of the same type already
+        /// pending, Borg involved, or - for Alliance - relations aren't Friendly yet). Mirrors
+        /// IntelligenceManager.CreateIntelProject's shape.
+        /// </summary>
+        public bool CreateDiplomacyProject(NegotiationPloysEnum proposalType, CivEnum proposerCiv, CivEnum targetCiv,
+            out string failReason)
+        {
+            failReason = string.Empty;
+
+            if (proposerCiv == CivEnum.BORG || targetCiv == CivEnum.BORG)
+            {
+                failReason = "the Borg do not engage in diplomacy";
+                return false;
+            }
+
+            DiplomacyController diploCon = ReturnADiplomacyController(proposerCiv, targetCiv);
+            if (diploCon == null)
+            {
+                failReason = "no contact record with that civilization";
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"DiplomacyProject: no contact record between {proposerCiv} and {targetCiv}");
+                return false;
+            }
+
+            if (proposalType == NegotiationPloysEnum.OfferAlliance &&
+                diploCon.DiplomacyData.DiplomacyStatusEnumOfCivs < DiplomacyStatusEnum.Friendly)
+            {
+                failReason = "relations aren't Friendly yet";
+                return false;
+            }
+
+            // Only one proposal may be pending between a given civ pair at a time, regardless of
+            // type - keeps the relationship from being flooded with simultaneous Trade/Tech/Aid/
+            // Alliance offers all racing to resolve at once.
+            foreach (var existing in diploCon.DiplomacyData.ActiveProjects)
+            {
+                if (!existing.IsComplete)
+                {
+                    failReason = "a proposal is already pending with this civilization";
+                    return false;
+                }
+            }
+
+            int turns = TurnsForProposal(proposalType);
+            float chance = Mathf.Clamp01(CalculateAcceptanceChance(proposalType, diploCon.DiplomacyData, targetCiv));
+
+            var project = new DiplomacyProject(proposalType, proposerCiv, targetCiv, turns, chance);
+            diploCon.DiplomacyData.ActiveProjects.Add(project);
+
+            GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                $"DiplomacyProject started: {proposalType} {proposerCiv} → {targetCiv} | {turns} turns | Acceptance {chance:P0}");
+            return true;
+        }
+
+        // ─── Per-turn tick ───────────────────────────────────────────────────
+
+        private void TickDiplomacyProjects()
+        {
+            foreach (var diploCon in DiplomacyControllers)
+            {
+                if (diploCon?.DiplomacyData?.ActiveProjects == null) continue;
+
+                for (int i = diploCon.DiplomacyData.ActiveProjects.Count - 1; i >= 0; i--)
+                {
+                    var project = diploCon.DiplomacyData.ActiveProjects[i];
+                    if (project.IsComplete) continue;
+
+                    project.TurnsRemaining--;
+
+                    if (project.TurnsRemaining <= 0)
+                    {
+                        ResolveDiplomacyProject(diploCon, project);
+                        project.IsComplete = true;
+                        diploCon.DiplomacyData.ActiveProjects.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        // ─── Resolution ──────────────────────────────────────────────────────
+
+        private void ResolveDiplomacyProject(DiplomacyController diploCon, DiplomacyProject project)
+        {
+            bool accepted = UnityEngine.Random.value <= project.AcceptanceChance;
+
+            if (accepted)
+            {
+                diploCon.ApplyAcceptedProposal(project.ProposalType);
+                diploCon.DiplomacyData.LastProposalOutcome = $"✅ {project.ProposalType} ACCEPTED by {project.TargetCiv}";
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"DiplomacyProject accepted: {project.ProposalType} {project.ProposerCiv} → {project.TargetCiv}");
+            }
+            else
+            {
+                diploCon.DiplomacyData.LastProposalOutcome = $"❌ {project.ProposalType} REJECTED by {project.TargetCiv}";
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"DiplomacyProject rejected: {project.ProposalType} {project.ProposerCiv} → {project.TargetCiv}");
+            }
+
+            OnDiplomacyProjectResolved?.Invoke(project.ProposalType, project.ProposerCiv, project.TargetCiv, accepted);
+        }
+
+        // ─── Calculation helpers ─────────────────────────────────────────────
+
+        private static int TurnsForProposal(NegotiationPloysEnum proposalType)
+        {
+            switch (proposalType)
+            {
+                case NegotiationPloysEnum.OfferAlliance:         return 3;
+                case NegotiationPloysEnum.OfferTech:             return 2;
+                case NegotiationPloysEnum.OfferAid:              return 1;
+                case NegotiationPloysEnum.OfferTrade:            return 1;
+                case NegotiationPloysEnum.OfferCulturalExchange: return 1;
+                default:                                         return 1;
+            }
+        }
+
+        private static float BaseAcceptanceChance(NegotiationPloysEnum proposalType)
+        {
+            switch (proposalType)
+            {
+                case NegotiationPloysEnum.OfferAlliance:         return 0.5f;
+                case NegotiationPloysEnum.OfferTech:             return 0.75f;
+                case NegotiationPloysEnum.OfferAid:              return 0.85f;
+                case NegotiationPloysEnum.OfferTrade:            return 0.9f;
+                case NegotiationPloysEnum.OfferCulturalExchange: return 0.9f;
+                default:                                         return 0.6f;
+            }
+        }
+
+        /// <summary>
+        /// Base chance for the proposal type, adjusted by how open the responding (target) civ
+        /// tends to be (its own DiplomaticAptitude - a warlike/xenophobic/ruthless/greedy civ is
+        /// harder to win over) and by how far relations already sit above the gating threshold used
+        /// for that proposal type - closer to Allied makes acceptance more likely.
+        /// </summary>
+        private static float CalculateAcceptanceChance(NegotiationPloysEnum proposalType, DiplomacyData data, CivEnum targetCiv)
+        {
+            float baseChance = BaseAcceptanceChance(proposalType);
+
+            CivData targetData = CivManager.Instance?.GetCivDataByCivEnum(targetCiv);
+            float targetOpenness = targetData != null ? targetData.DiplomaticAptitude * 0.15f : 0f; // roughly ±0.3
+
+            float relationBonus = Mathf.Clamp01(
+                (data.DiplomacyPointsOfCivs - (int)DiplomacyStatusEnum.Friendly) /
+                (float)((int)DiplomacyStatusEnum.Allied - (int)DiplomacyStatusEnum.Friendly)) * 0.3f;
+
+            return Mathf.Clamp01(baseChance + targetOpenness + relationBonus);
         }
 
         /// <summary>
@@ -530,61 +727,72 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             Debug.Log("DiplomacyManager: ResolveEncounterOtherCivSystem called.");
             // already not one of our systems
             FleetController fleetConEmpty = FleetManager.Instance.InsatiateEmptyFleetController();
-            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebula)
-
-            if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited
+            try
             {
-                if (reportingPlayerfleet != null) // it is a FleetController and not a StarSystem or other with collider                                                                                                                                                    leetController
-                {
-                    CivController civSideOne;
-                    CivController civSideTwo;
-                    FleetController sideOneFleetCon;
-                    FleetController sideTwoFleetCon;
-                    if (reportingPlayerfleet.FleetData.CivController.CivData.CivEnum < otherCivSysCon.StarSysData.CurrentCivController.CivData.CivEnum)
-                    { // local player is side one
-                        civSideOne = reportingPlayerfleet.FleetData.CivController;
-                        sideOneFleetCon = reportingPlayerfleet;
-                        civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
-                        sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty place holder
-                    }
-                    else // other civ is side one
-                    {
-                        civSideOne = otherCivSysCon.StarSysData.CurrentCivController;
-                        sideOneFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
-                        civSideTwo = reportingPlayerfleet.FleetData.CivController;
-                        sideTwoFleetCon = reportingPlayerfleet;
-                    }
+                int firstUninhabited = (int)CivEnum.ZZUNINHABITED1; // all lower than this are inhabited (including Borg UniComplex and inhabitable Nebula)
 
-                    //have we met before? Do I know you?
-                    if (!FoundADiplomacyController(civSideOne, civSideTwo))
-                    { // First Contact
-                        DiplomacyController newDiplomacyCon = InstantiateDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                        if (!DiplomacyControllers.Contains(newDiplomacyCon))
-                            DiplomacyControllers.Add(newDiplomacyCon);
-                        IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum < firstUninhabited) // it is inhabited
+                {
+                    if (reportingPlayerfleet != null) // it is a FleetController and not a StarSystem or other with collider                                                                                                                                                    leetController
+                    {
+                        CivController civSideOne;
+                        CivController civSideTwo;
+                        FleetController sideOneFleetCon;
+                        FleetController sideTwoFleetCon;
+                        if (reportingPlayerfleet.FleetData.CivController.CivData.CivEnum < otherCivSysCon.StarSysData.CurrentCivController.CivData.CivEnum)
+                        { // local player is side one
+                            civSideOne = reportingPlayerfleet.FleetData.CivController;
+                            sideOneFleetCon = reportingPlayerfleet;
+                            civSideTwo = otherCivSysCon.StarSysData.CurrentCivController;
+                            sideTwoFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty place holder
+                        }
+                        else // other civ is side one
+                        {
+                            civSideOne = otherCivSysCon.StarSysData.CurrentCivController;
+                            sideOneFleetCon = fleetConEmpty; // we do not have the other fleet controller, so we use an empty one
+                            civSideTwo = reportingPlayerfleet.FleetData.CivController;
+                            sideTwoFleetCon = reportingPlayerfleet;
+                        }
+
+                        //have we met before? Do I know you?
+                        if (!FoundADiplomacyController(civSideOne, civSideTwo))
+                        { // First Contact
+                            DiplomacyController newDiplomacyCon = InstantiateDiplomacyController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                            if (!DiplomacyControllers.Contains(newDiplomacyCon))
+                                DiplomacyControllers.Add(newDiplomacyCon);
+                            IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                        }
+                        else
+                        { // not first contact
+                            FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
+                            //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                        }
                     }
-                    else
-                    { // not first contact
-                        FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
-                        //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
+                    otherCivSysCon.gameObject.SetActive(true);
+                }
+                else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+                {
+                    //React to Uninhabited system contact and Colonize option
+                    FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
+                    foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
+                    {
+                        if (shipController.ShipData.ShipType == ShipType.Transport)
+                        {
+                            // ToDo: Colonies Option/ UI?
+                        }
                     }
                 }
-                otherCivSysCon.gameObject.SetActive(true);
             }
-            else if ((int)otherCivSysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+            finally
             {
-                //React to Uninhabited system contact and Colonize option
-                FeetsUninhabitedSysEncounter(reportingPlayerfleet, otherCivSysCon);
-                Destroy(fleetConEmpty.gameObject); // we do not need the empty fleet controller anymore
-                foreach (ShipController shipController in reportingPlayerfleet.FleetData.GetShipList())
-                {
-                    if (shipController.ShipData.ShipType == ShipType.Transport)
-                    {
-                        // ToDo: Colonies Option/ UI?
-                    }
-                }
+                // Always runs, even if the block above throws (e.g. a bystander client hitting one of
+                // the "remote client civ/player data not ready yet" races documented in
+                // FleetController.OnCivEnumChanged) - otherwise this disposable placeholder (see
+                // FleetManager.InsatiateEmptyFleetController) never gets destroyed and lingers in the
+                // scene forever, inactive but still there.
+                if (fleetConEmpty != null)
+                    Destroy(fleetConEmpty.gameObject);
             }
-            Destroy(fleetConEmpty.gameObject);
         }
 
         private void FeetsUninhabitedSysEncounter(FleetController reportingPlayerfleet, StarSysController uninhabitedSysCon)

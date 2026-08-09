@@ -44,6 +44,61 @@ namespace Mirror
         // Used to store last sent snapshots
         protected TransformSnapshot last;
 
+        // OnEnable/OnDisable: call base (which handles the authority callback subscription
+        // and clears snapshot buffers via ResetState), then immediately restore the delta
+        // compression baselines that ResetState zeroed.
+        //
+        // WHY: If fleets are hidden (SetActive false) on the host/server during combat but NOT
+        // on bystander clients (they stay active the whole time), the server's ResetState()
+        // zeros lastSerializedPosition=0 while each bystander client still has its own
+        // lastDeserializedPosition=quantize(preHidePos). The first delta packet after re-enable
+        // is: delta = quantize(currentPos) - 0. The bystander client decompresses it as:
+        //   lastDeserializedPos + delta = preHidePos + currentPos  (doubled / completely wrong).
+        // Sending ServerTeleport/RpcTeleport to fix this races with the already-queued delta in
+        // the same KCP batch and does not reliably win.
+        // Keeping the baselines intact is safe: if the fleet didn't move during combat (it was
+        // just hidden), the first delta after re-enable = quantize(pos) - quantize(pos) ≈ 0
+        // and everything stays in sync.
+        protected override void OnEnable()
+        {
+            // Save baselines before base.OnEnable() -> ResetState() zeros them.
+            Vector3Long savedSerializedPos   = lastSerializedPosition;
+            Vector3Long savedDeserializedPos = lastDeserializedPosition;
+            Vector3Long savedSerializedScale   = lastSerializedScale;
+            Vector3Long savedDeserializedScale = lastDeserializedScale;
+            TransformSnapshot savedLast = last;
+
+            base.OnEnable();   // handles clientAuthorityCallback, calls ResetState()
+
+            // Restore delta baselines so bystander clients stay in sync.
+            lastSerializedPosition   = savedSerializedPos;
+            lastDeserializedPosition = savedDeserializedPos;
+            lastSerializedScale   = savedSerializedScale;
+            lastDeserializedScale = savedDeserializedScale;
+            last = savedLast;
+
+            Debug.LogWarning($"\u26a1[NTTeleportDiag] NTReliable.OnEnable (baselines restored): {name} pos={target.position} frame={Time.frameCount}");
+        }
+
+        protected override void OnDisable()
+        {
+            // Save baselines before base.OnDisable() -> ResetState() zeros them.
+            Vector3Long savedSerializedPos   = lastSerializedPosition;
+            Vector3Long savedDeserializedPos = lastDeserializedPosition;
+            Vector3Long savedSerializedScale   = lastSerializedScale;
+            Vector3Long savedDeserializedScale = lastDeserializedScale;
+            TransformSnapshot savedLast = last;
+
+            base.OnDisable();  // handles clientAuthorityCallback, calls ResetState()
+
+            // Restore delta baselines.
+            lastSerializedPosition   = savedSerializedPos;
+            lastDeserializedPosition = savedDeserializedPos;
+            lastSerializedScale   = savedSerializedScale;
+            lastDeserializedScale = savedDeserializedScale;
+            last = savedLast;
+        }
+
         // update //////////////////////////////////////////////////////////////
         void Update()
         {
