@@ -23,6 +23,7 @@ MonoBehaviour:
   GreedyEnum: 2
   CivImage: {fileID: 21300000, guid: 9f337b818e6ce7f49ada896cbf5c1bd4, type: 3}
   Insignia: {fileID: 21300000, guid: 18273931b6c901041bb9c53c43cea038, type: 3}
+  GlowColor: {r: 0.15, g: 0.55, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 80

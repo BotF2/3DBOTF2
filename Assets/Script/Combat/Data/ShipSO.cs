@@ -26,7 +26,6 @@ public class ShipSO : ScriptableObject
 
     [Header("Visual / Description")]
     public Sprite shipSprite;
-    public Color shipColor;
     public string ShipDescription;
 
     /// <summary>

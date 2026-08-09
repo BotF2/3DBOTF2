@@ -1361,6 +1361,59 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 197cc08735b97da449ef5a9df9d57612, type: 2}
   - {fileID: 11400000, guid: ce4e79ea1f72e3b47bfa42775db139eb, type: 2}
   - {fileID: 11400000, guid: 86b3c33fd3c215b4dbb8b40deacefed7, type: 2}
+  - {fileID: 11400000, guid: 32cda770919f40fbafb399be9ce420d2, type: 2}
+  - {fileID: 11400000, guid: 7f44cc910939464692d833035285c390, type: 2}
+  - {fileID: 11400000, guid: 98bf0a3add7244ceba234ad5cc3bdfa3, type: 2}
+  - {fileID: 11400000, guid: 9623f9ff03cf44f0bc43406959b86a12, type: 2}
+  - {fileID: 11400000, guid: d6c3d98f568447b88634c6e7a25b0404, type: 2}
+  - {fileID: 11400000, guid: 4d9d256b3956456f8b7ccc44fd058fbd, type: 2}
+  - {fileID: 11400000, guid: 123c47e7611a4623866665844041cb58, type: 2}
+  - {fileID: 11400000, guid: 60c12d963e1f4f2fbf733ec99b73eb48, type: 2}
+  - {fileID: 11400000, guid: 838df800c0d24a06960d498b94ad72f8, type: 2}
+  - {fileID: 11400000, guid: 251a98e9222c42eca1de640197d630d2, type: 2}
+  - {fileID: 11400000, guid: 66fbbc30ed2f4c3c9aaa959bd0620684, type: 2}
+  - {fileID: 11400000, guid: b74523d3163c4bf8bc30816b4ccec0ac, type: 2}
+  - {fileID: 11400000, guid: 67440a09d4264c5fa642498e88c4b0ba, type: 2}
+  - {fileID: 11400000, guid: c7706dd5774741ec86220bcfe8b9464b, type: 2}
+  - {fileID: 11400000, guid: b2110733186b4d9bb208ba4e545b807e, type: 2}
+  - {fileID: 11400000, guid: bc69284463a24771a6697898435652fa, type: 2}
+  - {fileID: 11400000, guid: 5ef805b44f5e440687bb30f57d2eb282, type: 2}
+  - {fileID: 11400000, guid: e7ed2aaf81e24d3f9f18a4182885013f, type: 2}
+  - {fileID: 11400000, guid: 87c9469cc4f6472fb755f9b998b2e5f7, type: 2}
+  - {fileID: 11400000, guid: d9229e8472604ff69711d17f565fec16, type: 2}
+  - {fileID: 11400000, guid: 3702bdbc62a34b92b85139dd3061ad30, type: 2}
+  - {fileID: 11400000, guid: fbc1257fd1594a45890fa24dc1723da2, type: 2}
+  - {fileID: 11400000, guid: 22dd131c91f14d049533fa95fc937e0f, type: 2}
+  - {fileID: 11400000, guid: b38f1100bd9a40ee870f5259c23357ca, type: 2}
+  - {fileID: 11400000, guid: 48b41c7efe4c4a088190a094cdbea222, type: 2}
+  - {fileID: 11400000, guid: cd69033951504fca8da33c4fad790cc3, type: 2}
+  - {fileID: 11400000, guid: 172359c985f54ee780c9217a1bf9ee36, type: 2}
+  - {fileID: 11400000, guid: 98b8155fd733460fb9cd3624cb4c1b61, type: 2}
+  - {fileID: 11400000, guid: f02011933c1e423bbc960a127ecf9614, type: 2}
+  - {fileID: 11400000, guid: d8e2de3f25614171b9f7e10a2a2182d6, type: 2}
+  - {fileID: 11400000, guid: 533068a1263542a1b6df4cb3b971a388, type: 2}
+  - {fileID: 11400000, guid: 463c76f59ccf46d4ab8cb54911af9f6d, type: 2}
+  - {fileID: 11400000, guid: 1d60cedd6419477c881b140988aca8cd, type: 2}
+  - {fileID: 11400000, guid: 583a3be3339e4e288c91e8345cb4b566, type: 2}
+  - {fileID: 11400000, guid: a42a04b1e1a543cab9cc2b8130b37935, type: 2}
+  - {fileID: 11400000, guid: c4bd60a1352149e19d8e652d6d4c50a0, type: 2}
+  - {fileID: 11400000, guid: f1617b965f3c4d19a28fe43c8a946b90, type: 2}
+  - {fileID: 11400000, guid: dfb4cf4d3d30488bb07148729f363554, type: 2}
+  - {fileID: 11400000, guid: 559c23d6c6e84abfb79c322f84f7f8c4, type: 2}
+  - {fileID: 11400000, guid: 36631e8943a54c82a14f3f7d59163832, type: 2}
+  - {fileID: 11400000, guid: 92ffc337d6e64d8999e1bba9fa28283d, type: 2}
+  - {fileID: 11400000, guid: 7f07dcea054d46968563e051d36183b5, type: 2}
+  - {fileID: 11400000, guid: 659b4b13f09f4f57a2a3c0ca4008287d, type: 2}
+  - {fileID: 11400000, guid: 77c909e4cf764a52a4671104a66e8115, type: 2}
+  - {fileID: 11400000, guid: 3caf5e8998e1490d944a917b5152cc49, type: 2}
+  - {fileID: 11400000, guid: 162011aab96f4b2184effd1d0033d793, type: 2}
+  - {fileID: 11400000, guid: 14a0117b7589464aa427932af3b502c8, type: 2}
+  - {fileID: 11400000, guid: 33767d6644a048efa6d6329f9196f9a9, type: 2}
+  - {fileID: 11400000, guid: 60996c2e2dc948fd839ee81070d5e0ab, type: 2}
+  - {fileID: 11400000, guid: 499b1629e0a2491d858213a58bed38ef, type: 2}
+  - {fileID: 11400000, guid: 5f23ef9c70c04389bc102921bea52a19, type: 2}
+  - {fileID: 11400000, guid: c2373aec642e4923824dcb46c26b79a4, type: 2}
+  - {fileID: 11400000, guid: 329b929aff3c44fb908eff4a25615b09, type: 2}
   CivSOsInGame: []
   smallMapMinorNeighborsInGame:
   - {fileID: 11400000, guid: 3aab81f354fa6fc4780630e75736e6af, type: 2}

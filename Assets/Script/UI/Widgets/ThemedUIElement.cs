@@ -48,11 +48,20 @@ namespace BOTF3D.UI
         private Image image;
         private SpriteRenderer spriteRenderer;
 
+        // Reused across ApplyTheme calls to avoid cloning a new Material instance every time
+        // (see ApplyBorderTransformAndMaterial). Constructed in Awake(), not as a field
+        // initializer — Unity disallows native object construction in a MonoBehaviour's
+        // implicit constructor/field initializers.
+        private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
+        private MaterialPropertyBlock borderPropertyBlock;
+
         private void Awake()
         {
             button          = GetComponent<Button>();
             image           = GetComponent<Image>() ?? GetComponentInChildren<Image>();
             spriteRenderer  = GetComponent<SpriteRenderer>();
+            borderPropertyBlock = new MaterialPropertyBlock();
         }
 
         private void Start()
@@ -156,8 +165,12 @@ namespace BOTF3D.UI
             if (ScaleSyncSource != null)
                 transform.localScale = ScaleSyncSource.localScale;
 
-            spriteRenderer.material.SetFloat("_Metallic", BorderMetallic);
-            spriteRenderer.material.SetFloat("_Smoothness", BorderSmoothness);
+            // Use a MaterialPropertyBlock instead of spriteRenderer.material so re-applying the
+            // theme doesn't clone a new Material instance per border element every time.
+            spriteRenderer.GetPropertyBlock(borderPropertyBlock);
+            borderPropertyBlock.SetFloat(MetallicId, BorderMetallic);
+            borderPropertyBlock.SetFloat(SmoothnessId, BorderSmoothness);
+            spriteRenderer.SetPropertyBlock(borderPropertyBlock);
         }
 
         private void ApplyTextTheme(global::ThemeSO theme)

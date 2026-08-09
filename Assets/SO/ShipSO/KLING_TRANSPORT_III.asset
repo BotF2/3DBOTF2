@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: KLING_TRANSPORT_III
   m_EditorClassIdentifier: Assembly-CSharp::ShipSO
-  ShipFBX_ModelAsGOPrefab: {fileID: 0}
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 3427aa7fe2c8d6248ab73484b2da52c0, type: 3}
   ShipName: KLING_TRANSPORT_III
   CivEnum: 2
   TechLevel: 2
