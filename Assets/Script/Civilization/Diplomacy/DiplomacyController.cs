@@ -200,6 +200,18 @@ namespace BOTF3D.Civilization
             this.DiplomacyData.DiplomacyPointsOfCivs -= points;
             ChangedDiplomacyStatus(this.DiplomacyData.DiplomacyPointsOfCivs);
         }
+
+        /// <summary>
+        /// UI-facing toggle for DiplomacyData.AutoImproveRelations - ready to wire to a Toggle's
+        /// OnValueChanged on the Diplomacy card once one exists there (see
+        /// DiplomacyManager.ProcessAutoImproveRelations for what it actually does).
+        /// </summary>
+        public void SetAutoImproveRelations(bool enabled)
+        {
+            DiplomacyData.AutoImproveRelations = enabled;
+            Debug.Log($"[Diplomacy] Auto-improve relations with {DiplomacyData.CivEnumSideTwo} " +
+                (enabled ? "enabled." : "disabled."));
+        }
         private void ChangedDiplomacyStatus(int currentStatusPoints)
         {
             if (currentStatusPoints < -20)
@@ -314,46 +326,113 @@ namespace BOTF3D.Civilization
 
         public void ProposeTrade(DiplomacyController diplomacyController)
         {
-            ApplyDiplomaticGesture(TradePointGain);
+            SendProposal(NegotiationPloysEnum.OfferTrade, "Trade");
         }
         public void Engagement(DiplomacyController dilomacyCon)
         {
-            ApplyDiplomaticGesture(EngagementPointGain);
+            SendProposal(NegotiationPloysEnum.OfferCulturalExchange, "Cultural Exchange");
         }
         public void ProposeTech(DiplomacyController dilomacyCon)
         {
-            ApplyDiplomaticGesture(TechPointGain);
+            SendProposal(NegotiationPloysEnum.OfferTech, "Tech Bargain");
         }
         public void SendAid(DiplomacyController diplomacyController)
         {
-            ApplyDiplomaticGesture(AidPointGain);
+            SendProposal(NegotiationPloysEnum.OfferAid, "Aid");
         }
         public void OfferAlliance(DiplomacyController diplomacyController)
         {
-            // Can't leap straight to Allied from a cold relationship - build up through Friendly first.
-            if (DiplomacyData.DiplomacyStatusEnumOfCivs < DiplomacyStatusEnum.Friendly)
+            // Minor-major pairs (exactly one side is a minor race, CivEnum > 6): Alliance opens a
+            // standing cooperation pact - tech/trade/military ties that build trust passively every
+            // turn (see TickCooperationPactDrift) toward Membership/annexation. That's already the
+            // "this takes time" mechanic for minor-major, so it keeps its instant
+            // ApplyDiplomaticGesture kick-off and bypasses the proposal system below entirely.
+            bool sideOneMinor = (int)DiplomacyData.CivEnumSideOne > 6;
+            bool sideTwoMinor = (int)DiplomacyData.CivEnumSideTwo > 6;
+            if (sideOneMinor != sideTwoMinor)
             {
-                Debug.Log($"[Diplomacy] Alliance offer rejected: {DiplomacyData.CivEnumSideOne} and " +
-                    $"{DiplomacyData.CivEnumSideTwo} aren't Friendly yet.");
+                // The Borg do not negotiate, and can't leap straight to Allied from a cold
+                // relationship - build up through Friendly first. CreateDiplomacyProject checks
+                // both of these too, but this branch never reaches it, so it needs its own checks.
+                if (DiplomacyData.CivEnumSideOne == CivEnum.BORG || DiplomacyData.CivEnumSideTwo == CivEnum.BORG)
+                {
+                    Debug.Log("[Diplomacy] Alliance offer rejected: the Borg do not engage in diplomacy.");
+                    return;
+                }
+                if (DiplomacyData.DiplomacyStatusEnumOfCivs < DiplomacyStatusEnum.Friendly)
+                {
+                    Debug.Log($"[Diplomacy] Alliance offer rejected: {DiplomacyData.CivEnumSideOne} and " +
+                        $"{DiplomacyData.CivEnumSideTwo} aren't Friendly yet.");
+                    return;
+                }
+
+                if (!DiplomacyData.CooperationPactActive)
+                {
+                    DiplomacyData.CooperationPactActive = true;
+                    Debug.Log($"[Diplomacy] Cooperation pact opened between {DiplomacyData.CivEnumSideOne} and " +
+                        $"{DiplomacyData.CivEnumSideTwo} - trust will now build over time toward Federation membership.");
+                }
+
+                ApplyDiplomaticGesture(AlliancePointGain);
                 return;
             }
 
-            // Minor-major pairs (exactly one side is a minor race, CivEnum > 6): Alliance opens a
-            // standing cooperation pact - tech/trade/military ties that build trust passively every
-            // turn (see TickCooperationPactDrift) toward Membership/annexation, rather than a single
-            // point gesture. Major-major pairs keep the existing one-off gesture behavior; reaching
-            // Allied there represents a mutual-defense treaty, with no annexation path (already
-            // gated by AnnexMinorIntoMajor requiring a minor side).
-            bool sideOneMinor = (int)DiplomacyData.CivEnumSideOne > 6;
-            bool sideTwoMinor = (int)DiplomacyData.CivEnumSideTwo > 6;
-            if (sideOneMinor != sideTwoMinor && !DiplomacyData.CooperationPactActive)
-            {
-                DiplomacyData.CooperationPactActive = true;
-                Debug.Log($"[Diplomacy] Cooperation pact opened between {DiplomacyData.CivEnumSideOne} and " +
-                    $"{DiplomacyData.CivEnumSideTwo} - trust will now build over time toward Federation membership.");
-            }
+            // Major-major pairs: a mutual-defense treaty is the biggest ask in the game, so it's a
+            // real proposal the other civ can accept or reject over a few turns instead of an
+            // instant guaranteed point gain - see DiplomacyManager.CreateDiplomacyProject, which
+            // covers the Borg-exclusion and Friendly-gate checks for this path.
+            SendProposal(NegotiationPloysEnum.OfferAlliance, "Alliance");
+        }
 
-            ApplyDiplomaticGesture(AlliancePointGain);
+        /// <summary>
+        /// Shared "fire a DiplomacyProject and log the outcome" helper for every proposal-driven
+        /// gesture button above. CivEnumSideOne is this codebase's established "proposer" convention
+        /// (see ApplyDiplomaticGesture below and DiplomacyManager.ProcessAIDiplomacyForAllCivs).
+        /// </summary>
+        private void SendProposal(NegotiationPloysEnum proposalType, string proposalLabel)
+        {
+            if (DiplomacyManager.Instance.CreateDiplomacyProject(proposalType,
+                DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo, out string failReason))
+            {
+                // Clear the previous proposal's result so it doesn't linger under a new "PENDING"
+                // line, and refresh the card immediately - otherwise the button click gives no
+                // visible feedback at all until the next turn tick or resolve event.
+                DiplomacyData.LastProposalOutcome = null;
+                Debug.Log($"[Diplomacy] {proposalLabel} proposal sent: {DiplomacyData.CivEnumSideOne} → {DiplomacyData.CivEnumSideTwo}.");
+                DiplomacyMenuUIController.Instance?.RefreshActiveProposalDisplay(this);
+            }
+            else
+            {
+                Debug.Log($"[Diplomacy] {proposalLabel} proposal could not be sent: {failReason}");
+            }
+        }
+
+        /// <summary>
+        /// Applies the standing effect of a DiplomacyProject the target civ accepted - called by
+        /// DiplomacyManager.ResolveDiplomacyProject once the proposal's turn timer runs out. Kept
+        /// separate from OfferAlliance/etc. so it can be extended to other proposal types later
+        /// without touching the button-facing methods.
+        /// </summary>
+        public void ApplyAcceptedProposal(NegotiationPloysEnum proposalType)
+        {
+            switch (proposalType)
+            {
+                case NegotiationPloysEnum.OfferAlliance:
+                    ApplyDiplomaticGesture(AlliancePointGain);
+                    break;
+                case NegotiationPloysEnum.OfferTrade:
+                    ApplyDiplomaticGesture(TradePointGain);
+                    break;
+                case NegotiationPloysEnum.OfferTech:
+                    ApplyDiplomaticGesture(TechPointGain);
+                    break;
+                case NegotiationPloysEnum.OfferAid:
+                    ApplyDiplomaticGesture(AidPointGain);
+                    break;
+                case NegotiationPloysEnum.OfferCulturalExchange:
+                    ApplyDiplomaticGesture(EngagementPointGain);
+                    break;
+            }
         }
 
         /// <summary>

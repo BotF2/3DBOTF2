@@ -482,6 +482,15 @@ namespace BOTF3D.Galaxy
                 yield break;
             }
 
+            // csFogWar is a DontDestroyOnLoad singleton, but its levelMidPoint field is wired to
+            // GalaxyCenter - an ordinary object that dies on every GalaxyScene reload after the
+            // first. Re-point it at the current (guaranteed-fresh) galaxyCenter before any
+            // system/fleet creation below can touch fog-of-war, or csFogWar throws
+            // MissingReferenceException on the second+ galaxy built in this process. See
+            // csFogWar.SetLevelMidPoint for the full story.
+            if (csFogWar.Instance != null)
+                csFogWar.Instance.SetLevelMidPoint(galaxyCenter.transform);
+
             // ✅ NEW: Initialize random positions if using RANDOM galaxy type
             // Reads from GameController.Instance.GameData rather than MainMenuUIController.Instance -
             // the latter is null on a true dedicated server (no MainMenuScene loaded there), while

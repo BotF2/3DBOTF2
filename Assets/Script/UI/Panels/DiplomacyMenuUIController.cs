@@ -71,8 +71,6 @@ namespace BOTF3D.UI
         [SerializeField]
         private Image[] tabButtonMasks;
         [SerializeField]
-        private GameObject InteractionButtonGO;
-        [SerializeField]
         private GameObject tradeButtonGO;
         [SerializeField]
         private GameObject engagementButtonGO;
@@ -121,6 +119,27 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning($"? Duplicate DiplomacyMenuUIController found! Destroying duplicate.");
                 Destroy(gameObject);
+            }
+        }
+
+        private bool _subscribedToTurnAdvance;
+
+        private void OnEnable()
+        {
+            DiplomacyManager.OnDiplomacyProjectResolved += RefreshAllActiveProposalDisplays;
+            TrySubscribeToTurnAdvance();
+        }
+
+        // TimeManager.Instance may not exist yet when OnEnable runs (same race
+        // IntelligenceUIController.TrySubscribe guards against) - also called from
+        // SetUpDiplomacyUIElements, which is guaranteed to run once real gameplay starts, as a
+        // fallback retry point.
+        private void TrySubscribeToTurnAdvance()
+        {
+            if (!_subscribedToTurnAdvance && TimeManager.Instance != null)
+            {
+                TimeManager.Instance.OnTurnAdvanced += RefreshAllActiveProposalDisplays;
+                _subscribedToTurnAdvance = true;
             }
         }
 
@@ -260,6 +279,7 @@ namespace BOTF3D.UI
         {
             DiplomacyController diplomacyCon = diplomacyControllerGO.GetComponent<DiplomacyController>();
             Debug.Log($"SetUpDiplomacyUIElements called for DiplomacyController: {(diplomacyCon == null ? "null" : diplomacyCon.DiplomacyData.CivOne?.CivData.CivShortName ?? "unknown")}");
+            TrySubscribeToTurnAdvance();
 
             if (diplomacyUIGO != null)
                 diplomacyCon.DiplomacyUIGameObject = diplomacyUIGO;
@@ -336,24 +356,33 @@ namespace BOTF3D.UI
                 {
                     case "MiniMap":
                         rectTransforms[i].gameObject.SetActive(true);
-                        Vector3 homeSysPos = homeSysController.transform.position;
-                        float x = homeSysPos.x * 0.12f;
-                        float z = homeSysPos.z * 0.12f;
-
-                        // Get the first child's RectTransform
-                        if (rectTransforms[i].childCount > 0)
+                        // FindTheirHomeSystem above can legitimately return null (it logs a warning
+                        // rather than throwing - e.g. a minor race's home system not yet tracked at
+                        // first contact) - dereferencing it unguarded used to throw a
+                        // NullReferenceException right here, aborting this whole method before the
+                        // button-wiring loop below ever ran, silently leaving every Diplomacy button
+                        // (and the proposal display) permanently unwired for that civ's card.
+                        if (homeSysController != null)
                         {
-                            RectTransform dot = rectTransforms[i].GetChild(0).GetComponent<RectTransform>();
-                            dot.anchoredPosition = new Vector2(x, z);
+                            Vector3 homeSysPos = homeSysController.transform.position;
+                            float x = homeSysPos.x * 0.12f;
+                            float z = homeSysPos.z * 0.12f;
+
+                            // Get the first child's RectTransform
+                            if (rectTransforms[i].childCount > 0)
+                            {
+                                RectTransform dot = rectTransforms[i].GetChild(0).GetComponent<RectTransform>();
+                                dot.anchoredPosition = new Vector2(x, z);
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"MiniMap has no children at {rectTransforms[i].name}");
+                            }
                         }
                         else
                         {
-                            Debug.LogWarning($"MiniMap has no children at {rectTransforms[i].name}");
+                            Debug.LogWarning($"SetUpDiplomacyUIElements: home system not found for {notLocalPlayerCiv.CivData.CivShortName} - MiniMap dot left unpositioned, continuing setup.");
                         }
-                        break;
-                    case "InteractionButton":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        InteractionButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "TradeButton":
                         rectTransforms[i].gameObject.SetActive(true);
@@ -488,10 +517,6 @@ namespace BOTF3D.UI
             {
                 switch (listButton.name)
                 {
-                    case "InteractionButton":
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
-                        break;
                     case "OpenDiscriptionButton":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
@@ -566,6 +591,102 @@ namespace BOTF3D.UI
                         break;
                 }
             }
+
+            // AutoImproveToggle (see DiploUIprefab.prefab) - opts this civ pair into
+            // DiplomacyManager.ProcessAutoImproveRelations. Reflects the card's current
+            // DiplomacyData.AutoImproveRelations value without firing the listener (SetIsOn's second
+            // argument), since this runs every time the card is (re)populated and shouldn't re-toggle
+            // the backend state just from being displayed.
+            Toggle autoImproveToggle = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Toggle>(true)
+                .FirstOrDefault(t => t.name == "AutoImproveToggle");
+            if (autoImproveToggle != null)
+            {
+                autoImproveToggle.SetIsOnWithoutNotify(diplomacyCon.DiplomacyData.AutoImproveRelations);
+                autoImproveToggle.onValueChanged.RemoveAllListeners();
+                autoImproveToggle.onValueChanged.AddListener((isOn) => diplomacyCon.SetAutoImproveRelations(isOn));
+            }
+
+            RefreshActiveProposalDisplay(diplomacyCon);
+        }
+
+        /// <summary>
+        /// Updates ActiveProposalText and ProposalProgressBar (see DiploUIprefab.prefab, under
+        /// ProposalHeader/ProgressHeader) for one civ pair's card. Called from
+        /// SetUpDiplomacyUIElements (card first shown/reopened), from the per-turn/on-resolve
+        /// refresh below (a card left sitting open still catches proposals resolving or being
+        /// started by AI/auto-improve), and from DiplomacyController.SendProposal so a button click
+        /// shows "PENDING" immediately instead of waiting for the next turn tick or a reopen.
+        /// Public so DiplomacyController (a different namespace) can call it directly.
+        /// </summary>
+        public void RefreshActiveProposalDisplay(DiplomacyController diplomacyCon)
+        {
+            if (diplomacyCon?.DiplomacyUIGameObject == null || diplomacyCon.DiplomacyData == null) return;
+
+            TextMeshProUGUI activeProposalText = diplomacyCon.DiplomacyUIGameObject
+                .GetComponentsInChildren<TextMeshProUGUI>(true).FirstOrDefault(t => t.name == "ActiveProposalText");
+            if (activeProposalText != null)
+                activeProposalText.text = FormatActiveProposal(diplomacyCon.DiplomacyData);
+
+            Slider progressBar = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Slider>(true)
+                .FirstOrDefault(s => s.name == "ProposalProgressBar");
+            if (progressBar != null)
+            {
+                DiplomacyProject activeProject = diplomacyCon.DiplomacyData.ActiveProjects.Find(p => !p.IsComplete);
+                if (activeProject != null)
+                {
+                    progressBar.minValue = 0;
+                    progressBar.maxValue = activeProject.TurnsTotal;
+                    progressBar.value = activeProject.TurnsTotal - activeProject.TurnsRemaining;
+                }
+                else
+                {
+                    progressBar.minValue = 0;
+                    progressBar.maxValue = 1;
+                    progressBar.value = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refreshes every currently-tracked civ pair's proposal display - hooked to
+        /// TimeManager.OnTurnAdvanced (so a card left open catches a proposal that just resolved,
+        /// or one an AI/auto-improve civ started) and to DiplomacyManager.OnDiplomacyProjectResolved
+        /// (so the human-initiated case updates as soon as it resolves, not just on the next
+        /// button click or reopen).
+        /// </summary>
+        private void RefreshAllActiveProposalDisplays()
+        {
+            if (DiplomacyManager.Instance == null) return;
+            foreach (var diploCon in DiplomacyManager.Instance.DiplomacyControllers)
+                RefreshActiveProposalDisplay(diploCon);
+        }
+
+        private void RefreshAllActiveProposalDisplays(NegotiationPloysEnum _, CivEnum __, CivEnum ___, bool ____)
+            => RefreshAllActiveProposalDisplays();
+
+        /// <summary>
+        /// Text for the "ACTIVE PROPOSAL" panel (see DiploUIprefab.prefab's ActiveProposalText,
+        /// repurposing the formerly-empty EventHeader/ResponseHeader real estate - neither had any
+        /// content wired to them). Only ever at most one entry, per
+        /// DiplomacyManager.CreateDiplomacyProject's one-proposal-at-a-time cap.
+        /// </summary>
+        private static string FormatActiveProposal(DiplomacyData data)
+        {
+            DiplomacyProject project = data?.ActiveProjects?.Find(p => !p.IsComplete);
+            if (project != null)
+            {
+                return $"PENDING: {project.ProposalType}\nTo: {project.TargetCiv}\n" +
+                       $"Turn {project.TurnsTotal - project.TurnsRemaining} of {project.TurnsTotal}\n" +
+                       $"Acceptance: {project.AcceptanceChance:P0}";
+            }
+
+            // No proposal in flight - report what happened to the last one (see
+            // DiplomacyManager.ResolveDiplomacyProject) rather than silently going blank, until a
+            // new proposal is sent (DiplomacyController.SendProposal clears this).
+            if (!string.IsNullOrEmpty(data?.LastProposalOutcome))
+                return data.LastProposalOutcome;
+
+            return "No active proposal";
         }
         //public void ListDiplomacyUIGO(GameObject diploGO)
         //{
@@ -638,6 +759,11 @@ namespace BOTF3D.UI
         {
             // When the UI menu closes (e.g., switching menus or hiding canvas)
             CleanupDestroyedOrInactiveUIs();
+
+            DiplomacyManager.OnDiplomacyProjectResolved -= RefreshAllActiveProposalDisplays;
+            if (_subscribedToTurnAdvance && TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced -= RefreshAllActiveProposalDisplays;
+            _subscribedToTurnAdvance = false;
         }
 
         private void OnDestroy()
