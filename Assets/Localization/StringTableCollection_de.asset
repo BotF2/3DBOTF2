@@ -263,6 +263,10 @@ MonoBehaviour:
     m_Localized: Heim
     m_Metadata:
       m_Items: []
+  - m_Id: 42365816295923712
+    m_Localized: Galaxy wird geladen
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
