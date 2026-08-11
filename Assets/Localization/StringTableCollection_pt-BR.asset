@@ -263,6 +263,10 @@ MonoBehaviour:
     m_Localized: Lar
     m_Metadata:
       m_Items: []
+  - m_Id: 42365816295923712
+    m_Localized: Carregando Galaxy
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

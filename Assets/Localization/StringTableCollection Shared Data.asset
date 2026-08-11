@@ -255,6 +255,10 @@ MonoBehaviour:
     m_Key: Ribbon.Home
     m_Metadata:
       m_Items: []
+  - m_Id: 42365816295923712
+    m_Key: Loading Galaxy
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
