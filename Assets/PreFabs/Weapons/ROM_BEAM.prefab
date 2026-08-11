@@ -106,7 +106,7 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 0.3921569, b: 0, a: 1}
+      key0: {r: 0.05017436, g: 0.98490566, b: 0.08122156, a: 1}
       key1: {r: 1, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
@@ -170,14 +170,12 @@ MonoBehaviour:
   _weaponAndTargetTrans:
   - {fileID: 0}
   - {fileID: 0}
+  minBeamWidth: 0.5
+  maxBeamWidth: 2.5
+  minCameraDistance: 200
+  maxCameraDistance: 800
   minEffectiveRange: 100
   maxEffectiveRange: 400
   minDamageMultiplier: 0.4
   longRangeThreshold: 600
   longRangePenalty: 0.65
-  minBeamWidth: 0.5
-  maxBeamWidth: 2.5
-  minCameraDistance: 200
-  maxCameraDistance: 800
-
-
