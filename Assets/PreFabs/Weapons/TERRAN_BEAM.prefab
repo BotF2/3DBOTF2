@@ -60,7 +60,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: fb37c7d443f443a4ea5705c771c437e1, type: 2}
+  - {fileID: 2100000, guid: d37f6edfe4a54930a55e09fefd0a6afe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -175,8 +175,8 @@ MonoBehaviour:
   minDamageMultiplier: 0.4
   longRangeThreshold: 600
   longRangePenalty: 0.65
-  minBeamWidth: 0.12
-  maxBeamWidth: 0.6
+  minBeamWidth: 0.5
+  maxBeamWidth: 2.5
   minCameraDistance: 200
   maxCameraDistance: 800
 

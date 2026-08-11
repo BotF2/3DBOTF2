@@ -175,8 +175,8 @@ MonoBehaviour:
   minDamageMultiplier: 0.4
   longRangeThreshold: 600
   longRangePenalty: 0.65
-  minBeamWidth: 0.12
-  maxBeamWidth: 0.6
+  minBeamWidth: 0.5
+  maxBeamWidth: 2.5
   minCameraDistance: 200
   maxCameraDistance: 800
 

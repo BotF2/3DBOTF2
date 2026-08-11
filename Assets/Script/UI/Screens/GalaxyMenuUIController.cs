@@ -663,6 +663,21 @@ namespace BOTF3D.UI
             // Get the current menu before closing it
             Menu currentMenu = uiStateManager.CurrentOpenMenu;
 
+            // Closing a Diplomacy panel via this generic close button (rather than an explicit
+            // Fight/Withdraw/etc. choice) previously left any pending Fight/Withdraw encounter
+            // Undecided on the local player's side - the fleet(s) involved stayed frozen
+            // (FleetController.IsAwaitingEncounterResolution) for up to 60 real-time seconds until
+            // DiplomacyController.Update()'s unresponsive-side timeout finally forced a default
+            // response. Resolve it as an implicit Withdraw right here instead, before the
+            // CurrentOpenMenuObject reference below is cleared by uiStateManager.CloseCurrentMenu().
+            if (currentMenu == Menu.Diplomacy || currentMenu == Menu.DiplomacyMenu || currentMenu == Menu.ADiplomacyMenu)
+            {
+                var diplomacyCon = uiStateManager.CurrentOpenMenuObject != null
+                    ? uiStateManager.CurrentOpenMenuObject.GetComponent<DiplomacyController>()
+                    : null;
+                diplomacyCon?.CloseWithoutDeciding();
+            }
+
             // Just hide the views, don't move UIs back (they might be needed for next menu)
             HideMenuViews(currentMenu);
 
@@ -774,6 +789,22 @@ namespace BOTF3D.UI
         {
             Debug.Log($"GalaxyMenuUIController: CloseMenu({enumMenu})");
 
+            // Second path that can dismiss an open Diplomacy panel without an explicit Fight/
+            // Withdraw/etc. choice - e.g. clicking a different menu tab (Fleet, System...) while
+            // Diplomacy is open calls this directly rather than going through CloseCurrentMenu's
+            // close/X button. Same reasoning as the check there: resolve as an implicit Withdraw
+            // now instead of leaving the fleet(s) frozen until the 60-second timeout. Gated on
+            // CurrentOpenMenu == enumMenu so CurrentOpenMenuObject is actually still the panel
+            // being closed here, not some other already-closed menu's stale reference.
+            if ((enumMenu == Menu.Diplomacy || enumMenu == Menu.DiplomacyMenu || enumMenu == Menu.ADiplomacyMenu)
+                && uiStateManager.CurrentOpenMenu == enumMenu)
+            {
+                var diplomacyCon = uiStateManager.CurrentOpenMenuObject != null
+                    ? uiStateManager.CurrentOpenMenuObject.GetComponent<DiplomacyController>()
+                    : null;
+                diplomacyCon?.CloseWithoutDeciding();
+            }
+
             switch (enumMenu)
             {
                 case Menu.None:
@@ -849,6 +880,20 @@ namespace BOTF3D.UI
         public void CloseAllMenus()
         {
             Debug.Log("GalaxyMenuUIController: CloseAllMenus");
+
+            // Third path (besides CloseCurrentMenu and CloseMenu) that can dismiss an open
+            // Diplomacy panel without an explicit Fight/Withdraw/etc. choice - this is what the
+            // top-ribbon close button actually calls. Same reasoning as the other two: resolve as
+            // an implicit Withdraw now, before uiStateManager.CloseAllMenus() below wipes
+            // CurrentOpenMenu/CurrentOpenMenuObject unconditionally.
+            Menu currentMenuBeforeClose = uiStateManager.CurrentOpenMenu;
+            if (currentMenuBeforeClose == Menu.Diplomacy || currentMenuBeforeClose == Menu.DiplomacyMenu || currentMenuBeforeClose == Menu.ADiplomacyMenu)
+            {
+                var diplomacyCon = uiStateManager.CurrentOpenMenuObject != null
+                    ? uiStateManager.CurrentOpenMenuObject.GetComponent<DiplomacyController>()
+                    : null;
+                diplomacyCon?.CloseWithoutDeciding();
+            }
 
             uiStateManager.CloseAllMenus();
             listPopulator.ClearAllLists();
