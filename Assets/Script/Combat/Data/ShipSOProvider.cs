@@ -596,7 +596,27 @@ namespace BOTF3D.Combat
                     return new List<ShipSO> { bestShip };
                 }
 
-                Debug.LogError($"❌ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout at any tech level!");
+                // Some minor civs have no Destroyer/Scout ShipSO at all for this tech level (e.g. the
+                // asset was never authored, or its FBX went missing) - rather than leave them with
+                // zero starting ships, fall back to the Federation's earliest destroyer (same asset
+                // GetFallbackShipSO uses elsewhere for model-only fallback). Cloning it at runtime and
+                // stamping the real civ back on top is deliberate: ShipDataInitializer.InitializeShipData
+                // copies ShipSO.CivEnum for everything - name, quality lookup, and stat calculation, not
+                // just the model - so returning the Federation asset unmodified would silently turn this
+                // minor civ's ship into a Federation one (wrong stats, wrong civ ownership, wrong beam/
+                // torpedo prefab selection). The clone keeps {civEnum}'s own identity/stats and only
+                // borrows the Federation hull's mesh.
+                ShipSO fallbackTemplate = GetFallbackShipSO();
+                if (fallbackTemplate != null)
+                {
+                    ShipSO fallbackForThisCiv = ScriptableObject.Instantiate(fallbackTemplate);
+                    fallbackForThisCiv.CivEnum = civEnum;
+                    fallbackForThisCiv.ShipName = $"{civEnum}_DESTROYER_FALLBACK";
+                    Debug.LogWarning($"⚠️ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout at {techLevel} - falling back to {fallbackTemplate.ShipName}'s model with {civEnum}'s own stats.");
+                    return new List<ShipSO> { fallbackForThisCiv };
+                }
+
+                Debug.LogError($"❌ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout, and the Federation early-destroyer fallback is also unavailable!");
                 return new List<ShipSO>();
             }
         }

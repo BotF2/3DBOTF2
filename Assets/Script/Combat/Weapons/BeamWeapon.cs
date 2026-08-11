@@ -21,10 +21,15 @@ namespace BOTF3D.Combat
         [SerializeField] private Transform[] _weaponAndTargetTrans = new Transform[2];
 
         [Header("Camera-Distance Width Scaling")]
+        // Previous values (0.02 / 0.15) were sized for a human-scale (~1 unit) world and were
+        // essentially invisible against this game's actual scale — ships are spaced SPACING=50
+        // units apart (see ShipSetupManager) and the camera itself sits 200-800 units out. Bumped
+        // roughly 50x/33x so the beam actually reads at those distances; treat as a starting point
+        // to taste in the Inspector, not a precisely-tuned final value.
         [Tooltip("Beam width in world units when camera is at its closest (matches ShipCombatCameraController.MinimumCameraDistance)")]
-        [SerializeField] private float minBeamWidth = 0.02f;
+        [SerializeField] private float minBeamWidth = 0.5f;
         [Tooltip("Beam width in world units when camera is far away (large fleet engagements)")]
-        [SerializeField] private float maxBeamWidth = 0.15f;
+        [SerializeField] private float maxBeamWidth = 2.5f;
         [Tooltip("Camera distance that produces minimum beam width — set equal to ShipCombatCameraController.MinimumCameraDistance (200)")]
         [SerializeField] private float minCameraDistance = 200f;
         [Tooltip("Camera distance that produces maximum beam width — covers 13-15 ship battles (~800 units)")]

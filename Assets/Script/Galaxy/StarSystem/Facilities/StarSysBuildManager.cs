@@ -3,6 +3,7 @@
 using BOTF3D.UI;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using BOTF3D.Core;
 using BOTF3D.Combat;
 using BOTF3D.Civilization;
@@ -253,15 +254,33 @@ namespace BOTF3D.Galaxy
                 controller.StopCoroutine(buildCoroutine);
             }
 
+            // Drop any leading entries whose backing GameObject was destroyed (e.g. queued while
+            // combat was active elsewhere and lost when CombatScene unloaded — see the scene-pin
+            // fix in QueueFacilityBuild) instead of getting permanently stuck logging an error on
+            // every call from here on.
+            while (controller.sysBuildQueueList.Count > 0 && controller.sysBuildQueueList[0] == null)
+            {
+                Debug.LogWarning("  ⚠️ Dropping destroyed build queue entry (was likely queued during combat elsewhere)");
+                controller.sysBuildQueueList.RemoveAt(0);
+            }
+
             if (controller.sysBuildQueueList.Count == 0)
             {
                 Debug.Log("  ❌ Build queue is EMPTY - nothing to build");
                 return;
             }
 
-            if (controller.sysBuildQueueList[0] == null)
+            // The whole GalaxyScene (every star system, including ones with nothing to do with
+            // the fight) gets deactivated for the duration of combat (see
+            // SceneController.LoadCombatSceneAdditive), but TimeManager's tick keeps running in
+            // the background and can still reach here for an inactive system. StartCoroutine on
+            // an inactive GameObject logs "Coroutine couldn't be started" and returns null, which
+            // silently leaves the build stuck at IsBuildingFacility=false. Skip and retry on the
+            // next tick — the queued item is left in place, so nothing is lost, just deferred
+            // until this system's GameObject is active again (i.e. combat elsewhere has ended).
+            if (!controller.gameObject.activeInHierarchy)
             {
-                Debug.LogError("  ❌ First item in queue is NULL!");
+                Debug.Log($"  ⏸ {controller.gameObject.name} is inactive (likely mid-combat elsewhere) — deferring build start to next tick");
                 return;
             }
 
@@ -363,7 +382,19 @@ namespace BOTF3D.Galaxy
             if (shipBuildCoroutine != null)
                 controller.StopCoroutine(shipBuildCoroutine);
 
-            if (controller.sysShipBuildQueueList.Count == 0 || controller.sysShipBuildQueueList[0] == null)
+            // See StartNextFacilityBuildIfAny for why this can happen and why we drop rather than
+            // get stuck.
+            while (controller.sysShipBuildQueueList.Count > 0 && controller.sysShipBuildQueueList[0] == null)
+                controller.sysShipBuildQueueList.RemoveAt(0);
+
+            if (controller.sysShipBuildQueueList.Count == 0)
+                return;
+
+            // See StartNextFacilityBuildIfAny for why this guard is needed: the whole GalaxyScene
+            // is deactivated for the duration of combat anywhere in the galaxy, but the AI economy
+            // tick keeps running in the background. Defer to next tick rather than let
+            // StartCoroutine fail on an inactive GameObject.
+            if (!controller.gameObject.activeInHierarchy)
                 return;
 
             shipBuildCoroutine = controller.StartCoroutine(
@@ -383,6 +414,12 @@ namespace BOTF3D.Galaxy
             if (controller.sysBuildQueueList.Count >= 5) return false;
 
             var go   = new GameObject($"AIBuild_{type}");
+            // New GameObjects land in whichever scene is currently "active" (SceneManager.SetActiveScene),
+            // which is CombatScene for the duration of any fight anywhere in the galaxy. Without this,
+            // a build queued while combat is active gets destroyed when CombatScene unloads, leaving a
+            // dangling null in this system's queue (count intact) — see StartNextFacilityBuildIfAny's
+            // "First item in queue is NULL" error. Pin it to the star system's own scene explicitly.
+            SceneManager.MoveGameObjectToScene(go, controller.gameObject.scene);
             var drag = go.AddComponent<FactoryBuildItemDrag>();
             drag.FacilityType      = type;
             drag.StarSysController = controller;
@@ -405,6 +442,9 @@ namespace BOTF3D.Galaxy
             if (controller.sysShipBuildQueueList.Count >= 5) return false;
 
             var go   = new GameObject($"AIBuild_{type}");
+            // See QueueFacilityBuild for why this is needed — avoids the marker object landing in
+            // CombatScene (and being destroyed on unload) if this queues while combat is active.
+            SceneManager.MoveGameObjectToScene(go, controller.gameObject.scene);
             var drag = go.AddComponent<ShipBuildDrag>();
             drag.ShipType          = type;
             drag.StarSysController = controller;

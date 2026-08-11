@@ -159,6 +159,35 @@ namespace BOTF3D.Civilization
             }
         }
 
+        // Called when the player dismisses the Diplomacy panel via the generic close/X button
+        // instead of an explicit Fight/Withdraw/etc. choice (see GalaxyMenuUIController.
+        // CloseCurrentMenu). Without this, a closed-without-deciding encounter left the local
+        // player's side Undecided, and the only thing that would ever unstick the fleet(s)
+        // involved (FleetController.IsAwaitingEncounterResolution gates FixedUpdate movement
+        // entirely) was DiplomacyController.Update()'s 60-real-time-second unresponsive-side
+        // timeout - technically not a permanent freeze, but indistinguishable from one to a
+        // player who closes the panel and immediately queues a new order the same turn.
+        // Mirrors WithdrawButton's isSideOne resolution (DiplomacyMenuUIController) exactly.
+        // No-ops if the encounter is already resolved or this side already has an explicit
+        // answer, so it can't override a Fight choice made just before closing.
+        public void CloseWithoutDeciding()
+        {
+            if (this.DiplomacyData == null || this.DiplomacyData.EncounterResolved) return;
+
+            bool isSideOne = this.DiplomacyData.CivOne != null &&
+                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivOne.CivData.CivEnum);
+            bool isSideTwo = !isSideOne && this.DiplomacyData.CivTwo != null &&
+                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivTwo.CivData.CivEnum);
+            if (!isSideOne && !isSideTwo) return; // local player isn't a party to this encounter
+
+            DiplomacyData.EncounterResponse currentResponse = isSideOne
+                ? this.DiplomacyData.ResponseSideOne
+                : this.DiplomacyData.ResponseSideTwo;
+            if (currentResponse != DiplomacyData.EncounterResponse.Undecided) return;
+
+            SetResponse(isSideOne, DiplomacyData.EncounterResponse.Withdraw);
+        }
+
         // Either side choosing Fight forces combat; both choosing Withdraw releases both fleets to
         // continue their prior movement. Any Undecided response leaves the encounter paused.
         public void TryResolveEncounter()
