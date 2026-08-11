@@ -12,18 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3315390d90f7d1041a91c318085231f1, type: 3}
   m_Name: KLING_LTCRUISER_IV
   m_EditorClassIdentifier: Assembly-CSharp::ShipSO
-  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: c2bb54fb02dba1d43bc2102621c0c067, type: 3}
+  ShipFBX_ModelAsGOPrefab: {fileID: 919132149155446097, guid: 15a5ac3cd3a305f4a95e785075c00c26, type: 3}
   ShipName: KLING_LTCRUISER_IV
   CivEnum: 2
   TechLevel: 3
   ShipType: 3
   MinTechPointsRequired: 0
   shipSprite: {fileID: 21300000, guid: 51751995595e671408ae9ae6785d1742, type: 3}
-  shipColor: {r: 0, g: 0, b: 0, a: 0}
-  maxWarpFactor: 9.2
-  ShieldMaxHealth: 65
-  HullMaxHealth: 45
-  TorpedoDamage: 42
-  BeamDamage: 42
-  BuildDuration: 9
   ShipDescription: 

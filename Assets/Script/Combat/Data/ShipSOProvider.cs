@@ -507,28 +507,22 @@ namespace BOTF3D.Combat
                 return new List<ShipSO>();
             }
 
-            // Filter by tech level - only actually needed below for majors. Minors search
-            // allCivShips directly across every tech level instead (see that branch), since their
-            // sparse per-civ roster (typically just one Destroyer at EARLY and one Cruiser at
-            // DEVELOPED, no entries at ADVANCED/SUPREME at all) means techLevelShips can easily be
-            // empty at the requested techLevel even though the civ has a perfectly usable Destroyer
-            // one or more tiers down - bailing out here on an empty techLevelShips used to swallow
-            // every minor race in that situation before it ever reached its own fallback logic.
+            // Filter by tech level
             var techLevelShips = allCivShips
                 .Where(s => s != null && s.TechLevel == techLevel)
                 .ToList();
+
+            if (techLevelShips.Count == 0)
+            {
+                Debug.LogWarning($"GetStartingFleetShips: No ships found for {civEnum} at {techLevel}");
+                return new List<ShipSO>();
+            }
 
             // Check if major race (FED through TERRAN)
             bool isMajorRace = civEnum >= CivEnum.FED && civEnum <= CivEnum.TERRAN;
 
             if (isMajorRace)
             {
-                if (techLevelShips.Count == 0)
-                {
-                    Debug.LogWarning($"GetStartingFleetShips: No ships found for {civEnum} at {techLevel}");
-                    return new List<ShipSO>();
-                }
-
                 Dictionary<ShipType, int> composition;
                 if (!(MajorStartingFleetCompositionOverrides.TryGetValue(civEnum, out var civOverrides)
                         && civOverrides.TryGetValue(techLevel, out composition))
@@ -563,40 +557,40 @@ namespace BOTF3D.Combat
             }
             else
             {
-                // Minor races get ONE ship (Destroyer, or Scout as fallback). Searches allCivShips
-                // (the civ's full roster across every tech level), not techLevelShips (restricted to
-                // an exact match on the requested techLevel) - every minor race is only ever
-                // authored a Destroyer at EARLY and a Cruiser at DEVELOPED (no Scout/Destroyer entry
-                // at DEVELOPED+), so an exact-tech-level-only search left every minor with nothing
-                // to build in any game started above EARLY, despite a perfectly good Destroyer
-                // sitting one tier down in that same civ's own roster. Prefers the highest tech
-                // Destroyer/Scout at or below techLevel (same "best available" logic as
-                // GetShipSOAtBestTechLevel), then falls back to the lowest tech one above it if
-                // there's nothing at or below - a minor civ only ends up with an empty starting
-                // fleet if it truly has zero Destroyer/Scout ShipSO entries at any tech level.
-                ShipSO bestShip = allCivShips
-                    .Where(s => s != null && (s.ShipType == ShipType.Destroyer || s.ShipType == ShipType.Scout) && s.TechLevel <= techLevel)
-                    .OrderByDescending(s => s.TechLevel)
-                    .FirstOrDefault();
-
-                if (bestShip == null)
+                // Minor races get ONE ship (Destroyer, or Scout as fallback)
+                ShipSO destroyer = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Destroyer);
+                if (destroyer != null)
                 {
-                    bestShip = allCivShips
-                        .Where(s => s != null && (s.ShipType == ShipType.Destroyer || s.ShipType == ShipType.Scout))
-                        .OrderBy(s => s.TechLevel)
-                        .FirstOrDefault();
+                    return new List<ShipSO> { destroyer };
                 }
 
-                if (bestShip != null)
+                ShipSO scout = techLevelShips.FirstOrDefault(s => s.ShipType == ShipType.Scout);
+                if (scout != null)
                 {
-                    if (bestShip.TechLevel != techLevel)
-                    {
-                        Debug.LogWarning($"⚠️ GetStartingFleetShips: Minor race {civEnum} has no Destroyer/Scout at {techLevel} - using {bestShip.ShipName} ({bestShip.ShipType} at {bestShip.TechLevel}) instead.");
-                    }
-                    return new List<ShipSO> { bestShip };
+                    return new List<ShipSO> { scout };
                 }
 
-                Debug.LogError($"❌ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout at any tech level!");
+                // Some minor civs have no Destroyer/Scout ShipSO at all for this tech level (e.g. the
+                // asset was never authored, or its FBX went missing) - rather than leave them with
+                // zero starting ships, fall back to the Federation's earliest destroyer (same asset
+                // GetFallbackShipSO uses elsewhere for model-only fallback). Cloning it at runtime and
+                // stamping the real civ back on top is deliberate: ShipDataInitializer.InitializeShipData
+                // copies ShipSO.CivEnum for everything - name, quality lookup, and stat calculation, not
+                // just the model - so returning the Federation asset unmodified would silently turn this
+                // minor civ's ship into a Federation one (wrong stats, wrong civ ownership, wrong beam/
+                // torpedo prefab selection). The clone keeps {civEnum}'s own identity/stats and only
+                // borrows the Federation hull's mesh.
+                ShipSO fallbackTemplate = GetFallbackShipSO();
+                if (fallbackTemplate != null)
+                {
+                    ShipSO fallbackForThisCiv = ScriptableObject.Instantiate(fallbackTemplate);
+                    fallbackForThisCiv.CivEnum = civEnum;
+                    fallbackForThisCiv.ShipName = $"{civEnum}_DESTROYER_FALLBACK";
+                    Debug.LogWarning($"⚠️ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout at {techLevel} - falling back to {fallbackTemplate.ShipName}'s model with {civEnum}'s own stats.");
+                    return new List<ShipSO> { fallbackForThisCiv };
+                }
+
+                Debug.LogError($"❌ GetStartingFleetShips: Minor race {civEnum} has no destroyer or scout, and the Federation early-destroyer fallback is also unavailable!");
                 return new List<ShipSO>();
             }
         }
