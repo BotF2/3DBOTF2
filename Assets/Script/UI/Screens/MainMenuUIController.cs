@@ -723,8 +723,76 @@ namespace BOTF3D.UI
             GameController.Instance.GameData.GameMode = IsSinglePlayer ? GameMode.SINGLEPLAYER : GameMode.MULTIPLAYER;
             //GameController.Instance.GameData.MajorCivsInGameList = majorCivsInGameList;
 
+            // Shown for the whole coroutine below, including the ~60-system generation burst
+            // (StarSysManager.SysDataFromSO via OnNewGameButtonClicked) that's the actual slow part.
+            ShowLoadingOverlay(Loc.Get("Loading Galaxy"));
+
             // Use coroutine for clean transition
             StartCoroutine(LoadGalaxySceneCoroutine());
+        }
+
+        // ─── Loading overlay ─────────────────────────────────────────────────
+
+        private GameObject _loadingOverlayGO;
+        private TextMeshProUGUI _loadingOverlayText;
+
+        /// <summary>
+        /// Self-contained, code-built overlay (no prefab/scene dependency) rather than a UI element
+        /// living in MainMenuScene or GalaxyScene's own Canvas - LoadGalaxySceneCoroutine disables
+        /// MainMenuScene's canvas partway through and GalaxyScene's own canvases aren't necessarily
+        /// ready for most of the coroutine's duration, so anything anchored to either would either
+        /// disappear or never show up. This DontDestroyOnLoad Canvas persists through both and sits
+        /// above everything via a high sortingOrder.
+        /// </summary>
+        private void ShowLoadingOverlay(string message)
+        {
+            if (_loadingOverlayGO == null)
+            {
+                _loadingOverlayGO = new GameObject("LoadingGalaxyOverlay");
+                DontDestroyOnLoad(_loadingOverlayGO);
+
+                var canvas = _loadingOverlayGO.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 10000;
+
+                var scaler = _loadingOverlayGO.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+
+                _loadingOverlayGO.AddComponent<GraphicRaycaster>();
+
+                var dimGO = new GameObject("Dim");
+                dimGO.transform.SetParent(_loadingOverlayGO.transform, false);
+                var dim = dimGO.AddComponent<Image>();
+                dim.color = new Color(0f, 0f, 0f, 0.75f);
+                var dimRect = dimGO.GetComponent<RectTransform>();
+                dimRect.anchorMin = Vector2.zero;
+                dimRect.anchorMax = Vector2.one;
+                dimRect.offsetMin = Vector2.zero;
+                dimRect.offsetMax = Vector2.zero;
+
+                var textGO = new GameObject("LoadingText");
+                textGO.transform.SetParent(_loadingOverlayGO.transform, false);
+                _loadingOverlayText = textGO.AddComponent<TextMeshProUGUI>();
+                _loadingOverlayText.alignment = TextAlignmentOptions.Center;
+                _loadingOverlayText.color = Color.white;
+                _loadingOverlayText.fontStyle = FontStyles.Bold;
+                _loadingOverlayText.fontSize = 54;
+                var textRect = textGO.GetComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = Vector2.zero;
+                textRect.offsetMax = Vector2.zero;
+            }
+
+            _loadingOverlayText.text = message;
+            _loadingOverlayGO.SetActive(true);
+        }
+
+        private void HideLoadingOverlay()
+        {
+            if (_loadingOverlayGO != null)
+                _loadingOverlayGO.SetActive(false);
         }
 
         private System.Collections.IEnumerator LoadGalaxySceneCoroutine()
@@ -840,6 +908,7 @@ namespace BOTF3D.UI
                 Debug.Log("MainMenu scene unloaded successfully");
             }
 
+            HideLoadingOverlay();
             Debug.Log("LoadGalaxySceneCoroutine: Complete");
         }
         /// <summary>

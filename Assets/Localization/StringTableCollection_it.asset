@@ -262,6 +262,10 @@ MonoBehaviour:
     m_Localized: Casa
     m_Metadata:
       m_Items: []
+  - m_Id: 42365816295923712
+    m_Localized: Caricamento Galaxy
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
