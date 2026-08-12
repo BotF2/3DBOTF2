@@ -7,7 +7,7 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Material.003
+      name: hull.001
     second: {fileID: 2100000, guid: 48603fba94004ad4f855675edda9092c, type: 2}
   - first:
       type: UnityEngine:Material
