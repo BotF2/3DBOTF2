@@ -451,6 +451,9 @@ namespace BOTF3D.Combat
 
             if (ShipData.ShieldHealth > 0)
             {
+                // Shields were up for this hit - flash the visible shell (VFX/ShipShieldEffect.cs).
+                ShipShieldEffect.GetOrCreate(this)?.Flash();
+
                 ShipData.ShieldHealth -= weaponDamageInt;
                 if (ShipData.ShieldHealth < 0)
                 {

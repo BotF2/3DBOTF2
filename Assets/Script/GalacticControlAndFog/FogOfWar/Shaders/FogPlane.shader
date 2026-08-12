@@ -18,6 +18,20 @@ Shader "FogWar/FogPlane"
         _MainTex("Texture", 2D) = "white" {}
         _Color("Color", Color) = (1, 1, 1, 1)
         _BlurOffset("BlurOffset", Range(0, 10)) = 1
+
+        // Bright ring drawn exactly at the fog/clear boundary (see frag() below) - the flat fog
+        // tint alone gives poor contrast wherever the underlying galaxy image is mostly black,
+        // since a translucent dark color over black still reads as close to black. The rim is
+        // independent of what's under either side, so the edge of a clearing stays visible over
+        // any background.
+        _RimColor("Rim Color", Color) = (0.4, 0.95, 1, 1)
+        _RimIntensity("Rim Intensity", Range(0, 3)) = 0.75
+
+        // How tightly the rim hugs the exact 50%-visibility line - independent of _BlurOffset
+        // (which controls the base fog fade's own softness) so narrowing the rim doesn't also
+        // harden the underlying fog-to-clear transition. Default of 8 is ~10x narrower than the
+        // original 4*a*(1-a) band (see frag() below).
+        _RimWidth("Rim Width", Range(1, 30)) = 8
     }
 
     CGINCLUDE
@@ -41,6 +55,9 @@ Shader "FogWar/FogPlane"
     float4 _MainTex_TexelSize;
     float4 _Color;
     float _BlurOffset;
+    float4 _RimColor;
+    float _RimIntensity;
+    float _RimWidth;
 
     v2f vert(appdata v)
     {
@@ -82,8 +99,26 @@ Shader "FogWar/FogPlane"
         // Adding up all elements in the 3x3 kernel results in 16
         col /= 16;
 
-        // Add a color to the pixel
-        return col * _Color;
+        // col.a is the blurred visibility value: ~0 deep in a cleared area, ~1 deep in fog, and
+        // only strictly between the two in the transition band right at a clearing's edge (the
+        // blur is what turns the raw per-tile visibility into a soft gradient there instead of a
+        // hard cut). distFromEdge is 0 exactly at the 50% midpoint and 1 at either extreme;
+        // _RimWidth scales how fast that falls off to zero, so it directly controls how many
+        // texels wide the visible rim band is, independent of _BlurOffset.
+        float distFromEdge = abs(col.a - 0.5) * 2.0;
+        float edge = 1.0 - smoothstep(0.0, 1.0, distFromEdge * _RimWidth);
+
+        fixed4 result = col * _Color;
+
+        // Boost alpha along the edge too, not just RGB - otherwise the rim would inherit
+        // whatever (possibly very low) alpha col.a happens to have there and barely show up,
+        // defeating the point of a boundary marker that's visible regardless of the fog's own
+        // contrast against the background on either side.
+        float rimStrength = edge * _RimIntensity;
+        result.rgb += _RimColor.rgb * rimStrength;
+        result.a = max(result.a, rimStrength);
+
+        return result;
     }
 
     ENDCG
