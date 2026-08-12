@@ -20,6 +20,12 @@ namespace BOTF3D.Combat
         public Transform WeaponTransform;
         [SerializeField] private Transform[] _weaponAndTargetTrans = new Transform[2];
 
+        [Tooltip("Per-civ beam texture applied via MaterialPropertyBlock onto the shared BEAM_SHARED material — keeps every beam prefab on one material asset (SRP Batcher friendly) while preserving each civ's distinct beam art")]
+        [SerializeField] private Texture2D beamTexture;
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
+        private MaterialPropertyBlock beamPropertyBlock;
+
         [Header("Camera-Distance Width Scaling")]
         // Previous values (0.02 / 0.15) were sized for a human-scale (~1 unit) world and were
         // essentially invisible against this game's actual scale — ships are spaced SPACING=50
@@ -77,6 +83,15 @@ namespace BOTF3D.Combat
             }
             // Camera is resolved lazily in Update so it works even if the
             // beam spawns before ShipCombatCameraController.Instance is ready.
+
+            if (beamTexture != null)
+            {
+                beamPropertyBlock = new MaterialPropertyBlock();
+                LineRenderer.GetPropertyBlock(beamPropertyBlock);
+                beamPropertyBlock.SetTexture(BaseMapId, beamTexture);
+                beamPropertyBlock.SetTexture(EmissionMapId, beamTexture);
+                LineRenderer.SetPropertyBlock(beamPropertyBlock);
+            }
         }
         /// <summary>
         /// Set weapon and target transforms for beam rendering

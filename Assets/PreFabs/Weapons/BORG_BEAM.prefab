@@ -59,7 +59,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 13304a58cc3a61a459b2e741ea7fceb1, type: 2}
+  - {fileID: 2100000, guid: 58f852c7f09d4719b4344837f2800728, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -170,3 +170,4 @@ MonoBehaviour:
   minDamageMultiplier: 0.4
   longRangeThreshold: 600
   longRangePenalty: 0.65
+  beamTexture: {fileID: 2800000, guid: 68a9a6aa97948c3459468db34edb7a2a, type: 3}
