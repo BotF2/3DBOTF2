@@ -77,7 +77,7 @@ namespace BOTF3D.Combat
 
             // Parent directly to ship (world-space UI)
             healthbarGO.transform.SetParent(ship.transform, false);
-            healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -3f, 0);
+            healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -3f, -10f);
             healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
             healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0);
 
