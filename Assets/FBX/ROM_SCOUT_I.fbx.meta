@@ -7,8 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: A_KlingHull
-    second: {fileID: 2100000, guid: 20d06665d6fd9e34695bd30630a514b8, type: 2}
+      name: A_KlingHull.001
+    second: {fileID: 2100000, guid: 73af3370bf1b1b445b133e956182ea89, type: 2}
   materials:
     materialImportMode: 1
     materialName: 1

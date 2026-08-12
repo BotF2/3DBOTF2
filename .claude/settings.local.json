@@ -145,7 +145,16 @@
       "Bash(mv \"Assets/Materials/KlingBorder.mat\" \"Assets/Materials/Themes/KlingBorder.mat\")",
       "Bash(mv \"Assets/Materials/KlingBorder.mat.meta\" \"Assets/Materials/Themes/KlingBorder.mat.meta\")",
       "Bash(mv \"Assets/Materials/KlingBorder_Graph.shadergraph\" \"Assets/Materials/Themes/KlingBorder_Graph.shadergraph\")",
-      "Bash(mv \"Assets/Materials/KlingBorder_Graph.shadergraph.meta\" \"Assets/Materials/Themes/KlingBorder_Graph.shadergraph.meta\")"
+      "Bash(mv \"Assets/Materials/KlingBorder_Graph.shadergraph.meta\" \"Assets/Materials/Themes/KlingBorder_Graph.shadergraph.meta\")",
+      "Bash(git log *)",
+      "Bash(grep -rl \"6c08b15ee122e354b89c274ab6d9ea76\" Assets/)",
+      "Bash(grep -rl \"e85dfd5c7aff8794e94611548b664b93\" Assets/)",
+      "Bash(grep -rl \"73af3370bf1b1b445b133e956182ea89\" Assets/)",
+      "Bash(grep -rl \"4dbf7be69d2b4b5428dedaed8d024854\" Assets/)",
+      "Bash(find . -maxdepth 2 -iname \"*.log\")",
+      "Bash(ls -la Logs)",
+      "Bash(awk '/externalObjects:/,/materials:|materialImportMode|LODScreenPercentages/' __TRACKED_VAR__.fbx.meta)",
+      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)"
     ]
   },
   "model": "claude-sonnet-5"
