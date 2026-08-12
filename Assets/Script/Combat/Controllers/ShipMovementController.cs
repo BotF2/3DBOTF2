@@ -33,11 +33,15 @@ namespace BOTF3D.Combat
         private const float AT_FORWARD_LEG = 600f;   // ACCEL + AT_PRE + AT_ROTATE + DECEL
         private const float AT_FULL_CYCLE = 1000f;  // AT_FORWARD_LEG + FORWARD_LEG (return)
 
-        // Speed multipliers on ship.maxWarpFactor  (tune via testing)
-        private const float ENGAGE_SPEED = 9f;
-        private const float RUSH_SPEED = 14f;
-        private const float AT_HEAVY_SPEED = 8f;
-        private const float AT_SCOUT_SPEED = 16f;
+        // Single visual-scale multiplier on ship.maxWarpFactor, shared by every order.
+        // No order gets its own multiplier on top of this - per CLAUDE.md, ships always
+        // move at or below maxWarpFactor (scaled uniformly for visual combat pacing); the
+        // order advantage is tactical (flanking, damage multipliers via CombatOrderHelper),
+        // not a speed boost. A prior pass gave Rush/AT-scout their own inflated multipliers
+        // (14x/16x vs Engage's 9x and AT-heavy's 8x) which broke this invariant - it made
+        // Rush ships zoom past everyone else for little real tactical benefit while making
+        // combat movement look chaotic. Reverted to one shared constant.
+        private const float COMBAT_SPEED = 9f;
         private const float TRANSPORT_AVOID_SPEED = 3f;
 
         // Rush pullback: after the initial rush-in, ships pull back this far then hold
@@ -75,14 +79,14 @@ namespace BOTF3D.Combat
                 case CombatOrders.Engage:
                     {
                         float groupSpeed = osm.assignedGroup?.groupSpeed ?? ship.ShipData.maxWarpFactor;
-                        MovePhased(ship, isSideOne, groupSpeed * ENGAGE_SPEED, FULL_CYCLE, shipsWillPass);
+                        MovePhased(ship, isSideOne, groupSpeed * COMBAT_SPEED, FULL_CYCLE, shipsWillPass);
                         break;
                     }
                 case CombatOrders.Rush:
                     {
                         // Apply slight speed variation (±10%) so Rush ships spread out over time
                         float speedVariation = UnityEngine.Random.Range(0.9f, 1.1f);
-                        float rushSpeed = ship.ShipData.maxWarpFactor * RUSH_SPEED * speedVariation;
+                        float rushSpeed = ship.ShipData.maxWarpFactor * COMBAT_SPEED * speedVariation;
                         MoveRush(ship, isSideOne, rushSpeed, shipsWillPass, holdAtEnd);
                         break;
                     }
@@ -92,9 +96,9 @@ namespace BOTF3D.Combat
                         bool isFlankShip = ship.ShipData.ShipType == ShipType.Scout ||
                                            ship.ShipData.ShipType == ShipType.Destroyer;
                         if (isFlankShip)
-                            MovePhasedAT(ship, isSideOne, ship.ShipData.maxWarpFactor * AT_SCOUT_SPEED);
+                            MovePhasedAT(ship, isSideOne, ship.ShipData.maxWarpFactor * COMBAT_SPEED);
                         else
-                            MovePhased(ship, isSideOne, ship.ShipData.maxWarpFactor * AT_HEAVY_SPEED, FULL_CYCLE);
+                            MovePhased(ship, isSideOne, ship.ShipData.maxWarpFactor * COMBAT_SPEED, FULL_CYCLE);
                         break;
                     }
                 // Formation and Retreat are handled entirely by CombatOrderStateMachine
