@@ -120,7 +120,17 @@ namespace BOTF3D.Combat
         // ── Unity Lifecycle ─────────────────────────────────────────────────────
         private void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            // Diagnostic for the "ShipCombatCameraController NOT FOUND after 5s timeout" bug -
+            // proves whether this Awake ever runs for a given combat, and whether it self-destroys
+            // because a stale Instance from a previous combat's camera is still set.
+            Debug.Log($"🎥[CamAwakeDiag] ShipCombatCameraController.Awake() on '{name}' (instanceID={GetInstanceID()}). Existing Instance={(Instance != null ? $"'{Instance.name}' (instanceID={Instance.GetInstanceID()})" : "null")}.");
+
+            if (Instance != null && Instance != this)
+            {
+                Debug.LogWarning($"⚠️[CamAwakeDiag] Destroying '{name}' - a different ShipCombatCameraController Instance already exists ('{Instance.name}').");
+                Destroy(gameObject);
+                return;
+            }
             Instance = this;
             _autoRotationTimer = AutoRotationDelay;
 

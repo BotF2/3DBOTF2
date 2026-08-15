@@ -7,11 +7,12 @@ namespace BOTF3D.UI
 {
     /// <summary>
     /// Attach to GalaxyScene/MainGalaxyMenuRibbon/TechLevel.
-    /// Auto-discovers the TechLeveEnum TMP child; no Inspector wiring needed.
+    /// Auto-discovers the TechPoints/TechLeveData TMP children; no Inspector wiring needed.
     /// Updates on every turn advance and whenever the local player gains a tech level.
     /// </summary>
     public class TechLevelHUDUI : MonoBehaviour
     {
+        [SerializeField] private TextMeshProUGUI techPointsText;
         [SerializeField] private TextMeshProUGUI techLevelText;
 
         private bool _subscribed;
@@ -19,9 +20,15 @@ namespace BOTF3D.UI
 
         private void Awake()
         {
+            if (techPointsText == null)
+            {
+                Transform t = transform.Find("TechPoints");
+                if (t != null) techPointsText = t.GetComponent<TextMeshProUGUI>();
+            }
             if (techLevelText == null)
             {
-                Transform t = transform.Find("TechLevelData");
+                // GameObject is actually named "TechLeveData" (typo baked into the scene).
+                Transform t = transform.Find("TechLeveData");
                 if (t != null) techLevelText = t.GetComponent<TextMeshProUGUI>();
             }
         }
@@ -80,13 +87,27 @@ namespace BOTF3D.UI
         public void Refresh()
         {
             TrySubscribe();
-            if (techLevelText == null) return;
 
             CivController localCiv = CivManager.Instance?.LocalPlayerCivController;
             if (localCiv == null) return;
 
-            techLevelText.text = $"{localCiv.CivData.TechRating:F1} ({localCiv.CivData.CurrentTechLevel})";
+            if (techPointsText != null)
+                techPointsText.text = localCiv.CivData.TechPoints.ToString();
+            if (techLevelText != null)
+                techLevelText.text = GetTechLevelDisplayName(localCiv.CivData.CurrentTechLevel);
             _initialRefreshDone = true;
+        }
+
+        private static string GetTechLevelDisplayName(TechLevel level)
+        {
+            switch (level)
+            {
+                case TechLevel.EARLY: return "Early";
+                case TechLevel.DEVELOPED: return "Developed";
+                case TechLevel.ADVANCED: return "Advanced";
+                case TechLevel.SUPREME: return "Supreme";
+                default: return level.ToString();
+            }
         }
     }
 }

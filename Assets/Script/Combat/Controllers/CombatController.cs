@@ -631,7 +631,12 @@ namespace BOTF3D.Combat
             // broadcast (see FleetController.RpcCombatEnded) loops back and calls it again on the
             // host's own client connection, and a non-host combatant client calls it from that same
             // Rpc. Without this guard all three paths would re-run cleanup.
-            if (combatEnded) return;
+            if (combatEnded)
+            {
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🛑[EndCombatDiag] EndCombat() called again but combatEnded already true (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}) - no-op.", this);
+                return;
+            }
+            GameLogger.Log(GameLogger.LogCategory.Combat, $"🏁[EndCombatDiag] EndCombat() running for the first time (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).", this);
             combatEnded = true;
 
             // Signals CombatQueueManager.ProcessCombatQueue's wait loop that this combat is
@@ -662,19 +667,72 @@ namespace BOTF3D.Combat
                 // notice, and combatants that haven't run EndCombat() locally yet (any non-host
                 // client) tear down their own Combat scene view.
                 //
-                // Look this up now, AFTER EndCombatCleanup's fleet cleanup loop has already
-                // destroyed any fleet that ended combat with 0 ships - _involvedFleets.Find(f =>
-                // f != null) uses FleetController's overridden UnityEngine.Object == operator, so
-                // a destroyed fleet is correctly skipped here. Previously this was captured
-                // *before* that loop ran, so on a decisive victory it could grab the very fleet
-                // the loop was about to destroy; calling ServerNotifyCombatEnded() through `?.` on
-                // that now-destroyed MonoBehaviour doesn't short-circuit the way it would for a
-                // real null (`?.` uses the raw C# reference, not Unity's overridden equality), so
-                // it threw a MissingReferenceException that aborted EndCombat() right before this
-                // broadcast.
-                FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
-                if (NetworkServer.active && combatEndedAnchor != null)
-                    combatEndedAnchor.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
+                // Look this up AFTER EndCombatCleanup's fleet cleanup loop has already destroyed
+                // any fleet that ended combat with 0 ships - _involvedFleets.Find(f => f != null)
+                // uses FleetController's overridden UnityEngine.Object == operator, so a destroyed
+                // fleet is correctly skipped here. Previously this was captured *before* that loop
+                // ran, so on a decisive victory it could grab the very fleet the loop was about to
+                // destroy; calling ServerNotifyCombatEnded() through `?.` on that now-destroyed
+                // MonoBehaviour doesn't short-circuit the way it would for a real null (`?.` uses
+                // the raw C# reference, not Unity's overridden equality), so it threw a
+                // MissingReferenceException that aborted EndCombat() right before this broadcast.
+                //
+                // Unconditional and placed first in the finally block, before anything below can
+                // throw - if this line itself is missing from a client's log next time, that proves
+                // EndCombat() never even reached the finally block on that peer (e.g. a StackOverflow
+                // or unobserved exception unwound the whole call), which is a different bug class
+                // than anything below it.
+                GameLogger.Log(GameLogger.LogCategory.Combat, $"🔔[EndCombatDiag] finally block reached (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).", this);
+
+                try
+                {
+                    FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
+                    GameLogger.Log(GameLogger.LogCategory.Combat, $"🔎[EndCombatDiag] combatEndedAnchor={(combatEndedAnchor != null ? combatEndedAnchor.name : "null")}, _involvedFleets.Count={_involvedFleets.Count}.", this);
+                    if (NetworkServer.active && combatEndedAnchor != null)
+                    {
+                        GameLogger.Log(GameLogger.LogCategory.Combat, $"📡[EndCombatDiag] Broadcasting RpcCombatEnded via fleet anchor '{combatEndedAnchor.name}' for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo}.", this);
+                        combatEndedAnchor.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
+                    }
+                    else if (NetworkServer.active)
+                    {
+                        // No live FleetController survived to anchor the broadcast - happens whenever
+                        // _involvedFleets ends up empty of non-destroyed entries, e.g. a FleetVsSystem/
+                        // SystemVsFleet combat where the defending system's ships never contribute a
+                        // fleet at all (ShipManager.BuildShipInSystem/BuildHomeSystemTransports set
+                        // ShipData.CurrentFleetController = null for them - see CaptureInvolvedFleets)
+                        // and the one attacking fleet that *was* in the list gets destroyed for ending
+                        // this very combat with 0 ships, right above in EndCombatCleanup. Without a
+                        // fallback, ServerNotifyCombatEnded above would silently never fire for anyone -
+                        // the host's own panel would still close (it runs this method directly, in
+                        // process), but every non-host client - whose only trigger to leave the Combat
+                        // scene IS that broadcast - would be stuck on the Combat Over panel forever with
+                        // no error logged anywhere. TimeManager is a persistent scene NetworkBehaviour
+                        // (see TimeManager.Awake/DontDestroyOnLoad, PersistentScene.unity) guaranteed
+                        // alive for the whole session regardless of any particular combat's ships/fleets,
+                        // so it's used here as an always-reliable relay. See
+                        // TimeManager.RpcCombatEndedFallback's own comment for why it matches by civ pair
+                        // (not fleet identity) and why that's an acceptable, EndCombat()-idempotency-
+                        // guarded tradeoff.
+                        GameLogger.LogWarning(GameLogger.LogCategory.Combat, $"⚠️[EndCombatDiag] No live FleetController to anchor RpcCombatEnded for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo} - falling back to TimeManager relay (TimeManager.Instance={(TimeManager.Instance != null ? "found" : "NULL")}).", this);
+                        TimeManager.Instance?.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
+                    }
+                    else
+                    {
+                        GameLogger.Log(GameLogger.LogCategory.Combat, $"ℹ️[EndCombatDiag] NetworkServer.active=false on this peer - skipping broadcast (expected on pure clients; the server peer is responsible for it).", this);
+                    }
+                }
+                catch (System.Exception broadcastEx)
+                {
+                    // Everything above lives inside the outer finally block, which is NOT covered by
+                    // the catch preceding it (that catch only wraps EndCombatCleanup() in the try
+                    // block above) - any exception thrown while resolving/broadcasting here would
+                    // previously escape completely uncaught, unwinding out of EndCombat() entirely
+                    // and skipping the pending-encounter decrement loop below with zero error output
+                    // on this peer. That silent-escape gap is exactly what could explain the Klingon
+                    // client showing none of the EndCombatDiag/RpcCombatEndedDiag tags despite the
+                    // host's cleanup trail completing normally.
+                    GameLogger.LogError(GameLogger.LogCategory.Combat, $"❌[EndCombatDiag] Exception while resolving/broadcasting combat-ended notification: {broadcastEx}", this);
+                }
 
                 // The Fight branch of a Fight/Withdraw encounter (see DiplomacyController.
                 // TryResolveEncounter) forces combat without ever decrementing the fleets'

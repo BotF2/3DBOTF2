@@ -154,7 +154,13 @@
       "Bash(find . -maxdepth 2 -iname \"*.log\")",
       "Bash(ls -la Logs)",
       "Bash(awk '/externalObjects:/,/materials:|materialImportMode|LODScreenPercentages/' __TRACKED_VAR__.fbx.meta)",
-      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)"
+      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\" -Directory)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\FBX\\\\\" | Where-Object { $_.Name -match \"Destroyer|Minor|Battery\" } | Select-Object Name)",
+      "Bash(xargs -I{} sh -c 'grep -H \"OrbitalBatteries:\" \"{}\"')",
+      "Bash(tasklist //FI \"IMAGENAME eq Unity.exe\")",
+      "Bash(awk '/m_Script: \\\\{fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff/{print NR\": \"prev} {prev=$0}' \"Assets/PreFabs/DiplomacyIntel/CivIntelPrefab.prefab\")",
+      "Bash(echo \"exit: $?\")"
     ]
   },
   "model": "claude-sonnet-5"

@@ -2047,6 +2047,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 012b2d089cf552240a7ae8fb63ffda93, type: 2}
   - {fileID: 11400000, guid: 03791de61ebaaeb48be26ad950b7cccb, type: 2}
   Test: {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
+  OrbitalBatteryShipSO: {fileID: 11400000, guid: 2f8d65fb84234c34b85ad1fd5e67f099, type: 2}
   ShipControllerList: []
 --- !u!4 &465746041
 Transform:
@@ -2335,7 +2336,7 @@ MonoBehaviour:
   targetWidth: 1920
   targetHeight: 1080
   fullscreen: 1
-  fullscreenMode: 3
+  fullscreenMode: 1
   qualityLevel: 2
   vSyncCount: 1
   targetFrameRate: -1

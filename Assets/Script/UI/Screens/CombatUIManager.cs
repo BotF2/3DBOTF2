@@ -1195,6 +1195,16 @@ namespace BOTF3D.UI
         {
             Debug.Log("🧹 CombatUIManager: Cleaning up combat UI references");
 
+            // Explicitly hide before nulling the references below. Normally CombatScene unloading
+            // (SceneController.ReturnToGalaxyFromCombat) destroys this panel along with everything
+            // else in that scene, but if that unload is ever skipped/delayed on a given client (see
+            // UnloadCombatSceneAndResumeGalaxy's isLoaded diagnostic), nulling the reference alone
+            // does nothing to the actual GameObject - it would stay visible, active, on top of the
+            // galaxy scene once that gets reactivated. This makes panel-hiding independent of scene
+            // unload timing.
+            if (panelCombatOver != null) panelCombatOver.SetActive(false);
+            if (currentGameOverCanvas != null) currentGameOverCanvas.SetActive(false);
+
             CurrentCombatController = null;
             currentCombatUICanvas = null;
             currentCombat3DCanvas = null;

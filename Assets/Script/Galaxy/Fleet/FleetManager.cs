@@ -1198,7 +1198,131 @@ namespace BOTF3D.Galaxy
             fromFleet.UpdateMaxWarp();
             toFleet.UpdateMaxWarp();
 
+            // Broadcast the server's now-authoritative rosters to every client - the client-local
+            // prediction in ShipListUI_Item.AddToFleet only ever updated the dragging client's own copy,
+            // so without this every other peer (bystanders who never touched this drag) would keep
+            // believing both fleets still have their pre-transfer rosters forever. This is exactly what
+            // crashed CombatInstantiator.CreateCombatData on a remote client when a freshly split fleet
+            // (empty FleetData.ShipsList on that peer) reached combat.
+            fromFleet.RequestSyncShipRoster();
+            toFleet.RequestSyncShipRoster();
+
             Debug.Log($"ServerTransferShip: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to '{toFleet.name}'. fromFleet now has {fromFleet.FleetData.ShipsList.Count}, toFleet now has {toFleet.FleetData.ShipsList.Count}.");
+        }
+
+        // Same server-authoritative reasoning and broadcast as ServerTransferShip above, for a ship
+        // moving out of a fleet and into a star system's garrison (ShipListUI_Item.AddToStarSystem's
+        // client-local prediction). The system side of the broadcast goes through
+        // TimeManager.ServerSyncStarSysRoster since StarSysController has no NetworkIdentity of its
+        // own to host a ClientRpc.
+        [Server]
+        public void ServerTransferShipToSystem(FleetController fromFleet, StarSysController toSystem, int shipID)
+        {
+            if (fromFleet == null || toSystem == null || fromFleet.FleetData == null || toSystem.StarSysData == null || shipID == 0)
+                return;
+
+            ShipController ship = fromFleet.FleetData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipToSystem: ship id {shipID} not found in fleet '{fromFleet.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromFleet.FleetData.ShipsList.Remove(ship);
+            if (!toSystem.StarSysData.ShipsList.Contains(ship))
+                toSystem.StarSysData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentStarSysController = toSystem;
+            ship.ShipData.CurrentFleetController = null;
+            if (ship.transform != null && toSystem.gameObject != null)
+                ship.transform.SetParent(toSystem.transform, false);
+
+            fromFleet.UpdateMaxWarp();
+
+            fromFleet.RequestSyncShipRoster();
+            List<int> toSysShipIDs = toSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(toSystem.StarSysData.GetStarSysInt(), toSysShipIDs);
+
+            Debug.Log($"ServerTransferShipToSystem: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to system '{toSystem.name}'.");
+        }
+
+        // Same reasoning as ServerTransferShipToSystem, for the reverse direction (a ship leaving a
+        // system's garrison to join a fleet).
+        [Server]
+        public void ServerTransferShipFromSystem(StarSysController fromSystem, FleetController toFleet, int shipID)
+        {
+            if (fromSystem == null || toFleet == null || fromSystem.StarSysData == null || toFleet.FleetData == null || shipID == 0)
+                return;
+
+            ShipController ship = fromSystem.StarSysData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipFromSystem: ship id {shipID} not found in system '{fromSystem.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromSystem.StarSysData.ShipsList.Remove(ship);
+            if (!toFleet.FleetData.ShipsList.Contains(ship))
+                toFleet.FleetData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentFleetController = toFleet;
+            ship.ShipData.CurrentStarSysController = null;
+            if (ship.transform != null && toFleet.gameObject != null)
+                ship.transform.SetParent(toFleet.transform, false);
+
+            toFleet.UpdateMaxWarp();
+
+            toFleet.RequestSyncShipRoster();
+            List<int> fromSysShipIDs = fromSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(fromSystem.StarSysData.GetStarSysInt(), fromSysShipIDs);
+
+            Debug.Log($"ServerTransferShipFromSystem: moved ship id {shipID} ('{ship.ShipData.ShipName}') from system '{fromSystem.name}' to fleet '{toFleet.name}'.");
+        }
+
+        // Same reasoning as ServerTransferShipToSystem, for a ship moving directly between two star
+        // systems' garrisons (no fleet involved on either side).
+        [Server]
+        public void ServerTransferShipBetweenSystems(StarSysController fromSystem, StarSysController toSystem, int shipID)
+        {
+            if (fromSystem == null || toSystem == null || fromSystem.StarSysData == null || toSystem.StarSysData == null || shipID == 0)
+                return;
+            if (fromSystem == toSystem)
+                return;
+
+            ShipController ship = fromSystem.StarSysData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipBetweenSystems: ship id {shipID} not found in system '{fromSystem.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromSystem.StarSysData.ShipsList.Remove(ship);
+            if (!toSystem.StarSysData.ShipsList.Contains(ship))
+                toSystem.StarSysData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentStarSysController = toSystem;
+            ship.ShipData.CurrentFleetController = null;
+            if (ship.transform != null && toSystem.gameObject != null)
+                ship.transform.SetParent(toSystem.transform, false);
+
+            List<int> fromSysShipIDs2 = fromSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            List<int> toSysShipIDs2 = toSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(fromSystem.StarSysData.GetStarSysInt(), fromSysShipIDs2);
+            TimeManager.Instance.ServerSyncStarSysRoster(toSystem.StarSysData.GetStarSysInt(), toSysShipIDs2);
+
+            Debug.Log($"ServerTransferShipBetweenSystems: moved ship id {shipID} ('{ship.ShipData.ShipName}') from system '{fromSystem.name}' to system '{toSystem.name}'.");
         }
 
         // Server-side counterpart of StarSysMenuUIController.ClickNewFleetButton(StarSysController) -
