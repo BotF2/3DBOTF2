@@ -372,7 +372,7 @@ namespace BOTF3D.Core
         LtCruiser,
         HvyCruiser,
         Transport,
-        OneMore
+        OrbitalBattery
     }
 
     public enum GalaxyObjectType

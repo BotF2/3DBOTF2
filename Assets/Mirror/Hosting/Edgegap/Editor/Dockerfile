@@ -16,4 +16,4 @@ RUN apt-get update && \
 
 EXPOSE 7777/udp
 
-CMD [ "/root/build/ServerBuild", "-batchmode", "-nographics", "$UNITY_COMMANDLINE_ARGS"]
+CMD ["/bin/sh", "-c", "exec /root/build/ServerBuild -batchmode -nographics -logFile - $UNITY_COMMANDLINE_ARGS"]

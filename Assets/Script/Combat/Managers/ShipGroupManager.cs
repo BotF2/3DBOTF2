@@ -66,11 +66,15 @@ namespace BOTF3D.Combat
         {
             List<ShipGroup> groups = new List<ShipGroup>();
 
-            // Filter out transports and destroyed ships
+            // Filter out transports and system-owned ships (stationed combat ships, orbital
+            // batteries, future shields — stationary, never join a moving group, and their
+            // effectively-zero speed would drag down the whole group's speed via the Min below),
+            // and destroyed ships
             var combatShips = ships.Where(s =>
                 s != null &&
                 !s.ShipData.Distroyed &&
-                s.ShipData.ShipType != ShipType.Transport
+                s.ShipData.ShipType != ShipType.Transport &&
+                s.ShipData.CurrentStarSysController == null
             ).ToList();
 
             if (combatShips.Count == 0) return groups;

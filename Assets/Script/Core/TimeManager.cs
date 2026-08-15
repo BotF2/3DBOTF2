@@ -496,6 +496,86 @@ namespace BOTF3D.Core
             Debug.Log($"▶️ TimeManager: Time RESUMED (timeScale=1.0, coroutineSpeed={currentTimeSpeed})");
         }
 
+        // Fallback combat-end broadcast channel, used by CombatController.EndCombat() only when no
+        // FleetController survived to anchor its own RpcCombatEnded (see FleetController.cs and
+        // CombatController.EndCombat's comment on combatEndedAnchor). That normal channel depends on
+        // CombatController._involvedFleets containing at least one still-alive fleet, which fails for
+        // a FleetVsSystem/SystemVsFleet combat where the defending system's own ships never belong to
+        // a fleet at all, if the one attacking fleet that WAS in the list is itself wiped out ending
+        // the fight. TimeManager is a persistent scene NetworkBehaviour (see Awake/DontDestroyOnLoad,
+        // PersistentScene.unity) - alive for the whole game session regardless of what happens to any
+        // specific combat's ships or fleets - so it works as an always-reachable relay for this one
+        // broadcast when the normal channel has nothing left to send it through.
+        [Server]
+        public void ServerNotifyCombatEnded(CivEnum civA, CivEnum civB)
+        {
+            RpcCombatEndedFallback(civA, civB);
+        }
+
+        [ClientRpc]
+        private void RpcCombatEndedFallback(CivEnum civA, CivEnum civB)
+        {
+            // Unconditional, first line - if missing from a peer's log, this fallback Rpc never
+            // arrived/executed on that peer at all.
+            Debug.Log($"📩[RpcCombatEndedFallbackDiag] RpcCombatEndedFallback RECEIVED for {civA} vs {civB} (isServer={isServer}, isClient={isClient}).");
+
+            CombatPausedNoticeUI.Instance?.Hide();
+
+            // Matches by civ pair, not fleet identity, since this only ever runs when no fleet
+            // anchor was available to identify the combat unambiguously (see
+            // FleetController.RpcCombatEnded's comment on why civ-pair matching alone is ambiguous
+            // under back-to-back same-civ-pair test battles). That narrow ambiguity risk is
+            // acceptable here: CombatController.EndCombat()'s own idempotency guard (the
+            // `combatEnded` flag) makes it harmless if this fallback and the normal fleet-anchored
+            // broadcast both end up reaching the same client for the same combat.
+            CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(civA, civB);
+            if (combatCon == null)
+            {
+                Debug.LogWarning($"⚠️[RpcCombatEndedFallbackDiag] Fallback RpcCombatEnded received for {civA} vs {civB} but no matching active CombatController found - this client's Combat scene will NOT be torn down.");
+            }
+            combatCon?.EndCombat();
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Star-system ship roster replication. StarSysController has no NetworkIdentity (see
+        // StarSysManager.GetStarSysControllerByInt's comment), so it can't host its own [Command]/
+        // [ClientRpc] pair the way FleetController.RequestSyncShipRoster does. TimeManager is a
+        // persistent scene NetworkBehaviour reachable by every client for the whole session (see
+        // RpcCombatEndedFallback's comment above for the same reasoning), so it acts as the relay
+        // channel instead. Called server-side, right after any [Server]-context mutation of a
+        // StarSysData.ShipsList (see FleetManager.ServerTransferShipToSystem/FromSystem/
+        // BetweenSystems and LocalHumanPlayerController.CmdSyncStarSysRoster).
+        // ---------------------------------------------------------------------------------------
+        [Server]
+        public void ServerSyncStarSysRoster(int starSysInt, List<int> shipIDs)
+        {
+            RpcSyncStarSysRoster(starSysInt, shipIDs);
+        }
+
+        [ClientRpc]
+        private void RpcSyncStarSysRoster(int starSysInt, List<int> shipIDs)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcSyncStarSysRoster: no local StarSysController found for starSysInt={starSysInt} - roster sync dropped on this peer.");
+                return;
+            }
+
+            List<ShipController> resolved = new List<ShipController>();
+            foreach (int shipID in shipIDs)
+            {
+                ShipController shipCon = ShipManager.Instance?.GetShipControllerByShipID(shipID);
+                if (shipCon != null)
+                    resolved.Add(shipCon);
+                else
+                    Debug.LogWarning($"RpcSyncStarSysRoster: system '{sysCon.name}' could not resolve ShipID={shipID} to a local ShipController - this peer doesn't know about that ship yet, its roster will be short by one.");
+            }
+
+            sysCon.StarSysData.ShipsList = resolved;
+            Debug.Log($"RpcSyncStarSysRoster: system '{sysCon.name}' roster synced - {resolved.Count}/{shipIDs.Count} ship(s) resolved locally.");
+        }
+
         // Method to get current oneInXChance
         public int CurrentStarDate()
         {

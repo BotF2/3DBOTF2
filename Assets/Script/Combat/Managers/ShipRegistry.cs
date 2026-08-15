@@ -108,6 +108,21 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
+        /// Find a ship controller by its stable ShipData.ShipID (see ShipFactory - deterministically
+        /// assigned from civ/fleet/system + a per-owner creation sequence, so the same ship resolves
+        /// to the same ID on every peer). Unlike GetGalaxyShipController/GetCombatShipController above
+        /// (keyed by ShipName.GetHashCode(), which collides for same-named ships), this is safe to use
+        /// for cross-peer roster reconciliation - e.g. FleetController.RpcSyncShipRoster resolving a
+        /// list of ShipIDs sent from the peer that just created/split a fleet into this peer's own
+        /// local ShipController references. Searches AllShipControllers rather than the scene-specific
+        /// dictionaries so a ship is still found here even mid-transfer between two fleets/systems.
+        /// </summary>
+        public ShipController GetShipControllerByShipID(int shipID)
+        {
+            return AllShipControllers.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+        }
+
+        /// <summary>
         /// Remove a ship controller from all tracking
         /// </summary>
         public void RemoveShipController(ShipController shipController)

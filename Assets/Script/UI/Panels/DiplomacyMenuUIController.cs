@@ -81,14 +81,6 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject allianceButtonGO;
         [SerializeField]
-        private GameObject gatherIntelButtonGO;
-        [SerializeField]
-        private GameObject theftButtonGO;
-        [SerializeField]
-        private GameObject disinformationButtonGO;
-        [SerializeField]
-        private GameObject sabatogeButtonGO;
-        [SerializeField]
         private GameObject combatButtonGO;
         [SerializeField]
         private GameObject withdrawButtonGO;
@@ -404,22 +396,6 @@ namespace BOTF3D.UI
                         rectTransforms[i].gameObject.SetActive(true);
                         allianceButtonGO = rectTransforms[i].gameObject;
                         break;
-                    case "GatherIntel":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        gatherIntelButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "Theft":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        theftButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "Disinformation":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        disinformationButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "SabatogeButton":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        sabatogeButtonGO = rectTransforms[i].gameObject;
-                        break;
                     case "CombatButton":
                         rectTransforms[i].gameObject.SetActive(true);
                         combatButtonGO = rectTransforms[i].gameObject;
@@ -541,26 +517,6 @@ namespace BOTF3D.UI
                         //fleetCon.FleetData.FleetButtonUp = listButton;
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.OfferAlliance(diplomacyCon));
-                        break;
-                    case "GatherIntelButton":
-                        // fleetCon.FleetData.FleetButtonDown = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.GatherIntel(diplomacyCon));
-                        break;
-                    case "TheftButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Theft(diplomacyCon));
-                        break;
-                    case "DisinformationButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Disinformation(diplomacyCon));
-                        break;
-                    case "SabatogeButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Sabatoge(diplomacyCon));
                         break;
                     case "SystemReconButton":
                         listButton.onClick.RemoveAllListeners();

@@ -1010,6 +1010,28 @@ namespace BOTF3D.Galaxy
         }
 
         /// <summary>
+        /// Ensures this system has exactly as many OrbitalBattery combat units in its ShipsList as it
+        /// has built orbital-battery facilities (StarSysData.OrbitalBatteries — the facility/UI icon
+        /// list). Batteries are otherwise never spawned as ShipControllers, so this lazily creates any
+        /// that are missing right before combat starts. Never removes any — ShipController.DestroyShip
+        /// keeps the two counts in sync by decrementing OrbitalBatteries whenever a battery dies in
+        /// combat, so ShipsList's battery count can never exceed the built count.
+        /// </summary>
+        public void EnsureOrbitalBatteryShipsForCombat(StarSysController starSysCon)
+        {
+            if (starSysCon == null || starSysCon.StarSysData == null) return;
+
+            int builtCount = starSysCon.StarSysData.OrbitalBatteries?.Count ?? 0;
+            int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
+                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.OrbitalBattery);
+
+            for (int i = existingCount; i < builtCount; i++)
+            {
+                ShipManager.Instance.CreateOrbitalBatteryForSystem(starSysCon);
+            }
+        }
+
+        /// <summary>
         /// Determine the GroundForces cap for a system. Home systems of major civs are the only
         /// systems that can reach the absolute upper limit of 11 (matches groundForceGridLimit in
         /// StarSysUI_Fields). Every other tier is scaled down from there so majors always field more
@@ -1570,6 +1592,20 @@ namespace BOTF3D.Galaxy
             for (int i = 0; i < StarSysControllerList.Count; i++)
             {
                 if (StarSysControllerList[i].StarSysData.GetSysName().Equals(name))
+                    return StarSysControllerList[i];
+            }
+            return null;
+        }
+
+        // StarSysData.starSysInt is deterministic/shared across clients (assigned from the galaxy's
+        // generation seed), unlike a Unity instance ID or list index - safe to use as the cross-peer
+        // identifier for a system in ship-roster-sync Commands/Rpcs, same role ShipData.ShipID plays
+        // for ships and NetworkIdentity plays for fleets.
+        public StarSysController GetStarSysControllerByInt(int starSysInt)
+        {
+            for (int i = 0; i < StarSysControllerList.Count; i++)
+            {
+                if (StarSysControllerList[i].StarSysData.GetStarSysInt() == starSysInt)
                     return StarSysControllerList[i];
             }
             return null;

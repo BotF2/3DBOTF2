@@ -54,6 +54,10 @@ public GameObject[] beamWeaponPrefabs;
         [SerializeField] public List<ShipSO> MinorShipSOList;
         [SerializeField] public ShipSO Test;
 
+        [Header("Orbital Battery")]
+        [Tooltip("Civ-agnostic ShipSO used for every system's orbital-battery combat units — see ShipManager.CreateOrbitalBatteryForSystem")]
+        [SerializeField] public ShipSO OrbitalBatteryShipSO;
+
         // Specialized managers (handle all ship operations)
         private ShipRegistry shipRegistry;
         private ShipFactory shipFactory;
@@ -222,6 +226,11 @@ public GameObject[] beamWeaponPrefabs;
             return shipRegistry.GetShipData(shipId);
         }
 
+        public ShipController GetShipControllerByShipID(int shipID)
+        {
+            return shipRegistry.GetShipControllerByShipID(shipID);
+        }
+
         public void ClearGalaxyShips()
         {
             shipRegistry.ClearGalaxyShips();
@@ -338,6 +347,43 @@ public GameObject[] beamWeaponPrefabs;
 
             Debug.Log($"  Created {shipConList.Count} ships under '{parentGO.name}'");
             return shipConList;
+        }
+
+        /// <summary>
+        /// Materializes one orbital-battery combat unit for a star system's defense. Deliberately
+        /// does NOT call ShipUICreator.InstantiateShipListUI like InstantiateShipControllersWithDataFromSO
+        /// does — a battery is a fixed system defense, not a deployable ship, and must not show up in
+        /// ShipDeployMenuUIController's list where a player could try to move it out of the system.
+        /// Still goes through ShipFactory.LinkShipToParent so it's added to StarSysData.ShipsList and
+        /// gets a system-scoped ShipID like any other system-owned ship. See StarSysManager.
+        /// EnsureOrbitalBatteryShipsForCombat for the caller that keeps these in sync with built count.
+        /// </summary>
+        public ShipController CreateOrbitalBatteryForSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || OrbitalBatteryShipSO == null)
+            {
+                Debug.LogError("ShipManager: CreateOrbitalBatteryForSystem — sysCon or OrbitalBatteryShipSO is null!");
+                return null;
+            }
+
+            ShipController shipCon = shipFactory.CreateGalaxyShip(OrbitalBatteryShipSO, Vector3.zero, sysCon.gameObject);
+            if (shipCon == null) return null;
+
+            shipCon.Init(this);
+            shipDataInitializer.InitializeShipData(shipCon, OrbitalBatteryShipSO, sysCon.StarSysData.CurrentOwnerCivEnum);
+
+            var targetGO = shipFactory.CreateTargetForShip(shipCon);
+            shipCon.ShipData.TargetOnThisShip = targetGO;
+
+            shipCon.Order = CombatOrders.None;
+            shipCon.gameObject.layer = 9;
+
+            ShipControllerList.Add(shipCon);
+            shipFactory.LinkShipToParent(shipCon, sysCon.gameObject);
+            shipRegistry.RegisterGalaxyShip(shipCon);
+
+            Debug.Log($"  Created orbital battery '{shipCon.ShipData.ShipName}' for system '{sysCon.name}' (civ={shipCon.ShipData.CivEnum})");
+            return shipCon;
         }
 
         #endregion
