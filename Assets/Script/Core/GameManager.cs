@@ -32,6 +32,9 @@ namespace BOTF3D.Core
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
             }
+#if !UNITY_EDITOR
+            Screen.fullScreenMode = FullScreenMode.FullScreenWindow;
+#endif
             Debug.Log($"=== GAME MANAGER BUILD DIAGNOSTICS ===");
             Debug.Log($"Active Scene: {SceneManager.GetActiveScene().name}");
             Debug.Log($"Build Index: {SceneManager.GetActiveScene().buildIndex}");
@@ -91,6 +94,18 @@ namespace BOTF3D.Core
                 InitializeGameManagerWithMainMenuUIController();
             }
         }
+
+#if !UNITY_EDITOR
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.F11))
+            {
+                bool isFullscreen = Screen.fullScreenMode == FullScreenMode.FullScreenWindow;
+                Screen.fullScreenMode = isFullscreen ? FullScreenMode.Windowed : FullScreenMode.FullScreenWindow;
+                Debug.Log($"GameManager: Fullscreen mode toggled via F11 key. Now: {Screen.fullScreenMode}");
+            }
+        }
+#endif
 
         private void OnDestroy()
         {

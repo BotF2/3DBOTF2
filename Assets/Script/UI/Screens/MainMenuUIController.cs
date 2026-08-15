@@ -704,12 +704,14 @@ namespace BOTF3D.UI
             // since calling the [Server] method directly would silently no-op on a non-server machine.
             if (NetworkServer.active)
             {
-                PlayerManager.Instance.ServerBroadcastStartGame(
+                bool started = PlayerManager.Instance.ServerBroadcastStartGame(
                     (int)MainMenuData.SelectedGalaxySize,
                     (int)MainMenuData.SelectedTechLevel,
                     (int)MainMenuData.SelectedGalaxyType,
                     seed,
                     IsSinglePlayer);
+                if (!started)
+                    OnStartGameRejected();
             }
             else
             {
@@ -752,6 +754,24 @@ namespace BOTF3D.UI
 
             // Use coroutine for clean transition
             StartCoroutine(LoadGalaxySceneCoroutine());
+        }
+
+        // Called (locally on the host, or via LocalHumanPlayerController.TargetRejectStartGame on a
+        // remote client) when ServerBroadcastStartGame silently dropped the request because a galaxy
+        // was already generated for this server's lifetime - most often a dedicated server that
+        // wasn't restarted since an earlier test/game. Without this, a rejected click just does
+        // nothing and repeated clicks look identical to the game hanging/crashing at the menu.
+        public void OnStartGameRejected()
+        {
+            Debug.LogWarning("OnStartGameRejected: server already has a game in progress on this connection - request ignored. Restart the server to start a fresh game.");
+            StartCoroutine(ShowStartGameRejectedMessageCoroutine());
+        }
+
+        private System.Collections.IEnumerator ShowStartGameRejectedMessageCoroutine()
+        {
+            ShowLoadingOverlay(Loc.Get("A game is already in progress on this server. It needs to be restarted before a new game can begin."));
+            yield return new WaitForSecondsRealtime(4f);
+            HideLoadingOverlay();
         }
 
         // ─── Loading overlay ─────────────────────────────────────────────────

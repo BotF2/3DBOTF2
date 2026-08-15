@@ -134,6 +134,7 @@ namespace BOTF3D.Core
             CombatType combatType = CombatType.None;
             if (playerFleet == null)
             {
+                StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
                 shipControllers1 = starSysCon.StarSysData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
                 combatType = CombatType.SystemVsFleet;
@@ -148,6 +149,7 @@ namespace BOTF3D.Core
             }
             else if (enemyFleet == null)
             {
+                StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = starSysCon.StarSysData.ShipsList;
                 combatType = CombatType.FleetVsSystem;
@@ -336,6 +338,15 @@ namespace BOTF3D.Core
                 }
 
                 Debug.Log("  ✅ Combat scene unloaded");
+            }
+            else
+            {
+                // If this branch is ever hit, CombatScene's own GameObjects (including the
+                // "PanelCombatEnd" Combat Over panel, which lives inside CombatScene's
+                // CombatOverCanvas) are never destroyed, even though the galaxy scene below gets
+                // reactivated on top of them - which would look exactly like "game running behind
+                // a stuck Combat Over panel" reported on a non-host client.
+                Debug.LogWarning("  ⚠️[UnloadCombatSceneDiag] CombatScene was not loaded (isLoaded=false) when UnloadCombatSceneAndResumeGalaxy ran - skipping unload. Any leftover CombatScene UI (e.g. the Combat Over panel) will remain visible.");
             }
 
             // ✅ Set galaxy scene as active

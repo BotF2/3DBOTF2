@@ -17,9 +17,14 @@ namespace BOTF3D.Combat
     public class ShipDataInitializer
     {
         /// <summary>
-        /// Initialize ShipData from ShipSO
+        /// Initialize ShipData from ShipSO. civOverride lets a spawner assign the actual owning
+        /// civ at creation time instead of the SO's authored default (used for orbital batteries,
+        /// whose ShipSO is civ-agnostic — the real owner is whichever civ holds the star system;
+        /// see ShipManager.CreateOrbitalBatteryForSystem) — stats (quality/civ-flavor multipliers)
+        /// are computed against the override, not shipSO.CivEnum, so a Klingon-built battery gets
+        /// Klingon-flavored stats rather than the SO's placeholder civ's.
         /// </summary>
-        public void InitializeShipData(ShipController shipController, ShipSO shipSO)
+        public void InitializeShipData(ShipController shipController, ShipSO shipSO, CivEnum? civOverride = null)
         {
             if (shipController == null || shipSO == null)
             {
@@ -34,13 +39,14 @@ namespace BOTF3D.Combat
             }
 
             ShipData data = shipController.ShipData;
+            CivEnum effectiveCiv = civOverride ?? shipSO.CivEnum;
 
             // Store reference to ShipSO
             data.ShipSO = shipSO;
 
             // Identity and visual
             data.ShipName = shipSO.ShipName;
-            data.CivEnum = shipSO.CivEnum;
+            data.CivEnum = effectiveCiv;
             data.TechLevel = shipSO.TechLevel;
             data.ShipType = shipSO.ShipType;
             data.ShipDescription = shipSO.ShipDescription;
@@ -48,8 +54,8 @@ namespace BOTF3D.Combat
                 data.ShipSprite = shipSO.shipSprite;
 
             // Calculate combat stats from type, tier, civ doctrine, and flavor
-            int quality = CivManager.Instance?.GetCivDataByCivEnum(shipSO.CivEnum)?.QualityScore ?? 5;
-            ShipStats stats = ShipStatCalculator.Calculate(shipSO.ShipType, shipSO.TechLevel, shipSO.CivEnum, quality);
+            int quality = CivManager.Instance?.GetCivDataByCivEnum(effectiveCiv)?.QualityScore ?? 5;
+            ShipStats stats = ShipStatCalculator.Calculate(shipSO.ShipType, shipSO.TechLevel, effectiveCiv, quality);
 
             data.ShieldMaxHealth  = stats.ShieldMaxHealth;
             data.HullMaxHealth    = stats.HullMaxHealth;

@@ -66,6 +66,7 @@ namespace BOTF3D.Combat
         public int formationSlot = -1;
         private const float FORMATION_SPACING = 35f;
         private bool isTransport = false;
+        private bool isSystemOwned = false; // stationed combat ship, orbital battery, or future shield
 
         [Header("Attack Transports Settings - Wide Flank")]
         private Vector3 flankTargetPosition;
@@ -99,6 +100,7 @@ namespace BOTF3D.Combat
             }
 
             isTransport = (ShipController.ShipData.ShipType == ShipType.Transport);
+            isSystemOwned = (ShipController.ShipData.CurrentStarSysController != null);
             currentState = OrderState.Idle;
 
             // Find ship model (first child with a renderer in its hierarchy)
@@ -213,6 +215,17 @@ namespace BOTF3D.Combat
             if (!isTransport && (currentTarget == null || currentTarget.ShipData.Distroyed || currentTarget.ShipData.IsCaptured || !currentTarget.gameObject.activeInHierarchy))
             {
                 ShipController.ShipData.TargetThisShipController = FindFallbackEnemy();
+            }
+
+            // System-owned ships (stationed combat ships, orbital batteries, future shields)
+            // are stationary system defenses that never warp in and never move — skip every
+            // movement/retreat order entirely (targeting above still runs so they keep firing).
+            // Without this guard ExecuteRetreat would deactivate/reparent the ship's GameObject
+            // and ExecuteFormation/Engage/Rush would drag it off its fixed position.
+            if (isSystemOwned)
+            {
+                currentState = OrderState.Idle;
+                return;
             }
 
             // Execute current order

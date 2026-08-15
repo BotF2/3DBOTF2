@@ -1,6 +1,6 @@
 using BOTF3D.Combat;
 using BOTF3D.Core;
-
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 using BOTF3D.Civilization;
@@ -138,6 +138,36 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         if (isOwned && fromFleet != null && toFleet != null && shipID != 0)
             CmdTransferShip(fromFleet.netIdentity, toFleet.netIdentity, shipID);
+    }
+
+    // The three remaining ship-transfer directions besides fleet-to-fleet (see CmdTransferShip
+    // above) - a system has no NetworkIdentity so it's identified by its stable starSysInt instead
+    // (see StarSysManager.GetStarSysControllerByInt's comment).
+    public void SubmitTransferShipFleetToSystem(FleetController fromFleet, int toSysInt, int shipID)
+    {
+        if (isOwned && fromFleet != null && shipID != 0)
+            CmdTransferShipFleetToSystem(fromFleet.netIdentity, toSysInt, shipID);
+    }
+
+    public void SubmitTransferShipSystemToFleet(int fromSysInt, FleetController toFleet, int shipID)
+    {
+        if (isOwned && toFleet != null && shipID != 0)
+            CmdTransferShipSystemToFleet(fromSysInt, toFleet.netIdentity, shipID);
+    }
+
+    public void SubmitTransferShipSystemToSystem(int fromSysInt, int toSysInt, int shipID)
+    {
+        if (isOwned && shipID != 0)
+            CmdTransferShipSystemToSystem(fromSysInt, toSysInt, shipID);
+    }
+
+    // Defensive backstop only - see StarSysController.RequestSyncShipRoster's comment. The
+    // authoritative fix for an individual ship move is the CmdTransferShipXXX relays above; this
+    // just re-pushes a client's current view of one system's roster so any drift still converges.
+    public void SubmitSyncStarSysRoster(int starSysInt, List<int> shipIDs)
+    {
+        if (isOwned)
+            CmdSyncStarSysRoster(starSysInt, shipIDs);
     }
 
     public void SubmitCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
@@ -283,6 +313,59 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     }
 
     [Command]
+    void CmdTransferShipFleetToSystem(NetworkIdentity fromFleetIdentity, int toSysInt, int shipID)
+    {
+        FleetController fromFleet = fromFleetIdentity != null ? fromFleetIdentity.GetComponent<FleetController>() : null;
+        StarSysController toSystem = StarSysManager.Instance.GetStarSysControllerByInt(toSysInt);
+        if (fromFleet == null || toSystem == null || fromFleet.FleetData.CivEnum != playerCiv || toSystem.StarSysData.CurrentOwnerCivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTransferShipFleetToSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for transfer between '{fromFleet?.name}' and system '{toSystem?.name}'.");
+            return;
+        }
+        FleetManager.Instance.ServerTransferShipToSystem(fromFleet, toSystem, shipID);
+    }
+
+    [Command]
+    void CmdTransferShipSystemToFleet(int fromSysInt, NetworkIdentity toFleetIdentity, int shipID)
+    {
+        StarSysController fromSystem = StarSysManager.Instance.GetStarSysControllerByInt(fromSysInt);
+        FleetController toFleet = toFleetIdentity != null ? toFleetIdentity.GetComponent<FleetController>() : null;
+        if (fromSystem == null || toFleet == null || fromSystem.StarSysData.CurrentOwnerCivEnum != playerCiv || toFleet.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTransferShipSystemToFleet: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for transfer between system '{fromSystem?.name}' and '{toFleet?.name}'.");
+            return;
+        }
+        FleetManager.Instance.ServerTransferShipFromSystem(fromSystem, toFleet, shipID);
+    }
+
+    [Command]
+    void CmdTransferShipSystemToSystem(int fromSysInt, int toSysInt, int shipID)
+    {
+        StarSysController fromSystem = StarSysManager.Instance.GetStarSysControllerByInt(fromSysInt);
+        StarSysController toSystem = StarSysManager.Instance.GetStarSysControllerByInt(toSysInt);
+        if (fromSystem == null || toSystem == null || fromSystem.StarSysData.CurrentOwnerCivEnum != playerCiv || toSystem.StarSysData.CurrentOwnerCivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTransferShipSystemToSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for transfer between system '{fromSystem?.name}' and '{toSystem?.name}'.");
+            return;
+        }
+        FleetManager.Instance.ServerTransferShipBetweenSystems(fromSystem, toSystem, shipID);
+    }
+
+    // Defensive backstop only - see StarSysController.RequestSyncShipRoster's comment.
+    [Command(requiresAuthority = false)]
+    void CmdSyncStarSysRoster(int starSysInt, List<int> shipIDs, NetworkConnectionToClient sender = null)
+    {
+        StarSysController sysCon = StarSysManager.Instance.GetStarSysControllerByInt(starSysInt);
+        LocalHumanPlayerController senderPlayer = sender != null ? sender.identity?.GetComponent<LocalHumanPlayerController>() : null;
+        if (sysCon == null || senderPlayer == null || sysCon.StarSysData.CurrentOwnerCivEnum != senderPlayer.PlayerCiv)
+        {
+            Debug.LogWarning($"CmdSyncStarSysRoster: connection {sender?.connectionId} is not authorized to resync system '{sysCon?.name}''s ship roster - request ignored.");
+            return;
+        }
+        TimeManager.Instance.ServerSyncStarSysRoster(starSysInt, shipIDs);
+    }
+
+    [Command]
     void CmdSendCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
         RpcApplyCombatOrder(order, actingCiv, opposingCiv);
@@ -332,7 +415,19 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
     {
         if (PlayerManager.Instance == null)
             return;
-        PlayerManager.Instance.ServerBroadcastStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+        bool started = PlayerManager.Instance.ServerBroadcastStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+        if (!started)
+            TargetRejectStartGame();
+    }
+
+    // The server already generated a galaxy for this process lifetime (see
+    // PlayerManager.galaxyGenerationStarted) - ServerBroadcastStartGame silently dropped the
+    // request. Without this the requesting client's repeated clicks do nothing forever, which looks
+    // identical to a hang/crash rather than a clear "already in progress" state.
+    [TargetRpc]
+    void TargetRejectStartGame()
+    {
+        MainMenuUIController.Instance?.OnStartGameRejected();
     }
 
     [ClientRpc]
