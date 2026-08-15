@@ -106,6 +106,18 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject domImages;
         [SerializeField] private GameObject borgImages;
         [SerializeField] private GameObject terranImages;
+
+        [Header("Faction Selection Stings")]
+        [SerializeField] private SoundData fedSelectionSound;
+        [SerializeField] private SoundData romSelectionSound;
+        [SerializeField] private SoundData klingSelectionSound;
+        [SerializeField] private SoundData cardSelectionSound;
+        [SerializeField] private SoundData domSelectionSound;
+        [SerializeField] private SoundData borgSelectionSound;
+        [SerializeField] private SoundData terranSelectionSound;
+        // Suppresses the selection sting while SetupMainMenuUI() sets the default Fed
+        // toggle on - only real user clicks after that should play a sound.
+        private bool suppressCivSelectionSound = true;
         //ToDo for multiplayer lobby
         //private Toggle _activeRemote0;
         //private Toggle _activeRemote1;
@@ -334,6 +346,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.FED);
                     UpdateToggleBackgrounds(FedLocalPlayerToggle);
+                    PlayCivSelectionSound(fedSelectionSound);
                 }
             });
             RomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -342,6 +355,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.ROM);
                     UpdateToggleBackgrounds(RomLocalPlayerToggle);
+                    PlayCivSelectionSound(romSelectionSound);
                 }
             });
             KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -350,6 +364,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.KLING);
                     UpdateToggleBackgrounds(KlingLocalPlayerToggle);
+                    PlayCivSelectionSound(klingSelectionSound);
                 }
             });
             CardLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -358,6 +373,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.CARD);
                     UpdateToggleBackgrounds(CardLocalPlayerToggle);
+                    PlayCivSelectionSound(cardSelectionSound);
                 }
             });
             DomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -366,6 +382,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.DOM);
                     UpdateToggleBackgrounds(DomLocalPlayerToggle);
+                    PlayCivSelectionSound(domSelectionSound);
                 }
             });
             BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -374,6 +391,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.BORG);
                     UpdateToggleBackgrounds(BorgLocalPlayerToggle);
+                    PlayCivSelectionSound(borgSelectionSound);
                 }
             });
             TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -382,6 +400,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.TERRAN);
                     UpdateToggleBackgrounds(TerranLocalPlayerToggle);
+                    PlayCivSelectionSound(terranSelectionSound);
                 }
             });
             ApplyHostButtonEditorGate();
@@ -507,6 +526,10 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle.isOn = false;
             BorgLocalPlayerToggle.isOn = false;
             TerranLocalPlayerToggle.isOn = false;
+
+            // ✅ Default Fed selection above is programmatic, not a real user click -
+            // only sound the selection sting for choices made after this point.
+            suppressCivSelectionSound = false;
 
             // Build OnOffToggles list
             OnOffToggles.Add(FedOnOff);
@@ -2634,6 +2657,19 @@ namespace BOTF3D.UI
             }
 
             Debug.Log($"ShowCivImages: Displaying {civEnum} images");
+        }
+
+        /// <summary>
+        /// Plays a faction's selection sting, skipped during the programmatic default-Fed setup.
+        /// </summary>
+        private void PlayCivSelectionSound(SoundData sound)
+        {
+            if (suppressCivSelectionSound) return;
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySoundData(sound);
+            }
         }
 
         /// <summary>

@@ -154,7 +154,10 @@
       "Bash(find . -maxdepth 2 -iname \"*.log\")",
       "Bash(ls -la Logs)",
       "Bash(awk '/externalObjects:/,/materials:|materialImportMode|LODScreenPercentages/' __TRACKED_VAR__.fbx.meta)",
-      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)"
+      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)",
+      "PowerShell(1..7 | ForEach-Object { [guid]::NewGuid\\(\\).ToString\\(\"N\"\\) })",
+      "PowerShell($guids = @\\('07d4784f3c4c4895842621c4e1241ed1','2d7ec5f384bd48d294bfe723dbf9ed33','fb98eb0de6bf425a81c132ad8d7cc252','74703f69c9e94c28b2753e8c7a07e6a4','be86439e20f340caa7143802e437b181','d107912ddfd344dbb75f9f7872fcea90','8241a6f1ac044e3bb3e1e57993db8c0b'\\); $guids | ForEach-Object { \"$_ : $\\($_.Length\\)\" })",
+      "PowerShell(1..6 | ForEach-Object { [guid]::NewGuid\\(\\).ToString\\(\"N\"\\) })"
     ]
   },
   "model": "claude-sonnet-5"
