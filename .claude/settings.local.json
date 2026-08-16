@@ -163,7 +163,15 @@
       "Bash(xargs -I{} sh -c 'grep -H \"OrbitalBatteries:\" \"{}\"')",
       "Bash(tasklist //FI \"IMAGENAME eq Unity.exe\")",
       "Bash(awk '/m_Script: \\\\{fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff/{print NR\": \"prev} {prev=$0}' \"Assets/PreFabs/DiplomacyIntel/CivIntelPrefab.prefab\")",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(awk -F: '$1>4286')",
+      "Read(//c/Users/kenne/**)",
+      "Bash(awk -F: '$1>3900')",
+      "Bash(PowerShell.exe -NoProfile -Command \"\\(Get-Item 'C:\\\\Users\\\\kenne\\\\AppData\\\\LocalLow\\\\Star Trek Fan Games\\\\3DBOTF\\\\Player.log'\\).LastWriteTime\")",
+      "Bash(awk -F: '$1>4038')",
+      "Bash(where git *)",
+      "Bash(openssl s_client -connect github.com:443 -servername github.com)"
     ]
   },
   "model": "claude-sonnet-5"

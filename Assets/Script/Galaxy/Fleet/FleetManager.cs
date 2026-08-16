@@ -706,6 +706,11 @@ namespace BOTF3D.Galaxy
                 // SAFETY: Only add fog revealer if fogWar exists. Guarded on newFleet.FogRevealer
                 // being unset so re-registration (e.g. FleetController.OnCivEnumChanged firing
                 // again) doesn't pile up duplicate revealers for the same fleet.
+                bool fogWarIsNull = fogWar == null;
+                bool revealerAlreadySet = newFleet.FogRevealer != null;
+                Debug.LogWarning($"🔍[FogRevealerGuardDiag] fleet='{newFleet.name}' netId={newFleet.GetComponent<Mirror.NetworkIdentity>()?.netId} " +
+                                 $"fogWarIsNull={fogWarIsNull} fogWarInstanceId={(fogWar != null ? fogWar.GetInstanceID().ToString() : "N/A")} " +
+                                 $"revealerAlreadySet={revealerAlreadySet}");
                 if (fogWar != null && newFleet.FogRevealer == null)
                 {
                     // Sight range is staged off the owning civ's TechPoints (see

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04298d161639d3c4d9d8c579609f4dc7, type: 3}
   m_Name: KlingCombatOrder
   m_EditorClassIdentifier: BOTF3D::BOTF3D.Audio.SoundData
-  clip: {fileID: 0}
+  clip: {fileID: 8300000, guid: 35e5ac11f83811d48a77fc5c73fde491, type: 3}
   randomClips:
   - {fileID: 8300000, guid: b58404d568990a649af82591683b01b7, type: 3}
   - {fileID: 8300000, guid: 02b2f71280df0514ea2930e86bdd536e, type: 3}

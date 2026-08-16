@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04298d161639d3c4d9d8c579609f4dc7, type: 3}
   m_Name: FedCombatOrder
   m_EditorClassIdentifier: BOTF3D::BOTF3D.Audio.SoundData
-  clip: {fileID: 0}
+  clip: {fileID: 8300000, guid: b6abdead317e6f8438ecd658ebbf1ae6, type: 3}
   randomClips:
   - {fileID: 8300000, guid: 6dbf928d070042a4fadebe0ced6aa959, type: 3}
   - {fileID: 8300000, guid: b6abdead317e6f8438ecd658ebbf1ae6, type: 3}

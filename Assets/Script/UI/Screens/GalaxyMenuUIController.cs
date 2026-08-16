@@ -631,9 +631,17 @@ namespace BOTF3D.UI
                         diplomacyControllers.Reverse(); // ✅ Most recent at the top
                     }
 
+                    // [DiploPanelDiag] Investigating "Awaiting First Contact" (no-contact) panel
+                    // staying open after combat until the Diplomacy ribbon button is clicked twice.
+                    // Logs the raw source count on DiplomacyManager.Instance vs. the local snapshot
+                    // taken above, so we can tell whether the manager's own list was still empty on
+                    // the first click (a real population-timing race) vs. something else entirely.
+                    Debug.LogWarning($"[DiploPanelDiag] OpenMenu(Diplomacy): managerInstance={(DiplomacyManager.Instance != null ? "OK" : "NULL")} managerListCount={(DiplomacyManager.Instance != null ? DiplomacyManager.Instance.DiplomacyControllers.Count.ToString() : "N/A")} localSnapshotCount={(diplomacyControllers != null ? diplomacyControllers.Count.ToString() : "NULL")}.");
+
                     listPopulator.PopulateDiplomacyList();
                     if (diplomacyControllers != null && diplomacyControllers.Count > 0)
                     {
+                        Debug.LogWarning("[DiploPanelDiag] OpenMenu(Diplomacy): showing real diplomacy panel (HideNoContactUI).");
                         uiStateManager.HideNoContactUI();
                         if (diplomacyMenuUIController != null)
                         {
@@ -642,6 +650,7 @@ namespace BOTF3D.UI
                     }
                     else
                     {
+                        Debug.LogWarning("[DiploPanelDiag] OpenMenu(Diplomacy): showing no-contact/'Awaiting First Contact' panel (ShowNoContactUI).");
                         uiStateManager.ShowNoContactUI();
                     }
                     break;

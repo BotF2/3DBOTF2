@@ -40196,6 +40196,7 @@ GameObject:
   - component: {fileID: 2088469031}
   - component: {fileID: 2088469030}
   - component: {fileID: 360889565282548199}
+  - component: {fileID: 360889565282548200}
   m_Layer: 5
   m_Name: Panel_ClientRoster
   m_TagString: Untagged
@@ -41913,6 +41914,20 @@ MonoBehaviour:
   - {fileID: 1044843131}
   - {fileID: 623394611}
   - {fileID: 623590398}
+--- !u!114 &360889565282548200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2088469028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c50e59823a20047b48cac869695fc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.UIPanelSound
+  openSound: {fileID: 11400000, guid: 235ad50e2a73e5d41b53786fd59cce69, type: 2}
+  skipFirstEnable: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
