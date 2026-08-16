@@ -77,7 +77,6 @@ namespace BOTF3D.Galaxy
         private GameObject fleetShipsContentFolderParent;
         private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
-        public csFogWar.FogRevealer TempFogRevealerFleet;
 
         // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
         [SerializeField] public GameObject FleetUI_ListContainer;
@@ -704,8 +703,10 @@ namespace BOTF3D.Galaxy
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
-                // SAFETY: Only add fog revealer if fogWar exists
-                if (fogWar != null)
+                // SAFETY: Only add fog revealer if fogWar exists. Guarded on newFleet.FogRevealer
+                // being unset so re-registration (e.g. FleetController.OnCivEnumChanged firing
+                // again) doesn't pile up duplicate revealers for the same fleet.
+                if (fogWar != null && newFleet.FogRevealer == null)
                 {
                     // Sight range is staged off the owning civ's TechPoints (see
                     // TechManager.GetFogSightRange) - kept in sync afterward by
@@ -718,7 +719,7 @@ namespace BOTF3D.Galaxy
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
                     var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, fogSightRange, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
-                    TempFogRevealerFleet = ourFogRevealerFleet;
+                    newFleet.FogRevealer = ourFogRevealerFleet;
 
                     Debug.Log($"Added fog revealer to LOCAL fleet '{newFleet.name}' with continuous updates");
                 }
@@ -1393,9 +1394,9 @@ namespace BOTF3D.Galaxy
             return InstantiateFleet(null, sysCon, fleetData, position, true);
         }
 
-        internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)
+        internal void RemoveFogWarRevealer(csFogWar.FogRevealer fogRevealer)
         {
-            fogWar.RemoveFogRevealer(tempFogRevealerFleet);
+            fogWar.RemoveFogRevealer(fogRevealer);
         }
 
         /// <summary>

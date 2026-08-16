@@ -810,12 +810,6 @@ namespace BOTF3D.Combat
                 }
             }
 
-            // Clear temp fog revealer
-            if (FleetManager.Instance != null && FleetManager.Instance.TempFogRevealerFleet != null)
-            {
-                FleetManager.Instance.TempFogRevealerFleet = null;
-            }
-
             // Destroy health bars
             healthBarManager?.DestroyAllHealthBars();
 

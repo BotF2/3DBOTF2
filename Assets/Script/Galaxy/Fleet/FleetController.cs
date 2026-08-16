@@ -2,6 +2,7 @@ using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
+using FischlWorks_FogWar;
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
@@ -435,6 +436,16 @@ namespace BOTF3D.Galaxy
         public Canvas FleetUICanvas { get; private set; }
         //public Canvas CanvasToolTip; // not used for now, see start method and in instantiation of fleetController in FleetManager.cs
         public PlayerDefinedTargetController TargetController;
+
+        // This fleet's own fog-of-war revealer, if it belongs to the local player (see
+        // FleetManager.RegisterFleetControllerAndSetupVisuals). Deliberately kept per-fleet rather
+        // than as a single shared field on FleetManager - the local player can have several fleets
+        // at once, and a shared "most recently created" pointer gets silently overwritten by the
+        // next fleet's registration before an earlier fleet's own cleanup path (e.g. destroying an
+        // emptied ship-deploy temp fleet) runs, causing that cleanup to rip the fog revealer out
+        // from under a still-alive, unrelated fleet - leaving that fleet's whole area permanently
+        // dark on the local player's own fog map even though the fleet itself is fine.
+        public csFogWar.FogRevealer FogRevealer;
         private Vector3 vectorOffset;
         private readonly float ourZCoordinate;
         [SerializeField]
