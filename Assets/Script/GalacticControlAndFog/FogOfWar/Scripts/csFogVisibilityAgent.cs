@@ -33,6 +33,7 @@ namespace FischlWorks_FogWar
 
         [SerializeField]
         private bool visibility = false;
+        public bool Visibility { get { return visibility; } }
 
         [SerializeField]
         [Range(0, 2)]
@@ -40,6 +41,12 @@ namespace FischlWorks_FogWar
 
         public List<SpriteRenderer> spriteRenderers = null;
         private List<LineRenderer> lineRenderers = null;
+
+        // GameObjects that don't carry a SpriteRenderer/LineRenderer (e.g. a TMP fleet-name
+        // label) but still need to be hidden/shown in lockstep with live fog visibility rather
+        // than staying permanently active once some one-time condition (like diplomatic contact)
+        // first turns them on. See FleetManager.RegisterFleetControllerAndSetupVisuals.
+        public List<GameObject> gatedGameObjects = new List<GameObject>();
         //** not using MeshRenderer in Galaxy map currently
         //private List<MeshRenderer> meshRenderers = null; 
         //** not using SkinnedMeshRenderer in Galaxy map currently
@@ -78,6 +85,10 @@ namespace FischlWorks_FogWar
             foreach (LineRenderer renderer in lineRenderers)
             {
                 renderer.enabled = visibility;
+            }
+            foreach (GameObject go in gatedGameObjects)
+            {
+                if (go != null) go.SetActive(visibility);
             }
             //foreach (MeshRenderer renderer in meshRenderers)
             //{

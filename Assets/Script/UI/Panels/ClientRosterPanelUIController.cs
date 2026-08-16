@@ -161,6 +161,11 @@ namespace BOTF3D.UI
             Debug.Log($"[RosterDiag] OnDropdownValueChanged: submitting civ={row.dropdownCivs[index]} via LocalPlayerController netId={(localCon != null ? localCon.netId.ToString() : "null")}");
             localCon?.SubmitPlayerCiv(row.dropdownCivs[index]);
 
+            // Singleplayer's Panel-SelectLocalPlayer toggles play a per-civ selection sting via
+            // MainMenuUIController.PlayCivSelectionSound - this dropdown is the multiplayer
+            // equivalent (see class header) and never played one at all.
+            MainMenuUIController.Instance?.PlayCivSelectionSoundForCiv(row.dropdownCivs[index]);
+
             // This dropdown is only shown/interactable on the local player's own row (see class
             // header contract), so the chosen civ is always this client's own - unlike
             // SubmitPlayerCiv above (a SyncVar, replicated to every client for gameplay), the theme

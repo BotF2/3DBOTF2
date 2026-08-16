@@ -202,13 +202,9 @@ namespace BOTF3D.Galaxy
 
             playerDefinedTargetCon.gameObject.SetActive(true);
 
-            // Start dragging immediately
-            // We use reflection or direct assignment if it's public. I just made it public but with private setter.
-            // Wait, I should add a public method to set it or just make the setter internal.
-            // Actually, I can just call the OnMouseDown logic or similar.
-            // Since it's a private setter, I'll use a public method or change it to public setter.
-            // Let's use a public method 'StartDragging()' in the controller for consistency.
-            playerController.gameObject.SendMessage("OnMouseDown");
+            // Start dragging immediately so the marker follows the mouse without requiring a
+            // precise first click on its (small, just-spawned) collider.
+            playerController.StartDrag();
 
             Canvas[] canvasArray = playerDefinedTargetCon.GetComponentsInChildren<Canvas>();
             for (int j = 0; j < canvasArray.Length; j++)

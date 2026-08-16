@@ -830,10 +830,21 @@ namespace BOTF3D.UI
 
             _loadingOverlayText.text = message;
             _loadingOverlayGO.SetActive(true);
+
+            // [LoadingPanelDiag] Task #1 ("Missing Loading Galaxy panel for 1st client"): the
+            // coroutine that shows/hides this overlay runs to completion either way (confirmed via
+            // Player.log reaching "LoadGalaxySceneCoroutine: Complete"), so if the panel is missing
+            // for one client it's a rendering/ordering issue, not a code path that didn't run -
+            // nothing in this method was previously logged at all. Log the state that would actually
+            // distinguish "never activated"/"activated but sortingOrder lost the fight"/"activated
+            // fine, something else drew over it" between repro attempts.
+            Canvas ovCanvas = _loadingOverlayGO.GetComponent<Canvas>();
+            Debug.LogWarning($"[LoadingPanelDiag] ShowLoadingOverlay: message='{message}' activeSelf={_loadingOverlayGO.activeSelf} activeInHierarchy={_loadingOverlayGO.activeInHierarchy} sortingOrder={(ovCanvas != null ? ovCanvas.sortingOrder.ToString() : "NO-CANVAS")} renderMode={(ovCanvas != null ? ovCanvas.renderMode.ToString() : "NO-CANVAS")} screenSize=({Screen.width}x{Screen.height}).");
         }
 
         private void HideLoadingOverlay()
         {
+            Debug.LogWarning($"[LoadingPanelDiag] HideLoadingOverlay: _loadingOverlayGO={(_loadingOverlayGO != null ? "OK" : "NULL")} activeSelf={(_loadingOverlayGO != null ? _loadingOverlayGO.activeSelf.ToString() : "N/A")}.");
             if (_loadingOverlayGO != null)
                 _loadingOverlayGO.SetActive(false);
         }
@@ -2689,6 +2700,25 @@ namespace BOTF3D.UI
             if (AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlaySoundData(sound);
+            }
+        }
+
+        // Public entry point for the multiplayer roster's per-row civ dropdown
+        // (ClientRosterPanelUIController.OnDropdownValueChanged), which picks a civ via a
+        // TMP_Dropdown rather than the FedLocalPlayerToggle-family Toggles above, so it never
+        // ran through PlayCivSelectionSound - the selection sting only ever played in
+        // singleplayer's Panel-SelectLocalPlayer.
+        public void PlayCivSelectionSoundForCiv(CivEnum civ)
+        {
+            switch (civ)
+            {
+                case CivEnum.FED: PlayCivSelectionSound(fedSelectionSound); break;
+                case CivEnum.ROM: PlayCivSelectionSound(romSelectionSound); break;
+                case CivEnum.KLING: PlayCivSelectionSound(klingSelectionSound); break;
+                case CivEnum.CARD: PlayCivSelectionSound(cardSelectionSound); break;
+                case CivEnum.DOM: PlayCivSelectionSound(domSelectionSound); break;
+                case CivEnum.BORG: PlayCivSelectionSound(borgSelectionSound); break;
+                case CivEnum.TERRAN: PlayCivSelectionSound(terranSelectionSound); break;
             }
         }
 
