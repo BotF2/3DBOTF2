@@ -403,6 +403,15 @@ namespace BOTF3D.Civilization
             InstantiateDiplomacyUIGameObject(diplomacyCon);
 
             // ✅ Open via GalaxyMenuUIController to ensure other menus close correctly
+            //
+            // Menu.ADiplomacyMenu has no case in GalaxyMenuUIController.OpenMenu's switch, so this
+            // only sets CurrentOpenMenu/activates diplomacyCon.gameObject - it never runs the
+            // Menu.Diplomacy case's HideNoContactUI() call. If a player already had the top-level
+            // Diplomacy panel open showing "no contacts yet" when this first contact fires (e.g. an
+            // encounter resolved mid-turn while they were browsing the ribbon), diplomacyNoContacts
+            // was left active and visually sits over/alongside this new panel, so it looks like the
+            // stale "Awaiting First Contact" panel never went away even though contact was just made.
+            GalaxyMenuUIController.Instance.HideNoContactUI();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, diplomacyCon.gameObject);
 
             DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(diplomacyCon.DiplomacyUIGameObject,

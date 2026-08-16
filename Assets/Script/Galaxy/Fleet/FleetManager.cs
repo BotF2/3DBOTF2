@@ -77,7 +77,6 @@ namespace BOTF3D.Galaxy
         private GameObject fleetShipsContentFolderParent;
         private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
-        public csFogWar.FogRevealer TempFogRevealerFleet;
 
         // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
         [SerializeField] public GameObject FleetUI_ListContainer;
@@ -704,8 +703,15 @@ namespace BOTF3D.Galaxy
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
-                // SAFETY: Only add fog revealer if fogWar exists
-                if (fogWar != null)
+                // SAFETY: Only add fog revealer if fogWar exists. Guarded on newFleet.FogRevealer
+                // being unset so re-registration (e.g. FleetController.OnCivEnumChanged firing
+                // again) doesn't pile up duplicate revealers for the same fleet.
+                bool fogWarIsNull = fogWar == null;
+                bool revealerAlreadySet = newFleet.FogRevealer != null;
+                Debug.LogWarning($"🔍[FogRevealerGuardDiag] fleet='{newFleet.name}' netId={newFleet.GetComponent<Mirror.NetworkIdentity>()?.netId} " +
+                                 $"fogWarIsNull={fogWarIsNull} fogWarInstanceId={(fogWar != null ? fogWar.GetInstanceID().ToString() : "N/A")} " +
+                                 $"revealerAlreadySet={revealerAlreadySet}");
+                if (fogWar != null && newFleet.FogRevealer == null)
                 {
                     // Sight range is staged off the owning civ's TechPoints (see
                     // TechManager.GetFogSightRange) - kept in sync afterward by
@@ -718,18 +724,22 @@ namespace BOTF3D.Galaxy
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
                     var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, fogSightRange, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
-                    TempFogRevealerFleet = ourFogRevealerFleet;
+                    newFleet.FogRevealer = ourFogRevealerFleet;
 
                     Debug.Log($"Added fog revealer to LOCAL fleet '{newFleet.name}' with continuous updates");
                 }
             }
             else
             {
-                // If we already had contact with this civ, show the insignia and name
+                // If we already had contact with this civ, show the insignia. FleetNameGO's own
+                // active state is handled below, gated through the fog visibility agent (a TMP
+                // label has no SpriteRenderer, so it was never covered by the sprite fog-toggle
+                // loop and previously just got SetActive(true) once here, permanently - showing
+                // the name and, since it's a child of the fleet transform, its on-map position
+                // through fog forever even after the sprite correctly re-hid).
                 bool hasContact = localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum);
                 if (hasContact)
                 {
-                    fleetChildFields.FleetNameGO.SetActive(true);
                     srInsignia.enabled = true;
                     fleetChildFields.InsigniaUnknownGO.SetActive(false);
                     srInsigniaUnknown.enabled = false;
@@ -794,9 +804,28 @@ namespace BOTF3D.Galaxy
                         sr.enabled = initialVisibility;
                     }
 
+                    if (hasContact && fleetChildFields.FleetNameGO != null)
+                    {
+                        ourFogVisibilityAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                        fleetChildFields.FleetNameGO.SetActive(initialVisibility);
+                    }
+
                     Debug.Log($"FleetManager: Added FogVisibilityAgent to '{newFleet.name}' " +
                               $"with {ourFogVisibilityAgent.spriteRenderers.Count} renderers. " +
                               $"Initial visibility: {initialVisibility}");
+                }
+                else if (fogWar != null && alreadyHasAgent)
+                {
+                    // Re-registration (e.g. FleetController.OnCivEnumChanged firing again) with an
+                    // agent already in place from an earlier call - just make sure FleetNameGO is
+                    // wired into its gating list if contact has since been made (Update() will then
+                    // keep it in sync with live fog visibility from here on).
+                    var existingAgent = newFleet.gameObject.GetComponent<csFogVisibilityAgent>();
+                    if (existingAgent != null && hasContact && fleetChildFields.FleetNameGO != null
+                        && !existingAgent.gatedGameObjects.Contains(fleetChildFields.FleetNameGO))
+                    {
+                        existingAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                    }
                 }
                 else
                 {
@@ -804,6 +833,12 @@ namespace BOTF3D.Galaxy
 
                     // Fallback: Keep renderers enabled if no fog system
                     srInsigniaUnknown.enabled = true;
+
+                    // No fog system available - fall back to the old static always-on behavior.
+                    if (hasContact && fleetChildFields.FleetNameGO != null)
+                    {
+                        fleetChildFields.FleetNameGO.SetActive(true);
+                    }
                 }
             }
 
@@ -1033,10 +1068,25 @@ namespace BOTF3D.Galaxy
                             fleetChildFields.InsigniaUnknownGO.SetActive(false);
                         }
 
-                        // Reveal fleet name
+                        // Reveal fleet name - gate it through the fog visibility agent (same as
+                        // RegisterFleetControllerAndSetupVisuals) rather than SetActive(true)'ing it
+                        // permanently, otherwise contact made mid-game leaks the name/position of
+                        // this fleet through fog-of-war forever, unlike its sprite which correctly
+                        // re-hides via the agent's per-frame toggle.
                         if (fleetChildFields.FleetNameGO != null)
                         {
-                            fleetChildFields.FleetNameGO.SetActive(true);
+                            var fogAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
+                            if (fogAgent != null)
+                            {
+                                if (!fogAgent.gatedGameObjects.Contains(fleetChildFields.FleetNameGO))
+                                    fogAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                                fleetChildFields.FleetNameGO.SetActive(fogAgent.Visibility);
+                            }
+                            else
+                            {
+                                // No fog agent (e.g. fog system unavailable) - fall back to old behavior.
+                                fleetChildFields.FleetNameGO.SetActive(true);
+                            }
                         }
                     }
                 }
@@ -1349,9 +1399,9 @@ namespace BOTF3D.Galaxy
             return InstantiateFleet(null, sysCon, fleetData, position, true);
         }
 
-        internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)
+        internal void RemoveFogWarRevealer(csFogWar.FogRevealer fogRevealer)
         {
-            fogWar.RemoveFogRevealer(tempFogRevealerFleet);
+            fogWar.RemoveFogRevealer(fogRevealer);
         }
 
         /// <summary>

@@ -77,7 +77,21 @@ namespace BOTF3D.Combat
         // A stable, still-valid FleetController from this combat, used as the Command/Rpc call
         // channel by code (TurnBasedCombatResolver, CombatUIManager) that isn't itself a
         // NetworkBehaviour and needs one to reach the network.
-        public FleetController GetInvolvedFleetAnchor() => _involvedFleets.Find(f => f != null);
+        //
+        // On the server, a 0-ship loser fleet gets NetworkServer.Destroy()'d by
+        // EndCombatCleanup's DestroyFleetController call earlier in this same EndCombat() pass
+        // (see FleetManager.DestroyFleetController). NetworkServer.Destroy synchronously removes
+        // the identity from NetworkServer.spawned and clears its observers, but only calls
+        // UnityEngine.Object.Destroy() at the end - which Unity defers to end-of-frame. So right
+        // here, a moment later in the same call, that fleet is already un-networked but Unity's
+        // overridden != null below still reports it as alive. Picking it as the RPC anchor sends
+        // RpcCombatEnded to zero observers - no exception, no warning, and every client (including
+        // the host's own local client) silently never receives it, leaving the Combat Over panel
+        // stuck forever. Require it still be registered as spawned when we're the server; a
+        // non-server caller (e.g. a client just wanting a channel for a Command) can't check
+        // NetworkServer.spawned at all, so it keeps the plain null check.
+        public FleetController GetInvolvedFleetAnchor() => _involvedFleets.Find(f =>
+            f != null && (!NetworkServer.active || (f.netIdentity != null && NetworkServer.spawned.ContainsKey(f.netIdentity.netId))));
 
         // Used by RpcCombatEnded to identify which of possibly several concurrent same-civ-pair
         // combats it belongs to - a fleet can only be a combatant in one active combat at a time,
@@ -633,10 +647,10 @@ namespace BOTF3D.Combat
             // Rpc. Without this guard all three paths would re-run cleanup.
             if (combatEnded)
             {
-                GameLogger.Log(GameLogger.LogCategory.Combat, $"🛑[EndCombatDiag] EndCombat() called again but combatEnded already true (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}) - no-op.", this);
+                Debug.Log($"🛑[EndCombatDiag] EndCombat() called again but combatEnded already true (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}) - no-op.");
                 return;
             }
-            GameLogger.Log(GameLogger.LogCategory.Combat, $"🏁[EndCombatDiag] EndCombat() running for the first time (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).", this);
+            Debug.Log($"🏁[EndCombatDiag] EndCombat() running for the first time (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).");
             combatEnded = true;
 
             // Signals CombatQueueManager.ProcessCombatQueue's wait loop that this combat is
@@ -682,15 +696,15 @@ namespace BOTF3D.Combat
                 // EndCombat() never even reached the finally block on that peer (e.g. a StackOverflow
                 // or unobserved exception unwound the whole call), which is a different bug class
                 // than anything below it.
-                GameLogger.Log(GameLogger.LogCategory.Combat, $"🔔[EndCombatDiag] finally block reached (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).", this);
+                Debug.Log($"🔔[EndCombatDiag] finally block reached (NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}).");
 
                 try
                 {
                     FleetController combatEndedAnchor = GetInvolvedFleetAnchor();
-                    GameLogger.Log(GameLogger.LogCategory.Combat, $"🔎[EndCombatDiag] combatEndedAnchor={(combatEndedAnchor != null ? combatEndedAnchor.name : "null")}, _involvedFleets.Count={_involvedFleets.Count}.", this);
+                    Debug.Log($"🔎[EndCombatDiag] combatEndedAnchor={(combatEndedAnchor != null ? combatEndedAnchor.name : "null")}, _involvedFleets.Count={_involvedFleets.Count}.");
                     if (NetworkServer.active && combatEndedAnchor != null)
                     {
-                        GameLogger.Log(GameLogger.LogCategory.Combat, $"📡[EndCombatDiag] Broadcasting RpcCombatEnded via fleet anchor '{combatEndedAnchor.name}' for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo}.", this);
+                        Debug.Log($"📡[EndCombatDiag] Broadcasting RpcCombatEnded via fleet anchor '{combatEndedAnchor.name}' for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo}.");
                         combatEndedAnchor.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
                     }
                     else if (NetworkServer.active)
@@ -713,12 +727,12 @@ namespace BOTF3D.Combat
                         // TimeManager.RpcCombatEndedFallback's own comment for why it matches by civ pair
                         // (not fleet identity) and why that's an acceptable, EndCombat()-idempotency-
                         // guarded tradeoff.
-                        GameLogger.LogWarning(GameLogger.LogCategory.Combat, $"⚠️[EndCombatDiag] No live FleetController to anchor RpcCombatEnded for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo} - falling back to TimeManager relay (TimeManager.Instance={(TimeManager.Instance != null ? "found" : "NULL")}).", this);
+                        Debug.LogWarning($"⚠️[EndCombatDiag] No live FleetController to anchor RpcCombatEnded for {CombatData.CivEnumSideOne} vs {CombatData.CivEnumSideTwo} - falling back to TimeManager relay (TimeManager.Instance={(TimeManager.Instance != null ? "found" : "NULL")}).");
                         TimeManager.Instance?.ServerNotifyCombatEnded(CombatData.CivEnumSideOne, CombatData.CivEnumSideTwo);
                     }
                     else
                     {
-                        GameLogger.Log(GameLogger.LogCategory.Combat, $"ℹ️[EndCombatDiag] NetworkServer.active=false on this peer - skipping broadcast (expected on pure clients; the server peer is responsible for it).", this);
+                        Debug.Log($"ℹ️[EndCombatDiag] NetworkServer.active=false on this peer - skipping broadcast (expected on pure clients; the server peer is responsible for it).");
                     }
                 }
                 catch (System.Exception broadcastEx)
@@ -808,12 +822,6 @@ namespace BOTF3D.Combat
                         $"InsigniaUnknownGO.activeSelf={(diagFields?.InsigniaUnknownGO != null ? diagFields.InsigniaUnknownGO.activeSelf.ToString() : "null")}",
                         this);
                 }
-            }
-
-            // Clear temp fog revealer
-            if (FleetManager.Instance != null && FleetManager.Instance.TempFogRevealerFleet != null)
-            {
-                FleetManager.Instance.TempFogRevealerFleet = null;
             }
 
             // Destroy health bars

@@ -17,6 +17,13 @@ namespace BOTF3D.Galaxy
         private GameObject ourPlayerTargetGO;
         private Vector3 lastMousePosition;
 
+        // Guards against finalizing on the very same frame the drag is armed (StartDrag() can be
+        // called synchronously from a UI button's OnClick, which fires on the mouse-up that
+        // released the button - without this, GetMouseButtonUp(0) could still read true that
+        // frame and instantly finalize the marker right where it spawned, before the user ever
+        // got to drag it).
+        private bool sawMouseHeldSinceArm = false;
+
 
         private void Awake()
         {
@@ -39,6 +46,7 @@ namespace BOTF3D.Galaxy
             if (value)
             {
                 lastMousePosition = Input.mousePosition;
+                sawMouseHeldSinceArm = false;
             }
         }
         void DragPlayerTargetWithLeftMouse(GameObject playerTargetGO)
@@ -46,9 +54,11 @@ namespace BOTF3D.Galaxy
             if (Input.GetMouseButtonDown(0)) // && !Input.GetKey(KeyCode.Space)) done in Update
             {
                 lastMousePosition = Input.mousePosition;
+                sawMouseHeldSinceArm = true;
             }
             else if (Input.GetMouseButton(0)) // && !Input.GetKey(KeyCode.Space))
             {
+                sawMouseHeldSinceArm = true;
                 if (EventSystem.current != null)
                 {
                     if (!EventSystem.current.IsPointerOverGameObject()) // do not drage camera when over UI
@@ -58,6 +68,14 @@ namespace BOTF3D.Galaxy
                         lastMousePosition = Input.mousePosition;
                     }
                 }
+            }
+            else if (sawMouseHeldSinceArm && Input.GetMouseButtonUp(0))
+            {
+                var targetController = playerTargetGO != null ? playerTargetGO.GetComponent<PlayerDefinedTargetController>() : null;
+                if (targetController != null)
+                    targetController.FinalizeDrag();
+                else
+                    playerTargetDrag = false;
             }
         }
         private void MovePlayerTarget(float xInput, float zInput, GameObject playerTargetGO)

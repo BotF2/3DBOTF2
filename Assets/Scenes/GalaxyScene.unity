@@ -12238,6 +12238,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.CombatUIManager
   CurrentCombatController: {fileID: 0}
   CivEnumLocalPlayer: 0
+  fedCombatOrderSound: {fileID: 11400000, guid: 973c4cf82e1242c094b9907e9ce32d71, type: 2}
+  klingCombatOrderSound: {fileID: 11400000, guid: 2df8c0293db449a58f4a3c9c7acd5874, type: 2}
+  romCombatOrderSound: {fileID: 11400000, guid: e95b2e723c544b609b888902986a1cb3, type: 2}
+  cardCombatOrderSound: {fileID: 11400000, guid: fa331d5d5b68462d8a15c7cd135e8a7c, type: 2}
+  domCombatOrderSound: {fileID: 11400000, guid: 630adce83f454117a9b9219c37cb5a69, type: 2}
+  borgCombatOrderSound: {fileID: 11400000, guid: b7e49e54133c4cf6b116f762efbd6813, type: 2}
+  terranCombatOrderSound: {fileID: 11400000, guid: d311159d04d52924b85676ae8f93436b, type: 2}
 --- !u!4 &959440484
 Transform:
   m_ObjectHideFlags: 0

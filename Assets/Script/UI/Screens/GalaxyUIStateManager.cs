@@ -223,6 +223,11 @@ namespace BOTF3D.UI
         /// </summary>
         public void HideNoContactUI()
         {
+            // [DiploPanelDiag] Catches every caller (DiplomacyManager.InstantiateDiplomacyController,
+            // DiplomacyMenuUIController, GalaxyMenuUIController's Diplomacy click), not just the
+            // ribbon-click path, so we can see whether this ever fires proactively after combat
+            // resolves a new contact vs. only firing once the player manually opens the menu.
+            Debug.LogWarning($"[DiploPanelDiag] HideNoContactUI called. diplomacyNoContacts={(diplomacyNoContacts != null ? "OK" : "NULL")} wasActive={(diplomacyNoContacts != null ? diplomacyNoContacts.activeSelf.ToString() : "N/A")}\n{System.Environment.StackTrace}");
             if (diplomacyNoContacts != null)
             {
                 diplomacyNoContacts.SetActive(false);
@@ -234,6 +239,7 @@ namespace BOTF3D.UI
         /// </summary>
         public void ShowNoContactUI()
         {
+            Debug.LogWarning($"[DiploPanelDiag] ShowNoContactUI called. diplomacyNoContacts={(diplomacyNoContacts != null ? "OK" : "NULL")} wasActive={(diplomacyNoContacts != null ? diplomacyNoContacts.activeSelf.ToString() : "N/A")}\n{System.Environment.StackTrace}");
             if (diplomacyNoContacts != null)
             {
                 diplomacyNoContacts.SetActive(true);

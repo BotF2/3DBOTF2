@@ -3595,6 +3595,13 @@ MonoBehaviour:
   domImages: {fileID: 1383115498}
   borgImages: {fileID: 488127368}
   terranImages: {fileID: 824033807}
+  fedSelectionSound: {fileID: 11400000, guid: 07d4784f3c4c4895842621c4e1241ed1, type: 2}
+  romSelectionSound: {fileID: 11400000, guid: 2d7ec5f384bd48d294bfe723dbf9ed33, type: 2}
+  klingSelectionSound: {fileID: 11400000, guid: fb98eb0de6bf425a81c132ad8d7cc252, type: 2}
+  cardSelectionSound: {fileID: 11400000, guid: 74703f69c9e94c28b2753e8c7a07e6a4, type: 2}
+  domSelectionSound: {fileID: 11400000, guid: be86439e20f340caa7143802e437b181, type: 2}
+  borgSelectionSound: {fileID: 11400000, guid: d107912ddfd344dbb75f9f7872fcea90, type: 2}
+  terranSelectionSound: {fileID: 11400000, guid: 8241a6f1ac044e3bb3e1e57993db8c0b, type: 2}
   FedLocalPlayerToggle: {fileID: 328394470}
   RomLocalPlayerToggle: {fileID: 1236616005}
   KlingLocalPlayerToggle: {fileID: 1216783783}
@@ -10397,6 +10404,7 @@ GameObject:
   - component: {fileID: 593379919}
   - component: {fileID: 593379918}
   - component: {fileID: 593379920}
+  - component: {fileID: 593379921}
   m_Layer: 5
   m_Name: Panel-SelectLocalPlayer
   m_TagString: Untagged
@@ -10477,6 +10485,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e71a45d0a069a48b9f017ad54ba07b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.RefreshLocalization
+--- !u!114 &593379921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 593379916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c50e59823a20047b48cac869695fc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.UIPanelSound
+  openSound: {fileID: 11400000, guid: 235ad50e2a73e5d41b53786fd59cce69, type: 2}
+  skipFirstEnable: 0
 --- !u!1 &614837205
 GameObject:
   m_ObjectHideFlags: 0
@@ -10888,6 +10910,7 @@ GameObject:
   - component: {fileID: 626776156}
   - component: {fileID: 626776158}
   - component: {fileID: 626776159}
+  - component: {fileID: 626776160}
   m_Layer: 5
   m_Name: Panel-GameParametersMenu
   m_TagString: Untagged
@@ -10946,6 +10969,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e71a45d0a069a48b9f017ad54ba07b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.RefreshLocalization
+--- !u!114 &626776160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 626776155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c50e59823a20047b48cac869695fc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.UIPanelSound
+  openSound: {fileID: 11400000, guid: c24fdc17c458eed40b0829441549047e, type: 2}
+  skipFirstEnable: 0
 --- !u!1 &634433416
 GameObject:
   m_ObjectHideFlags: 0
@@ -40159,6 +40196,7 @@ GameObject:
   - component: {fileID: 2088469031}
   - component: {fileID: 2088469030}
   - component: {fileID: 360889565282548199}
+  - component: {fileID: 360889565282548200}
   m_Layer: 5
   m_Name: Panel_ClientRoster
   m_TagString: Untagged
@@ -41876,6 +41914,20 @@ MonoBehaviour:
   - {fileID: 1044843131}
   - {fileID: 623394611}
   - {fileID: 623590398}
+--- !u!114 &360889565282548200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2088469028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c50e59823a20047b48cac869695fc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.UIPanelSound
+  openSound: {fileID: 11400000, guid: 235ad50e2a73e5d41b53786fd59cce69, type: 2}
+  skipFirstEnable: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
