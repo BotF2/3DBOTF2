@@ -276,13 +276,17 @@ namespace BOTF3D.Core
     // can reach). Broadcasts the host's chosen game parameters - including a shared RNG seed - to
     // every connected client so galaxy generation (CivManager/StarSysManager, both driven by the
     // global UnityEngine.Random) produces an identical result on every machine.
+    // Returns false when the request was dropped (galaxy already generated this server lifetime) so
+    // callers can tell the requesting client instead of leaving them staring at a menu that never
+    // proceeds - see LocalHumanPlayerController.CmdRequestStartGame/TargetRejectStartGame and
+    // MainMenuUIController.LoadGalaxyScene's host branch.
     [Server]
-    public void ServerBroadcastStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
+    public bool ServerBroadcastStartGame(int galaxySize, int techLevel, int galaxyType, int seed, bool isSinglePlayer)
     {
         if (galaxyGenerationStarted)
         {
             Debug.LogWarning("ServerBroadcastStartGame: galaxy already generated for this server - ignoring duplicate start-game request (likely a reconnecting client).");
-            return;
+            return false;
         }
         galaxyGenerationStarted = true;
 
@@ -299,6 +303,7 @@ namespace BOTF3D.Core
         }
 
         RpcStartGame(galaxySize, techLevel, galaxyType, seed, isSinglePlayer);
+        return true;
     }
 
     // PersistentSceneBootstrap.StartDedicatedServer only calls NetworkManager.StartServer() - it

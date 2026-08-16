@@ -177,9 +177,11 @@ namespace BOTF3D.UI
 
             Debug.Log($"UpdateOwnershipFromSlot: Ship={ShipController.ShipData.ShipName}, Slot={slotParent.name}");
 
-            // Captured before RemoveFromCurrentOwner clears it - needed below to relay a fleet-to-fleet
-            // move to the server (see AddToFleet's comment).
+            // Captured before RemoveFromCurrentOwner clears it - needed below to relay the move to the
+            // server (see AddToFleet/AddToStarSystem's comments). Exactly one of these two is non-null
+            // for a ship that actually had an owner.
             FleetController previousFleet = CurrentFleet ?? ShipController?.ShipData?.CurrentFleetController;
+            StarSysController previousStarSys = CurrentStarSyst ?? ShipController?.ShipData?.CurrentStarSysController;
 
             // Remove from previous owner
             RemoveFromCurrentOwner();
@@ -189,22 +191,22 @@ namespace BOTF3D.UI
             {
                 if (deployMenu.TopFleet != null)
                 {
-                    AddToFleet(deployMenu.TopFleet, previousFleet);
+                    AddToFleet(deployMenu.TopFleet, previousFleet, previousStarSys);
                 }
                 else if (deployMenu.TopStarSyst != null)
                 {
-                    AddToStarSystem(deployMenu.TopStarSyst);
+                    AddToStarSystem(deployMenu.TopStarSyst, previousFleet, previousStarSys);
                 }
             }
             else if (slotParent == deployMenu.BottomSlot.transform)
             {
                 if (deployMenu.BottomFleet != null)
                 {
-                    AddToFleet(deployMenu.BottomFleet, previousFleet);
+                    AddToFleet(deployMenu.BottomFleet, previousFleet, previousStarSys);
                 }
                 else if (deployMenu.BottomStarSyst != null)
                 {
-                    AddToStarSystem(deployMenu.BottomStarSyst);
+                    AddToStarSystem(deployMenu.BottomStarSyst, previousFleet, previousStarSys);
                 }
             }
         }
@@ -241,7 +243,7 @@ namespace BOTF3D.UI
             }
         }
 
-        private void AddToFleet(FleetController fleet, FleetController previousFleet = null)
+        private void AddToFleet(FleetController fleet, FleetController previousFleet = null, StarSysController previousStarSys = null)
         {
             Debug.Log($"AddToFleet: '{ShipController?.ShipData?.ShipName}' to fleet '{fleet?.name}'");
 
@@ -265,16 +267,22 @@ namespace BOTF3D.UI
 
             // Everything above is only this client's own local prediction (see
             // FleetManager.ServerTransferShip's comment) - relay the move to the server so its
-            // authoritative FleetData.ShipsList lists for both fleets actually reflect it too. Only
-            // fleet-to-fleet moves are networked here; a ship arriving from a star system already goes
-            // through a server-authoritative path elsewhere (ServerCreateFleetFromSystem et al).
-            if (previousFleet != null && previousFleet != fleet && ShipController?.ShipData != null && ShipController.ShipData.ShipID != 0)
+            // authoritative rosters actually reflect it too. Which relay to use depends on where the
+            // ship came from.
+            if (ShipController?.ShipData != null && ShipController.ShipData.ShipID != 0)
             {
-                PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShip(previousFleet, fleet, ShipController.ShipData.ShipID);
+                if (previousFleet != null && previousFleet != fleet)
+                {
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShip(previousFleet, fleet, ShipController.ShipData.ShipID);
+                }
+                else if (previousStarSys != null)
+                {
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShipSystemToFleet(previousStarSys.StarSysData.GetStarSysInt(), fleet, ShipController.ShipData.ShipID);
+                }
             }
         }
 
-        private void AddToStarSystem(StarSysController starSys)
+        private void AddToStarSystem(StarSysController starSys, FleetController previousFleet = null, StarSysController previousStarSys = null)
         {
             Debug.Log($"AddToStarSystem: '{ShipController?.ShipData?.ShipName}' to system '{starSys?.name}'");
 
@@ -292,6 +300,20 @@ namespace BOTF3D.UI
             if (ShipController != null && starSys != null && starSys.gameObject != null)
             {
                 ShipController.transform.SetParent(starSys.transform, false);
+            }
+
+            // Everything above is only this client's own local prediction - relay the move to the
+            // server so its authoritative rosters actually reflect it too (see AddToFleet's comment).
+            if (ShipController?.ShipData != null && ShipController.ShipData.ShipID != 0)
+            {
+                if (previousFleet != null)
+                {
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShipFleetToSystem(previousFleet, starSys.StarSysData.GetStarSysInt(), ShipController.ShipData.ShipID);
+                }
+                else if (previousStarSys != null && previousStarSys != starSys)
+                {
+                    PlayerManager.Instance?.LocalPlayerController?.SubmitTransferShipSystemToSystem(previousStarSys.StarSysData.GetStarSysInt(), starSys.StarSysData.GetStarSysInt(), ShipController.ShipData.ShipID);
+                }
             }
         }
     }

@@ -790,9 +790,9 @@ namespace BOTF3D.UI
                 {
                     Debug.Log($"Destroying empty fleet '{tempFleetController.name}'");
 
-                    if (FleetManager.Instance.TempFogRevealerFleet != null)
-                        FleetManager.Instance.RemoveFogWarRevealer(FleetManager.Instance.TempFogRevealerFleet);
-                    FleetManager.Instance.TempFogRevealerFleet = null;
+                    if (tempFleetController.FogRevealer != null)
+                        FleetManager.Instance.RemoveFogWarRevealer(tempFleetController.FogRevealer);
+                    tempFleetController.FogRevealer = null;
 
                     PlayerManager.Instance?.LocalPlayerController?.SubmitDestroyEmptyFleet(tempFleetController);
                     tempFleetController = null;

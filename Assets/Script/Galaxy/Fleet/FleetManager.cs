@@ -77,7 +77,6 @@ namespace BOTF3D.Galaxy
         private GameObject fleetShipsContentFolderParent;
         private readonly List<CivEnum> localPlayerCanSeeMyInsigniaList = new List<CivEnum>();
         internal GameObject fleetShipUIGOContentParent;
-        public csFogWar.FogRevealer TempFogRevealerFleet;
 
         // ✅ NEW: Persistent container for ALL fleet UIs when not displayed
         [SerializeField] public GameObject FleetUI_ListContainer;
@@ -704,8 +703,15 @@ namespace BOTF3D.Galaxy
                 srInsigniaUnknown.enabled = false;
                 srInsignia.enabled = true;
 
-                // SAFETY: Only add fog revealer if fogWar exists
-                if (fogWar != null)
+                // SAFETY: Only add fog revealer if fogWar exists. Guarded on newFleet.FogRevealer
+                // being unset so re-registration (e.g. FleetController.OnCivEnumChanged firing
+                // again) doesn't pile up duplicate revealers for the same fleet.
+                bool fogWarIsNull = fogWar == null;
+                bool revealerAlreadySet = newFleet.FogRevealer != null;
+                Debug.LogWarning($"🔍[FogRevealerGuardDiag] fleet='{newFleet.name}' netId={newFleet.GetComponent<Mirror.NetworkIdentity>()?.netId} " +
+                                 $"fogWarIsNull={fogWarIsNull} fogWarInstanceId={(fogWar != null ? fogWar.GetInstanceID().ToString() : "N/A")} " +
+                                 $"revealerAlreadySet={revealerAlreadySet}");
+                if (fogWar != null && newFleet.FogRevealer == null)
                 {
                     // Sight range is staged off the owning civ's TechPoints (see
                     // TechManager.GetFogSightRange) - kept in sync afterward by
@@ -718,18 +724,22 @@ namespace BOTF3D.Galaxy
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves
                     var ourFogRevealerFleet = new csFogWar.FogRevealer(newFleet.transform, fogSightRange, false); // FALSE = always update
                     fogWar.AddFogRevealer(ourFogRevealerFleet);
-                    TempFogRevealerFleet = ourFogRevealerFleet;
+                    newFleet.FogRevealer = ourFogRevealerFleet;
 
                     Debug.Log($"Added fog revealer to LOCAL fleet '{newFleet.name}' with continuous updates");
                 }
             }
             else
             {
-                // If we already had contact with this civ, show the insignia and name
+                // If we already had contact with this civ, show the insignia. FleetNameGO's own
+                // active state is handled below, gated through the fog visibility agent (a TMP
+                // label has no SpriteRenderer, so it was never covered by the sprite fog-toggle
+                // loop and previously just got SetActive(true) once here, permanently - showing
+                // the name and, since it's a child of the fleet transform, its on-map position
+                // through fog forever even after the sprite correctly re-hid).
                 bool hasContact = localPlayerCanSeeMyInsigniaList.Contains(fleetData.CivEnum);
                 if (hasContact)
                 {
-                    fleetChildFields.FleetNameGO.SetActive(true);
                     srInsignia.enabled = true;
                     fleetChildFields.InsigniaUnknownGO.SetActive(false);
                     srInsigniaUnknown.enabled = false;
@@ -794,9 +804,28 @@ namespace BOTF3D.Galaxy
                         sr.enabled = initialVisibility;
                     }
 
+                    if (hasContact && fleetChildFields.FleetNameGO != null)
+                    {
+                        ourFogVisibilityAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                        fleetChildFields.FleetNameGO.SetActive(initialVisibility);
+                    }
+
                     Debug.Log($"FleetManager: Added FogVisibilityAgent to '{newFleet.name}' " +
                               $"with {ourFogVisibilityAgent.spriteRenderers.Count} renderers. " +
                               $"Initial visibility: {initialVisibility}");
+                }
+                else if (fogWar != null && alreadyHasAgent)
+                {
+                    // Re-registration (e.g. FleetController.OnCivEnumChanged firing again) with an
+                    // agent already in place from an earlier call - just make sure FleetNameGO is
+                    // wired into its gating list if contact has since been made (Update() will then
+                    // keep it in sync with live fog visibility from here on).
+                    var existingAgent = newFleet.gameObject.GetComponent<csFogVisibilityAgent>();
+                    if (existingAgent != null && hasContact && fleetChildFields.FleetNameGO != null
+                        && !existingAgent.gatedGameObjects.Contains(fleetChildFields.FleetNameGO))
+                    {
+                        existingAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                    }
                 }
                 else
                 {
@@ -804,6 +833,12 @@ namespace BOTF3D.Galaxy
 
                     // Fallback: Keep renderers enabled if no fog system
                     srInsigniaUnknown.enabled = true;
+
+                    // No fog system available - fall back to the old static always-on behavior.
+                    if (hasContact && fleetChildFields.FleetNameGO != null)
+                    {
+                        fleetChildFields.FleetNameGO.SetActive(true);
+                    }
                 }
             }
 
@@ -1033,10 +1068,25 @@ namespace BOTF3D.Galaxy
                             fleetChildFields.InsigniaUnknownGO.SetActive(false);
                         }
 
-                        // Reveal fleet name
+                        // Reveal fleet name - gate it through the fog visibility agent (same as
+                        // RegisterFleetControllerAndSetupVisuals) rather than SetActive(true)'ing it
+                        // permanently, otherwise contact made mid-game leaks the name/position of
+                        // this fleet through fog-of-war forever, unlike its sprite which correctly
+                        // re-hides via the agent's per-frame toggle.
                         if (fleetChildFields.FleetNameGO != null)
                         {
-                            fleetChildFields.FleetNameGO.SetActive(true);
+                            var fogAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
+                            if (fogAgent != null)
+                            {
+                                if (!fogAgent.gatedGameObjects.Contains(fleetChildFields.FleetNameGO))
+                                    fogAgent.gatedGameObjects.Add(fleetChildFields.FleetNameGO);
+                                fleetChildFields.FleetNameGO.SetActive(fogAgent.Visibility);
+                            }
+                            else
+                            {
+                                // No fog agent (e.g. fog system unavailable) - fall back to old behavior.
+                                fleetChildFields.FleetNameGO.SetActive(true);
+                            }
                         }
                     }
                 }
@@ -1198,7 +1248,131 @@ namespace BOTF3D.Galaxy
             fromFleet.UpdateMaxWarp();
             toFleet.UpdateMaxWarp();
 
+            // Broadcast the server's now-authoritative rosters to every client - the client-local
+            // prediction in ShipListUI_Item.AddToFleet only ever updated the dragging client's own copy,
+            // so without this every other peer (bystanders who never touched this drag) would keep
+            // believing both fleets still have their pre-transfer rosters forever. This is exactly what
+            // crashed CombatInstantiator.CreateCombatData on a remote client when a freshly split fleet
+            // (empty FleetData.ShipsList on that peer) reached combat.
+            fromFleet.RequestSyncShipRoster();
+            toFleet.RequestSyncShipRoster();
+
             Debug.Log($"ServerTransferShip: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to '{toFleet.name}'. fromFleet now has {fromFleet.FleetData.ShipsList.Count}, toFleet now has {toFleet.FleetData.ShipsList.Count}.");
+        }
+
+        // Same server-authoritative reasoning and broadcast as ServerTransferShip above, for a ship
+        // moving out of a fleet and into a star system's garrison (ShipListUI_Item.AddToStarSystem's
+        // client-local prediction). The system side of the broadcast goes through
+        // TimeManager.ServerSyncStarSysRoster since StarSysController has no NetworkIdentity of its
+        // own to host a ClientRpc.
+        [Server]
+        public void ServerTransferShipToSystem(FleetController fromFleet, StarSysController toSystem, int shipID)
+        {
+            if (fromFleet == null || toSystem == null || fromFleet.FleetData == null || toSystem.StarSysData == null || shipID == 0)
+                return;
+
+            ShipController ship = fromFleet.FleetData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipToSystem: ship id {shipID} not found in fleet '{fromFleet.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromFleet.FleetData.ShipsList.Remove(ship);
+            if (!toSystem.StarSysData.ShipsList.Contains(ship))
+                toSystem.StarSysData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentStarSysController = toSystem;
+            ship.ShipData.CurrentFleetController = null;
+            if (ship.transform != null && toSystem.gameObject != null)
+                ship.transform.SetParent(toSystem.transform, false);
+
+            fromFleet.UpdateMaxWarp();
+
+            fromFleet.RequestSyncShipRoster();
+            List<int> toSysShipIDs = toSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(toSystem.StarSysData.GetStarSysInt(), toSysShipIDs);
+
+            Debug.Log($"ServerTransferShipToSystem: moved ship id {shipID} ('{ship.ShipData.ShipName}') from fleet '{fromFleet.name}' to system '{toSystem.name}'.");
+        }
+
+        // Same reasoning as ServerTransferShipToSystem, for the reverse direction (a ship leaving a
+        // system's garrison to join a fleet).
+        [Server]
+        public void ServerTransferShipFromSystem(StarSysController fromSystem, FleetController toFleet, int shipID)
+        {
+            if (fromSystem == null || toFleet == null || fromSystem.StarSysData == null || toFleet.FleetData == null || shipID == 0)
+                return;
+
+            ShipController ship = fromSystem.StarSysData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipFromSystem: ship id {shipID} not found in system '{fromSystem.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromSystem.StarSysData.ShipsList.Remove(ship);
+            if (!toFleet.FleetData.ShipsList.Contains(ship))
+                toFleet.FleetData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentFleetController = toFleet;
+            ship.ShipData.CurrentStarSysController = null;
+            if (ship.transform != null && toFleet.gameObject != null)
+                ship.transform.SetParent(toFleet.transform, false);
+
+            toFleet.UpdateMaxWarp();
+
+            toFleet.RequestSyncShipRoster();
+            List<int> fromSysShipIDs = fromSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(fromSystem.StarSysData.GetStarSysInt(), fromSysShipIDs);
+
+            Debug.Log($"ServerTransferShipFromSystem: moved ship id {shipID} ('{ship.ShipData.ShipName}') from system '{fromSystem.name}' to fleet '{toFleet.name}'.");
+        }
+
+        // Same reasoning as ServerTransferShipToSystem, for a ship moving directly between two star
+        // systems' garrisons (no fleet involved on either side).
+        [Server]
+        public void ServerTransferShipBetweenSystems(StarSysController fromSystem, StarSysController toSystem, int shipID)
+        {
+            if (fromSystem == null || toSystem == null || fromSystem.StarSysData == null || toSystem.StarSysData == null || shipID == 0)
+                return;
+            if (fromSystem == toSystem)
+                return;
+
+            ShipController ship = fromSystem.StarSysData.ShipsList.Find(s => s != null && s.ShipData != null && s.ShipData.ShipID == shipID);
+            if (ship == null)
+            {
+                Debug.LogWarning($"ServerTransferShipBetweenSystems: ship id {shipID} not found in system '{fromSystem.name}' - already moved, or the requesting client's local copy has diverged from the server.");
+                return;
+            }
+
+            fromSystem.StarSysData.ShipsList.Remove(ship);
+            if (!toSystem.StarSysData.ShipsList.Contains(ship))
+                toSystem.StarSysData.ShipsList.Add(ship);
+
+            ship.ShipData.CurrentStarSysController = toSystem;
+            ship.ShipData.CurrentFleetController = null;
+            if (ship.transform != null && toSystem.gameObject != null)
+                ship.transform.SetParent(toSystem.transform, false);
+
+            List<int> fromSysShipIDs2 = fromSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            List<int> toSysShipIDs2 = toSystem.StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+            TimeManager.Instance.ServerSyncStarSysRoster(fromSystem.StarSysData.GetStarSysInt(), fromSysShipIDs2);
+            TimeManager.Instance.ServerSyncStarSysRoster(toSystem.StarSysData.GetStarSysInt(), toSysShipIDs2);
+
+            Debug.Log($"ServerTransferShipBetweenSystems: moved ship id {shipID} ('{ship.ShipData.ShipName}') from system '{fromSystem.name}' to system '{toSystem.name}'.");
         }
 
         // Server-side counterpart of StarSysMenuUIController.ClickNewFleetButton(StarSysController) -
@@ -1225,9 +1399,9 @@ namespace BOTF3D.Galaxy
             return InstantiateFleet(null, sysCon, fleetData, position, true);
         }
 
-        internal void RemoveFogWarRevealer(csFogWar.FogRevealer tempFogRevealerFleet)
+        internal void RemoveFogWarRevealer(csFogWar.FogRevealer fogRevealer)
         {
-            fogWar.RemoveFogRevealer(tempFogRevealerFleet);
+            fogWar.RemoveFogRevealer(fogRevealer);
         }
 
         /// <summary>

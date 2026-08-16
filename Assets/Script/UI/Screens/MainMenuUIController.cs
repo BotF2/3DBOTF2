@@ -106,6 +106,18 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject domImages;
         [SerializeField] private GameObject borgImages;
         [SerializeField] private GameObject terranImages;
+
+        [Header("Faction Selection Stings")]
+        [SerializeField] private SoundData fedSelectionSound;
+        [SerializeField] private SoundData romSelectionSound;
+        [SerializeField] private SoundData klingSelectionSound;
+        [SerializeField] private SoundData cardSelectionSound;
+        [SerializeField] private SoundData domSelectionSound;
+        [SerializeField] private SoundData borgSelectionSound;
+        [SerializeField] private SoundData terranSelectionSound;
+        // Suppresses the selection sting while SetupMainMenuUI() sets the default Fed
+        // toggle on - only real user clicks after that should play a sound.
+        private bool suppressCivSelectionSound = true;
         //ToDo for multiplayer lobby
         //private Toggle _activeRemote0;
         //private Toggle _activeRemote1;
@@ -334,6 +346,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.FED);
                     UpdateToggleBackgrounds(FedLocalPlayerToggle);
+                    PlayCivSelectionSound(fedSelectionSound);
                 }
             });
             RomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -342,6 +355,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.ROM);
                     UpdateToggleBackgrounds(RomLocalPlayerToggle);
+                    PlayCivSelectionSound(romSelectionSound);
                 }
             });
             KlingLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -350,6 +364,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.KLING);
                     UpdateToggleBackgrounds(KlingLocalPlayerToggle);
+                    PlayCivSelectionSound(klingSelectionSound);
                 }
             });
             CardLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -358,6 +373,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.CARD);
                     UpdateToggleBackgrounds(CardLocalPlayerToggle);
+                    PlayCivSelectionSound(cardSelectionSound);
                 }
             });
             DomLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -366,6 +382,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.DOM);
                     UpdateToggleBackgrounds(DomLocalPlayerToggle);
+                    PlayCivSelectionSound(domSelectionSound);
                 }
             });
             BorgLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -374,6 +391,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.BORG);
                     UpdateToggleBackgrounds(BorgLocalPlayerToggle);
+                    PlayCivSelectionSound(borgSelectionSound);
                 }
             });
             TerranLocalPlayerToggle.onValueChanged.AddListener((isOn) =>
@@ -382,6 +400,7 @@ namespace BOTF3D.UI
                 {
                     ShowCivImages(CivEnum.TERRAN);
                     UpdateToggleBackgrounds(TerranLocalPlayerToggle);
+                    PlayCivSelectionSound(terranSelectionSound);
                 }
             });
             ApplyHostButtonEditorGate();
@@ -507,6 +526,10 @@ namespace BOTF3D.UI
             DomLocalPlayerToggle.isOn = false;
             BorgLocalPlayerToggle.isOn = false;
             TerranLocalPlayerToggle.isOn = false;
+
+            // ✅ Default Fed selection above is programmatic, not a real user click -
+            // only sound the selection sting for choices made after this point.
+            suppressCivSelectionSound = false;
 
             // Build OnOffToggles list
             OnOffToggles.Add(FedOnOff);
@@ -681,12 +704,14 @@ namespace BOTF3D.UI
             // since calling the [Server] method directly would silently no-op on a non-server machine.
             if (NetworkServer.active)
             {
-                PlayerManager.Instance.ServerBroadcastStartGame(
+                bool started = PlayerManager.Instance.ServerBroadcastStartGame(
                     (int)MainMenuData.SelectedGalaxySize,
                     (int)MainMenuData.SelectedTechLevel,
                     (int)MainMenuData.SelectedGalaxyType,
                     seed,
                     IsSinglePlayer);
+                if (!started)
+                    OnStartGameRejected();
             }
             else
             {
@@ -729,6 +754,24 @@ namespace BOTF3D.UI
 
             // Use coroutine for clean transition
             StartCoroutine(LoadGalaxySceneCoroutine());
+        }
+
+        // Called (locally on the host, or via LocalHumanPlayerController.TargetRejectStartGame on a
+        // remote client) when ServerBroadcastStartGame silently dropped the request because a galaxy
+        // was already generated for this server's lifetime - most often a dedicated server that
+        // wasn't restarted since an earlier test/game. Without this, a rejected click just does
+        // nothing and repeated clicks look identical to the game hanging/crashing at the menu.
+        public void OnStartGameRejected()
+        {
+            Debug.LogWarning("OnStartGameRejected: server already has a game in progress on this connection - request ignored. Restart the server to start a fresh game.");
+            StartCoroutine(ShowStartGameRejectedMessageCoroutine());
+        }
+
+        private System.Collections.IEnumerator ShowStartGameRejectedMessageCoroutine()
+        {
+            ShowLoadingOverlay(Loc.Get("A game is already in progress on this server. It needs to be restarted before a new game can begin."));
+            yield return new WaitForSecondsRealtime(4f);
+            HideLoadingOverlay();
         }
 
         // ─── Loading overlay ─────────────────────────────────────────────────
@@ -787,10 +830,21 @@ namespace BOTF3D.UI
 
             _loadingOverlayText.text = message;
             _loadingOverlayGO.SetActive(true);
+
+            // [LoadingPanelDiag] Task #1 ("Missing Loading Galaxy panel for 1st client"): the
+            // coroutine that shows/hides this overlay runs to completion either way (confirmed via
+            // Player.log reaching "LoadGalaxySceneCoroutine: Complete"), so if the panel is missing
+            // for one client it's a rendering/ordering issue, not a code path that didn't run -
+            // nothing in this method was previously logged at all. Log the state that would actually
+            // distinguish "never activated"/"activated but sortingOrder lost the fight"/"activated
+            // fine, something else drew over it" between repro attempts.
+            Canvas ovCanvas = _loadingOverlayGO.GetComponent<Canvas>();
+            Debug.LogWarning($"[LoadingPanelDiag] ShowLoadingOverlay: message='{message}' activeSelf={_loadingOverlayGO.activeSelf} activeInHierarchy={_loadingOverlayGO.activeInHierarchy} sortingOrder={(ovCanvas != null ? ovCanvas.sortingOrder.ToString() : "NO-CANVAS")} renderMode={(ovCanvas != null ? ovCanvas.renderMode.ToString() : "NO-CANVAS")} screenSize=({Screen.width}x{Screen.height}).");
         }
 
         private void HideLoadingOverlay()
         {
+            Debug.LogWarning($"[LoadingPanelDiag] HideLoadingOverlay: _loadingOverlayGO={(_loadingOverlayGO != null ? "OK" : "NULL")} activeSelf={(_loadingOverlayGO != null ? _loadingOverlayGO.activeSelf.ToString() : "N/A")}.");
             if (_loadingOverlayGO != null)
                 _loadingOverlayGO.SetActive(false);
         }
@@ -2634,6 +2688,38 @@ namespace BOTF3D.UI
             }
 
             Debug.Log($"ShowCivImages: Displaying {civEnum} images");
+        }
+
+        /// <summary>
+        /// Plays a faction's selection sting, skipped during the programmatic default-Fed setup.
+        /// </summary>
+        private void PlayCivSelectionSound(SoundData sound)
+        {
+            if (suppressCivSelectionSound) return;
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySoundData(sound);
+            }
+        }
+
+        // Public entry point for the multiplayer roster's per-row civ dropdown
+        // (ClientRosterPanelUIController.OnDropdownValueChanged), which picks a civ via a
+        // TMP_Dropdown rather than the FedLocalPlayerToggle-family Toggles above, so it never
+        // ran through PlayCivSelectionSound - the selection sting only ever played in
+        // singleplayer's Panel-SelectLocalPlayer.
+        public void PlayCivSelectionSoundForCiv(CivEnum civ)
+        {
+            switch (civ)
+            {
+                case CivEnum.FED: PlayCivSelectionSound(fedSelectionSound); break;
+                case CivEnum.ROM: PlayCivSelectionSound(romSelectionSound); break;
+                case CivEnum.KLING: PlayCivSelectionSound(klingSelectionSound); break;
+                case CivEnum.CARD: PlayCivSelectionSound(cardSelectionSound); break;
+                case CivEnum.DOM: PlayCivSelectionSound(domSelectionSound); break;
+                case CivEnum.BORG: PlayCivSelectionSound(borgSelectionSound); break;
+                case CivEnum.TERRAN: PlayCivSelectionSound(terranSelectionSound); break;
+            }
         }
 
         /// <summary>

@@ -720,6 +720,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topStarSyst.StarSysData?.ShipListUIParent?.transform);
 
             topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
+            topStarSyst.RequestSyncShipRoster();
 
             var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
             List<BOTF3D.Combat.ShipController> newBottomShipControllerList = new List<BOTF3D.Combat.ShipController>();
@@ -743,6 +744,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomStarSyst.StarSysData?.ShipListUIParent?.transform);
 
             bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
+            bottomStarSyst.RequestSyncShipRoster();
         }
 
         private void DeployShipUIgoFromStarSysToFleet(StarSysController topStarSyst, FleetController bottomFleet)
@@ -769,6 +771,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topStarSyst.StarSysData?.ShipListUIParent?.transform);
 
             topStarSyst.StarSysData.ShipsList = newTopShipControllerList;
+            topStarSyst.RequestSyncShipRoster();
 
             var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
             List<BOTF3D.Combat.ShipController> newBottomShipControllerList = new List<BOTF3D.Combat.ShipController>();
@@ -792,6 +795,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomFleet.FleetData?.ShipListUIParent?.transform);
 
             bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
+            bottomFleet.RequestSyncShipRoster();
         }
 
         private void DeployShipUIgoFromFleetToStarSys(FleetController topFleet, StarSysController bottomStarSyst)
@@ -818,6 +822,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topFleet.FleetData?.ShipListUIParent?.transform);
 
             topFleet.FleetData.ShipsList = newTopShipControllerList;
+            topFleet.RequestSyncShipRoster();
 
             var bottomShipControllerList = bottomStarSyst.StarSysData.ShipsList;
             List<BOTF3D.Combat.ShipController> newBottomShipControllerList = new List<BOTF3D.Combat.ShipController>();
@@ -841,6 +846,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomStarSyst.StarSysData?.ShipListUIParent?.transform);
 
             bottomStarSyst.StarSysData.ShipsList = newBottomShipControllerList;
+            bottomStarSyst.RequestSyncShipRoster();
         }
 
         private void DeployShipUIgoBetweenFleets(FleetController topFleet, FleetController bottomFleet)
@@ -867,6 +873,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(topShipControllerList, newTopShipControllerList, topFleet.FleetData?.ShipListUIParent?.transform);
 
             topFleet.FleetData.ShipsList = newTopShipControllerList;
+            topFleet.RequestSyncShipRoster();
 
             var bottomShipControllerList = bottomFleet.FleetData.ShipsList;
             List<BOTF3D.Combat.ShipController> newBottomShipControllerList = new List<BOTF3D.Combat.ShipController>();
@@ -890,6 +897,7 @@ public FleetController BottomFleet;
             ReconcileMissingShips(bottomShipControllerList, newBottomShipControllerList, bottomFleet.FleetData?.ShipListUIParent?.transform);
 
             bottomFleet.FleetData.ShipsList = newBottomShipControllerList;
+            bottomFleet.RequestSyncShipRoster();
         }
 
         // Small helper: if any ships from the original owner list are missing from the rebuilt list,
@@ -1102,6 +1110,14 @@ public FleetController BottomFleet;
             // 3️⃣ Update max warp
             if (targetFleet != null) targetFleet.UpdateMaxWarp();
             if (TopFleet != null && TopFleet != targetFleet) TopFleet.UpdateMaxWarp();
+
+            // 3.5️⃣ Replicate the resulting rosters - targetFleet/TopFleet/targetSystem/TopStarSyst's
+            // ShipsList was just mutated client-locally above via AddToShipList/RemoveFromShipList,
+            // which never networks by itself.
+            if (targetFleet != null) targetFleet.RequestSyncShipRoster();
+            if (TopFleet != null && TopFleet != targetFleet) TopFleet.RequestSyncShipRoster();
+            if (targetSystem != null) targetSystem.RequestSyncShipRoster();
+            if (TopStarSyst != null && TopStarSyst != targetSystem) TopStarSyst.RequestSyncShipRoster();
 
             // 4️⃣ Send the convoy on its way now that its final MaxWarpFactor (from the ships just
             // loaded aboard it) is known.

@@ -81,14 +81,6 @@ namespace BOTF3D.UI
         [SerializeField]
         private GameObject allianceButtonGO;
         [SerializeField]
-        private GameObject gatherIntelButtonGO;
-        [SerializeField]
-        private GameObject theftButtonGO;
-        [SerializeField]
-        private GameObject disinformationButtonGO;
-        [SerializeField]
-        private GameObject sabatogeButtonGO;
-        [SerializeField]
         private GameObject combatButtonGO;
         [SerializeField]
         private GameObject withdrawButtonGO;
@@ -284,9 +276,22 @@ namespace BOTF3D.UI
             if (diplomacyUIGO != null)
                 diplomacyCon.DiplomacyUIGameObject = diplomacyUIGO;
             GalaxyMenuUIController.Instance.HideNoContactUI();
+
+            // Only the single-encounter popup (ADiplomacyMenuView) should open here - the full
+            // DiplomacyMenuView list (every previously met civ's card, via diplomacyListContainter)
+            // must stay closed. That list is only supposed to be revealed by the ribbon's own
+            // Diplomacy button (see GalaxyMenuUIController.OpenMenu's Menu.Diplomacy case). Every
+            // civ's card was left parented (and active) inside diplomacyListContainter from its own
+            // past encounter, so previously activating that container here made every earlier
+            // contact's window reappear alongside a brand-new one - e.g. reaching a 3rd civ's
+            // homeworld also popped the 1st and 2nd civs' windows back open.
             ADiplomacyMenuView.gameObject.SetActive(true);
-            DiplomacyMenuView.gameObject.SetActive(true);
-            diplomacyListContainter.gameObject.SetActive(true);
+
+            // Evict whatever card (if any) is currently sitting in the single-encounter view - e.g.
+            // a prior encounter that got hidden without being fully closed - back to storage first,
+            // so ADiplomacyMenuView never ends up holding more than one card at once.
+            MoveBackAnyDiplomacyUIGO();
+
             CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideOne);
             CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideTwo);
             CivController notLocalPlayerCiv;
@@ -294,8 +299,9 @@ namespace BOTF3D.UI
             StarSysController homeSysController;
             diplomacyCon.DiplomacyUIGameObject.SetActive(true);
 
-            // ✅ FIX: Parent to container then move to the TOP of the list so newest is first
-            diplomacyCon.DiplomacyUIGameObject.transform.SetParent(diplomacyListContainter.transform, false);
+            // Parent into the single-encounter popup view (not the full list container) so only
+            // this civ's card is visible.
+            diplomacyCon.DiplomacyUIGameObject.transform.SetParent(ADiplomacyMenuView.transform, false);
             diplomacyCon.DiplomacyUIGameObject.transform.SetAsFirstSibling();
 
             if (!DiplomacyManager.Instance.DiplomacyControllers.Contains(diplomacyCon))
@@ -403,22 +409,6 @@ namespace BOTF3D.UI
                     case "AllianceButton":
                         rectTransforms[i].gameObject.SetActive(true);
                         allianceButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "GatherIntel":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        gatherIntelButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "Theft":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        theftButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "Disinformation":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        disinformationButtonGO = rectTransforms[i].gameObject;
-                        break;
-                    case "SabatogeButton":
-                        rectTransforms[i].gameObject.SetActive(true);
-                        sabatogeButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "CombatButton":
                         rectTransforms[i].gameObject.SetActive(true);
@@ -541,26 +531,6 @@ namespace BOTF3D.UI
                         //fleetCon.FleetData.FleetButtonUp = listButton;
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.OfferAlliance(diplomacyCon));
-                        break;
-                    case "GatherIntelButton":
-                        // fleetCon.FleetData.FleetButtonDown = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.GatherIntel(diplomacyCon));
-                        break;
-                    case "TheftButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Theft(diplomacyCon));
-                        break;
-                    case "DisinformationButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Disinformation(diplomacyCon));
-                        break;
-                    case "SabatogeButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
-                        listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Sabatoge(diplomacyCon));
                         break;
                     case "SystemReconButton":
                         listButton.onClick.RemoveAllListeners();

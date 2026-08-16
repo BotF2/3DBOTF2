@@ -532,6 +532,12 @@ namespace BOTF3D.Combat
             cc?.CombatData?.DestroyedShips.Add(ShipData);
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
             if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
+            if (ShipData.CurrentStarSysController != null)
+            {
+                ShipData.CurrentStarSysController.RemoveFromShipList(this);
+                if (ShipData.ShipType == ShipType.OrbitalBattery)
+                    ShipData.CurrentStarSysController.RemoveOrbitalBatteryFacility();
+            }
             if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
             if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
 
@@ -647,6 +653,12 @@ namespace BOTF3D.Combat
 
             if (ShipListUIGameObject != null) ShipListUIGameObject.SetActive(false);
             if (ShipData.CurrentFleetController != null) ShipData.CurrentFleetController.RemoveShipFromFleet(this);
+            if (ShipData.CurrentStarSysController != null)
+            {
+                ShipData.CurrentStarSysController.RemoveFromShipList(this);
+                if (ShipData.ShipType == ShipType.OrbitalBattery)
+                    ShipData.CurrentStarSysController.RemoveOrbitalBatteryFacility();
+            }
             if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
             if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
 

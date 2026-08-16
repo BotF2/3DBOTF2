@@ -154,7 +154,24 @@
       "Bash(find . -maxdepth 2 -iname \"*.log\")",
       "Bash(ls -la Logs)",
       "Bash(awk '/externalObjects:/,/materials:|materialImportMode|LODScreenPercentages/' __TRACKED_VAR__.fbx.meta)",
-      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)"
+      "Bash(awk /m_Colors:/,/m_BuildTextureStacks/ Assets/FBX/Materials/__TRACKED_VAR__.mat)",
+      "PowerShell(1..7 | ForEach-Object { [guid]::NewGuid\\(\\).ToString\\(\"N\"\\) })",
+      "PowerShell($guids = @\\('07d4784f3c4c4895842621c4e1241ed1','2d7ec5f384bd48d294bfe723dbf9ed33','fb98eb0de6bf425a81c132ad8d7cc252','74703f69c9e94c28b2753e8c7a07e6a4','be86439e20f340caa7143802e437b181','d107912ddfd344dbb75f9f7872fcea90','8241a6f1ac044e3bb3e1e57993db8c0b'\\); $guids | ForEach-Object { \"$_ : $\\($_.Length\\)\" })",
+      "PowerShell(1..6 | ForEach-Object { [guid]::NewGuid\\(\\).ToString\\(\"N\"\\) })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\" -Directory)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\kenne\\\\Documents\\\\Unity\\\\3D_BOTF2_99\\\\Assets\\\\FBX\\\\\" | Where-Object { $_.Name -match \"Destroyer|Minor|Battery\" } | Select-Object Name)",
+      "Bash(xargs -I{} sh -c 'grep -H \"OrbitalBatteries:\" \"{}\"')",
+      "Bash(tasklist //FI \"IMAGENAME eq Unity.exe\")",
+      "Bash(awk '/m_Script: \\\\{fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff/{print NR\": \"prev} {prev=$0}' \"Assets/PreFabs/DiplomacyIntel/CivIntelPrefab.prefab\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(awk -F: '$1>4286')",
+      "Read(//c/Users/kenne/**)",
+      "Bash(awk -F: '$1>3900')",
+      "Bash(PowerShell.exe -NoProfile -Command \"\\(Get-Item 'C:\\\\Users\\\\kenne\\\\AppData\\\\LocalLow\\\\Star Trek Fan Games\\\\3DBOTF\\\\Player.log'\\).LastWriteTime\")",
+      "Bash(awk -F: '$1>4038')",
+      "Bash(where git *)",
+      "Bash(openssl s_client -connect github.com:443 -servername github.com)"
     ]
   },
   "model": "claude-sonnet-5"

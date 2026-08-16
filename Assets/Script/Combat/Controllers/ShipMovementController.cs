@@ -57,6 +57,11 @@ namespace BOTF3D.Combat
         {
             if (ship.ShipData.Distroyed) return;
 
+            // Ships already stationed at the star system (stationed combat ships, orbital
+            // batteries, future shields) are stationary system defenses — never warped in,
+            // never move. See CurrentStarSysController assignment in ShipFactory.LinkShipToParent.
+            if (ship.ShipData.CurrentStarSysController != null) return;
+
             var osm = ship.GetComponent<CombatOrderStateMachine>();
             if (osm == null || osm.IsWarpingOut() || osm.IsVulnerable()) return;
 
@@ -66,6 +71,21 @@ namespace BOTF3D.Combat
             if (ship.ShipData.ShipType == ShipType.Transport)
             {
                 MoveTransport(ship, osm);
+                return;
+            }
+
+            // Against a stationary star system (its ships/batteries never move — see guard
+            // above), the fleet-vs-fleet "meet in the middle and rotate 180° to pass by" pattern
+            // makes no sense: there's nothing to pass. Instead the attacking fleet advances
+            // toward the system's line, holding its own formation shape, and stops in weapon
+            // range facing the system the whole time (no rotation, matching the spawn facing).
+            bool vsStationarySystem = combatData.CombatType == CombatType.SystemVsFleet ||
+                                       combatData.CombatType == CombatType.FleetVsSystem;
+            if (vsStationarySystem &&
+                (order == CombatOrders.Engage || order == CombatOrders.Rush || order == CombatOrders.AttackTransports))
+            {
+                float advanceSpeed = ship.ShipData.maxWarpFactor * COMBAT_SPEED;
+                AdvanceAndHold(ship, isSideOne, advanceSpeed);
                 return;
             }
 
@@ -105,6 +125,45 @@ namespace BOTF3D.Combat
                 default:
                     break;
             }
+        }
+
+        // Distance from a fleet ship's warp-in end line (±200) to the hold point at the
+        // battlefield center (x=0) — symmetric accel/decel, no cruise segment needed since
+        // the whole leg is only as long as ACCEL_DIST + DECEL_DIST already covers.
+        private const float ADVANCE_DIST = ACCEL_DIST + DECEL_DIST;
+
+        // Fleet-vs-stationary-system movement: advance straight from the warp-in line toward
+        // the enemy system, preserving formation (Y/Z offsets are untouched — only x changes),
+        // then hold at the center of the battlefield (200 units from the stationary ±200 line,
+        // comfortably inside both TorpedoMaxRange (350) and BeamWeapon's full/near-full damage
+        // band). No rotation: ships already spawn facing across the battlefield toward the
+        // enemy (see ShipSetupManager.SetShipRotation) and never need to face away.
+        private void AdvanceAndHold(ShipController ship, bool isSideOne, float maxSpeed)
+        {
+            var t = GetOrInit(ship, isSideOne, ADVANCE_DIST);
+            float dt = Time.unscaledDeltaTime;
+
+            if (t.travelDist >= ADVANCE_DIST)
+            {
+                t.currentSpeed = 0f;
+                t.travelDist = ADVANCE_DIST;
+                return;
+            }
+
+            float accelRate = maxSpeed * maxSpeed / (2f * ACCEL_DIST);
+            float targetSpeed = t.travelDist < ACCEL_DIST ? maxSpeed : 0f;
+            t.currentSpeed = Mathf.MoveTowards(t.currentSpeed, targetSpeed, accelRate * dt);
+
+            if (t.currentSpeed < 0.5f && t.travelDist >= ACCEL_DIST)
+            {
+                t.currentSpeed = 0f;
+                t.travelDist = ADVANCE_DIST;
+                return;
+            }
+
+            int sign = isSideOne ? 1 : -1;
+            ship.transform.position += Vector3.right * sign * t.currentSpeed * dt;
+            t.travelDist += t.currentSpeed * dt;
         }
 
         // Rush movement: charge in at full rush speed, then pull back 100 units at half speed and hold.

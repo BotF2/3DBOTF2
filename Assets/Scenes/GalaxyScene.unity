@@ -2262,14 +2262,14 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 304810445}
-  - {fileID: 757251404}
   - {fileID: 451287267}
+  - {fileID: 757251404}
   m_Father: {fileID: 1349831567}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 135, y: -3}
-  m_SizeDelta: {x: 155, y: 65}
+  m_AnchoredPosition: {x: 135, y: -34}
+  m_SizeDelta: {x: 155, y: 34}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &175591130
 MonoBehaviour:
@@ -4129,8 +4129,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: -32}
-  m_SizeDelta: {x: 155, y: 15}
+  m_AnchoredPosition: {x: 0, y: -0.8}
+  m_SizeDelta: {x: 65.1114, y: 15}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &304810446
 MonoBehaviour:
@@ -4208,7 +4208,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Technology Rating:'
+  m_text: 'Tech:'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6022,7 +6022,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &451287267
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6039,8 +6039,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: -48}
-  m_SizeDelta: {x: 155, y: 15}
+  m_AnchoredPosition: {x: 65.111, y: -0}
+  m_SizeDelta: {x: 89.889, y: 15}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &451287268
 MonoBehaviour:
@@ -6062,7 +6062,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Tech Point
+  m_text: 12
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6096,7 +6096,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -9795,7 +9795,7 @@ GameObject:
   - component: {fileID: 757251405}
   - component: {fileID: 757251409}
   m_Layer: 5
-  m_Name: TechLeveData
+  m_Name: TechLevelData
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9817,7 +9817,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: -45}
+  m_AnchoredPosition: {x: 0, y: -14.3}
   m_SizeDelta: {x: 155, y: 20}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &757251405
@@ -9896,7 +9896,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 12 (Early)
+  m_text: Early
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -9988,6 +9988,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6425609298fcfb44fb657dd611290863, type: 3}
   m_Name: 
   m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.TechLevelHUDUI
+  techPointsText: {fileID: 0}
   techLevelText: {fileID: 757251407}
 --- !u!1001 &757563278
 PrefabInstance:
@@ -12237,6 +12238,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.UI.CombatUIManager
   CurrentCombatController: {fileID: 0}
   CivEnumLocalPlayer: 0
+  fedCombatOrderSound: {fileID: 11400000, guid: 973c4cf82e1242c094b9907e9ce32d71, type: 2}
+  klingCombatOrderSound: {fileID: 11400000, guid: 2df8c0293db449a58f4a3c9c7acd5874, type: 2}
+  romCombatOrderSound: {fileID: 11400000, guid: e95b2e723c544b609b888902986a1cb3, type: 2}
+  cardCombatOrderSound: {fileID: 11400000, guid: fa331d5d5b68462d8a15c7cd135e8a7c, type: 2}
+  domCombatOrderSound: {fileID: 11400000, guid: 630adce83f454117a9b9219c37cb5a69, type: 2}
+  borgCombatOrderSound: {fileID: 11400000, guid: b7e49e54133c4cf6b116f762efbd6813, type: 2}
+  terranCombatOrderSound: {fileID: 11400000, guid: d311159d04d52924b85676ae8f93436b, type: 2}
 --- !u!4 &959440484
 Transform:
   m_ObjectHideFlags: 0
@@ -26773,7 +26781,6 @@ MonoBehaviour:
   descriptionPanel: {fileID: 0}
   UI_PanelGOs: []
   tabButtonMasks: []
-  InteractionButtonGO: {fileID: 0}
   tradeButtonGO: {fileID: 0}
   engagementButtonGO: {fileID: 0}
   techButtonGO: {fileID: 0}

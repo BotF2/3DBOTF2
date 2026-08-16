@@ -37,13 +37,21 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseDown()
         {
-            // We know we hit this object because OnMouseDown fired
+            StartDrag();
+        }
+
+        // Called for a real click on the marker's collider (OnMouseDown above), and also
+        // directly by PlayerDefinedTargetManager.InstantiatePlayerTarget so the marker starts
+        // following the mouse the instant it's created, without requiring the user to first
+        // land a precise click on its (small, freshly-spawned-off-screen-of-the-cursor) collider.
+        public void StartDrag()
+        {
             if (PlayerTargetData != null && GameController.Instance.AreWeLocalPlayer(PlayerTargetData.CivOwnerEnum))
             {
                 IsDragging = true;
                 PlayerDefinedTargetDrag.Instance.SetPlayerTargetDrag(true, this);
                 GalaxyCameraDragMoveZoom.Instance.SetPlayerTargetDrag(true);
-                
+
                 // Set click mode to avoid other objects intercepting destination clicks
                 if (GalaxyMenuUIController.Instance != null)
                 {
@@ -53,6 +61,18 @@ namespace BOTF3D.Galaxy
         }
         private void OnMouseUp()
         {
+            FinalizeDrag();
+        }
+
+        // Because StartDrag() above is armed programmatically rather than via a real mouse-down
+        // on this collider, Unity's native mouse-picking never records a down-press on it - so a
+        // real release over empty map/background (the normal case, since the user drags from
+        // wherever they grabbed the map, not the tiny marker icon) never reaches OnMouseUp here.
+        // PlayerDefinedTargetDrag polls for the actual button-up and calls this directly so the
+        // destination reliably finalizes regardless of what's under the cursor on release.
+        public void FinalizeDrag()
+        {
+            if (!IsDragging) return;
             IsDragging = false;
 
             // Guard: if TargetController was cleared by cancel (DestroyPlayerTarget nulls it before

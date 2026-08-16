@@ -1,3 +1,4 @@
+using BOTF3D.Audio;
 using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
@@ -57,6 +58,15 @@ namespace BOTF3D.UI
         private bool isTimerRunning = false;
         private CombatOrders currentOrder = CombatOrders.Engage;
         public CivEnum CivEnumLocalPlayer;
+
+        [Header("Combat Order Voice Barks")]
+        [SerializeField] private SoundData fedCombatOrderSound;
+        [SerializeField] private SoundData klingCombatOrderSound;
+        [SerializeField] private SoundData romCombatOrderSound;
+        [SerializeField] private SoundData cardCombatOrderSound;
+        [SerializeField] private SoundData domCombatOrderSound;
+        [SerializeField] private SoundData borgCombatOrderSound;
+        [SerializeField] private SoundData terranCombatOrderSound;
 
         private void Awake()
         {
@@ -871,7 +881,30 @@ namespace BOTF3D.UI
                     enterCombatButton = button;
                     button.onClick.RemoveAllListeners();
                     button.onClick.AddListener(EnterShipCombatPhase);
+                    button.onClick.AddListener(PlayCombatOrderBark);
                 }
+            }
+        }
+
+        private void PlayCombatOrderBark()
+        {
+            if (AudioManager.Instance == null) return;
+
+            SoundData bark = CivEnumLocalPlayer switch
+            {
+                CivEnum.FED => fedCombatOrderSound,
+                CivEnum.KLING => klingCombatOrderSound,
+                CivEnum.ROM => romCombatOrderSound,
+                CivEnum.CARD => cardCombatOrderSound,
+                CivEnum.DOM => domCombatOrderSound,
+                CivEnum.BORG => borgCombatOrderSound,
+                CivEnum.TERRAN => terranCombatOrderSound,
+                _ => null,
+            };
+
+            if (bark != null)
+            {
+                AudioManager.Instance.PlaySoundData(bark);
             }
         }
 
@@ -1194,6 +1227,16 @@ namespace BOTF3D.UI
         public void CleanupCombat()
         {
             Debug.Log("🧹 CombatUIManager: Cleaning up combat UI references");
+
+            // Explicitly hide before nulling the references below. Normally CombatScene unloading
+            // (SceneController.ReturnToGalaxyFromCombat) destroys this panel along with everything
+            // else in that scene, but if that unload is ever skipped/delayed on a given client (see
+            // UnloadCombatSceneAndResumeGalaxy's isLoaded diagnostic), nulling the reference alone
+            // does nothing to the actual GameObject - it would stay visible, active, on top of the
+            // galaxy scene once that gets reactivated. This makes panel-hiding independent of scene
+            // unload timing.
+            if (panelCombatOver != null) panelCombatOver.SetActive(false);
+            if (currentGameOverCanvas != null) currentGameOverCanvas.SetActive(false);
 
             CurrentCombatController = null;
             currentCombatUICanvas = null;

@@ -2047,6 +2047,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 012b2d089cf552240a7ae8fb63ffda93, type: 2}
   - {fileID: 11400000, guid: 03791de61ebaaeb48be26ad950b7cccb, type: 2}
   Test: {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
+  OrbitalBatteryShipSO: {fileID: 11400000, guid: 2f8d65fb84234c34b85ad1fd5e67f099, type: 2}
   ShipControllerList: []
 --- !u!4 &465746041
 Transform:
@@ -2298,8 +2299,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 25, z: -200}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 700052170}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 8, y: 0, z: 0}
 --- !u!1 &585587488
@@ -2335,7 +2335,7 @@ MonoBehaviour:
   targetWidth: 1920
   targetHeight: 1080
   fullscreen: 1
-  fullscreenMode: 3
+  fullscreenMode: 1
   qualityLevel: 2
   vSyncCount: 1
   targetFrameRate: -1
@@ -2611,60 +2611,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   diplomacyUIPrefab: {fileID: 4764215955950854528, guid: 8fc1ae8773788b443ba863fe74207f8b, type: 3}
   diplomacControllerPrefab: {fileID: 820952266113596234, guid: 396c8c3fb0e55bd4d8f63755777041fe, type: 3}
---- !u!1 &700052168
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 700052170}
-  - component: {fileID: 700052169}
-  m_Layer: 0
-  m_Name: AudioManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &700052169
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 700052168}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5469fd994438a694999596f8b7b104d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BOTF3D.Core.AudioManager
-  musicSource1: {fileID: 0}
-  musicSource2: {fileID: 0}
-  sfxPoolSize: 10
-  uiPoolSize: 5
-  soundLibrary: []
-  soundEmitterPrefab: {fileID: 0}
-  collectionCheck: 1
-  defaultCapacity: 10
-  maxSize: 160
-  crossfadeDuration: 2
---- !u!4 &700052170
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 700052168}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.06975647, y: -0, z: -0, w: 0.9975641}
-  m_LocalPosition: {x: 0, y: 3.077919, z: 201.53294}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 569129327}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0

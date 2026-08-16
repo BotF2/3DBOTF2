@@ -31,6 +31,11 @@ namespace BOTF3D.Combat
             { ShipType.Cruiser,   new BaseStats(58, 30, 30, 24, 4.0f, 14, 3) },
             { ShipType.HvyCruiser,new BaseStats(76, 42, 40, 32, 3.5f, 18, 4) },
             { ShipType.Transport, new BaseStats(12, 30,  0,  0, 3.5f,  6, 4) },
+            // Stationary system-defense platform: never warps in or moves (see ShipMovementController /
+            // CombatOrderStateMachine OrbitalBattery guards), so it trades mobility for raw durability
+            // and hitting power vs. a mobile hull of comparable tier — tankier than HvyCruiser, hits
+            // roughly as hard, Warp=0 (unused; movement is skipped entirely for this ShipType).
+            { ShipType.OrbitalBattery, new BaseStats(95, 90, 38, 26, 0f, 15, 5) },
         };
 
         // ── Tech-tier multipliers (derived from actual FED Scout_I–IV data) ──

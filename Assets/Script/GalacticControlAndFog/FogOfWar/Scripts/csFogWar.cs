@@ -512,10 +512,19 @@ namespace FischlWorks_FogWar
             Graphics.CopyTexture(fogPlaneTextureLerpTarget, fogPlaneTextureLerpBuffer);
         }
 
+        // Set once UpdateFog() has flushed the fog field to fully-hidden after the revealer list
+        // dropped to zero (e.g. local player's last fleet died in combat with no owned star
+        // system providing a fallback revealer). Prevents re-flushing every frame while still
+        // idle, and gets cleared the moment a revealer exists again.
+        private bool _fogFlushedForZeroRevealers = false;
+
         private void UpdateFog()
         {
             if (fogRevealers == null || fogRevealers.Count == 0)
+            {
+                FlushFogForZeroRevealersIfNeeded();
                 return;
+            }
 
             // Clean up any destroyed revealers BEFORE iterating
             int removedCount = fogRevealers.RemoveAll(r => r == null || r._RevealerTransform == null);
@@ -523,6 +532,14 @@ namespace FischlWorks_FogWar
             {
                 Debug.LogWarning($"csFogWar.UpdateFog: Removed {removedCount} destroyed revealer(s)");
             }
+
+            if (fogRevealers.Count == 0)
+            {
+                FlushFogForZeroRevealersIfNeeded();
+                return;
+            }
+
+            _fogFlushedForZeroRevealers = false;
 
             // CRITICAL: Track if ANY revealer moved
             bool anyRevealerMoved = false;
@@ -572,6 +589,20 @@ namespace FischlWorks_FogWar
                 UpdateFogField();
                 UpdateFogPlaneTextureBuffer();
             }
+        }
+
+        // Runs UpdateFogField() with an empty revealer list (resets every tile to hidden, since
+        // the foreach over fogRevealers in UpdateFogField() has nothing left to re-mark) exactly
+        // once when the revealer count drops to zero, instead of leaving shadowcaster.fogField
+        // frozen at whatever was last Revealed.
+        private void FlushFogForZeroRevealersIfNeeded()
+        {
+            if (_fogFlushedForZeroRevealers)
+                return;
+
+            UpdateFogField();
+            UpdateFogPlaneTextureBuffer();
+            _fogFlushedForZeroRevealers = true;
         }
 
         private void UpdateFogField()

@@ -58,7 +58,7 @@ namespace BOTF3D.Audio
         private List<AudioSource> allPooledSources;
 
         // Volume Settings (0-1 range)
-        private float masterVolume = 0.05f;
+        private float masterVolume = 0.6f;
         private float musicVolume = 1f;
         private float sfxVolume = 1f;
         private float uiVolume = 1f;
@@ -273,18 +273,18 @@ namespace BOTF3D.Audio
         /// </summary>
         private void LoadVolumeSettings()
         {
-            masterVolume = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 0.05f);
+            masterVolume = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY, 0.6f);
             musicVolume = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 1f);
             sfxVolume = PlayerPrefs.GetFloat(SFX_VOLUME_KEY, 1f);
             uiVolume = PlayerPrefs.GetFloat(UI_VOLUME_KEY, 1f);
 
-            // Safety check: if master is 0 but was never set, default to 0.05 (5%)
+            // Safety check: if master is 0 but was never set, default to 0.6 (60%)
             if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY) || masterVolume < 0.001f)
             {
                 if (!PlayerPrefs.HasKey(MASTER_VOLUME_KEY))
                 {
-                    masterVolume = 0.05f;
-                    Debug.Log("AudioManager: No master volume found in PlayerPrefs, defaulting to 0.05f");
+                    masterVolume = 0.6f;
+                    Debug.Log("AudioManager: No master volume found in PlayerPrefs, defaulting to 0.6f");
                 }
             }
 
@@ -367,7 +367,7 @@ namespace BOTF3D.Audio
         /// </summary>
         public void PlaySoundData(SoundData soundData, float volumeMultiplier = 1f)
         {
-            if (soundData == null || soundData.clip == null) return;
+            if (soundData == null || soundData.GetClip() == null) return;
 
             float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
             float finalPitch = soundData.pitch + Random.Range(-soundData.randomPitchVariation, soundData.randomPitchVariation);
@@ -388,7 +388,7 @@ namespace BOTF3D.Audio
         /// </summary>
         public void PlaySoundData3D(SoundData soundData, Vector3 position, float volumeMultiplier = 1f)
         {
-            if (soundData == null || soundData.clip == null) return;
+            if (soundData == null || soundData.GetClip() == null) return;
 
             SoundEmitter emitter = soundEmitterPool.Get();
             emitter.transform.position = position;
@@ -396,7 +396,7 @@ namespace BOTF3D.Audio
             float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
             float finalPitch = soundData.pitch + Random.Range(-soundData.randomPitchVariation, soundData.randomPitchVariation);
 
-            emitter.Initialize(soundData.clip, finalVolume, finalPitch, soundData.loop, soundData.minDistance, soundData.maxDistance);
+            emitter.Initialize(soundData.GetClip(), finalVolume, finalPitch, soundData.loop, soundData.minDistance, soundData.maxDistance);
             emitter.OnFinished += () => soundEmitterPool.Release(emitter);
         }
         private void PlaySoundData2D(SoundData soundData, float volume, float pitch)
@@ -404,13 +404,14 @@ namespace BOTF3D.Audio
             AudioSource source = GetAvailableSFXSource();
             if (source == null) return;
 
-            source.clip = soundData.clip;
+            AudioClip clip = soundData.GetClip();
+            source.clip = clip;
             source.volume = volume;
             source.pitch = pitch;
             source.spatialBlend = 0f;
             source.Play();
 
-            StartCoroutine(ReturnToPool(source, sfxPool, soundData.clip.length));
+            StartCoroutine(ReturnToPool(source, sfxPool, clip.length));
         }
         /// <summary>
         /// Play music by name with optional crossfade

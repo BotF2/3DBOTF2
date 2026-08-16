@@ -94,15 +94,24 @@ namespace BOTF3D.Combat
         {
             Debug.Log($"=== SetupShips Side {side}: {shipList.Count} total ships ===");
 
-            // Separate combat ships from transports
+            // Separate combat ships, transports, and system-owned assets (stationed ships,
+            // orbital batteries, future shields — anything already at the star system being
+            // fought over spawns already in place, never warp in; see SetupSingleShipNoWarp)
             List<ShipController> combatShips = shipList
-                .Where(s => s != null && s.ShipData != null && s.ShipData.ShipType != ShipType.Transport)
+                .Where(s => s != null && s.ShipData != null &&
+                            s.ShipData.CurrentStarSysController == null &&
+                            s.ShipData.ShipType != ShipType.Transport)
                 .ToList();
             List<ShipController> transportShips = shipList
-                .Where(s => s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.Transport)
+                .Where(s => s != null && s.ShipData != null &&
+                            s.ShipData.CurrentStarSysController == null &&
+                            s.ShipData.ShipType == ShipType.Transport)
+                .ToList();
+            List<ShipController> systemShips = shipList
+                .Where(s => s != null && s.ShipData != null && s.ShipData.CurrentStarSysController != null)
                 .ToList();
 
-            Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports");
+            Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports, {systemShips.Count} system-owned (stationary)");
 
             // Generate spiral positions and zero-center them so the formation
             // centroid is always at (0,0) regardless of ship count.
@@ -114,6 +123,13 @@ namespace BOTF3D.Combat
             List<Vector2Int> transportSpiralPositions = CenterSpiralPositions(
                 formationManager.GenerateSpiralPositions(transportShips.Count + transportSpiralOffset)
                     .Skip(transportSpiralOffset)
+                    .ToList());
+
+            // Offset system-ship spiral further out again so it doesn't overlap combat ships or transports
+            int systemSpiralOffset = transportSpiralOffset + Mathf.CeilToInt(Mathf.Sqrt(transportShips.Count)) + 1;
+            List<Vector2Int> systemSpiralPositions = CenterSpiralPositions(
+                formationManager.GenerateSpiralPositions(systemShips.Count + systemSpiralOffset)
+                    .Skip(systemSpiralOffset)
                     .ToList());
 
             // Setup combat ships
@@ -128,7 +144,15 @@ namespace BOTF3D.Combat
                 SetupSingleShip(transportShips[i], side, true, transportSpiralPositions[i]);
             }
 
-            Debug.Log($"Side {side}: Setup {combatShips.Count} combat ships + {transportShips.Count} transports");
+            // Setup system-owned ships (stationed combat ships, orbital batteries, future
+            // shields) — already in the system, spawn directly at the combat line with no
+            // warp-in animation
+            for (int i = 0; i < systemShips.Count; i++)
+            {
+                SetupSingleShipNoWarp(systemShips[i], side, systemSpiralPositions[i]);
+            }
+
+            Debug.Log($"Side {side}: Setup {combatShips.Count} combat ships + {transportShips.Count} transports + {systemShips.Count} system-owned (stationary)");
         }
 
         /// <summary>
@@ -179,6 +203,49 @@ namespace BOTF3D.Combat
             SetupShipWeapons(ship, side);
 
             Debug.Log($"  ✅ Setup {ship.ShipData.ShipName} in CombatScene at {startPosition}");
+        }
+
+        /// <summary>
+        /// Setup a system-owned ship (stationed combat ship, orbital battery, or future shield):
+        /// it's already in the star system being attacked, so it spawns directly at its final
+        /// combat-line position with no warp-in animation. Skips adding a WarpData component
+        /// entirely — WarpAnimationController.CollectWarpData only gathers ships that have one,
+        /// so a ship without WarpData is automatically left out of the warp coroutine and simply
+        /// sits there, already "arrived", for the rest of setup.
+        /// </summary>
+        private void SetupSingleShipNoWarp(ShipController ship, int side, Vector2Int spiralPos)
+        {
+            // System ships hold the same combat-line X as regular combat ships (±200) — well
+            // inside both TorpedoMaxRange (350) and BeamWeapon's full/near-full damage band
+            // (100-400) of where the fight actually happens, unlike the transport line further back.
+            float endX = WarpAnimationController.GetWarpEndX(side, false);
+            Vector3 position = new Vector3(endX, spiralPos.y * SPACING, spiralPos.x * SPACING);
+
+            ship.transform.SetParent(null, true);
+            MoveShipToCombatScene(ship);
+
+            ship.transform.position = position;
+            SetShipRotation(ship, side);
+            ship.transform.localScale = Vector3.one;
+            ship.name = ship.ShipData.ShipName;
+            ship.gameObject.SetActive(true);
+
+            GameObject shipModel = InstantiateShipModel(ship);
+            AddShipCollider(ship, shipModel);
+
+            CombatOrderStateMachine stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+            if (stateMachine == null)
+            {
+                stateMachine = ship.gameObject.AddComponent<CombatOrderStateMachine>();
+                Debug.Log($"  ➕ Added CombatOrderStateMachine to {ship.ShipData.ShipName}");
+            }
+            stateMachine.Side = side;
+            stateMachine.ShipController = ship;
+
+            // No WarpData component — this ship never warps in, it's already here.
+            SetupShipWeapons(ship, side);
+
+            Debug.Log($"  ✅ Setup system-owned ship {ship.ShipData.ShipName} in CombatScene at {position} (no warp-in)");
         }
 
         /// <summary>

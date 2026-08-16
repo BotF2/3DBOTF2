@@ -1278,6 +1278,37 @@ namespace BOTF3D.Galaxy
                 shipController.transform.SetParent(null, worldPositionStays: true);
         }
 
+        /// <summary>
+        /// Removes one built orbital-battery facility (the icon/UI widget in StarSysData.OrbitalBatteries,
+        /// not a combat ShipController) — called when a battery's ShipController is destroyed in combat,
+        /// so the built count stops overstating what's actually left defending the system. Picks the last
+        /// entry, releases its power load if it was toggled on, and destroys its widget GameObject.
+        /// </summary>
+        internal void RemoveOrbitalBatteryFacility()
+        {
+            var batteries = StarSysData?.OrbitalBatteries;
+            if (batteries == null || batteries.Count == 0) return;
+
+            int lastIndex = batteries.Count - 1;
+            GameObject facilityGO = batteries[lastIndex];
+            batteries.RemoveAt(lastIndex);
+
+            if (facilityGO != null)
+            {
+                var text = facilityGO.GetComponent<TextMeshProUGUI>();
+                if (text != null && text.text == "1")
+                    StarSysData.TotalSysPowerLoad -= StarSysData.OrbitalBatteryData.PowerLoad;
+
+                Destroy(facilityGO);
+            }
+
+            if (StarSysUI != null)
+            {
+                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.OrbitalBattery);
+                StarSysUI.UpdateSystemPowerBalance(this);
+            }
+        }
+
         public void AddToShipList(ShipController shipController)
         {
             if (shipController == null) return;
@@ -1292,6 +1323,29 @@ namespace BOTF3D.Galaxy
             // Move UI element under system UI parent if available
             if (shipController.ShipListUIGameObject != null && StarSysData.ShipListUIParent != null)
                 shipController.ShipListUIGameObject.transform.SetParent(StarSysData.ShipListUIParent.transform, false);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // Ship roster replication backstop. StarSysController isn't a NetworkBehaviour (see
+        // StarSysManager.GetStarSysControllerByInt's comment) so it can't host its own [Command]/
+        // [ClientRpc] pair the way FleetController.RequestSyncShipRoster does - this relays through
+        // LocalHumanPlayerController (a per-connection NetworkBehaviour every client already has)
+        // to TimeManager.ServerSyncStarSysRoster, which broadcasts back out to every peer. The real,
+        // authoritative fix for a single ship's move is the per-transfer Cmd path
+        // (LocalHumanPlayerController.CmdTransferShipXXX -> FleetManager.ServerTransferShipXXX ->
+        // FleetController.RequestSyncShipRoster / TimeManager.ServerSyncStarSysRoster); call this
+        // instead wherever a whole StarSysData.ShipsList gets rebuilt client-locally from UI slot
+        // state (see ShipDeployMenuUIController's DeployShipUIgoX methods) as a defensive resync so
+        // any drift there still reaches every peer.
+        // ---------------------------------------------------------------------------------------
+        public void RequestSyncShipRoster()
+        {
+            List<int> shipIDs = StarSysData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+
+            PlayerManager.Instance?.LocalPlayerController?.SubmitSyncStarSysRoster(StarSysData.GetStarSysInt(), shipIDs);
         }
     }
 }

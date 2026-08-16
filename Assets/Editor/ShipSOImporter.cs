@@ -194,8 +194,8 @@ public class ShipSOImporter : EditorWindow
                 return ShipType.LtCruiser;
             case "HVYCRUISER":
                 return ShipType.Transport;
-            case "ONEMORE":
-                return ShipType.OneMore;
+            case "ORBITALBATTERY":
+                return ShipType.OrbitalBattery;
             default:
                 return ShipType.Scout;
         }

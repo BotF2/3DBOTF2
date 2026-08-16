@@ -2,6 +2,7 @@ using BOTF3D.Civilization;
 using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
+using FischlWorks_FogWar;
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
@@ -364,6 +365,17 @@ namespace BOTF3D.Galaxy
             // session instead.
             if (isFreshReconstruction && !SyncedIsNewFleet)
                 ShipManager.Instance?.BuildShipsOfFirstFleet(this);
+
+            // Replay a roster that arrived via RpcSyncShipRoster before FleetData existed (see
+            // _pendingRosterShipIDs) - it always reflects the fleet's true current roster, so it's
+            // safe to apply even over the just-rebuilt starting roster above.
+            if (_pendingRosterShipIDs != null)
+            {
+                List<int> pending = _pendingRosterShipIDs;
+                _pendingRosterShipIDs = null;
+                Debug.Log($"OnCivEnumChanged: '{name}' applying deferred roster of {pending.Count} ship(s) now that FleetData exists.");
+                ApplyShipRoster(pending);
+            }
         }
 
         // Non-host clients have no Mirror authority over any fleet (spawned via plain
@@ -373,9 +385,32 @@ namespace BOTF3D.Galaxy
         // civ of the fleet being commanded, so Player 2 can order their own fleet but not the Fed one.
         private bool IsSenderAuthorizedForThisFleet(NetworkConnectionToClient sender)
         {
-            if (sender?.identity == null) return false;
+            // [AuthDiag] Task #4 ("2nd client fleet movement broken after combat") investigation:
+            // the project_bystander_fleet_duplication memory documents a still-unresolved "full
+            // Mirror client resync" (isFreshReconstruction=True bursts, including the connection's
+            // OWN player object refiring via a genuine ApplySpawnPayload/OnSpawn) that happens around
+            // combat end. If that resync ever leaves sender.identity stale/mismatched server-side,
+            // this is the one choke point every order-relay Command shares - log enough here to tell
+            // "never reached the server", "no LocalHumanPlayerController", and "civ mismatch" apart
+            // without needing to guess, since this runs on the HOST/server (whose log this project's
+            // multi-machine test setup doesn't otherwise capture on this machine).
+            if (sender?.identity == null)
+            {
+                Debug.LogWarning($"[AuthDiag] IsSenderAuthorizedForThisFleet: fleet '{name}' civ={FleetData?.CivEnum} - sender or sender.identity is NULL (connectionId={sender?.connectionId}).");
+                return false;
+            }
             LocalHumanPlayerController playerCon = sender.identity.GetComponent<LocalHumanPlayerController>();
-            return playerCon != null && FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+            if (playerCon == null)
+            {
+                Debug.LogWarning($"[AuthDiag] IsSenderAuthorizedForThisFleet: fleet '{name}' civ={FleetData?.CivEnum} - connectionId={sender.connectionId} identity netId={sender.identity.netId} has NO LocalHumanPlayerController component.");
+                return false;
+            }
+            bool authorized = FleetData != null && playerCon.PlayerCiv == FleetData.CivEnum;
+            if (!authorized)
+            {
+                Debug.LogWarning($"[AuthDiag] IsSenderAuthorizedForThisFleet: fleet '{name}' civ={FleetData?.CivEnum} - connectionId={sender.connectionId} identity netId={sender.identity.netId} playerCon.PlayerCiv={playerCon.PlayerCiv} MISMATCH.");
+            }
+            return authorized;
         }
         [SerializeField]
         private GameObject _fleetUIGameObject;
@@ -424,6 +459,16 @@ namespace BOTF3D.Galaxy
         public Canvas FleetUICanvas { get; private set; }
         //public Canvas CanvasToolTip; // not used for now, see start method and in instantiation of fleetController in FleetManager.cs
         public PlayerDefinedTargetController TargetController;
+
+        // This fleet's own fog-of-war revealer, if it belongs to the local player (see
+        // FleetManager.RegisterFleetControllerAndSetupVisuals). Deliberately kept per-fleet rather
+        // than as a single shared field on FleetManager - the local player can have several fleets
+        // at once, and a shared "most recently created" pointer gets silently overwritten by the
+        // next fleet's registration before an earlier fleet's own cleanup path (e.g. destroying an
+        // emptied ship-deploy temp fleet) runs, causing that cleanup to rip the fog revealer out
+        // from under a still-alive, unrelated fleet - leaving that fleet's whole area permanently
+        // dark on the local player's own fog map even though the fleet itself is fine.
+        public csFogWar.FogRevealer FogRevealer;
         private Vector3 vectorOffset;
         private readonly float ourZCoordinate;
         [SerializeField]
@@ -1538,8 +1583,106 @@ namespace BOTF3D.Galaxy
             //}
         }
 
+        // ---------------------------------------------------------------------------------------
+        // Ship roster replication. ShipController has no NetworkIdentity/SyncList (see
+        // OnCivEnumChanged's SyncedIsNewFleet branch above), so a fleet's starting roster only
+        // stays consistent across peers because BuildShipsOfFirstFleet is a deterministic pure
+        // function every peer runs independently. A fleet built/modified by a player action
+        // instead (ship-deploy UI merge/split, convoy formation) has no such guarantee - the
+        // AddToShipList/RemoveFromShipList calls those flows make only ever run on whichever
+        // client's UI the player was dragging ships in, so FleetData.ShipsList silently stays
+        // empty on every other peer forever. That's exactly what crashed CombatInstantiator.
+        // CreateCombatData's sideOneShipCons[0]/sideTwoShipCons[0] the moment a freshly split
+        // fleet reached combat on a peer that never saw the split. Call RequestSyncShipRoster
+        // once, right after any such local roster mutation finishes, to fix that.
+        // ---------------------------------------------------------------------------------------
+
+        public void RequestSyncShipRoster()
+        {
+            if (FleetData == null)
+            {
+                Debug.LogWarning($"RequestSyncShipRoster: '{name}' has null FleetData - skipping.");
+                return;
+            }
+            List<int> shipIDs = FleetData.ShipsList
+                .Where(s => s != null && s.ShipData != null)
+                .Select(s => s.ShipData.ShipID)
+                .ToList();
+
+            if (isServer)
+            {
+                ServerSyncShipRoster(shipIDs);
+                return;
+            }
+            CmdSyncShipRoster(shipIDs);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSyncShipRoster(List<int> shipIDs, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSyncShipRoster: connection {sender?.connectionId} is not authorized to set '{name}''s ship roster - request ignored.");
+                return;
+            }
+            ServerSyncShipRoster(shipIDs);
+        }
+
+        [Server]
+        private void ServerSyncShipRoster(List<int> shipIDs)
+        {
+            RpcSyncShipRoster(shipIDs);
+        }
+
+        // A freshly-created fleet (e.g. a ship-deploy split) can have its first RequestSyncShipRoster
+        // RPC reach a given client before that same client's OnCivEnumChanged SyncVar hook has
+        // finished constructing FleetData for the newly-spawned NetworkIdentity - Mirror doesn't
+        // guarantee spawn-message and RPC-message handling are interleaved in dependency order per
+        // object. Stash the roster here when that race is lost; OnCivEnumChanged replays it via
+        // ApplyShipRoster() the moment FleetData actually exists.
+        private List<int> _pendingRosterShipIDs = null;
+
+        // Every peer applies this the same way, including the client that originated the roster -
+        // resolving each ShipID back through the local ShipRegistry is idempotent and guarantees
+        // this fleet's FleetData.ShipsList ends up built from the same resolution path everywhere,
+        // rather than the originating client trusting its own live ShipController references while
+        // every other peer trusts this Rpc.
+        [ClientRpc]
+        private void RpcSyncShipRoster(List<int> shipIDs)
+        {
+            if (FleetData == null)
+            {
+                Debug.LogWarning($"RpcSyncShipRoster: '{name}' has no FleetData yet (spawn/RPC ordering race) - deferring roster of {shipIDs.Count} ship(s) until OnCivEnumChanged initializes it.");
+                _pendingRosterShipIDs = shipIDs;
+                return;
+            }
+            ApplyShipRoster(shipIDs);
+        }
+
+        private void ApplyShipRoster(List<int> shipIDs)
+        {
+            List<ShipController> resolved = new List<ShipController>();
+            foreach (int shipID in shipIDs)
+            {
+                ShipController shipCon = ShipManager.Instance?.GetShipControllerByShipID(shipID);
+                if (shipCon != null)
+                    resolved.Add(shipCon);
+                else
+                    Debug.LogWarning($"ApplyShipRoster: '{name}' could not resolve ShipID={shipID} to a local ShipController - this peer doesn't know about that ship yet, its roster will be short by one.");
+            }
+
+            FleetData.SetShipList(resolved);
+            UpdateMaxWarp();
+            Debug.Log($"ApplyShipRoster: '{name}' roster synced - {resolved.Count}/{shipIDs.Count} ship(s) resolved locally.");
+        }
+
         public void UpdateMaxWarp()
         {
+            if (fleetData == null)
+            {
+                Debug.LogWarning($"UpdateMaxWarp: '{name}' has null FleetData - skipping.");
+                return;
+            }
             float maxWarp = 10f;
             for (int i = 0; i < fleetData.ShipsList.Count; i++)
             { // find the slowest ship
@@ -1910,6 +2053,16 @@ namespace BOTF3D.Galaxy
         // CmdSetDestinationToPlayerTarget) since the dragged marker itself only exists client-side.
         private void RelayDestinationToServer(GameObject hitObject)
         {
+            // [AuthDiag] Client-side half of the Task #4 investigation (see the matching
+            // [AuthDiag] block in IsSenderAuthorizedForThisFleet, which runs server-side and isn't
+            // otherwise visible from this machine's own log in this project's multi-machine test
+            // setup). If this fleet is a stale/duplicate object left over from the "full Mirror
+            // client resync" documented in project_bystander_fleet_duplication, its NetworkIdentity
+            // state here (netId/isClient/isOwned/connectionToServer) is the cheapest place to catch
+            // that before the Command even gets sent.
+            NetworkIdentity ni = GetComponent<NetworkIdentity>();
+            Debug.LogWarning($"[AuthDiag] RelayDestinationToServer: fleet '{name}' netId={(ni != null ? ni.netId.ToString() : "NO-IDENTITY")} isClient={isClient} isServer={isServer} isOwned={isOwned} NetworkClient.active={NetworkClient.active} NetworkClient.ready={NetworkClient.ready} NetworkClient.connection={(NetworkClient.connection != null ? "OK" : "NULL")}.");
+
             if (hitObject == FleetManager.Instance?.GalaxyCenter)
             {
                 Debug.Log($"RelayDestinationToServer: fleet '{name}' relaying destination=GalaxyCenter via CmdSetDestinationToGalaxyCenter.");
@@ -2178,6 +2331,16 @@ namespace BOTF3D.Galaxy
                 return;
             }
 
+            // DiplomacyController.Combat() already closes the diplomacy panel (and its ribbon
+            // "awaiting first contact" background highlight) via CloseAllMenus(), but that only
+            // runs locally on whichever single client clicked Fight. The OTHER combatant reaches
+            // combat purely through this Rpc and never ran that cleanup, so their diplomacy
+            // panel/background stayed flagged active underneath the Galaxy scene's blanket
+            // deactivate-for-combat/reactivate-after-combat sweep in SceneController - leaving the
+            // stale "Awaiting First Contact" highlight visibly stuck once combat ended, until they
+            // manually clicked the Diplomacy ribbon button again (which closes it as a side effect).
+            GalaxyMenuUIController.Instance?.CloseAllMenus();
+
             SceneController.Instance.LoadCombatScene(this, otherFleetCon, sysCon);
         }
 
@@ -2265,6 +2428,11 @@ namespace BOTF3D.Galaxy
         [ClientRpc]
         private void RpcCombatEnded(CivEnum civA, CivEnum civB)
         {
+            // Unconditional, first line, before anything that could throw or short-circuit below -
+            // if this is missing from a peer's log entirely, the Rpc never arrived/executed on that
+            // peer at all (rules out every branch below as the cause).
+            Debug.Log($"📩[RpcCombatEndedDiag] RpcCombatEnded RECEIVED on '{name}' for {civA} vs {civB} (isServer={isServer}, isClient={isClient}, isOwned={isOwned}).");
+
             // Bystanders who were shown the paused notice above hide it again.
             CombatPausedNoticeUI.Instance?.Hide();
 
@@ -2286,6 +2454,45 @@ namespace BOTF3D.Galaxy
             // fight that had just started. A fleet can only be a combatant in one active combat at
             // a time, so matching on "this" fleet's identity is unambiguous.
             CombatController combatCon = CombatManager.Instance?.GetActiveCombatControllerForFleet(this);
+            if (combatCon == null)
+            {
+                // Fleet-anchor lookup can miss if this client's local FleetController identity was
+                // invalidated/rebuilt by the still-unexplained full Mirror client-resync bug (see
+                // [[project_bystander_fleet_duplication]]) sometime between CaptureInvolvedFleets and
+                // this Rpc arriving - _involvedFleets would then hold a stale reference that no longer
+                // matches "this" even though a live CombatController for the same fight still exists
+                // locally. Retry by civ pair before giving up: the ambiguity risk this normally carries
+                // (see the big comment above) only matters for back-to-back same-civ-pair combats, and
+                // a stuck-forever Combat scene/panel is a strictly worse outcome than that narrow risk.
+                combatCon = CombatManager.Instance?.GetActiveCombatControllerForCivs(civA, civB);
+                if (combatCon == null)
+                {
+                    if (NetworkServer.active)
+                    {
+                        // This is the host's own client connection receiving its own RPC loopback.
+                        // The host already ran CombatController.EndCombat() directly and
+                        // synchronously (see TurnBasedCombatResolver.ShowVictoryScreen's
+                        // NetworkServer.active branch) before this async Rpc even arrived, so by now
+                        // combatEnded is already true and both lookups above correctly find nothing -
+                        // there is nothing left to tear down here. Expected and harmless, not a
+                        // stuck-panel case (that only applies to non-host combatants, for whom this
+                        // Rpc is their only trigger to leave the Combat scene).
+                        Debug.Log($"ℹ️[RpcCombatEndedDiag] RpcCombatEnded loopback on host's own client for {civA} vs {civB}, anchor fleet '{name}' - EndCombat() already ran directly on the server side, nothing to do here.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"⚠️[RpcCombatEndedDiag] RpcCombatEnded received for {civA} vs {civB} but no matching active CombatController found for anchor fleet '{name}' (CombatManager.Instance null={CombatManager.Instance == null}), even after a civ-pair fallback lookup - this client's Combat scene will NOT be torn down.");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠️[RpcCombatEndedDiag] RpcCombatEnded received for {civA} vs {civB} - fleet-anchor lookup for '{name}' missed, but civ-pair fallback found a combat controller. Calling EndCombat().");
+                }
+            }
+            else
+            {
+                Debug.Log($"✅[RpcCombatEndedDiag] RpcCombatEnded received for {civA} vs {civB} - found combat controller, calling EndCombat().");
+            }
             combatCon?.EndCombat();
 
             // DiplomacyData.CombatIntiated is a one-shot latch set by DiplomacyController.Combat()

@@ -198,6 +198,20 @@ namespace BOTF3D.Civilization
                 this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Fight)
             {
                 this.DiplomacyData.EncounterResolved = true;
+
+                // Close the encounter dialog unconditionally, on every peer, the moment Fight is
+                // decided - independent of Combat()'s own ValidCombatCheck() gate below. That gate
+                // gave inconsistent results per-peer (e.g. Player 2's local view of the encounter's
+                // FleetController/StarSysController ship-list SyncVars isn't guaranteed to already
+                // match the host's the instant this runs), so on whichever peer it failed, Combat()
+                // never reached its own CloseMenu/CloseAllMenus calls and Menu.ADiplomacyMenu stayed
+                // the tracked "open" menu for the rest of combat - reappearing, still showing the
+                // stale pre-combat encounter view, the moment GalaxyScene's root objects were
+                // reactivated after combat ended.
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+                GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu);
+                GalaxyMenuUIController.Instance.CloseAllMenus();
+
                 Combat(this);
                 return;
             }
@@ -502,34 +516,6 @@ namespace BOTF3D.Civilization
             float multiplier = 1f + proposer.CivData.DiplomaticAptitude * 0.2f; // ~0.6x-1.4x
             int gain = Mathf.Max(1, Mathf.RoundToInt(basePoints * multiplier));
             AddDiplomaticPoints(gain);
-        }
-        public void GatherIntel(DiplomacyController diplomacyController)
-        {
-            IntelligenceManager.Instance.CreateIntelProject(
-                SecretActionsEnum.GatherIntelligence,
-                diplomacyController.DiplomacyData.CivEnumSideOne,
-                diplomacyController.DiplomacyData.CivEnumSideTwo, out _);
-        }
-        public void Theft(DiplomacyController diplomacyController)
-        {
-            IntelligenceManager.Instance.CreateIntelProject(
-                SecretActionsEnum.IntellectualTheft,
-                diplomacyController.DiplomacyData.CivEnumSideOne,
-                diplomacyController.DiplomacyData.CivEnumSideTwo, out _);
-        }
-        public void Disinformation(DiplomacyController diplomacyController)
-        {
-            IntelligenceManager.Instance.CreateIntelProject(
-                SecretActionsEnum.Disinformation,
-                diplomacyController.DiplomacyData.CivEnumSideOne,
-                diplomacyController.DiplomacyData.CivEnumSideTwo, out _);
-        }
-        public void Sabatoge(DiplomacyController diplomacyController)
-        {
-            IntelligenceManager.Instance.CreateIntelProject(
-                SecretActionsEnum.Sabotage,
-                diplomacyController.DiplomacyData.CivEnumSideOne,
-                diplomacyController.DiplomacyData.CivEnumSideTwo, out _);
         }
         public void SystemRecon(DiplomacyController diplomacyController)
         {
