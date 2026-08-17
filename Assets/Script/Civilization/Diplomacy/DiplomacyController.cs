@@ -51,11 +51,29 @@ namespace BOTF3D.Civilization
             // actual Fight/Withdraw decision, via the [Server] entry point that skips the Cmd relay.
             if (!NetworkServer.active) return;
 
-            bool aiIsSideOne = this.DiplomacyData.CivOne != null && this.DiplomacyData.CivOne.CivData.PlayedByAI;
-            bool aiIsSideTwo = !aiIsSideOne && this.DiplomacyData.CivTwo != null && this.DiplomacyData.CivTwo.CivData.PlayedByAI;
+            // CivData.PlayedByAI defaults to true and is never actually set false for the local
+            // human player's own civ anywhere in the codebase, so it can't be trusted alone to tell
+            // "this side is AI" from "this side is the human". AreWeLocalPlayer is the same signal
+            // already used above to decide whether to show the UI, so use it here too to exclude
+            // whichever side is actually the human.
+            //
+            // Sides must also be checked independently, not as an either/or: the previous
+            // `!aiIsSideOne &&` short-circuit meant side two's response was only ever forced when
+            // side one was NOT AI-controlled. Since PlayedByAI is always true, aiIsSideOne was always
+            // true too, so side two (the actual other party in the encounter - human or AI) never
+            // got a forced response at all. Whenever the human's civ landed in "side one" (purely by
+            // CivEnum ordering), that human's own side got silently auto-resolved on encounter
+            // creation while the real opposing civ (side two) stayed Undecided forever - Withdraw
+            // could never fully resolve no matter what the human clicked, and the fleet stayed
+            // frozen (see FleetController.IsAwaitingEncounterResolution).
+            bool aiIsSideOne = this.DiplomacyData.CivOne != null && this.DiplomacyData.CivOne.CivData.PlayedByAI &&
+                !GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivOne.CivData.CivEnum);
+            bool aiIsSideTwo = this.DiplomacyData.CivTwo != null && this.DiplomacyData.CivTwo.CivData.PlayedByAI &&
+                !GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivTwo.CivData.CivEnum);
             if (!aiIsSideOne && !aiIsSideTwo) return;
 
-            ServerForceResponse(aiIsSideOne, DefaultResponseForCurrentStatus());
+            if (aiIsSideOne) ServerForceResponse(true, DefaultResponseForCurrentStatus());
+            if (aiIsSideTwo) ServerForceResponse(false, DefaultResponseForCurrentStatus());
         }
 
         // Status-based default: fight if relations are already Hostile or worse, otherwise withdraw

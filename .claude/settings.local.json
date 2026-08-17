@@ -171,7 +171,15 @@
       "Bash(PowerShell.exe -NoProfile -Command \"\\(Get-Item 'C:\\\\Users\\\\kenne\\\\AppData\\\\LocalLow\\\\Star Trek Fan Games\\\\3DBOTF\\\\Player.log'\\).LastWriteTime\")",
       "Bash(awk -F: '$1>4038')",
       "Bash(where git *)",
-      "Bash(openssl s_client -connect github.com:443 -servername github.com)"
+      "Bash(openssl s_client -connect github.com:443 -servername github.com)",
+      "Bash(awk -F: '$1 < 2610')",
+      "Bash(awk 'NR<=670 && /\\(public|private|internal\\).*\\\\\\(.*\\\\\\)[ \\\\t]*$|\\(public|private|internal\\).*void |\\(public|private|internal\\).*IEnumerator /' \"Assets/Script/Galaxy/Fleet/FleetManager.cs\")",
+      "Bash(awk 'NR==337048{print NR\": \"$0} NR>337048 && NR<340000 && /Exception|NullReference|Error/ {print NR\": \"$0}' \"/c/Users/kenne/AppData/Local/Unity/Editor/Editor.log\")",
+      "Bash(awk -F: '$1>337048')",
+      "Bash(awk 'NR>337048 && NR<355982 && \\(/CloseMenu/ || /SetUpDiplomacyUIElements/ || /ADiplomacyMenu/ || /NECHANI/ || /Withdraw/\\) {print NR\": \"$0}' \"/c/Users/kenne/AppData/Local/Unity/Editor/Editor.log\")",
+      "Bash(awk 'NR==10908,NR==10930' \"/c/Users/kenne/Documents/Unity/3D_BOTF2_99/Assets/Scenes/MainMenuScene.unity\")",
+      "Bash(bash gen_slider_row.sh)",
+      "Bash(awk '{print $3}')"
     ]
   },
   "model": "claude-sonnet-5"
