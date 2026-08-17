@@ -61,14 +61,14 @@ namespace BOTF3D.Core
         /// <summary>
         /// Fired when a star system ownership changes
         /// </summary>
-        public static event Action<string, CivEnum> OnSystemOwnershipChanged; // systemName, newOwner
+        public static event Action<string, CivEnum, CivEnum> OnSystemOwnershipChanged; // systemName, previousOwner, newOwner
 
         /// <summary>
         /// Fired when a fleet moves to a new location
         /// </summary>
         public static event Action<int> OnFleetMoved; // fleetID
 
-        public static void SystemOwnershipChanged(string systemName, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, newOwner);
+        public static void SystemOwnershipChanged(string systemName, CivEnum previousOwner, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, previousOwner, newOwner);
         public static void FleetMoved(int fleetID) => OnFleetMoved?.Invoke(fleetID);
 
         #endregion

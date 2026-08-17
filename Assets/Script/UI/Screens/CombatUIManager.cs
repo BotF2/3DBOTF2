@@ -1114,8 +1114,17 @@ namespace BOTF3D.UI
                 ? GameController.Instance.GameData.LocalPlayerCivEnum
                 : CivEnum.None;
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
-            string summary = BuildOutcomeSummaryLine(combatData, localCiv);
-            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate, summary, detail));
+            string summary = BuildOutcomeSummaryLine(combatData, localCiv, out ReportSeverity severity);
+
+            // StarSysCon is only set for SystemVsFleet/FleetVsSystem combats; a FleetVsFleet
+            // engagement happens in open space and has no system to anchor a location/quadrant to.
+            string location = combatData.StarSysCon != null ? combatData.StarSysCon.StarSysData.SysName : "";
+            GalaxyQuadrant? quadrant = combatData.StarSysCon != null
+                ? ReportEntry.QuadrantFromPosition(combatData.StarSysCon.StarSysData.GetPosition())
+                : (GalaxyQuadrant?)null;
+
+            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate, summary, detail,
+                location, quadrant, severity));
         }
 
         /// <summary>
@@ -1123,7 +1132,7 @@ namespace BOTF3D.UI
         /// was destroyed/captured, defeat if every local combat ship was destroyed/captured, else a draw
         /// (e.g. either side retreated with combat ships still standing).
         /// </summary>
-        private string BuildOutcomeSummaryLine(CombatData combatData, CivEnum localCivEnum)
+        private string BuildOutcomeSummaryLine(CombatData combatData, CivEnum localCivEnum, out ReportSeverity severity)
         {
             bool localIsSideTwo = combatData.CivEnumSideTwo == localCivEnum && combatData.CivEnumSideOne != localCivEnum;
             List<ShipController> localShips = localIsSideTwo ? combatData.SideTwoShipCons : combatData.SideOneShipCons;
@@ -1140,6 +1149,9 @@ namespace BOTF3D.UI
                                                           && !s.ShipData.IsCaptured);
 
             string outcome = enemyCombatAlive == 0 ? "Victory" : localCombatAlive == 0 ? "Defeat" : "Draw";
+            severity = outcome == "Defeat" ? ReportSeverity.Critical
+                : outcome == "Draw" ? ReportSeverity.Warning
+                : ReportSeverity.Info;
 
             var localDestroyed = combatData.DestroyedShips != null
                 ? combatData.DestroyedShips.Where(sd => sd != null && sd.CivEnum == localSideCiv).ToList()

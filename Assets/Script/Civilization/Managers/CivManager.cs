@@ -494,7 +494,7 @@ namespace BOTF3D.Civilization
                     if (!majorCiv.CivData.StarSysWeOwn.Contains(sysCon))
                         majorCiv.CivData.StarSysWeOwn.Add(sysCon);
 
-                    GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, majorCivEnum);
+                    GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, minorCivEnum, majorCivEnum);
                 }
                 minorCiv.CivData.StarSysWeOwn.Clear();
             }
@@ -560,7 +560,7 @@ namespace BOTF3D.Civilization
             sysCon.StarSysData.CurrentCivController = newOwner;
 
             Debug.Log($"[CivManager] {sysCon.StarSysData.SysName} assimilated by {newOwnerCivEnum} (was {previousOwnerCivEnum}).");
-            GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, newOwnerCivEnum);
+            GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, previousOwnerCivEnum, newOwnerCivEnum);
         }
 
         public CivController GetLocalPlayerCivController()

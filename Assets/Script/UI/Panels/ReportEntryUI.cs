@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using BOTF3D.Core;
 using BOTF3D.Civilization;
+using BOTF3D.Galaxy;
 
 namespace BOTF3D.UI
 {
@@ -59,10 +60,14 @@ namespace BOTF3D.UI
 
             // Subscribe here, not in OnEnable, so reports are captured even while the
             // panel is hidden (SetActive false disables OnEnable but not Awake subscribers).
+            // Note: GameEvents.OnCombatEnded is intentionally NOT subscribed here. Combat reports
+            // are already pushed by CombatUIManager.PushCombatReportEntry (the richer, per-side
+            // breakdown) from the active turn-based combat path; subscribing here too would push
+            // a second, duplicate, lower-detail entry for the same combat.
             IntelligenceManager.OnProjectResolved += OnIntelResolved;
             IntelligenceManager.OnNewContact      += OnNewContact;
-            GameEvents.OnCombatEnded              += OnCombatEnded;
             GameEvents.OnDiplomacyChanged         += OnDiplomacyChanged;
+            GameEvents.OnSystemOwnershipChanged   += OnSystemOwnershipChanged;
         }
 
         private void OnEnable()
@@ -75,8 +80,8 @@ namespace BOTF3D.UI
         {
             IntelligenceManager.OnProjectResolved -= OnIntelResolved;
             IntelligenceManager.OnNewContact      -= OnNewContact;
-            GameEvents.OnCombatEnded              -= OnCombatEnded;
             GameEvents.OnDiplomacyChanged         -= OnDiplomacyChanged;
+            GameEvents.OnSystemOwnershipChanged   -= OnSystemOwnershipChanged;
             if (Instance == this) Instance = null;
         }
 
@@ -121,12 +126,33 @@ namespace BOTF3D.UI
                 $"Your forces have established first contact with the {civ} civilization."));
         }
 
-        private void OnCombatEnded(CivEnum victor)
+        private void OnSystemOwnershipChanged(string systemName, CivEnum previousOwner, CivEnum newOwner)
         {
-            string detail = CombatUIManager.LastCombatReport;
-            PushReport(new ReportEntry(ReportCategory.Combat, GetStardate(),
-                $"Combat ended — Victor: {victor}",
-                string.IsNullOrEmpty(detail) ? "No further detail available." : detail));
+            if (GameController.Instance == null) return;
+            CivEnum local = GameController.Instance.GameData.LocalPlayerCivEnum;
+
+            // Only the local player's own gains/losses are report-worthy - AI-vs-AI ownership
+            // changes elsewhere in the galaxy would otherwise flood this feed every turn.
+            bool weGained = newOwner == local && previousOwner != local;
+            bool weLost   = previousOwner == local && newOwner != local;
+            if (!weGained && !weLost) return;
+
+            StarSysController sysCon = StarSysManager.Instance != null
+                ? StarSysManager.Instance.StarSysControllerList
+                    .Find(s => s != null && s.StarSysData != null && s.StarSysData.SysName == systemName)
+                : null;
+            GalaxyQuadrant? quadrant = sysCon != null
+                ? ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition())
+                : (GalaxyQuadrant?)null;
+
+            string summary  = weGained ? $"{systemName} captured" : $"{systemName} lost";
+            string detail   = weGained
+                ? $"{systemName} has come under your control (previously held by {previousOwner})."
+                : $"{systemName} has fallen to {newOwner}.";
+            ReportSeverity severity = weGained ? ReportSeverity.Info : ReportSeverity.Critical;
+
+            PushReport(new ReportEntry(ReportCategory.Combat, GetStardate(), summary, detail,
+                systemName, quadrant, severity));
         }
 
         private void OnDiplomacyChanged(CivEnum civA, CivEnum civB, DiplomaticState state)
@@ -195,7 +221,10 @@ namespace BOTF3D.UI
         [ContextMenu("Test: Push Sample Reports")]
         private void TestPushSampleReports()
         {
-            PushReport(new ReportEntry(ReportCategory.Combat,    1, "Combat ended — Victor: FED",    "Side 1 destroyed 3 ships. Side 2 retreated."));
+            PushReport(new ReportEntry(ReportCategory.Combat, 1, "Victory — Combat ships lost 0, surviving 4. Transports lost 0, surviving 2.",
+                "Side 1 destroyed 3 ships. Side 2 retreated.", "Vulcan", GalaxyQuadrant.Alpha, ReportSeverity.Info));
+            PushReport(new ReportEntry(ReportCategory.Combat, 1, "Defeat — Combat ships lost 5, surviving 0. Transports lost 1, surviving 0.",
+                "All combat ships lost.", "Qo'noS", GalaxyQuadrant.Beta, ReportSeverity.Critical));
             PushReport(new ReportEntry(ReportCategory.Diplomacy, 2, "War declared with KLING",       "A state of war now exists between FED and KLING."));
             PushReport(new ReportEntry(ReportCategory.Intel,     3, "Tech theft vs ROM: +40 pts",    "Your agents extracted 40 technology points from the Romulans."));
         }
@@ -237,7 +266,7 @@ namespace BOTF3D.UI
 
             if (r.categoryText != null) r.categoryText.text = CategoryLabel(entry.Category);
             if (r.turnText     != null) r.turnText.text     = $"SD{entry.Stardate}";
-            if (r.summaryText  != null) r.summaryText.text  = entry.Summary;
+            if (r.summaryText  != null) r.summaryText.text  = SeverityColor(entry.Severity, BuildSummaryLine(entry));
             if (r.detailText   != null) r.detailText.text   = entry.Detail;
 
             bool hasDetail = !string.IsNullOrEmpty(entry.Detail);
@@ -264,6 +293,25 @@ namespace BOTF3D.UI
 
         private static int GetStardate() =>
             TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+
+        private static string BuildSummaryLine(ReportEntry entry)
+        {
+            if (string.IsNullOrEmpty(entry.Location))
+                return entry.Summary;
+
+            string quadrant = entry.Quadrant.HasValue ? $"{entry.Quadrant.Value} Quadrant" : "unknown quadrant";
+            return $"{entry.Summary} — near {entry.Location} ({quadrant})";
+        }
+
+        private static string SeverityColor(ReportSeverity severity, string text)
+        {
+            switch (severity)
+            {
+                case ReportSeverity.Critical: return $"<color=#FF5050>{text}</color>";
+                case ReportSeverity.Warning:  return $"<color=#FFD050>{text}</color>";
+                default:                      return text;
+            }
+        }
 
         private static string CategoryLabel(ReportCategory cat)
         {
