@@ -275,6 +275,8 @@ namespace BOTF3D.Civilization
         }
         private void ChangedDiplomacyStatus(int currentStatusPoints)
         {
+            DiplomacyStatusEnum previousStatus = this.DiplomacyData.DiplomacyStatusEnumOfCivs;
+
             if (currentStatusPoints < -20)
             {
                 currentStatusPoints = -20;
@@ -318,6 +320,12 @@ namespace BOTF3D.Civilization
                 this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.War;
                 if (!wasAlreadyAtWar)
                     TriggerWarModeForAIControlledSystems();
+            }
+
+            if (this.DiplomacyData.DiplomacyStatusEnumOfCivs != previousStatus)
+            {
+                GameEvents.DiplomacyChanged(DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo,
+                    this.DiplomacyData.DiplomacyStatusEnumOfCivs);
             }
         }
 

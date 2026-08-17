@@ -68,6 +68,7 @@ namespace BOTF3D.UI
             IntelligenceManager.OnNewContact      += OnNewContact;
             GameEvents.OnDiplomacyChanged         += OnDiplomacyChanged;
             GameEvents.OnSystemOwnershipChanged   += OnSystemOwnershipChanged;
+            GameEvents.OnCivEliminated            += OnCivEliminated;
         }
 
         private void OnEnable()
@@ -82,6 +83,7 @@ namespace BOTF3D.UI
             IntelligenceManager.OnNewContact      -= OnNewContact;
             GameEvents.OnDiplomacyChanged         -= OnDiplomacyChanged;
             GameEvents.OnSystemOwnershipChanged   -= OnSystemOwnershipChanged;
+            GameEvents.OnCivEliminated            -= OnCivEliminated;
             if (Instance == this) Instance = null;
         }
 
@@ -155,16 +157,41 @@ namespace BOTF3D.UI
                 systemName, quadrant, severity));
         }
 
-        private void OnDiplomacyChanged(CivEnum civA, CivEnum civB, DiplomaticState state)
+        private void OnDiplomacyChanged(CivEnum civA, CivEnum civB, DiplomacyStatusEnum status)
         {
             if (GameController.Instance == null) return;
             CivEnum local = GameController.Instance.GameData.LocalPlayerCivEnum;
             if (civA != local && civB != local) return;
 
             CivEnum other   = civA == local ? civB : civA;
-            string  summary = BuildDiplomacySummary(state, other);
-            string  detail  = BuildDiplomacyDetail(state, local, other);
-            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail));
+            string  summary = BuildDiplomacySummary(status, other);
+            string  detail  = BuildDiplomacyDetail(status, local, other);
+            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail,
+                severity: DiplomacySeverity(status)));
+        }
+
+        private void OnCivEliminated(CivEnum eliminatedCiv, CivEnum absorbedByCiv)
+        {
+            if (GameController.Instance == null) return;
+            CivEnum local = GameController.Instance.GameData.LocalPlayerCivEnum;
+            if (eliminatedCiv == local) return;
+
+            // Only report civs we've actually had contact with - a DiplomacyController record for
+            // this pair only exists after an encounter, so its absence means "never met."
+            bool weKnowThem = DiplomacyManager.Instance != null &&
+                DiplomacyManager.Instance.ReturnADiplomacyController(local, eliminatedCiv) != null;
+            if (!weKnowThem) return;
+
+            bool   weAbsorbedThem = absorbedByCiv == local;
+            string summary = weAbsorbedThem
+                ? $"{eliminatedCiv} annexed into our empire"
+                : $"{eliminatedCiv} has been eliminated";
+            string detail = weAbsorbedThem
+                ? $"The {eliminatedCiv} civilization has been fully annexed into {absorbedByCiv}."
+                : $"The {eliminatedCiv} civilization has been absorbed by {absorbedByCiv} and no longer exists as an independent power.";
+            ReportSeverity severity = weAbsorbedThem ? ReportSeverity.Info : ReportSeverity.Warning;
+
+            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail, severity: severity));
         }
 
         // ── Static API — call from anywhere to inject a report ────────────────
@@ -336,36 +363,64 @@ namespace BOTF3D.UI
             }
         }
 
-        private static string BuildDiplomacySummary(DiplomaticState state, CivEnum other)
+        private static string BuildDiplomacySummary(DiplomacyStatusEnum status, CivEnum other)
         {
-            switch (state)
+            switch (status)
             {
-                case DiplomaticState.War:     return BOTF3D.Core.Loc.Format("Dipl.War",     "War declared with {0}",          other);
-                case DiplomaticState.Neutral: return BOTF3D.Core.Loc.Format("Dipl.Neutral", "Relations with {0}: neutral",    other);
-                case DiplomaticState.Peace:   return BOTF3D.Core.Loc.Format("Dipl.Peace",   "Peace accord with {0}",          other);
-                case DiplomaticState.Allied:  return BOTF3D.Core.Loc.Format("Dipl.Allied",  "Alliance forged with {0}",       other);
-                default:                      return BOTF3D.Core.Loc.Format("Dipl.Changed", "Diplomacy changed with {0}",     other);
+                case DiplomacyStatusEnum.War:        return BOTF3D.Core.Loc.Format("Dipl.War",        "War declared with {0}",              other);
+                case DiplomacyStatusEnum.ColdWar:     return BOTF3D.Core.Loc.Format("Dipl.ColdWar",    "Cold war tensions with {0}",          other);
+                case DiplomacyStatusEnum.Hostile:     return BOTF3D.Core.Loc.Format("Dipl.Hostile",    "Relations with {0} turn hostile",     other);
+                case DiplomacyStatusEnum.UnFriendly:  return BOTF3D.Core.Loc.Format("Dipl.UnFriendly", "Relations with {0} sour",             other);
+                case DiplomacyStatusEnum.Neutral:     return BOTF3D.Core.Loc.Format("Dipl.Neutral",    "Relations with {0}: neutral",         other);
+                case DiplomacyStatusEnum.Friendly:    return BOTF3D.Core.Loc.Format("Dipl.Friendly",   "Relations with {0} improve: friendly",other);
+                case DiplomacyStatusEnum.Allied:      return BOTF3D.Core.Loc.Format("Dipl.Allied",     "Alliance forged with {0}",             other);
+                case DiplomacyStatusEnum.Membership:  return BOTF3D.Core.Loc.Format("Dipl.Membership", "{0} petitions for membership",        other);
+                default:                              return BOTF3D.Core.Loc.Format("Dipl.Changed",    "Diplomacy changed with {0}",          other);
             }
         }
 
-        private static string BuildDiplomacyDetail(DiplomaticState state, CivEnum local, CivEnum other)
+        private static string BuildDiplomacyDetail(DiplomacyStatusEnum status, CivEnum local, CivEnum other)
         {
-            switch (state)
+            switch (status)
             {
-                case DiplomaticState.War:
+                case DiplomacyStatusEnum.War:
                     return BOTF3D.Core.Loc.Format("Dipl.War.Detail",
                         "A state of war now exists between {0} and {1}. All peace treaties are void.", local, other);
-                case DiplomaticState.Neutral:
+                case DiplomacyStatusEnum.ColdWar:
+                    return BOTF3D.Core.Loc.Format("Dipl.ColdWar.Detail",
+                        "Relations between {0} and {1} have deteriorated into a cold war.", local, other);
+                case DiplomacyStatusEnum.Hostile:
+                    return BOTF3D.Core.Loc.Format("Dipl.Hostile.Detail",
+                        "Relations between {0} and {1} have turned hostile.", local, other);
+                case DiplomacyStatusEnum.UnFriendly:
+                    return BOTF3D.Core.Loc.Format("Dipl.UnFriendly.Detail",
+                        "Relations between {0} and {1} have soured.", local, other);
+                case DiplomacyStatusEnum.Neutral:
                     return BOTF3D.Core.Loc.Format("Dipl.Neutral.Detail",
                         "Relations between {0} and {1} have settled at neutral.", local, other);
-                case DiplomaticState.Peace:
-                    return BOTF3D.Core.Loc.Format("Dipl.Peace.Detail",
-                        "A peace accord has been reached between {0} and {1}.", local, other);
-                case DiplomaticState.Allied:
+                case DiplomacyStatusEnum.Friendly:
+                    return BOTF3D.Core.Loc.Format("Dipl.Friendly.Detail",
+                        "Relations between {0} and {1} have warmed to friendly.", local, other);
+                case DiplomacyStatusEnum.Allied:
                     return BOTF3D.Core.Loc.Format("Dipl.Allied.Detail",
                         "An alliance has been forged between {0} and {1}. Mutual defense is now active.", local, other);
+                case DiplomacyStatusEnum.Membership:
+                    return BOTF3D.Core.Loc.Format("Dipl.Membership.Detail",
+                        "{1} has grown close enough to {0} to petition for membership.", local, other);
                 default:
                     return "";
+            }
+        }
+
+        private static ReportSeverity DiplomacySeverity(DiplomacyStatusEnum status)
+        {
+            switch (status)
+            {
+                case DiplomacyStatusEnum.War:                              return ReportSeverity.Critical;
+                case DiplomacyStatusEnum.ColdWar:
+                case DiplomacyStatusEnum.Hostile:
+                case DiplomacyStatusEnum.UnFriendly:                       return ReportSeverity.Warning;
+                default:                                                   return ReportSeverity.Info;
             }
         }
 

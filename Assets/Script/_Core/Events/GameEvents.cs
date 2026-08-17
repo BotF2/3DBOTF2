@@ -41,18 +41,19 @@ namespace BOTF3D.Core
         public static event Action<CivEnum> OnCivCreated;
 
         /// <summary>
-        /// Fired when diplomatic relations change between two civs
+        /// Fired when the diplomatic status between two civs changes (DiplomacyStatusEnum, not a
+        /// coarse War/Peace summary - reports/UI can decide how much detail to surface)
         /// </summary>
-        public static event Action<CivEnum, CivEnum, DiplomaticState> OnDiplomacyChanged;
+        public static event Action<CivEnum, CivEnum, DiplomacyStatusEnum> OnDiplomacyChanged;
 
         /// <summary>
-        /// Fired when a civilization is eliminated from the game
+        /// Fired when a civilization is eliminated from the game (absorbed into another civ)
         /// </summary>
-        public static event Action<CivEnum> OnCivEliminated;
+        public static event Action<CivEnum, CivEnum> OnCivEliminated; // eliminatedCiv, absorbedByCiv
 
         public static void CivCreated(CivEnum civ) => OnCivCreated?.Invoke(civ);
-        public static void DiplomacyChanged(CivEnum civ1, CivEnum civ2, DiplomaticState newState) => OnDiplomacyChanged?.Invoke(civ1, civ2, newState);
-        public static void CivEliminated(CivEnum civ) => OnCivEliminated?.Invoke(civ);
+        public static void DiplomacyChanged(CivEnum civ1, CivEnum civ2, DiplomacyStatusEnum newStatus) => OnDiplomacyChanged?.Invoke(civ1, civ2, newStatus);
+        public static void CivEliminated(CivEnum eliminatedCiv, CivEnum absorbedByCiv) => OnCivEliminated?.Invoke(eliminatedCiv, absorbedByCiv);
 
         #endregion
 
@@ -114,14 +115,5 @@ namespace BOTF3D.Core
             OnGameLoaded = null;
             OnNewTurn = null;
         }
-    }
-
-    // Supporting enums
-    public enum DiplomaticState
-    {
-        War,
-        Neutral,
-        Peace,
-        Allied
     }
 }

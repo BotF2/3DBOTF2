@@ -514,7 +514,7 @@ namespace BOTF3D.Civilization
             }
 
             Debug.Log($"[CivManager] {minorCivEnum} annexed into {majorCivEnum} via Membership — full ownership transfer complete.");
-            GameEvents.CivEliminated(minorCivEnum);
+            GameEvents.CivEliminated(minorCivEnum, majorCivEnum);
         }
 
         /// <summary>
