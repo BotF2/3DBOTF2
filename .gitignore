@@ -91,6 +91,7 @@ TorpedoFirepower.xlsx
 # Claude settings with potential secrets
 .claude/settingsOld*.json
 .claude/settingsOLD.json
+.claude/settings.local.json
 /Assets/LevelData/SuperCoolFogLevel.json.meta
 
 # UserSettings holds per-machine Editor state (layouts, package caches, etc.) - never share via git
