@@ -22,6 +22,8 @@ namespace BOTF3D.Core
         [Header("Current Language")]
         [SerializeField] private string currentLanguageCode = "en";
 
+        private const string LANGUAGE_KEY = "SelectedLanguage";
+
         [Header("Localization")]
         [SerializeField] private Button buttonEnglish;
         [SerializeField] private Button buttonFrench;
@@ -48,13 +50,12 @@ namespace BOTF3D.Core
 
         private void Start()
         {
-            SetLanguageByCode("en"); // or whatever you're using
             StartCoroutine(InitializeLocalization());
         }
         /// <summary>
         /// Wait for Unity Localization to initialize
         /// </summary>
-        /// 
+        ///
         private IEnumerator InitializeLocalization()
         {
             Debug.Log("LocaleManager: Waiting for Localization system to initialize...");
@@ -63,6 +64,10 @@ namespace BOTF3D.Core
             yield return LocalizationSettings.InitializationOperation;
 
             Debug.Log("✅ Localization system initialized");
+
+            // ✅ Apply the player's saved language, defaulting to English
+            string savedCode = PlayerPrefs.GetString(LANGUAGE_KEY, "en");
+            SetLanguageByCode(savedCode);
 
             // ✅ Force a locale refresh to ensure all UI updates
             RefreshAllLocalizedStrings();
@@ -113,6 +118,9 @@ namespace BOTF3D.Core
 
             LocalizationSettings.SelectedLocale = newLocale;
             currentLanguageCode = newLocale.Identifier.Code;
+
+            PlayerPrefs.SetString(LANGUAGE_KEY, currentLanguageCode);
+            PlayerPrefs.Save();
 
             Debug.Log($"✅ Language changed to: {newLocale.name} ({newLocale.Identifier.Code})");
         }
@@ -186,6 +194,14 @@ namespace BOTF3D.Core
         public string GetCurrentLanguageCode()
         {
             return LocalizationSettings.SelectedLocale?.Identifier.Code ?? "en";
+        }
+
+        /// <summary>
+        /// Gets all locales available to the Localization system, for populating settings UI.
+        /// </summary>
+        public System.Collections.Generic.List<Locale> GetAvailableLocales()
+        {
+            return LocalizationSettings.AvailableLocales?.Locales ?? new System.Collections.Generic.List<Locale>();
         }
     
 

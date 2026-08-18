@@ -7284,6 +7284,7 @@ GameObject:
   m_Component:
   - component: {fileID: 564492292}
   - component: {fileID: 564492291}
+  - component: {fileID: 564492293}
   m_Layer: 0
   m_Name: GalaxyCenter
   m_TagString: Untagged
@@ -7324,6 +7325,26 @@ Transform:
   - {fileID: 128813693}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &564492293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 564492290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2822b63576f3bec40bf05067d479e575, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.Galaxy.GalaxyQuadrantMarkers
+  fontAsset: {fileID: 0}
+  fontSize: 12
+  labelColor: {r: 0.6, g: 0.85, b: 1, a: 0.85}
+  labelInset: 4
+  labelHeight: 8
+  postHeight: 12
+  postWidth: 0.6
+  postColor: {r: 0.5, g: 0.8, b: 1, a: 0.6}
 --- !u!1 &570190132
 GameObject:
   m_ObjectHideFlags: 0
@@ -18325,11 +18346,6 @@ MonoBehaviour:
   FleetControllersInGame: []
   fleetUIGOContentParent: {fileID: 1039005432}
   fleetShipsContentFolderParent: {fileID: 1742165553}
-  TempFogRevealerFleet:
-    revealerTransform: {fileID: 0}
-    sightRange: 0
-    updateOnlyOnMove: 0
-    lastSeenAt: {x: 0, y: 0}
   FleetUI_ListContainer: {fileID: 382812917}
   fleetUnstackMinDistance: 10
   showFleetVisibilityDebug: 0
@@ -26786,10 +26802,6 @@ MonoBehaviour:
   techButtonGO: {fileID: 0}
   aidButtonGO: {fileID: 0}
   allianceButtonGO: {fileID: 0}
-  gatherIntelButtonGO: {fileID: 0}
-  theftButtonGO: {fileID: 0}
-  disinformationButtonGO: {fileID: 0}
-  sabatogeButtonGO: {fileID: 0}
   combatButtonGO: {fileID: 0}
   withdrawButtonGO: {fileID: 0}
   declareWarButtonGO: {fileID: 0}

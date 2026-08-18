@@ -29,10 +29,49 @@ namespace BOTF3D.Core
         [SerializeField] private int targetFrameRate = -1; // -1=unlimited
         [SerializeField] private int antiAliasing = 4; // 0, 2, 4, 8
 
+        // PlayerPrefs Keys
+        private const string QUALITY_LEVEL_KEY = "GraphicsQualityLevel";
+        private const string FULLSCREEN_KEY = "GraphicsFullscreen";
+        private const string VSYNC_KEY = "GraphicsVSyncCount";
+        private const string TARGET_FRAMERATE_KEY = "GraphicsTargetFrameRate";
+        private const string ANTIALIASING_KEY = "GraphicsAntiAliasing";
+        private const string RESOLUTION_WIDTH_KEY = "GraphicsResolutionWidth";
+        private const string RESOLUTION_HEIGHT_KEY = "GraphicsResolutionHeight";
+
         private void Awake()
         {
             ServiceLocator.Register<GraphicsQualityManager>(this);
+            LoadSettings();
             ApplyGraphicsSettings();
+        }
+
+        private void LoadSettings()
+        {
+            qualityLevel = PlayerPrefs.GetInt(QUALITY_LEVEL_KEY, qualityLevel);
+            fullscreen = PlayerPrefs.GetInt(FULLSCREEN_KEY, fullscreen ? 1 : 0) == 1;
+            vSyncCount = PlayerPrefs.GetInt(VSYNC_KEY, vSyncCount);
+            targetFrameRate = PlayerPrefs.GetInt(TARGET_FRAMERATE_KEY, targetFrameRate);
+            antiAliasing = PlayerPrefs.GetInt(ANTIALIASING_KEY, antiAliasing);
+
+            if (PlayerPrefs.HasKey(RESOLUTION_WIDTH_KEY) && PlayerPrefs.HasKey(RESOLUTION_HEIGHT_KEY))
+            {
+                targetWidth = PlayerPrefs.GetInt(RESOLUTION_WIDTH_KEY, targetWidth);
+                targetHeight = PlayerPrefs.GetInt(RESOLUTION_HEIGHT_KEY, targetHeight);
+            }
+
+            fullscreenMode = fullscreen ? FullScreenMode.MaximizedWindow : FullScreenMode.Windowed;
+        }
+
+        private void SaveSettings()
+        {
+            PlayerPrefs.SetInt(QUALITY_LEVEL_KEY, qualityLevel);
+            PlayerPrefs.SetInt(FULLSCREEN_KEY, fullscreen ? 1 : 0);
+            PlayerPrefs.SetInt(VSYNC_KEY, vSyncCount);
+            PlayerPrefs.SetInt(TARGET_FRAMERATE_KEY, targetFrameRate);
+            PlayerPrefs.SetInt(ANTIALIASING_KEY, antiAliasing);
+            PlayerPrefs.SetInt(RESOLUTION_WIDTH_KEY, targetWidth);
+            PlayerPrefs.SetInt(RESOLUTION_HEIGHT_KEY, targetHeight);
+            PlayerPrefs.Save();
         }
 
         private void Start()
@@ -100,6 +139,7 @@ namespace BOTF3D.Core
         {
             qualityLevel = Mathf.Clamp(level, 0, QualitySettings.names.Length - 1);
             ApplyGraphicsSettings();
+            SaveSettings();
         }
 
         /// <summary>
@@ -110,7 +150,51 @@ namespace BOTF3D.Core
             targetWidth = width;
             targetHeight = height;
             this.fullscreen = fullscreen;
+            fullscreenMode = fullscreen ? FullScreenMode.MaximizedWindow : FullScreenMode.Windowed;
             ApplyGraphicsSettings();
+            SaveSettings();
+        }
+
+        /// <summary>
+        /// Toggle fullscreen at runtime, keeping the current resolution
+        /// </summary>
+        public void SetFullscreen(bool isFullscreen)
+        {
+            fullscreen = isFullscreen;
+            fullscreenMode = isFullscreen ? FullScreenMode.MaximizedWindow : FullScreenMode.Windowed;
+            ApplyGraphicsSettings();
+            SaveSettings();
+        }
+
+        /// <summary>
+        /// vSyncCount: 0=off, 1=every vblank, 2=every second vblank
+        /// </summary>
+        public void SetVSyncCount(int count)
+        {
+            vSyncCount = Mathf.Clamp(count, 0, 2);
+            QualitySettings.vSyncCount = vSyncCount;
+            SaveSettings();
+            Debug.Log($"✅ VSync set to: {(vSyncCount == 0 ? "Off" : $"On ({vSyncCount}x)")}");
+        }
+
+        /// <summary>
+        /// -1 for unlimited/uncapped frame rate
+        /// </summary>
+        public void SetTargetFrameRate(int fps)
+        {
+            targetFrameRate = fps;
+            Application.targetFrameRate = targetFrameRate;
+            SaveSettings();
+        }
+
+        /// <summary>
+        /// MSAA level: 0, 2, 4, or 8
+        /// </summary>
+        public void SetAntiAliasing(int samples)
+        {
+            antiAliasing = samples;
+            QualitySettings.antiAliasing = antiAliasing;
+            SaveSettings();
         }
 
         // Optional: Detect and use native resolution
@@ -119,7 +203,15 @@ namespace BOTF3D.Core
             Resolution native = Screen.currentResolution;
             SetResolution(native.width, native.height, true);
         }
-    
+
+        public int GetQualityLevel() => qualityLevel;
+        public bool GetFullscreen() => fullscreen;
+        public int GetVSyncCount() => vSyncCount;
+        public int GetTargetFrameRate() => targetFrameRate;
+        public int GetAntiAliasing() => antiAliasing;
+        public int GetResolutionWidth() => targetWidth;
+        public int GetResolutionHeight() => targetHeight;
+
 
         private void OnDestroy()
         {
