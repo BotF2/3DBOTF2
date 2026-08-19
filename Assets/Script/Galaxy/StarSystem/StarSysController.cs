@@ -543,6 +543,121 @@ namespace BOTF3D.Galaxy
         {
             starSysData.CurrentOwnerCivEnum = newOwner;
         }
+
+        /// <summary>
+        /// Founds a new colony on this uninhabited, habitable system by consuming the given
+        /// Transport ship. Claims ownership (same steps as HabitableSysUIController.ClaimSystem),
+        /// then grants exactly one Power Plant - fueled by the dilithium the transport was
+        /// carrying - and one Factory. No Shipyard or any other facility is built; every other
+        /// facility list is left at whatever empty default an uninhabited system already has.
+        /// Driven by the Fleet menu's Colonize order button (see
+        /// FleetMenuUIController.ClickColonizeButton), not the arrival popup.
+        /// </summary>
+        public bool ColonizeWithTransport(ShipController transportShip)
+        {
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || !starSysData.IsHabitable)
+            {
+                Debug.LogWarning($"ColonizeWithTransport: '{name}' is no longer a qualifying uninhabited/habitable system.");
+                return false;
+            }
+
+            if (transportShip == null || transportShip.ShipData == null
+                || transportShip.ShipData.ShipType != ShipType.Transport || transportShip.ShipData.Distroyed)
+            {
+                Debug.LogWarning($"ColonizeWithTransport: '{name}' - no valid Transport ship supplied.");
+                return false;
+            }
+
+            var fleetCon = transportShip.ShipData.CurrentFleetController;
+            CivController colonizingCiv = fleetCon != null ? fleetCon.FleetData.CivController
+                : CivManager.Instance.GetCivControllerByCivEnum(transportShip.ShipData.CivEnum);
+            if (colonizingCiv == null)
+            {
+                Debug.LogWarning($"ColonizeWithTransport: '{name}' - could not resolve the colonizing civilization.");
+                return false;
+            }
+
+            // Claim ownership.
+            starSysData.CurrentOwnerCivEnum = colonizingCiv.CivData.CivEnum;
+            starSysData.CurrentCivController = colonizingCiv;
+            if (!colonizingCiv.CivData.StarSysWeOwn.Contains(this))
+                colonizingCiv.CivData.StarSysWeOwn.Add(this);
+
+            // Starting facilities: 1 Power Plant + 1 Factory, no Shipyard, no other facilities.
+            int civInt = (int)colonizingCiv.CivData.CivEnum;
+            starSysData.PowerPlants = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 1, this);
+            starSysData.CurrentPowerPlantCount = starSysData.PowerPlants.Count;
+            starSysData.Factories = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.FactoryPrefab, civInt, 1, this);
+            if (StarSysMenuUIController.Instance != null)
+                StarSysMenuUIController.Instance.UpdateSystemPowerBalance(this);
+
+            // Consume the transport - its dilithium fuels the new power plant.
+            if (fleetCon != null)
+                fleetCon.RemoveShipFromFleet(transportShip);
+            var occupiedSysCon = transportShip.ShipData.CurrentStarSysController;
+            if (occupiedSysCon != null)
+                occupiedSysCon.RemoveFromShipList(transportShip);
+            GameEvents.ShipDestroyed(transportShip.ShipData.ShipID);
+            ShipManager.Instance.RemoveShipControllerFromList(transportShip);
+            if (fleetCon != null) fleetCon.FleetData.ColonizableSystem = null;
+
+            if (GameController.Instance.AreWeLocalPlayer(colonizingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
+                StarSysManager.Instance.InstantiateStarSysUI(this);
+
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, colonizingCiv.CivData.CivEnum);
+            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} via Transport.");
+            return true;
+        }
+
+        /// <summary>
+        /// Claims this uninhabited, habitable system for the given civ - ownership only, no
+        /// Transport required and no facilities granted. Just plants the claiming civ's
+        /// OwnerInsignia so the system reads as theirs on the map; a Transport can colonize it
+        /// properly later via ColonizeWithTransport. Driven by the Fleet menu's Claim System
+        /// button (see FleetMenuUIController.ClickClaimSystemButton).
+        /// </summary>
+        public bool ClaimSystem(CivController claimingCiv)
+        {
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || !starSysData.IsHabitable)
+            {
+                Debug.LogWarning($"ClaimSystem: '{name}' is no longer a qualifying uninhabited/habitable system.");
+                return false;
+            }
+
+            if (claimingCiv == null || claimingCiv.CivData == null)
+            {
+                Debug.LogWarning($"ClaimSystem: '{name}' - no valid claiming civilization supplied.");
+                return false;
+            }
+
+            // Claim ownership.
+            starSysData.CurrentOwnerCivEnum = claimingCiv.CivData.CivEnum;
+            starSysData.CurrentCivController = claimingCiv;
+            if (!claimingCiv.CivData.StarSysWeOwn.Contains(this))
+                claimingCiv.CivData.StarSysWeOwn.Add(this);
+
+            // Plant the claiming civ's insignia.
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields != null && fields.OwnerInsigniaGO != null)
+            {
+                fields.OwnerInsigniaGO.SetActive(true);
+                SpriteRenderer srInsignia = fields.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
+                if (srInsignia != null)
+                {
+                    srInsignia.sprite = claimingCiv.CivData.InsigniaSprite;
+                    srInsignia.enabled = GameController.Instance.AreWeLocalPlayer(claimingCiv.CivData.CivEnum);
+                }
+            }
+
+            if (GameController.Instance.AreWeLocalPlayer(claimingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
+                StarSysManager.Instance.InstantiateStarSysUI(this);
+
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, claimingCiv.CivData.CivEnum);
+            Debug.Log($"Claimed '{starSysData.SysName}' for {claimingCiv.CivData.CivShortName}.");
+            return true;
+        }
         private void OnMouseDown()
         {
             // See matching comment in FleetController.OnMouseDown: this raw physics click fires

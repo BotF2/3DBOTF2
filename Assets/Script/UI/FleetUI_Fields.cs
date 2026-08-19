@@ -41,6 +41,8 @@ public class FleetUI_Fields : MonoBehaviour
     public Button MergeFleetsButton;
     public Button ShipDeployButton;
     public Button CancelShipManagerButton;
+    public Button ColonizeButton; // active when fleet contains a Transport and is in contact with an uninhabited, habitable system
+    public Button ClaimSystemButton; // active whenever fleet is in contact with an uninhabited, habitable system - no Transport required
 
     [Header("Sliders")]
     public Slider WarpSlider;

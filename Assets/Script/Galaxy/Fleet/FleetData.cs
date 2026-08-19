@@ -51,6 +51,13 @@ namespace BOTF3D.Galaxy
         public StarSysController DockedStarSys;
         public int DockedSlotIndex = -1;
 
+        // Uninhabited, habitable system this fleet is currently in contact with, or null. Set by
+        // FleetController.OnTriggerEnter's arrival-trigger the moment a traveling fleet reaches such
+        // a system (the same spot that already opens HabitableSysUIController's informational popup);
+        // cleared on arrival at any other system. Read by FleetMenuUIController to enable the Colonize
+        // order button - see StarSysController.ColonizeWithTransport for what clicking it does.
+        public StarSysController ColonizableSystem;
+
         public void ReleaseDockSlotIfAny()
         {
             if (DockedStarSys == null) return;

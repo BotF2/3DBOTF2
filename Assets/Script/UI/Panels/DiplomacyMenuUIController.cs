@@ -498,6 +498,18 @@ namespace BOTF3D.UI
                     case "NumT":
                         ourTMPs[i].text = _transports.ToString();
                         break;
+                    case "StarSysName":
+                        // Default to the civ's home system name; DiplomacyData.StarSysController is
+                        // only populated when a specific, non-default system is actually involved in
+                        // the current encounter (first contact at a system, or clicking a known
+                        // system other than their home) - covers the home system name with that one.
+                        if (diplomacyCon.DiplomacyData.StarSysController != null)
+                            ourTMPs[i].text = diplomacyCon.DiplomacyData.StarSysController.StarSysData.SysName;
+                        else if (homeSysController != null)
+                            ourTMPs[i].text = homeSysController.StarSysData.SysName;
+                        else
+                            ourTMPs[i].text = string.Empty;
+                        break;
                     default:
                         break;
                 }

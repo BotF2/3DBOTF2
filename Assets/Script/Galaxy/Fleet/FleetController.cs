@@ -955,15 +955,27 @@ namespace BOTF3D.Galaxy
 
                         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
 
+                        // Default to "not in contact with a colonizable system" - the uninhabited
+                        // habitable branch below is the only one that sets it back.
+                        this.FleetData.ColonizableSystem = null;
+
                         if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
                             if (sysCon.StarSysData.IsHabitable)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
+                                this.FleetData.ColonizableSystem = sysCon;
                                 if (weAreLocalPlayer)
                                 {
-                                    FleetUI.MoveBackAnyaFleetUIGO();
+                                    // Open the Habitable System popup first, then the fleet's own menu -
+                                    // GalaxyMenuUIController.OpenMenu always closes whatever menu is
+                                    // currently tracked before opening the next one, and Menu.AFleetMenu
+                                    // (unlike Menu.HabitableSysMenu) has a real close case, so opening it
+                                    // second is what leaves both visible together. The Fleet menu is what
+                                    // actually holds the Colonize/Claim System buttons (FleetUI_Fields) -
+                                    // ColonizableSystem was just set above, so they'll be correctly gated.
                                     HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
+                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
                                 }
                             }
                             else

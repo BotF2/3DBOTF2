@@ -533,10 +533,25 @@ namespace BOTF3D.UI
             // ✅ CRITICAL: Do NOT pass world objects (Systems/Fleets) as the tracked menu object!
             // If we do, the state manager will call SetActive(false) on them when the menu closes,
             // making them disappear from the galaxy map. Their UI is managed by sub-controllers.
+            //
+            // DiplomacyController is excluded for a related but distinct reason: closing/switching
+            // menus (including CloseCurrentMenu's own call from the next OpenMenu) would SetActive(false)
+            // its GameObject, which permanently kills that instance's Update() loop - including the
+            // 60-second unresponsive-side timeout (DiplomacyController.Update) that's the only
+            // fallback for a system-defender side with no live FleetController and PlayedByAI=false
+            // (DoAIDiplomacy skips answering for it - see DoAIDiplomacy's aiIsSideOne/aiIsSideTwo
+            // check). Once that timeout can never fire, TryResolveEncounter never sees both sides
+            // resolved, so ServerDecrementPendingEncounters is never called and the reporting fleet
+            // stays gated by IsAwaitingEncounterResolution forever - reproduced via first-contact with
+            // a system whose defenders never got a response, regardless of whether the player clicked
+            // Withdraw (which itself triggers a menu close/switch here). The actual Diplomacy panel's
+            // visibility is controlled separately via DiplomacyController.DiplomacyUIGameObject, so
+            // keeping diplomacyCon.gameObject itself active doesn't affect what's shown on screen.
             GameObject trackedUIObject = callingMenuOrGalaxyObject;
             if (trackedUIObject != null &&
                 (trackedUIObject.GetComponent<StarSysController>() != null ||
-                 trackedUIObject.GetComponent<FleetController>() != null))
+                 trackedUIObject.GetComponent<FleetController>() != null ||
+                 trackedUIObject.GetComponent<DiplomacyController>() != null))
             {
                 trackedUIObject = null;
             }

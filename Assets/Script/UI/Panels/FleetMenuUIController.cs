@@ -644,6 +644,31 @@ namespace BOTF3D.UI
             uiFields.CancelShipManagerButton.onClick.AddListener(() => CancelFleetUIButton());
             cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
 
+            // Colonize: active only while this fleet is in contact with a qualifying uninhabited,
+            // habitable system (see FleetController.OnTriggerEnter, which sets
+            // FleetData.ColonizableSystem on arrival) and carries at least one live Transport.
+            bool canColonize = fleetCon.FleetData?.ColonizableSystem != null
+                && (int)fleetCon.FleetData.ColonizableSystem.StarSysData.CurrentOwnerCivEnum >= (int)CivEnum.ZZUNINHABITED1
+                && fleetCon.FleetData.ColonizableSystem.StarSysData.IsHabitable
+                && fleetCon.FleetData.ShipsList.Any(s => s != null && s.ShipData != null
+                    && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
+
+            uiFields.ColonizeButton.gameObject.SetActive(true);
+            uiFields.ColonizeButton.interactable = canColonize;
+            uiFields.ColonizeButton.onClick.RemoveAllListeners();
+            uiFields.ColonizeButton.onClick.AddListener(() => ClickColonizeButton(fleetCon));
+
+            // Claim System: same contact requirement as Colonize, but no Transport needed - just
+            // plants the fleet's civ's insignia on the system (see StarSysController.ClaimSystem).
+            bool canClaim = fleetCon.FleetData?.ColonizableSystem != null
+                && (int)fleetCon.FleetData.ColonizableSystem.StarSysData.CurrentOwnerCivEnum >= (int)CivEnum.ZZUNINHABITED1
+                && fleetCon.FleetData.ColonizableSystem.StarSysData.IsHabitable;
+
+            uiFields.ClaimSystemButton.gameObject.SetActive(true);
+            uiFields.ClaimSystemButton.interactable = canClaim;
+            uiFields.ClaimSystemButton.onClick.RemoveAllListeners();
+            uiFields.ClaimSystemButton.onClick.AddListener(() => ClickClaimSystemButton(fleetCon));
+
             // ✅ TEXT BINDINGS: Always update
             uiFields.FleetNameText.text = fleetCon.FleetData.FleetName;
             uiFields.DestinationName.gameObject.SetActive(true);
@@ -678,6 +703,28 @@ namespace BOTF3D.UI
                 MousePointerChanger.Instance.SetShipExchangeCursor();
                 ShipDeployMenuUIController.Instance.TopFleet = fleetCon;
             }
+        }
+        private void ClickColonizeButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData == null) return;
+            var sysCon = fleetCon.FleetData.ColonizableSystem;
+            if (sysCon == null) return;
+
+            var transport = fleetCon.FleetData.ShipsList.FirstOrDefault(s => s != null && s.ShipData != null
+                && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
+            if (transport == null) return;
+
+            if (sysCon.ColonizeWithTransport(transport))
+                SetupFleetUIData(); // refresh so the Colonize button + ship list reflect the new state
+        }
+        private void ClickClaimSystemButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData == null) return;
+            var sysCon = fleetCon.FleetData.ColonizableSystem;
+            if (sysCon == null) return;
+
+            if (sysCon.ClaimSystem(fleetCon.FleetData.CivController))
+                SetupFleetUIData(); // refresh so the Claim/Colonize buttons reflect the new state
         }
         private void ClickMergeFleetButton(FleetController fleetClickingMerge)
         {

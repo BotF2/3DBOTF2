@@ -526,44 +526,56 @@ namespace BOTF3D.Civilization
         }
         public void Combat(DiplomacyController diplomacyController)
         {
+            if (diplomacyController.DiplomacyData.CombatIntiated == true) return;
+
             // ToDo: include orbital batteries and shields in combat, see ValidCombatCheck()
-            if (diplomacyController.DiplomacyData.CombatIntiated != true && ValidCombatCheck(diplomacyController.DiplomacyData))
+            if (!ValidCombatCheck(diplomacyController.DiplomacyData))
             {
-                diplomacyController.DiplomacyData.CombatIntiated = true;
+                // Fight was decided (see TryResolveEncounter) but there's nothing to actually
+                // fight - e.g. an AI civ's system with no docked defenders and no separate
+                // hostile fleet. TryResolveEncounter's Fight branch never calls
+                // ServerDecrementPendingEncounters (only Withdraw does), so without this the
+                // involved fleet(s) would stay IsAwaitingEncounterResolution==true forever and
+                // FixedUpdate would refuse to move them for the rest of the game.
+                diplomacyController.DiplomacyData.FleetControllerCivOne?.ServerDecrementPendingEncounters();
+                diplomacyController.DiplomacyData.FleetContollerCivTwo?.ServerDecrementPendingEncounters();
+                return;
+            }
 
-                // ✅ CRITICAL: Close diplomacy menu AND clear the open menu tracking
-                // This prevents the system from trying to re-open the wrong menu
-                GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
-                GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu); // Also close the individual diplomacy view
+            diplomacyController.DiplomacyData.CombatIntiated = true;
 
-                // ✅ Force close ALL menus to prevent UI conflicts
-                GalaxyMenuUIController.Instance.CloseAllMenus();
+            // ✅ CRITICAL: Close diplomacy menu AND clear the open menu tracking
+            // This prevents the system from trying to re-open the wrong menu
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
+            GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu); // Also close the individual diplomacy view
 
-                Debug.Log($"✅ Diplomacy closed, requesting combat scene...");
+            // ✅ Force close ALL menus to prevent UI conflicts
+            GalaxyMenuUIController.Instance.CloseAllMenus();
 
-                // SceneController.LoadCombatScene is not itself networked - it's a purely local scene
-                // load. RequestStartCombat must be called on a real, network-spawned FleetController;
-                // ValidCombatCheck guarantees at least one of CivOne/CivTwo is real, but which one
-                // depends on which side sorted first by CivEnum (see InstantiateDiplomacyController) -
-                // e.g. a system-defender encounter (Borg, or any fleet-vs-system fight) only ever has
-                // one real fleet, and it can land on either side. Pick whichever side is actually real.
-                FleetController callerFleet = diplomacyController.DiplomacyData.FleetControllerCivOne != null
-                    ? diplomacyController.DiplomacyData.FleetControllerCivOne
-                    : diplomacyController.DiplomacyData.FleetContollerCivTwo;
-                FleetController otherFleet = callerFleet == diplomacyController.DiplomacyData.FleetControllerCivOne
-                    ? diplomacyController.DiplomacyData.FleetContollerCivTwo
-                    : diplomacyController.DiplomacyData.FleetControllerCivOne;
+            Debug.Log($"✅ Diplomacy closed, requesting combat scene...");
 
-                // RequestStartCombat relays to the server if needed and the server broadcasts the
-                // result to every client via RpcStartCombat, so both combatants' clients load the
-                // Combat scene together instead of just whichever one clicked the button.
-                if (callerFleet != null)
-                {
-                    callerFleet.RequestStartCombat(
-                        otherFleet,
-                        diplomacyController.DiplomacyData.StarSysController
-                    );
-                }
+            // SceneController.LoadCombatScene is not itself networked - it's a purely local scene
+            // load. RequestStartCombat must be called on a real, network-spawned FleetController;
+            // ValidCombatCheck guarantees at least one of CivOne/CivTwo is real, but which one
+            // depends on which side sorted first by CivEnum (see InstantiateDiplomacyController) -
+            // e.g. a system-defender encounter (Borg, or any fleet-vs-system fight) only ever has
+            // one real fleet, and it can land on either side. Pick whichever side is actually real.
+            FleetController callerFleet = diplomacyController.DiplomacyData.FleetControllerCivOne != null
+                ? diplomacyController.DiplomacyData.FleetControllerCivOne
+                : diplomacyController.DiplomacyData.FleetContollerCivTwo;
+            FleetController otherFleet = callerFleet == diplomacyController.DiplomacyData.FleetControllerCivOne
+                ? diplomacyController.DiplomacyData.FleetContollerCivTwo
+                : diplomacyController.DiplomacyData.FleetControllerCivOne;
+
+            // RequestStartCombat relays to the server if needed and the server broadcasts the
+            // result to every client via RpcStartCombat, so both combatants' clients load the
+            // Combat scene together instead of just whichever one clicked the button.
+            if (callerFleet != null)
+            {
+                callerFleet.RequestStartCombat(
+                    otherFleet,
+                    diplomacyController.DiplomacyData.StarSysController
+                );
             }
             //*******load combat menu for local player and do AI civs
         }
