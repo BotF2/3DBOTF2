@@ -516,7 +516,8 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             // Computed locally on every client (each has an identical, synced combatData), so every
             // client's GameEvents.OnCombatEnded listeners fire consistently - not gated to the server.
             CivEnum winningCivEnum = sideOneAlive > 0 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
-            GameEvents.CombatEnded(winningCivEnum);
+            CivEnum losingCivEnum  = winningCivEnum == combatData.CivEnumSideOne ? combatData.CivEnumSideTwo : combatData.CivEnumSideOne;
+            GameEvents.CombatEnded(winningCivEnum, losingCivEnum);
 
             // Reward-granting and system-assimilation mutate persistent CivData - only the server
             // may decide/apply these, matching CombatController.EndCombat's fleet-cleanup gating below.

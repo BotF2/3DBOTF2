@@ -468,6 +468,7 @@ namespace BOTF3D.Civilization
             if (diplomacyCon == null) return;
 
             diplomacyCon.SubtractDiplomaticPoints(20);
+            DiplomacyManager.Instance?.ApplyDiplomaticRipple(project.InitiatorCiv, project.TargetCiv, -20, discoveryEvent);
             GameLogger.Log(GameLogger.LogCategory.Diplomacy,
                 $"Intel op discovered ({discoveryEvent}): {project.InitiatorCiv} ↔ {project.TargetCiv} | -20 DiplomacyPoints");
         }

@@ -925,6 +925,17 @@ namespace BOTF3D.Galaxy
                     if (isEnemyFleet && (weAreLocalPlayer || gameController.AreWeLocalPlayer(hitFleetCon.FleetData.CivEnum)))
                         EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
 
+                    // [DiploPanelDiag] Temporary - pins down why a fleet-vs-fleet contact after an
+                    // already-resolved star-system first contact with the same civ produced zero
+                    // diplomacy-related log output at all. Encounter queueing below only ever fires
+                    // when isOurDestination||contactIsIntercept is true and isServer is true - if
+                    // this fleet merely collided with the other civ's fleet without it being the
+                    // explicit destination/intercept target, nothing downstream ever runs.
+                    if (isEnemyFleet)
+                        Debug.LogWarning($"[DiploPanelDiag] OnTriggerEnter fleet-vs-fleet: this={name} other={hitFleetCon.name} " +
+                            $"isOurDestination={isOurDestination} contactIsIntercept={contactIsIntercept} isServer={isServer} " +
+                            $"Destination={(FleetData.Destination != null ? FleetData.Destination.name : "null")}");
+
                     if (isOurDestination || contactIsIntercept)
                     {
                         ClickCancelDestinationButton(); // we stop

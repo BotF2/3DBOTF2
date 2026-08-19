@@ -96,6 +96,10 @@ namespace BOTF3D.UI
         int _transports;
         [Header("Runtime lists")]
         [SerializeField] public List<GameObject> ListOfDiplomacyUiGos = new List<GameObject>();
+        [Header("Active Diplomacy Projects")]
+        [SerializeField] private Transform activeProjectsContainer;
+        [SerializeField] private GameObject diplomacyProjectEntryPrefab;
+        private readonly List<DiplomacyProjectEntryUI> _activeProjectRows = new List<DiplomacyProjectEntryUI>();
         public bool IsVisibleA_DiplomacyMenuView => ADiplomacyMenuView.activeSelf; // for pause time
         public bool IsVisibleDiplomacyMenuView => DiplomacyMenuView.activeSelf; // for pause time
 
@@ -151,6 +155,7 @@ namespace BOTF3D.UI
             if (DiplomacyMenuView == null) return;
 
             DiplomacyMenuView.SetActive(true);
+            RefreshActiveProjectsList();
 
             // ✅ Re-enable raycasts when showing
             var canvasGroups = DiplomacyMenuView.GetComponentsInChildren<CanvasGroup>(true);
@@ -264,8 +269,75 @@ namespace BOTF3D.UI
             while (ADiplomacyMenuView.transform.childCount > 0)
             {
                 var child = ADiplomacyMenuView.transform.GetChild(0).gameObject;
+
+                // A card recycled back into the ribbon list is no longer a live encounter popup -
+                // it's just a browsable relationship card (see PopulateDiplomacyList, which simply
+                // re-activates whatever's sitting in diplomacyListContainter). Combat/Withdraw were
+                // last set by SetUpDiplomacyUIElements for whatever genuine contact opened this
+                // card, and nothing else ever turned them back off, so without this they stayed
+                // active (and wired to real Combat()/SetResponse() calls) on every past, already-
+                // resolved encounter forever after, just from browsing the list.
+                DiplomacyController ownerCon = DiplomacyManager.Instance?.DiplomacyControllers
+                    ?.FirstOrDefault(dc => dc != null && dc.DiplomacyUIGameObject == child);
+                if (ownerCon != null)
+                    RefreshEncounterButtonsState(ownerCon);
+
                 child.transform.SetParent(diplomacyListContainter.transform, false);
             }
+        }
+
+        /// <summary>
+        /// Combat/Withdraw are only meaningful while diplomacyCon represents a genuine, unresolved
+        /// encounter the local player still needs to answer - never while merely browsing a past
+        /// (possibly long-resolved) contact's card from the ribbon list. Shows/hides both buttons
+        /// to match. Safe to call at any time; no-ops gracefully if the card has no UI yet.
+        /// </summary>
+        public void RefreshEncounterButtonsState(DiplomacyController diplomacyCon)
+        {
+            if (diplomacyCon?.DiplomacyUIGameObject == null) return;
+
+            bool activePending = IsEncounterGenuinelyPendingForLocalPlayer(diplomacyCon);
+            RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>(true);
+            foreach (var rt in rectTransforms)
+            {
+                if (rt.name == "CombatButton" || rt.name == "WithdrawButton")
+                    rt.gameObject.SetActive(activePending);
+            }
+        }
+
+        private bool IsEncounterGenuinelyPendingForLocalPlayer(DiplomacyController diplomacyCon)
+        {
+            if (diplomacyCon?.DiplomacyData == null || diplomacyCon.DiplomacyData.EncounterResolved)
+            {
+                Debug.LogWarning($"[DiploPanelDiag] IsEncounterGenuinelyPendingForLocalPlayer: bailing early. " +
+                    $"DiplomacyData null={diplomacyCon?.DiplomacyData == null} " +
+                    $"EncounterResolved={diplomacyCon?.DiplomacyData?.EncounterResolved}");
+                return false;
+            }
+
+            bool isSideOne = diplomacyCon.DiplomacyData.CivOne != null &&
+                GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivOne.CivData.CivEnum);
+            DiplomacyData.EncounterResponse localResponse = isSideOne
+                ? diplomacyCon.DiplomacyData.ResponseSideOne
+                : diplomacyCon.DiplomacyData.ResponseSideTwo;
+
+            // [DiploPanelDiag] Temporary - pins down why fleet-vs-star-system first contact was
+            // reported showing Combat/Withdraw inactive when it should be a genuine pending
+            // encounter. Prints every input this decision depends on so a mismatch (e.g. CivOne
+            // pointing at the wrong side, or a response already resolved before this ran) is
+            // visible from a single log line instead of requiring re-derivation from state.
+            Debug.LogWarning($"[DiploPanelDiag] IsEncounterGenuinelyPendingForLocalPlayer: " +
+                $"CivOne={diplomacyCon.DiplomacyData.CivOne?.CivData.CivShortName ?? "NULL"} " +
+                $"CivTwo={diplomacyCon.DiplomacyData.CivTwo?.CivData.CivShortName ?? "NULL"} " +
+                $"CivEnumSideOne={diplomacyCon.DiplomacyData.CivEnumSideOne} CivEnumSideTwo={diplomacyCon.DiplomacyData.CivEnumSideTwo} " +
+                $"isSideOne={isSideOne} ResponseSideOne={diplomacyCon.DiplomacyData.ResponseSideOne} " +
+                $"ResponseSideTwo={diplomacyCon.DiplomacyData.ResponseSideTwo} localResponse={localResponse} " +
+                $"FleetControllerCivOne={(diplomacyCon.DiplomacyData.FleetControllerCivOne != null ? "set" : "null")} " +
+                $"FleetContollerCivTwo={(diplomacyCon.DiplomacyData.FleetContollerCivTwo != null ? "set" : "null")} " +
+                $"StarSysController={(diplomacyCon.DiplomacyData.StarSysController != null ? diplomacyCon.DiplomacyData.StarSysController.StarSysData.SysName : "null")} " +
+                $"EncounterType={diplomacyCon.DiplomacyData.EncounterType}");
+
+            return localResponse == DiplomacyData.EncounterResponse.Undecided;
         }
         public void SetUpDiplomacyUIElements(GameObject diplomacyUIGO, GameObject diplomacyControllerGO, List<ShipController> shipList)
         {
@@ -355,7 +427,20 @@ namespace BOTF3D.UI
             {
                 Debug.LogWarning($"  ⚠️ InsigniaTheirCiv Image not found in DiplomacyUIGameObject for {notLocalPlayerCiv.CivData.CivShortName}. Check the GameObject name in the prefab.");
             }
-            RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>();
+            // Combat/Withdraw are only relevant while this card represents a genuine, unresolved
+            // encounter awaiting the local player's decision - not when this same DiplomacyController
+            // is just being re-set-up cosmetically, and definitely not on the card's later trips
+            // through the ribbon list (see RefreshEncounterButtonsState, which re-applies this same
+            // check whenever a card is recycled back into diplomacyListContainter).
+            bool encounterButtonsActive = IsEncounterGenuinelyPendingForLocalPlayer(diplomacyCon);
+
+            // includeInactive: true - on a repeat encounter this reuses the same UI GameObject from
+            // a prior, already-resolved contact, where RefreshEncounterButtonsState previously
+            // SetActive(false)'d CombatButton/WithdrawButton. Without it, the active-only default
+            // scan skips those two (now-inactive) buttons entirely, so the SetActive(true) below
+            // never runs on them even when encounterButtonsActive is true - leaving Combat/Withdraw
+            // permanently hidden for every encounter after the first with the same civ pair.
+            RectTransform[] rectTransforms = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<RectTransform>(true);
             for (int i = 0; i < rectTransforms.Length; i++)
             {
                 switch (rectTransforms[i].name)
@@ -411,11 +496,11 @@ namespace BOTF3D.UI
                         allianceButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "CombatButton":
-                        rectTransforms[i].gameObject.SetActive(true);
+                        rectTransforms[i].gameObject.SetActive(encounterButtonsActive);
                         combatButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "WithdrawButton":
-                        rectTransforms[i].gameObject.SetActive(true);
+                        rectTransforms[i].gameObject.SetActive(encounterButtonsActive);
                         withdrawButtonGO = rectTransforms[i].gameObject;
                         break;
                     case "DeclareWarButton":
@@ -449,6 +534,7 @@ namespace BOTF3D.UI
                         break;
                     case "RelationText":
                         ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs.ToString();
+                        SetRelationTextColdWarEmphasis(ourTMPs[i], diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs == DiplomacyStatusEnum.ColdWar);
                         break;
                     case "Text Points (TMP)":
                         ourTMPs[i].text = diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs.ToString();
@@ -551,6 +637,12 @@ namespace BOTF3D.UI
                             bool isSideOne = diplomacyCon.DiplomacyData.CivOne != null &&
                                 GameController.Instance.AreWeLocalPlayer(diplomacyCon.DiplomacyData.CivOne.CivData.CivEnum);
                             diplomacyCon.SetResponse(isSideOne, DiplomacyData.EncounterResponse.Withdraw);
+
+                            // Hide immediately once the local side has committed, even if the panel
+                            // stays open awaiting the other side (TryResolveEncounter only closes it
+                            // once both sides have answered) - otherwise Combat/Withdraw kept showing
+                            // as if still actionable after they'd already been used.
+                            RefreshEncounterButtonsState(diplomacyCon);
                         });
                         break;
                     case "DeclareWarButton":
@@ -577,6 +669,30 @@ namespace BOTF3D.UI
             }
 
             RefreshActiveProposalDisplay(diplomacyCon);
+        }
+
+        private static readonly Color ColdWarFlashColor = new Color(1f, 0.5f, 0f); // orange
+
+        /// <summary>
+        /// Reinforces ColdWar relations (one step short of War - see DiplomacyStatusEnum) by
+        /// flashing RelationText (DiploUIprefab.prefab, under "Text Status Header (TMP)") between
+        /// its normal color and orange. Any other status restores the text's original prefab
+        /// color and stops the flasher, so it can't keep running (or leave the text stuck orange)
+        /// after relations move away from ColdWar.
+        /// </summary>
+        private void SetRelationTextColdWarEmphasis(TextMeshProUGUI relationText, bool isColdWar)
+        {
+            TextColorFlasher flasher = relationText.GetComponent<TextColorFlasher>();
+            if (isColdWar)
+            {
+                if (flasher == null)
+                    flasher = relationText.gameObject.AddComponent<TextColorFlasher>();
+                flasher.StartFlashing(relationText, ColdWarFlashColor);
+            }
+            else if (flasher != null)
+            {
+                flasher.StopFlashing();
+            }
         }
 
         /// <summary>
@@ -629,10 +745,46 @@ namespace BOTF3D.UI
             if (DiplomacyManager.Instance == null) return;
             foreach (var diploCon in DiplomacyManager.Instance.DiplomacyControllers)
                 RefreshActiveProposalDisplay(diploCon);
+            RefreshActiveProjectsList();
         }
 
         private void RefreshAllActiveProposalDisplays(NegotiationPloysEnum _, CivEnum __, CivEnum ___, bool ____)
             => RefreshAllActiveProposalDisplays();
+
+        /// <summary>
+        /// Aggregates every pending, non-complete DiplomacyProject involving the local player -
+        /// both proposals they sent and incoming AI proposals targeting them - across every civ
+        /// pair, into the "Active Diplomacy Projects" panel. Pooled list pattern matching
+        /// IntelligenceUIController.RefreshCivTable / ReportEntryUI's row pooling.
+        /// </summary>
+        public void RefreshActiveProjectsList()
+        {
+            if (activeProjectsContainer == null || diplomacyProjectEntryPrefab == null) return;
+            if (DiplomacyManager.Instance == null || GameController.Instance == null) return;
+
+            CivEnum localCiv = GameController.Instance.GameData.LocalPlayerCivEnum;
+            var projects = new List<DiplomacyProject>();
+            foreach (var diploCon in DiplomacyManager.Instance.DiplomacyControllers)
+            {
+                var active = diploCon?.DiplomacyData?.ActiveProjects;
+                if (active == null) continue;
+                foreach (var p in active)
+                    if (!p.IsComplete && (p.ProposerCiv == localCiv || p.TargetCiv == localCiv))
+                        projects.Add(p);
+            }
+
+            while (_activeProjectRows.Count < projects.Count)
+                _activeProjectRows.Add(Instantiate(diplomacyProjectEntryPrefab, activeProjectsContainer)
+                    .GetComponent<DiplomacyProjectEntryUI>());
+
+            for (int i = 0; i < projects.Count; i++)
+            {
+                _activeProjectRows[i].gameObject.SetActive(true);
+                _activeProjectRows[i].Populate(projects[i], localCiv);
+            }
+            for (int i = projects.Count; i < _activeProjectRows.Count; i++)
+                _activeProjectRows[i].gameObject.SetActive(false);
+        }
 
         /// <summary>
         /// Text for the "ACTIVE PROPOSAL" panel (see DiploUIprefab.prefab's ActiveProposalText,

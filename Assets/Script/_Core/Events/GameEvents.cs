@@ -18,9 +18,9 @@ namespace BOTF3D.Core
         public static event Action<int> OnCombatStarted; // combatID
 
         /// <summary>
-        /// Fired when combat ends with a victor
+        /// Fired when combat ends with a victor and a defeated civ
         /// </summary>
-        public static event Action<CivEnum> OnCombatEnded;
+        public static event Action<CivEnum, CivEnum> OnCombatEnded; // winner, loser
 
         /// <summary>
         /// Fired when a ship is destroyed in combat
@@ -28,7 +28,7 @@ namespace BOTF3D.Core
         public static event Action<int> OnShipDestroyed; // shipID
 
         public static void CombatStarted(int combatID) => OnCombatStarted?.Invoke(combatID);
-        public static void CombatEnded(CivEnum victor) => OnCombatEnded?.Invoke(victor);
+        public static void CombatEnded(CivEnum winner, CivEnum loser) => OnCombatEnded?.Invoke(winner, loser);
         public static void ShipDestroyed(int shipID) => OnShipDestroyed?.Invoke(shipID);
 
         #endregion
@@ -51,9 +51,19 @@ namespace BOTF3D.Core
         /// </summary>
         public static event Action<CivEnum, CivEnum> OnCivEliminated; // eliminatedCiv, absorbedByCiv
 
+        /// <summary>
+        /// Fired for each third-party civ whose relationship with `actor` shifted as a ripple effect
+        /// of something `actor` did to/with `causingTarget` (see DiplomacyManager.ApplyDiplomaticRipple).
+        /// Only fired once the ripple's target controller (actor to thirdParty) is confirmed to exist
+        /// (i.e. they've had contact), so listeners never need their own contact-record gate.
+        /// </summary>
+        public static event Action<CivEnum, CivEnum, CivEnum, int, DiplomaticEventEnum> OnDiplomaticRipple; // actor, thirdParty, causingTarget, pointDelta, eventType
+
         public static void CivCreated(CivEnum civ) => OnCivCreated?.Invoke(civ);
         public static void DiplomacyChanged(CivEnum civ1, CivEnum civ2, DiplomacyStatusEnum newStatus) => OnDiplomacyChanged?.Invoke(civ1, civ2, newStatus);
         public static void CivEliminated(CivEnum eliminatedCiv, CivEnum absorbedByCiv) => OnCivEliminated?.Invoke(eliminatedCiv, absorbedByCiv);
+        public static void DiplomaticRipple(CivEnum actor, CivEnum thirdParty, CivEnum causingTarget, int pointDelta, DiplomaticEventEnum eventType)
+            => OnDiplomaticRipple?.Invoke(actor, thirdParty, causingTarget, pointDelta, eventType);
 
         #endregion
 
@@ -109,6 +119,7 @@ namespace BOTF3D.Core
             OnCivCreated = null;
             OnDiplomacyChanged = null;
             OnCivEliminated = null;
+            OnDiplomaticRipple = null;
             OnSystemOwnershipChanged = null;
             OnFleetMoved = null;
             OnGameSaved = null;

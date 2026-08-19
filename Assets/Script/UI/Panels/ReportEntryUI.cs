@@ -69,6 +69,7 @@ namespace BOTF3D.UI
             GameEvents.OnDiplomacyChanged         += OnDiplomacyChanged;
             GameEvents.OnSystemOwnershipChanged   += OnSystemOwnershipChanged;
             GameEvents.OnCivEliminated            += OnCivEliminated;
+            GameEvents.OnDiplomaticRipple         += OnDiplomaticRipple;
         }
 
         private void OnEnable()
@@ -84,6 +85,7 @@ namespace BOTF3D.UI
             GameEvents.OnDiplomacyChanged         -= OnDiplomacyChanged;
             GameEvents.OnSystemOwnershipChanged   -= OnSystemOwnershipChanged;
             GameEvents.OnCivEliminated            -= OnCivEliminated;
+            GameEvents.OnDiplomaticRipple         -= OnDiplomaticRipple;
             if (Instance == this) Instance = null;
         }
 
@@ -190,6 +192,22 @@ namespace BOTF3D.UI
                 ? $"The {eliminatedCiv} civilization has been fully annexed into {absorbedByCiv}."
                 : $"The {eliminatedCiv} civilization has been absorbed by {absorbedByCiv} and no longer exists as an independent power.";
             ReportSeverity severity = weAbsorbedThem ? ReportSeverity.Info : ReportSeverity.Warning;
+
+            PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail, severity: severity));
+        }
+
+        private void OnDiplomaticRipple(CivEnum actor, CivEnum thirdParty, CivEnum causingTarget, int pointDelta, DiplomaticEventEnum eventType)
+        {
+            if (GameController.Instance == null) return;
+            CivEnum local = GameController.Instance.GameData.LocalPlayerCivEnum;
+            if (actor != local && thirdParty != local) return;
+
+            CivEnum otherParty = actor == local ? thirdParty : actor;
+            string  direction  = pointDelta > 0 ? "improved" : "worsened";
+            string  summary    = $"{otherParty} relations {direction} ({eventType})";
+            string  detail     = $"Relations between {actor} and {thirdParty} shifted by {pointDelta:+0;-0} points " +
+                                  $"due to {actor}'s dealings with {causingTarget} ({eventType}).";
+            ReportSeverity severity = pointDelta > 0 ? ReportSeverity.Info : ReportSeverity.Warning;
 
             PushReport(new ReportEntry(ReportCategory.Diplomacy, GetStardate(), summary, detail, severity: severity));
         }
