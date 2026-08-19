@@ -513,6 +513,12 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             string winner = sideOneAlive > 0 ? "Side One" : "Side Two";
             Debug.Log($"🏆 {winner} WINS!");
 
+            // Computed locally on every client (each has an identical, synced combatData), so every
+            // client's GameEvents.OnCombatEnded listeners fire consistently - not gated to the server.
+            CivEnum winningCivEnum = sideOneAlive > 0 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
+            CivEnum losingCivEnum  = winningCivEnum == combatData.CivEnumSideOne ? combatData.CivEnumSideTwo : combatData.CivEnumSideOne;
+            GameEvents.CombatEnded(winningCivEnum, losingCivEnum);
+
             // Reward-granting and system-assimilation mutate persistent CivData - only the server
             // may decide/apply these, matching CombatController.EndCombat's fleet-cleanup gating below.
             if (NetworkServer.active)
@@ -520,7 +526,6 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 ApplyCaptureRewards();
 
                 // Borg have no diplomacy - they assimilate defended/attacked systems by winning combat instead.
-                CivEnum winningCivEnum = sideOneAlive > 0 ? combatData.CivEnumSideOne : combatData.CivEnumSideTwo;
                 if (winningCivEnum == CivEnum.BORG && combatData.StarSysCon != null)
                 {
                     CivManager.Instance.AssimilateSystem(combatData.StarSysCon, CivEnum.BORG);

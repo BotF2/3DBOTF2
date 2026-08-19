@@ -57,6 +57,7 @@ namespace BOTF3D.Civilization
                 TimeManager.Instance.OnTurnAdvanced += ProcessAutoImproveRelations;
                 TimeManager.Instance.OnTurnAdvanced += ProcessCooperationPactDrift;
             }
+            GameEvents.OnCombatEnded += HandleCombatEnded;
         }
 
         private void OnDisable()
@@ -68,6 +69,94 @@ namespace BOTF3D.Civilization
                 TimeManager.Instance.OnTurnAdvanced -= ProcessAutoImproveRelations;
                 TimeManager.Instance.OnTurnAdvanced -= ProcessCooperationPactDrift;
             }
+            GameEvents.OnCombatEnded -= HandleCombatEnded;
+        }
+
+        // Base magnitude of the direct point hit a losing civ takes against the civ that just beat
+        // it in combat - separate from (and on top of) whatever bilateral effect already exists for
+        // that pair (e.g. a pair already at War stays at War; this just nudges points further).
+        private const int CombatLossRippleMagnitude = 10;
+
+        // A ripple to a third-party civ is this fraction of the original bilateral delta - allies
+        // and rivals feel an echo of what happened, not the full impact.
+        private const float RippleFactor = 0.4f;
+
+        // Ripples are first-order only: applying a ripple can itself push some other pair across a
+        // status-tier boundary (e.g. into War, which fires its own ripple call - see
+        // DiplomacyController.ChangedDiplomacyStatus), so this guards against that cascading into a
+        // second, third, ... wave of ripples from the same originating event.
+        private bool _ripplingInProgress;
+
+        /// <summary>
+        /// Propagates a bilateral diplomacy change between `actor` and `target` out to third-party
+        /// civs that have an opinion about `target`: civs Allied (or in an active Cooperation Pact)
+        /// with `target` shift their own relationship with `actor` the same direction; civs Hostile-
+        /// or-worse with `target` shift the opposite direction. Only reaches third parties `actor`
+        /// already has a contact record with (ReturnADiplomacyController != null) - a civ can't form
+        /// an opinion about someone it's never met.
+        /// </summary>
+        public void ApplyDiplomaticRipple(CivEnum actor, CivEnum target, int bilateralDelta, DiplomaticEventEnum eventType)
+        {
+            if (bilateralDelta == 0) return;
+            if (actor == CivEnum.BORG || target == CivEnum.BORG) return; // the Borg do not engage in diplomacy
+            if (_ripplingInProgress) return;
+            if (DiplomacyControllers == null || DiplomacyControllers.Count == 0) return;
+
+            int rippleMagnitude = Mathf.RoundToInt(Mathf.Abs(bilateralDelta) * RippleFactor);
+            if (rippleMagnitude == 0) return;
+            int sign = bilateralDelta > 0 ? 1 : -1;
+
+            _ripplingInProgress = true;
+            try
+            {
+                // Snapshot first - AddDiplomaticPoints below can trigger annexation
+                // (DiplomacyController.AnnexMinorIntoMajor), which mutates DiplomacyControllers.
+                var snapshot = new List<DiplomacyController>(DiplomacyControllers);
+                foreach (var pair in snapshot)
+                {
+                    if (pair?.DiplomacyData == null) continue;
+                    CivEnum sideA = pair.DiplomacyData.CivEnumSideOne;
+                    CivEnum sideB = pair.DiplomacyData.CivEnumSideTwo;
+                    if (sideA != target && sideB != target) continue;
+
+                    CivEnum thirdParty = sideA == target ? sideB : sideA;
+                    if (thirdParty == actor || thirdParty == target || thirdParty == CivEnum.BORG) continue;
+
+                    DiplomacyStatusEnum thirdToTarget = pair.DiplomacyData.DiplomacyStatusEnumOfCivs;
+                    int signedRipple;
+                    if (thirdToTarget >= DiplomacyStatusEnum.Allied || pair.DiplomacyData.CooperationPactActive)
+                        signedRipple = sign * rippleMagnitude; // an ally of the target feels what the target feels
+                    else if (thirdToTarget <= DiplomacyStatusEnum.Hostile)
+                        signedRipple = -sign * rippleMagnitude; // a rival of the target feels the opposite
+                    else
+                        continue; // neutral-ish third civs don't have a strong enough opinion to react
+
+                    DiplomacyController actorThirdPair = ReturnADiplomacyController(actor, thirdParty);
+                    if (actorThirdPair == null) continue; // no contact record - can't have an opinion
+
+                    actorThirdPair.AddDiplomaticPoints(signedRipple);
+                    GameEvents.DiplomaticRipple(actor, thirdParty, target, signedRipple, eventType);
+                }
+            }
+            finally
+            {
+                _ripplingInProgress = false;
+            }
+        }
+
+        /// <summary>
+        /// Every resolved combat nudges the loser's standing with the winner down a little further
+        /// (on top of whatever status they were already at) and ripples that out to both sides'
+        /// allies/rivals. Combat always implies an existing contact record between winner and loser,
+        /// but the null-check is kept for safety.
+        /// </summary>
+        private void HandleCombatEnded(CivEnum winner, CivEnum loser)
+        {
+            DiplomacyController pair = ReturnADiplomacyController(winner, loser);
+            if (pair == null) return;
+
+            pair.SubtractDiplomaticPoints(CombatLossRippleMagnitude);
+            ApplyDiplomaticRipple(winner, loser, -CombatLossRippleMagnitude, DiplomaticEventEnum.Combat);
         }
 
         /// <summary>
@@ -398,6 +487,33 @@ namespace BOTF3D.Civilization
                 diplomacyCon.ResolveFleetToStrangGalacticEncounter(diplomacyCon); // ToDo
             }
             diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs = CalculateDiplomaticStatusOnFirstContact(diplomacyCon);
+            // A first encounter alone can never open relations worse than ColdWar - War only ever
+            // comes from an explicit DeclareWar or from combat losses grinding relations down over
+            // multiple turns, never as a same-frame consequence of simply meeting for the first
+            // time. CalculateDiplomaticStatusOnFirstContact's switch never actually reaches War
+            // today, but this makes that guarantee explicit rather than an accident of its case
+            // boundaries.
+            if (diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs < DiplomacyStatusEnum.ColdWar)
+                diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.ColdWar;
+            // Combat/Withdraw are only meaningful below Neutral relations (see
+            // DiplomacyMenuUIController.IsEncounterGenuinelyPendingForLocalPlayer) - the trait-based
+            // calculation above can occasionally land first contact at Neutral or better, in which
+            // case there's no Fight-or-flee decision to make even on this very first meeting.
+            diplomacyCon.DiplomacyData.EncounterResolved =
+                diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
+
+            // At Neutral+ relations there's no Fight/Withdraw decision pending, and DoAIDiplomacy
+            // below only ever force-resolves the AI's own side (never the local human's side), so
+            // the mutual-Withdraw TryResolveEncounter path that normally releases a fleet never
+            // fires here - release any real (non-placeholder) fleet immediately instead of leaving
+            // it frozen forever awaiting a response nobody will give.
+            if (diplomacyCon.DiplomacyData.EncounterResolved)
+            {
+                if (fleetSideOne != null && fleetSideOne.FleetData != null)
+                    fleetSideOne.ServerDecrementPendingEncounters();
+                if (fleetSideTwo != null && fleetSideTwo.FleetData != null)
+                    fleetSideTwo.ServerDecrementPendingEncounters();
+            }
             diplomacyCon.DiplomacyData.DiplomacyPointsOfCivs = (int)diplomacyCon.DiplomacyData.DiplomacyStatusEnumOfCivs;
             diplomacyCon.DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
             InstantiateDiplomacyUIGameObject(diplomacyCon);
@@ -495,7 +611,14 @@ namespace BOTF3D.Civilization
                 // previous encounter between this civ pair (per-encounter, not a standing order).
                 ourDiplomacyController.DiplomacyData.ResponseSideOne = DiplomacyData.EncounterResponse.Undecided;
                 ourDiplomacyController.DiplomacyData.ResponseSideTwo = DiplomacyData.EncounterResponse.Undecided;
-                ourDiplomacyController.DiplomacyData.EncounterResolved = false;
+
+                // Combat/Withdraw are only meaningful while relations with this civ are below
+                // Neutral (see DiplomacyMenuUIController.IsEncounterGenuinelyPendingForLocalPlayer).
+                // At Neutral or better, reopening this card (fleet/system contact or manual browsing)
+                // is never a Fight-or-flee decision, so mark it already resolved instead of pending -
+                // the player can still escalate via the Declare War button, which re-arms this itself.
+                ourDiplomacyController.DiplomacyData.EncounterResolved =
+                    ourDiplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
                 // Restart the unresponsive-side timeout (DiplomacyController.Update) for this fresh
                 // decision, so a prior encounter's elapsed wait time doesn't carry over.
                 ourDiplomacyController.DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
@@ -679,20 +802,24 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                     // no diplomacy controller was found for some reason, fall through to the normal
                     // paused decision path.
                     DiplomacyController ourDiplomacyController = ReturnADiplomacyController(civSideOne, civSideTwo);
-                    bool autoResolve = ourDiplomacyController != null &&
+                    bool atPeace = ourDiplomacyController != null &&
                         ourDiplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
 
-                    if (autoResolve)
+                    DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
+                    UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
+                    // ✅ Open UI and ensure participants are updated so Combat button works.
+                    // Always opens now, even at Neutral+ relations - OpenDiplomacyUI marks the
+                    // encounter already-resolved in that case, so Combat/Withdraw stay hidden and
+                    // it's just a browsable reopen (see IsEncounterGenuinelyPendingForLocalPlayer).
+                    OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
+
+                    // At Neutral+ relations there's no Fight/Withdraw decision pending - release
+                    // both fleets immediately instead of leaving them frozen awaiting a response
+                    // nobody needs to give.
+                    if (atPeace)
                     {
                         sideOneFleetCon.ServerDecrementPendingEncounters();
                         sideTwoFleetCon.ServerDecrementPendingEncounters();
-                    }
-                    else
-                    {
-                        DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
-                        UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
-                        // ✅ Open UI and ensure participants are updated so Combat button works
-                        OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
                     }
                     Destroy(sysConEmpty.gameObject);
                 }
@@ -855,21 +982,26 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             DiplomacyController diplomacyController = ReturnADiplomacyController(civPartyOne, civPartyTwo);
             if (diplomacyController != null)
             {
-                // Repeat encounter: if relations are Neutral or better, let the fleet pass
-                // without opening the UI (mirrors the fleet-vs-fleet auto-resolve gate above).
-                if (diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral)
-                {
-                    fleetA.ServerDecrementPendingEncounters();
-                    return;
-                }
+                bool atPeace = diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
 
                 CheckForAIDiplomacy(fleetA, sysCon);
                 diplomacyController.DiplomacyData.EncounterType = EncounterType.Diplomacy;
-                // ✅ Open UI and update participants so Combat button works
+                // ✅ Open UI and update participants so Combat button works.
+                // Always opens now, even at Neutral+ relations - OpenDiplomacyUI marks the
+                // encounter already-resolved in that case, so Combat/Withdraw stay hidden and
+                // it's just a browsable reopen (see IsEncounterGenuinelyPendingForLocalPlayer).
                 OpenDiplomacyUI(civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList,
                     (fleetA.FleetData.CivController == civPartyOne ? fleetA : null),
                     (fleetA.FleetData.CivController == civPartyTwo ? fleetA : null),
                     sysCon);
+
+                // At Neutral+ relations there's no Fight/Withdraw decision pending - release
+                // the fleet immediately instead of leaving it frozen awaiting a response
+                // nobody needs to give.
+                if (atPeace)
+                {
+                    fleetA.ServerDecrementPendingEncounters();
+                }
             }
         }
 

@@ -38,10 +38,33 @@ namespace BOTF3D.Civilization
 
         public void DoAIDiplomacy()
         {
-            if (GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideTwo))
+            bool localPlayerIsParty = GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideOne) || GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivEnumSideTwo);
+            if (localPlayerIsParty)
             {
                 if (DiplomacyUIGameObject != null)
                     DiplomacyUIGameObject.SetActive(true);
+
+                // Fight still can't resolve synchronously here - if the computed first-contact
+                // status is Hostile-or-worse, DefaultResponseForCurrentStatus would force the AI to
+                // Fight immediately, and TryResolveEncounter treats either side choosing Fight as
+                // final - closing the diplomacy panel and starting combat in the same call that just
+                // opened it, before the human ever sees the screen (reported as "reached a home
+                // system and combat opened without a diplomacy screen"). Withdraw carries none of
+                // that risk: TryResolveEncounter only resolves once BOTH sides say Withdraw, so
+                // forcing just the AI's side to Withdraw here can't close or start anything by
+                // itself - it only means the fleet(s) involved unfreeze the instant the human also
+                // withdraws (Withdraw button, closing the panel, or starting a diplomacy project -
+                // see ImplicitlyWithdrawFromEncounter) instead of needing to separately wait out the
+                // 60s unresponsive-side timeout below (reported as fleets staying frozen well after
+                // the human had already moved on to a new order).
+                if (NetworkServer.active && DefaultResponseForCurrentStatus() == DiplomacyData.EncounterResponse.Withdraw)
+                {
+                    (bool aiIsSideOne, bool aiIsSideTwo) = ComputeAiSides();
+                    if (aiIsSideOne) ServerForceResponse(true, DiplomacyData.EncounterResponse.Withdraw);
+                    if (aiIsSideTwo) ServerForceResponse(false, DiplomacyData.EncounterResponse.Withdraw);
+                }
+
+                return;
             }
 
             // AI responses are server-authoritative only - there's no LocalHumanPlayerController to
@@ -51,11 +74,35 @@ namespace BOTF3D.Civilization
             // actual Fight/Withdraw decision, via the [Server] entry point that skips the Cmd relay.
             if (!NetworkServer.active) return;
 
-            bool aiIsSideOne = this.DiplomacyData.CivOne != null && this.DiplomacyData.CivOne.CivData.PlayedByAI;
-            bool aiIsSideTwo = !aiIsSideOne && this.DiplomacyData.CivTwo != null && this.DiplomacyData.CivTwo.CivData.PlayedByAI;
-            if (!aiIsSideOne && !aiIsSideTwo) return;
+            (bool otherAiIsSideOne, bool otherAiIsSideTwo) = ComputeAiSides();
+            if (!otherAiIsSideOne && !otherAiIsSideTwo) return;
 
-            ServerForceResponse(aiIsSideOne, DefaultResponseForCurrentStatus());
+            if (otherAiIsSideOne) ServerForceResponse(true, DefaultResponseForCurrentStatus());
+            if (otherAiIsSideTwo) ServerForceResponse(false, DefaultResponseForCurrentStatus());
+        }
+
+        // CivData.PlayedByAI defaults to true and is never actually set false for the local human
+        // player's own civ anywhere in the codebase, so it can't be trusted alone to tell "this side
+        // is AI" from "this side is the human". AreWeLocalPlayer is the same signal DoAIDiplomacy
+        // already uses to decide whether to show the UI, so it's used here too to exclude whichever
+        // side is actually the local human.
+        //
+        // Sides must be checked independently, not as an either/or: an earlier version's
+        // `!aiIsSideOne &&` short-circuit meant side two's response was only ever forced when side
+        // one was NOT AI-controlled. Since PlayedByAI is always true, aiIsSideOne was always true
+        // too, so side two (the actual other party in the encounter - human or AI) never got a
+        // forced response at all. Whenever the human's civ landed in "side one" (purely by CivEnum
+        // ordering), that human's own side got silently auto-resolved on encounter creation while
+        // the real opposing civ (side two) stayed Undecided forever - Withdraw could never fully
+        // resolve no matter what the human clicked, and the fleet stayed frozen (see
+        // FleetController.IsAwaitingEncounterResolution).
+        private (bool aiIsSideOne, bool aiIsSideTwo) ComputeAiSides()
+        {
+            bool aiIsSideOne = this.DiplomacyData.CivOne != null && this.DiplomacyData.CivOne.CivData.PlayedByAI &&
+                !GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivOne.CivData.CivEnum);
+            bool aiIsSideTwo = this.DiplomacyData.CivTwo != null && this.DiplomacyData.CivTwo.CivData.PlayedByAI &&
+                !GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivTwo.CivData.CivEnum);
+            return (aiIsSideOne, aiIsSideTwo);
         }
 
         // Status-based default: fight if relations are already Hostile or worse, otherwise withdraw
@@ -129,11 +176,23 @@ namespace BOTF3D.Civilization
 
             if (Time.realtimeSinceStartup - this.DiplomacyData.EncounterStartRealTime < UnresponsiveSideTimeoutSeconds) return;
 
+            // A human side that never responds always defaults to Withdraw, never Fight - inaction
+            // must never be able to start combat (see ImplicitlyWithdrawFromEncounter and
+            // DoAIDiplomacy's Withdraw-only fast path, which apply the same rule the moment the
+            // human acts or the panel opens; this is only the fallback for a human who does
+            // neither within UnresponsiveSideTimeoutSeconds). An AI side still resolves through the
+            // genuine status-based default, which may be Fight - that's the AI's own decision, not
+            // an automatic consequence of the encounter existing.
+            bool sideOneIsLocalHuman = this.DiplomacyData.CivOne != null &&
+                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivOne.CivData.CivEnum);
+            bool sideTwoIsLocalHuman = this.DiplomacyData.CivTwo != null &&
+                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivTwo.CivData.CivEnum);
+
             DiplomacyData.EncounterResponse fallback = DefaultResponseForCurrentStatus();
             if (this.DiplomacyData.ResponseSideOne == DiplomacyData.EncounterResponse.Undecided)
-                ServerForceResponse(true, fallback);
+                ServerForceResponse(true, sideOneIsLocalHuman ? DiplomacyData.EncounterResponse.Withdraw : fallback);
             if (this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Undecided)
-                ServerForceResponse(false, fallback);
+                ServerForceResponse(false, sideTwoIsLocalHuman ? DiplomacyData.EncounterResponse.Withdraw : fallback);
         }
 
         // Called by a Fight/Withdraw UI click (isSideOne = true if the clicking player is CivOne in
@@ -171,6 +230,21 @@ namespace BOTF3D.Civilization
         // No-ops if the encounter is already resolved or this side already has an explicit
         // answer, so it can't override a Fight choice made just before closing.
         public void CloseWithoutDeciding()
+        {
+            ImplicitlyWithdrawFromEncounter();
+        }
+
+        // Shared by CloseWithoutDeciding (closing the panel via X) and every project-proposal button
+        // (Trade/Tech/Aid/Alliance/Engagement - see SendProposal and OfferAlliance's minor-major
+        // branch). Starting a project or just closing the panel both mean the player isn't choosing
+        // Fight, but neither used to record an explicit answer, leaving the local side permanently
+        // Undecided - TryResolveEncounter can never reach its Withdraw branch (requires BOTH sides),
+        // so IsAwaitingEncounterResolution stayed true and the fleet(s) involved stayed frozen even
+        // after the player moved on to a new order (reported as "set new destination + warp, Force
+        // Turn, fleet doesn't move" right after opening a diplomacy project on first contact). No-ops
+        // if the encounter is already resolved or this side already has an explicit answer, so it
+        // can't override a Fight choice made just before.
+        private void ImplicitlyWithdrawFromEncounter()
         {
             if (this.DiplomacyData == null || this.DiplomacyData.EncounterResolved) return;
 
@@ -257,6 +331,8 @@ namespace BOTF3D.Civilization
         }
         private void ChangedDiplomacyStatus(int currentStatusPoints)
         {
+            DiplomacyStatusEnum previousStatus = this.DiplomacyData.DiplomacyStatusEnumOfCivs;
+
             if (currentStatusPoints < -20)
             {
                 currentStatusPoints = -20;
@@ -299,7 +375,18 @@ namespace BOTF3D.Civilization
                 bool wasAlreadyAtWar = this.DiplomacyData.DiplomacyStatusEnumOfCivs == DiplomacyStatusEnum.War;
                 this.DiplomacyData.DiplomacyStatusEnumOfCivs = DiplomacyStatusEnum.War;
                 if (!wasAlreadyAtWar)
+                {
                     TriggerWarModeForAIControlledSystems();
+                    const int WarEnteredRippleDelta = -30;
+                    DiplomacyManager.Instance?.ApplyDiplomaticRipple(DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo, WarEnteredRippleDelta, DiplomaticEventEnum.War);
+                    DiplomacyManager.Instance?.ApplyDiplomaticRipple(DiplomacyData.CivEnumSideTwo, DiplomacyData.CivEnumSideOne, WarEnteredRippleDelta, DiplomaticEventEnum.War);
+                }
+            }
+
+            if (this.DiplomacyData.DiplomacyStatusEnumOfCivs != previousStatus)
+            {
+                GameEvents.DiplomacyChanged(DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo,
+                    this.DiplomacyData.DiplomacyStatusEnumOfCivs);
             }
         }
 
@@ -345,6 +432,27 @@ namespace BOTF3D.Civilization
             DiplomacyData.CooperationPactActive = false;
             DiplomacyData.DiplomacyPointsOfCivs = (int)DiplomacyStatusEnum.War;
             ChangedDiplomacyStatus(DiplomacyData.DiplomacyPointsOfCivs);
+
+            // Re-arm the encounter as genuinely pending: a browsable/resolved panel just
+            // became a real Fight-or-Withdraw decision again for both sides.
+            DiplomacyData.ResponseSideOne = DiplomacyData.EncounterResponse.Undecided;
+            DiplomacyData.ResponseSideTwo = DiplomacyData.EncounterResponse.Undecided;
+            DiplomacyData.EncounterResolved = false;
+            DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
+
+            // Re-freeze both fleets - they were released when the prior encounter resolved
+            // (or never frozen, if this pair was only ever browsing at peace).
+            if (NetworkServer.active)
+            {
+                DiplomacyData.FleetControllerCivOne?.ServerIncrementPendingEncounters();
+                DiplomacyData.FleetContollerCivTwo?.ServerIncrementPendingEncounters();
+            }
+
+            // Let an AI-controlled other side react to the declaration immediately.
+            DoAIDiplomacy();
+
+            // Reflect the now-active Combat/Withdraw buttons on whatever panel is open.
+            DiplomacyMenuUIController.Instance?.RefreshEncounterButtonsState(this);
         }
         /// <summary>
         /// Full immediate annexation: whichever side of this pair is a minor race (CivEnum > 6)
@@ -416,7 +524,8 @@ namespace BOTF3D.Civilization
                         $"{DiplomacyData.CivEnumSideTwo} - trust will now build over time toward Federation membership.");
                 }
 
-                ApplyDiplomaticGesture(AlliancePointGain);
+                ImplicitlyWithdrawFromEncounter();
+                ApplyDiplomaticGesture(AlliancePointGain, DiplomaticEventEnum.Alliance);
                 return;
             }
 
@@ -434,6 +543,8 @@ namespace BOTF3D.Civilization
         /// </summary>
         private void SendProposal(NegotiationPloysEnum proposalType, string proposalLabel)
         {
+            ImplicitlyWithdrawFromEncounter();
+
             if (DiplomacyManager.Instance.CreateDiplomacyProject(proposalType,
                 DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo, out string failReason))
             {
@@ -461,19 +572,19 @@ namespace BOTF3D.Civilization
             switch (proposalType)
             {
                 case NegotiationPloysEnum.OfferAlliance:
-                    ApplyDiplomaticGesture(AlliancePointGain);
+                    ApplyDiplomaticGesture(AlliancePointGain, DiplomaticEventEnum.Alliance);
                     break;
                 case NegotiationPloysEnum.OfferTrade:
-                    ApplyDiplomaticGesture(TradePointGain);
+                    ApplyDiplomaticGesture(TradePointGain, DiplomaticEventEnum.Trade);
                     break;
                 case NegotiationPloysEnum.OfferTech:
-                    ApplyDiplomaticGesture(TechPointGain);
+                    ApplyDiplomaticGesture(TechPointGain, DiplomaticEventEnum.ShareTech);
                     break;
                 case NegotiationPloysEnum.OfferAid:
-                    ApplyDiplomaticGesture(AidPointGain);
+                    ApplyDiplomaticGesture(AidPointGain, DiplomaticEventEnum.GiveAid);
                     break;
                 case NegotiationPloysEnum.OfferCulturalExchange:
-                    ApplyDiplomaticGesture(EngagementPointGain);
+                    ApplyDiplomaticGesture(EngagementPointGain, DiplomaticEventEnum.CulturalExchange);
                     break;
             }
         }
@@ -501,7 +612,7 @@ namespace BOTF3D.Civilization
         /// (derived from Warlike/Xenophobia/Ruthless/Greedy), so Federation-like civs get noticeably
         /// more goodwill per gesture than Romulan/Cardassian/Dominion-like civs.
         /// </summary>
-        private void ApplyDiplomaticGesture(int basePoints)
+        private void ApplyDiplomaticGesture(int basePoints, DiplomaticEventEnum eventType)
         {
             // The Borg do not negotiate - they have no diplomacy, only assimilation via combat.
             if (DiplomacyData.CivEnumSideOne == CivEnum.BORG || DiplomacyData.CivEnumSideTwo == CivEnum.BORG)
@@ -516,6 +627,7 @@ namespace BOTF3D.Civilization
             float multiplier = 1f + proposer.CivData.DiplomaticAptitude * 0.2f; // ~0.6x-1.4x
             int gain = Mathf.Max(1, Mathf.RoundToInt(basePoints * multiplier));
             AddDiplomaticPoints(gain);
+            DiplomacyManager.Instance?.ApplyDiplomaticRipple(DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo, gain, eventType);
         }
         public void SystemRecon(DiplomacyController diplomacyController)
         {

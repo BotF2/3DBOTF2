@@ -113,7 +113,17 @@ namespace BOTF3D.UI
         {
             Debug.Log($"GalaxyUIStateManager: Closing menu {CurrentOpenMenu}");
 
-            if (CurrentOpenMenuObject != null)
+            // A DiplomacyController's own GameObject is never deactivated here - unlike every other
+            // tracked menu object, it isn't a disposable UI panel; it's the persistent per-civ-pair
+            // relationship tracker whose Update() must keep running (DiplomacyController.Update's
+            // 60s unresponsive-side timeout) for as long as an encounter is pending, independent of
+            // whatever menu the player is currently looking at. Deactivating it here used to freeze
+            // whichever encounter opened first the instant a second, unrelated first-contact
+            // encounter opened its own panel on top (OpenMenu always calls CloseCurrentMenu before
+            // opening anything new) - its Update() simply stopped being called forever, so the AI
+            // side of that first encounter could never be forced to a response and the fleet(s)
+            // waiting on it stayed frozen even after Force Turn, no matter how long you waited.
+            if (CurrentOpenMenuObject != null && CurrentOpenMenuObject.GetComponent<DiplomacyController>() == null)
             {
                 CurrentOpenMenuObject.SetActive(false);
             }

@@ -468,6 +468,16 @@ namespace BOTF3D.Galaxy
         // emptied ship-deploy temp fleet) runs, causing that cleanup to rip the fog revealer out
         // from under a still-alive, unrelated fleet - leaving that fleet's whole area permanently
         // dark on the local player's own fog map even though the fleet itself is fine.
+        //
+        // [NonSerialized] is required: csFogWar.FogRevealer is a [System.Serializable] class, and
+        // Unity's serializer always synthesizes a non-null default instance for such fields on a
+        // MonoBehaviour - even with zero data in the prefab and no explicit assignment anywhere.
+        // Without this attribute, newFleet.FogRevealer is NEVER actually null (confirmed via
+        // FogRevealerGuardDiag logging: revealerAlreadySet=True on a freshly-Instantiate()'d fleet's
+        // very first registration), so FleetManager.RegisterFleetControllerAndSetupVisuals's
+        // `newFleet.FogRevealer == null` guard skipped AddFogRevealer unconditionally for every
+        // fleet, for every civ - the "all fleets lost their fog clearing" regression.
+        [System.NonSerialized]
         public csFogWar.FogRevealer FogRevealer;
         private Vector3 vectorOffset;
         private readonly float ourZCoordinate;
@@ -914,6 +924,17 @@ namespace BOTF3D.Galaxy
                     // correctly regardless of which of the two fleets' OnTriggerEnter this is.
                     if (isEnemyFleet && (weAreLocalPlayer || gameController.AreWeLocalPlayer(hitFleetCon.FleetData.CivEnum)))
                         EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
+
+                    // [DiploPanelDiag] Temporary - pins down why a fleet-vs-fleet contact after an
+                    // already-resolved star-system first contact with the same civ produced zero
+                    // diplomacy-related log output at all. Encounter queueing below only ever fires
+                    // when isOurDestination||contactIsIntercept is true and isServer is true - if
+                    // this fleet merely collided with the other civ's fleet without it being the
+                    // explicit destination/intercept target, nothing downstream ever runs.
+                    if (isEnemyFleet)
+                        Debug.LogWarning($"[DiploPanelDiag] OnTriggerEnter fleet-vs-fleet: this={name} other={hitFleetCon.name} " +
+                            $"isOurDestination={isOurDestination} contactIsIntercept={contactIsIntercept} isServer={isServer} " +
+                            $"Destination={(FleetData.Destination != null ? FleetData.Destination.name : "null")}");
 
                     if (isOurDestination || contactIsIntercept)
                     {

@@ -18,9 +18,9 @@ namespace BOTF3D.Core
         public static event Action<int> OnCombatStarted; // combatID
 
         /// <summary>
-        /// Fired when combat ends with a victor
+        /// Fired when combat ends with a victor and a defeated civ
         /// </summary>
-        public static event Action<CivEnum> OnCombatEnded;
+        public static event Action<CivEnum, CivEnum> OnCombatEnded; // winner, loser
 
         /// <summary>
         /// Fired when a ship is destroyed in combat
@@ -28,7 +28,7 @@ namespace BOTF3D.Core
         public static event Action<int> OnShipDestroyed; // shipID
 
         public static void CombatStarted(int combatID) => OnCombatStarted?.Invoke(combatID);
-        public static void CombatEnded(CivEnum victor) => OnCombatEnded?.Invoke(victor);
+        public static void CombatEnded(CivEnum winner, CivEnum loser) => OnCombatEnded?.Invoke(winner, loser);
         public static void ShipDestroyed(int shipID) => OnShipDestroyed?.Invoke(shipID);
 
         #endregion
@@ -41,18 +41,29 @@ namespace BOTF3D.Core
         public static event Action<CivEnum> OnCivCreated;
 
         /// <summary>
-        /// Fired when diplomatic relations change between two civs
+        /// Fired when the diplomatic status between two civs changes (DiplomacyStatusEnum, not a
+        /// coarse War/Peace summary - reports/UI can decide how much detail to surface)
         /// </summary>
-        public static event Action<CivEnum, CivEnum, DiplomaticState> OnDiplomacyChanged;
+        public static event Action<CivEnum, CivEnum, DiplomacyStatusEnum> OnDiplomacyChanged;
 
         /// <summary>
-        /// Fired when a civilization is eliminated from the game
+        /// Fired when a civilization is eliminated from the game (absorbed into another civ)
         /// </summary>
-        public static event Action<CivEnum> OnCivEliminated;
+        public static event Action<CivEnum, CivEnum> OnCivEliminated; // eliminatedCiv, absorbedByCiv
+
+        /// <summary>
+        /// Fired for each third-party civ whose relationship with `actor` shifted as a ripple effect
+        /// of something `actor` did to/with `causingTarget` (see DiplomacyManager.ApplyDiplomaticRipple).
+        /// Only fired once the ripple's target controller (actor to thirdParty) is confirmed to exist
+        /// (i.e. they've had contact), so listeners never need their own contact-record gate.
+        /// </summary>
+        public static event Action<CivEnum, CivEnum, CivEnum, int, DiplomaticEventEnum> OnDiplomaticRipple; // actor, thirdParty, causingTarget, pointDelta, eventType
 
         public static void CivCreated(CivEnum civ) => OnCivCreated?.Invoke(civ);
-        public static void DiplomacyChanged(CivEnum civ1, CivEnum civ2, DiplomaticState newState) => OnDiplomacyChanged?.Invoke(civ1, civ2, newState);
-        public static void CivEliminated(CivEnum civ) => OnCivEliminated?.Invoke(civ);
+        public static void DiplomacyChanged(CivEnum civ1, CivEnum civ2, DiplomacyStatusEnum newStatus) => OnDiplomacyChanged?.Invoke(civ1, civ2, newStatus);
+        public static void CivEliminated(CivEnum eliminatedCiv, CivEnum absorbedByCiv) => OnCivEliminated?.Invoke(eliminatedCiv, absorbedByCiv);
+        public static void DiplomaticRipple(CivEnum actor, CivEnum thirdParty, CivEnum causingTarget, int pointDelta, DiplomaticEventEnum eventType)
+            => OnDiplomaticRipple?.Invoke(actor, thirdParty, causingTarget, pointDelta, eventType);
 
         #endregion
 
@@ -61,14 +72,14 @@ namespace BOTF3D.Core
         /// <summary>
         /// Fired when a star system ownership changes
         /// </summary>
-        public static event Action<string, CivEnum> OnSystemOwnershipChanged; // systemName, newOwner
+        public static event Action<string, CivEnum, CivEnum> OnSystemOwnershipChanged; // systemName, previousOwner, newOwner
 
         /// <summary>
         /// Fired when a fleet moves to a new location
         /// </summary>
         public static event Action<int> OnFleetMoved; // fleetID
 
-        public static void SystemOwnershipChanged(string systemName, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, newOwner);
+        public static void SystemOwnershipChanged(string systemName, CivEnum previousOwner, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, previousOwner, newOwner);
         public static void FleetMoved(int fleetID) => OnFleetMoved?.Invoke(fleetID);
 
         #endregion
@@ -108,20 +119,12 @@ namespace BOTF3D.Core
             OnCivCreated = null;
             OnDiplomacyChanged = null;
             OnCivEliminated = null;
+            OnDiplomaticRipple = null;
             OnSystemOwnershipChanged = null;
             OnFleetMoved = null;
             OnGameSaved = null;
             OnGameLoaded = null;
             OnNewTurn = null;
         }
-    }
-
-    // Supporting enums
-    public enum DiplomaticState
-    {
-        War,
-        Neutral,
-        Peace,
-        Allied
     }
 }

@@ -16,10 +16,15 @@ namespace BOTF3D.Civilization
     /// Instantiates the Civilizations(factions) (a CivController and a CivData) using CivSO
     /// See civ SOs listed in Unity CivManager SerializeFields
     /// Playable civs are: 0 FED, 1 ROM, 2 KLING, 3 CARD, 4 DOM, 5 BORG, 6 TERRAN
-    /// FOR CANON MAP GETS THESE MINORS NEAR THE PLAYALBLES PER MAP SIZE AND + MORE RANDOMS PER MAP SIZE
-    /// SMALL map minor race near: FED = 146 VULCAN, ROM = 62 GORN, KLING = 131 THOLIANS, CARD = 24 BAJORANS, DOM = 73 KAREMMA, BORG = 142 VIDIANS, TERRAN = 54 EDO
-    /// MEDIUM map minors adds near: FED = 129 TELLARITES, ROM = 37 BREEN, KLING = 96 NAUSICAANS, CARD = 85 LURIANS, DOM = 147 WADI, BORG = 74 KAZON, TERRAN = 30 BETAZOIDS
-    /// LARGE map minors adds near: FED = 13 ANDORIAN, ROM = 155 ZAKDORN, KLING = 156 ZIBALIANS, CARD = 121 TAKARANS, DOM = 51 DOSI, BORG = 145 VORI, TERRAN = 47 DELTANS
+    /// FOR CANON MAP, EVERY MAP SIZE GUARANTEES THESE 3 MINORS NEAR EACH PLAYABLE (see
+    /// GetGuaranteedMinorsForMajor), + MORE RANDOMS NEAR EACH PLAYABLE PER MAP SIZE (see GetMajorTargets)
+    /// FED = 146 VULCAN, 129 TELLARITES, 13 ANDORIAN
+    /// ROM = 62 GORN, 37 BREEN, 155 ZAKDORN
+    /// KLING = 131 THOLIANS, 96 NAUSICAANS, 157 ZIBALIANS
+    /// CARD = 24 BAJORANS, 85 LURIANS, 121 TAKARANS
+    /// DOM = 73 KAREMMA, 147 WADI, 51 DOSI
+    /// BORG = 142 VIDIANS, 74 KAZON, 145 VORI
+    /// TERRAN = 54 EDO, 30 BETAZOIDS, 47 DELTANS
     /// </summary>
 
     public class CivManager : MonoBehaviour, IManager
@@ -250,13 +255,36 @@ namespace BOTF3D.Civilization
         }
 
         /// <summary>
+        /// Looks up this major's three canon-guaranteed minor neighbors from the
+        /// small/medium/largeMapMinorNeighborsInGame lists (index-aligned with the major's position in
+        /// CivSOListAllPossible - e.g. FED=0 -> Vulcans/Tellarites/Andorians). These lists predate the
+        /// quadrant/major-stratified rewrite and stopped being read when that landed, but they're still
+        /// populated on the CivManager scene component, so this just reads them again instead of
+        /// reconstructing the assignment. Null/out-of-range slots are simply omitted.
+        /// </summary>
+        private List<CivSO> GetGuaranteedMinorsForMajor(CivSO major)
+        {
+            var guaranteed = new List<CivSO>();
+            int index = CivSOListAllPossible.IndexOf(major);
+            if (index < 0) return guaranteed;
+
+            if (index < smallMapMinorNeighborsInGame.Count) guaranteed.Add(smallMapMinorNeighborsInGame[index]);
+            if (index < mediumMapMinorNeighborsInGame.Count) guaranteed.Add(mediumMapMinorNeighborsInGame[index]);
+            if (index < largeMapMinorNeighborsInGame.Count) guaranteed.Add(largeMapMinorNeighborsInGame[index]);
+            return guaranteed.Where(c => c != null).Distinct().ToList();
+        }
+
+        /// <summary>
         /// Replaces the old SetRandomCanonCivsByGalaxySize single-shuffle-over-everything approach
         /// (which had a loop-indexing quirk capping it at ~96% total coverage and no per-major
-        /// awareness) with nearest-major-aware selection: every major is always included, then is
-        /// randomly topped up to an identical per-major civ target from the minors actually closest to
-        /// IT (never borrowing from another major's territory), then likewise for its placeholder
-        /// target from its own nearest ZZUNINHABITED* pool. If a major's pool can't reach a target,
-        /// everything available is included and a warning is logged instead of throwing.
+        /// awareness) with nearest-major-aware selection: every major is always included, then its
+        /// three canon-guaranteed minor neighbors (GetGuaranteedMinorsForMajor) are always added too -
+        /// on every CANON map size, not just once a size-tier "unlocked" them the way the pre-rewrite
+        /// code used to - before the remaining civ target is randomly topped up from the minors
+        /// actually closest to IT (never borrowing from another major's territory), then likewise for
+        /// its placeholder target from its own nearest ZZUNINHABITED* pool. If a major's pool can't
+        /// reach a target, everything available is included and a warning is logged instead of
+        /// throwing.
         /// </summary>
         private List<CivSO> SelectMajorStratifiedCanonCivs(GalaxySize galaxySize)
         {
@@ -269,17 +297,28 @@ namespace BOTF3D.Civilization
                 // Always include the major itself.
                 result.Add(majorPools.Major);
 
-                // Randomly fill up to the civ target from this major's own nearest-minors pool only.
+                // Always include this major's three canon-guaranteed minors, regardless of map size -
+                // they count toward civTarget rather than adding on top of it.
+                List<CivSO> guaranteedMinors = GetGuaranteedMinorsForMajor(majorPools.Major);
+                result.AddRange(guaranteedMinors);
+
+                // Randomly fill the rest of the civ target from this major's own nearest-minors pool,
+                // excluding whatever guaranteed minors were already added so none get picked twice.
                 // UnityEngine.Random (not Guid.NewGuid) so this replays identically across clients
                 // when seeded via UnityEngine.Random.InitState before generation.
-                List<CivSO> shuffledMinors = majorPools.Minors.OrderBy(_ => UnityEngine.Random.value).ToList();
-                int minorsToTake = Mathf.Min(civTarget, shuffledMinors.Count);
-                if (minorsToTake < civTarget)
+                List<CivSO> shuffledMinors = majorPools.Minors
+                    .Except(guaranteedMinors)
+                    .OrderBy(_ => UnityEngine.Random.value)
+                    .ToList();
+                int remainingTarget = Mathf.Max(0, civTarget - guaranteedMinors.Count);
+                int minorsToTake = Mathf.Min(remainingTarget, shuffledMinors.Count);
+                if (guaranteedMinors.Count + minorsToTake < civTarget)
                 {
                     GameLogger.LogWarning(GameLogger.LogCategory.General,
                         $"[CivManager] {majorPools.Major.CivShortName}'s minor pool exhausted for " +
-                        $"{galaxySize} CANON generation: wanted {civTarget}, only {shuffledMinors.Count} " +
-                        "available nearby. Including all available instead.");
+                        $"{galaxySize} CANON generation: wanted {civTarget} ({guaranteedMinors.Count} " +
+                        $"guaranteed + {remainingTarget} random top-up), only {shuffledMinors.Count} " +
+                        "more available nearby. Including all available instead.");
                 }
                 result.AddRange(shuffledMinors.Take(minorsToTake));
 
@@ -297,7 +336,10 @@ namespace BOTF3D.Civilization
                 result.AddRange(shuffledPlaceholders.Take(placeholdersToTake));
             }
 
-            return result;
+            // Defensive: guaranteed minors are designed to be unique per major, but a duplicate here
+            // (e.g. a future data edit that assigns the same minor to two majors) would otherwise
+            // instantiate the same CivSO as two separate civs.
+            return result.Distinct().ToList();
         }
         public IEnumerator CreateNewGameBySelections(int sizeGame, int gameTechLevel, int galaxyType, int localPlayerCivInt, bool isSingleVsMultiplayer)
         {
@@ -494,7 +536,7 @@ namespace BOTF3D.Civilization
                     if (!majorCiv.CivData.StarSysWeOwn.Contains(sysCon))
                         majorCiv.CivData.StarSysWeOwn.Add(sysCon);
 
-                    GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, majorCivEnum);
+                    GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, minorCivEnum, majorCivEnum);
                 }
                 minorCiv.CivData.StarSysWeOwn.Clear();
             }
@@ -514,7 +556,7 @@ namespace BOTF3D.Civilization
             }
 
             Debug.Log($"[CivManager] {minorCivEnum} annexed into {majorCivEnum} via Membership — full ownership transfer complete.");
-            GameEvents.CivEliminated(minorCivEnum);
+            GameEvents.CivEliminated(minorCivEnum, majorCivEnum);
         }
 
         /// <summary>
@@ -560,7 +602,7 @@ namespace BOTF3D.Civilization
             sysCon.StarSysData.CurrentCivController = newOwner;
 
             Debug.Log($"[CivManager] {sysCon.StarSysData.SysName} assimilated by {newOwnerCivEnum} (was {previousOwnerCivEnum}).");
-            GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, newOwnerCivEnum);
+            GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, previousOwnerCivEnum, newOwnerCivEnum);
         }
 
         public CivController GetLocalPlayerCivController()

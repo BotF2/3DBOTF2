@@ -8,9 +8,8 @@ namespace BOTF3D.UI
 {
     /// <summary>
     /// Row widget for a pending DiplomacyProject (see DiplomacyManager.CreateDiplomacyProject) -
-    /// the Diplomacy-side counterpart to ProjectEntryUI (Intel's equivalent row). Not yet wired to a
-    /// prefab/panel in GalaxyScene - see DiplomacyMenuUIController for where a container + this
-    /// prefab still need to be added. Wire all fields in the Inspector once that panel exists.
+    /// the Diplomacy-side counterpart to ProjectEntryUI (Intel's equivalent row). Pooled and
+    /// populated by DiplomacyMenuUIController.RefreshActiveProjectsList.
     /// </summary>
     public class DiplomacyProjectEntryUI : MonoBehaviour
     {
@@ -23,14 +22,17 @@ namespace BOTF3D.UI
 
         private DiplomacyProject _project;
 
-        public void Populate(DiplomacyProject project)
+        public void Populate(DiplomacyProject project, CivEnum localCiv)
         {
             _project = project;
+
+            bool isIncoming = project.TargetCiv == localCiv;
+            CivEnum otherCiv = isIncoming ? project.ProposerCiv : project.TargetCiv;
 
             int turnsDone = project.TurnsTotal - project.TurnsRemaining;
 
             if (proposalText   != null) proposalText.text   = FormatProposal(project.ProposalType);
-            if (targetCivText  != null) targetCivText.text  = project.TargetCiv.ToString();
+            if (targetCivText  != null) targetCivText.text  = isIncoming ? $"From: {otherCiv}" : $"To: {otherCiv}";
             if (progressText   != null) progressText.text   = $"Turn {turnsDone} of {project.TurnsTotal}";
             if (acceptanceText != null) acceptanceText.text = $"{project.AcceptanceChance:P0}";
 
@@ -43,8 +45,10 @@ namespace BOTF3D.UI
 
             if (cancelButton != null)
             {
+                bool canCancel = !isIncoming; // only the local proposer can withdraw a proposal
+                cancelButton.gameObject.SetActive(canCancel);
                 cancelButton.onClick.RemoveAllListeners();
-                cancelButton.onClick.AddListener(OnCancelClicked);
+                if (canCancel) cancelButton.onClick.AddListener(OnCancelClicked);
             }
         }
 
