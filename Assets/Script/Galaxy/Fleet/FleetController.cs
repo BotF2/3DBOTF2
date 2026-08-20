@@ -989,12 +989,23 @@ namespace BOTF3D.Galaxy
 
                         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
 
-                        // Default to "not in contact with a colonizable system" - the uninhabited
-                        // habitable branch below is the only one that sets it back.
+                        // Default to "not in contact with a colonizable/terraformable system" - the
+                        // uninhabited branches below are the only ones that set these back.
                         this.FleetData.ColonizableSystem = null;
+                        this.FleetData.TerraformableSystem = null;
 
                         if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
+                            // Reveal this system's name on the map the instant we make contact,
+                            // regardless of which uninhabited sub-case it turns out to be below -
+                            // previously only the "inhabited, owned by another civ" branch called
+                            // this, so arriving at ANY uninhabited system (habitable, terraformable,
+                            // or plain) left its name hidden on the map forever even though the fleet
+                            // had clearly been there (reported as "made contact and nothing happened -
+                            // no popup, no name reveal").
+                            if (weAreLocalPlayer)
+                                EncounterUnknownSystemShowName(collider.gameObject);
+
                             if (sysCon.StarSysData.IsHabitable)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
@@ -1017,17 +1028,32 @@ namespace BOTF3D.Galaxy
                             else if (sysCon.StarSysData.IsTerraformable == true)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited terraformable system '{sysCon.StarSysData.SysName}'");
+                                this.FleetData.TerraformableSystem = sysCon;
                                 if (weAreLocalPlayer)
                                 {
-                                    // Name-reveal only, distinct from the Colonize/Claim UI - no
-                                    // ColonizableSystem and no Fleet menu, since terraforming isn't
-                                    // an actual game mechanic yet.
-                                    HabitableSysUIController.Instance?.LoadTerraformableSysUI(sysCon, this.FleetData.CivController);
+                                    // Same open-order reasoning as the habitable branch above - the
+                                    // Terraformable System popup first, then the Fleet menu (which now
+                                    // holds the Claim/Terraform buttons, gated on TerraformableSystem).
+                                    TerraformableSysUIController.Instance?.LoadTerraformableSysUI(sysCon, this.FleetData.CivController);
+                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
                                 }
                             }
                             else
                             {
                                 Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}'");
+                                if (weAreLocalPlayer)
+                                {
+                                    // Plain uninhabited (neither IsHabitable nor IsTerraformable) still
+                                    // gets a contact popup, same as the other two uninhabited sub-cases -
+                                    // reuses HabitableSysUIController's popup since it's just a generic
+                                    // announcement (always shows "Uninhabited" regardless of the flags
+                                    // checked here) and needs no new scene wiring. Deliberately do NOT set
+                                    // FleetData.ColonizableSystem/TerraformableSystem, so Colonize/Terraform/
+                                    // ClaimSystem all stay correctly disabled in the Fleet menu below (see
+                                    // FleetMenuUIController's canColonize/canTerraform/canClaim checks).
+                                    HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
+                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
+                                }
                             }
                         }
                         else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
@@ -2100,8 +2126,16 @@ namespace BOTF3D.Galaxy
 
             // Same reasoning as SliderOnValueChange: on a non-host client this method only mutated a
             // disconnected local FleetData copy, so relay to the server-authoritative instance too.
+            // On host, isServer is already true and FleetData.Destination was just written directly
+            // above, but that skipped ServerImplicitlyWithdrawFromPendingEncounters() - the same call
+            // every CmdSetDestinationTo* handler makes - so a host player picking a new destination
+            // while awaiting a diplomacy decision left the fleet frozen (IsAwaitingEncounterResolution
+            // stays true forever since nothing else clears it). ClickCancelDestinationButton already
+            // has this same isServer/else split for the equivalent reason - mirror it here.
             if (!isServer)
                 RelayDestinationToServer(hitObject);
+            else
+                ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         // hitObject can be a star system, a fleet, GalaxyCenter, or a manually-placed player-defined

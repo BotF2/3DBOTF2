@@ -58,6 +58,13 @@ namespace BOTF3D.Galaxy
         // order button - see StarSysController.ColonizeWithTransport for what clicking it does.
         public StarSysController ColonizableSystem;
 
+        // Uninhabited, terraformable-but-not-yet-habitable system this fleet is currently in
+        // contact with, or null. Set/cleared alongside ColonizableSystem by the same
+        // FleetController.OnTriggerEnter branch, just for the IsTerraformable-not-IsHabitable case.
+        // Read by FleetMenuUIController to enable the Terraform order button - see
+        // StarSysController.TerraformSystem for what clicking it does.
+        public StarSysController TerraformableSystem;
+
         public void ReleaseDockSlotIfAny()
         {
             if (DockedStarSys == null) return;

@@ -79,8 +79,14 @@ namespace BOTF3D.Core
         /// </summary>
         public static event Action<int> OnFleetMoved; // fleetID
 
+        /// <summary>
+        /// Fired when a star system's habitability flips (e.g. terraforming completes)
+        /// </summary>
+        public static event Action<string, bool> OnSystemHabitabilityChanged; // systemName, isHabitable
+
         public static void SystemOwnershipChanged(string systemName, CivEnum previousOwner, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, previousOwner, newOwner);
         public static void FleetMoved(int fleetID) => OnFleetMoved?.Invoke(fleetID);
+        public static void SystemHabitabilityChanged(string systemName, bool isHabitable) => OnSystemHabitabilityChanged?.Invoke(systemName, isHabitable);
 
         #endregion
 

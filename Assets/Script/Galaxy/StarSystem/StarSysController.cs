@@ -3,6 +3,7 @@ using BOTF3D.Combat;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -546,26 +547,35 @@ namespace BOTF3D.Galaxy
 
         /// <summary>
         /// Founds a new colony on this uninhabited, habitable system by consuming the given
-        /// Transport ship. Claims ownership (same steps as HabitableSysUIController.ClaimSystem),
-        /// then grants exactly one Power Plant - fueled by the dilithium the transport was
-        /// carrying - and one Factory. No Shipyard or any other facility is built; every other
-        /// facility list is left at whatever empty default an uninhabited system already has.
-        /// Driven by the Fleet menu's Colonize order button (see
+        /// Transport ship. Claims ownership instantly (same steps as ClaimSystem) and consumes the
+        /// Transport instantly, but the starting Power Plant + Factory aren't granted until
+        /// ColonizeTurns turns later (see ColonizeTimerCoroutine) - IsColonizing is true for the
+        /// duration. Driven by the Fleet menu's Colonize order button (see
         /// FleetMenuUIController.ClickColonizeButton), not the arrival popup.
         /// </summary>
+        public const int ColonizeTurns = 2;
+        public const int TerraformTurns = 3;
+
         public bool ColonizeWithTransport(ShipController transportShip)
         {
-            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
-            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || !starSysData.IsHabitable)
-            {
-                Debug.LogWarning($"ColonizeWithTransport: '{name}' is no longer a qualifying uninhabited/habitable system.");
-                return false;
-            }
-
             if (transportShip == null || transportShip.ShipData == null
                 || transportShip.ShipData.ShipType != ShipType.Transport || transportShip.ShipData.Distroyed)
             {
                 Debug.LogWarning($"ColonizeWithTransport: '{name}' - no valid Transport ship supplied.");
+                return false;
+            }
+
+            // Ownership is allowed to already belong to the transport's own civ here - that's the
+            // post-Terraform case (TerraformSystem claims ownership instantly, IsHabitable only
+            // flips true TerraformTurns later, and it's this same call that actually drops the
+            // starting facilities). Still uninhabited-sentinel-owned covers the direct
+            // habitable-on-first-contact case. Any OTHER real civ's ownership is rejected.
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            bool systemIsUninhabited = (int)starSysData.CurrentOwnerCivEnum >= firstUninhabited;
+            bool systemAlreadyOwnedByUs = !systemIsUninhabited && starSysData.CurrentOwnerCivEnum == transportShip.ShipData.CivEnum;
+            if ((!systemIsUninhabited && !systemAlreadyOwnedByUs) || !starSysData.IsHabitable || starSysData.IsColonizing)
+            {
+                Debug.LogWarning($"ColonizeWithTransport: '{name}' is no longer a qualifying uninhabited/habitable system.");
                 return false;
             }
 
@@ -585,6 +595,44 @@ namespace BOTF3D.Galaxy
             if (!colonizingCiv.CivData.StarSysWeOwn.Contains(this))
                 colonizingCiv.CivData.StarSysWeOwn.Add(this);
 
+            // Consume the transport instantly - its dilithium fuels the new power plant once
+            // colonization completes.
+            if (fleetCon != null)
+                fleetCon.RemoveShipFromFleet(transportShip);
+            var occupiedSysCon = transportShip.ShipData.CurrentStarSysController;
+            if (occupiedSysCon != null)
+                occupiedSysCon.RemoveFromShipList(transportShip);
+            GameEvents.ShipDestroyed(transportShip.ShipData.ShipID);
+            ShipManager.Instance.RemoveShipControllerFromList(transportShip);
+            // Clear both contact fields - covers both the direct habitable-on-arrival path
+            // (ColonizableSystem) and the post-Terraform path (TerraformableSystem, still set per
+            // the comment in TerraformSystem above, since it was needed to get this far).
+            if (fleetCon != null)
+            {
+                fleetCon.FleetData.ColonizableSystem = null;
+                fleetCon.FleetData.TerraformableSystem = null;
+            }
+
+            if (GameController.Instance.AreWeLocalPlayer(colonizingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
+                StarSysManager.Instance.InstantiateStarSysUI(this);
+
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, colonizingCiv.CivData.CivEnum);
+
+            // Start the colonize timer - the starting Power Plant + Factory land when it completes.
+            starSysData.IsColonizing = true;
+            starSysData.ColonizeCompleteStardate = TimeManager.Instance.CurrentStarDate() + ColonizeTurns * TimeManager.Instance.StarDatesPerTurn;
+            if (gameObject.activeInHierarchy)
+                StartCoroutine(ColonizeTimerCoroutine(colonizingCiv));
+
+            Debug.Log($"'{starSysData.SysName}' colonizing for {colonizingCiv.CivData.CivShortName} via Transport - completes turn {starSysData.ColonizeCompleteStardate / TimeManager.Instance.StarDatesPerTurn}.");
+            return true;
+        }
+
+        private IEnumerator ColonizeTimerCoroutine(CivController colonizingCiv)
+        {
+            while (TimeManager.Instance.CurrentStarDate() < starSysData.ColonizeCompleteStardate)
+                yield return null;
+
             // Starting facilities: 1 Power Plant + 1 Factory, no Shipyard, no other facilities.
             int civInt = (int)colonizingCiv.CivData.CivEnum;
             starSysData.PowerPlants = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 1, this);
@@ -593,7 +641,53 @@ namespace BOTF3D.Galaxy
             if (StarSysMenuUIController.Instance != null)
                 StarSysMenuUIController.Instance.UpdateSystemPowerBalance(this);
 
-            // Consume the transport - its dilithium fuels the new power plant.
+            starSysData.IsColonizing = false;
+            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online at stardate {TimeManager.Instance.CurrentStarDate()}.");
+        }
+
+        /// <summary>
+        /// Begins terraforming this uninhabited, IsTerraformable-but-not-yet-habitable system by
+        /// consuming the given Transport ship. Claims ownership and consumes the Transport
+        /// instantly, but IsHabitable doesn't flip true until TerraformTurns turns later (see
+        /// TerraformTimerCoroutine) - IsTerraforming is true for the duration. No facilities are
+        /// granted; a later Colonize (bringing a second Transport) is what actually founds the
+        /// colony once the system is habitable. Driven by the Fleet menu's Terraform order button
+        /// (see FleetMenuUIController.ClickTerraformButton).
+        /// </summary>
+        public bool TerraformSystem(ShipController transportShip)
+        {
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || starSysData.IsHabitable
+                || starSysData.IsTerraformable != true || starSysData.IsTerraforming)
+            {
+                Debug.LogWarning($"TerraformSystem: '{name}' is no longer a qualifying uninhabited/terraformable system.");
+                return false;
+            }
+
+            if (transportShip == null || transportShip.ShipData == null
+                || transportShip.ShipData.ShipType != ShipType.Transport || transportShip.ShipData.Distroyed)
+            {
+                Debug.LogWarning($"TerraformSystem: '{name}' - no valid Transport ship supplied.");
+                return false;
+            }
+
+            var fleetCon = transportShip.ShipData.CurrentFleetController;
+            CivController terraformingCiv = fleetCon != null ? fleetCon.FleetData.CivController
+                : CivManager.Instance.GetCivControllerByCivEnum(transportShip.ShipData.CivEnum);
+            if (terraformingCiv == null)
+            {
+                Debug.LogWarning($"TerraformSystem: '{name}' - could not resolve the terraforming civilization.");
+                return false;
+            }
+
+            // Claim ownership.
+            CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
+            starSysData.CurrentOwnerCivEnum = terraformingCiv.CivData.CivEnum;
+            starSysData.CurrentCivController = terraformingCiv;
+            if (!terraformingCiv.CivData.StarSysWeOwn.Contains(this))
+                terraformingCiv.CivData.StarSysWeOwn.Add(this);
+
+            // Consume the transport instantly - its personnel begin terraforming immediately.
             if (fleetCon != null)
                 fleetCon.RemoveShipFromFleet(transportShip);
             var occupiedSysCon = transportShip.ShipData.CurrentStarSysController;
@@ -601,29 +695,51 @@ namespace BOTF3D.Galaxy
                 occupiedSysCon.RemoveFromShipList(transportShip);
             GameEvents.ShipDestroyed(transportShip.ShipData.ShipID);
             ShipManager.Instance.RemoveShipControllerFromList(transportShip);
-            if (fleetCon != null) fleetCon.FleetData.ColonizableSystem = null;
+            // Deliberately NOT nulling fleetCon.FleetData.TerraformableSystem here (unlike the
+            // equivalent line in ColonizeWithTransport) - this reference needs to survive so that
+            // once IsHabitable flips true (TerraformTimerCoroutine below), FleetMenuUIController can
+            // still find this system and offer Colonize without requiring a fresh OnTriggerEnter.
 
-            if (GameController.Instance.AreWeLocalPlayer(colonizingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
+            if (GameController.Instance.AreWeLocalPlayer(terraformingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
                 StarSysManager.Instance.InstantiateStarSysUI(this);
 
-            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, colonizingCiv.CivData.CivEnum);
-            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} via Transport.");
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, terraformingCiv.CivData.CivEnum);
+
+            starSysData.IsTerraforming = true;
+            starSysData.TerraformCompleteStardate = TimeManager.Instance.CurrentStarDate() + TerraformTurns * TimeManager.Instance.StarDatesPerTurn;
+            if (gameObject.activeInHierarchy)
+                StartCoroutine(TerraformTimerCoroutine());
+
+            Debug.Log($"'{starSysData.SysName}' terraforming for {terraformingCiv.CivData.CivShortName} - completes turn {starSysData.TerraformCompleteStardate / TimeManager.Instance.StarDatesPerTurn}.");
             return true;
         }
 
+        private IEnumerator TerraformTimerCoroutine()
+        {
+            while (TimeManager.Instance.CurrentStarDate() < starSysData.TerraformCompleteStardate)
+                yield return null;
+
+            starSysData.IsTerraforming = false;
+            starSysData.IsHabitable = true;
+            GameEvents.SystemHabitabilityChanged(starSysData.SysName, true);
+            Debug.Log($"'{starSysData.SysName}' finished terraforming - now habitable at stardate {TimeManager.Instance.CurrentStarDate()}.");
+        }
+
         /// <summary>
-        /// Claims this uninhabited, habitable system for the given civ - ownership only, no
-        /// Transport required and no facilities granted. Just plants the claiming civ's
-        /// OwnerInsignia so the system reads as theirs on the map; a Transport can colonize it
-        /// properly later via ColonizeWithTransport. Driven by the Fleet menu's Claim System
-        /// button (see FleetMenuUIController.ClickClaimSystemButton).
+        /// Claims this uninhabited system (habitable, or terraformable-but-not-yet-habitable) for
+        /// the given civ - ownership only, no Transport required and no facilities granted. Just
+        /// plants the claiming civ's OwnerInsignia so the system reads as theirs on the map; a
+        /// Transport can colonize/terraform it properly later via ColonizeWithTransport/
+        /// TerraformSystem. Driven by the Fleet menu's Claim System button (see
+        /// FleetMenuUIController.ClickClaimSystemButton).
         /// </summary>
         public bool ClaimSystem(CivController claimingCiv)
         {
             int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
-            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || !starSysData.IsHabitable)
+            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited
+                || !(starSysData.IsHabitable || starSysData.IsTerraformable == true))
             {
-                Debug.LogWarning($"ClaimSystem: '{name}' is no longer a qualifying uninhabited/habitable system.");
+                Debug.LogWarning($"ClaimSystem: '{name}' is no longer a qualifying uninhabited/habitable/terraformable system.");
                 return false;
             }
 

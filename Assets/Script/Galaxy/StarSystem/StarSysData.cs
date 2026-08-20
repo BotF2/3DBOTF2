@@ -141,6 +141,19 @@ namespace BOTF3D.Galaxy
         public bool? IsTerraformable;
         private string v;
 
+        [Header("Terraforming & Colonization")]
+        // Set true while StarSysController.TerraformSystem's timer coroutine is running; the
+        // transport is consumed instantly, but IsHabitable doesn't flip true until
+        // TerraformCompleteStardate is reached (see StarSysController.TerraformTimerCoroutine).
+        public bool IsTerraforming;
+        public int TerraformCompleteStardate;
+
+        // Set true while StarSysController.ColonizeWithTransport's timer coroutine is running; the
+        // transport is consumed instantly, but the starting Power Plant/Factory aren't granted
+        // until ColonizeCompleteStardate is reached (see StarSysController.ColonizeTimerCoroutine).
+        public bool IsColonizing;
+        public int ColonizeCompleteStardate;
+
         public StarSysData(StarSysSO starSysSO)
         {
             starSysInt = starSysSO.StarSysInt;

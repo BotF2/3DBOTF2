@@ -161,9 +161,18 @@ namespace BOTF3D.Civilization
         // SetResponse relay echo below), the only remaining reason to leave the other side
         // Undecided was to give the human a chance to see the panel before an AI could force Fight
         // (see DoAIDiplomacy) - that concern doesn't apply once someone has already acted, so an
-        // AI/system-defender side that's still Undecided at this point is resolved immediately with
-        // its normal status-based default instead of waiting on a timer. A human side (local or
-        // remote) is left alone here - only their own action resolves it.
+        // AI/system-defender side that's still Undecided at this point is resolved immediately. A
+        // human side (local or remote) is left alone here - only their own action resolves it.
+        //
+        // Always resolves to Withdraw here, never DefaultResponseForCurrentStatus()'s Fight branch:
+        // this only ever runs once the OTHER (human-facing) side has already answered - i.e. the
+        // human tried to leave (Withdraw, a new destination, closing the panel, or any non-Combat
+        // diplomacy button all funnel here) - so auto-filling Fight for a Hostile-or-worse AI
+        // defender turned every attempted withdrawal from hostile territory into an ambush the
+        // player had no way to decline. Combat should only ever start from an explicit Combat-button
+        // click (see DiplomacyController.Combat) or genuine AI-vs-AI hostility, which is decided
+        // entirely within DoAIDiplomacy before either side is ever left Undecided and so never
+        // reaches this method.
         [Server]
         private void ServerForceOtherSideIfStillUndecided(bool justAnsweredIsSideOne)
         {
@@ -176,7 +185,7 @@ namespace BOTF3D.Civilization
             bool otherSideIsAi = justAnsweredIsSideOne ? aiIsSideTwo : aiIsSideOne;
             if (!otherSideIsAi) return;
 
-            ServerForceResponse(!justAnsweredIsSideOne, DefaultResponseForCurrentStatus());
+            ServerForceResponse(!justAnsweredIsSideOne, DiplomacyData.EncounterResponse.Withdraw);
         }
 
         // Called by a Fight/Withdraw UI click (isSideOne = true if the clicking player is CivOne in

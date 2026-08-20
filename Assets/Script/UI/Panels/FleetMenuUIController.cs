@@ -644,28 +644,51 @@ namespace BOTF3D.UI
             uiFields.CancelShipManagerButton.onClick.AddListener(() => CancelFleetUIButton());
             cancelFleetUIButtonGO = uiFields.CancelShipManagerButton.gameObject;
 
-            // Colonize: active only while this fleet is in contact with a qualifying uninhabited,
-            // habitable system (see FleetController.OnTriggerEnter, which sets
-            // FleetData.ColonizableSystem on arrival) and carries at least one live Transport.
-            bool canColonize = fleetCon.FleetData?.ColonizableSystem != null
-                && (int)fleetCon.FleetData.ColonizableSystem.StarSysData.CurrentOwnerCivEnum >= (int)CivEnum.ZZUNINHABITED1
-                && fleetCon.FleetData.ColonizableSystem.StarSysData.IsHabitable
-                && fleetCon.FleetData.ShipsList.Any(s => s != null && s.ShipData != null
-                    && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
+            // Both contact fields point at the same system this fleet is contact with at any given
+            // moment (only one is ever set - see FleetController.OnTriggerEnter). Evaluate button
+            // state off the referenced system's LIVE StarSysData flags rather than which field it
+            // happened to land in, so a system that finishes terraforming (IsHabitable flips true)
+            // while this fleet is still sitting there is picked up automatically without needing a
+            // fresh OnTriggerEnter - see StarSysController.TerraformSystem, which deliberately no
+            // longer nulls TerraformableSystem so this reference survives that transition.
+            var contactedSystem = fleetCon.FleetData?.ColonizableSystem ?? fleetCon.FleetData?.TerraformableSystem;
+            bool systemIsUninhabited = contactedSystem != null
+                && (int)contactedSystem.StarSysData.CurrentOwnerCivEnum >= (int)CivEnum.ZZUNINHABITED1;
+            bool hasTransport = fleetCon.FleetData.ShipsList.Any(s => s != null && s.ShipData != null
+                && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
 
-            uiFields.ColonizeButton.gameObject.SetActive(true);
+            // Colonize: only ever shown once the contacted system is actually habitable (whether it
+            // started that way, or just finished terraforming), and not already mid-colonization.
+            bool systemIsHabitableNow = contactedSystem != null
+                && contactedSystem.StarSysData.IsHabitable
+                && !contactedSystem.StarSysData.IsColonizing;
+            bool canColonize = systemIsHabitableNow && hasTransport;
+
+            uiFields.ColonizeButton.gameObject.SetActive(systemIsHabitableNow);
             uiFields.ColonizeButton.interactable = canColonize;
             uiFields.ColonizeButton.onClick.RemoveAllListeners();
             uiFields.ColonizeButton.onClick.AddListener(() => ClickColonizeButton(fleetCon));
 
-            // Claim System: same contact requirement as Colonize, but no Transport needed - just
-            // plants the fleet's civ's insignia on the system (see StarSysController.ClaimSystem).
-            bool canClaim = fleetCon.FleetData?.ColonizableSystem != null
-                && (int)fleetCon.FleetData.ColonizableSystem.StarSysData.CurrentOwnerCivEnum >= (int)CivEnum.ZZUNINHABITED1
-                && fleetCon.FleetData.ColonizableSystem.StarSysData.IsHabitable;
+            // Terraform: only shown while the contacted system still needs terraforming - hidden
+            // (not just non-interactable) the moment it's already habitable, whether it arrived that
+            // way or just finished terraforming.
+            bool systemNeedsTerraforming = contactedSystem != null
+                && !contactedSystem.StarSysData.IsHabitable
+                && contactedSystem.StarSysData.IsTerraformable == true
+                && !contactedSystem.StarSysData.IsTerraforming;
+            bool canTerraform = systemNeedsTerraforming && hasTransport;
 
-            uiFields.ClaimSystemButton.gameObject.SetActive(true);
-            uiFields.ClaimSystemButton.interactable = canClaim;
+            uiFields.TerraformButton.gameObject.SetActive(systemNeedsTerraforming);
+            uiFields.TerraformButton.interactable = canTerraform;
+            uiFields.TerraformButton.onClick.RemoveAllListeners();
+            uiFields.TerraformButton.onClick.AddListener(() => ClickTerraformButton(fleetCon));
+
+            // Claim System: shown for as long as the contacted system remains uninhabited (sentinel-
+            // owned) - no Transport needed, just plants the fleet's civ's insignia (see
+            // StarSysController.ClaimSystem). Hides itself the instant Terraform/Colonize/Claim
+            // claims real ownership, since CurrentOwnerCivEnum then stops being a ZZUNINHABITED* value.
+            uiFields.ClaimSystemButton.gameObject.SetActive(systemIsUninhabited);
+            uiFields.ClaimSystemButton.interactable = systemIsUninhabited;
             uiFields.ClaimSystemButton.onClick.RemoveAllListeners();
             uiFields.ClaimSystemButton.onClick.AddListener(() => ClickClaimSystemButton(fleetCon));
 
@@ -707,7 +730,10 @@ namespace BOTF3D.UI
         private void ClickColonizeButton(FleetController fleetCon)
         {
             if (fleetCon == null || fleetCon.FleetData == null) return;
-            var sysCon = fleetCon.FleetData.ColonizableSystem;
+            // Falls back to TerraformableSystem so Colonize also works once a previously-terraformed
+            // contact system becomes habitable (see the contactedSystem logic in
+            // SetupFleetUIElements/ StarSysController.TerraformSystem for why that field is still set).
+            var sysCon = fleetCon.FleetData.ColonizableSystem ?? fleetCon.FleetData.TerraformableSystem;
             if (sysCon == null) return;
 
             var transport = fleetCon.FleetData.ShipsList.FirstOrDefault(s => s != null && s.ShipData != null
@@ -717,14 +743,27 @@ namespace BOTF3D.UI
             if (sysCon.ColonizeWithTransport(transport))
                 SetupFleetUIData(); // refresh so the Colonize button + ship list reflect the new state
         }
+        private void ClickTerraformButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData == null) return;
+            var sysCon = fleetCon.FleetData.TerraformableSystem;
+            if (sysCon == null) return;
+
+            var transport = fleetCon.FleetData.ShipsList.FirstOrDefault(s => s != null && s.ShipData != null
+                && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
+            if (transport == null) return;
+
+            if (sysCon.TerraformSystem(transport))
+                SetupFleetUIData(); // refresh so the Terraform/Claim buttons reflect the new state
+        }
         private void ClickClaimSystemButton(FleetController fleetCon)
         {
             if (fleetCon == null || fleetCon.FleetData == null) return;
-            var sysCon = fleetCon.FleetData.ColonizableSystem;
+            var sysCon = fleetCon.FleetData.ColonizableSystem ?? fleetCon.FleetData.TerraformableSystem;
             if (sysCon == null) return;
 
             if (sysCon.ClaimSystem(fleetCon.FleetData.CivController))
-                SetupFleetUIData(); // refresh so the Claim/Colonize buttons reflect the new state
+                SetupFleetUIData(); // refresh so the Claim/Colonize/Terraform buttons reflect the new state
         }
         private void ClickMergeFleetButton(FleetController fleetClickingMerge)
         {
@@ -1189,10 +1228,27 @@ namespace BOTF3D.UI
 
             MousePointerChanger.Instance.SetDestinationCursor();
         }
+        private void OnEnable()
+        {
+            // Refresh every local fleet's Colonize/Terraform/Claim buttons whenever any system's
+            // habitability flips (e.g. a terraform timer completes) - see the contactedSystem logic
+            // in SetupFleetUIElements, which needs this to pick up a system going habitable while a
+            // fleet is still sitting in contact with it, without requiring a fresh OnTriggerEnter.
+            GameEvents.OnSystemHabitabilityChanged += HandleSystemHabitabilityChanged;
+        }
+
         private void OnDisable()
         {
+            GameEvents.OnSystemHabitabilityChanged -= HandleSystemHabitabilityChanged;
+
             // When the UI menu closes (e.g., switching menus or hiding canvas)
             CleanupDestroyedOrInactiveUIs();
+        }
+
+        private void HandleSystemHabitabilityChanged(string systemName, bool isHabitable)
+        {
+            if (isHabitable)
+                SetupFleetUIData();
         }
 
         private void OnDestroy()
@@ -1305,6 +1361,47 @@ namespace BOTF3D.UI
                 AFleetMenuView.SetActive(false);
                 Debug.Log("AFleetMenuView hidden");
             }
+        }
+
+        // AFleetMenuView defaults to sitting just under the ribbon (anchoredPosition.y == -70,
+        // top-left anchored/pivoted). The Habitable/Terraformable contact popups live on their
+        // own Canvas above this one, so they can't push this panel via layout groups. Instead,
+        // measure the popup's actual rendered bottom edge at runtime - static offsets kept being
+        // wrong because the status text (e.g. "Uninhabited - Requires Terraforming") can wrap to
+        // a second line, changing the popup's real height beyond what its RectTransform shows.
+        private const float AFleetMenuViewDefaultY = -70f;
+
+        public void SetPopupClearance(RectTransform popupContentRoot)
+        {
+            if (AFleetMenuView == null || popupContentRoot == null) return;
+
+            var rect = AFleetMenuView.GetComponent<RectTransform>();
+            var parentRect = rect != null ? rect.parent as RectTransform : null;
+            if (rect == null || parentRect == null) return;
+
+            Canvas.ForceUpdateCanvases();
+            Bounds popupBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(parentRect, popupContentRoot);
+
+            const float margin = 20f;
+            float desiredTopEdge = popupBounds.min.y - margin;
+            float pushedY = desiredTopEdge - parentRect.rect.yMax;
+            // Never push the panel higher than its default - only ever downward, and only as far as needed.
+            float newY = Mathf.Min(AFleetMenuViewDefaultY, pushedY);
+
+            var pos = rect.anchoredPosition;
+            pos.y = newY;
+            rect.anchoredPosition = pos;
+        }
+
+        public void ResetPopupClearance()
+        {
+            if (AFleetMenuView == null) return;
+            var rect = AFleetMenuView.GetComponent<RectTransform>();
+            if (rect == null) return;
+
+            var pos = rect.anchoredPosition;
+            pos.y = AFleetMenuViewDefaultY;
+            rect.anchoredPosition = pos;
         }
 
         // Toggles the ship list between:
