@@ -118,6 +118,9 @@ namespace BOTF3D.UI
         // Suppresses the selection sting while SetupMainMenuUI() sets the default Fed
         // toggle on - only real user clicks after that should play a sound.
         private bool suppressCivSelectionSound = true;
+        // Handle to the currently-playing civ selection sting, so picking a new civ or saving
+        // before it finishes cuts it off instead of letting it play out under/over the next one.
+        private AudioSource currentCivSelectionAudioSource;
         //ToDo for multiplayer lobby
         //private Toggle _activeRemote0;
         //private Toggle _activeRemote1;
@@ -2311,6 +2314,8 @@ namespace BOTF3D.UI
         {
             Debug.Log($"SaveButton: localPlayerCiv = {localPlayerCiv} (index {(int)localPlayerCiv})");
 
+            StopCivSelectionSound();
+
             UpdatePlayers();      // This calls ActivePlayerToggle() → ResetPlayer(civInt)
             UpdateNotInGame();    // This handles "Absent" states
 
@@ -2697,9 +2702,24 @@ namespace BOTF3D.UI
         {
             if (suppressCivSelectionSound) return;
 
+            StopCivSelectionSound();
+
             if (AudioManager.Instance != null)
             {
-                AudioManager.Instance.PlaySoundData(sound);
+                currentCivSelectionAudioSource = AudioManager.Instance.PlaySoundData(sound);
+            }
+        }
+
+        // Called when the player clicks a new civ (see PlayCivSelectionSound above) or clicks
+        // Save Setting (see SaveButton below) - either action means the player is done with the
+        // sting that's currently playing, so cut it off rather than letting it finish underneath
+        // whatever comes next.
+        private void StopCivSelectionSound()
+        {
+            if (currentCivSelectionAudioSource != null)
+            {
+                currentCivSelectionAudioSource.Stop();
+                currentCivSelectionAudioSource = null;
             }
         }
 

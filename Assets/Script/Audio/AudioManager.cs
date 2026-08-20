@@ -365,9 +365,13 @@ namespace BOTF3D.Audio
         /// <summary>
         /// Play SoundData by reference (recommended)
         /// </summary>
-        public void PlaySoundData(SoundData soundData, float volumeMultiplier = 1f)
+        // Returns the pooled AudioSource actually used for 2D playback (null for 3D, which is
+        // played through the separate SoundEmitter pool instead) so callers that need to cut a
+        // one-shot short - e.g. MainMenuUIController stopping the previous civ selection sting
+        // when the player picks a new civ or saves before it finishes - have a handle to Stop().
+        public AudioSource PlaySoundData(SoundData soundData, float volumeMultiplier = 1f)
         {
-            if (soundData == null || soundData.GetClip() == null) return;
+            if (soundData == null || soundData.GetClip() == null) return null;
 
             float finalVolume = masterVolume * GetCategoryVolume(soundData.category) * soundData.volume * volumeMultiplier;
             float finalPitch = soundData.pitch + Random.Range(-soundData.randomPitchVariation, soundData.randomPitchVariation);
@@ -376,11 +380,12 @@ namespace BOTF3D.Audio
             {
                 // Use SoundEmitter pool for 3D
                 PlaySoundData3D(soundData, Camera.main.transform.position);
+                return null;
             }
             else
             {
                 // Use simple AudioSource pool for 2D
-                PlaySoundData2D(soundData, finalVolume, finalPitch);
+                return PlaySoundData2D(soundData, finalVolume, finalPitch);
             }
         }
         /// <summary>
@@ -399,10 +404,10 @@ namespace BOTF3D.Audio
             emitter.Initialize(soundData.GetClip(), finalVolume, finalPitch, soundData.loop, soundData.minDistance, soundData.maxDistance);
             emitter.OnFinished += () => soundEmitterPool.Release(emitter);
         }
-        private void PlaySoundData2D(SoundData soundData, float volume, float pitch)
+        private AudioSource PlaySoundData2D(SoundData soundData, float volume, float pitch)
         {
             AudioSource source = GetAvailableSFXSource();
-            if (source == null) return;
+            if (source == null) return null;
 
             AudioClip clip = soundData.GetClip();
             source.clip = clip;
@@ -412,6 +417,7 @@ namespace BOTF3D.Audio
             source.Play();
 
             StartCoroutine(ReturnToPool(source, sfxPool, clip.length));
+            return source;
         }
         /// <summary>
         /// Play music by name with optional crossfade
