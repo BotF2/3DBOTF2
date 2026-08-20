@@ -51,22 +51,42 @@ namespace BOTF3D.UI
             this.starSysController = starSysController;
             if ((int)this.starSysController.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
             {
-                TimeManager.Instance.PauseTime();
-                GameObject aNull = new GameObject();
-                GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
-                Destroy(aNull);
+                OpenPopup(starSysController);
 
                 // Just an announcement - Colonize/Claim System live in the Fleet menu, which
                 // opens alongside this popup (see FleetController's uninhabited-arrival branch).
-                ShowSystemAnnouncement(starSysController);
+                ShowSystemAnnouncement(starSysController, "Uninhabited");
             }
         }
 
-        private void ShowSystemAnnouncement(StarSysController sysCon)
+        // Distinct, Colonize/Claim-less contact path for uninhabited systems that aren't
+        // habitable but are IsTerraformable (e.g. LEO) - see FleetController.OnTriggerEnter's
+        // uninhabited-system branch. No Fleet menu is opened alongside this popup, so no
+        // Colonize/Claim buttons are ever offered for a system that isn't actually habitable yet.
+        public void LoadTerraformableSysUI(StarSysController starSysController, CivController discoveringFleetCivController)
+        {
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            this.starSysController = starSysController;
+            if ((int)this.starSysController.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
+            {
+                OpenPopup(starSysController);
+                ShowSystemAnnouncement(starSysController, "Uninhabited - Requires Terraforming");
+            }
+        }
+
+        private void OpenPopup(StarSysController starSysController)
+        {
+            TimeManager.Instance.PauseTime();
+            GameObject aNull = new GameObject();
+            GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
+            Destroy(aNull);
+        }
+
+        private void ShowSystemAnnouncement(StarSysController sysCon, string ownerStatusText)
         {
             HabitableSysUIToggle.SetActive(true);
 
-            sysCurrentOwnerNameTMP.text = "Uninhabited";
+            sysCurrentOwnerNameTMP.text = ownerStatusText;
             if (starSysNameTMP != null)
                 starSysNameTMP.text = sysCon.StarSysData.SysName;
         }

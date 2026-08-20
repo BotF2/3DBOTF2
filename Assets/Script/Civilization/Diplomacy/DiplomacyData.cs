@@ -66,9 +66,9 @@ namespace BOTF3D.Civilization
 
         // Server-side wall-clock stamp of when the current Fight/Withdraw decision became active -
         // reset alongside the responses above (see DiplomacyManager.OpenDiplomacyUI and
-        // InstantiateDiplomacyController). DiplomacyController.Update polls this to force a default
-        // response on whichever side is still Undecided once UnresponsiveSideTimeoutSeconds elapses,
-        // so a fleet doesn't freeze forever waiting on a human who never opens/answers the popup.
+        // InstantiateDiplomacyController). Bookkeeping only - resolution is now instant and
+        // action-driven (see DiplomacyController.ServerForceOtherSideIfStillUndecided and
+        // ServerImplicitlyWithdrawFleet), not timer-based, so nothing currently reads this back.
         public float EncounterStartRealTime;
 
         public DiplomacyData() { }

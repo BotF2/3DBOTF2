@@ -579,6 +579,7 @@ namespace BOTF3D.Galaxy
             }
 
             // Claim ownership.
+            CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
             starSysData.CurrentOwnerCivEnum = colonizingCiv.CivData.CivEnum;
             starSysData.CurrentCivController = colonizingCiv;
             if (!colonizingCiv.CivData.StarSysWeOwn.Contains(this))
@@ -605,7 +606,7 @@ namespace BOTF3D.Galaxy
             if (GameController.Instance.AreWeLocalPlayer(colonizingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
                 StarSysManager.Instance.InstantiateStarSysUI(this);
 
-            GameEvents.SystemOwnershipChanged(starSysData.SysName, colonizingCiv.CivData.CivEnum);
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, colonizingCiv.CivData.CivEnum);
             Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} via Transport.");
             return true;
         }
@@ -633,6 +634,7 @@ namespace BOTF3D.Galaxy
             }
 
             // Claim ownership.
+            CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
             starSysData.CurrentOwnerCivEnum = claimingCiv.CivData.CivEnum;
             starSysData.CurrentCivController = claimingCiv;
             if (!claimingCiv.CivData.StarSysWeOwn.Contains(this))
@@ -654,7 +656,7 @@ namespace BOTF3D.Galaxy
             if (GameController.Instance.AreWeLocalPlayer(claimingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
                 StarSysManager.Instance.InstantiateStarSysUI(this);
 
-            GameEvents.SystemOwnershipChanged(starSysData.SysName, claimingCiv.CivData.CivEnum);
+            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, claimingCiv.CivData.CivEnum);
             Debug.Log($"Claimed '{starSysData.SysName}' for {claimingCiv.CivData.CivShortName}.");
             return true;
         }

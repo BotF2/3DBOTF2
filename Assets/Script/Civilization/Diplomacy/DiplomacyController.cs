@@ -53,10 +53,10 @@ namespace BOTF3D.Civilization
                 // that risk: TryResolveEncounter only resolves once BOTH sides say Withdraw, so
                 // forcing just the AI's side to Withdraw here can't close or start anything by
                 // itself - it only means the fleet(s) involved unfreeze the instant the human also
-                // withdraws (Withdraw button, closing the panel, or starting a diplomacy project -
-                // see ImplicitlyWithdrawFromEncounter) instead of needing to separately wait out the
-                // 60s unresponsive-side timeout below (reported as fleets staying frozen well after
-                // the human had already moved on to a new order).
+                // withdraws (Withdraw button, closing the panel, giving the fleet new orders - see
+                // ImplicitlyWithdrawFromEncounter / ServerImplicitlyWithdrawFleet - or starting a
+                // diplomacy project) instead of staying frozen indefinitely (reported as fleets
+                // staying frozen well after the human had already moved on to a new order).
                 if (NetworkServer.active && DefaultResponseForCurrentStatus() == DiplomacyData.EncounterResponse.Withdraw)
                 {
                     (bool aiIsSideOne, bool aiIsSideTwo) = ComputeAiSides();
@@ -107,7 +107,8 @@ namespace BOTF3D.Civilization
 
         // Status-based default: fight if relations are already Hostile or worse, otherwise withdraw
         // rather than escalate. Used both for AI civs' own decisions (DoAIDiplomacy) and to fill in
-        // for a side that never responded in time (see UnresponsiveSideTimeoutSeconds below).
+        // for a side that's still Undecided once the other side has acted (see
+        // ServerForceOtherSideIfStillUndecided below).
         private DiplomacyData.EncounterResponse DefaultResponseForCurrentStatus()
         {
             return this.DiplomacyData.DiplomacyStatusEnumOfCivs <= DiplomacyStatusEnum.Hostile
@@ -116,7 +117,7 @@ namespace BOTF3D.Civilization
         }
 
         // Applies an authoritative response to one side of this encounter, server-side. Shared by
-        // DoAIDiplomacy (AI civ's own decision) and the unresponsive-side timeout (Update below).
+        // DoAIDiplomacy (AI civ's own decision) and ServerForceOtherSideIfStillUndecided below.
         private void ServerForceResponse(bool isSideOne, DiplomacyData.EncounterResponse response)
         {
             FleetController targetFleet = isSideOne ? this.DiplomacyData.FleetControllerCivOne : this.DiplomacyData.FleetContollerCivTwo;
@@ -145,54 +146,37 @@ namespace BOTF3D.Civilization
             }
         }
 
-        // How long a Fight/Withdraw decision waits on an unresponsive side (human who never clicks,
-        // or - defensively - any other silent failure) before the game forces the same status-based
-        // default an AI civ would pick, rather than freezing the involved fleet(s) forever.
-        private const float UnresponsiveSideTimeoutSeconds = 60f;
+        // Previously a 60-real-time-second Update() timer forced whichever side was still
+        // Undecided once the encounter had been open long enough - meant to cover a human who
+        // never answers the Fight/Withdraw popup, but in practice made every unanswered encounter
+        // freeze the involved fleet(s) for up to a full minute even when the human had already
+        // moved on (set a new destination, closed the panel, etc.). Replaced by
+        // ServerForceOtherSideIfStillUndecided below, called the instant a side actually answers
+        // (via SetResponse's relay echo) - the only reason to ever wait for an AI/system-defender
+        // side was to avoid pre-empting the human seeing the panel at all (see DoAIDiplomacy's
+        // Fight-skip comment), and that concern no longer applies once the human has taken any
+        // action of their own.
 
-        // Server-only: forces a default response onto whichever side is still Undecided once the
-        // encounter has been open longer than UnresponsiveSideTimeoutSeconds. Covers the case where
-        // a human player simply never opens or answers the Diplomacy popup (e.g. AFK) - AI civs
-        // already respond immediately via DoAIDiplomacy, so in practice this only ever fires for a
-        // human side, but it isn't restricted to that in case of some other stall.
-        private void Update()
+        // Server-only: once one side's answer has just been authoritatively applied (via the
+        // SetResponse relay echo below), the only remaining reason to leave the other side
+        // Undecided was to give the human a chance to see the panel before an AI could force Fight
+        // (see DoAIDiplomacy) - that concern doesn't apply once someone has already acted, so an
+        // AI/system-defender side that's still Undecided at this point is resolved immediately with
+        // its normal status-based default instead of waiting on a timer. A human side (local or
+        // remote) is left alone here - only their own action resolves it.
+        [Server]
+        private void ServerForceOtherSideIfStillUndecided(bool justAnsweredIsSideOne)
         {
-            if (!NetworkServer.active) return;
-            if (this.DiplomacyData == null || this.DiplomacyData.EncounterResolved) return;
-            if (this.DiplomacyData.ResponseSideOne != DiplomacyData.EncounterResponse.Undecided &&
-                this.DiplomacyData.ResponseSideTwo != DiplomacyData.EncounterResponse.Undecided) return;
+            DiplomacyData.EncounterResponse otherResponse = justAnsweredIsSideOne
+                ? this.DiplomacyData.ResponseSideTwo
+                : this.DiplomacyData.ResponseSideOne;
+            if (otherResponse != DiplomacyData.EncounterResponse.Undecided) return;
 
-            // Only a genuine Fight/Withdraw encounter actually freezes a fleet (see
-            // FleetController.IsAwaitingEncounterResolution / ServerIncrementPendingEncounters).
-            // DiplomacyController instances also back plain UI browsing - a player revisiting a
-            // known system/fleet via ResolveDiplomacyForClickSystemWeKnow, or an uninhabited-system
-            // contact - which also flow through OpenDiplomacyUI's Undecided/EncounterStartRealTime
-            // reset but never pause anything. Without this check, idly leaving one of those popups
-            // open past the timeout would force an unwanted Fight/Withdraw and could even trigger
-            // combat.
-            bool sideOneAwaiting = this.DiplomacyData.FleetControllerCivOne != null && this.DiplomacyData.FleetControllerCivOne.IsAwaitingEncounterResolution;
-            bool sideTwoAwaiting = this.DiplomacyData.FleetContollerCivTwo != null && this.DiplomacyData.FleetContollerCivTwo.IsAwaitingEncounterResolution;
-            if (!sideOneAwaiting && !sideTwoAwaiting) return;
+            (bool aiIsSideOne, bool aiIsSideTwo) = ComputeAiSides();
+            bool otherSideIsAi = justAnsweredIsSideOne ? aiIsSideTwo : aiIsSideOne;
+            if (!otherSideIsAi) return;
 
-            if (Time.realtimeSinceStartup - this.DiplomacyData.EncounterStartRealTime < UnresponsiveSideTimeoutSeconds) return;
-
-            // A human side that never responds always defaults to Withdraw, never Fight - inaction
-            // must never be able to start combat (see ImplicitlyWithdrawFromEncounter and
-            // DoAIDiplomacy's Withdraw-only fast path, which apply the same rule the moment the
-            // human acts or the panel opens; this is only the fallback for a human who does
-            // neither within UnresponsiveSideTimeoutSeconds). An AI side still resolves through the
-            // genuine status-based default, which may be Fight - that's the AI's own decision, not
-            // an automatic consequence of the encounter existing.
-            bool sideOneIsLocalHuman = this.DiplomacyData.CivOne != null &&
-                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivOne.CivData.CivEnum);
-            bool sideTwoIsLocalHuman = this.DiplomacyData.CivTwo != null &&
-                GameController.Instance.AreWeLocalPlayer(this.DiplomacyData.CivTwo.CivData.CivEnum);
-
-            DiplomacyData.EncounterResponse fallback = DefaultResponseForCurrentStatus();
-            if (this.DiplomacyData.ResponseSideOne == DiplomacyData.EncounterResponse.Undecided)
-                ServerForceResponse(true, sideOneIsLocalHuman ? DiplomacyData.EncounterResponse.Withdraw : fallback);
-            if (this.DiplomacyData.ResponseSideTwo == DiplomacyData.EncounterResponse.Undecided)
-                ServerForceResponse(false, sideTwoIsLocalHuman ? DiplomacyData.EncounterResponse.Withdraw : fallback);
+            ServerForceResponse(!justAnsweredIsSideOne, DefaultResponseForCurrentStatus());
         }
 
         // Called by a Fight/Withdraw UI click (isSideOne = true if the clicking player is CivOne in
@@ -215,20 +199,49 @@ namespace BOTF3D.Civilization
             else
             {
                 TryResolveEncounter();
+
+                // Runs once per peer (this method is invoked by every RpcSetEncounterResponse
+                // recipient), but the [Server] guard means only the server's own local copy - the
+                // one whose ServerForceResponse call actually matters - ever proceeds past this
+                // point. See ServerForceOtherSideIfStillUndecided above.
+                if (NetworkServer.active) ServerForceOtherSideIfStillUndecided(isSideOne);
             }
+        }
+
+        // Called when a fleet that's currently awaiting a Fight/Withdraw decision is given new
+        // orders (see FleetController.ServerImplicitlyWithdrawFromPendingEncounters) - setting a
+        // destination and warping away is itself the player's choice to leave, so it resolves this
+        // fleet's side as Withdraw immediately instead of leaving the fleet frozen until the human
+        // separately opens the panel and clicks Withdraw. No-ops if this fleet isn't actually a
+        // party to this encounter, the encounter is already resolved, or this side already has an
+        // explicit answer (can't override a Fight decision already made).
+        [Server]
+        public void ServerImplicitlyWithdrawFleet(FleetController fleet)
+        {
+            if (this.DiplomacyData == null || this.DiplomacyData.EncounterResolved || fleet == null) return;
+
+            bool isSideOne = this.DiplomacyData.FleetControllerCivOne == fleet;
+            bool isSideTwo = !isSideOne && this.DiplomacyData.FleetContollerCivTwo == fleet;
+            if (!isSideOne && !isSideTwo) return;
+
+            DiplomacyData.EncounterResponse currentResponse = isSideOne
+                ? this.DiplomacyData.ResponseSideOne
+                : this.DiplomacyData.ResponseSideTwo;
+            if (currentResponse != DiplomacyData.EncounterResponse.Undecided) return;
+
+            SetResponse(isSideOne, DiplomacyData.EncounterResponse.Withdraw);
         }
 
         // Called when the player dismisses the Diplomacy panel via the generic close/X button
         // instead of an explicit Fight/Withdraw/etc. choice (see GalaxyMenuUIController.
         // CloseCurrentMenu). Without this, a closed-without-deciding encounter left the local
-        // player's side Undecided, and the only thing that would ever unstick the fleet(s)
-        // involved (FleetController.IsAwaitingEncounterResolution gates FixedUpdate movement
-        // entirely) was DiplomacyController.Update()'s 60-real-time-second unresponsive-side
-        // timeout - technically not a permanent freeze, but indistinguishable from one to a
-        // player who closes the panel and immediately queues a new order the same turn.
-        // Mirrors WithdrawButton's isSideOne resolution (DiplomacyMenuUIController) exactly.
-        // No-ops if the encounter is already resolved or this side already has an explicit
-        // answer, so it can't override a Fight choice made just before closing.
+        // player's side Undecided with nothing left to unstick the fleet(s) involved
+        // (FleetController.IsAwaitingEncounterResolution gates FixedUpdate movement entirely) -
+        // this resolves it the same instant the panel closes, same as ServerImplicitlyWithdrawFleet
+        // does for "just move the fleet away instead". Mirrors WithdrawButton's isSideOne
+        // resolution (DiplomacyMenuUIController) exactly. No-ops if the encounter is already
+        // resolved or this side already has an explicit answer, so it can't override a Fight
+        // choice made just before closing.
         public void CloseWithoutDeciding()
         {
             ImplicitlyWithdrawFromEncounter();

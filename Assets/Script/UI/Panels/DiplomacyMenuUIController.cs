@@ -396,6 +396,14 @@ namespace BOTF3D.UI
             }
             IntelligenceUIController.Instance?.PinCiv(notLocalPlayerCiv.CivData.CivEnum);
 
+            // HomeSystemName and StarSysName (DiploUIprefab.prefab) sit at the same anchored
+            // position and are mutually exclusive: DiplomacyData.StarSysController is only set to
+            // something other than their home system when this card was (re)opened by clicking a
+            // specific known foreign system (see DiplomacyManager.ResolveDiplomacyForClickSystemWeKnow) -
+            // otherwise (first contact, or reopened via the ribbon) it defaults to showing their home system.
+            bool showingSpecificOtherSystem = diplomacyCon.DiplomacyData.StarSysController != null &&
+                diplomacyCon.DiplomacyData.StarSysController != homeSysController;
+
             Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
             bool foundRaceImage = false;       // ✅ Declared OUTSIDE the loop
             bool foundInsigniaImage = false;   // ✅ Declared OUTSIDE the loop
@@ -515,7 +523,10 @@ namespace BOTF3D.UI
                         break;
                 }
             }
-            TextMeshProUGUI[] ourTMPs = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<TextMeshProUGUI>();
+            // includeInactive: true - HomeSystemName/StarSysName get SetActive(false) below to stay
+            // mutually exclusive, so a later re-population (e.g. clicking back and forth between
+            // systems) needs to find whichever one is currently hidden, not just the active one.
+            TextMeshProUGUI[] ourTMPs = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<TextMeshProUGUI>(true);
             for (int i = 0; i < ourTMPs.Length; i++)
             {
                 int techLevelInt = (int)notLocalPlayerCiv.CivData.CurrentTechLevel / 100; // Early Tech level = 100, Supreme = 900;
@@ -584,17 +595,18 @@ namespace BOTF3D.UI
                     case "NumT":
                         ourTMPs[i].text = _transports.ToString();
                         break;
+                    case "HomeSystemName":
+                        ourTMPs[i].text = homeSysController != null ? homeSysController.StarSysData.SysName : string.Empty;
+                        ourTMPs[i].gameObject.SetActive(!showingSpecificOtherSystem);
+                        break;
                     case "StarSysName":
-                        // Default to the civ's home system name; DiplomacyData.StarSysController is
-                        // only populated when a specific, non-default system is actually involved in
-                        // the current encounter (first contact at a system, or clicking a known
-                        // system other than their home) - covers the home system name with that one.
-                        if (diplomacyCon.DiplomacyData.StarSysController != null)
-                            ourTMPs[i].text = diplomacyCon.DiplomacyData.StarSysController.StarSysData.SysName;
-                        else if (homeSysController != null)
-                            ourTMPs[i].text = homeSysController.StarSysData.SysName;
-                        else
-                            ourTMPs[i].text = string.Empty;
+                        // Only populated/shown when DiplomacyData.StarSysController points at a
+                        // system other than their home system (see showingSpecificOtherSystem above);
+                        // otherwise HomeSystemName covers the default "their home system" view.
+                        ourTMPs[i].text = showingSpecificOtherSystem
+                            ? diplomacyCon.DiplomacyData.StarSysController.StarSysData.SysName
+                            : string.Empty;
+                        ourTMPs[i].gameObject.SetActive(showingSpecificOtherSystem);
                         break;
                     default:
                         break;

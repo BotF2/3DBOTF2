@@ -619,8 +619,8 @@ namespace BOTF3D.Civilization
                 // the player can still escalate via the Declare War button, which re-arms this itself.
                 ourDiplomacyController.DiplomacyData.EncounterResolved =
                     ourDiplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
-                // Restart the unresponsive-side timeout (DiplomacyController.Update) for this fresh
-                // decision, so a prior encounter's elapsed wait time doesn't carry over.
+                // Bookkeeping only - no longer drives a timeout (resolution is now instant/action-driven,
+                // see DiplomacyController.ServerImplicitlyWithdrawFleet / ServerForceOtherSideIfStillUndecided).
                 ourDiplomacyController.DiplomacyData.EncounterStartRealTime = Time.realtimeSinceStartup;
 
                 if (GameController.Instance.AreWeLocalPlayer(civPartyOne.CivData.CivEnum))
@@ -638,6 +638,20 @@ namespace BOTF3D.Civilization
 
                 DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject,
                     ourDiplomacyController.gameObject, shipList);
+            }
+        }
+        // Called server-side when a fleet is given new orders while IsAwaitingEncounterResolution is
+        // true (see FleetController.ServerImplicitlyWithdrawFromPendingEncounters) - a fleet can be
+        // party to more than one concurrent encounter (GalaxyEncounterQueue's simultaneous-convergence
+        // batching), so every unresolved DiplomacyController this fleet is a party to gets resolved,
+        // not just one.
+        public void ServerImplicitlyWithdrawFleetFromPendingEncounters(FleetController fleet)
+        {
+            var snapshot = new List<DiplomacyController>(DiplomacyControllers);
+            foreach (DiplomacyController diploCon in snapshot)
+            {
+                if (diploCon == null || diploCon.DiplomacyData == null || diploCon.DiplomacyData.EncounterResolved) continue;
+                diploCon.ServerImplicitlyWithdrawFleet(fleet);
             }
         }
         public void CheckForAIDiplomacy(FleetController fleetCon1, FleetController fleetCon2)

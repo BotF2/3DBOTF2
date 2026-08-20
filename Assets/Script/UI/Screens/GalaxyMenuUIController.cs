@@ -536,17 +536,13 @@ namespace BOTF3D.UI
             //
             // DiplomacyController is excluded for a related but distinct reason: closing/switching
             // menus (including CloseCurrentMenu's own call from the next OpenMenu) would SetActive(false)
-            // its GameObject, which permanently kills that instance's Update() loop - including the
-            // 60-second unresponsive-side timeout (DiplomacyController.Update) that's the only
-            // fallback for a system-defender side with no live FleetController and PlayedByAI=false
-            // (DoAIDiplomacy skips answering for it - see DoAIDiplomacy's aiIsSideOne/aiIsSideTwo
-            // check). Once that timeout can never fire, TryResolveEncounter never sees both sides
-            // resolved, so ServerDecrementPendingEncounters is never called and the reporting fleet
-            // stays gated by IsAwaitingEncounterResolution forever - reproduced via first-contact with
-            // a system whose defenders never got a response, regardless of whether the player clicked
-            // Withdraw (which itself triggers a menu close/switch here). The actual Diplomacy panel's
-            // visibility is controlled separately via DiplomacyController.DiplomacyUIGameObject, so
-            // keeping diplomacyCon.gameObject itself active doesn't affect what's shown on screen.
+            // its GameObject. DiplomacyController no longer runs an Update() loop (resolution is now
+            // instant and action-driven - see DiplomacyController.ServerForceOtherSideIfStillUndecided
+            // and ServerImplicitlyWithdrawFleet), so this exclusion is no longer load-bearing for that
+            // reason, but it's kept anyway since deactivating would still needlessly tear down/respawn
+            // the instance on every menu switch for no benefit. The actual Diplomacy panel's visibility
+            // is controlled separately via DiplomacyController.DiplomacyUIGameObject, so keeping
+            // diplomacyCon.gameObject itself active doesn't affect what's shown on screen.
             GameObject trackedUIObject = callingMenuOrGalaxyObject;
             if (trackedUIObject != null &&
                 (trackedUIObject.GetComponent<StarSysController>() != null ||
@@ -688,12 +684,13 @@ namespace BOTF3D.UI
             Menu currentMenu = uiStateManager.CurrentOpenMenu;
 
             // Closing a Diplomacy panel via this generic close button (rather than an explicit
-            // Fight/Withdraw/etc. choice) previously left any pending Fight/Withdraw encounter
-            // Undecided on the local player's side - the fleet(s) involved stayed frozen
-            // (FleetController.IsAwaitingEncounterResolution) for up to 60 real-time seconds until
-            // DiplomacyController.Update()'s unresponsive-side timeout finally forced a default
-            // response. Resolve it as an implicit Withdraw right here instead, before the
-            // CurrentOpenMenuObject reference below is cleared by uiStateManager.CloseCurrentMenu().
+            // Fight/Withdraw/etc. choice) would otherwise leave any pending Fight/Withdraw encounter
+            // Undecided on the local player's side, with nothing left to unstick the fleet(s)
+            // involved (FleetController.IsAwaitingEncounterResolution gates movement entirely -
+            // resolution is instant/action-driven, not timer-based, see
+            // DiplomacyController.ServerForceOtherSideIfStillUndecided). Resolve it as an implicit
+            // Withdraw right here instead, before the CurrentOpenMenuObject reference below is
+            // cleared by uiStateManager.CloseCurrentMenu().
             if (currentMenu == Menu.Diplomacy || currentMenu == Menu.DiplomacyMenu || currentMenu == Menu.ADiplomacyMenu)
             {
                 var diplomacyCon = uiStateManager.CurrentOpenMenuObject != null
@@ -817,7 +814,7 @@ namespace BOTF3D.UI
             // Withdraw/etc. choice - e.g. clicking a different menu tab (Fleet, System...) while
             // Diplomacy is open calls this directly rather than going through CloseCurrentMenu's
             // close/X button. Same reasoning as the check there: resolve as an implicit Withdraw
-            // now instead of leaving the fleet(s) frozen until the 60-second timeout. Gated on
+            // now instead of leaving the fleet(s) frozen indefinitely. Gated on
             // CurrentOpenMenu == enumMenu so CurrentOpenMenuObject is actually still the panel
             // being closed here, not some other already-closed menu's stale reference.
             if ((enumMenu == Menu.Diplomacy || enumMenu == Menu.DiplomacyMenu || enumMenu == Menu.ADiplomacyMenu)

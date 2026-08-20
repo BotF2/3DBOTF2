@@ -91,6 +91,19 @@ namespace BOTF3D.Galaxy
             Debug.Log($"[EncounterGate] {name}: pending-- -> {syncedPendingEncounterCount}");
         }
 
+        // Called from the end of every Cmd*SetDestination* handler below - giving this fleet new
+        // orders while it's still waiting on a Fight/Withdraw decision is itself the player's choice
+        // to leave, so it resolves this fleet's side of every encounter it's a party to as Withdraw
+        // immediately instead of leaving it frozen until the human separately opens the Diplomacy
+        // panel and clicks Withdraw (see DiplomacyController.ServerImplicitlyWithdrawFleet). No-op
+        // when this fleet isn't awaiting anything, so it's safe to call unconditionally.
+        [Server]
+        private void ServerImplicitlyWithdrawFromPendingEncounters()
+        {
+            if (!IsAwaitingEncounterResolution) return;
+            DiplomacyManager.Instance?.ServerImplicitlyWithdrawFleetFromPendingEncounters(this);
+        }
+
         // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the
         // initial spawn sync. Keeps a non-host client's already-built FleetData/slider in sync with
         // fleet composition changes it has no other way of detecting.
@@ -997,6 +1010,19 @@ namespace BOTF3D.Galaxy
                                     // ColonizableSystem was just set above, so they'll be correctly gated.
                                     HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
                                     GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
+                                }
+                            }
+                            // IsTerraformable is a bool? (unlike IsHabitable) - a system with no
+                            // SO value set falls through to the plain non-habitable branch below.
+                            else if (sysCon.StarSysData.IsTerraformable == true)
+                            {
+                                Debug.Log($"Fleet arrived at uninhabited terraformable system '{sysCon.StarSysData.SysName}'");
+                                if (weAreLocalPlayer)
+                                {
+                                    // Name-reveal only, distinct from the Colonize/Claim UI - no
+                                    // ColonizableSystem and no Fleet menu, since terraforming isn't
+                                    // an actual game mechanic yet.
+                                    HabitableSysUIController.Instance?.LoadTerraformableSysUI(sysCon, this.FleetData.CivController);
                                 }
                             }
                             else
@@ -2143,6 +2169,7 @@ namespace BOTF3D.Galaxy
             }
             Debug.Log($"CmdSetDestinationToGalaxyCenter: connection {sender?.connectionId} authorized, setting destination on fleet '{name}'.");
             FleetData.Destination = FleetManager.Instance?.GalaxyCenter;
+            ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         [Command(requiresAuthority = false)]
@@ -2161,6 +2188,7 @@ namespace BOTF3D.Galaxy
             }
             Debug.Log($"CmdSetDestinationToStarSystem: connection {sender?.connectionId} authorized, setting destination='{starSysName}' on fleet '{name}'.");
             FleetData.Destination = targetSys.gameObject;
+            ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         [Command(requiresAuthority = false)]
@@ -2174,6 +2202,7 @@ namespace BOTF3D.Galaxy
             if (targetFleetIdentity == null) return;
             Debug.Log($"CmdSetDestinationToFleet: connection {sender?.connectionId} authorized, setting destination=fleet '{targetFleetIdentity.name}' on fleet '{name}'.");
             FleetData.Destination = targetFleetIdentity.gameObject;
+            ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         // A player-defined target point is a client-only drag marker with no NetworkIdentity, so it
@@ -2219,6 +2248,7 @@ namespace BOTF3D.Galaxy
             serverPlayerTargetMarker.transform.position = targetPosition;
             Debug.Log($"CmdSetDestinationToPlayerTarget: connection {sender?.connectionId} authorized, setting destination=player-defined target at {targetPosition} on fleet '{name}'.");
             FleetData.Destination = serverPlayerTargetMarker;
+            ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         // ── Encounter/diplomacy/combat networking ─────────────────────────────

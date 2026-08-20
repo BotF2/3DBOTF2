@@ -605,6 +605,12 @@ namespace BOTF3D.Galaxy
 
             // ✅ Set Dilithium Capacity based on system type
             sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
+            // StarSysData.IsHabitable/IsTerraformable were never being copied from the SO - every
+            // system defaulted to IsHabitable=false at runtime regardless of its SO asset, so
+            // FleetController.OnTriggerEnter's uninhabited-habitable branch (colonization popup)
+            // never fired for any system, no matter what StarSysSO said.
+            sysData.IsHabitable = starSysSO.IsHabitable;
+            sysData.IsTerraformable = starSysSO.IsTerraformable;
             sysData.TotalSysPowerLoad = 0;
             sysData.TotalSysPowerOutput = starSysSO.PowerStations * sysData.BasePowerPerPlant;
             sysData.CurrentPowerPlantCount = starSysSO.PowerStations;
