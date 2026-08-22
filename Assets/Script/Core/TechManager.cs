@@ -112,52 +112,8 @@ namespace BOTF3D.Core
             }
         }
 
-        private void OnEnable()
-        {
-            if (TimeManager.Instance != null)
-                TimeManager.Instance.OnStardateChanged += OnStardateChanged;
-        }
-
-        private void OnDisable()
-        {
-            if (TimeManager.Instance != null)
-                TimeManager.Instance.OnStardateChanged -= OnStardateChanged;
-        }
-
-        private void OnStardateChanged()
-        {
-            int localPlayerGainThisStardate = 0;
-
-            // Pass 1: playable civs gain tech from their own research centers
-            foreach (var civ in CivManager.Instance.CivControllersInGame)
-            {
-                if (civ?.CivData == null) continue;
-                if (!civ.CivData.Playable) continue;
-
-                int activeResearchCenters = CountActiveResearchCenters(civ);
-                TechLevel levelBefore     = civ.CivData.CurrentTechLevel;
-                float researchMultiplier  = GetResearchOutputMultiplier(levelBefore);
-                int techPointsGained      = Mathf.RoundToInt(activeResearchCenters * techPointsPerResearchCenterPerTurn * researchMultiplier);
-
-                if (techPointsGained > 0)
-                {
-                    civ.CivData.TechPoints += techPointsGained;
-                    Debug.Log($"{civ.CivData.CivShortName}: +{techPointsGained} tech points " +
-                             $"({activeResearchCenters} centers × {researchMultiplier:F1}x = total: {civ.CivData.TechPoints})");
-
-                    if (civ.CivData.CurrentTechLevel > levelBefore)
-                        OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
-                }
-
-                if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
-                    localPlayerGainThisStardate = techPointsGained;
-            }
-
-            // Pass 2: warp-capable minor races keep pace with the local player
-            ApplyMinorRaceGrowth(localPlayerGainThisStardate);
-
-            RefreshLocalPlayerFogSightRangeIfChanged();
-        }
+        // Tech is processed once per turn via TimeManager.ProcessTurnEvents → ProcessResearchForAllCivs.
+        // No per-stardate hook needed; subscribing per-stardate would add points 10× per turn.
 
         private void ApplyMinorRaceGrowth(int gainPerStardate)
         {
