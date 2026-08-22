@@ -70,7 +70,6 @@ namespace BOTF3D.UI
 
         private void OpenPopup(StarSysController starSysController)
         {
-            TimeManager.Instance.PauseTime();
             GameObject aNull = new GameObject();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
             Destroy(aNull);
@@ -89,14 +88,18 @@ namespace BOTF3D.UI
             FleetMenuUIController.Instance?.SetPopupClearance(HabitableSysUIToggle.GetComponent<RectTransform>());
         }
 
-        public void CloseUnLoadHabitableSysUI()
+        public void CloseVisual()
         {
             HabitableSysUIToggle.SetActive(false);
             if (parentCanvasGO != null)
                 parentCanvasGO.SetActive(false);
-            TimeManager.Instance.ResumeTime();
-
             FleetMenuUIController.Instance?.ResetPopupClearance();
+        }
+
+        public void CloseUnLoadHabitableSysUI()
+        {
+            CloseVisual();
+            TurnEventQueue.Instance?.NotifyDismissed();
         }
     }
 }

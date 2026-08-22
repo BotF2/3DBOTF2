@@ -84,7 +84,10 @@ public class StarSysUI_Fields : MonoBehaviour
     public Button mergeFleetButton;
     public Button shipDeployButton;
     public Button cancelShipManagerButton;
-    public Button cargoButton;
+    public Button loadDilithiumButton;
+    public Button loadTroopsButton;
+    public Button unloadCargoButton;
+    public Button scrapButton;
 
     [Header("Text")]
     public TextMeshProUGUI headerPowerUnitText;

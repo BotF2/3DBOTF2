@@ -1010,18 +1010,17 @@ namespace BOTF3D.Galaxy
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
                                 this.FleetData.ColonizableSystem = sysCon;
+                                // Enqueue for InterTurn presentation — TurnEventQueue opens the popup
+                                // and fleet menu when the turn ends, so contacts never interrupt each
+                                // other mid-TurnProgression (ColonizableSystem stays set so the
+                                // Colonize/Claim buttons are correctly gated when the menu opens).
                                 if (weAreLocalPlayer)
-                                {
-                                    // Open the Habitable System popup first, then the fleet's own menu -
-                                    // GalaxyMenuUIController.OpenMenu always closes whatever menu is
-                                    // currently tracked before opening the next one, and Menu.AFleetMenu
-                                    // (unlike Menu.HabitableSysMenu) has a real close case, so opening it
-                                    // second is what leaves both visible together. The Fleet menu is what
-                                    // actually holds the Colonize/Claim System buttons (FleetUI_Fields) -
-                                    // ColonizableSystem was just set above, so they'll be correctly gated.
-                                    HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
-                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
-                                }
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedHabitable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                             // IsTerraformable is a bool? (unlike IsHabitable) - a system with no
                             // SO value set falls through to the plain non-habitable branch below.
@@ -1029,31 +1028,28 @@ namespace BOTF3D.Galaxy
                             {
                                 Debug.Log($"Fleet arrived at uninhabited terraformable system '{sysCon.StarSysData.SysName}'");
                                 this.FleetData.TerraformableSystem = sysCon;
+                                // Same InterTurn-queue reasoning as the habitable branch above.
                                 if (weAreLocalPlayer)
-                                {
-                                    // Same open-order reasoning as the habitable branch above - the
-                                    // Terraformable System popup first, then the Fleet menu (which now
-                                    // holds the Claim/Terraform buttons, gated on TerraformableSystem).
-                                    TerraformableSysUIController.Instance?.LoadTerraformableSysUI(sysCon, this.FleetData.CivController);
-                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
-                                }
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedTerraformable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                             else
                             {
                                 Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}'");
+                                // Deliberately do NOT set FleetData.ColonizableSystem/TerraformableSystem,
+                                // so Colonize/Terraform/ClaimSystem all stay correctly disabled in the
+                                // Fleet menu (see FleetMenuUIController's canColonize/canTerraform/canClaim).
                                 if (weAreLocalPlayer)
-                                {
-                                    // Plain uninhabited (neither IsHabitable nor IsTerraformable) still
-                                    // gets a contact popup, same as the other two uninhabited sub-cases -
-                                    // reuses HabitableSysUIController's popup since it's just a generic
-                                    // announcement (always shows "Uninhabited" regardless of the flags
-                                    // checked here) and needs no new scene wiring. Deliberately do NOT set
-                                    // FleetData.ColonizableSystem/TerraformableSystem, so Colonize/Terraform/
-                                    // ClaimSystem all stay correctly disabled in the Fleet menu below (see
-                                    // FleetMenuUIController's canColonize/canTerraform/canClaim checks).
-                                    HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
-                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
-                                }
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedNonHabitable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                         }
                         else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)

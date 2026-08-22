@@ -29,6 +29,7 @@ namespace BOTF3D.Civilization
         { DiplomaticEventEnum.War, DiplomaticEventEnum.DiscoveredSabotage, DiplomaticEventEnum.DiscoveredDisinformation, DiplomaticEventEnum.DiscoveredIntellectualTheft,
         DiplomaticEventEnum.Trade, DiplomaticEventEnum.ShareTech, DiplomaticEventEnum.GiveAid};
         public GameObject DiplomacyUIGameObject;
+        public List<ShipController> UIShipsForQueue;
 
         // MonoBehaviour should not rely on parameterized constructors. Use Init(...) after AddComponent/Instantiate.
         public void Init(DiplomacyData data)
@@ -253,6 +254,7 @@ namespace BOTF3D.Civilization
         // choice made just before closing.
         public void CloseWithoutDeciding()
         {
+            TurnEventQueue.Instance?.NotifyDismissed();
             ImplicitlyWithdrawFromEncounter();
         }
 
@@ -307,7 +309,7 @@ namespace BOTF3D.Civilization
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu);
                 GalaxyMenuUIController.Instance.CloseAllMenus();
-
+                TurnEventQueue.Instance?.NotifyDismissed();
                 Combat(this);
                 return;
             }
@@ -319,7 +321,7 @@ namespace BOTF3D.Civilization
 
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.DiplomacyMenu);
                 GalaxyMenuUIController.Instance.CloseMenu(Menu.ADiplomacyMenu);
-
+                TurnEventQueue.Instance?.NotifyDismissed();
                 this.DiplomacyData.FleetControllerCivOne?.ServerDecrementPendingEncounters();
                 this.DiplomacyData.FleetContollerCivTwo?.ServerDecrementPendingEncounters();
             }

@@ -146,7 +146,7 @@ public class StarSysSOImporter : EditorWindow
 
                 // CSV Structure:
                 // 0:StarSysInt, 1:X, 2:Y, 3:Z, 4:SysName, 5:Owner, 6:StarImage, 
-                // 7:Dilitium, 8:PowerStations, 9:Factories, 10:Shipyards, 11:ResearchCenters, 
+                // 7:Dilithium, 8:PowerStations, 9:Factories, 10:Shipyards, 11:ResearchCenters,
                 // 12:ShieldGenerators, 13:OrbitalBatteries, 14:Description,
                 // 15:PowerSprite, 16:FactorySprite, 17:ShipyardSprite, 18:ShieldSprite, 
                 // 19:OrbitalSprite, 20:ResearchSprite, 21:IsHomeworld, 22:IsHabitable, 23:IsTerraformable
@@ -251,7 +251,7 @@ public class StarSysSOImporter : EditorWindow
                 }
 
                 // Parse facility counts
-                newStar.Dilitium = ParseIntSafe(fields[7], i, "Dilitium");
+                newStar.Dilithium = ParseIntSafe(fields[7], i, "Dilithium");
                 newStar.PowerStations = ParseIntSafe(fields[8], i, "PowerStations");
                 newStar.Factories = ParseIntSafe(fields[9], i, "Factories");
                 newStar.Shipyards = ParseIntSafe(fields[10], i, "Shipyards");

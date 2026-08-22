@@ -78,7 +78,6 @@ namespace BOTF3D.UI
 
         private void OpenPopup()
         {
-            TimeManager.Instance.PauseTime();
             GameObject aNull = new GameObject();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
             Destroy(aNull);
@@ -97,14 +96,18 @@ namespace BOTF3D.UI
             FleetMenuUIController.Instance?.SetPopupClearance(TerraformableSysUIToggle.GetComponent<RectTransform>());
         }
 
-        public void CloseUnLoadTerraformableSysUI()
+        public void CloseVisual()
         {
             TerraformableSysUIToggle.SetActive(false);
             if (parentCanvasGO != null)
                 parentCanvasGO.SetActive(false);
-            TimeManager.Instance.ResumeTime();
-
             FleetMenuUIController.Instance?.ResetPopupClearance();
+        }
+
+        public void CloseUnLoadTerraformableSysUI()
+        {
+            CloseVisual();
+            TurnEventQueue.Instance?.NotifyDismissed();
         }
     }
 }

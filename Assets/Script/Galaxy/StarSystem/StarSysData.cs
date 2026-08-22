@@ -37,11 +37,35 @@ namespace BOTF3D.Galaxy
         public int TechUnits; // ResearchCenters centers provide tech output units that determines progress to a civ level StartingTechLevel enum.
         public Sprite StarSprit;
         public List<BOTF3D.Combat.ShipController> ShipsList = new List<BOTF3D.Combat.ShipController>();
+        // ── Dilithium & Power ────────────────────────────────────────────────────────
+        // Dilithium is the game's limiting strategic resource. It is not consumed by
+        // running power plants — instead it is HELD in each reactor crystal matrix as
+        // the permanent medium that channels the matter/antimatter reaction. Building a
+        // power plant locks dilithium into the reactor; destroying a plant fully recovers
+        // it. Ships likewise hold dilithium in their drive systems; destroyed ships lose
+        // that dilithium permanently (combat explosions scatter it).
+        //
+        // Sources of dilithium:
+        //   • Per-turn mining  — each inhabited system produces DilithiumMiningRate per turn.
+        //     Playable homeworlds produce the most; minor-civ systems with warp produce less;
+        //     pre-warp minor homeworlds produce nothing until conquered/joined; colonised
+        //     systems produce a small base rate once facilities are built.
+        //   • Scrapping ships  — a player-ordered decommission returns the ship's full
+        //     DilithiumCost to the system's stockpile (vs combat destruction, which loses it).
+        //
+        // Sinks of dilithium:
+        //   • Ship construction  — each new ship locks dilithium into its drive core.
+        //   • Power plant construction  — each new plant locks dilithium into its reactor.
+        //   • Colonisation transports  — the transport's loaded cargo seeds the new colony's
+        //     starting stockpile when the colonisation timer completes.
+        //
+        // MaxPowerPlants caps how many plants this system can support, set by system type
+        // and civ. It is NOT a dilithium quantity — it is a slot limit on infrastructure.
         [Header("Dilithium & Power")]
-        public int DilithiumCapacity = 1; // Currently 1 for minor civ, habitable or for terraform and 2 for playable major civs, 0 for black holes or other non-habitable systems
-        public int CurrentPowerPlantCount = 1; // 1 dilithium = 1 power plant, so this is also the current dilithium being mined.
-                                               // Consider adding other power sources and adjust this variable to be more general for total power output.
-        public int DilithiumStockpile; // Unallocated dilithium available for construction
+        public int MaxPowerPlants = 1;
+        public int CurrentPowerPlantCount = 1;
+        public int DilithiumStockpile;
+        public int DilithiumMiningRate; // dilithium added to stockpile each turn via mining
         public AIBuildMode AIBuildMode = AIBuildMode.Economy;
         public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
 
@@ -203,14 +227,14 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public bool CanBuildPowerPlant()
         {
-            return PowerPlants.Count < DilithiumCapacity;
+            return PowerPlants.Count < MaxPowerPlants;
         }
         /// <summary>
         /// Get available power plant slots
         /// </summary>
         public int GetAvailablePowerPlantSlots()
         {
-            return Mathf.Max(0, DilithiumCapacity - CurrentPowerPlantCount);
+            return Mathf.Max(0, MaxPowerPlants - CurrentPowerPlantCount);
         }
 
         /// <summary>

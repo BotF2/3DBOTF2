@@ -428,11 +428,11 @@ namespace BOTF3D.UI
             {
                 fleetCon.FleetData.ShipListUIParent = uiFields.FleetShipContentGO;
 
-                // 8 ships per row, each cell 140×25. Rows wrap downward when expanded.
+                // 8 ships per row, each cell 136×50. Rows wrap downward when expanded.
                 // In collapsed state the ShipScrollView height clips to one visible row.
                 var grid = uiFields.FleetShipContentGO.GetComponent<UnityEngine.UI.GridLayoutGroup>()
                            ?? uiFields.FleetShipContentGO.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                grid.cellSize        = new Vector2(140, 25);
+                grid.cellSize        = new Vector2(136, 50);
                 grid.spacing         = new Vector2(4, 4);
                 grid.startAxis       = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
                 grid.constraint      = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
@@ -733,6 +733,7 @@ namespace BOTF3D.UI
             // Falls back to TerraformableSystem so Colonize also works once a previously-terraformed
             // contact system becomes habitable (see the contactedSystem logic in
             // SetupFleetUIElements/ StarSysController.TerraformSystem for why that field is still set).
+            bool wasHabitableContact = fleetCon.FleetData.ColonizableSystem != null;
             var sysCon = fleetCon.FleetData.ColonizableSystem ?? fleetCon.FleetData.TerraformableSystem;
             if (sysCon == null) return;
 
@@ -741,7 +742,13 @@ namespace BOTF3D.UI
             if (transport == null) return;
 
             if (sysCon.ColonizeWithTransport(transport))
+            {
+                // The contact popup paused time; close the right one so time resumes.
+                // TerraformableSystem path: popup was already closed by ClickTerraformButton.
+                if (wasHabitableContact)
+                    HabitableSysUIController.Instance?.CloseUnLoadHabitableSysUI();
                 SetupFleetUIData(); // refresh so the Colonize button + ship list reflect the new state
+            }
         }
         private void ClickTerraformButton(FleetController fleetCon)
         {
@@ -754,16 +761,46 @@ namespace BOTF3D.UI
             if (transport == null) return;
 
             if (sysCon.TerraformSystem(transport))
+            {
+                // The contact popup paused time; close it so time resumes.
+                TerraformableSysUIController.Instance?.CloseUnLoadTerraformableSysUI();
                 SetupFleetUIData(); // refresh so the Terraform/Claim buttons reflect the new state
+            }
         }
         private void ClickClaimSystemButton(FleetController fleetCon)
         {
             if (fleetCon == null || fleetCon.FleetData == null) return;
+            bool wasHabitableContact = fleetCon.FleetData.ColonizableSystem != null;
             var sysCon = fleetCon.FleetData.ColonizableSystem ?? fleetCon.FleetData.TerraformableSystem;
             if (sysCon == null) return;
 
             if (sysCon.ClaimSystem(fleetCon.FleetData.CivController))
-                SetupFleetUIData(); // refresh so the Claim/Colonize/Terraform buttons reflect the new state
+            {
+                // Close the popup panel visually but defer NotifyDismissed until we know whether
+                // transport actions (Terraform/Colonize) are still available. If they are, the
+                // fleet menu stays open so the player can act; CancelFleetUIButton will notify.
+                if (wasHabitableContact)
+                    HabitableSysUIController.Instance?.CloseVisual();
+                else
+                    TerraformableSysUIController.Instance?.CloseVisual();
+                SetupFleetUIData(); // refresh so Claim/Colonize/Terraform buttons reflect new state
+                if (!HasTransportContactActions(fleetCon))
+                    TurnEventQueue.Instance?.NotifyDismissed();
+            }
+        }
+
+        private bool HasTransportContactActions(FleetController fleetCon)
+        {
+            var sys = fleetCon.FleetData?.ColonizableSystem ?? fleetCon.FleetData?.TerraformableSystem;
+            if (sys == null) return false;
+            bool hasTransport = fleetCon.FleetData.ShipsList.Any(s => s != null && s.ShipData != null
+                && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
+            if (!hasTransport) return false;
+            bool colonizeAvailable = sys.StarSysData.IsHabitable && !sys.StarSysData.IsColonizing;
+            bool terraformAvailable = !sys.StarSysData.IsHabitable
+                && sys.StarSysData.IsTerraformable == true
+                && !sys.StarSysData.IsTerraforming;
+            return colonizeAvailable || terraformAvailable;
         }
         private void ClickMergeFleetButton(FleetController fleetClickingMerge)
         {
@@ -828,6 +865,7 @@ namespace BOTF3D.UI
                 galaxyUI.CloseMenu(Menu.FleetMenu);
                 MousePointerChanger.Instance.ResetCursor();
             }
+            TurnEventQueue.Instance?.NotifyDismissed();
         }
         public void ClickCancelShipManageButton()
         {

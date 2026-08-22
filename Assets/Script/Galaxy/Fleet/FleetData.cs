@@ -65,6 +65,19 @@ namespace BOTF3D.Galaxy
         // StarSysController.TerraformSystem for what clicking it does.
         public StarSysController TerraformableSystem;
 
+        // Aggregate cargo state across all undestroyed transports in this fleet.
+        public int TotalTransportCargoCapacity =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.CargoCapacity);
+        public int TotalLoadedDilithium =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.LoadedDilithium);
+        public int TotalLoadedGroundForces =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.LoadedGroundForces);
+        public int FreeTransportCapacity =>
+            TotalTransportCargoCapacity - TotalLoadedDilithium - TotalLoadedGroundForces;
+
         public void ReleaseDockSlotIfAny()
         {
             if (DockedStarSys == null) return;

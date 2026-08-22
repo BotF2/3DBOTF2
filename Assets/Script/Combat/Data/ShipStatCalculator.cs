@@ -162,31 +162,34 @@ namespace BOTF3D.Combat
             { CivEnum.TERRAN, new CivFlavor(0.95f, 0.95f, 1.12f, 1.12f, 1.03f) },
         };
 
-        // ── Per-civ power plant dilithium cost ─────────────────────────────────────
-        // FED = 30 is the baseline. Other civs scale by doctrine:
-        //   ROM:    efficient, fragile — less infrastructure needed
-        //   KLING:  honour-based, martial — moderate power draw
-        //   CARD:   methodical, expansive — slightly above baseline
-        //   DOM:    polaron tech is energy-hungry — notably above baseline
-        //   BORG:   massive shield/hull infrastructure — highest cost
-        //   TERRAN: identical tech base to FED
+        // ── Dilithium locked into each power plant reactor by civilisation ──────────
+        // Each plant holds this much dilithium permanently in its reactor crystal matrix.
+        // Reactor size reflects the civ's power doctrine, not raw strength:
+        //   FED:    balanced medium reactors — baseline 25
+        //   ROM:    compact, efficient singularity-adjacent design — 22
+        //   KLING:  brute-force plasma reactors, higher draw — 28
+        //   CARD:   cheap low-output plants compensated by quantity — 15
+        //   DOM:    polaron systems are energy-hungry, large reactors — 38
+        //   BORG:   each node powers a vast complex, maximum capacity — 55
+        //   TERRAN: mirrors Federation baseline — 25
+        //   Minors: small single-reactor installation — 8
         private static readonly Dictionary<CivEnum, int> PowerPlantLi2Cost = new Dictionary<CivEnum, int>
         {
-            { CivEnum.FED,    30 },
-            { CivEnum.ROM,    25 },
+            { CivEnum.FED,    25 },
+            { CivEnum.ROM,    22 },
             { CivEnum.KLING,  28 },
-            { CivEnum.CARD,   32 },
-            { CivEnum.DOM,    35 },
-            { CivEnum.BORG,   40 },
-            { CivEnum.TERRAN, 30 },
+            { CivEnum.CARD,   15 },
+            { CivEnum.DOM,    38 },
+            { CivEnum.BORG,   55 },
+            { CivEnum.TERRAN, 25 },
         };
 
         /// <summary>
-        /// Returns the dilithium cost to build one power plant for the given civilisation.
-        /// Falls back to 10 for minor races.
+        /// Returns the dilithium locked into one power plant reactor for the given civilisation.
+        /// Falls back to 8 for minor races.
         /// </summary>
         public static int GetPowerPlantDilithiumCost(CivEnum civ) =>
-            PowerPlantLi2Cost.TryGetValue(civ, out int cost) ? cost : 10;
+            PowerPlantLi2Cost.TryGetValue(civ, out int cost) ? cost : 8;
 
         /// <summary>
         /// Compute all runtime stats.  Call once during ship initialization.

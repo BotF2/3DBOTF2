@@ -432,6 +432,9 @@ namespace BOTF3D.Core
             if (TechManager.Instance != null)
                 TechManager.Instance.ProcessResearchForAllCivs();
 
+            StarSysManager.Instance?.ProcessDilithiumMining();
+            StarSysManager.Instance?.ProcessRepairs();
+
             // TODO: population growth, credits/income, random events
 
             SetTurnPhase(TurnPhase.InterTurn);

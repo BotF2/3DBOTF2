@@ -626,6 +626,7 @@ namespace BOTF3D.UI
         private void OnEnable()
         {
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+            GameEvents.OnTurnEventQueueDrained += OnTurnEventQueueDrained;
             if (TimeManager.Instance != null)
             {
                 TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
@@ -637,6 +638,7 @@ namespace BOTF3D.UI
         private void OnDisable()
         {
             UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            GameEvents.OnTurnEventQueueDrained -= OnTurnEventQueueDrained;
             if (TimeManager.Instance != null)
             {
                 TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
@@ -644,6 +646,8 @@ namespace BOTF3D.UI
                 TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
             }
         }
+
+        private void OnTurnEventQueueDrained() => SetControlsInteractable();
 
         private void OnAdvanceTurnClicked()
         {
@@ -660,6 +664,12 @@ namespace BOTF3D.UI
             if (GameController.Instance == null)
             {
                 Debug.LogWarning("OnAdvanceTurnClicked: GameController.Instance is NULL - click ignored.");
+                return;
+            }
+
+            if (!(TurnEventQueue.Instance?.IsDrained ?? true))
+            {
+                Debug.LogWarning("OnAdvanceTurnClicked: turn event queue not drained — click ignored.");
                 return;
             }
 
@@ -848,7 +858,8 @@ namespace BOTF3D.UI
             {
                 bool wasInteractable = advanceTurnButton.interactable;
                 advanceTurnButton.interactable = !_playerPaused
-                    && (TimeManager.Instance?.TurnPhase == TurnPhase.InterTurn);
+                    && (TimeManager.Instance?.TurnPhase == TurnPhase.InterTurn)
+                    && (TurnEventQueue.Instance?.IsDrained ?? true);
                 if (advanceTurnButton.interactable != wasInteractable)
                     Debug.Log($"SetControlsInteractable: advanceTurnButton.interactable {wasInteractable} -> {advanceTurnButton.interactable} (_playerPaused={_playerPaused}, TimeManager.Instance={(TimeManager.Instance != null ? "OK" : "NULL")}, TurnPhase={TimeManager.Instance?.TurnPhase})");
             }

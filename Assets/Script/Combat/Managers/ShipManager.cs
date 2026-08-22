@@ -31,6 +31,7 @@ namespace BOTF3D.Combat
 
         [Header("Ship UI")]
         [SerializeField] private GameObject shipListUIPrefab;
+        [SerializeField] private GameObject shipListTransportUIPrefab;
 
         [Header("Weapon Prefabs")]
         public GameObject targetGOPrefab;
@@ -136,7 +137,7 @@ public GameObject[] beamWeaponPrefabs;
             shipRegistry = new ShipRegistry();
             shipFactory = new ShipFactory(shipConPrefab, targetGOPrefab);
             shipDataInitializer = new ShipDataInitializer();
-            shipUICreator = new ShipUICreator(shipListUIPrefab);
+            shipUICreator = new ShipUICreator(shipListUIPrefab, shipListTransportUIPrefab);
 
             Debug.Log("✅ ShipManager: All managers initialized");
         }

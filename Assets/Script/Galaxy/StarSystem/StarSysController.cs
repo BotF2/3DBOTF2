@@ -595,8 +595,11 @@ namespace BOTF3D.Galaxy
             if (!colonizingCiv.CivData.StarSysWeOwn.Contains(this))
                 colonizingCiv.CivData.StarSysWeOwn.Add(this);
 
-            // Consume the transport instantly - its dilithium fuels the new power plant once
-            // colonization completes.
+            // Capture dilithium cargo before destroying the transport - it seeds the new colony's
+            // power plant when colonization completes.
+            int transportDilithium = transportShip.ShipData.LoadedDilithium;
+
+            // Consume the transport instantly.
             if (fleetCon != null)
                 fleetCon.RemoveShipFromFleet(transportShip);
             var occupiedSysCon = transportShip.ShipData.CurrentStarSysController;
@@ -622,13 +625,13 @@ namespace BOTF3D.Galaxy
             starSysData.IsColonizing = true;
             starSysData.ColonizeCompleteStardate = TimeManager.Instance.CurrentStarDate() + ColonizeTurns * TimeManager.Instance.StarDatesPerTurn;
             if (gameObject.activeInHierarchy)
-                StartCoroutine(ColonizeTimerCoroutine(colonizingCiv));
+                StartCoroutine(ColonizeTimerCoroutine(colonizingCiv, transportDilithium));
 
             Debug.Log($"'{starSysData.SysName}' colonizing for {colonizingCiv.CivData.CivShortName} via Transport - completes turn {starSysData.ColonizeCompleteStardate / TimeManager.Instance.StarDatesPerTurn}.");
             return true;
         }
 
-        private IEnumerator ColonizeTimerCoroutine(CivController colonizingCiv)
+        private IEnumerator ColonizeTimerCoroutine(CivController colonizingCiv, int seedDilithium)
         {
             while (TimeManager.Instance.CurrentStarDate() < starSysData.ColonizeCompleteStardate)
                 yield return null;
@@ -638,11 +641,17 @@ namespace BOTF3D.Galaxy
             starSysData.PowerPlants = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 1, this);
             starSysData.CurrentPowerPlantCount = starSysData.PowerPlants.Count;
             starSysData.Factories = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.FactoryPrefab, civInt, 1, this);
+
+            // The transport's dilithium cargo becomes this colony's starting stockpile.
+            starSysData.DilithiumStockpile = seedDilithium;
+            // Facilities online — set per-civ colony mining rate now that infrastructure exists.
+            starSysData.DilithiumMiningRate = StarSysManager.GetColonyMiningRate(colonizingCiv.CivData.CivEnum);
+
             if (StarSysMenuUIController.Instance != null)
                 StarSysMenuUIController.Instance.UpdateSystemPowerBalance(this);
 
             starSysData.IsColonizing = false;
-            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online at stardate {TimeManager.Instance.CurrentStarDate()}.");
+            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online, stockpile seeded with {seedDilithium} dilithium.");
         }
 
         /// <summary>

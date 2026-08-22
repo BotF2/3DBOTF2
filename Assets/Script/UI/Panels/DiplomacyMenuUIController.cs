@@ -646,10 +646,23 @@ namespace BOTF3D.UI
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.SystemRecon(diplomacyCon));
                         break;
-                    case "CombatButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    case "ButtonCloseDiplomacytUI":
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));
+                        listButton.onClick.AddListener(() =>
+                        {
+                            // Unblock the TurnEventQueue drain — the player has seen and dismissed
+                            // this encounter card without choosing Combat or Withdraw.
+                            TurnEventQueue.Instance?.NotifyDismissed();
+                        });
+                        break;
+                    case "CombatButton":
+                        listButton.onClick.RemoveAllListeners();
+                        listButton.onClick.AddListener(() =>
+                        {
+                            diplomacyCon.Combat(diplomacyCon);
+                            // Player has committed to combat — unblock the queue.
+                            TurnEventQueue.Instance?.NotifyDismissed();
+                        });
                         break;
                     case "WithdrawButton":
                         listButton.onClick.RemoveAllListeners();
@@ -667,6 +680,8 @@ namespace BOTF3D.UI
                             // once both sides have answered) - otherwise Combat/Withdraw kept showing
                             // as if still actionable after they'd already been used.
                             RefreshEncounterButtonsState(diplomacyCon);
+                            // Player has committed to withdraw — unblock the queue.
+                            TurnEventQueue.Instance?.NotifyDismissed();
                         });
                         break;
                     case "DeclareWarButton":
