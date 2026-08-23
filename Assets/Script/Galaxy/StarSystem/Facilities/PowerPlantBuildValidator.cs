@@ -29,9 +29,9 @@ namespace BOTF3D.Galaxy
             var sysData = systemController.StarSysData;
 
             // ✅ Check Dilithium capacity (slot limit)
-            if (sysData.CurrentPowerPlantCount >= sysData.DilithiumCapacity)
+            if (sysData.CurrentPowerPlantCount >= sysData.MaxPowerPlants)
             {
-                reason = $"Dilithium reserves exhausted. Maximum capacity: {sysData.DilithiumCapacity}";
+                reason = $"Power plant capacity reached. Maximum for this system: {sysData.MaxPowerPlants}";
                 return false;
             }
 
@@ -51,7 +51,7 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public static string GetCapacityInfo(StarSysData sysData)
         {
-            return $"Power Plants: {sysData.CurrentPowerPlantCount}/{sysData.DilithiumCapacity}";
+            return $"Power Plants: {sysData.CurrentPowerPlantCount}/{sysData.MaxPowerPlants}";
         }
 
         /// <summary>

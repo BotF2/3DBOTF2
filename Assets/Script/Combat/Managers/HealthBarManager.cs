@@ -77,7 +77,7 @@ namespace BOTF3D.Combat
 
             // Parent directly to ship (world-space UI)
             healthbarGO.transform.SetParent(ship.transform, false);
-            healthbarGO.transform.localPosition = new Vector3(5 * side1negSide2pos, -3f, -10f);
+            healthbarGO.transform.localPosition = ComputeHealthBarLocalOffset(ship, side1negSide2pos);
             healthbarGO.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
             healthbarGO.transform.localRotation = Quaternion.Euler(0, -90 * side1negSide2pos, 0);
 
@@ -102,17 +102,20 @@ namespace BOTF3D.Combat
             healthbarGO.layer = LayerMask.NameToLayer("Default");
             SetLayerRecursively(healthbarGO, LayerMask.NameToLayer("Default"));
 
-            // Set up health bar images
+            // Set up health bar images. Matched by the "HealthFill" child's name specifically;
+            // anything else under the prefab (the root "HealthBar" image) is treated as the
+            // background, since the background object isn't actually named "HealthBackground" in
+            // HealthBarPrefab.prefab - matching that literal name here silently never assigned
+            // ship.HealthBackgroundImage.
             Image[] healthbarImages = healthbarGO.GetComponentsInChildren<Image>();
             foreach (var img in healthbarImages)
             {
                 if (img.gameObject.name == "HealthFill")
                 {
                     ship.HealthFillImage = img;
-                    ship.HealthFillImage.fillAmount = 1f;
-                    ship.HealthFillImage.color = Color.green;
+                    ShipListingUI.ApplyHealthBarFill(ship.HealthFillImage, 1f);
                 }
-                else if (img.gameObject.name == "HealthBackground")
+                else
                 {
                     ship.HealthBackgroundImage = img;
                     ship.HealthBackgroundImage.fillAmount = 1f;
@@ -129,6 +132,45 @@ namespace BOTF3D.Combat
             {
                 billboard = healthbarGO.AddComponent<BillboardCameraCombat>();
             }
+        }
+
+        // Clearance above the model's bounding-box top, and how far back of its center the bar
+        // sits, both as extra padding on top of the ship's own measured size - see
+        // ComputeHealthBarLocalOffset.
+        private const float AboveClearance = 3f;
+        private const float BehindClearance = 2f;
+        private const float SidewaysOffset = 5f;
+
+        /// <summary>
+        /// Places the health bar above and slightly behind the ship's actual model, scaled to
+        /// that ship's own size rather than a fixed offset tuned for one ship class. Mirrors
+        /// ShipShieldEffect.GetOrCreate's approach: combine every renderer's world-space bounds
+        /// under the ship, then convert to the ship's local space so the offset stays correct
+        /// regardless of the ship's ±90°-Y combat facing (see CLAUDE.md's Ship Y-rotation
+        /// convention). Local +Z is each ship's forward/nose (that convention is exactly why a
+        /// 90°/-90° Y rotation alone reorients it to face +X/-X), so local -Z is behind it.
+        /// </summary>
+        private static Vector3 ComputeHealthBarLocalOffset(ShipController ship, int side1negSide2pos)
+        {
+            Transform shipTransform = ship.transform;
+            Renderer[] renderers = ship.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return new Vector3(SidewaysOffset * side1negSide2pos, AboveClearance, -BehindClearance); // no model yet - small fixed fallback
+
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+
+            Vector3 localCenter = shipTransform.InverseTransformPoint(bounds.center);
+            Vector3 localExtents = shipTransform.InverseTransformVector(bounds.extents);
+
+            float above = Mathf.Abs(localExtents.y) + AboveClearance;
+            float behind = Mathf.Abs(localExtents.z) * 0.5f + BehindClearance;
+
+            return new Vector3(
+                localCenter.x + SidewaysOffset * side1negSide2pos,
+                localCenter.y + above,
+                localCenter.z - behind);
         }
 
         /// <summary>

@@ -88,7 +88,7 @@ public static class CivBalanceCalculator
                 home.ShieldGenerators = lay.sg;
                 home.OrbitalBatteries = lay.ob;
                 home.PowerStations    = pp;
-                home.Dilitium         = pp + 1;
+                home.Dilithium        = pp + 1;
 
                 EditorUtility.SetDirty(home);
                 homesUpdated++;

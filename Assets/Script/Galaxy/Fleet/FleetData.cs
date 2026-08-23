@@ -58,6 +58,26 @@ namespace BOTF3D.Galaxy
         // order button - see StarSysController.ColonizeWithTransport for what clicking it does.
         public StarSysController ColonizableSystem;
 
+        // Uninhabited, terraformable-but-not-yet-habitable system this fleet is currently in
+        // contact with, or null. Set/cleared alongside ColonizableSystem by the same
+        // FleetController.OnTriggerEnter branch, just for the IsTerraformable-not-IsHabitable case.
+        // Read by FleetMenuUIController to enable the Terraform order button - see
+        // StarSysController.TerraformSystem for what clicking it does.
+        public StarSysController TerraformableSystem;
+
+        // Aggregate cargo state across all undestroyed transports in this fleet.
+        public int TotalTransportCargoCapacity =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.CargoCapacity);
+        public int TotalLoadedDilithium =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.LoadedDilithium);
+        public int TotalLoadedGroundForces =>
+            ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)
+                     .Sum(s => s.ShipData.LoadedGroundForces);
+        public int FreeTransportCapacity =>
+            TotalTransportCargoCapacity - TotalLoadedDilithium - TotalLoadedGroundForces;
+
         public void ReleaseDockSlotIfAny()
         {
             if (DockedStarSys == null) return;

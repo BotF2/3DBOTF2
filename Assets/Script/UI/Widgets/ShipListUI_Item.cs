@@ -29,6 +29,18 @@ namespace BOTF3D.UI
         private RectTransform rectTransform;
         private bool wasDragged = false;
 
+        private void OnEnable()
+        {
+            // If ShipListingUI component handles its own OnEnable, do nothing here.
+            // Otherwise apply health bar via child name so panels without the component also refresh.
+            if (GetComponent<ShipListingUI>() != null) return;
+            if (ShipController?.ShipData == null) return;
+            var hullBarImg = (transform.Find("HullBar/HullBarFill")
+                           ?? transform.Find("HullBarFill"))
+                                ?.GetComponent<UnityEngine.UI.Image>();
+            ShipListingUI.ApplyHealthBar(hullBarImg, ShipController.ShipData);
+        }
+
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();

@@ -48,6 +48,7 @@ namespace BOTF3D.Combat
             data.ShipName = shipSO.ShipName;
             data.CivEnum = effectiveCiv;
             data.TechLevel = shipSO.TechLevel;
+            data.BuiltAtTechLevel = shipSO.TechLevel;
             data.ShipType = shipSO.ShipType;
             data.ShipDescription = shipSO.ShipDescription;
             if (shipSO.shipSprite != null)

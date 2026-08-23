@@ -31,7 +31,7 @@ namespace BOTF3D.Galaxy
                     profile = new StarVisualProfile(new Color(0.55f, 0.75f, 1f), 1.4f, 6f);
                     return true;
                 case GalaxyObjectType.WhiteStar:
-                    profile = new StarVisualProfile(new Color(1f, 1f, 1f), 1.2f, 5f);
+                    profile = new StarVisualProfile(new Color(1f, 1f, 1f), 1.2f, 7.5f);
                     return true;
                 case GalaxyObjectType.YellowStar:
                     profile = new StarVisualProfile(new Color(1f, 0.92f, 0.7f), 1f, 4f);

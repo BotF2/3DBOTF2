@@ -1598,6 +1598,7 @@ MonoBehaviour:
   shipConPrefab: {fileID: 5225383146866348849, guid: 74ecdfcbc551f7e43bcbddbec91a8686, type: 3}
   galaxyShipPrefab: {fileID: 0}
   shipListUIPrefab: {fileID: 1097691733155681692, guid: 80e448e987f83f14a9351c9b3de176b4, type: 3}
+  shipListTransportUIPrefab: {fileID: 4595049147914924876, guid: 9a89097bc16b3fe4f84f2799af1c9763, type: 3}
   targetGOPrefab: {fileID: 3986111191651871830, guid: 9f5ec565b8469c841a29976acdadf913, type: 3}
   explosionPrefab: {fileID: 1095849975592326347, guid: d1fcf255ded2f0746885a1ee26887b53, type: 3}
   torpedoHitExplosionPrefab: {fileID: 9012772365313581655, guid: 89cf8ff4cdef7734ebe204f8b37c7e05, type: 3}
@@ -4503,7 +4504,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 34}
+  m_AnchoredPosition: {x: 0, y: 26}
   m_SizeDelta: {x: 1600, y: 50}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1582959107

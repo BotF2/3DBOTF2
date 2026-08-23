@@ -1,5 +1,6 @@
 using BOTF3D.Core;
 using UnityEngine;
+using UnityEngine.Serialization;
 using BOTF3D.Combat;
 using BOTF3D.Civilization;
 using BOTF3D.UI;
@@ -18,7 +19,8 @@ public class StarSysSO : ScriptableObject
     public CivEnum CurrentOwner;
     public GalaxyObjectType StarType;
     public Sprite StarSprit;
-    public int Dilitium;
+    [FormerlySerializedAs("Dilitium")]
+    public int Dilithium;
     public int PowerStations;
     public int Factories;
     public int ResearchCenters;

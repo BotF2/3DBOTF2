@@ -264,10 +264,10 @@ namespace BOTF3D.UI
                 {
                     sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
 
-                    // Grid: 140×25 cells, 2 columns
+                    // Grid: 136×50 cells, 2 columns
                     var grid = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.GridLayoutGroup>()
                                ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                    grid.cellSize = new Vector2(140, 25);
+                    grid.cellSize = new Vector2(136, 50);
                     grid.spacing = new Vector2(4, 4);
                     grid.padding = new RectOffset(5, 0, 0, 0);
                     grid.startAxis = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
@@ -445,10 +445,31 @@ namespace BOTF3D.UI
                 fields.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
             }
 
-            if (fields.cargoButton != null)
+            if (fields.loadDilithiumButton != null)
             {
-                fields.cargoButton.onClick.RemoveAllListeners();
-                fields.cargoButton.onClick.AddListener(() => StarSysClickCargoButton(sysCon));
+                fields.loadDilithiumButton.onClick.RemoveAllListeners();
+                fields.loadDilithiumButton.onClick.AddListener(() => ClickLoadDilithiumButton(sysCon));
+            }
+
+            if (fields.loadTroopsButton != null)
+            {
+                fields.loadTroopsButton.onClick.RemoveAllListeners();
+                fields.loadTroopsButton.onClick.AddListener(() => ClickLoadTroopsButton(sysCon));
+            }
+
+            if (fields.unloadCargoButton != null)
+            {
+                fields.unloadCargoButton.onClick.RemoveAllListeners();
+                fields.unloadCargoButton.onClick.AddListener(() => ClickUnloadCargoButton(sysCon));
+            }
+
+            if (fields.scrapButton != null)
+            {
+                fields.scrapButton.onClick.RemoveAllListeners();
+                fields.scrapButton.onClick.AddListener(() => ClickScrapButton(sysCon));
+                // Only visible when the system has a shipyard
+                bool hasShipyard = sysCon.StarSysData.Shipyards != null && sysCon.StarSysData.Shipyards.Count > 0;
+                fields.scrapButton.gameObject.SetActive(hasShipyard);
             }
 
             if (fields.newFleetButton != null)
@@ -1263,10 +1284,140 @@ namespace BOTF3D.UI
                 ShipDeployMenuUIController.Instance.TopStarSyst = sysController;
             }
         }
-        private void StarSysClickCargoButton(StarSysController sysController)
+        // ── Cargo button handlers ─────────────────────────────────────────────────
+
+        private void ClickLoadDilithiumButton(StarSysController sysCon)
         {
-            if (CargoDeployMenuUIController.Instance != null)
-                CargoDeployMenuUIController.Instance.ShowCargoMenuView(sysController);
+            // Find the first docked local-player fleet transport with free capacity and no troops loaded
+            var transport = FindLoadableTransport(sysCon, requireEmpty: true, excludeTroops: true);
+            if (transport == null) return;
+            int amount = Mathf.Min(transport.ShipData.CargoCapacity - transport.ShipData.LoadedDilithium
+                                    - transport.ShipData.LoadedGroundForces,
+                                   sysCon.StarSysData.DilithiumStockpile);
+            if (amount <= 0) return;
+            transport.ShipData.LoadedDilithium += amount;
+            sysCon.StarSysData.DilithiumStockpile -= amount;
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()
+                ?.Refresh(transport.ShipData);
+            RefreshCargoButtons(sysCon);
+            Debug.Log($"[Cargo] Loaded {amount} Dilithium onto '{transport.ShipData.ShipName}' from '{sysCon.StarSysData.SysName}'");
+        }
+
+        private void ClickLoadTroopsButton(StarSysController sysCon)
+        {
+            var transport = FindLoadableTransport(sysCon, requireEmpty: true, excludeDilithium: true);
+            if (transport == null) return;
+            int available = sysCon.StarSysData.GroundForces?.Count ?? 0;
+            int capacity = transport.ShipData.CargoCapacity - transport.ShipData.LoadedGroundForces
+                           - transport.ShipData.LoadedDilithium;
+            int amount = Mathf.Min(capacity, available);
+            if (amount <= 0) return;
+            transport.ShipData.LoadedGroundForces += amount;
+            // Remove loaded units from the system's ground forces list
+            for (int i = 0; i < amount && sysCon.StarSysData.GroundForces.Count > 0; i++)
+                sysCon.StarSysData.GroundForces.RemoveAt(sysCon.StarSysData.GroundForces.Count - 1);
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()
+                ?.Refresh(transport.ShipData);
+            RefreshCargoButtons(sysCon);
+            Debug.Log($"[Cargo] Loaded {amount} troops onto '{transport.ShipData.ShipName}' from '{sysCon.StarSysData.SysName}'");
+        }
+
+        private void ClickUnloadCargoButton(StarSysController sysCon)
+        {
+            // Walk back the most recently loaded transport — first with dilithium, then troops
+            var transport = FindDockedTransportWithCargo(sysCon);
+            if (transport == null) return;
+            if (transport.ShipData.LoadedDilithium > 0)
+            {
+                sysCon.StarSysData.DilithiumStockpile += transport.ShipData.LoadedDilithium;
+                Debug.Log($"[Cargo] Unloaded {transport.ShipData.LoadedDilithium} Dilithium from '{transport.ShipData.ShipName}' to '{sysCon.StarSysData.SysName}'");
+                transport.ShipData.LoadedDilithium = 0;
+            }
+            else if (transport.ShipData.LoadedGroundForces > 0)
+            {
+                // TODO: restore ground force GameObjects when that system is built out
+                Debug.Log($"[Cargo] Unloaded {transport.ShipData.LoadedGroundForces} troops from '{transport.ShipData.ShipName}' to '{sysCon.StarSysData.SysName}'");
+                transport.ShipData.LoadedGroundForces = 0;
+            }
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()
+                ?.Refresh(transport.ShipData);
+            RefreshCargoButtons(sysCon);
+        }
+
+        private void ClickScrapButton(StarSysController sysCon)
+        {
+            ScrapPanelUIController.Instance?.Open(sysCon);
+        }
+
+        /// <summary>
+        /// Shows/hides the three cargo buttons based on what docked transports can do at this system.
+        /// Call after any load/unload operation and when the system UI opens.
+        /// </summary>
+        public void RefreshCargoButtons(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysUIGameObject == null) return;
+            var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields == null) return;
+
+            var dockedFleet = GetDockedLocalPlayerFleet(sysCon);
+            bool hasFreeTransport = dockedFleet != null && dockedFleet.FleetData.FreeTransportCapacity > 0;
+            bool hasTroopFreeTransport = hasFreeTransport && dockedFleet.FleetData.TotalLoadedDilithium == 0;
+            bool hasDilithiumFreeTransport = hasFreeTransport && dockedFleet.FleetData.TotalLoadedGroundForces == 0;
+            bool hasLoadedCargo = dockedFleet != null
+                && (dockedFleet.FleetData.TotalLoadedDilithium > 0 || dockedFleet.FleetData.TotalLoadedGroundForces > 0);
+
+            if (fields.loadDilithiumButton != null)
+                fields.loadDilithiumButton.gameObject.SetActive(
+                    hasDilithiumFreeTransport && sysCon.StarSysData.DilithiumStockpile > 0);
+
+            if (fields.loadTroopsButton != null)
+                fields.loadTroopsButton.gameObject.SetActive(
+                    hasTroopFreeTransport && (sysCon.StarSysData.GroundForces?.Count ?? 0) > 0);
+
+            if (fields.unloadCargoButton != null)
+                fields.unloadCargoButton.gameObject.SetActive(hasLoadedCargo);
+        }
+
+        private FleetController GetDockedLocalPlayerFleet(StarSysController sysCon)
+        {
+            foreach (var fleet in sysCon.StarSysData.FleetDockSlots)
+            {
+                if (fleet == null) continue;
+                if (GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
+                    return fleet;
+            }
+            return null;
+        }
+
+        private ShipController FindLoadableTransport(StarSysController sysCon,
+            bool requireEmpty = false, bool excludeTroops = false, bool excludeDilithium = false)
+        {
+            var fleet = GetDockedLocalPlayerFleet(sysCon);
+            if (fleet == null) return null;
+            foreach (var ship in fleet.FleetData.ShipsList)
+            {
+                if (ship?.ShipData == null || ship.ShipData.ShipType != ShipType.Transport) continue;
+                if (ship.ShipData.Distroyed) continue;
+                int free = ship.ShipData.CargoCapacity - ship.ShipData.LoadedDilithium - ship.ShipData.LoadedGroundForces;
+                if (free <= 0) continue;
+                if (excludeTroops && ship.ShipData.LoadedGroundForces > 0) continue;
+                if (excludeDilithium && ship.ShipData.LoadedDilithium > 0) continue;
+                if (requireEmpty && ship.ShipData.LoadedDilithium == 0 && ship.ShipData.LoadedGroundForces == 0) return ship;
+                if (!requireEmpty) return ship;
+            }
+            return null;
+        }
+
+        private ShipController FindDockedTransportWithCargo(StarSysController sysCon)
+        {
+            var fleet = GetDockedLocalPlayerFleet(sysCon);
+            if (fleet == null) return null;
+            foreach (var ship in fleet.FleetData.ShipsList)
+            {
+                if (ship?.ShipData == null || ship.ShipData.ShipType != ShipType.Transport) continue;
+                if (ship.ShipData.LoadedDilithium > 0 || ship.ShipData.LoadedGroundForces > 0) return ship;
+            }
+            return null;
         }
         private void StarSysClickMergeShipsButton(StarSysController starSysController)
         {

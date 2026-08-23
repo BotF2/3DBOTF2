@@ -938,47 +938,40 @@ namespace BOTF3D.Galaxy
                     if (isEnemyFleet && (weAreLocalPlayer || gameController.AreWeLocalPlayer(hitFleetCon.FleetData.CivEnum)))
                         EncounterUnknownFleetGetNameAndSprite(collider.gameObject);
 
-                    // [DiploPanelDiag] Temporary - pins down why a fleet-vs-fleet contact after an
-                    // already-resolved star-system first contact with the same civ produced zero
-                    // diplomacy-related log output at all. Encounter queueing below only ever fires
-                    // when isOurDestination||contactIsIntercept is true and isServer is true - if
-                    // this fleet merely collided with the other civ's fleet without it being the
-                    // explicit destination/intercept target, nothing downstream ever runs.
                     if (isEnemyFleet)
-                        Debug.LogWarning($"[DiploPanelDiag] OnTriggerEnter fleet-vs-fleet: this={name} other={hitFleetCon.name} " +
-                            $"isOurDestination={isOurDestination} contactIsIntercept={contactIsIntercept} isServer={isServer} " +
-                            $"Destination={(FleetData.Destination != null ? FleetData.Destination.name : "null")}");
-
-                    if (isOurDestination || contactIsIntercept)
                     {
-                        ClickCancelDestinationButton(); // we stop
+                        // Enemy contact always stops this fleet and queues a diplomacy encounter.
+                        // The previous gate (isOurDestination||contactIsIntercept) silently dropped
+                        // first contact whenever neither fleet had the other as an explicit destination
+                        // (e.g. paths crossing, or a fleet approaching a system that an enemy fleet
+                        // was already orbiting). EnqueueFleetVsFleet deduplicates pairs, so Unity
+                        // raising OnTriggerEnter on both colliders for the same overlap is safe.
+                        ClickCancelDestinationButton();
 
-                        if (isEnemyFleet)
+                        // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
+                        // is only ever processed on the server, and DiplomacyManager is a plain,
+                        // unnetworked per-client singleton - resolving this locally on whichever
+                        // client's physics happened to fire this trigger would only ever open the
+                        // Diplomacy UI on that one machine. Always queue rather than resolving
+                        // inline here: GalaxyEncounterQueue.ProcessPendingForThisTick (run once per
+                        // physics step, after every fleet's own FixedUpdate) groups everything that
+                        // arrived in the same tick before resolving any of it, so two fleets that
+                        // converge on each other simultaneously are drawn into the same decision
+                        // instead of whichever collider fired first getting an initiative advantage.
+                        if (isServer)
                         {
-                            // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
-                            // is only ever processed on the server, and DiplomacyManager is a plain,
-                            // unnetworked per-client singleton - resolving this locally on whichever
-                            // client's physics happened to fire this trigger would only ever open the
-                            // Diplomacy UI on that one machine. Always queue rather than resolving
-                            // inline here: GalaxyEncounterQueue.ProcessPendingForThisTick (run once per
-                            // physics step, after every fleet's own FixedUpdate) groups everything that
-                            // arrived in the same tick before resolving any of it, so two fleets that
-                            // converge on each other simultaneously are drawn into the same decision
-                            // instead of whichever collider fired first getting an initiative advantage.
-                            if (isServer)
-                            {
-                                hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
-                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
-                            }
+                            hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
+                            OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                            GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
+                        }
 
-                            if (hitFleetCon.FleetData.Destination == this.gameObject)
-                                CloseUnLoadFleetUI(this);
-                        }
-                        else // friendly fleet
-                        {
-                            OnADestinationThatIsOurOtherFleet(hitFleetCon);
-                        }
+                        if (hitFleetCon.FleetData.Destination == this.gameObject)
+                            CloseUnLoadFleetUI(this);
+                    }
+                    else if (isOurDestination || contactIsIntercept) // friendly fleet at our destination
+                    {
+                        ClickCancelDestinationButton();
+                        OnADestinationThatIsOurOtherFleet(hitFleetCon);
                     }
                 }
                 else if (collider.gameObject.TryGetComponent(out StarSysController sysCon))
@@ -989,45 +982,70 @@ namespace BOTF3D.Galaxy
 
                         int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
 
-                        // Default to "not in contact with a colonizable system" - the uninhabited
-                        // habitable branch below is the only one that sets it back.
+                        // Default to "not in contact with a colonizable/terraformable system" - the
+                        // uninhabited branches below are the only ones that set these back.
                         this.FleetData.ColonizableSystem = null;
+                        this.FleetData.TerraformableSystem = null;
 
                         if ((int)sysCon.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
                         {
+                            // Reveal this system's name on the map the instant we make contact,
+                            // regardless of which uninhabited sub-case it turns out to be below -
+                            // previously only the "inhabited, owned by another civ" branch called
+                            // this, so arriving at ANY uninhabited system (habitable, terraformable,
+                            // or plain) left its name hidden on the map forever even though the fleet
+                            // had clearly been there (reported as "made contact and nothing happened -
+                            // no popup, no name reveal").
+                            if (weAreLocalPlayer)
+                            {
+                                EncounterUnknownSystemShowName(collider.gameObject);
+                                sysCon.RefreshStatusLabelForContact();
+                            }
+
                             if (sysCon.StarSysData.IsHabitable)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited habitable system '{sysCon.StarSysData.SysName}'");
                                 this.FleetData.ColonizableSystem = sysCon;
+                                // Enqueue for InterTurn presentation — TurnEventQueue opens the popup
+                                // and fleet menu when the turn ends, so contacts never interrupt each
+                                // other mid-TurnProgression (ColonizableSystem stays set so the
+                                // Colonize/Claim buttons are correctly gated when the menu opens).
                                 if (weAreLocalPlayer)
-                                {
-                                    // Open the Habitable System popup first, then the fleet's own menu -
-                                    // GalaxyMenuUIController.OpenMenu always closes whatever menu is
-                                    // currently tracked before opening the next one, and Menu.AFleetMenu
-                                    // (unlike Menu.HabitableSysMenu) has a real close case, so opening it
-                                    // second is what leaves both visible together. The Fleet menu is what
-                                    // actually holds the Colonize/Claim System buttons (FleetUI_Fields) -
-                                    // ColonizableSystem was just set above, so they'll be correctly gated.
-                                    HabitableSysUIController.Instance?.LoadHabitableSysUI(sysCon, this.FleetData.CivController);
-                                    GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, this.gameObject);
-                                }
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedHabitable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                             // IsTerraformable is a bool? (unlike IsHabitable) - a system with no
                             // SO value set falls through to the plain non-habitable branch below.
                             else if (sysCon.StarSysData.IsTerraformable == true)
                             {
                                 Debug.Log($"Fleet arrived at uninhabited terraformable system '{sysCon.StarSysData.SysName}'");
+                                this.FleetData.TerraformableSystem = sysCon;
+                                // Same InterTurn-queue reasoning as the habitable branch above.
                                 if (weAreLocalPlayer)
-                                {
-                                    // Name-reveal only, distinct from the Colonize/Claim UI - no
-                                    // ColonizableSystem and no Fleet menu, since terraforming isn't
-                                    // an actual game mechanic yet.
-                                    HabitableSysUIController.Instance?.LoadTerraformableSysUI(sysCon, this.FleetData.CivController);
-                                }
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedTerraformable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                             else
                             {
                                 Debug.Log($"Fleet arrived at uninhabited non-habitable system '{sysCon.StarSysData.SysName}'");
+                                // Deliberately do NOT set FleetData.ColonizableSystem/TerraformableSystem,
+                                // so Colonize/Terraform/ClaimSystem all stay correctly disabled in the
+                                // Fleet menu (see FleetMenuUIController's canColonize/canTerraform/canClaim).
+                                if (weAreLocalPlayer)
+                                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
+                                    {
+                                        Type = TurnEventType.UninhabitedNonHabitable,
+                                        Fleet = this,
+                                        System = sysCon
+                                    });
                             }
                         }
                         else if (this.FleetData.CivEnum != sysCon.StarSysData.CurrentOwnerCivEnum)
@@ -1060,24 +1078,6 @@ namespace BOTF3D.Galaxy
             }
 
         }
-        // TEMP DEBUG (2026-08-07e): dev-only hover tooltip showing this fleet's TRUE civ/name
-        // regardless of contact status, purely for testing/verifying which civ a sprite actually is
-        // (see project_bystander_fleet_duplication - distinguishing minor civs like XINDI/MALON from
-        // Federation/Klingon). Deliberately NOT wired into any real gameplay path - HandleNormalClick
-        // has no branch at all for an unowned, uncontacted fleet (confirmed: clicking one currently
-        // does nothing), and this must never change that. Uses OnGUI so it's fully self-contained,
-        // touches no real UI/Canvas, and is trivial to delete once done. REMOVE BEFORE SHIPPING.
-        private bool debugHovered;
-        private void OnMouseEnter() => debugHovered = true;
-        private void OnMouseExit() => debugHovered = false;
-        private void OnGUI()
-        {
-            if (!debugHovered || FleetData == null) return;
-            Vector2 mousePos = Event.current.mousePosition;
-            GUI.Box(new Rect(mousePos.x + 12, mousePos.y, 240, 24),
-                $"[DEBUG] {FleetData.CivEnum} - {FleetData.FleetName}");
-        }
-
         private void OnMouseDown()
         {
             // OnMouseDown is a raw physics raycast (SendMouseEvents) that runs independently of
@@ -2100,8 +2100,16 @@ namespace BOTF3D.Galaxy
 
             // Same reasoning as SliderOnValueChange: on a non-host client this method only mutated a
             // disconnected local FleetData copy, so relay to the server-authoritative instance too.
+            // On host, isServer is already true and FleetData.Destination was just written directly
+            // above, but that skipped ServerImplicitlyWithdrawFromPendingEncounters() - the same call
+            // every CmdSetDestinationTo* handler makes - so a host player picking a new destination
+            // while awaiting a diplomacy decision left the fleet frozen (IsAwaitingEncounterResolution
+            // stays true forever since nothing else clears it). ClickCancelDestinationButton already
+            // has this same isServer/else split for the equivalent reason - mirror it here.
             if (!isServer)
                 RelayDestinationToServer(hitObject);
+            else
+                ServerImplicitlyWithdrawFromPendingEncounters();
         }
 
         // hitObject can be a star system, a fleet, GalaxyCenter, or a manually-placed player-defined

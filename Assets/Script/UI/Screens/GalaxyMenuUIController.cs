@@ -476,7 +476,10 @@ namespace BOTF3D.UI
         public void DiplomacyButtonPressed()
         {
             Menu current = uiStateManager.CurrentOpenMenu;
-            if (current == Menu.Diplomacy || current == Menu.DiplomacyMenu || current == Menu.ADiplomacyMenu)
+            // Only toggle OFF when the scrollable contacts list itself is open.
+            // If an encounter card (ADiplomacyMenu) is showing, fall through so the ribbon
+            // click transitions to the contacts list instead of closing everything.
+            if (current == Menu.Diplomacy || current == Menu.DiplomacyMenu)
                 CloseMenu(current);
             else
                 OpenMenu(Menu.Diplomacy, null);
@@ -642,12 +645,11 @@ namespace BOTF3D.UI
                         diplomacyControllers.Reverse(); // ✅ Most recent at the top
                     }
 
-                    // [DiploPanelDiag] Investigating "Awaiting First Contact" (no-contact) panel
-                    // staying open after combat until the Diplomacy ribbon button is clicked twice.
-                    // Logs the raw source count on DiplomacyManager.Instance vs. the local snapshot
-                    // taken above, so we can tell whether the manager's own list was still empty on
-                    // the first click (a real population-timing race) vs. something else entirely.
-                    Debug.LogWarning($"[DiploPanelDiag] OpenMenu(Diplomacy): managerInstance={(DiplomacyManager.Instance != null ? "OK" : "NULL")} managerListCount={(DiplomacyManager.Instance != null ? DiplomacyManager.Instance.DiplomacyControllers.Count.ToString() : "N/A")} localSnapshotCount={(diplomacyControllers != null ? diplomacyControllers.Count.ToString() : "NULL")}.");
+                    // Move any card still sitting in ADiplomacyMenuView back to list storage
+                    // before populating, so cards that arrived via the immediate-display path
+                    // (ADiplomacyMenu opened during TurnProgression) are correctly reparented
+                    // into diplomacyListContainter and become visible in the scroll view.
+                    diplomacyMenuUIController?.MoveBackAnyDiplomacyUIGO();
 
                     listPopulator.PopulateDiplomacyList();
                     if (diplomacyControllers != null && diplomacyControllers.Count > 0)
@@ -778,6 +780,7 @@ namespace BOTF3D.UI
                         diplomacyMenuUIController.HideDiplomacyMenuView();
                         diplomacyMenuUIController.HideA_DiplomacyMenuView();
                     }
+                    uiStateManager.HideNoContactUI();
                     break;
 
                 case Menu.ADiplomacyMenu:
@@ -786,6 +789,7 @@ namespace BOTF3D.UI
                         diplomacyMenuUIController.HideA_DiplomacyMenuView();
                         diplomacyMenuUIController.HideDiplomacyMenuView();
                     }
+                    uiStateManager.HideNoContactUI();
                     break;
 
                 case Menu.IntellMenu:

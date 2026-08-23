@@ -17,12 +17,14 @@ namespace BOTF3D.Combat
     public class ShipUICreator
     {
         private readonly GameObject shipListUIPrefab;
+        private readonly GameObject shipListTransportUIPrefab;
         private readonly List<ShipController> shipConPendingShipUI = new List<ShipController>();
         private int shipIndex = 0;
 
-        public ShipUICreator(GameObject uiPrefab)
+        public ShipUICreator(GameObject uiPrefab, GameObject transportUIPrefab = null)
         {
             shipListUIPrefab = uiPrefab;
+            shipListTransportUIPrefab = transportUIPrefab;
         }
 
         /// <summary>
@@ -53,12 +55,12 @@ namespace BOTF3D.Combat
 
             Debug.Log($"  Creating UI for ship '{shipCon.ShipData.ShipName}'");
 
-            // Instantiate UI prefab
-            GameObject thisShipListUIGameObject = Object.Instantiate(
-                shipListUIPrefab,
-                Vector3.zero,
-                Quaternion.identity
-            );
+            // Instantiate UI prefab — transports get the wider prefab with cargo indicator
+            bool isTransport = shipCon.ShipData.ShipType == ShipType.Transport;
+            GameObject prefabToUse = (isTransport && shipListTransportUIPrefab != null)
+                ? shipListTransportUIPrefab
+                : shipListUIPrefab;
+            GameObject thisShipListUIGameObject = Object.Instantiate(prefabToUse, Vector3.zero, Quaternion.identity);
 
             thisShipListUIGameObject.transform.localRotation = Quaternion.identity;
             // Stays inactive until TryParentShipUI confirms a real ShipListUIParent - see the
@@ -74,11 +76,35 @@ namespace BOTF3D.Combat
                 imageComponents[1].sprite = shipCon.ShipData.ShipSprite;
             }
 
-            // Setup UI text
-            TextMeshProUGUI textComponent = thisShipListUIGameObject.GetComponentInChildren<TextMeshProUGUI>();
-            if (textComponent != null)
+            // Setup ship type label and warp number.
+            // Prefer ShipListingUI component (add it to the prefab in the Inspector for named-field control).
+            // Fallback: find WarpNum child by name; use first other TMP for the type+era label.
+            var listingUI = thisShipListUIGameObject.GetComponent<BOTF3D.UI.ShipListingUI>();
+            if (listingUI != null)
             {
-                textComponent.text = shipCon.ShipData.ShipType.ToString();
+                listingUI.Populate(shipCon.ShipData);
+            }
+            else
+            {
+                var warpNumGO  = thisShipListUIGameObject.transform.Find("WarpNum");
+                var warpText   = warpNumGO?.GetComponent<TextMeshProUGUI>();
+                if (warpText != null)
+                    warpText.text = shipCon.ShipData.maxWarpFactor.ToString("0.##");
+
+                // First TMP child that is NOT the WarpNum object gets the type + era label
+                foreach (var tmp in thisShipListUIGameObject.GetComponentsInChildren<TextMeshProUGUI>(true))
+                {
+                    if (warpNumGO != null && tmp.transform.IsChildOf(warpNumGO)) continue;
+                    tmp.text = BOTF3D.UI.ShipListingUI.FormatShipTypeLabel(
+                        shipCon.ShipData.ShipType, shipCon.ShipData.BuiltAtTechLevel);
+                    break;
+                }
+
+                // Hull bar fill — nested at HullBar/HullBarFill; HullBar itself is a plain RectTransform
+                var hullBarImg = (thisShipListUIGameObject.transform.Find("HullBar/HullBarFill")
+                               ?? thisShipListUIGameObject.transform.Find("HullBarFill"))
+                                    ?.GetComponent<Image>();
+                BOTF3D.UI.ShipListingUI.ApplyHealthBar(hullBarImg, shipCon.ShipData);
             }
 
             // Setup canvas group
@@ -98,6 +124,11 @@ namespace BOTF3D.Combat
             {
                 shipUiItem.ShipController = shipCon;
             }
+
+            // Refresh cargo indicator (transport prefab only; no-op on standard prefab)
+            // Pass true to include inactive children — CargoImage may start inactive in the prefab
+            thisShipListUIGameObject.GetComponentInChildren<BOTF3D.UI.TransportCargoIndicator>(true)
+                ?.Refresh(shipCon.ShipData);
 
             // Try to parent UI to owner's ShipListUIParent
             TryParentShipUI(shipCon, parentGO, shipUiItem);

@@ -19,7 +19,7 @@ MonoBehaviour:
   CurrentOwner: 166
   StarType: 6
   StarSprit: {fileID: 21300000, guid: 95040997ff95dd34ea846765248d8abf, type: 3}
-  Dilitium: 1
+  Dilithium: 1
   PowerStations: 0
   Factories: 0
   ResearchCenters: 0

@@ -38,8 +38,17 @@ namespace BOTF3D.UI
             }
         }
 
+        // HabitableSysUIToggle lives under CanvasHabitableSysUI, which starts disabled in the scene
+        // (m_IsActive: 0). Toggling HabitableSysUIToggle alone did nothing visible - a child's own
+        // active flag is irrelevant while an ancestor is inactive (GameObject.activeInHierarchy
+        // stays false) - so the Canvas itself must be activated too. Cached via
+        // GetComponentInParent(true) instead of a new Inspector field, since the Canvas is already
+        // reachable from the existing reference and needs no new scene wiring.
+        private GameObject parentCanvasGO;
+
         private void Start()
         {
+            parentCanvasGO = HabitableSysUIToggle.GetComponentInParent<Canvas>(true)?.gameObject;
             HabitableSysUIToggle.SetActive(false);
             //if (galaxyEventCamera == null)
             //galaxyEventCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>() as Camera;
@@ -59,24 +68,8 @@ namespace BOTF3D.UI
             }
         }
 
-        // Distinct, Colonize/Claim-less contact path for uninhabited systems that aren't
-        // habitable but are IsTerraformable (e.g. LEO) - see FleetController.OnTriggerEnter's
-        // uninhabited-system branch. No Fleet menu is opened alongside this popup, so no
-        // Colonize/Claim buttons are ever offered for a system that isn't actually habitable yet.
-        public void LoadTerraformableSysUI(StarSysController starSysController, CivController discoveringFleetCivController)
-        {
-            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
-            this.starSysController = starSysController;
-            if ((int)this.starSysController.StarSysData.CurrentOwnerCivEnum >= firstUninhabited)
-            {
-                OpenPopup(starSysController);
-                ShowSystemAnnouncement(starSysController, "Uninhabited - Requires Terraforming");
-            }
-        }
-
         private void OpenPopup(StarSysController starSysController)
         {
-            TimeManager.Instance.PauseTime();
             GameObject aNull = new GameObject();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.HabitableSysMenu, aNull);
             Destroy(aNull);
@@ -84,17 +77,29 @@ namespace BOTF3D.UI
 
         private void ShowSystemAnnouncement(StarSysController sysCon, string ownerStatusText)
         {
+            if (parentCanvasGO != null)
+                parentCanvasGO.SetActive(true);
             HabitableSysUIToggle.SetActive(true);
 
             sysCurrentOwnerNameTMP.text = ownerStatusText;
             if (starSysNameTMP != null)
                 starSysNameTMP.text = sysCon.StarSysData.SysName;
+
+            FleetMenuUIController.Instance?.SetPopupClearance(HabitableSysUIToggle.GetComponent<RectTransform>());
+        }
+
+        public void CloseVisual()
+        {
+            HabitableSysUIToggle.SetActive(false);
+            if (parentCanvasGO != null)
+                parentCanvasGO.SetActive(false);
+            FleetMenuUIController.Instance?.ResetPopupClearance();
         }
 
         public void CloseUnLoadHabitableSysUI()
         {
-            HabitableSysUIToggle.SetActive(false);
-            TimeManager.Instance.ResumeTime();
+            CloseVisual();
+            TurnEventQueue.Instance?.NotifyDismissed();
         }
     }
 }

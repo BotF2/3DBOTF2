@@ -198,6 +198,9 @@ namespace BOTF3D.Galaxy
                     break;
             }
 
+            // Phase 2 & 3: adjust dilithium mining rate based on what was just built
+            UpdateMiningRateOnBuild(controller, buildDrag.FacilityType);
+
             // Parent it under the star system so transforms/hierarchy are correct
             if (newFacilityGO != null)
                 newFacilityGO.transform.SetParent(controller.gameObject.transform, false);
@@ -225,6 +228,45 @@ namespace BOTF3D.Galaxy
                 Debug.LogWarning($"CompleteFacilityBuild: StarSysMenuUIController.Instance is null or newFacilityGO is null for system {controller.name}.");
             }
 
+        }
+
+        // ── Dilithium mining rate growth on facility completion ───────────────────
+        // Phase 2: each power plant built at a colony or recently-conquered system
+        //          grows the mining rate by 1, up to ColonyRate + 1. Represents
+        //          expanding extraction infrastructure as the system develops.
+        //
+        // Phase 3: the first shipyard removes the conquest disruption penalty by
+        //          raising the rate to the full colony rate. Represents the
+        //          conquering civ establishing proper resource administration.
+        //
+        // Homeworlds are excluded automatically — their rate is always above
+        // ColonyRate + 1, so neither condition fires for them.
+        // Pre-warp / non-habitable systems (rate == 0) are also excluded.
+        private void UpdateMiningRateOnBuild(StarSysController controller, StarSysFacilityType facilityType)
+        {
+            var sysData = controller.StarSysData;
+            if (sysData.DilithiumMiningRate <= 0) return;
+
+            int colonyRate = StarSysManager.GetColonyMiningRate(sysData.CurrentOwnerCivEnum);
+
+            switch (facilityType)
+            {
+                case StarSysFacilityType.PowerPlanet:
+                    if (sysData.DilithiumMiningRate < colonyRate + 1)
+                    {
+                        sysData.DilithiumMiningRate = Mathf.Min(sysData.DilithiumMiningRate + 1, colonyRate + 1);
+                        Debug.Log($"[Dilithium] {controller.name}: power plant built — mining rate now {sysData.DilithiumMiningRate}");
+                    }
+                    break;
+
+                case StarSysFacilityType.Shipyard:
+                    if (sysData.DilithiumMiningRate < colonyRate)
+                    {
+                        sysData.DilithiumMiningRate = colonyRate;
+                        Debug.Log($"[Dilithium] {controller.name}: first shipyard online — disruption penalty cleared, mining rate now {sysData.DilithiumMiningRate}");
+                    }
+                    break;
+            }
         }
 
         /// <summary>

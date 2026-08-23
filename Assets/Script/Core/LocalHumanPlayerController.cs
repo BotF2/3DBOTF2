@@ -170,6 +170,30 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             CmdSyncStarSysRoster(starSysInt, shipIDs);
     }
 
+    // Claim/Terraform/Colonize (see StarSysController.ClaimSystem/TerraformSystem/
+    // ColonizeWithTransport) are called directly, client-locally, by the acting player's own UI
+    // first for instant feedback (see FleetMenuUIController's Click*Button handlers) - call these
+    // right alongside that local call so the same mutation reaches every other connected peer too
+    // (see TimeManager.ServerClaimSystem/ServerTerraformSystem/ServerColonizeSystem's comment for
+    // why the relay lives there instead of here - StarSysController has no NetworkIdentity).
+    public void SubmitClaimSystem(FleetController claimingFleet, int starSysInt)
+    {
+        if (isOwned && claimingFleet != null)
+            CmdClaimSystem(claimingFleet.netIdentity, starSysInt);
+    }
+
+    public void SubmitTerraformSystem(FleetController fleetCon, int starSysInt, int transportShipID)
+    {
+        if (isOwned && fleetCon != null && transportShipID != 0)
+            CmdTerraformSystem(fleetCon.netIdentity, starSysInt, transportShipID);
+    }
+
+    public void SubmitColonizeSystem(FleetController fleetCon, int starSysInt, int transportShipID)
+    {
+        if (isOwned && fleetCon != null && transportShipID != 0)
+            CmdColonizeSystem(fleetCon.netIdentity, starSysInt, transportShipID);
+    }
+
     public void SubmitCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
         if (isOwned)
@@ -363,6 +387,42 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             return;
         }
         TimeManager.Instance.ServerSyncStarSysRoster(starSysInt, shipIDs);
+    }
+
+    [Command]
+    void CmdClaimSystem(NetworkIdentity claimingFleetIdentity, int starSysInt)
+    {
+        FleetController claimingFleet = claimingFleetIdentity != null ? claimingFleetIdentity.GetComponent<FleetController>() : null;
+        if (claimingFleet == null || claimingFleet.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdClaimSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized to claim via fleet '{claimingFleet?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerClaimSystem(starSysInt, playerCiv);
+    }
+
+    [Command]
+    void CmdTerraformSystem(NetworkIdentity fleetIdentity, int starSysInt, int transportShipID)
+    {
+        FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+        if (fleetCon == null || fleetCon.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTerraformSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized to terraform via fleet '{fleetCon?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerTerraformSystem(starSysInt, transportShipID);
+    }
+
+    [Command]
+    void CmdColonizeSystem(NetworkIdentity fleetIdentity, int starSysInt, int transportShipID)
+    {
+        FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+        if (fleetCon == null || fleetCon.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdColonizeSystem: player {netId.GetHashCode()} (civ={playerCiv}) not authorized to colonize via fleet '{fleetCon?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerColonizeSystem(starSysInt, transportShipID);
     }
 
     [Command]

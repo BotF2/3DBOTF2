@@ -120,9 +120,15 @@ namespace BOTF3D.UI
 
         private bool _subscribedToTurnAdvance;
 
+        // Pending combats queued when Combat is clicked while another combat is already in
+        // progress. Processed one at a time after each GameEvents.OnCombatEnded fires.
+        private static readonly Queue<DiplomacyController> _pendingCombats = new Queue<DiplomacyController>();
+        private static bool _combatInProgress = false;
+
         private void OnEnable()
         {
             DiplomacyManager.OnDiplomacyProjectResolved += RefreshAllActiveProposalDisplays;
+            GameEvents.OnCombatEnded += OnCombatEndedProcessQueue;
             TrySubscribeToTurnAdvance();
         }
 
@@ -282,6 +288,11 @@ namespace BOTF3D.UI
                 if (ownerCon != null)
                     RefreshEncounterButtonsState(ownerCon);
 
+                // Reset to compact strip before returning to list storage — the ribbon Diplomacy
+                // view only shows CompactHeader, so a card returned while ExpandContent was open
+                // must collapse back to compact mode, otherwise it takes up full expanded height
+                // in the ribbon list without the player having asked for it.
+                SetDiploCardState(child, false);
                 child.transform.SetParent(diplomacyListContainter.transform, false);
             }
         }
@@ -339,7 +350,28 @@ namespace BOTF3D.UI
 
             return localResponse == DiplomacyData.EncounterResponse.Undecided;
         }
-        public void SetUpDiplomacyUIElements(GameObject diplomacyUIGO, GameObject diplomacyControllerGO, List<ShipController> shipList)
+        /// <summary>
+        /// Sets CompactHeader always active and ExpandContent per <paramref name="expand"/>.
+        /// False = compact strip (ribbon list, first-contact notification).
+        /// True  = fully open (player clicked a known fleet or system).
+        /// </summary>
+        public void SetDiploCardState(GameObject diploUIGO, bool expand)
+        {
+            if (diploUIGO == null) return;
+            Transform t = diploUIGO.transform;
+            for (int i = 0; i < t.childCount; i++)
+            {
+                Transform child = t.GetChild(i);
+                if (child.name == "CompactHeader")
+                    child.gameObject.SetActive(true);
+                else if (child.name == "ExpandContent")
+                    child.gameObject.SetActive(expand);
+                else if (child.name == "Description")
+                    child.gameObject.SetActive(false); // always collapse on any state change
+            }
+        }
+
+        public void SetUpDiplomacyUIElements(GameObject diplomacyUIGO, GameObject diplomacyControllerGO, List<ShipController> shipList, bool expandedOnOpen = false)
         {
             DiplomacyController diplomacyCon = diplomacyControllerGO.GetComponent<DiplomacyController>();
             Debug.Log($"SetUpDiplomacyUIElements called for DiplomacyController: {(diplomacyCon == null ? "null" : diplomacyCon.DiplomacyData.CivOne?.CivData.CivShortName ?? "unknown")}");
@@ -363,6 +395,78 @@ namespace BOTF3D.UI
             // a prior encounter that got hidden without being fully closed - back to storage first,
             // so ADiplomacyMenuView never ends up holding more than one card at once.
             MoveBackAnyDiplomacyUIGO();
+
+            // Card layout setup. The prefab was designed with VLG + ContentSizeFitter (Preferred
+            // Size, vertical) already on the card root. Children use sizeDelta=(0,0) and report
+            // their heights via LayoutElement.preferredHeight so the card VLG sums them and the
+            // card CSF sizes the card accordingly.
+            //
+            // The prefab VLG already has these settings; we re-apply them defensively in case a
+            // future prefab edit accidentally changes them.
+            var cardVLG = diplomacyUIGO.GetComponent<VerticalLayoutGroup>()
+                          ?? diplomacyUIGO.AddComponent<VerticalLayoutGroup>();
+            cardVLG.childForceExpandHeight = false;
+            cardVLG.childForceExpandWidth  = true;
+            cardVLG.childControlHeight     = true;
+            cardVLG.childControlWidth      = true;
+            cardVLG.spacing                = 0f;
+
+            // The prefab ContentSizeFitter (Preferred Size, vertical) is what auto-sizes the card
+            // to its children. Do NOT destroy it — it is required for the card to grow/shrink as
+            // ExpandContent is toggled. (Earlier code erroneously called Destroy on it; that left
+            // the card with no height driver and broke the close button positioning.)
+            var cardCSF = diplomacyUIGO.GetComponent<ContentSizeFitter>()
+                          ?? diplomacyUIGO.AddComponent<ContentSizeFitter>();
+            cardCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+            cardCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            // ExpandContent has no LayoutElement in the prefab — without one, childControlHeight=true
+            // collapses it to 0 px (LayoutUtility.GetPreferredHeight returns 0 when no ILayoutElement
+            // is present). Adding LayoutElement.preferredHeight=200 matches the designed height:
+            // the deepest child inside ExpandContent sits at anchoredPos.y=-200 from its top edge.
+            Transform expandContentT = diplomacyUIGO.transform.Find("ExpandContent");
+            if (expandContentT != null)
+            {
+                var expandLE = expandContentT.GetComponent<LayoutElement>()
+                               ?? expandContentT.gameObject.AddComponent<LayoutElement>();
+                expandLE.preferredHeight = 200f;
+            }
+
+            // ButtonCloseDiplomacytUI is a direct child of the card root, so the card VLG would
+            // normally stack it below CompactHeader and stretch it to 1920px wide. Marking it as
+            // ignoreLayout=true excludes it from the VLG entirely; we then position it manually
+            // as a 30x30 overlay at the top-right corner of the card (right end of CompactHeader).
+            Transform closeButtonT = diplomacyUIGO.transform.Find("ButtonCloseDiplomacytUI");
+            if (closeButtonT != null)
+            {
+                var closeLE = closeButtonT.GetComponent<LayoutElement>()
+                              ?? closeButtonT.gameObject.AddComponent<LayoutElement>();
+                closeLE.ignoreLayout = true;
+
+                RectTransform closeRT = closeButtonT.GetComponent<RectTransform>();
+                closeRT.anchorMin        = new Vector2(1f, 1f);
+                closeRT.anchorMax        = new Vector2(1f, 1f);
+                closeRT.pivot            = new Vector2(1f, 1f);
+                closeRT.sizeDelta        = new Vector2(30f, 30f);
+                closeRT.anchoredPosition = Vector2.zero;
+            }
+
+            // The list container positions cards vertically. childControlHeight=false lets each
+            // card's own ContentSizeFitter drive its height; the container reads each card's
+            // current sizeDelta.y (set by the card CSF) to place the next card below it.
+            if (diplomacyListContainter != null)
+            {
+                var containerVLG = diplomacyListContainter.GetComponent<VerticalLayoutGroup>()
+                                   ?? diplomacyListContainter.AddComponent<VerticalLayoutGroup>();
+                containerVLG.childControlHeight     = false;
+                containerVLG.childForceExpandHeight = false;
+            }
+
+            // Activate ExpandContent before populating so every GetComponentsInChildren call
+            // finds images and buttons inside it regardless of what state the card was left in
+            // (e.g. compact after sitting in the ribbon list). SetDiploCardState below closes it
+            // again after all data is written.
+            diplomacyUIGO.transform.Find("ExpandContent")?.gameObject.SetActive(true);
 
             CivController partyOne = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideOne);
             CivController partyTwo = CivManager.Instance.GetCivControllerByCivEnum(diplomacyCon.DiplomacyData.CivEnumSideTwo);
@@ -404,7 +508,7 @@ namespace BOTF3D.UI
             bool showingSpecificOtherSystem = diplomacyCon.DiplomacyData.StarSysController != null &&
                 diplomacyCon.DiplomacyData.StarSysController != homeSysController;
 
-            Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>();
+            Image[] listOfImages = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Image>(true);
             bool foundRaceImage = false;       // ✅ Declared OUTSIDE the loop
             bool foundInsigniaImage = false;   // ✅ Declared OUTSIDE the loop
             for (int q = 0; q < listOfImages.Length; q++)
@@ -612,15 +716,44 @@ namespace BOTF3D.UI
                         break;
                 }
             }
-            Button[] listButtons = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Button>();
+            Button[] listButtons = diplomacyCon.DiplomacyUIGameObject.GetComponentsInChildren<Button>(true);
             foreach (var listButton in listButtons)
             {
                 switch (listButton.name)
                 {
-                    case "OpenDiscriptionButton":
+                    case "OpenDescriptionButton":
+                    {
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
+                        // Find once at wire-time; the closure holds the reference so the toggle
+                        // works whether the card is in ADiplomacyMenuView or the ribbon list.
+                        Transform descT = diplomacyUIGO.transform.Find("Description");
+                        CivController descCiv = notLocalPlayerCiv;
+                        listButton.onClick.AddListener(() =>
+                        {
+                            if (descT == null) return;
+                            GameObject descGO = descT.gameObject;
+                            bool show = !descGO.activeSelf;
+                            descGO.SetActive(show);
+                            if (!show) return;
+
+                            // Populate text then resize Description, TMP, and Image to fit.
+                            // ForceMeshUpdate computes preferredHeight at the current TMP width
+                            // (1290 as set in the prefab) before we change any RectTransforms.
+                            TextMeshProUGUI descTMP = descGO.GetComponentInChildren<TextMeshProUGUI>(true);
+                            if (descTMP == null) return;
+                            descTMP.text = descCiv.CivData.Decription;
+                            descTMP.enableWordWrapping = true;
+                            descTMP.ForceMeshUpdate();
+                            float h = descTMP.preferredHeight;
+                            descTMP.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, h);
+                            descT.GetComponent<RectTransform>()
+                                 ?.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, h);
+                            Image descImg = descGO.GetComponentInChildren<Image>(true);
+                            if (descImg != null)
+                                descImg.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, h);
+                        });
                         break;
+                    }
                     case "TradeButton":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.ProposeTrade(diplomacyCon));
@@ -646,11 +779,54 @@ namespace BOTF3D.UI
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.SystemRecon(diplomacyCon));
                         break;
-                    case "CombatButton":
-                        //fleetCon.FleetData.FleetButtonUIClose = listButton;
+                    case "ButtonCloseDiplomacytUI":
                         listButton.onClick.RemoveAllListeners();
-                        listButton.onClick.AddListener(() => diplomacyCon.Combat(diplomacyCon));
+                        listButton.onClick.AddListener(() =>
+                        {
+                            GalaxyMenuUIController.Instance?.CloseCurrentMenu();
+                            TurnEventQueue.Instance?.NotifyDismissed();
+                        });
                         break;
+                    case "CombatButton":
+                    {
+                        listButton.onClick.RemoveAllListeners();
+                        var capturedDiplomacyCon = diplomacyCon;
+                        listButton.onClick.AddListener(() =>
+                        {
+                            void LaunchOrQueueCombat()
+                            {
+                                if (_combatInProgress)
+                                {
+                                    _pendingCombats.Enqueue(capturedDiplomacyCon);
+                                }
+                                else
+                                {
+                                    _combatInProgress = true;
+                                    capturedDiplomacyCon.Combat(capturedDiplomacyCon);
+                                    TurnEventQueue.Instance?.NotifyDismissed();
+                                }
+                            }
+
+                            if (TimeManager.Instance != null && TimeManager.Instance.TurnPhase == TurnPhase.TurnProgression)
+                            {
+                                // Defer until the turn finishes advancing
+                                void OnPhaseChanged(TurnPhase phase)
+                                {
+                                    if (phase == TurnPhase.InterTurn)
+                                    {
+                                        TimeManager.Instance.OnTurnPhaseChanged -= OnPhaseChanged;
+                                        LaunchOrQueueCombat();
+                                    }
+                                }
+                                TimeManager.Instance.OnTurnPhaseChanged += OnPhaseChanged;
+                            }
+                            else
+                            {
+                                LaunchOrQueueCombat();
+                            }
+                        });
+                        break;
+                    }
                     case "WithdrawButton":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() =>
@@ -667,12 +843,32 @@ namespace BOTF3D.UI
                             // once both sides have answered) - otherwise Combat/Withdraw kept showing
                             // as if still actionable after they'd already been used.
                             RefreshEncounterButtonsState(diplomacyCon);
+                            // Player has committed to withdraw — unblock the queue.
+                            TurnEventQueue.Instance?.NotifyDismissed();
                         });
                         break;
                     case "DeclareWarButton":
                         listButton.onClick.RemoveAllListeners();
                         listButton.onClick.AddListener(() => diplomacyCon.DeclareWar(diplomacyCon));
                         break;
+                    case "ExpandButton":
+                    {
+                        listButton.onClick.RemoveAllListeners();
+                        GameObject expandContent = diplomacyUIGO.transform.Find("ExpandContent")?.gameObject;
+                        RectTransform cardRT = diplomacyUIGO.GetComponent<RectTransform>();
+                        RectTransform containerRT = diplomacyListContainter != null
+                            ? diplomacyListContainter.GetComponent<RectTransform>() : null;
+                        if (expandContent != null)
+                            listButton.onClick.AddListener(() =>
+                            {
+                                expandContent.SetActive(!expandContent.activeSelf);
+                                if (cardRT != null)
+                                    LayoutRebuilder.ForceRebuildLayoutImmediate(cardRT);
+                                if (containerRT != null)
+                                    LayoutRebuilder.ForceRebuildLayoutImmediate(containerRT);
+                            });
+                        break;
+                    }
                     default:
                         break;
                 }
@@ -691,6 +887,13 @@ namespace BOTF3D.UI
                 autoImproveToggle.onValueChanged.RemoveAllListeners();
                 autoImproveToggle.onValueChanged.AddListener((isOn) => diplomacyCon.SetAutoImproveRelations(isOn));
             }
+
+            // All data written — now apply compact/expanded state. ExpandContent closes if
+            // expandedOnOpen is false (first-contact and repeat-encounter notifications);
+            // it stays open when the player clicked a known fleet or system (expandedOnOpen=true).
+            // Description always starts hidden; the player opens it via OpenDescriptionButton.
+            SetDiploCardState(diplomacyUIGO, expandedOnOpen);
+            diplomacyUIGO.transform.Find("Description")?.gameObject.SetActive(false);
 
             RefreshActiveProposalDisplay(diplomacyCon);
         }
@@ -907,9 +1110,42 @@ namespace BOTF3D.UI
             CleanupDestroyedOrInactiveUIs();
 
             DiplomacyManager.OnDiplomacyProjectResolved -= RefreshAllActiveProposalDisplays;
+            GameEvents.OnCombatEnded -= OnCombatEndedProcessQueue;
             if (_subscribedToTurnAdvance && TimeManager.Instance != null)
                 TimeManager.Instance.OnTurnAdvanced -= RefreshAllActiveProposalDisplays;
             _subscribedToTurnAdvance = false;
+        }
+
+        private void OnCombatEndedProcessQueue(CivEnum winner, CivEnum loser)
+        {
+            _combatInProgress = false;
+            ProcessNextPendingCombat();
+        }
+
+        private void ProcessNextPendingCombat()
+        {
+            while (_pendingCombats.Count > 0)
+            {
+                DiplomacyController next = _pendingCombats.Dequeue();
+                if (next == null) continue;
+
+                FleetController fleetOne = next.DiplomacyData.FleetControllerCivOne;
+                FleetController fleetTwo = next.DiplomacyData.FleetContollerCivTwo;
+                bool oneHasShips = fleetOne != null && fleetOne.FleetData != null && fleetOne.FleetData.ShipsList.Count > 0;
+                bool twoHasShips = fleetTwo != null && fleetTwo.FleetData != null && fleetTwo.FleetData.ShipsList.Count > 0;
+
+                if (!oneHasShips && !twoHasShips)
+                {
+                    // Both sides destroyed — cancel this combat and release any frozen fleets
+                    if (fleetOne != null) fleetOne.ServerDecrementPendingEncounters();
+                    if (fleetTwo != null) fleetTwo.ServerDecrementPendingEncounters();
+                    continue;
+                }
+
+                _combatInProgress = true;
+                next.Combat(next);
+                return;
+            }
         }
 
         private void OnDestroy()

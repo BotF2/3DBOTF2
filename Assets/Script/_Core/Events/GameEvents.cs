@@ -79,8 +79,14 @@ namespace BOTF3D.Core
         /// </summary>
         public static event Action<int> OnFleetMoved; // fleetID
 
+        /// <summary>
+        /// Fired when a star system's habitability flips (e.g. terraforming completes)
+        /// </summary>
+        public static event Action<string, bool> OnSystemHabitabilityChanged; // systemName, isHabitable
+
         public static void SystemOwnershipChanged(string systemName, CivEnum previousOwner, CivEnum newOwner) => OnSystemOwnershipChanged?.Invoke(systemName, previousOwner, newOwner);
         public static void FleetMoved(int fleetID) => OnFleetMoved?.Invoke(fleetID);
+        public static void SystemHabitabilityChanged(string systemName, bool isHabitable) => OnSystemHabitabilityChanged?.Invoke(systemName, isHabitable);
 
         #endregion
 
@@ -101,9 +107,17 @@ namespace BOTF3D.Core
         /// </summary>
         public static event Action<int> OnNewTurn; // turnNumber
 
+        /// <summary>
+        /// Fired when the InterTurn event queue finishes draining — all queued contact events have
+        /// been presented to the player. GameControlOverlay uses this to re-enable the Advance Turn
+        /// button (see TurnEventQueue.StartDraining / DrainCoroutine).
+        /// </summary>
+        public static event Action OnTurnEventQueueDrained;
+
         public static void GameSaved() => OnGameSaved?.Invoke();
         public static void GameLoaded() => OnGameLoaded?.Invoke();
         public static void NewTurn(int turnNumber) => OnNewTurn?.Invoke(turnNumber);
+        public static void TurnEventQueueDrained() => OnTurnEventQueueDrained?.Invoke();
 
         #endregion
 
@@ -125,6 +139,7 @@ namespace BOTF3D.Core
             OnGameSaved = null;
             OnGameLoaded = null;
             OnNewTurn = null;
+            OnTurnEventQueueDrained = null;
         }
     }
 }

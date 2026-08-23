@@ -20,6 +20,7 @@ namespace BOTF3D.Combat
         public CivEnum CivEnum;
         public int PlayerId; // network player ID, not used in single player
         public TechLevel TechLevel;
+        public TechLevel BuiltAtTechLevel; // tech tier at time of construction; drives obsolescence display in scrap panel
         public ShipType ShipType;
         public Sprite ShipSprite;
         public float maxWarpFactor;
@@ -35,6 +36,7 @@ namespace BOTF3D.Combat
         public int CargoCapacity; // Transport-only; how many population/ground-force units it can carry, scales with TechLevel
         public int LoadedPopulation; // Population units currently loaded into this transport's cargo hold
         public int LoadedGroundForces; // Ground force units currently loaded into this transport's cargo hold; shares CargoCapacity with LoadedPopulation
+        public int LoadedDilithium;   // Dilithium units loaded into this transport's cargo hold; shares CargoCapacity with LoadedGroundForces
         public string BaseShipName; // ShipName before any cargo-based rename (Colonyship/Dropship); restored once cargo is fully unloaded
         public string ShipDescription;
         public ShipController TargetThisShipController;

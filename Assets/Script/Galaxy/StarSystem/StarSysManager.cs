@@ -130,6 +130,7 @@ namespace BOTF3D.Galaxy
                 // No DontDestroyOnLoad - dies with GalaxyScene
 
                 Debug.Log("StarSysManager: Awake - Instance created");
+                GameEvents.OnSystemOwnershipChanged += HandleSystemOwnershipChanged;
 
                 // Load all StarSysSO assets
                 LoadStarSystemScriptableObjects();
@@ -301,6 +302,7 @@ namespace BOTF3D.Galaxy
 
         private void OnDestroy()
         {
+            GameEvents.OnSystemOwnershipChanged -= HandleSystemOwnershipChanged;
             ServiceLocator.Unregister<StarSysManager>();
             // Clean up singleton when scene unloads
             if (Instance == this)
@@ -603,8 +605,8 @@ namespace BOTF3D.Galaxy
             // ✅ Log world position for verification
             Debug.Log($"  System world position: {starSysCon.transform.position}");
 
-            // ✅ Set Dilithium Capacity based on system type
-            sysData.DilithiumCapacity = DetermineDilithiumCapacity(civSO, starSysSO);
+            sysData.MaxPowerPlants = DetermineMaxPowerPlants(civSO, starSysSO);
+            sysData.DilithiumMiningRate = DetermineDilithiumMiningRate(civSO, starSysSO, sysData.MaxPowerPlants);
             // StarSysData.IsHabitable/IsTerraformable were never being copied from the SO - every
             // system defaulted to IsHabitable=false at runtime regardless of its SO asset, so
             // FleetController.OnTriggerEnter's uninhabited-habitable branch (colonization popup)
@@ -734,7 +736,7 @@ namespace BOTF3D.Galaxy
                 // EARLY-era game doesn't spawn every system already fully built/settled.
                 TechLevel startingTechLevel = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
 
-                int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.DilithiumCapacity);
+                int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.MaxPowerPlants);
 
                 sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
@@ -854,7 +856,11 @@ namespace BOTF3D.Galaxy
 
             if (!isPlayable)
             {
-                sysData.DilithiumStockpile = 5;
+                // Minor civ stockpile: enough to represent pre-existing infrastructure.
+                // HasWarp minors get a small reserve; pre-warp get nothing beyond what their
+                // single power plant holds (no stockpile — they can't build ships).
+                bool hasWarp = sysData.CurrentCivController?.CivData?.HasWarp == true;
+                sysData.DilithiumStockpile = hasWarp ? sysData.MaxPowerPlants * 10 : 0;
                 return;
             }
 
@@ -862,29 +868,213 @@ namespace BOTF3D.Galaxy
             TechLevel tech = sysData.CurrentCivController.CivData.CurrentTechLevel;
             int quality = sysData.CurrentCivController.CivData.QualityScore;
 
-            // Cost of the power plants that were pre-built at game start
+            // Dilithium locked into the starting power plants
             int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(civ) * sysData.CurrentPowerPlantCount;
 
-            // Cost of the Destroyer placed in-system at game start
+            // Dilithium locked into the starting Destroyer
             int shipLi2 = ShipStatCalculator.Calculate(ShipType.Destroyer, tech, civ, quality).DilithiumCost;
 
-            // Base buffer of 20 + 3 per power plant (more plants = more infrastructure to maintain)
-            int buffer = 20 + sysData.CurrentPowerPlantCount * 3;
+            // Liquid reserve: covers early ship building, colonial transports, and new power plants.
+            // Larger civs (more plants) need more reserve to remain competitive.
+            int buffer = 60 + sysData.CurrentPowerPlantCount * 15;
 
             sysData.DilithiumStockpile = ppLi2 + shipLi2 + buffer;
             Debug.Log($"[Dilithium] {sysCon.name} ({civ}): pp={ppLi2}, ship={shipLi2}, buffer={buffer}, stockpile={sysData.DilithiumStockpile}");
         }
 
-        // ... (rest of the methods remain the same - DetermineDilithiumCapacity, DetermineStartingPowerPlants, etc.)
+        // ── Per-turn dilithium generation rates ──────────────────────────────────
+        // Rates are balanced against each civ's Dilithium throughput — how much they
+        // spend per turn building ships and power plants at their natural pace.
+        // Civs with expensive ships (Borg, Dom) need higher rates to sustain fleet
+        // replacement on a comparable timescale to civs with cheap ships (Card).
+        //
+        // "Mining" is flavour-neutral: Federation physically mines crystals, Borg
+        // convert matter via assimilation nodes, Dominion run Ketracel-adjacent
+        // industrial complexes — the mechanic is identical, the lore differs.
+        //
+        // Homeworld: seat of industrial power, highest rate.
+        // Colony:    developing infrastructure, lower rate. Grows with the system.
+        // Conquered: disrupted infrastructure, starts one below colony rate.
+        //            Recovers to colony rate once a shipyard is built (Phase 3).
+
+        private static readonly Dictionary<CivEnum, int> HomeworldMiningRate = new Dictionary<CivEnum, int>
+        {
+            { CivEnum.FED,    6  }, // Balanced baseline
+            { CivEnum.ROM,    5  }, // Efficient but fewer systems
+            { CivEnum.KLING,  7  }, // Aggressive extraction
+            { CivEnum.CARD,   8  }, // High-volume industrial doctrine
+            { CivEnum.DOM,    8  }, // Strong Dominion infrastructure
+            { CivEnum.BORG,   12 }, // Assimilation converts enormous energy; compensates for extreme ship costs
+            { CivEnum.TERRAN, 6  }, // Mirrors Federation
+        };
+
+        // Colony rate: the per-turn rate a system produces once the colonising civ's
+        // facilities are established. Lower than homeworld — these are frontier systems.
+        private static readonly Dictionary<CivEnum, int> ColonyMiningRate = new Dictionary<CivEnum, int>
+        {
+            { CivEnum.FED,    3 },
+            { CivEnum.ROM,    2 },
+            { CivEnum.KLING,  3 },
+            { CivEnum.CARD,   4 },
+            { CivEnum.DOM,    3 },
+            { CivEnum.BORG,   5 }, // Even a fresh assimilation node converts efficiently
+            { CivEnum.TERRAN, 3 },
+        };
+
         /// <summary>
-        ///
+        /// Returns the colony mining rate for a civ. Used by StarSysController when
+        /// colonisation completes and by the ownership-change handler for conquered systems.
         /// </summary>
-        private int DetermineDilithiumCapacity(CivSO civSO, StarSysSO starSysSO)
+        public static int GetColonyMiningRate(CivEnum civ) =>
+            ColonyMiningRate.TryGetValue(civ, out int r) ? r : 2;
+
+        private int DetermineDilithiumMiningRate(CivSO civSO, StarSysSO starSysSO, int maxPowerPlants)
+        {
+            if (civSO.Playable && starSysSO.IsHomeworld)
+                return HomeworldMiningRate.TryGetValue(civSO.CivEnum, out int rate) ? rate : 4;
+
+            if (civSO.Playable)
+                return (starSysSO.IsHabitable || starSysSO.IsTerraformable)
+                    ? GetColonyMiningRate(civSO.CivEnum) : 0;
+
+            // Minor with warp: 1–3 scaled by infrastructure size
+            if (civSO.HasWarp)
+                return Mathf.Clamp(maxPowerPlants, 1, 3);
+
+            // Pre-warp minor: no output until conquered or joined
+            return 0;
+        }
+
+        // Called when any system changes owner (combat conquest, diplomacy, assimilation).
+        // Colonise via transport is excluded — ColonizeTimerCoroutine sets the rate when
+        // facilities come online, which is the correct moment for that path.
+        private void HandleSystemOwnershipChanged(string sysName, CivEnum previousOwner, CivEnum newOwner)
+        {
+            var sysCon = GetStarSysControllerByName(sysName);
+            if (sysCon == null) return;
+
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            if ((int)newOwner >= firstUninhabited)
+            {
+                // Abandoned / reverted to uninhabited — no mining
+                sysCon.StarSysData.DilithiumMiningRate = 0;
+                return;
+            }
+
+            // Conquered by a playable civ: start one below colony rate (disrupted infrastructure).
+            // ColonizeTimerCoroutine will override this for the transport-colonise path once
+            // facilities are actually built, so the reduced rate only applies to true conquest.
+            int colonyRate = GetColonyMiningRate(newOwner);
+            sysCon.StarSysData.DilithiumMiningRate = Mathf.Max(1, colonyRate - 1);
+        }
+
+        /// <summary>
+        /// Called every turn end. Adds each inhabited system's DilithiumMiningRate to its stockpile.
+        /// Pre-warp minor homeworlds have rate 0 until they are conquered or join a playable civ,
+        /// at which point their rate is set to the colonised-system baseline (2).
+        /// </summary>
+        public void ProcessDilithiumMining()
+        {
+            foreach (var sysCon in StarSysControllerList)
+            {
+                var sysData = sysCon?.StarSysData;
+                if (sysData == null || sysData.DilithiumMiningRate <= 0) continue;
+                sysData.DilithiumStockpile += sysData.DilithiumMiningRate;
+            }
+        }
+
+        /// <summary>
+        /// Player-ordered ship decommission. Returns the ship's reactor dilithium to the system
+        /// where the ship currently resides, then destroys the ship normally.
+        /// Unlike combat destruction (which loses dilithium permanently), scrapping is intentional
+        /// and recovers the full reactor charge.
+        /// </summary>
+        /// <param name="shipyard">The system performing the scrap — dilithium is returned here.</param>
+        public void ScrapShip(ShipController shipCon, StarSysController shipyard)
+        {
+            if (shipCon == null || shipCon.ShipData == null || shipyard == null) return;
+
+            int dilithium = shipCon.ShipData.DilithiumCost;
+            if (dilithium > 0)
+            {
+                shipyard.StarSysData.DilithiumStockpile += dilithium;
+                Debug.Log($"[Dilithium] Scrapped {shipCon.ShipData.ShipName} — {dilithium} Li2 returned to {shipyard.StarSysData.SysName}.");
+            }
+
+            var fleetCon = shipCon.ShipData.CurrentFleetController;
+            if (fleetCon != null) fleetCon.RemoveShipFromFleet(shipCon);
+            var sysCon = shipCon.ShipData.CurrentStarSysController;
+            if (sysCon != null) sysCon.RemoveFromShipList(shipCon);
+            GameEvents.ShipDestroyed(shipCon.ShipData.ShipID);
+            ShipManager.Instance?.RemoveShipControllerFromList(shipCon);
+        }
+
+        // ── Ship Repair ───────────────────────────────────────────────────────────
+
+        private const int RepairHullPerTurn  = 5;  // HP restored per ship per turn at a shipyard
+        private const int Li2PerRepairPoint  = 1;  // dilithium cost per HP repaired
+
+        /// <summary>
+        /// Called once per turn. Repairs damaged ships at any system that has a shipyard,
+        /// drawing dilithium from that system's stockpile. Ships in transit (no docked system)
+        /// do not repair. Stops repairing a ship if the stockpile runs dry.
+        /// </summary>
+        public void ProcessRepairs()
+        {
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            foreach (var sysCon in StarSysControllerList)
+            {
+                if (sysCon?.StarSysData == null) continue;
+                var sysData = sysCon.StarSysData;
+                if (sysData.Shipyards == null || sysData.Shipyards.Count == 0) continue;
+                if ((int)sysData.CurrentOwnerCivEnum >= firstUninhabited) continue;
+
+                // Garrison ships
+                RepairShipsInList(sysData.ShipsList, sysData.CurrentOwnerCivEnum, sysData);
+
+                // Ships in fleets docked here
+                if (FleetManager.Instance == null) continue;
+                foreach (var fleet in FleetManager.Instance.FleetControllerList)
+                {
+                    if (fleet?.FleetData == null) continue;
+                    if (fleet.FleetData.DockedStarSys != sysCon) continue;
+                    if (fleet.FleetData.CivEnum != sysData.CurrentOwnerCivEnum) continue;
+                    RepairShipsInList(fleet.FleetData.ShipsList, sysData.CurrentOwnerCivEnum, sysData);
+                }
+            }
+        }
+
+        private void RepairShipsInList(List<ShipController> ships, CivEnum owner, StarSysData sysData)
+        {
+            foreach (var ship in ships)
+            {
+                if (ship?.ShipData == null || ship.ShipData.Distroyed) continue;
+                if (ship.ShipData.CivEnum != owner) continue;
+                if (ship.ShipData.HullHealth >= ship.ShipData.HullMaxHealth) continue;
+
+                int missing   = ship.ShipData.HullMaxHealth - ship.ShipData.HullHealth;
+                int toRepair  = Mathf.Min(RepairHullPerTurn, missing);
+                int cost      = toRepair * Li2PerRepairPoint;
+
+                // Scale down repair if stockpile is insufficient
+                if (sysData.DilithiumStockpile < cost)
+                {
+                    toRepair = sysData.DilithiumStockpile / Li2PerRepairPoint;
+                    cost     = toRepair * Li2PerRepairPoint;
+                }
+                if (toRepair <= 0) continue;
+
+                ship.ShipData.HullHealth      += toRepair;
+                sysData.DilithiumStockpile    -= cost;
+            }
+        }
+
+        private int DetermineMaxPowerPlants(CivSO civSO, StarSysSO starSysSO)
         {
             // ✅ Major race homeworlds
             if (civSO.Playable && starSysSO.IsHomeworld)
             {
-                return starSysSO.Dilitium; // set per-civ by CivBalanceCalculator
+                return starSysSO.Dilithium; // set per-civ by CivBalanceCalculator
             }
 
             // ✅ Minor race systems
@@ -1633,6 +1823,26 @@ namespace BOTF3D.Galaxy
         /// Enables/disables ship build items based on the system owner's tech level
         /// Called when opening the build UI
         /// </summary>
+        // Adds (or ensures) a permanent fog-of-war revealer at a newly colonized system so it
+        // acts as a subspace sensor post — revealing fleets passing through its vicinity.
+        // Only applies when this machine is the local player's session.
+        public void AddSystemFogRevealerForLocalPlayer(StarSysController sysCon)
+        {
+            if (sysCon == null) return;
+            if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum)) return;
+
+            csFogWar fogOfWar = csFogWar.Instance;
+            if (fogOfWar == null || !fogOfWar.FogReady) return;
+
+            CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(sysCon.StarSysData.CurrentOwnerCivEnum);
+            int fogSightRange = TechManager.Instance != null
+                ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                : (int)FleetManager.LocalPlayerFogSightRange;
+
+            fogOfWar.AddFogRevealer(new csFogWar.FogRevealer(sysCon.transform, fogSightRange, true));
+            fogOfWar.ForceUpdateFog();
+        }
+
         public void UpdateAvailableShipsByTechLevel(StarSysController sysCon, GameObject buildUIInstance)
         {
             if (sysCon == null || buildUIInstance == null)
@@ -1766,10 +1976,13 @@ namespace BOTF3D.Galaxy
             {
                 if (currentBuildUISysCon == sysCon)
                 {
-                    // Same system reopened — just show the existing UI so the queue is preserved
+                    // Same system reopened — show the existing UI so the queue is preserved,
+                    // but re-run the tech filter in case the level advanced while it was hidden.
                     Debug.Log("  Reusing existing build UI for same system");
                     existingBuildUIFields.gameObject.SetActive(true);
                     canvasBuildList.SetActive(true);
+                    UpdateAvailableShipsByTechLevel(sysCon, existingBuildUIFields.gameObject);
+                    SetShipBuildImages(sysCon, existingBuildUIFields.gameObject);
                     return;
                 }
                 Debug.Log("  Destroying previous build UI (different system): " + existingBuildUIFields.gameObject.name);

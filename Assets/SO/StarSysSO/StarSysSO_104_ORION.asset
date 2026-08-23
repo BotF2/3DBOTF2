@@ -19,7 +19,7 @@ MonoBehaviour:
   CurrentOwner: 104
   StarType: 8
   StarSprit: {fileID: 21300000, guid: ba15e4ad72d9dc742b9cf4c766854c07, type: 3}
-  Dilitium: 1
+  Dilithium: 1
   PowerStations: 1
   Factories: 1
   ResearchCenters: 1
