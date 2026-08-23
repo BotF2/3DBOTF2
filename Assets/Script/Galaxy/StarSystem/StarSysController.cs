@@ -595,6 +595,8 @@ namespace BOTF3D.Galaxy
             if (!colonizingCiv.CivData.StarSysWeOwn.Contains(this))
                 colonizingCiv.CivData.StarSysWeOwn.Add(this);
 
+            PlantInsignia(colonizingCiv);
+
             // Capture dilithium cargo before destroying the transport - it seeds the new colony's
             // power plant when colonization completes.
             int transportDilithium = transportShip.ShipData.LoadedDilithium;
@@ -622,8 +624,13 @@ namespace BOTF3D.Galaxy
             GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, colonizingCiv.CivData.CivEnum);
 
             // Start the colonize timer - the starting Power Plant + Factory land when it completes.
+            // Cancel any pending "Claimed" label expiry — "Colonizing" takes over from here.
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
+
             starSysData.IsColonizing = true;
             starSysData.ColonizeCompleteStardate = TimeManager.Instance.CurrentStarDate() + ColonizeTurns * TimeManager.Instance.StarDatesPerTurn;
+            SetSystemStatusLabel("Colonizing");
             if (gameObject.activeInHierarchy)
                 StartCoroutine(ColonizeTimerCoroutine(colonizingCiv, transportDilithium));
 
@@ -651,6 +658,8 @@ namespace BOTF3D.Galaxy
                 StarSysMenuUIController.Instance.UpdateSystemPowerBalance(this);
 
             starSysData.IsColonizing = false;
+            SetSystemStatusLabel("");
+            StarSysManager.Instance?.AddSystemFogRevealerForLocalPlayer(this);
             Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online, stockpile seeded with {seedDilithium} dilithium.");
         }
 
@@ -666,7 +675,13 @@ namespace BOTF3D.Galaxy
         public bool TerraformSystem(ShipController transportShip)
         {
             int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
-            if ((int)starSysData.CurrentOwnerCivEnum < firstUninhabited || starSysData.IsHabitable
+            bool systemIsUninhabited = (int)starSysData.CurrentOwnerCivEnum >= firstUninhabited;
+            // Also allow a system already claimed by the same civ (ClaimSystem called before Terraform).
+            bool alreadyClaimedBySameCiv = !systemIsUninhabited
+                && transportShip != null && transportShip.ShipData != null
+                && starSysData.CurrentOwnerCivEnum == transportShip.ShipData.CivEnum;
+
+            if ((!systemIsUninhabited && !alreadyClaimedBySameCiv) || starSysData.IsHabitable
                 || starSysData.IsTerraformable != true || starSysData.IsTerraforming)
             {
                 Debug.LogWarning($"TerraformSystem: '{name}' is no longer a qualifying uninhabited/terraformable system.");
@@ -696,6 +711,8 @@ namespace BOTF3D.Galaxy
             if (!terraformingCiv.CivData.StarSysWeOwn.Contains(this))
                 terraformingCiv.CivData.StarSysWeOwn.Add(this);
 
+            PlantInsignia(terraformingCiv);
+
             // Consume the transport instantly - its personnel begin terraforming immediately.
             if (fleetCon != null)
                 fleetCon.RemoveShipFromFleet(transportShip);
@@ -712,10 +729,17 @@ namespace BOTF3D.Galaxy
             if (GameController.Instance.AreWeLocalPlayer(terraformingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
                 StarSysManager.Instance.InstantiateStarSysUI(this);
 
-            GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, terraformingCiv.CivData.CivEnum);
+            // Only broadcast ownership change when it actually changed (not when pre-claimed by same civ).
+            if (previousOwnerCivEnum != terraformingCiv.CivData.CivEnum)
+                GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, terraformingCiv.CivData.CivEnum);
+
+            // Cancel any pending "Claimed" label expiry — "Terraforming" takes over from here.
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
 
             starSysData.IsTerraforming = true;
             starSysData.TerraformCompleteStardate = TimeManager.Instance.CurrentStarDate() + TerraformTurns * TimeManager.Instance.StarDatesPerTurn;
+            SetSystemStatusLabel("Terraforming");
             if (gameObject.activeInHierarchy)
                 StartCoroutine(TerraformTimerCoroutine());
 
@@ -730,6 +754,7 @@ namespace BOTF3D.Galaxy
 
             starSysData.IsTerraforming = false;
             starSysData.IsHabitable = true;
+            SetSystemStatusLabel("Colonizable");
             GameEvents.SystemHabitabilityChanged(starSysData.SysName, true);
             Debug.Log($"'{starSysData.SysName}' finished terraforming - now habitable at stardate {TimeManager.Instance.CurrentStarDate()}.");
         }
@@ -765,26 +790,67 @@ namespace BOTF3D.Galaxy
             if (!claimingCiv.CivData.StarSysWeOwn.Contains(this))
                 claimingCiv.CivData.StarSysWeOwn.Add(this);
 
-            // Plant the claiming civ's insignia.
-            StarSysChildFields fields = GetComponent<StarSysChildFields>();
-            if (fields != null && fields.OwnerInsigniaGO != null)
-            {
-                fields.OwnerInsigniaGO.SetActive(true);
-                SpriteRenderer srInsignia = fields.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
-                if (srInsignia != null)
-                {
-                    srInsignia.sprite = claimingCiv.CivData.InsigniaSprite;
-                    srInsignia.enabled = GameController.Instance.AreWeLocalPlayer(claimingCiv.CivData.CivEnum);
-                }
-            }
+            PlantInsignia(claimingCiv);
 
             if (GameController.Instance.AreWeLocalPlayer(claimingCiv.CivData.CivEnum) && StarSysManager.Instance != null)
                 StarSysManager.Instance.InstantiateStarSysUI(this);
 
             GameEvents.SystemOwnershipChanged(starSysData.SysName, previousOwnerCivEnum, claimingCiv.CivData.CivEnum);
+            SetSystemStatusLabel("Claimed");
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced += ClearClaimedLabel;
             Debug.Log($"Claimed '{starSysData.SysName}' for {claimingCiv.CivData.CivShortName}.");
             return true;
         }
+
+        private void SetSystemStatusLabel(string text)
+        {
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields?.StatusLabel == null) return;
+            fields.StatusLabel.text = text;
+            fields.StatusLabel.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        private void PlantInsignia(CivController civ)
+        {
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields?.OwnerInsigniaGO == null) return;
+            fields.OwnerInsigniaGO.SetActive(true);
+            SpriteRenderer sr = fields.OwnerInsigniaGO.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.sprite = civ.CivData.InsigniaSprite;
+                sr.enabled = GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum);
+            }
+        }
+
+        // Sets the status label based on the system state at the moment a fleet makes contact.
+        // Skips if a more specific label (Terraforming/Colonizing) is already active.
+        public void RefreshStatusLabelForContact()
+        {
+            if (starSysData.IsTerraforming || starSysData.IsColonizing) return;
+
+            int firstUninhabited = (int)CivEnum.ZZUNINHABITED1;
+            if ((int)starSysData.CurrentOwnerCivEnum >= firstUninhabited)
+            {
+                if (starSysData.IsHabitable)
+                    SetSystemStatusLabel("Colonizable");
+                else if (starSysData.IsTerraformable == true)
+                    SetSystemStatusLabel("Terraformable");
+            }
+        }
+
+        // One-shot handler: clears the "Claimed" label on the next turn advance.
+        // Unsubscribes itself immediately so it only fires once.
+        private void ClearClaimedLabel()
+        {
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields?.StatusLabel != null && fields.StatusLabel.text == "Claimed")
+                SetSystemStatusLabel("");
+        }
+
         private void OnMouseDown()
         {
             // See matching comment in FleetController.OnMouseDown: this raw physics click fires

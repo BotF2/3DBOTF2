@@ -579,6 +579,99 @@ namespace BOTF3D.Core
             Debug.Log($"RpcSyncStarSysRoster: system '{sysCon.name}' roster synced - {resolved.Count}/{shipIDs.Count} ship(s) resolved locally.");
         }
 
+        // ---------------------------------------------------------------------------------------
+        // Claim/Terraform/Colonize replication. Same reasoning and relay channel as the roster sync
+        // above - StarSysController has no NetworkIdentity, so this persistent scene NetworkBehaviour
+        // is what every peer can reach. Unlike the roster sync (a pure resync of already-networked
+        // data), StarSysController.ClaimSystem/TerraformSystem/ColonizeWithTransport are also called
+        // directly, client-locally, by the acting player's own UI first (see
+        // FleetMenuUIController.ClickClaimSystemButton/ClickTerraformButton/ClickColonizeButton) for
+        // instant feedback - these Rpcs are what make that same mutation land on every OTHER peer too.
+        // Each Rpc checks whether its own local StarSysData already reflects the change before
+        // re-running the mutation, so it no-ops harmlessly on the initiating peer's own echo instead
+        // of re-entering (and warning inside) an already-applied StarSysController method.
+        // ---------------------------------------------------------------------------------------
+        [Server]
+        public void ServerClaimSystem(int starSysInt, CivEnum claimingCiv)
+        {
+            RpcClaimSystem(starSysInt, claimingCiv);
+        }
+
+        [ClientRpc]
+        private void RpcClaimSystem(int starSysInt, CivEnum claimingCiv)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcClaimSystem: no local StarSysController found for starSysInt={starSysInt} - claim dropped on this peer.");
+                return;
+            }
+            if (sysCon.StarSysData.CurrentOwnerCivEnum == claimingCiv)
+                return; // already applied locally - see comment above
+
+            CivController civCon = CivManager.Instance?.GetCivControllerByCivEnum(claimingCiv);
+            if (civCon == null)
+            {
+                Debug.LogWarning($"RpcClaimSystem: could not resolve CivController for {claimingCiv} - claim dropped on this peer.");
+                return;
+            }
+            sysCon.ClaimSystem(civCon);
+        }
+
+        [Server]
+        public void ServerTerraformSystem(int starSysInt, int transportShipID)
+        {
+            RpcTerraformSystem(starSysInt, transportShipID);
+        }
+
+        [ClientRpc]
+        private void RpcTerraformSystem(int starSysInt, int transportShipID)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcTerraformSystem: no local StarSysController found for starSysInt={starSysInt} - terraform dropped on this peer.");
+                return;
+            }
+            if (sysCon.StarSysData.IsTerraforming)
+                return; // already applied locally - see comment above
+
+            ShipController transportShip = ShipManager.Instance?.GetShipControllerByShipID(transportShipID);
+            if (transportShip == null)
+            {
+                Debug.LogWarning($"RpcTerraformSystem: could not resolve transport ShipID={transportShipID} on this peer - terraform dropped.");
+                return;
+            }
+            sysCon.TerraformSystem(transportShip);
+        }
+
+        [Server]
+        public void ServerColonizeSystem(int starSysInt, int transportShipID)
+        {
+            RpcColonizeSystem(starSysInt, transportShipID);
+        }
+
+        [ClientRpc]
+        private void RpcColonizeSystem(int starSysInt, int transportShipID)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcColonizeSystem: no local StarSysController found for starSysInt={starSysInt} - colonize dropped on this peer.");
+                return;
+            }
+            if (sysCon.StarSysData.IsColonizing)
+                return; // already applied locally - see comment above
+
+            ShipController transportShip = ShipManager.Instance?.GetShipControllerByShipID(transportShipID);
+            if (transportShip == null)
+            {
+                Debug.LogWarning($"RpcColonizeSystem: could not resolve transport ShipID={transportShipID} on this peer - colonize dropped.");
+                return;
+            }
+            sysCon.ColonizeWithTransport(transportShip);
+        }
+
         // Method to get current oneInXChance
         public int CurrentStarDate()
         {

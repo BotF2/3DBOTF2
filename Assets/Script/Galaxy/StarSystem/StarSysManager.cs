@@ -1823,6 +1823,26 @@ namespace BOTF3D.Galaxy
         /// Enables/disables ship build items based on the system owner's tech level
         /// Called when opening the build UI
         /// </summary>
+        // Adds (or ensures) a permanent fog-of-war revealer at a newly colonized system so it
+        // acts as a subspace sensor post — revealing fleets passing through its vicinity.
+        // Only applies when this machine is the local player's session.
+        public void AddSystemFogRevealerForLocalPlayer(StarSysController sysCon)
+        {
+            if (sysCon == null) return;
+            if (!GameController.Instance.AreWeLocalPlayer(sysCon.StarSysData.CurrentOwnerCivEnum)) return;
+
+            csFogWar fogOfWar = csFogWar.Instance;
+            if (fogOfWar == null || !fogOfWar.FogReady) return;
+
+            CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(sysCon.StarSysData.CurrentOwnerCivEnum);
+            int fogSightRange = TechManager.Instance != null
+                ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                : (int)FleetManager.LocalPlayerFogSightRange;
+
+            fogOfWar.AddFogRevealer(new csFogWar.FogRevealer(sysCon.transform, fogSightRange, true));
+            fogOfWar.ForceUpdateFog();
+        }
+
         public void UpdateAvailableShipsByTechLevel(StarSysController sysCon, GameObject buildUIInstance)
         {
             if (sysCon == null || buildUIInstance == null)
@@ -1956,10 +1976,13 @@ namespace BOTF3D.Galaxy
             {
                 if (currentBuildUISysCon == sysCon)
                 {
-                    // Same system reopened — just show the existing UI so the queue is preserved
+                    // Same system reopened — show the existing UI so the queue is preserved,
+                    // but re-run the tech filter in case the level advanced while it was hidden.
                     Debug.Log("  Reusing existing build UI for same system");
                     existingBuildUIFields.gameObject.SetActive(true);
                     canvasBuildList.SetActive(true);
+                    UpdateAvailableShipsByTechLevel(sysCon, existingBuildUIFields.gameObject);
+                    SetShipBuildImages(sysCon, existingBuildUIFields.gameObject);
                     return;
                 }
                 Debug.Log("  Destroying previous build UI (different system): " + existingBuildUIFields.gameObject.name);

@@ -84,26 +84,18 @@ namespace BOTF3D.Combat
             if (HealthFillImage != null && ShipData != null)
             {
                 int maxHealth = GetMaxHealth();
-                int currentHealth = GetCurrentTotalHealth();
-                TargetHealthFillAmount = (float)currentHealth / maxHealth;
+                TargetHealthFillAmount = maxHealth > 0 ? (float)GetCurrentTotalHealth() / maxHealth : 1f;
 
-                HealthFillImage.fillAmount = Mathf.Lerp(
+                float smoothedFill = Mathf.Lerp(
                     HealthFillImage.fillAmount,
                     TargetHealthFillAmount,
                     HealthSpeed * Time.unscaledDeltaTime
                 );
 
-                if (HealthBackgroundImage != null)
-                {
-                    HealthBackgroundImage.color = Color.red;
-                    HealthBackgroundImage.fillAmount = 1.0f;
-                }
-
-                float healthPercent = TargetHealthFillAmount;
-                if (healthPercent > 0.66f) HealthFillImage.color = Color.green;
-                else if (healthPercent > 0.33f) HealthFillImage.color = Color.cyan;
-                else if (healthPercent > 0) HealthFillImage.color = Color.yellow;
-                else HealthFillImage.color = Color.red;
+                // Same green/yellow/orange/red grading as the fleet menu's ShipListingUI hull
+                // bar (ApplyHealthBarFill), so the two UIs read consistently. This bar tracks
+                // shield+hull combined (see GetCurrentTotalHealth) rather than hull alone.
+                ShipListingUI.ApplyHealthBarFill(HealthFillImage, smoothedFill);
             }
         }
 

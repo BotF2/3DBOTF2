@@ -741,8 +741,18 @@ namespace BOTF3D.UI
                 && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
             if (transport == null) return;
 
+            // Captured before ColonizeWithTransport consumes/destroys the transport below.
+            int starSysInt = sysCon.StarSysData.GetStarSysInt();
+            int transportShipID = transport.ShipData.ShipID;
+
             if (sysCon.ColonizeWithTransport(transport))
             {
+                // Relays this same action to every other connected peer - see
+                // TimeManager.ServerColonizeSystem's comment. Harmlessly no-ops when the Rpc
+                // echoes back to this same client (host/single-player included), since its local
+                // StarSysData already reflects the change from the direct call above.
+                PlayerManager.Instance?.LocalPlayerController?.SubmitColonizeSystem(fleetCon, starSysInt, transportShipID);
+
                 // The contact popup paused time; close the right one so time resumes.
                 // TerraformableSystem path: popup was already closed by ClickTerraformButton.
                 if (wasHabitableContact)
@@ -760,8 +770,16 @@ namespace BOTF3D.UI
                 && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
             if (transport == null) return;
 
+            // Captured before TerraformSystem consumes/destroys the transport below.
+            int starSysInt = sysCon.StarSysData.GetStarSysInt();
+            int transportShipID = transport.ShipData.ShipID;
+
             if (sysCon.TerraformSystem(transport))
             {
+                // Relays this same action to every other connected peer - see
+                // TimeManager.ServerTerraformSystem's comment.
+                PlayerManager.Instance?.LocalPlayerController?.SubmitTerraformSystem(fleetCon, starSysInt, transportShipID);
+
                 // The contact popup paused time; close it so time resumes.
                 TerraformableSysUIController.Instance?.CloseUnLoadTerraformableSysUI();
                 SetupFleetUIData(); // refresh so the Terraform/Claim buttons reflect the new state
@@ -774,8 +792,14 @@ namespace BOTF3D.UI
             var sysCon = fleetCon.FleetData.ColonizableSystem ?? fleetCon.FleetData.TerraformableSystem;
             if (sysCon == null) return;
 
+            int starSysInt = sysCon.StarSysData.GetStarSysInt();
+
             if (sysCon.ClaimSystem(fleetCon.FleetData.CivController))
             {
+                // Relays this same action to every other connected peer - see
+                // TimeManager.ServerClaimSystem's comment.
+                PlayerManager.Instance?.LocalPlayerController?.SubmitClaimSystem(fleetCon, starSysInt);
+
                 // Close the popup panel visually but defer NotifyDismissed until we know whether
                 // transport actions (Terraform/Colonize) are still available. If they are, the
                 // fleet menu stays open so the player can act; CancelFleetUIButton will notify.

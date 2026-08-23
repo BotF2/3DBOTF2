@@ -17,6 +17,7 @@ namespace BOTF3D.Galaxy
         [Header("Text")]
         public TextMeshProUGUI SysName;
         public TextMeshProUGUI SysDescription;
+        public TextMeshProUGUI StatusLabel;
 
         [Header("GameObjects")]
         public GameObject OwnerInsigniaGO;

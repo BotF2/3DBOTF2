@@ -536,7 +536,9 @@ namespace BOTF3D.Civilization
             InstantiateDiplomacyUIGameObject(ctrl);
             GalaxyMenuUIController.Instance.HideNoContactUI();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, ctrl.gameObject);
-            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ctrl.DiplomacyUIGameObject, ctrl.gameObject, ships);
+            // First-contact and repeat-encounter notifications open in compact-strip mode only;
+            // the player can expand via the ExpandButton if they want the full panel.
+            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ctrl.DiplomacyUIGameObject, ctrl.gameObject, ships, expandedOnOpen: false);
         }
 
         private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
@@ -633,8 +635,9 @@ namespace BOTF3D.Civilization
                 // ✅ Open via GalaxyMenuUIController to ensure other menus close correctly
                 GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, ourDiplomacyController.gameObject);
 
+                // Player explicitly clicked a known fleet or system — open fully expanded.
                 DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ourDiplomacyController.DiplomacyUIGameObject,
-                    ourDiplomacyController.gameObject, shipList);
+                    ourDiplomacyController.gameObject, shipList, expandedOnOpen: true);
             }
         }
         // Called server-side when a fleet is given new orders while IsAwaitingEncounterResolution is
@@ -805,13 +808,7 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                         DiplomacyControllers.Add(newDiplomacyCon);
                     IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, sysConEmpty);
                     Destroy(sysConEmpty.gameObject);
-                    var dip = newDiplomacyCon;
-                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
-                    {
-                        Type = TurnEventType.DiplomacyEncounter,
-                        Fleet = reportingPlayerFleet,
-                        ShowAction = () => ShowDiplomacyUIForController(dip, dip.UIShipsForQueue)
-                    });
+                    ShowDiplomacyUIForController(newDiplomacyCon, newDiplomacyCon.UIShipsForQueue);
                 }
                 else
                 {
@@ -825,15 +822,7 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
 
                     DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
                     UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
-                    var c1 = civSideOne; var c2 = civSideTwo;
-                    var sl = otherFleet.FleetData.ShipsList;
-                    var f1 = sideOneFleetCon; var f2 = sideTwoFleetCon;
-                    TurnEventQueue.Instance?.Enqueue(new TurnEvent
-                    {
-                        Type = TurnEventType.DiplomacyEncounter,
-                        Fleet = reportingPlayerFleet,
-                        ShowAction = () => OpenDiplomacyUI(c1, c2, sl, f1, f2, null)
-                    });
+                    OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
 
                     // At Neutral+ relations there's no Fight/Withdraw decision pending - release
                     // both fleets immediately instead of leaving them frozen awaiting a response
@@ -919,13 +908,7 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                             if (!DiplomacyControllers.Contains(newDiplomacyCon))
                                 DiplomacyControllers.Add(newDiplomacyCon);
                             IntelligenceManager.Instance.InitializeNewIntelligenceController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
-                            var dip = newDiplomacyCon;
-                            TurnEventQueue.Instance?.Enqueue(new TurnEvent
-                            {
-                                Type = TurnEventType.DiplomacyEncounter,
-                                Fleet = reportingPlayerfleet,
-                                ShowAction = () => ShowDiplomacyUIForController(dip, dip.UIShipsForQueue)
-                            });
+                            ShowDiplomacyUIForController(newDiplomacyCon, newDiplomacyCon.UIShipsForQueue);
                         }
                         else
                         { // not first contact
@@ -1015,17 +998,11 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
 
                 CheckForAIDiplomacy(fleetA, sysCon);
                 diplomacyController.DiplomacyData.EncounterType = EncounterType.Diplomacy;
-                var cp1 = civPartyOne; var cp2 = civPartyTwo;
-                var sl2 = sysCon.StarSysData.ShipsList;
-                var fa = (fleetA.FleetData.CivController == civPartyOne ? fleetA : null);
-                var fb = (fleetA.FleetData.CivController == civPartyTwo ? fleetA : null);
-                var sc = sysCon;
-                TurnEventQueue.Instance?.Enqueue(new TurnEvent
-                {
-                    Type = TurnEventType.DiplomacyEncounter,
-                    Fleet = fleetA,
-                    ShowAction = () => OpenDiplomacyUI(cp1, cp2, sl2, fa, fb, sc)
-                });
+                OpenDiplomacyUI(
+                    civPartyOne, civPartyTwo, sysCon.StarSysData.ShipsList,
+                    fleetA.FleetData.CivController == civPartyOne ? fleetA : null,
+                    fleetA.FleetData.CivController == civPartyTwo ? fleetA : null,
+                    sysCon);
 
                 // At Neutral+ relations there's no Fight/Withdraw decision pending - release
                 // the fleet immediately instead of leaving it frozen awaiting a response

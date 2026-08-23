@@ -150,6 +150,8 @@ namespace BOTF3D.UI
                 if (dipCon.DiplomacyUIGameObject != null)
                 {
                     diplomacyUIList.Add(dipCon.DiplomacyUIGameObject);
+                    // Ribbon list shows compact strip only (no ExpandContent) for every contact.
+                    DiplomacyMenuUIController.Instance?.SetDiploCardState(dipCon.DiplomacyUIGameObject, false);
                     dipCon.DiplomacyUIGameObject.SetActive(true);
                     dipCon.DiplomacyUIGameObject.transform.SetAsFirstSibling(); // ✅ newest ends up at top
                 }

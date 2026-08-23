@@ -53,6 +53,19 @@ namespace BOTF3D.UI
             float fill = shipData.HullMaxHealth > 0
                 ? Mathf.Clamp01((float)shipData.HullHealth / shipData.HullMaxHealth)
                 : 1f;
+            ApplyHealthBarFill(bar, fill);
+        }
+
+        /// <summary>
+        /// Shared green/yellow/orange/red health-bar look, driven by a raw 0-1 fill fraction
+        /// instead of a ShipData reference. Lets other callers (e.g. CombatScene's
+        /// ShipController, which tracks shield+hull combined rather than hull alone) reuse the
+        /// same color grading instead of maintaining their own copy of these thresholds.
+        /// </summary>
+        public static void ApplyHealthBarFill(Image bar, float fill)
+        {
+            if (bar == null) return;
+            fill = Mathf.Clamp01(fill);
             bar.fillAmount = fill;
             bar.color = fill >= 0.99f ? new Color(0.1f, 0.8f, 0.1f)   // green  — full
                       : fill >= 0.66f ? new Color(1f,   0.8f, 0f)      // yellow — light damage
