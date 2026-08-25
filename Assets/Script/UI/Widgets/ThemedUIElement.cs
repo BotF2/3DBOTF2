@@ -218,6 +218,7 @@ namespace BOTF3D.UI
                 case ThemeImageType.Insignia: return theme.Insignia;
                 case ThemeImageType.Race: return theme.RaceImage;
                 case ThemeImageType.System: return theme.SystemImage;
+                case ThemeImageType.SystemMenuCompactBackground: return theme.SystemMenuCompactBackground;
                 case ThemeImageType.FleetShip: return theme.FleetShipImage;
                 case ThemeImageType.PowerPlant: return theme.PowerPlantImage;
                 case ThemeImageType.Factory: return theme.FactoryImage;
@@ -278,6 +279,7 @@ namespace BOTF3D.UI
         Shield,
         OrbitalBattery,
         ResearchCenter,
-        Border
+        Border,
+        SystemMenuCompactBackground
     }
 }

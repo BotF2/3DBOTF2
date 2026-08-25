@@ -1014,6 +1014,12 @@ namespace BOTF3D.Galaxy
         private const int RepairHullPerTurn  = 5;  // HP restored per ship per turn at a shipyard
         private const int Li2PerRepairPoint  = 1;  // dilithium cost per HP repaired
 
+        // Shared alpha for every ship inventory slot's background image (ImageXxxBackground), so
+        // buildable and not-yet-buildable slots read as equally faint - previously buildable slots
+        // used 1f (fully opaque) which let the background show through around the draggable ship
+        // icon's transparent edges, while locked slots used 0.3f. See SetShipBuildImages.
+        private const float ShipBuildBackgroundAlpha = 0.3f;
+
         /// <summary>
         /// Called once per turn. Repairs damaged ships at any system that has a shipyard,
         /// drawing dilithium from that system's stockpile. Ships in transit (no docked system)
@@ -2663,7 +2669,7 @@ namespace BOTF3D.Galaxy
                         bgImage.enabled = true;
                         bgImage.transform.SetAsLastSibling();
                         Color c = bgImage.color;
-                        bgImage.color = new Color(c.r, c.g, c.b, 1f);
+                        bgImage.color = new Color(c.r, c.g, c.b, ShipBuildBackgroundAlpha);
                     }
                 }
                 else
@@ -2699,7 +2705,7 @@ namespace BOTF3D.Galaxy
                             bgImage.enabled = true;
                             bgImage.transform.SetAsLastSibling();
                             Color c = bgImage.color;
-                            bgImage.color = new Color(c.r, c.g, c.b, 0.3f);
+                            bgImage.color = new Color(c.r, c.g, c.b, ShipBuildBackgroundAlpha);
 
                             if (itemImage != null)
                                 itemImage.enabled = false;

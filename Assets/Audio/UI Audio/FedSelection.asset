@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04298d161639d3c4d9d8c579609f4dc7, type: 3}
   m_Name: FedSelection
   m_EditorClassIdentifier: BOTF3D::BOTF3D.Audio.SoundData
-  clip: {fileID: 8300000, guid: b7580fef80062264f856d8cdafcfe5fe, type: 3}
+  clip: {fileID: 8300000, guid: b5e74252b6da0e341b4ed4db1d52b443, type: 3}
   randomClips: []
   volume: 1
   pitch: 1

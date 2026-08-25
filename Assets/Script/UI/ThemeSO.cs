@@ -16,6 +16,7 @@ public class ThemeSO : ScriptableObject
     public Sprite Insignia;
     public Sprite RaceImage;
     public Sprite SystemImage;
+    public Sprite SystemMenuCompactBackground;
     public Sprite FleetShipImage;
     public Sprite PowerPlantImage;
     public Sprite FactoryImage;

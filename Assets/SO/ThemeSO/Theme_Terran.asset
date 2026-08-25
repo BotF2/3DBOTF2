@@ -17,6 +17,7 @@ MonoBehaviour:
   Insignia: {fileID: 21300000, guid: f9196827056ebc147a7e26cac702d060, type: 3}
   RaceImage: {fileID: 21300000, guid: 39ec3883ff6684245a79fc2d4b9ff202, type: 3}
   SystemImage: {fileID: 21300000, guid: d0f0c0f0001543b4eb1a5bddf59ccb19, type: 3}
+  SystemMenuCompactBackground: {fileID: 21300000, guid: bebb16bb0253f024599f87e113b61dc5, type: 3}
   FleetShipImage: {fileID: 21300000, guid: 7c73ab7a100936045963fb7ca99ee6f1, type: 3}
   PowerPlantImage: {fileID: 21300000, guid: 52ecba78df0345d4f91d024d780a636a, type: 3}
   FactoryImage: {fileID: 21300000, guid: 5121a27f0bd353f4ca5cf0ebcb16f223, type: 3}

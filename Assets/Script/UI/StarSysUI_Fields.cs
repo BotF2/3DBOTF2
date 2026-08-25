@@ -147,6 +147,8 @@ public class StarSysUI_Fields : MonoBehaviour
     public Toggle toggleEconomy;
     public Toggle toggleWar;
     public Toggle toggleDefence;
+    [Tooltip("Toggle_off/LabelOff. Reads \"ON\" while Toggle_off is the selected AI mode (AI explicitly off), and reverts to its baked-in \"OFF\" caption otherwise.")]
+    public TextMeshProUGUI labelOff;
 
     public void WireAIModeToggles(StarSysController sysCon)
     {
@@ -160,6 +162,21 @@ public class StarSysUI_Fields : MonoBehaviour
         WireToggle(toggleEconomy, () => data.AIBuildMode = AIBuildMode.Economy);
         WireToggle(toggleWar,     () => data.AIBuildMode = AIBuildMode.War);
         WireToggle(toggleDefence, () => data.AIBuildMode = AIBuildMode.Defence);
+
+        // WireToggle() above already cleared toggleOff's listeners, so it's safe to layer this on.
+        if (toggleOff != null)
+            toggleOff.onValueChanged.AddListener(UpdateLabelOffText);
+        UpdateLabelOffText(toggleOff != null && toggleOff.isOn);
+    }
+
+    /// <summary>
+    /// LabelOff shows "ON" while Toggle_off is selected (AI explicitly turned off for this system),
+    /// and falls back to its prefab-authored "OFF" caption the rest of the time.
+    /// </summary>
+    private void UpdateLabelOffText(bool toggleOffIsOn)
+    {
+        if (labelOff != null)
+            labelOff.text = toggleOffIsOn ? "ON" : "OFF";
     }
 
     private void SetToggleWithoutNotify(Toggle t, bool isOn)
