@@ -556,6 +556,15 @@ namespace BOTF3D.Galaxy
         public const int ColonizeTurns = 2;
         public const int TerraformTurns = 3;
 
+        // Small, flat, uniform across every civ and system - not scaled by QualityScore the way
+        // facility caps are. Every colony transport's "Colony Kit" carries the same baseline
+        // Antimatter allotment regardless of who's sending it, alongside whatever Dilithium the
+        // player chose to load (see ColonizeWithTransport's transportDilithium and
+        // ColonizeTimerCoroutine below) - together those two, plus everything else a colony ship
+        // would carry that this sim doesn't model as data (colonists, equipment, supplies...),
+        // make up the kit. See Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §1.6.
+        public const int AntimatterColonyKitSeed = 10;
+
         public bool ColonizeWithTransport(ShipController transportShip)
         {
             if (transportShip == null || transportShip.ShipData == null
@@ -585,6 +594,13 @@ namespace BOTF3D.Galaxy
             if (colonizingCiv == null)
             {
                 Debug.LogWarning($"ColonizeWithTransport: '{name}' - could not resolve the colonizing civilization.");
+                return false;
+            }
+
+            // Minor races never take ownership of new star systems - see ClaimSystem's matching guard.
+            if (!colonizingCiv.CivData.Playable)
+            {
+                Debug.LogWarning($"ColonizeWithTransport: '{name}' - refusing colonization by {colonizingCiv.CivData.CivEnum}, a minor race never gains an additional star system.");
                 return false;
             }
 
@@ -629,7 +645,8 @@ namespace BOTF3D.Galaxy
                 TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
 
             starSysData.IsColonizing = true;
-            starSysData.ColonizeCompleteStardate = TimeManager.Instance.CurrentStarDate() + ColonizeTurns * TimeManager.Instance.StarDatesPerTurn;
+            starSysData.ColonizeStartStardate = TimeManager.Instance.CurrentStarDate();
+            starSysData.ColonizeCompleteStardate = starSysData.ColonizeStartStardate + ColonizeTurns * TimeManager.Instance.StarDatesPerTurn;
             SetSystemStatusLabel("Colonizing");
             if (gameObject.activeInHierarchy)
                 StartCoroutine(ColonizeTimerCoroutine(colonizingCiv, transportDilithium));
@@ -641,7 +658,11 @@ namespace BOTF3D.Galaxy
         private IEnumerator ColonizeTimerCoroutine(CivController colonizingCiv, int seedDilithium)
         {
             while (TimeManager.Instance.CurrentStarDate() < starSysData.ColonizeCompleteStardate)
+            {
+                SetPercentLabel(ComputePercentComplete(starSysData.ColonizeStartStardate, starSysData.ColonizeCompleteStardate));
                 yield return null;
+            }
+            SetPercentLabel(-1);
 
             // Starting facilities: 1 Power Plant + 1 Factory, no Shipyard, no other facilities.
             int civInt = (int)colonizingCiv.CivData.CivEnum;
@@ -649,8 +670,11 @@ namespace BOTF3D.Galaxy
             starSysData.CurrentPowerPlantCount = starSysData.PowerPlants.Count;
             starSysData.Factories = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.FactoryPrefab, civInt, 1, this);
 
-            // The transport's dilithium cargo becomes this colony's starting stockpile.
+            // The Colony Kit: the transport's Dilithium cargo (player-loaded, variable) plus a
+            // small fixed Antimatter allotment (uniform across every civ/system) become this
+            // colony's starting stockpiles.
             starSysData.DilithiumStockpile = seedDilithium;
+            starSysData.AntimatterStockpile = AntimatterColonyKitSeed;
             // Facilities online — set per-civ colony mining rate now that infrastructure exists.
             starSysData.DilithiumMiningRate = StarSysManager.GetColonyMiningRate(colonizingCiv.CivData.CivEnum);
 
@@ -658,9 +682,14 @@ namespace BOTF3D.Galaxy
                 StarSysMenuUIController.Instance.UpdateSystemPowerBalance(this);
 
             starSysData.IsColonizing = false;
-            SetSystemStatusLabel("");
+            // Show "Colonized" in red for the remainder of this turn, then clear on the next
+            // turn advance (same one-shot pattern as ClearClaimedLabel below).
+            SetSystemStatusLabel("Colonized", Color.red);
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced += ClearColonizedLabel;
             StarSysManager.Instance?.AddSystemFogRevealerForLocalPlayer(this);
-            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online, stockpile seeded with {seedDilithium} dilithium.");
+            Debug.Log($"Colonized '{starSysData.SysName}' for {colonizingCiv.CivData.CivShortName} - facilities online, " +
+                $"Colony Kit seeded with {seedDilithium} dilithium + {AntimatterColonyKitSeed} antimatter.");
         }
 
         /// <summary>
@@ -704,6 +733,13 @@ namespace BOTF3D.Galaxy
                 return false;
             }
 
+            // Minor races never take ownership of new star systems - see ClaimSystem's matching guard.
+            if (!terraformingCiv.CivData.Playable)
+            {
+                Debug.LogWarning($"TerraformSystem: '{name}' - refusing terraform claim by {terraformingCiv.CivData.CivEnum}, a minor race never gains an additional star system.");
+                return false;
+            }
+
             // Claim ownership.
             CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
             starSysData.CurrentOwnerCivEnum = terraformingCiv.CivData.CivEnum;
@@ -738,7 +774,8 @@ namespace BOTF3D.Galaxy
                 TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
 
             starSysData.IsTerraforming = true;
-            starSysData.TerraformCompleteStardate = TimeManager.Instance.CurrentStarDate() + TerraformTurns * TimeManager.Instance.StarDatesPerTurn;
+            starSysData.TerraformStartStardate = TimeManager.Instance.CurrentStarDate();
+            starSysData.TerraformCompleteStardate = starSysData.TerraformStartStardate + TerraformTurns * TimeManager.Instance.StarDatesPerTurn;
             SetSystemStatusLabel("Terraforming");
             if (gameObject.activeInHierarchy)
                 StartCoroutine(TerraformTimerCoroutine());
@@ -750,7 +787,11 @@ namespace BOTF3D.Galaxy
         private IEnumerator TerraformTimerCoroutine()
         {
             while (TimeManager.Instance.CurrentStarDate() < starSysData.TerraformCompleteStardate)
+            {
+                SetPercentLabel(ComputePercentComplete(starSysData.TerraformStartStardate, starSysData.TerraformCompleteStardate));
                 yield return null;
+            }
+            SetPercentLabel(-1);
 
             starSysData.IsTerraforming = false;
             starSysData.IsHabitable = true;
@@ -783,6 +824,15 @@ namespace BOTF3D.Galaxy
                 return false;
             }
 
+            // Minor races never take ownership of new star systems - they keep exactly the one home
+            // system they started with. Same guard on ColonizeWithTransport/TerraformSystem below and
+            // CivManager.AssimilateSystem (the combat-conquest path).
+            if (!claimingCiv.CivData.Playable)
+            {
+                Debug.LogWarning($"ClaimSystem: '{name}' - refusing claim by {claimingCiv.CivData.CivEnum}, a minor race never gains an additional star system.");
+                return false;
+            }
+
             // Claim ownership.
             CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
             starSysData.CurrentOwnerCivEnum = claimingCiv.CivData.CivEnum;
@@ -803,12 +853,36 @@ namespace BOTF3D.Galaxy
             return true;
         }
 
-        private void SetSystemStatusLabel(string text)
+        // Matches the StatusLabel's authored font color (see SysPrefab.prefab) - the color every
+        // status text uses except the one-turn red "Colonized" flash below.
+        private static readonly Color DefaultStatusLabelColor = new Color(1f, 0.92156863f, 0.015686275f, 1f);
+
+        private void SetSystemStatusLabel(string text, Color? color = null)
         {
             StarSysChildFields fields = GetComponent<StarSysChildFields>();
             if (fields?.StatusLabel == null) return;
             fields.StatusLabel.text = text;
+            fields.StatusLabel.color = color ?? DefaultStatusLabelColor;
             fields.StatusLabel.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        // Shows the given percent (0-100) centered under the StatusLabel while Terraforming or
+        // Colonizing is in progress. Pass a negative value to hide/clear it.
+        private void SetPercentLabel(int percent)
+        {
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields?.PercentLabel == null) return;
+            bool show = percent >= 0;
+            fields.PercentLabel.text = show ? $"{percent}%" : "";
+            fields.PercentLabel.gameObject.SetActive(show);
+        }
+
+        private static int ComputePercentComplete(int startStardate, int completeStardate)
+        {
+            int span = completeStardate - startStardate;
+            if (span <= 0) return 100;
+            int elapsed = TimeManager.Instance.CurrentStarDate() - startStardate;
+            return Mathf.Clamp(Mathf.FloorToInt(100f * elapsed / span), 0, 100);
         }
 
         private void PlantInsignia(CivController civ)
@@ -848,6 +922,17 @@ namespace BOTF3D.Galaxy
                 TimeManager.Instance.OnTurnAdvanced -= ClearClaimedLabel;
             StarSysChildFields fields = GetComponent<StarSysChildFields>();
             if (fields?.StatusLabel != null && fields.StatusLabel.text == "Claimed")
+                SetSystemStatusLabel("");
+        }
+
+        // One-shot handler: clears the one-turn red "Colonized" label on the next turn advance.
+        // Unsubscribes itself immediately so it only fires once.
+        private void ClearColonizedLabel()
+        {
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.OnTurnAdvanced -= ClearColonizedLabel;
+            StarSysChildFields fields = GetComponent<StarSysChildFields>();
+            if (fields?.StatusLabel != null && fields.StatusLabel.text == "Colonized")
                 SetSystemStatusLabel("");
         }
 

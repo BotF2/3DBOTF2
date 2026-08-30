@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 1
   Name: Fabrication Units
   StartStarDate: 0
-  BuildDuration: 8
-  PowerLoad: 4
+  BuildDuration: 16
+  PowerLoad: 8
   FactorySprite: {fileID: 21300000, guid: a3345f76412f410488f69695db9b7a11, type: 3}
   Description: Borg fabrication technology is efficient, large scale and poorly understood.
     The collective's production facilities allows the Borg to sustain their expansion

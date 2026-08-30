@@ -164,6 +164,11 @@ namespace BOTF3D.Core
         [Server]
         public void AdvanceTurn()
         {
+            if (CivManager.Instance != null && CivManager.Instance.GameHasEnded)
+            {
+                Debug.Log("⏰ TimeManager: AdvanceTurn ignored — game has already ended (see CivManager.GameHasEnded).");
+                return;
+            }
             if (syncedTurnPhase == TurnPhase.TurnProgression)
             {
                 Debug.Log("⏰ TimeManager: AdvanceTurn ignored — already in TurnProgression");
@@ -253,6 +258,15 @@ namespace BOTF3D.Core
             TryAutoAdvanceIfAllReady();
         }
 
+        /// <summary>
+        /// True once a civ has lost every star system and every fleet (see
+        /// CivManager.CheckForEliminatedCivs) - an eliminated civ has nothing left to give orders
+        /// to, so it must never block turn advancement or be shown as "waiting on" in the UI. Reads
+        /// CivData.IsEliminated directly rather than caching, since CivManager owns that flag.
+        /// </summary>
+        private bool IsCivEliminated(CivEnum civ) =>
+            CivManager.Instance?.GetCivDataByCivEnum(civ)?.IsEliminated ?? false;
+
         [Server]
         private void TryAutoAdvanceIfAllReady()
         {
@@ -266,6 +280,8 @@ namespace BOTF3D.Core
                 // them - an AI registering mid-InterTurn (e.g. joining after this InterTurn's seed
                 // already ran) would otherwise block the group forever with nothing to un-ready it.
                 if (entry.PlayerType == PlayerType.AI) continue;
+                // An eliminated human civ has no orders left to give - never wait on it either.
+                if (IsCivEliminated(entry.PlayerCiv)) continue;
                 if (!ReadyCivs.Contains(entry.PlayerCiv))
                     return; // still waiting on someone
             }
@@ -277,6 +293,7 @@ namespace BOTF3D.Core
         /// <summary>
         /// Human (non-AI) civs registered in PlayerManager.Roster that haven't marked themselves
         /// ready yet this InterTurn. Used by the turn UI to render a "waiting on X, Y" notice.
+        /// Eliminated civs are never included - they have nothing left to be "waiting on".
         /// </summary>
         public List<CivEnum> GetHumanCivsNotReady()
         {
@@ -286,6 +303,7 @@ namespace BOTF3D.Core
             foreach (var entry in PlayerManager.Instance.Roster)
             {
                 if (entry.PlayerType == PlayerType.AI) continue;
+                if (IsCivEliminated(entry.PlayerCiv)) continue;
                 if (!ReadyCivs.Contains(entry.PlayerCiv))
                     result.Add(entry.PlayerCiv);
             }
@@ -321,7 +339,12 @@ namespace BOTF3D.Core
                 // nothing to plan and is ready the instant a new InterTurn begins. Real AI turn
                 // planning can call RequestSetCivReady(civ, true) itself once it exists instead of
                 // this unconditional add, without touching the ready-sync mechanism.
-                if (entry.PlayerType == PlayerType.AI)
+                //
+                // A human civ that has been eliminated (CivManager.CheckForEliminatedCivs) is
+                // auto-readied the same way - it has no systems or fleets left to give orders to,
+                // so it must never be able to hold up the rest of the table waiting for a click
+                // nobody can meaningfully make.
+                if (entry.PlayerType == PlayerType.AI || IsCivEliminated(entry.PlayerCiv))
                     ReadyCivs.Add(entry.PlayerCiv);
             }
         }
@@ -421,7 +444,10 @@ namespace BOTF3D.Core
             }
         }
         /// <summary>
-        /// Process all turn-based events (research, production, etc.) then pause the clock.
+        /// Process all turn-based events (research, production, population growth, etc.) then
+        /// pause the clock. See Docs/Design/TurnAndStardateFlow.md for the full stardate/turn
+        /// model this is the heart of - every system below runs exactly once per turn, in the
+        /// same order every time, rather than each self-subscribing to a different clock.
         /// Encounters are now resolved per-fleet as they happen (see GalaxyEncounterQueue.
         /// ProcessPendingForThisTick), not deferred to this turn boundary, so fleets still
         /// awaiting an encounter decision simply stay paused via FleetController's own
@@ -433,9 +459,19 @@ namespace BOTF3D.Core
                 TechManager.Instance.ProcessResearchForAllCivs();
 
             StarSysManager.Instance?.ProcessDilithiumMining();
+            StarSysManager.Instance?.ProcessAntimatterFuelLoop();
             StarSysManager.Instance?.ProcessRepairs();
+            PopulationManager.Instance?.ProcessPopulationGrowthForAllCivs();
 
-            // TODO: population growth, credits/income, random events
+            // Elimination (lost every system and fleet) and victory (a playable civ owns a third
+            // of the galaxy's systems) are both turn-boundary checks, run last so they see this
+            // turn's ownership/production changes rather than last turn's. See CivManager for both.
+            CivManager.Instance?.CheckForEliminatedCivs();
+            CivManager.Instance?.CheckForVictoryCondition();
+
+            // TODO: random events (see CheckSpecialEvents, which already rolls RandomEvents/
+            // StardateEvents per-stardate - a genuine turn-boundary random-event pass is still
+            // unimplemented and deliberately out of scope for now).
 
             SetTurnPhase(TurnPhase.InterTurn);
             PauseTime();

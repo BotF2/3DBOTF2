@@ -504,7 +504,8 @@ namespace BOTF3D.Core
         Fleet,
         Diplomacy,
         Intel,
-        Encyclopedia
+        Encyclopedia,
+        TechTree
     }
     public enum BuildMenuType
     {

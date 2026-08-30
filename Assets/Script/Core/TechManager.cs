@@ -115,18 +115,50 @@ namespace BOTF3D.Core
         // Tech is processed once per turn via TimeManager.ProcessTurnEvents → ProcessResearchForAllCivs.
         // No per-stardate hook needed; subscribing per-stardate would add points 10× per turn.
 
-        private void ApplyMinorRaceGrowth(int gainPerStardate)
-        {
-            if (gainPerStardate <= 0) return;
+        // Minor races have no player driving their research choices, so - unlike the majors above -
+        // they always earn at least a small trickle of TechPoints every turn regardless of whether
+        // the (AI-managed) system ever gets around to building a Research Center. This is what keeps
+        // a minor race's tech progressing on its own timeline instead of stalling at 0 forever if
+        // StarSysAIManager's economy priorities never reach ResearchCenter for it (see
+        // ResearchCenterGateFactories/ResearchCenterGateShipyards in StarSysAIManager - a fresh
+        // colony-tier minor can go a long time before qualifying).
+        private const int BaseMinorTechPerTurn = 1;
 
+        /// <summary>
+        /// Advances every non-playable (minor) civ's TechPoints by its own turn's research output -
+        /// entirely independent of the local human player's own tech gain (that coupling used to
+        /// exist here and made every minor race's tech rise and fall with the human's pace instead
+        /// of its own economy). Two additive sources, both scaled by <see cref="CivSO.QualityScore"/>
+        /// via <see cref="ShipStatCalculator.GetQualityScaleFactor"/> (the same 0.70x-1.30x curve
+        /// used for that minor's ships) so a canonically advanced minor (e.g. Breen, Tholian)
+        /// researches faster than a canonically primitive one (e.g. Pakled, Kazon) even before
+        /// either has built a single facility:
+        ///   • BaseMinorTechPerTurn - a flat passive trickle, always earned.
+        ///   • Its own active Research Centers - same per-center rate and tech-level multiplier the
+        ///     majors use (CountActiveResearchCenters/GetResearchOutputMultiplier), since minors are
+        ///     AI-managed (StarSysAIManager) and can build Research Centers within their own
+        ///     QualityScore-scaled facility cap just like any AI-run system.
+        /// Pre-warp civs and uninhabited placeholders never progress (HasWarp gate, unchanged from
+        /// before).
+        /// </summary>
+        private void ProcessMinorRaceResearch()
+        {
             foreach (var civ in CivManager.Instance.CivControllersInGame)
             {
                 if (civ?.CivData == null) continue;
-                if (civ.CivData.Playable) continue;   // playable civs handled in pass 1
+                if (civ.CivData.Playable) continue;   // playable civs handled in the pass above
                 if (!civ.CivData.HasWarp) continue;   // pre-warp and uninhabited placeholders do not progress
 
                 TechLevel levelBefore = civ.CivData.CurrentTechLevel;
-                civ.CivData.TechPoints += gainPerStardate;
+                float qualityScale = ShipStatCalculator.GetQualityScaleFactor(civ.CivData.QualityScore);
+                float researchMultiplier = GetResearchOutputMultiplier(levelBefore);
+                int activeResearchCenters = CountActiveResearchCenters(civ);
+
+                int techPointsGained = Mathf.Max(1, Mathf.RoundToInt(
+                    (BaseMinorTechPerTurn + activeResearchCenters * techPointsPerResearchCenterPerTurn * researchMultiplier)
+                    * qualityScale));
+
+                civ.CivData.TechPoints += techPointsGained;
 
                 if (civ.CivData.CurrentTechLevel > levelBefore)
                     OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
@@ -384,8 +416,6 @@ namespace BOTF3D.Core
         /// </summary>
         public void ProcessResearchForAllCivs()
         {
-            int localPlayerGainThisStardate = 0;
-
             foreach (var civ in CivManager.Instance.CivControllersInGame)
             {
                 if (civ?.CivData == null) continue;
@@ -404,12 +434,11 @@ namespace BOTF3D.Core
 
                 if (civ.CivData.CurrentTechLevel > levelBefore)
                     OnTechLevelAdvanced(civ, civ.CivData.CurrentTechLevel);
-
-                if (GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum))
-                    localPlayerGainThisStardate = techPointsGained;
             }
 
-            ApplyMinorRaceGrowth(localPlayerGainThisStardate);
+            // Simulated independently of the local player's own tech gain - see
+            // ProcessMinorRaceResearch's comment for why that coupling was removed.
+            ProcessMinorRaceResearch();
 
             RefreshLocalPlayerFogSightRangeIfChanged();
         }

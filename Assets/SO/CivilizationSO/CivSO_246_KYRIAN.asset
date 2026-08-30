@@ -21,16 +21,17 @@ MonoBehaviour:
   XenophbiaEnum: 0
   RuthlessEnum: 1
   GreedyEnum: 1
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: b92fe05326482e145b0272b4daeae6b3, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: Ancient rivals of the Vaskan, sharing a homeworld system under an uneasy armistice after a war neither side fully remembers the cause of.
+  Decription: Ancient rivals of the Vaskan, sharing a homeworld system under an uneasy
+    armistice after a war neither side fully remembers the cause of.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 2

@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 2
   RuthlessEnum: 2
   GreedyEnum: 2
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 3d880ae8955743646b5c0017f94fa8bc, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: An ocean-world civilization living in floating city-rafts across one global sea. Their storm-season migrations define their calendar; friendly, but hard to reach reliably.
+  Decription: An ocean-world civilization living in floating city-rafts across one
+    global sea. Their storm-season migrations define their calendar; friendly, but
+    hard to reach reliably.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 8

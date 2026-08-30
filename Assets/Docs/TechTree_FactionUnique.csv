@@ -1,0 +1,50 @@
+Civ,Slot,TechPoints,TimeLine,UnlockMode,TechName,EffectSummary,BackendTieIn,CanonNotes
+Federation,Innate,0,0,InnateFromStart,Federation Charter,Surfaces existing DiplomaticAptitude stat; small first-contact bonus,CivData.DiplomaticAptitude,Founding principle of cooperation (2161)
+Federation,T1,0,3,Researched,First Contact Protocols,Improves first-contact outcomes with newly met minor civs,DiplomacyController,Starfleet's structured first-contact doctrine
+Federation,T2,100,4,Researched,Diplomatic Outreach Doctrine,Raises the chance/speed a minor civ agrees to join the Federation,DiplomacyController DiplomaticAptitude-scaled drift + AnnexMinorIntoMajor,Concrete answer to: Federation Universities research diplomacy to improve influence over minor civs
+Federation,T3,200,5,Researched,Minor-Civ Alliance Discount,Reduced alliance/integration cost for minor civs,DiplomacyController,Growth-by-invitation pattern (Alpha Centauri/Andor/Tellar)
+Federation,T4,300,6,Researched,Federation Science Exchange,+Research output from exchange agreements,ResearchOutputMultiplier,Exploration/science mandate maturing
+Federation,T5,450,8,Researched,Positronic Neural Network,+Research output empire-wide,ResearchOutputMultiplier,Soong-type android tech (rare mid/late-24th-century achievement)
+Federation,T7,900,14,Researched,Federation Charter Mastery (capstone),Doubles prestige/alliance gains empire-wide,PrestigeMultiplier,Post-Khitomer-Accords diplomatic leadership
+Klingon,Innate,0,0,InnateFromStart,Warrior's Creed,Small innate combat-morale bonus,CombatMoraleFlag,"Klingon warrior culture is inherent, not researched"
+Klingon,T1,0,3,Researched,Ionized Hull Plating,"+Ramming damage, -self-collision damage",RammingBonus,Baseline Bird-of-Prey shipbuilding doctrine
+Klingon,T2,100,4,Researched,Disruptor Overload Arrays,"+Weapon burst damage, chance to cripple a subsystem",CombatOrderHelper damage-modifier step,Disruptors are baseline Klingon armament since TOS
+Klingon,T3,200,5,Researched,Great Houses Fleet Coordination,Fleet-wide morale buff,MoraleBuff,House politics organizing fleets (TNG era)
+Klingon,T5,450,8,Researched,Battle Cloak,Fleets become invisible on the galaxy map,GalaxyMapCloak,"Acquired from the Romulans (2268 tech exchange), indigenous by the Bird-of-Prey era - unlocks later than Romulan's own cloak by design"
+Klingon,T6,600,10,Researched,Disruptor Subsystem Cripple,"Mature targeting systems, higher cripple chance",CombatOrderHelper damage-modifier step,Weapon doctrine maturing
+Klingon,T7,900,14,Researched,Adaptive Battle Cloak Refinement (capstone),Defeats the shared Tachyon Detection Grid - unseen again,GalaxyMapCloak (upgrade),Answers the shared detection counter-tech; the 'unseen again' beat of the cloak arc
+Romulan,Innate,0,0,InnateFromStart,Culture of Secrecy,Small innate detection-resistance trait,XenophobiaTraitFlag,Isolationist Romulan culture since the Sundering
+Romulan,T1,0,3,Researched,Cloak Field Theory,"Theoretical groundwork only, no invisibility yet",None (prerequisite only),Research basis predating an operational cloak
+Romulan,T2,100,4,Researched,Tal Shiar Intelligence Matrix,"+Espionage success, -discovery chance",IntelligenceManager.GetCivSuccessModifier,Tal Shiar formalized by the TNG era; placed earlier for Romulan since it doesn't depend on the cloak line
+Romulan,T3,200,5,Researched,Adaptive Cloak Harmonics,"Precursor shield/sensor tuning, still no invisibility",None (prerequisite only),Engineering step immediately before the operational cloak
+Romulan,T4,300,6,Researched,Basic Cloaking Field,Fleets become invisible on the galaxy map,GalaxyMapCloak,"First operational cloak in the game - TOS era precedent (Balance of Terror, 2266); unlocks above the Developed threshold by design"
+Romulan,T5,450,8,Researched,Warbird Ambush Doctrine,First-strike combat bonus when decloaking to attack,CombatOrderHelper damage-modifier step,Rewards tactical use of the cloak
+Romulan,T7,900,14,Researched,Near-Perfect Cloak (capstone),Defeats the shared Tachyon Detection Grid - unseen again,GalaxyMapCloak (upgrade),Nemesis-era Scimitar-class-grade stealth; the 'unseen again' beat of the cloak arc
+Borg,Innate,0,0,InnateFromStart,The Collective,Small innate fleet-coordination/repair bonus,FleetCoordinationFlag,"Borg ships are already formidable at first contact (Q Who, 2365)"
+Borg,T1,0,3,Researched,Nanite Regeneration Matrix I,Passive hull self-repair between engagements,HullRepairRate,Baseline Borg self-repair
+Borg,T2,100,4,Researched,Adaptive Shield Modulation I,Shield resistance ramps up as a fight continues,AdaptiveShieldRamp,Signature Borg battle adaptation
+Borg,T3,200,5,Researched,Adaptive Shield Modulation II,Faster shield-resistance ramp,AdaptiveShieldRamp,Escalation of Adaptive Shield Modulation I
+Borg,T4,300,6,Researched,Nanite Regeneration Matrix II,Faster hull self-repair,HullRepairRate,Escalation of Nanite Regeneration Matrix I
+Borg,T5,450,8,Researched,Transwarp Hub Network,Instant point-to-point travel between Borg-held systems,TranswarpNetwork,"Placed mid-Advanced (450 pts, past the 300 threshold) by design direction - the Collective is still developing it, not opening the galaxy with it on day one; Voyager-era reveal"
+Borg,T7,900,14,Researched,Assimilation Protocols (capstone),Chance to capture a destroyed/disabled enemy ship or population,Post-combat resolution step,Escalating species-conversion threat as the true Borg endgame
+Cardassian,Innate,0,0,InnateFromStart,Obedient Society,Small innate unrest-reduction trait,UnrestReductionFlag,"Authoritarian central control is inherent, not researched"
+Cardassian,T1,0,3,Researched,Reinforced Duranium Hulls,+Hull% (Cardassian-only stack),HullMultiplier,Galor-class shipbuilding doctrine
+Cardassian,T2,100,4,Researched,Cardassian Logistics Optimization,-Fleet supply consumption,SupplyReduction,Long-range campaign logistics
+Cardassian,T3,200,5,Researched,Interrogation Algorithm Suites,"+Intel-gathering speed, unlocks a coercive diplomacy option",IntelligenceManager / DiplomacyController,Occupation-era interrogation doctrine
+Cardassian,T4,300,6,Researched,Obsidian Order Surveillance Net,"+Espionage success, -discovery chance",IntelligenceManager.GetCivSuccessModifier,"Obsidian Order influence; DS9-era occupation-scale story beat, mid-game"
+Cardassian,T5,450,8,Researched,Occupation Efficiency Doctrine,+Resource extraction from conquered worlds,ExtractionMultiplier,Decades-long Bajoran Occupation backdrop
+Cardassian,T7,900,14,Researched,Central Authority Infrastructure (capstone),"-Unrest, +facility production empire-wide",UnrestReduction + ProductionMultiplier,Peak authoritarian state control
+Terran Empire,Innate,0,0,InnateFromStart,Imperial Ambition,Small innate aggression/expansion trait,AggressionFlag,Mirror-universe conquest culture since divergence
+Terran Empire,T1,0,3,Researched,Agonizer Discipline Regimen,+Facility/production output via fear-driven discipline,TechManager.GetFactorySpeedMultiplier (Terran-only stack),Concrete answer to: brutal authority and punishment improve production
+Terran Empire,T2,100,4,Researched,Fear-Driven Command Protocols I,+Combat output when outnumbered,CombatBuffWhenOutnumbered,Mirror-universe command doctrine
+Terran Empire,T3,200,5,Researched,Imperial Phaser Overcharge,+Weapon damage (high energy cost),WeaponDamageMultiplier,Massive beam output at a cost
+Terran Empire,T4,300,6,Researched,Fear-Driven Command Protocols II,Stronger stacking combat buff when outnumbered,CombatBuffWhenOutnumbered,Escalation of Fear-Driven Command Protocols I
+Terran Empire,T5,450,8,Researched,Terran Elite Strike Teams,Stronger ground-invasion units (high upkeep),GroundInvasionUnit,Brutal shock-troop doctrine
+Terran Empire,T7,900,14,Researched,Flagship Domination Systems (capstone),Command-aura bonus to the empire's active flagship,FlagshipAura,Endgame command authority
+Dominion,Innate,0,0,InnateFromStart,Founders' Design,Small innate obedience/discipline trait,ObedienceFlag,"Jem'Hadar/Vorta bioengineered for obedience from genesis, not trained into it"
+Dominion,T1,0,3,Researched,Ketracel-White Optimization,+Jem'Hadar combat performance/morale,CombatPerformanceBuff,Ketracel-White dependency doctrine
+Dominion,T2,100,4,Researched,Vorta Command Algorithms,"+Fleet coordination, -command penalty",FleetCoordinationBonus,Vorta command-chain efficiency
+Dominion,T3,200,5,Researched,Polaron Beam Enhancement,Weapon strikes bypass a percentage of shields,ShieldBypassWeapon,Signature Dominion weapon tech
+Dominion,T4,300,6,Researched,Gamma Quadrant Supply Lattice,-Supply drag operating far from home,SupplyReduction,Long-range Gamma Quadrant logistics
+Dominion,T5,450,8,Researched,Changeling Infiltration Units,Unlocks a shape-shifting infiltration/destabilization intel action,New SecretActionsEnum action via IntelligenceManager,Infiltration campaign is a mid-to-late DS9-arc reveal
+Dominion,T7,900,14,Researched,Cloning Acceleration Chambers (capstone),Ultra-fast ground-troop/crew replacement,TroopReplacementRate,Dominion War-era mass reinforcement

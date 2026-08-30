@@ -19,7 +19,11 @@ namespace BOTF3D.Galaxy
         public void Cleanup() { }
         public static StarSysAIManager Instance;
 
-        private const int MaxFacilitiesPerType = 4;
+        // A colony needs this much baseline economy/defense infrastructure before the AI will
+        // consider a Research Center at all - keeps a freshly colonized system (1 Factory, 0
+        // Shipyards) from rushing universities ahead of its actual production base.
+        private const int ResearchCenterGateFactories = 2;
+        private const int ResearchCenterGateShipyards = 1;
 
         private static readonly StarSysFacilityType[] EconomyPowerPriority =
         {
@@ -128,7 +132,7 @@ namespace BOTF3D.Galaxy
             if (sysCon.StarSysBuildManager == null) return;
             if (sysCon.sysBuildQueueList != null && sysCon.sysBuildQueueList.Count > 0) return; // let the current build finish first
 
-            var next = PickNextEconomyFacility(civData, sysCon.StarSysData);
+            var next = PickNextEconomyFacility(civData, sysCon);
             if (next.HasValue)
                 sysCon.StarSysBuildManager.QueueFacilityBuild(next.Value);
         }
@@ -163,7 +167,7 @@ namespace BOTF3D.Galaxy
                 {
                     sysCon.StarSysBuildManager.QueueFacilityBuild(StarSysFacilityType.PowerPlanet);
                 }
-                else if ((data.Shipyards?.Count ?? 0) < MaxFacilitiesPerType)
+                else if ((data.Shipyards?.Count ?? 0) < StarSysManager.Instance.GetFacilityCap(sysCon, StarSysFacilityType.Shipyard))
                 {
                     sysCon.StarSysBuildManager.QueueFacilityBuild(StarSysFacilityType.Shipyard);
                 }
@@ -476,8 +480,6 @@ namespace BOTF3D.Galaxy
         /// </summary>
         private void ProcessDefenceMode(StarSysController sysCon, CivData civData)
         {
-            var data = sysCon.StarSysData;
-
             TryPowerOffOneFacility(sysCon, StarSysFacilityType.ResearchCenter);
             TryPowerOnOneFacility(sysCon, DefencePowerPriority);
 
@@ -485,7 +487,7 @@ namespace BOTF3D.Galaxy
 
             if (sysCon.sysBuildQueueList != null && sysCon.sysBuildQueueList.Count == 0)
             {
-                var next = PickNextDefenceFacility(data);
+                var next = PickNextDefenceFacility(sysCon);
                 if (next.HasValue)
                     sysCon.StarSysBuildManager.QueueFacilityBuild(next.Value);
             }
@@ -500,10 +502,13 @@ namespace BOTF3D.Galaxy
 
         /// <summary>
         /// Never grows Factory/Research under Defence - only the hard defensive trio,
-        /// power plants jumping ahead when headroom runs tight.
+        /// power plants jumping ahead when headroom runs tight. Each candidate is capped per
+        /// StarSysManager.GetFacilityCap - the system's own fixed build ceiling - instead of
+        /// the old flat MaxFacilitiesPerType.
         /// </summary>
-        private StarSysFacilityType? PickNextDefenceFacility(StarSysData data)
+        private StarSysFacilityType? PickNextDefenceFacility(StarSysController sysCon)
         {
+            var data = sysCon.StarSysData;
             if (data.CanBuildPowerPlant() &&
                 data.TotalSysPowerOutput - data.TotalSysPowerLoad < data.BasePowerPerPlant)
                 return StarSysFacilityType.PowerPlanet;
@@ -519,7 +524,7 @@ namespace BOTF3D.Galaxy
             int bestCount = int.MaxValue;
             foreach (var (type, count) in candidates)
             {
-                if (count >= MaxFacilitiesPerType) continue;
+                if (count >= StarSysManager.Instance.GetFacilityCap(sysCon, type)) continue;
                 if (count < bestCount)
                 {
                     bestCount = count;
@@ -631,19 +636,29 @@ namespace BOTF3D.Galaxy
         /// Trait-weighted pick of the next facility to queue: Greedy civs lean Factory
         /// over Research, Warlike civs lean Shipyard, Xenophobic civs lean defensive
         /// (Shield/OrbitalBattery). Power plants jump the queue whenever headroom gets
-        /// tight so new consumers always have somewhere to draw from.
+        /// tight so new consumers always have somewhere to draw from. Research Center is
+        /// gated behind baseline infrastructure (see ResearchCenterGate* consts) so a
+        /// freshly colonized system builds up its economy/defense before universities. Each
+        /// candidate is also capped per StarSysManager.GetFacilityCap - the system's own fixed
+        /// build ceiling - instead of the old flat MaxFacilitiesPerType.
         /// </summary>
-        private StarSysFacilityType? PickNextEconomyFacility(CivData civData, StarSysData data)
+        private StarSysFacilityType? PickNextEconomyFacility(CivData civData, StarSysController sysCon)
         {
+            var data = sysCon.StarSysData;
             if (data.CanBuildPowerPlant() &&
                 data.TotalSysPowerOutput - data.TotalSysPowerLoad < data.BasePowerPerPlant)
                 return StarSysFacilityType.PowerPlanet;
 
+            int factoryCount = data.Factories?.Count ?? 0;
+            int shipyardCount = data.Shipyards?.Count ?? 0;
+            bool researchCenterUnlocked = factoryCount >= ResearchCenterGateFactories
+                && shipyardCount >= ResearchCenterGateShipyards;
+
             var candidates = new (StarSysFacilityType type, float weight, int count)[]
             {
-                (StarSysFacilityType.Factory,        3f - (int)civData.Greedy,     data.Factories?.Count ?? 0),
+                (StarSysFacilityType.Factory,        3f - (int)civData.Greedy,     factoryCount),
                 (StarSysFacilityType.ResearchCenter,  3f + (int)civData.Greedy,     data.ResearchCenters?.Count ?? 0),
-                (StarSysFacilityType.Shipyard,        2f - (int)civData.Warlike,    data.Shipyards?.Count ?? 0),
+                (StarSysFacilityType.Shipyard,        2f - (int)civData.Warlike,    shipyardCount),
                 (StarSysFacilityType.ShieldGenerator, 1f - (int)civData.Xenophobia, data.ShieldGenerators?.Count ?? 0),
                 (StarSysFacilityType.OrbitalBattery,  1f - (int)civData.Xenophobia, data.OrbitalBatteries?.Count ?? 0),
             };
@@ -652,7 +667,8 @@ namespace BOTF3D.Galaxy
             float bestScore = float.MinValue;
             foreach (var (type, weight, count) in candidates)
             {
-                if (count >= MaxFacilitiesPerType) continue;
+                if (count >= StarSysManager.Instance.GetFacilityCap(sysCon, type)) continue;
+                if (type == StarSysFacilityType.ResearchCenter && !researchCenterUnlocked) continue;
                 float score = weight - count * 2f; // favors whichever type is most under-built relative to desire
                 if (score > bestScore)
                 {
@@ -661,6 +677,38 @@ namespace BOTF3D.Galaxy
                 }
             }
             return best;
+        }
+
+        // Every facility type the power grid can turn on/off - used to force a full blackout
+        // when StarSysManager.ProcessAntimatterFuelLoop's destruction trigger fires (all Power
+        // Plants gone, or all Factories gone with the reserve exhausted). PowerPlanet isn't
+        // included - it's what's failing, not a consumer to shut off.
+        private static readonly StarSysFacilityType[] AllPowerableFacilityTypes =
+        {
+            StarSysFacilityType.Factory,
+            StarSysFacilityType.Shipyard,
+            StarSysFacilityType.ResearchCenter,
+            StarSysFacilityType.ShieldGenerator,
+            StarSysFacilityType.OrbitalBattery,
+        };
+
+        /// <summary>
+        /// Forces every powered-on facility in this system off in one shot. Called by
+        /// StarSysManager.ProcessAntimatterFuelLoop when the Antimatter blackout trigger fires.
+        /// TryPowerOffOneFacility only turns off one instance per call, so this loops it enough
+        /// times per type to guarantee every instance is off regardless of how many exist.
+        /// </summary>
+        public void ForceSystemBlackout(StarSysController sysCon)
+        {
+            foreach (var type in AllPowerableFacilityTypes)
+            {
+                // Loop bound is the type's actual built count (not the old flat
+                // MaxFacilitiesPerType) - facility caps are now tiered and tech-boosted, so a
+                // developed homeworld can easily exceed 4 of a given type.
+                int builtCount = ListFor(sysCon.StarSysData, type)?.Count ?? 0;
+                for (int i = 0; i < builtCount; i++)
+                    TryPowerOffOneFacility(sysCon, type);
+            }
         }
 
         private void OnDestroy()

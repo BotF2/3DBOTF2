@@ -64,6 +64,12 @@ namespace BOTF3D.UI
         [SerializeField] private GameObject diplomacyNoContacts;
         [SerializeField] private GameObject intelMenuView;
         [SerializeField] private GameObject encyclopediaMenuView;
+        // Placeholder slot for the Tech Tree (Phase II) panel - reserved ahead of the tech tree
+        // backend (TechDefSO/TechManager.StartResearch/etc., see TechTree_Phase2_Design.md §6)
+        // actually existing. Assign an empty/placeholder panel in the Editor for now; swap for the
+        // real TechTreeMenuUIController-driven panel once §8 phase II.1-II.2 land.
+        [SerializeField] private GameObject techTreeMenuView;
+        [SerializeField] private GameObject techTreeBackground;
         [SerializeField] private GameObject habitableSysMenu;
         [SerializeField] private GameObject closeMenuButton;
         [SerializeField] private Button saveShipDelployButton;
@@ -272,7 +278,9 @@ namespace BOTF3D.UI
                 intelBackground,
                 encyclopediaBackground,
                 closeMenuButton,
-                selectOtherSysOrFleetButtonGO
+                selectOtherSysOrFleetButtonGO,
+                techTreeMenuView,
+                techTreeBackground
             );
 
             // Create civ display manager
@@ -503,6 +511,18 @@ namespace BOTF3D.UI
                 OpenMenu(Menu.Encyclopedia, null);
         }
 
+        // Placeholder handler for the reserved Tech Tree ribbon button (see techTreeMenuView above).
+        // Wire a ribbon Button's OnClick() to this the same way Diplomacy/Intel/Encyclopedia's
+        // buttons already call their *ButtonPressed() siblings directly from the Inspector.
+        public void TechTreeButtonPressed()
+        {
+            Menu current = uiStateManager.CurrentOpenMenu;
+            if (current == Menu.TechTree)
+                CloseMenu(current);
+            else
+                OpenMenu(Menu.TechTree, null);
+        }
+
         private void OnHomeSystemButtonClicked()
         {
             Debug.Log("GalaxyMenuUIController: Home System button clicked");
@@ -675,6 +695,10 @@ namespace BOTF3D.UI
                 case Menu.Encyclopedia:
                     if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(true);
                     break;
+
+                case Menu.TechTree:
+                    if (techTreeMenuView != null) techTreeMenuView.SetActive(true);
+                    break;
             }
         }
 
@@ -803,6 +827,11 @@ namespace BOTF3D.UI
                     if (encyclopediaMenuView != null)
                         encyclopediaMenuView.SetActive(false);
                     break;
+
+                case Menu.TechTree:
+                    if (techTreeMenuView != null)
+                        techTreeMenuView.SetActive(false);
+                    break;
             }
         }
 
@@ -892,6 +921,11 @@ namespace BOTF3D.UI
                 case Menu.Encyclopedia:
                     if (encyclopediaMenuView != null)
                         encyclopediaMenuView.SetActive(false);
+                    break;
+
+                case Menu.TechTree:
+                    if (techTreeMenuView != null)
+                        techTreeMenuView.SetActive(false);
                     break;
             }
 

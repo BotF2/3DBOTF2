@@ -123,6 +123,22 @@ namespace BOTF3D.UI
                     return;
                 }
 
+                // Enforce this system's own per-facility-type build ceiling (built + already
+                // queued) - see StarSysManager.GetFacilityCap. This is the player-facing
+                // enforcement point; StarSysAIManager checks the same cap for AI-driven builds.
+                if (StarSysManager.Instance != null)
+                {
+                    int builtAndQueued = StarSysManager.Instance.GetBuiltAndQueuedFacilityCount(StarSysController, FacilityType);
+                    int cap = StarSysManager.Instance.GetFacilityCap(StarSysController, FacilityType);
+                    if (builtAndQueued >= cap)
+                    {
+                        Debug.Log($"FactoryBuildItemDrag: '{StarSysController.name}' is already at its {FacilityType} build ceiling ({cap})");
+                        transform.SetParent(originalParent);
+                        rectTransform.anchoredPosition = Vector2.zero;
+                        return;
+                    }
+                }
+
                 // ✅ CRITICAL: Parent to the ACTUAL build queue, not the drop slot!
                 if (StarSysController.BuildListGridLayoutGroup != null)
                 {

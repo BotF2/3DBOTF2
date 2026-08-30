@@ -17,7 +17,7 @@ MonoBehaviour:
   FacilitiesEnumType: 5
   Name: Research Cores
   StartStarDate: 0
-  BuildDuration: 4
-  PowerLoad: 1
+  BuildDuration: 8
+  PowerLoad: 2
   ResearchCenterSprite: {fileID: 21300000, guid: 8055434919d69e44985a2a60c46ef8ea, type: 3}
   Description: Description Here

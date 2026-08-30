@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 0
   RuthlessEnum: 1
   GreedyEnum: 0
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 62e32f801488e62479e58bb426932a06, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: A symbiotic dual-species civilization - a sapient "rider" and a large domesticated "carrier." First Contact protocols are complicated by the fact this civilization is legally two species.
+  Decription: A symbiotic dual-species civilization - a sapient "rider" and a large
+    domesticated "carrier." First Contact protocols are complicated by the fact this
+    civilization is legally two species.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 10

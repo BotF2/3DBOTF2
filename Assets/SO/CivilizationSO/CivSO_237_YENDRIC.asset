@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 2
   RuthlessEnum: 2
   GreedyEnum: 2
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 119ec8a289cdb3e40bc2be87b6fa6af0, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: A youthful, idealistic post-scarcity democracy - the newest civilization in the quadrant to reach warp. They are eager for formal diplomatic ties with anyone willing.
+  Decription: A youthful, idealistic post-scarcity democracy - the newest civilization
+    in the quadrant to reach warp. They are eager for formal diplomatic ties with
+    anyone willing.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 3

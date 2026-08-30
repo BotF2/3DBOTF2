@@ -6,11 +6,16 @@ using BOTF3D.Galaxy;
 namespace BOTF3D.Core
 {
     /// <summary>
-    /// Grows each owned system's Population every stardate based on its active Factories and
-    /// ResearchCenters, then converts accumulated Population into GroundForce units up to the
-    /// system's MaxGroundForceUnits cap (see StarSysManager.DetermineMaxGroundForceUnits).
-    /// Replenishment falls out of the same conversion step: if GroundForces were lost in combat,
-    /// the next tick re-fields units toward the population-supported target automatically.
+    /// Grows each owned system's Population once per TURN (see ProcessPopulationGrowthForAllCivs,
+    /// called from TimeManager.ProcessTurnEvents alongside research/dilithium/antimatter/repairs -
+    /// every other turn-boundary system already lives there, so population growth follows the same
+    /// "ProcessTurnEvents explicitly calls each system" shape instead of self-subscribing to a
+    /// different, more frequent clock) based on its active Factories and ResearchCenters, then
+    /// converts accumulated Population into GroundForce units up to the system's
+    /// MaxGroundForceUnits cap (see StarSysManager.DetermineMaxGroundForceUnits). Replenishment
+    /// falls out of the same conversion step: if GroundForces were lost in combat, the next turn
+    /// re-fields units toward the population-supported target automatically.
+    /// See Docs/Design/TurnAndStardateFlow.md for the full stardate/turn model this fits into.
     /// </summary>
     public class PopulationManager : MonoBehaviour, IManager
     {
@@ -18,14 +23,15 @@ namespace BOTF3D.Core
         public void Cleanup() { }
         public static PopulationManager Instance;
 
-        // Despite the "PerTurn" name these are applied once per stardate (OnStardateChanged fires every
-        // stardate, not once per turn). Values are fractional population units per stardate; sub-1 growth
-        // accumulates in StarSysData.PopulationGrowthAccumulator until it crosses a whole unit. With one
-        // active Factory + one active ResearchCenter this defaults to 0.03/stardate, i.e. just under 1
-        // population unit per 30 stardates.
-        [SerializeField] private float baseGrowthPerTurn = 0.02f;
-        [SerializeField] private float growthPerActiveFactory = 0.005f;
-        [SerializeField] private float growthPerActiveResearchCenter = 0.005f;
+        // Values are fractional population units per TURN; sub-1 growth accumulates in
+        // StarSysData.PopulationGrowthAccumulator until it crosses a whole unit. With one active
+        // Factory + one active ResearchCenter this defaults to 0.3/turn, i.e. just under 1
+        // population unit every 3 turns - the same overall pace as the old per-stardate values
+        // (0.02/0.005/0.005) multiplied by TimeManager.StarDatesPerTurn (10), since this now ticks
+        // 10x less often than it used to.
+        [SerializeField] private float baseGrowthPerTurn = 0.2f;
+        [SerializeField] private float growthPerActiveFactory = 0.05f;
+        [SerializeField] private float growthPerActiveResearchCenter = 0.05f;
 
         private void Awake()
         {
@@ -41,19 +47,12 @@ namespace BOTF3D.Core
             }
         }
 
-        private void OnEnable()
-        {
-            if (TimeManager.Instance != null)
-                TimeManager.Instance.OnStardateChanged += OnStardateChanged;
-        }
-
-        private void OnDisable()
-        {
-            if (TimeManager.Instance != null)
-                TimeManager.Instance.OnStardateChanged -= OnStardateChanged;
-        }
-
-        private void OnStardateChanged()
+        /// <summary>
+        /// Grows every civ's owned systems by one turn's worth of population. Called from
+        /// TimeManager.ProcessTurnEvents at the turn boundary - not self-subscribed to any event,
+        /// so it runs exactly once per turn in lockstep with research/dilithium/antimatter/repairs.
+        /// </summary>
+        public void ProcessPopulationGrowthForAllCivs()
         {
             foreach (var civ in CivManager.Instance.CivControllersInGame)
             {
@@ -79,7 +78,7 @@ namespace BOTF3D.Core
                 + activeResearchCenters * growthPerActiveResearchCenter;
 
             // Growth rates are fractional (see field comments above), so accumulate the remainder between
-            // stardates rather than truncating it away each tick.
+            // turns rather than truncating it away each tick.
             sysData.PopulationGrowthAccumulator += growthRate;
             int growth = Mathf.FloorToInt(sysData.PopulationGrowthAccumulator);
             if (growth <= 0) return;

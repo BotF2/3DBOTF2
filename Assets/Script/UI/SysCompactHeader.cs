@@ -7,14 +7,15 @@ namespace BOTF3D.UI
 {
     /// <summary>
     /// Always-visible 40 px compact header on each SystemUI_Prefab list entry.
-    /// Shows system name and dilithium stockpile; hosts the expand/collapse button.
-    /// Attach to the CompactHeader child of SystemUI_Prefab and wire the three
-    /// serialized references in the Inspector.
+    /// Shows system name, dilithium stockpile, and antimatter stockpile; hosts the
+    /// expand/collapse button. Attach to the CompactHeader child of SystemUI_Prefab
+    /// and wire the serialized references in the Inspector.
     /// </summary>
     public class SysCompactHeader : MonoBehaviour
     {
         [SerializeField] public TextMeshProUGUI sysNameTMP;
         [SerializeField] public TextMeshProUGUI dilithiumTMP;
+        [SerializeField] public TextMeshProUGUI antimatterTMP;
         [SerializeField] public Button expandButton;
 
         private StarSysController _sysCon;
@@ -31,6 +32,7 @@ namespace BOTF3D.UI
                 sysNameTMP.text = sysCon.StarSysData.SysName;
 
             RefreshDilithium();
+            RefreshAntimatter();
 
             if (expandButton != null)
             {
@@ -47,6 +49,21 @@ namespace BOTF3D.UI
         {
             if (dilithiumTMP != null && _sysCon != null)
                 dilithiumTMP.text = _sysCon.StarSysData.DilithiumStockpile.ToString();
+        }
+
+        /// <summary>
+        /// Refreshes the antimatter display from live StarSysData. Antimatter only ever
+        /// changes at the turn boundary (StarSysManager.ProcessAntimatterFuelLoop banks
+        /// Factory production and draws Power Plant consumption once per turn - see
+        /// Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §1), which calls this
+        /// directly for every system so the value stays live without the player needing
+        /// to close/reopen or expand the panel. Also called from Populate/expand for the
+        /// same reason RefreshDilithium is - so a freshly-opened panel is never stale.
+        /// </summary>
+        public void RefreshAntimatter()
+        {
+            if (antimatterTMP != null && _sysCon != null)
+                antimatterTMP.text = _sysCon.StarSysData.AntimatterStockpile.ToString();
         }
 
         /// <summary>

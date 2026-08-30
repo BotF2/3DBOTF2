@@ -607,6 +607,11 @@ namespace BOTF3D.Galaxy
 
             sysData.MaxPowerPlants = DetermineMaxPowerPlants(civSO, starSysSO);
             sysData.DilithiumMiningRate = DetermineDilithiumMiningRate(civSO, starSysSO, sysData.MaxPowerPlants);
+            // civSO here is always the system's FIRST owner - InstantiateSystem only ever runs once,
+            // at galaxy generation, before any conquest can have happened. Facility caps are fixed
+            // from that first owner forever (see InitializeFacilityCaps), so this is the only call
+            // site that will ever exist for it.
+            InitializeFacilityCaps(starSysCon, starSysSO, civSO);
             // StarSysData.IsHabitable/IsTerraformable were never being copied from the SO - every
             // system defaulted to IsHabitable=false at runtime regardless of its SO asset, so
             // FleetController.OnTriggerEnter's uninhabited-habitable branch (colonization popup)
@@ -789,6 +794,7 @@ namespace BOTF3D.Galaxy
             }
 
             InitializeDilithiumStockpile(starSysCon);
+            InitializeAntimatterStockpile(starSysCon);
 
             if (GameController.Instance.AreWeLocalPlayer(sysData.CurrentOwnerCivEnum))
             {
@@ -880,6 +886,290 @@ namespace BOTF3D.Galaxy
 
             sysData.DilithiumStockpile = ppLi2 + shipLi2 + buffer;
             Debug.Log($"[Dilithium] {sysCon.name} ({civ}): pp={ppLi2}, ship={shipLi2}, buffer={buffer}, stockpile={sysData.DilithiumStockpile}");
+        }
+
+        // ── Antimatter fuel loop constants ──────────────────────────────────────────
+        // See StarSysData's "Antimatter fuel loop" header and ProcessAntimatterFuelLoop below.
+        private const int BaseAntimatterPerFactory = 2;
+        private const int BaseAntimatterPerPlant = 3; // > per-Factory on purpose - see design doc §1.4
+        private const int AntimatterStartingReserveTurns = 10;
+
+        /// <summary>
+        /// Colonies don't use this - ColonizeTimerCoroutine seeds their small, uniform Colony Kit
+        /// allotment instead (see AntimatterColonyKitSeed there). This only ever runs for a
+        /// system's very first owner at galaxy generation, same as InitializeDilithiumStockpile.
+        /// </summary>
+        private void InitializeAntimatterStockpile(StarSysController sysCon)
+        {
+            var sysData = sysCon.StarSysData;
+            bool isPlayable = sysData.CurrentCivController?.CivData?.Playable == true;
+
+            if (!isPlayable)
+            {
+                bool hasWarp = sysData.CurrentCivController?.CivData?.HasWarp == true;
+                sysData.AntimatterStockpile = hasWarp ? sysData.CurrentPowerPlantCount * BaseAntimatterPerPlant * 2 : 0;
+                return;
+            }
+
+            // Enough reserve to cover AntimatterStartingReserveTurns of the homeworld's starting
+            // Power Plant draw, so the loop doesn't open already mid-brownout before the starting
+            // Factories have had a turn to bank anything.
+            sysData.AntimatterStockpile = sysData.CurrentPowerPlantCount * BaseAntimatterPerPlant * AntimatterStartingReserveTurns;
+        }
+
+        private int CountActiveFacilities(List<GameObject> facilities)
+        {
+            if (facilities == null) return 0;
+
+            int count = 0;
+            foreach (var facility in facilities)
+                if (facility != null && facility.GetComponent<TMPro.TextMeshProUGUI>()?.text == "1")
+                    count++;
+            return count;
+        }
+
+        /// <summary>
+        /// Called every turn end (see TimeManager.ProcessTurnEvents). Active Factories bank
+        /// Antimatter into the stockpile; active Power Plants draw from it. Running a deficit
+        /// does NOT black the system out by itself - it just drains the reserve toward zero.
+        /// Full blackout is reserved for the destruction trigger: zero active Power Plants, or
+        /// zero active Factories with the reserve already exhausted (see
+        /// StarSysAIManager.ForceSystemBlackout). This is deliberate - losing a fight should be
+        /// what opens a system to invasion, not a player's build-order mistake. See
+        /// Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §1.
+        /// </summary>
+        public void ProcessAntimatterFuelLoop()
+        {
+            foreach (var sysCon in StarSysControllerList)
+            {
+                var sysData = sysCon?.StarSysData;
+                if (sysData == null) continue;
+
+                int activePowerPlants = CountActiveFacilities(sysData.PowerPlants);
+                int activeFactories = CountActiveFacilities(sysData.Factories);
+
+                // Nothing fueled here (e.g. a pre-warp minor with no facilities at all) - skip
+                // rather than log a system that was never part of the loop to begin with.
+                if (activePowerPlants == 0 && activeFactories == 0 && sysData.AntimatterStockpile == 0)
+                    continue;
+
+                float factoryTechMultiplier = sysData.CurrentCivController != null && TechManager.Instance != null
+                    ? TechManager.Instance.GetFactorySpeedMultiplier(sysData.CurrentCivController.CivData.CurrentTechLevel)
+                    : 1f;
+
+                sysData.AntimatterProductionRate = Mathf.RoundToInt(activeFactories * BaseAntimatterPerFactory * factoryTechMultiplier);
+                sysData.AntimatterConsumptionRate = activePowerPlants * BaseAntimatterPerPlant;
+
+                sysData.AntimatterStockpile += sysData.AntimatterProductionRate;
+                sysData.DeductAntimatter(sysData.AntimatterConsumptionRate);
+
+                // Push the new stockpile to this system's compact-header UI (if it's been
+                // instantiated) right where the value actually changes - Antimatter only ever
+                // moves here, once per turn, so this is the one place a live refresh is needed.
+                sysCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>()?.compactHeader?.RefreshAntimatter();
+
+                bool destructionBlackout = activePowerPlants == 0
+                    || (activeFactories == 0 && sysData.AntimatterStockpile <= 0);
+
+                if (destructionBlackout)
+                {
+                    Debug.Log($"[Antimatter] {sysCon.name}: power grid down - " +
+                        $"activePowerPlants={activePowerPlants}, activeFactories={activeFactories}, " +
+                        $"reserve={sysData.AntimatterStockpile}. Forcing system blackout.");
+                    StarSysAIManager.Instance?.ForceSystemBlackout(sysCon);
+                }
+            }
+        }
+
+        // ── Facility build ceilings ──────────────────────────────────────────────────
+        // See StarSysData's "Facility build ceilings" header for the invariant this whole
+        // section exists to guarantee: a system can never end up over its cap, including across
+        // conquest. Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §2 is the full spec.
+
+        // Types that actually go through a build queue and get capped this way. PowerPlanet has
+        // its own dedicated MaxPowerPlants/DetermineMaxPowerPlants mechanism already (kept
+        // separate, not duplicated here); GroundForce is population-driven, not built.
+        private static readonly StarSysFacilityType[] FacilityCapTypes =
+        {
+            StarSysFacilityType.Factory,
+            StarSysFacilityType.Shipyard,
+            StarSysFacilityType.ResearchCenter,
+            StarSysFacilityType.ShieldGenerator,
+            StarSysFacilityType.OrbitalBattery,
+        };
+
+        private static readonly Dictionary<StarSysFacilityType, int> MajorHomeworldFacilityCap = new()
+        {
+            { StarSysFacilityType.Factory,        6 },
+            { StarSysFacilityType.Shipyard,        4 },
+            { StarSysFacilityType.ResearchCenter,  4 },
+            { StarSysFacilityType.ShieldGenerator, 3 },
+            // Raised from 4 to 6 - a playable civ's own homeworld is its best-defended system by
+            // design, and 4 put it barely above a minor homeworld's old top end (3).
+            { StarSysFacilityType.OrbitalBattery,  6 },
+        };
+
+        private static readonly Dictionary<StarSysFacilityType, (int Min, int Max)> MinorHomeworldFacilityCapRange = new()
+        {
+            { StarSysFacilityType.Factory,        (2, 4) },
+            { StarSysFacilityType.Shipyard,        (1, 3) },
+            { StarSysFacilityType.ResearchCenter,  (1, 3) },
+            { StarSysFacilityType.ShieldGenerator, (1, 2) },
+            // Raised from (1, 3) to (3, 5) - still always below MajorHomeworldFacilityCap's 6 (see
+            // InitializeFacilityCaps' non-Major branch), but a canonically strong minor homeworld
+            // should out-defend a weak one by more than "1 vs 3" allowed.
+            { StarSysFacilityType.OrbitalBattery,  (3, 5) },
+        };
+
+        // Systems that are nobody's homeworld — i.e. everything that starts the game
+        // uninhabited/pre-warp and only ever becomes a Factory/Shipyard/etc. site once someone
+        // colonizes or conquers it. Unlike MajorHomeworldFacilityCap/MinorHomeworldFacilityCapRange,
+        // this is NOT lerped by the placeholder "first owner" CivSO's QualityScore — every
+        // ZZUNINHABITEDx placeholder shares the same default QualityScore (5), so a quality lerp
+        // here would hand every uninhabited system in the galaxy the exact same cap. Instead each
+        // system rolls independently within this range (see InitializeFacilityCaps) so uninhabited
+        // systems come out genuinely varied — some worth fighting over, some not — rather than all
+        // being interchangeable. Still fixed forever at that roll, same as every other role: whoever
+        // ends up owning the system after colonization/conquest inherits whatever it rolled.
+        private static readonly Dictionary<StarSysFacilityType, (int Min, int Max)> UninhabitedFacilityCapRange = new()
+        {
+            { StarSysFacilityType.Factory,        (2, 4) },
+            { StarSysFacilityType.Shipyard,        (1, 3) },
+            { StarSysFacilityType.ResearchCenter,  (1, 3) },
+            { StarSysFacilityType.ShieldGenerator, (1, 2) },
+            // Raised from (1, 3) to (3, 5) - same "other star systems" range as
+            // MinorHomeworldFacilityCapRange's OrbitalBattery, rolled independently per system.
+            { StarSysFacilityType.OrbitalBattery,  (3, 5) },
+        };
+
+        // Facility-cap tech bonus: more numerous, more closely-spaced stages as TechPoints grows
+        // - same "stepped breakthroughs" shape as TechManager.fogSightRangeStages, but its own
+        // independent set of trigger points. Deliberately NOT aligned with CivData.TechThresholds
+        // (0/100/300/600, i.e. where TechLevel itself advances) - those are already the "big
+        // moment" jumps for research/factory/power multipliers, and stacking a facility-cap bump
+        // on the exact same stardate would just double up that one moment instead of reading as
+        // its own separate progression. Runs up to the ~1000-point effective cap
+        // CivData.TechRating clamps to, so late-game engineering gains keep feeling earned
+        // instead of flatlining the moment SUPREME is reached. Applies the same +1 to every
+        // facility type at once, added on top of the system's permanently-fixed base (below) -
+        // and since TechPoints never decreases for a civ, and this stage lookup is applied as a
+        // ratchet (see GetFacilityCap), the bonus can never cause a system to go over its own cap.
+        private static readonly (int TechPointsRequired, int Bonus)[] facilityCapTechStages =
+        {
+            (0,    0),
+            (150,  1),
+            (350,  2),
+            (550,  3),
+            (700,  4),
+            (800,  5),
+            (870,  6),
+            (920,  7),
+            (955,  8),
+            (980,  9),
+            (1000, 10),
+        };
+
+        private static int GetFacilityCapTechBonus(int techPoints)
+        {
+            int bonus = facilityCapTechStages[0].Bonus;
+            foreach (var stage in facilityCapTechStages)
+                if (techPoints >= stage.TechPointsRequired)
+                    bonus = stage.Bonus;
+            return bonus;
+        }
+
+        /// <summary>
+        /// Fixes this system's per-facility-type build ceiling forever, from its role. Major
+        /// homeworld gets a flat number per type; minor homeworld gets a range lerped by its
+        /// civ's QualityScore (so a canonically stronger minor power lands nearer the top of its
+        /// range, a weaker one nearer the bottom — see CivSO.QualityScore); every uninhabited/
+        /// colonizable system instead rolls independently within UninhabitedFacilityCapRange (see
+        /// that dict's comment for why quality-lerping doesn't work for this role). Only ever
+        /// called once, from InstantiateSystem at galaxy generation - civSO there is always the
+        /// first owner, since no conquest can have happened yet. Never recomputed afterward,
+        /// including on later ownership changes - see StarSysData's "Facility build ceilings"
+        /// header for why.
+        /// </summary>
+        private void InitializeFacilityCaps(StarSysController sysCon, StarSysSO starSysSO, CivSO firstOwnerCivSO)
+        {
+            var sysData = sysCon.StarSysData;
+            bool isMajorHomeworld = firstOwnerCivSO.Playable && starSysSO.IsHomeworld;
+            bool isMinorHomeworld = !firstOwnerCivSO.Playable && starSysSO.IsHomeworld;
+            float qualityFraction = Mathf.Clamp01(firstOwnerCivSO.QualityScore / 10f);
+
+            foreach (var type in FacilityCapTypes)
+            {
+                int cap;
+                if (isMajorHomeworld)
+                {
+                    cap = MajorHomeworldFacilityCap[type];
+                }
+                else if (isMinorHomeworld)
+                {
+                    var range = MinorHomeworldFacilityCapRange[type];
+                    cap = Mathf.RoundToInt(Mathf.Lerp(range.Min, range.Max, qualityFraction));
+                }
+                else
+                {
+                    var range = UninhabitedFacilityCapRange[type];
+                    cap = UnityEngine.Random.Range(range.Min, range.Max + 1); // Range's int overload is max-exclusive
+                }
+                sysData.FacilityCapBase[type] = cap;
+            }
+            sysData.FacilityCapTechBonus = 0;
+        }
+
+        /// <summary>
+        /// The effective build ceiling for one facility type in this system right now: the
+        /// system's permanently-fixed base (§ InitializeFacilityCaps) plus a tech bonus ratcheted
+        /// off the best TechPoints total any owner of this system has ever had. The ratchet is
+        /// the piece that makes conquest safe - a system captured by a lower-tech civ keeps
+        /// whatever bonus its previous owner had already earned rather than losing it, so the
+        /// total can only ever hold steady or grow, never shrink below what's already built.
+        /// </summary>
+        public int GetFacilityCap(StarSysController sysCon, StarSysFacilityType type)
+        {
+            var sysData = sysCon.StarSysData;
+            int currentTechPoints = sysData.CurrentCivController?.CivData?.TechPoints ?? 0;
+            int candidateBonus = GetFacilityCapTechBonus(currentTechPoints);
+            if (candidateBonus > sysData.FacilityCapTechBonus)
+                sysData.FacilityCapTechBonus = candidateBonus;
+
+            return sysData.FacilityCapBase.TryGetValue(type, out int baseCap)
+                ? baseCap + sysData.FacilityCapTechBonus
+                : int.MaxValue; // unrecognized type (e.g. PowerPlanet/GroundForce) - not gated here
+        }
+
+        /// <summary>
+        /// Built count plus anything already sitting in the build queue for this type - the
+        /// number a new build attempt actually needs to compare against GetFacilityCap, so a
+        /// player can't queue past the cap just because the queued items haven't completed yet.
+        /// </summary>
+        public int GetBuiltAndQueuedFacilityCount(StarSysController sysCon, StarSysFacilityType type)
+        {
+            var sysData = sysCon.StarSysData;
+            int built = type switch
+            {
+                StarSysFacilityType.Factory => sysData.Factories?.Count ?? 0,
+                StarSysFacilityType.Shipyard => sysData.Shipyards?.Count ?? 0,
+                StarSysFacilityType.ResearchCenter => sysData.ResearchCenters?.Count ?? 0,
+                StarSysFacilityType.ShieldGenerator => sysData.ShieldGenerators?.Count ?? 0,
+                StarSysFacilityType.OrbitalBattery => sysData.OrbitalBatteries?.Count ?? 0,
+                _ => 0,
+            };
+
+            int queued = 0;
+            if (sysCon.sysBuildQueueList != null)
+            {
+                foreach (var item in sysCon.sysBuildQueueList)
+                {
+                    var drag = item?.GetComponentInChildren<FactoryBuildItemDrag>();
+                    if (drag != null && drag.FacilityType == type)
+                        queued++;
+                }
+            }
+
+            return built + queued;
         }
 
         // ── Per-turn dilithium generation rates ──────────────────────────────────

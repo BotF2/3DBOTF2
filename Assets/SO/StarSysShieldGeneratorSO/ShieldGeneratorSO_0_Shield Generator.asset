@@ -17,9 +17,9 @@ MonoBehaviour:
   FacilitiesEnumType: 3
   Name: Shield Generators
   StartStarDate: 0
-  BuildDuration: 4
+  BuildDuration: 8
   DilithiumCost: 0
-  PowerLoad: 2
+  PowerLoad: 4
   ShieldGeneratorSprite: {fileID: 21300000, guid: c9b0851812808c44b8a0223e3929160f, type: 3}
   Description: Standard Federation shields come with adaptive modulation and versatility
     against various threats.

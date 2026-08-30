@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 2
   Name: Fleet Yards
   StartStarDate: 0
-  BuildDuration: 12
-  PowerLoad: 4
+  BuildDuration: 24
+  PowerLoad: 8
   ShipyardSprite: {fileID: 21300000, guid: 5dee004ad1a741447b3db96084793bd0, type: 3}
   Description: "Terran shipyards, aka Fleet Yards, are more than just places to build
     and repair starships\u2014they represent the technological and industrial heart

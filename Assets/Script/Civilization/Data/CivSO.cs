@@ -36,7 +36,6 @@ namespace BOTF3D.Civilization
         public int MinHomePopulation = 10;
         [Tooltip("Used only when Population is 0 (unauthored minor races) to roll a random home-system population.")]
         public int MaxHomePopulation = 30;
-        public int Credits;
         public int TechPoints;
         public TechLevel CivTechLevel;
         public bool Playable;

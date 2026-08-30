@@ -17,7 +17,7 @@ MonoBehaviour:
   FacilitiesEnumType: 0
   Name: Polaron Power Stations
   StartStarDate: 0
-  BuildDuration: 8
+  BuildDuration: 12
   PowerOutput: 30
   PowerPlantSprite: {fileID: 21300000, guid: debd3118c20cd4543acef1038acddaf9, type: 3}
   Description: "The Dominion\u2019s power sources are likely built around matter-antimatter

@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 4
   Name: Orbital Batteries
   StartStarDate: 0
-  BuildDuration: 4
-  PowerLoad: 2
+  BuildDuration: 8
+  PowerLoad: 4
   OrbitalBatterySprite: {fileID: 21300000, guid: edb91603e00fa3c479f8f9c7048b641d, type: 3}
   Description: Orbital batteries are mainly a defensive measure but can be used to
     blockade of a wormhole or transwarp hub. Their effectiveness is maximized when

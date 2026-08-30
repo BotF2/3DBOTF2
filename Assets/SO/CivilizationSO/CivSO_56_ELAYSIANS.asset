@@ -35,3 +35,4 @@ MonoBehaviour:
     This can be a problem for them when adapting to the conditions of most other
     races.
   IntelPoints: 0
+  QualityScore: 2

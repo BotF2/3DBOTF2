@@ -192,6 +192,16 @@ namespace BOTF3D.Combat
             PowerPlantLi2Cost.TryGetValue(civ, out int cost) ? cost : 8;
 
         /// <summary>
+        /// Public entry point onto the same QualityScore -> multiplier curve (0.70 at score 0, 1.00
+        /// at the neutral score 5, 1.30 at score 10) used internally for ship combat/build stats.
+        /// Exposed so other systems that scale off a civ's canon "weak/quantity <-> strong/quality"
+        /// dial (e.g. TechManager's minor-race research growth) read from the same single curve
+        /// instead of inventing a second one that could drift out of sync with this one.
+        /// </summary>
+        public static float GetQualityScaleFactor(int qualityScore) =>
+            QualCombat[Mathf.Clamp(qualityScore, 0, QualCombat.Length - 1)];
+
+        /// <summary>
         /// Compute all runtime stats.  Call once during ship initialization.
         /// </summary>
         public static ShipStats Calculate(ShipType shipType, TechLevel techTier, CivEnum civEnum, int qualityScore)

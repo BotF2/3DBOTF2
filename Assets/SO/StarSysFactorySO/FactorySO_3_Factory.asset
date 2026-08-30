@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 1
   Name: Factories
   StartStarDate: 0
-  BuildDuration: 8
-  PowerLoad: 4
+  BuildDuration: 16
+  PowerLoad: 8
   FactorySprite: {fileID: 21300000, guid: e60512c7bfaf53549b7d0818e45c54cf, type: 3}
   Description: Cardassian factories employ forced labor on a large sale. Though primative
     by Federation standards the vast scale allows them to complete with more advanced

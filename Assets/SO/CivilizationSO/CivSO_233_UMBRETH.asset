@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 0
   RuthlessEnum: 0
   GreedyEnum: 1
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 9b00bc7bea3a29d41ab3f702f6fa16d9, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: A civilization that underwent a "quiet AI singularity" generations ago. They are governed by a benevolent-seeming planetary intelligence their citizens seem genuinely content under.
+  Decription: A civilization that underwent a "quiet AI singularity" generations
+    ago. They are governed by a benevolent-seeming planetary intelligence their citizens
+    seem genuinely content under.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 9

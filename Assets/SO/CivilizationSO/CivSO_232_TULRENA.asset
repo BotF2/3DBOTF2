@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 1
   RuthlessEnum: 1
   GreedyEnum: 0
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: b7079c0b0f157164a93cacac46b9a356, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: Obsessive archivists cataloging the histories, genomes, and star charts of civilizations they have never met. They will trade almost anything for new information, but rarely act on it.
+  Decription: Obsessive archivists cataloging the histories, genomes, and star charts
+    of civilizations they have never met. They will trade almost anything for new
+    information, but rarely act on it.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 4

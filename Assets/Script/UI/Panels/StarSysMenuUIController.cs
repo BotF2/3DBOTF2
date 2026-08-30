@@ -1950,13 +1950,14 @@ namespace BOTF3D.UI
             sysUI.transform.SetSiblingIndex(0);
 
             // Show full content, keep the Expand button visible so it can toggle back to
-            // collapsed, and refresh the dilithium value in the compact header
+            // collapsed, and refresh the dilithium/antimatter values in the compact header
             var fields = sysUI.GetComponent<StarSysUI_Fields>();
             if (fields != null)
             {
                 fields.expandedContent?.SetActive(true);
                 fields.compactHeader?.SetExpandButtonActive(true);
                 fields.compactHeader?.RefreshDilithium();
+                fields.compactHeader?.RefreshAntimatter();
                 fields.WireAIModeToggles(sysCon);
             }
 

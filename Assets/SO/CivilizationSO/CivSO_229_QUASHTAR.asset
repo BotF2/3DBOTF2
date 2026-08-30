@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: -1
   RuthlessEnum: -2
   GreedyEnum: -2
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 82eab67ff7592ea43b203eff23bed541, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: Former Dominion-collaborator elites who now rule in comfort behind heavy fortifications after profiting during the occupation. They are distrusted by nearly all their neighbors.
+  Decription: Former Dominion-collaborator elites who now rule in comfort behind
+    heavy fortifications after profiting during the occupation. They are distrusted
+    by nearly all their neighbors.
   IntelPoints: 0
   QualityScore: 5

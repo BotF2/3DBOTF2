@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 0
   RuthlessEnum: 1
   GreedyEnum: 1
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 8e54e2605ce8fe6409e7d369829de9dd, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: A quiet agrarian society, rarely encountered since their system is reachable only through unstable subspace terrain. Peaceful, and mostly indifferent to quadrant politics.
+  Decription: A quiet agrarian society, rarely encountered since their system is
+    reachable only through unstable subspace terrain. Peaceful, and mostly indifferent
+    to quadrant politics.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 1

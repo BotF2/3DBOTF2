@@ -18,6 +18,7 @@ namespace BOTF3D.Galaxy
         public TextMeshProUGUI SysName;
         public TextMeshProUGUI SysDescription;
         public TextMeshProUGUI StatusLabel;
+        public TextMeshProUGUI PercentLabel;
 
         [Header("GameObjects")]
         public GameObject OwnerInsigniaGO;

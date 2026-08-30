@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 3
   Name: Shield Generators
   StartStarDate: 0
-  BuildDuration: 4
+  BuildDuration: 8
   DilithiumCost: 0
-  PowerLoad: 2
+  PowerLoad: 4
   ShieldGeneratorSprite: {fileID: 21300000, guid: fa5223464f3077742aa85b9baac526a7, type: 3}
   Description: The Dominion has High-capacity, fast-regenerating shields for durability.

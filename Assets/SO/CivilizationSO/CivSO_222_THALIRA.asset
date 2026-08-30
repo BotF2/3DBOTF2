@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: 2
   RuthlessEnum: 2
   GreedyEnum: 2
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 8d42d69ded162a84b93d4d2b76c30d3c, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: Post-scarcity artist-philosophers devoted to art, music, and abstract mathematics. They will refuse a profitable trade in favor of one they find more "aesthetically interesting."
+  Decription: Post-scarcity artist-philosophers devoted to art, music, and abstract
+    mathematics. They will refuse a profitable trade in favor of one they find more
+    "aesthetically interesting."
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 4

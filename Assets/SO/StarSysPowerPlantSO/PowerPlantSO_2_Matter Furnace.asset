@@ -17,7 +17,7 @@ MonoBehaviour:
   FacilitiesEnumType: 0
   Name: Matter Furnaces
   StartStarDate: 0
-  BuildDuration: 8
+  BuildDuration: 12
   PowerOutput: 20
   PowerPlantSprite: {fileID: 21300000, guid: 0a34e6bbee394d04ca1f5b1eb0018ab6, type: 3}
   Description: Klingon power sources are primarily based on matter-antimatter reactors,

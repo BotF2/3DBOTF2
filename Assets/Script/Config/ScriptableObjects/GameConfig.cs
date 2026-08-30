@@ -55,9 +55,6 @@ namespace BOTF3D.Config
         public bool disableRandomSideTwoOrders = false;
 
         [Header("Galaxy Settings")]
-[Tooltip("Starting credits for new civilizations")]
-        public int startingCredits = 1000;
-
         [Tooltip("Research points per turn base value")]
         public int baseResearchPerTurn = 10;
 

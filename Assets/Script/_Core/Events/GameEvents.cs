@@ -52,6 +52,25 @@ namespace BOTF3D.Core
         public static event Action<CivEnum, CivEnum> OnCivEliminated; // eliminatedCiv, absorbedByCiv
 
         /// <summary>
+        /// Fired once by CivManager.CheckForEliminatedCivs when a PLAYABLE civ is found to own zero
+        /// star systems and zero fleets - unlike OnCivEliminated (a minor being absorbed by a
+        /// major), there is no "winner" of this event; the civ simply has nothing left to command.
+        /// See CivData.IsEliminated and TimeManager's auto-ready handling of eliminated civs.
+        /// </summary>
+        public static event Action<CivEnum> OnPlayableCivDefeated;
+
+        /// <summary>
+        /// Fired once by CivManager.CheckForVictoryCondition when a playable civ's owned-system
+        /// count crosses the galaxy-wide victory threshold (a third of all systems in play - see
+        /// CivManager.VictorySystemFraction). Game-ending: CivManager.GameHasEnded is set true in
+        /// the same call, and TimeManager refuses any further AdvanceTurn once that flag is set.
+        /// </summary>
+        public static event Action<CivEnum, int, int> OnGameVictory; // victoriousCiv, systemsOwned, totalSystems
+
+        public static void PlayableCivDefeated(CivEnum civ) => OnPlayableCivDefeated?.Invoke(civ);
+        public static void GameVictory(CivEnum victor, int systemsOwned, int totalSystems) => OnGameVictory?.Invoke(victor, systemsOwned, totalSystems);
+
+        /// <summary>
         /// Fired for each third-party civ whose relationship with `actor` shifted as a ripple effect
         /// of something `actor` did to/with `causingTarget` (see DiplomacyManager.ApplyDiplomaticRipple).
         /// Only fired once the ripple's target controller (actor to thirdParty) is confirmed to exist
@@ -133,6 +152,8 @@ namespace BOTF3D.Core
             OnCivCreated = null;
             OnDiplomacyChanged = null;
             OnCivEliminated = null;
+            OnPlayableCivDefeated = null;
+            OnGameVictory = null;
             OnDiplomaticRipple = null;
             OnSystemOwnershipChanged = null;
             OnFleetMoved = null;

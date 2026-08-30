@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 1
   Name: Replication Plants
   StartStarDate: 0
-  BuildDuration: 8
-  PowerLoad: 4
+  BuildDuration: 16
+  PowerLoad: 8
   FactorySprite: {fileID: 21300000, guid: 5121a27f0bd353f4ca5cf0ebcb16f223, type: 3}
   Description: The replicator is a technological marvel that embodies the principles
     of molecular synthesis and matter-energy conversion. By converting raw material

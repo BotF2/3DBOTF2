@@ -26,6 +26,7 @@ namespace BOTF3D.UI
         private readonly GameObject sysBuildMenu;
         private readonly GameObject intelMenuView;
         private readonly GameObject encyclopediaMenuView;
+        private readonly GameObject techTreeMenuView;
         private readonly GameObject habitableSysMenu;
         private readonly GameObject diplomacyNoContacts;
 
@@ -35,6 +36,7 @@ namespace BOTF3D.UI
         private readonly GameObject diplomacyBackground;
         private readonly GameObject intelBackground;
         private readonly GameObject encyclopediaBackground;
+        private readonly GameObject techTreeBackground;
 
         // UI elements
         private readonly GameObject closeMenuButton;
@@ -52,7 +54,9 @@ namespace BOTF3D.UI
             GameObject intelBackground,
             GameObject encyclopediaBackground,
             GameObject closeMenuButton,
-            GameObject selectOtherSysOrFleetButtonGO)
+            GameObject selectOtherSysOrFleetButtonGO,
+            GameObject techTreeMenuView = null,
+            GameObject techTreeBackground = null)
         {
             this.sysBuildMenu = sysBuildMenu;
             this.intelMenuView = intelMenuView;
@@ -66,6 +70,8 @@ namespace BOTF3D.UI
             this.encyclopediaBackground = encyclopediaBackground;
             this.closeMenuButton = closeMenuButton;
             this.selectOtherSysOrFleetButtonGO = selectOtherSysOrFleetButtonGO;
+            this.techTreeMenuView = techTreeMenuView;
+            this.techTreeBackground = techTreeBackground;
         }
 
         /// <summary>
@@ -77,12 +83,14 @@ namespace BOTF3D.UI
 
             if (intelMenuView != null) intelMenuView.SetActive(false);
             if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(false);
+            if (techTreeMenuView != null) techTreeMenuView.SetActive(false);
             if (closeMenuButton != null) closeMenuButton.SetActive(true);
             if (sysBackground != null) sysBackground.SetActive(false);
             if (fleetsBackground != null) fleetsBackground.SetActive(false);
             if (diplomacyBackground != null) diplomacyBackground.SetActive(false);
             if (intelBackground != null) intelBackground.SetActive(false);
             if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
+            if (techTreeBackground != null) techTreeBackground.SetActive(false);
             if (habitableSysMenu != null) habitableSysMenu.SetActive(false);
         }
 
@@ -141,6 +149,7 @@ namespace BOTF3D.UI
             if (sysBuildMenu != null) sysBuildMenu.SetActive(false);
             if (intelMenuView != null) intelMenuView.SetActive(false);
             if (encyclopediaMenuView != null) encyclopediaMenuView.SetActive(false);
+            if (techTreeMenuView != null) techTreeMenuView.SetActive(false);
             if (habitableSysMenu != null) habitableSysMenu.SetActive(false);
 
             CloseAllBackgrounds();
@@ -159,6 +168,7 @@ namespace BOTF3D.UI
             if (diplomacyBackground != null) diplomacyBackground.SetActive(false);
             if (intelBackground != null) intelBackground.SetActive(false);
             if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
+            if (techTreeBackground != null) techTreeBackground.SetActive(false);
         }
 
         /// <summary>
@@ -194,6 +204,9 @@ namespace BOTF3D.UI
                 case Menu.EncyclopedianMenu:
                 case Menu.Encyclopedia:
                     if (encyclopediaBackground != null) encyclopediaBackground.SetActive(true);
+                    break;
+                case Menu.TechTree:
+                    if (techTreeBackground != null) techTreeBackground.SetActive(true);
                     break;
             }
         }

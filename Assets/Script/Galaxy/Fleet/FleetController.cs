@@ -1742,12 +1742,40 @@ namespace BOTF3D.Galaxy
                 Debug.LogWarning($"UpdateMaxWarp: '{name}' has null FleetData - skipping.");
                 return;
             }
-            float maxWarp = 10f;
-            for (int i = 0; i < fleetData.ShipsList.Count; i++)
-            { // find the slowest ship
-                if (fleetData.ShipsList[i] != null && fleetData.ShipsList[i].ShipData.maxWarpFactor < maxWarp)
+            // Warp Field Overlap (TechTree_CommonBranches.csv, Propulsion Tier 3, EffectHook
+            // WarpSpeedAverage) shares warp fields between ships in a fleet once researched, so a
+            // mixed fleet's speed is the average of its ships' maxWarpFactor rather than being capped
+            // to its slowest hull. Phase II's per-tech research tracking doesn't exist yet (see
+            // TechTree_Phase2_Design.md), so this is gated on the civ having reached the Tier 3
+            // TechPoints threshold (200) from the existing flat CivData.TechPoints ladder as a stand-in
+            // - replace with a real "has researched WarpSpeedAverage" check once Phase II ships.
+            CivData civData = CivManager.Instance != null ? CivManager.Instance.GetCivDataByCivEnum(fleetData.CivEnum) : null;
+            bool hasWarpFieldOverlap = civData != null && civData.TechPoints >= 200;
+
+            float maxWarp;
+            if (hasWarpFieldOverlap)
+            {
+                float warpSum = 0f;
+                int shipCount = 0;
+                for (int i = 0; i < fleetData.ShipsList.Count; i++)
                 {
-                    maxWarp = fleetData.ShipsList[i].ShipData.maxWarpFactor;
+                    if (fleetData.ShipsList[i] != null)
+                    {
+                        warpSum += fleetData.ShipsList[i].ShipData.maxWarpFactor;
+                        shipCount++;
+                    }
+                }
+                maxWarp = shipCount > 0 ? warpSum / shipCount : 10f;
+            }
+            else
+            {
+                maxWarp = 10f;
+                for (int i = 0; i < fleetData.ShipsList.Count; i++)
+                { // find the slowest ship
+                    if (fleetData.ShipsList[i] != null && fleetData.ShipsList[i].ShipData.maxWarpFactor < maxWarp)
+                    {
+                        maxWarp = fleetData.ShipsList[i].ShipData.maxWarpFactor;
+                    }
                 }
             }
             fleetData.MaxWarpFactor = maxWarp;

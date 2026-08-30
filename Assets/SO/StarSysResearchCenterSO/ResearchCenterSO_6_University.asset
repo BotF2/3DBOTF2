@@ -17,7 +17,7 @@ MonoBehaviour:
   FacilitiesEnumType: 5
   Name: Universities
   StartStarDate: 0
-  BuildDuration: 4
-  PowerLoad: 1
+  BuildDuration: 8
+  PowerLoad: 2
   ResearchCenterSprite: {fileID: 21300000, guid: 6e52dd9974776e4468567ae690e10a9a, type: 3}
   Description: Description Here

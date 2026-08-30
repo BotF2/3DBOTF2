@@ -51,6 +51,23 @@ namespace BOTF3D.Civilization
         public List<CivEnum> InGamePlayableCivs;
         public CivController LocalPlayerCivController;
 
+        // ── Game outcome: elimination + victory ──────────────────────────────────────
+        // Both checked once per turn at the very end of TimeManager.ProcessTurnEvents, so they see
+        // this turn's ownership/production changes before the next InterTurn begins.
+
+        /// <summary>
+        /// A playable civ wins once it owns this fraction of every star system in the galaxy
+        /// (majors' and minors' homeworlds, colonies, and any not-yet-colonized system all count
+        /// toward the total - see CheckForVictoryCondition). A third, rounded up, so e.g. a
+        /// 47-system galaxy needs 16 systems to trigger victory, not a fractional 15.67.
+        /// </summary>
+        public const float VictorySystemFraction = 1f / 3f;
+
+        /// <summary>True once CheckForVictoryCondition has declared a winner. TimeManager refuses
+        /// any further AdvanceTurn while this is true - the game is over.</summary>
+        public bool GameHasEnded { get; private set; }
+        public CivEnum? VictoriousCivEnum { get; private set; }
+
         //public bool nowCivsCanJoinTheFederation = true; // for use with testing a multiple star system Federation
         private int HoldCivSize = 0;// used in testing of a multiStarSystem civilization/faction
         [SerializeField]
@@ -509,11 +526,82 @@ namespace BOTF3D.Civilization
             }
         }
         /// <summary>
+        /// Checks every PLAYABLE civ for elimination: owns zero star systems AND has zero fleets
+        /// left anywhere in the galaxy. Sets CivData.IsEliminated (never cleared - there is no
+        /// recapture path today) and fires GameEvents.PlayableCivDefeated exactly once per civ, the
+        /// turn it happens. TimeManager reads IsEliminated to auto-ready the civ every InterTurn
+        /// from then on, so an eliminated civ can never block or slow the rest of the table.
+        /// Minor races are never checked here - AnnexMinorCiv already replaces the minor's CivData
+        /// with the major's ownership rather than leaving a zeroed-out minor CivData behind.
+        /// </summary>
+        public void CheckForEliminatedCivs()
+        {
+            foreach (var civ in CivControllersInGame)
+            {
+                CivData data = civ?.CivData;
+                if (data == null || !data.Playable || data.IsEliminated) continue;
+
+                bool hasSystems = data.StarSysWeOwn != null && data.StarSysWeOwn.Count > 0;
+                if (hasSystems) continue;
+
+                bool hasFleets = FleetManager.Instance != null && FleetManager.Instance.FleetControllerList
+                    .Exists(f => f?.FleetData != null && f.FleetData.CivEnum == data.CivEnum);
+                if (hasFleets) continue;
+
+                data.IsEliminated = true;
+                GameLogger.Log(GameLogger.LogCategory.General,
+                    $"[CivManager] {data.CivLongName} eliminated - no star systems or fleets remain.");
+                GameEvents.PlayableCivDefeated(data.CivEnum);
+            }
+        }
+
+        /// <summary>
+        /// Checks every PLAYABLE civ's owned-system count against VictorySystemFraction of every
+        /// star system in the game (StarSysManager.StarSysControllerList.Count - every homeworld,
+        /// colony, and not-yet-colonized system counts toward the total). The first civ found to
+        /// meet or exceed the threshold wins immediately: GameHasEnded/VictoriousCivEnum are set and
+        /// GameEvents.GameVictory fires. No-ops once GameHasEnded is already true - only one civ can
+        /// ever win. Skips entirely if StarSysManager isn't available or the galaxy has no systems.
+        /// </summary>
+        public void CheckForVictoryCondition()
+        {
+            if (GameHasEnded) return;
+
+            int totalSystems = StarSysManager.Instance?.StarSysControllerList?.Count ?? 0;
+            if (totalSystems <= 0) return;
+
+            int threshold = Mathf.CeilToInt(totalSystems * VictorySystemFraction);
+
+            foreach (var civ in CivControllersInGame)
+            {
+                CivData data = civ?.CivData;
+                if (data == null || !data.Playable) continue;
+
+                int systemsOwned = data.StarSysWeOwn?.Count ?? 0;
+                if (systemsOwned < threshold) continue;
+
+                GameHasEnded = true;
+                VictoriousCivEnum = data.CivEnum;
+                GameLogger.Log(GameLogger.LogCategory.General,
+                    $"[CivManager] *** {data.CivLongName} WINS *** - owns {systemsOwned}/{totalSystems} " +
+                    $"systems (threshold {threshold}, {VictorySystemFraction:P0} of the galaxy).");
+                GameEvents.GameVictory(data.CivEnum, systemsOwned, totalSystems);
+                return; // only one winner - stop checking the rest of the field
+            }
+        }
+
+        /// <summary>
         /// Full immediate annexation when a minor race civ reaches Membership status with a major civ:
-        /// transfers every system the minor owns to the major civ and fires an elimination event.
-        /// Existing minor-race ships/facilities are reflagged to the major civ in place (same hulls,
-        /// same models) - only new ships built afterward come out looking like the major civ, since
-        /// ship builds already key off the system's CurrentOwnerCivEnum.
+        /// transfers ownership of the minor's system(s) to the major civ and fires an elimination
+        /// event. In practice this is always exactly ONE system - the minor's own homeworld - since
+        /// minor races never colonize, terraform, or claim additional systems (see the Playable
+        /// guards on StarSysController.ClaimSystem/ColonizeWithTransport/TerraformSystem and
+        /// CivManager.AssimilateSystem); the loop below still walks StarSysWeOwn rather than
+        /// hard-assuming a single entry, purely as a defensive fallback if that invariant is ever
+        /// violated by a future change. Existing minor-race ships/facilities are reflagged to the
+        /// major civ in place (same hulls, same models) - only new ships built afterward come out
+        /// looking like the major civ, since ship builds already key off the system's
+        /// CurrentOwnerCivEnum.
         /// </summary>
         public void AnnexMinorCiv(CivEnum majorCivEnum, CivEnum minorCivEnum)
         {
@@ -591,6 +679,18 @@ namespace BOTF3D.Civilization
             CivController previousOwner = GetCivControllerByCivEnum(previousOwnerCivEnum);
             CivController newOwner = GetCivControllerByCivEnum(newOwnerCivEnum);
             if (newOwner?.CivData == null) return;
+
+            // Minor races never gain additional star systems through any path - see the matching
+            // guards on StarSysController.ClaimSystem/ColonizeWithTransport/TerraformSystem. A minor
+            // keeps exactly the one home system it started with; only a PLAYABLE civ may end up as
+            // the new owner here.
+            if (!newOwner.CivData.Playable)
+            {
+                GameLogger.LogWarning(GameLogger.LogCategory.General,
+                    $"[CivManager] AssimilateSystem: refusing to hand '{sysCon.StarSysData.SysName}' to " +
+                    $"{newOwnerCivEnum} - minor races never take ownership of new star systems.");
+                return;
+            }
 
             previousOwner?.CivData?.StarSysWeOwn?.Remove(sysCon);
 

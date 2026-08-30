@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 1
   Name: Industrial Complexes
   StartStarDate: 0
-  BuildDuration: 8
-  PowerLoad: 4
+  BuildDuration: 16
+  PowerLoad: 8
   FactorySprite: {fileID: 21300000, guid: 536253e5b4a42c04d90b743b3d2fda2d, type: 3}
   Description: "The Dominion\u2019s production and assembly systems are reliable
     and optimized for large-scale war time operation."

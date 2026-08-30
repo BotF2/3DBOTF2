@@ -455,6 +455,18 @@ namespace BOTF3D.Galaxy
         {
             if (controller.sysBuildQueueList.Count >= 5) return false;
 
+            // Belt-and-suspenders: StarSysAIManager's picker functions already check this
+            // system's own build ceiling (StarSysManager.GetFacilityCap) before ever calling
+            // here, but this is the single choke point every AI queue request passes through,
+            // so it's the safe place to enforce it too rather than trust every future caller to
+            // remember.
+            if (StarSysManager.Instance != null)
+            {
+                int builtAndQueued = StarSysManager.Instance.GetBuiltAndQueuedFacilityCount(controller, type);
+                if (builtAndQueued >= StarSysManager.Instance.GetFacilityCap(controller, type))
+                    return false;
+            }
+
             var go   = new GameObject($"AIBuild_{type}");
             // New GameObjects land in whichever scene is currently "active" (SceneManager.SetActiveScene),
             // which is CombatScene for the duration of any fight anywhere in the galaxy. Without this,

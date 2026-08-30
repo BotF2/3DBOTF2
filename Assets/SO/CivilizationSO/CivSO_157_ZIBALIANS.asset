@@ -35,3 +35,4 @@ MonoBehaviour:
     across multiple sectors. But they are buyers rather than sellers, and some are
     thieves.
   IntelPoints: 0
+  QualityScore: 3

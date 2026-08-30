@@ -21,6 +21,11 @@ public class StarSysSO : ScriptableObject
     public Sprite StarSprit;
     [FormerlySerializedAs("Dilitium")]
     public int Dilithium;
+    [Tooltip("Authored starting Antimatter reserve for homeworlds - Power Plants draw from this " +
+        "each turn, Factories replenish it. Colonies don't use this field; they get a small " +
+        "uniform seed as part of their transport's Colony Kit instead - see " +
+        "StarSysController.ColonizeTimerCoroutine.")]
+    public int Antimatter;
     public int PowerStations;
     public int Factories;
     public int ResearchCenters;

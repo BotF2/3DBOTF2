@@ -17,8 +17,8 @@ MonoBehaviour:
   FacilitiesEnumType: 2
   Name: Shipyards
   StartStarDate: 0
-  BuildDuration: 12
-  PowerLoad: 4
+  BuildDuration: 24
+  PowerLoad: 8
   ShipyardSprite: {fileID: 21300000, guid: cdc36c3e87a713e4e9edb99c3519c27d, type: 3}
   Description: "Shipyards are more than just places to build and repair starships\u2014they
     represent the technological and industrial heart of spacefaring civilizations.

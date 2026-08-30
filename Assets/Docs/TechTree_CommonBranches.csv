@@ -1,0 +1,36 @@
+Branch,Tier,TechPoints,TimeLine,TechName,EffectSummary,EffectHook
+Propulsion,1,0,3,Warp Core Stabilization,Sustained Warp Speed,PersistentWarpSpeed
+Propulsion,2,100,4,Warp Field Optimization,"+Warp speed on galaxy map, -move cost",WarpSpeedMultiplier
+Propulsion,3,200,5,Warp Field Overlap,Shares warp fields between ships in a fleet,WarpSpeedAverage
+Propulsion,4,300,6,Wormhole Quantum Slipstream,Improve stability of wormholes,WormholeStabilizer
+Propulsion,5,450,8,Transwarp Access,Access Transwarp hub travel,AccessTranswarpHub
+Propulsion,6,600,10,Warp Beacon Network,Static fast-travel lane between two owned systems,WarpLane
+Propulsion,7,900,14,Deep Space Rangefinding,Capstone: raises the warp speed cap further,WarpSpeedMultiplier_Capstone
+Tactical,1,0,3,Polarized Hull Plating,+Hull%,HullMultiplier
+Tactical,2,100,4,Deflector Shields & Harmonics,+Shield%,ShieldMultiplier
+Tactical,3,200,5,Ablative Hull Materials,"+Hull%, -torpedo damage taken",HullMultiplier
+Tactical,4,300,6,Quantum Capacitors,"Combat burst (+shield or +weapon, temporary)",CombatBurst
+Tactical,5,450,8,Regenerative Shield Matrices,Shields regenerate during an active engagement,ShieldRegenMidCombat
+Tactical,6,600,10,Metaphasic Shielding,Resists environmental/stellar-phenomena damage,EnvironmentalResist
+Tactical,7,900,14,Quantum Shield Tuning,Capstone: +Shield% vs. exotic weapons,ShieldMultiplier_Capstone
+Ordnance,1,0,3,Beam Weapon Calibration,+Weapon damage% (Phasers/Disruptors/Polaron/etc. per civ flavor),WeaponDamageMultiplier
+Ordnance,2,100,4,Photon-class Torpedoes,Unlocks Photon-class torpedoes,OrdnanceUnlock
+Ordnance,3,200,5,Fire Control Solutions,+Accuracy / crit chance,AccuracyBonus
+Ordnance,4,300,6,Plasma-class Torpedoes,"Unlocks Plasma-class torpedoes (armor-melt, DoT)",OrdnanceUnlock
+Ordnance,5,450,8,Quantum-class Torpedoes,Unlocks Quantum-class torpedoes (high yield),OrdnanceUnlock
+Ordnance,6,600,10,Transphasic-class Torpedoes,Unlocks Transphasic-class torpedoes (% shield-bypass),OrdnanceUnlock
+Ordnance,7,900,14,Directed Energy Overcharge,Capstone: +Weapon damage%,WeaponDamageMultiplier_Capstone
+Sensors & Science,1,0,3,Long-Range Sensors,Sight-range stage 1; reveals system facility caps,SightRangeStage_1
+Sensors & Science,2,100,4,Stellar Cartography,Sight-range stage 2; reveals hidden system resources,SightRangeStage_2
+Sensors & Science,3,200,5,Anomaly Detection,Sight-range stage 3; anomalies seen on galaxy map,SightRangeStage_3
+Sensors & Science,4,300,6,High-Density Energy Storage,Sight-range stage 4; facility power buffer,SightRangeStage_4
+Sensors & Science,5,450,8,Structural Integrity Fields,Sight-range stage 5; station HP + facility cap,SightRangeStage_5
+Sensors & Science,6,600,10,Xenobiological Engineering,Sight-range stage 6; pre-req step toward Terraforming,SightRangeStage_6
+Sensors & Science,7,900,14,Terraforming Technology,Capstone: sight-range stage 7; facility-slot expansion on low-tier worlds,SightRangeStage_7_FacilityCap
+Intelligence,1,0,3,Subspace Echo Decoys,Projects fake fleet signatures to misdirect enemy scouts,Decoy
+Intelligence,2,100,4,Quantum Masking Algorithms,Hides sub-light fleet movement from long-range sensors (not a true cloak),MaskMovement
+Intelligence,3,200,5,Deep Cover Networks,Partial intel-panel reveal on a target empire,IntelPanelReveal_Partial
+Intelligence,4,300,6,Full Surveillance Net,Full intel-panel reveal on a target empire,IntelPanelReveal_Full
+Intelligence,5,450,8,Counter-Espionage Doctrine,Resists enemy sabotage attempts,SabotageResist
+Intelligence,6,600,10,Tachyon Detection Grid,"Detects Tier-4/5 cloaked fleets (Romulan Basic Cloaking Field, Klingon Battle Cloak) within sensor range on the galaxy map - see Phase2 design doc S5b. Does NOT see through the Tier-7 cloak upgrades.",CloakDetection
+Intelligence,7,900,14,Strategic Intelligence Mastery,Capstone: empire-wide intel dashboard,IntelDashboard_Capstone

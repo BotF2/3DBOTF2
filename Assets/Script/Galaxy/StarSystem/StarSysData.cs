@@ -69,6 +69,20 @@ namespace BOTF3D.Galaxy
         public AIBuildMode AIBuildMode = AIBuildMode.Economy;
         public bool IsAIManaged => AIBuildMode != AIBuildMode.Off;
 
+        // ── Antimatter fuel loop ─────────────────────────────────────────────────────
+        // Antimatter is the Power Plants' ongoing operating fuel (Dilithium remains the one-time
+        // capital cost locked into the reactor at construction). Active Factories bank it into
+        // this stockpile every turn; active Power Plants draw from it. See
+        // Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §1 and
+        // StarSysManager.ProcessAntimatterFuelLoop for the per-turn processing and the
+        // destruction-triggered blackout (not a shortage-triggered one - see that method).
+        [Header("Antimatter Fuel Loop")]
+        public int AntimatterStockpile;
+        public int AntimatterProductionRate; // banked per turn from active Factories
+        public int AntimatterConsumptionRate; // drawn per turn by active Power Plants
+        public bool HasAntimatter(int amount) => AntimatterStockpile >= amount;
+        public void DeductAntimatter(int amount) => AntimatterStockpile = Mathf.Max(0, AntimatterStockpile - amount);
+
         // Subspace scanner: this system's own "fog of war" for detecting nearby enemy fleets,
         // independent of the local player's rendering fog grid (FischlWorks_FogWar). Refreshed
         // every turn by StarSysAIManager for every system regardless of owner, so it's available
@@ -128,6 +142,21 @@ namespace BOTF3D.Galaxy
         public List<GameObject> ShieldGenerators;
         public List<GameObject> OrbitalBatteries;
         public List<GameObject> GroundForces = new List<GameObject>();
+
+        // ── Facility build ceilings ──────────────────────────────────────────────────
+        // How many of each facility type this system can ever have BUILT (active or not) -
+        // distinct from power, which only governs how many built facilities can be ACTIVE at
+        // once. FacilityCapBase is fixed forever at system creation (see
+        // StarSysManager.InitializeFacilityCaps) from the system's role (Major homeworld /
+        // minor homeworld / colony) and its FIRST owner's QualityScore - never the current
+        // owner, and never recomputed after creation, so conquest can never change it.
+        // FacilityCapTechBonus only ever ratchets upward (see StarSysManager.GetFacilityCap),
+        // so the combined total can never decrease either. Together this guarantees a system
+        // can never end up "over cap" - the numbers only ever hold steady or grow. See
+        // Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §2.
+        [Header("Facility Caps")]
+        public Dictionary<StarSysFacilityType, int> FacilityCapBase = new Dictionary<StarSysFacilityType, int>();
+        public int FacilityCapTechBonus;
         [Header("Population & Ground Forces")]
         public int Population; // current population units; converts into GroundForces up to MaxGroundForceUnits
         public float PopulationGrowthAccumulator; // fractional growth carried between stardates (see PopulationManager.GrowSystem)
@@ -170,12 +199,14 @@ namespace BOTF3D.Galaxy
         // transport is consumed instantly, but IsHabitable doesn't flip true until
         // TerraformCompleteStardate is reached (see StarSysController.TerraformTimerCoroutine).
         public bool IsTerraforming;
+        public int TerraformStartStardate;
         public int TerraformCompleteStardate;
 
         // Set true while StarSysController.ColonizeWithTransport's timer coroutine is running; the
         // transport is consumed instantly, but the starting Power Plant/Factory aren't granted
         // until ColonizeCompleteStardate is reached (see StarSysController.ColonizeTimerCoroutine).
         public bool IsColonizing;
+        public int ColonizeStartStardate;
         public int ColonizeCompleteStardate;
 
         public StarSysData(StarSysSO starSysSO)

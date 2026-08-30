@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: -2
   RuthlessEnum: 2
   GreedyEnum: 1
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: cf3cc229366c59d4bb363148b5c5a639, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: A small telepathic-empath species, extremely sensitive to strong emotion. They keep outsiders at orbital distance via strict quarantine, purely to protect their own wellbeing.
+  Decription: A small telepathic-empath species, extremely sensitive to strong emotion.
+    They keep outsiders at orbital distance via strict quarantine, purely to protect
+    their own wellbeing.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 2

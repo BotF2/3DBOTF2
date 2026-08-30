@@ -17,7 +17,7 @@ MonoBehaviour:
   FacilitiesEnumType: 0
   Name: Singularity Reactors
   StartStarDate: 0
-  BuildDuration: 8
+  BuildDuration: 12
   PowerOutput: 20
   PowerPlantSprite: {fileID: 21300000, guid: 47f039ede3bb18e4f81642165585c419, type: 3}
   Description: Romulan singularity power source is a highly advanced and fictional

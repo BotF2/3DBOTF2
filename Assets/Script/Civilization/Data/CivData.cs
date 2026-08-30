@@ -63,6 +63,14 @@ namespace BOTF3D.Civilization
 
         public bool Playable;
         public bool PlayedByAI = true;
+
+        // Set once by CivManager.CheckForEliminatedCivs when a playable civ owns zero star systems
+        // and has zero fleets left. An eliminated civ is never removed from the game (its
+        // CivController/CivData keep existing for save/report/UI purposes) - this flag is instead
+        // read by TimeManager to auto-ready it every InterTurn (see IsCivEliminated) so it can never
+        // block or slow turn advancement for everyone else. Never cleared once set - there is no
+        // "un-eliminate" path today (no facility/ground-invasion recapture mechanic exists yet).
+        public bool IsEliminated;
         public CivEnum LocalPlayerCivEnum;
         public bool HasWarp;
         public string Decription = "We are the Borg";

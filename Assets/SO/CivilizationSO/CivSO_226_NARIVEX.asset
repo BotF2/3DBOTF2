@@ -21,16 +21,18 @@ MonoBehaviour:
   XenophbiaEnum: -2
   RuthlessEnum: -1
   GreedyEnum: 1
-  CivImage: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 386fd77ff37af274c9cce602465b3ac0, type: 3}
   Insignia: {fileID: 0}
+  GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 30
-  Credits: 0
   TechPoints: 0
   CivTechLevel: 100
   Playable: 0
   HasWarp: 1
-  Decription: Refugees whose original homeworld was destroyed. They resettled and are fiercely protective of their new system, deeply wary of any fleet movement near their border.
+  Decription: Refugees whose original homeworld was destroyed. They resettled and
+    are fiercely protective of their new system, deeply wary of any fleet movement
+    near their border.
   IntelPoints: 0
-  QualityScore: 5
+  QualityScore: 8
