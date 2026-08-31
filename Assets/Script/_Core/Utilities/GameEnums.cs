@@ -321,6 +321,29 @@ namespace BOTF3D.Core
         ADVANCED,  // 300–599 TechPoints — reached at 300 TechPoints
         SUPREME    // 600+ TechPoints    — reached at 600 TechPoints
     }
+
+    // Phase II tech tree (see TechTree_Phase2_Design.md, TechDefSO). One tab per field in the
+    // planned TechTreeMenuUI - Propulsion/Tactical/Ordnance/Science/Intelligence are the 5 shared
+    // branches (identical for every civ, §4); FactionUnique is each civ's own Branch F (§5).
+    public enum TechFieldEnum
+    {
+        Propulsion,
+        Tactical,
+        Ordnance,
+        Science,
+        Intelligence,
+        FactionUnique
+    }
+
+    // TechTree_Phase2_Design.md §5: most techs are Researched (queued via TechManager.StartResearch,
+    // costs TechPoints/turns). InnateFromStart is the one Tier-0 ability every civ's Branch F carries
+    // for free from civ init - it never occupies a research slot or appears in the "available to
+    // research" list.
+    public enum TechUnlockMode
+    {
+        Researched,
+        InnateFromStart
+    }
     public enum GameMode
     {
         SINGLEPLAYER,

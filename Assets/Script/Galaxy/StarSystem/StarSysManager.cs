@@ -966,7 +966,17 @@ namespace BOTF3D.Galaxy
                 // Push the new stockpile to this system's compact-header UI (if it's been
                 // instantiated) right where the value actually changes - Antimatter only ever
                 // moves here, once per turn, so this is the one place a live refresh is needed.
-                sysCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>()?.compactHeader?.RefreshAntimatter();
+                // Explicit != null, not ?. - StarSysUIGameObject is Unity's "fake null" for a
+                // system whose UI was never instantiated, and ?. bypasses UnityEngine.Object's
+                // overloaded null check, throwing UnassignedReferenceException instead of
+                // skipping cleanly (same explicit-check convention this file already uses at its
+                // other StarSysUIGameObject guards, e.g. ~line 1665).
+                if (sysCon.StarSysUIGameObject != null)
+                {
+                    var uiFields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                    if (uiFields != null && uiFields.compactHeader != null)
+                        uiFields.compactHeader.RefreshAntimatter();
+                }
 
                 bool destructionBlackout = activePowerPlants == 0
                     || (activeFactories == 0 && sysData.AntimatterStockpile <= 0);

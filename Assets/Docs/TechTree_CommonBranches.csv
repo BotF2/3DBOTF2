@@ -20,13 +20,13 @@ Ordnance,4,300,6,Plasma-class Torpedoes,"Unlocks Plasma-class torpedoes (armor-m
 Ordnance,5,450,8,Quantum-class Torpedoes,Unlocks Quantum-class torpedoes (high yield),OrdnanceUnlock
 Ordnance,6,600,10,Transphasic-class Torpedoes,Unlocks Transphasic-class torpedoes (% shield-bypass),OrdnanceUnlock
 Ordnance,7,900,14,Directed Energy Overcharge,Capstone: +Weapon damage%,WeaponDamageMultiplier_Capstone
-Sensors & Science,1,0,3,Long-Range Sensors,Sight-range stage 1; reveals system facility caps,SightRangeStage_1
-Sensors & Science,2,100,4,Stellar Cartography,Sight-range stage 2; reveals hidden system resources,SightRangeStage_2
-Sensors & Science,3,200,5,Anomaly Detection,Sight-range stage 3; anomalies seen on galaxy map,SightRangeStage_3
-Sensors & Science,4,300,6,High-Density Energy Storage,Sight-range stage 4; facility power buffer,SightRangeStage_4
-Sensors & Science,5,450,8,Structural Integrity Fields,Sight-range stage 5; station HP + facility cap,SightRangeStage_5
-Sensors & Science,6,600,10,Xenobiological Engineering,Sight-range stage 6; pre-req step toward Terraforming,SightRangeStage_6
-Sensors & Science,7,900,14,Terraforming Technology,Capstone: sight-range stage 7; facility-slot expansion on low-tier worlds,SightRangeStage_7_FacilityCap
+Sensors & Science,1,0,3,Long-Range Sensors,Sight-range stage 1 + reveals system facility caps,SightRangeStage_1
+Sensors & Science,2,100,4,Stellar Cartography,Sight-range stage 2 + reveals hidden galaxy hazards,SightRangeStage_2
+Sensors & Science,3,200,5,Anomaly Detection,Sight-range stage 3 + anomalies seen on galaxy map,SightRangeStage_3
+Sensors & Science,4,300,6,Terraforming Technology,Sight-range stage 4 + terraform uninhabitalbe systems,SightRangeStage_4
+Sensors & Science,5,450,8,Structural Integrity Fields,Sight-range stage 5 + station HP,SightRangeStage_5
+Sensors & Science,6,600,10,Xenobiological Engineering,Sight-range stage 6 + increase facility capacity,SightRangeStage_6_FacilityCap
+Sensors & Science,7,900,14,High-Density Energy Storage,Capstone: sight-range stage 7 + facility power buffer,SightRangeStage_7_Capstone
 Intelligence,1,0,3,Subspace Echo Decoys,Projects fake fleet signatures to misdirect enemy scouts,Decoy
 Intelligence,2,100,4,Quantum Masking Algorithms,Hides sub-light fleet movement from long-range sensors (not a true cloak),MaskMovement
 Intelligence,3,200,5,Deep Cover Networks,Partial intel-panel reveal on a target empire,IntelPanelReveal_Partial

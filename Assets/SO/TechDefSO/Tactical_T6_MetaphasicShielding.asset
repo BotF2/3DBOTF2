@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b9111bf39e6c4949a89b8e85f6cdb78, type: 3}
+  m_Name: Tactical_T6_MetaphasicShielding
+  m_EditorClassIdentifier: BOTF3D::BOTF3D.Core.TechDefSO
+  Id: Tactical_T6_MetaphasicShielding
+  DisplayName: Metaphasic Shielding
+  Description: Resists environmental/stellar-phenomena damage
+  Field: 1
+  Tier: 6
+  TechPointsThreshold: 600
+  ResearchCost: 10
+  UnlockMode: 0
+  IsShared: 1
+  RestrictedToCiv: 0
+  EffectHook: 11
+  EffectMagnitude: 1
+  Prerequisites: []

@@ -82,6 +82,25 @@ namespace BOTF3D.Civilization
         private object SystemsOwned;
         public int PendingBuildTimeReduction = 0; // Consumed by next ship build at any owned shipyard; set from captured-ship BuildDuration / 2
 
+        // Phase II tech tree (TechTree_Phase2_Design.md §2a, §6, §8 II.2) - weighted-parallel
+        // branch-priority model. Written/read by TechManager's per-turn research tick.
+        //
+        // Every TechDefSO.Id this civ has completed - checked once per tech, never cleared.
+        public HashSet<string> ResearchedTechIds = new();
+        // Every tech's banked TechPoints, including every branch's simultaneously - this is what
+        // makes re-ranking SharedBranchPriority lossless (§2a): a branch's target resumes from here
+        // rather than 0 when its rank (or the player's priority order) changes. Keyed by TechDefSO.Id.
+        public Dictionary<string, int> BankedTechPointsByTechId = new();
+        // The player's 1st-5th rank over the 5 *shared* branches (Propulsion/Tactical/Ordnance/
+        // Science/Intelligence) - FactionUnique is never in this list, it gets its own always-on
+        // fixed share regardless of ranking (§2a). TechManager seeds this with a default order the
+        // first time it processes a civ that hasn't set one yet.
+        public List<TechFieldEnum> SharedBranchPriority;
+        // Optional manual override, one per TechFieldEnum, letting a player target a later tech in
+        // a branch instead of that branch's natural lowest-not-yet-researched pick (§2a/§6). Absent
+        // key = use the natural pick. Cleared automatically the moment the pinned tech completes.
+        public Dictionary<TechFieldEnum, string> ManualTechPinByField = new();
+
         /// <summary>
         /// Get power efficiency multiplier based on tech level
         /// Uses TechManager for centralized tech bonuses

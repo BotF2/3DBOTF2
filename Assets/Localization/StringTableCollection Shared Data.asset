@@ -259,6 +259,10 @@ MonoBehaviour:
     m_Key: Loading Galaxy
     m_Metadata:
       m_Items: []
+  - m_Id: 49505219860963328
+    m_Key: Ribbon.TechTree
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

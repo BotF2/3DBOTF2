@@ -698,6 +698,9 @@ namespace BOTF3D.UI
 
                 case Menu.TechTree:
                     if (techTreeMenuView != null) techTreeMenuView.SetActive(true);
+                    // Reloads the local player's SharedBranchPriority and redraws the ranking rows
+                    // every time the panel opens - it's a live view onto CivData, not a one-shot form.
+                    TechTreeMenuUIController.Instance?.Refresh();
                     break;
             }
         }

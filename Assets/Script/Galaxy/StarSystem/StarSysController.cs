@@ -740,6 +740,19 @@ namespace BOTF3D.Galaxy
                 return false;
             }
 
+            // Terraforming Technology (TechTree_CommonBranches.csv, Sensors & Science Tier 4,
+            // EffectHook SightRangeStage_4) is what unlocks terraforming an uninhabited system.
+            // Phase II's per-tech research tracking doesn't exist yet (see TechTree_Phase2_Design.md),
+            // so this is gated on the civ having reached the Tier 4 TechPoints threshold (300) from
+            // the existing flat CivData.TechPoints ladder as a stand-in - same pattern as
+            // FleetController.UpdateMaxWarp's WarpSpeedAverage gate - replace with a real
+            // "has researched Terraforming Technology" check once Phase II ships.
+            if (terraformingCiv.CivData.TechPoints < 300)
+            {
+                Debug.LogWarning($"TerraformSystem: '{name}' - refusing terraform claim by {terraformingCiv.CivData.CivEnum}, Terraforming Technology (300 TechPoints) not yet researched (has {terraformingCiv.CivData.TechPoints}).");
+                return false;
+            }
+
             // Claim ownership.
             CivEnum previousOwnerCivEnum = starSysData.CurrentOwnerCivEnum;
             starSysData.CurrentOwnerCivEnum = terraformingCiv.CivData.CivEnum;

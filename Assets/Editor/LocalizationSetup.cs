@@ -40,10 +40,16 @@ namespace BOTF3D.Editor
             ("Ribbon.Systems",       "Systems"),
             ("Ribbon.Fleets",        "Fleets"),
             ("Ribbon.Diplomacy",     "Diplomacy"),
-            ("Ribbon.Intel",         "Intelligence"),
+            // Table already has this key with English value "Intelligence" - AddMissingKeys skips
+            // existing keys, so shortening the ribbon label to "Intel" also requires updating the
+            // row by hand in Window > Asset Management > Localization Tables, not just this array.
+            ("Ribbon.Intel",         "Intel"),
             ("Ribbon.Report",        "Report"),
-            ("Ribbon.Encyclopedia",  "Encyclopedia"),
+            // Same as Ribbon.Intel above - table already has "Encyclopedia", update that row by hand too.
+            ("Ribbon.Encyclopedia",  "Info"),
             ("Ribbon.Home",          "Home"),
+            // New key - not in the table yet, so Add Missing Keys will actually seed this one.
+            ("Ribbon.TechTree",      "Tech"),
         };
 
         /// <summary>

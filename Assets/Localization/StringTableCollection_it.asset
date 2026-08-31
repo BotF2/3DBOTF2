@@ -247,7 +247,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376258
-    m_Localized: Intelligenza
+    m_Localized: Intel
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376259
@@ -255,7 +255,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376260
-    m_Localized: Enciclopedia
+    m_Localized: Info
     m_Metadata:
       m_Items: []
   - m_Id: 23091831937376261
@@ -264,6 +264,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 42365816295923712
     m_Localized: Caricamento Galaxy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 49505219860963328
+    m_Localized: Tech
     m_Metadata:
       m_Items: []
   references:

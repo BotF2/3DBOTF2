@@ -43,39 +43,79 @@ Today, every civ at the same `TechPoints` total gets *identical* multipliers aut
 is no choice. Phase II's whole point is to make research an active decision:
 
 - At each of the 7 tiers, new tech **options** unlock across all branches at once (menu grows).
-- Research is **single-threaded, not parallel** (revised — see below): a civ researches exactly one
-  tech at a time, regardless of how many Research Centers/Universities it has built. Research
-  Centers still matter — they're what `TechManager.CountActiveResearchCenters` already feeds into
-  the Phase I per-turn `TechPoints` income calc — but that count now only scales *how fast* the one
-  active project completes, not *how many* can run side by side. A civ never gets to develop two
-  branches at once; building a second Research Center just means the single queued project finishes
-  in fewer turns.
-- The player is never left with nothing queued: **a default project auto-starts** the moment a civ
-  has no active project — at civ init, and again immediately after any project completes. The
-  default is always that civ's own Branch A, Tier 1 tech (`Warp Core Stabilization` or its
-  civ-flavored equivalent) — same rule for all 7 civs, cheapest/first tech in the tree, easy to
-  explain in a tooltip. The player can swap to a different tech at any time via `StartResearch`
-  (below); this isn't a one-time nudge, it's the fallback the civ always lands on when the queue
-  goes empty and the player hasn't chosen anything else yet.
-- **Switching projects never destroys progress.** Progress is tracked *per tech*, not just on
-  whatever's currently active — `StartResearch(civ, techId)` always succeeds and simply changes
-  which tech that turn's `TechPoints` income is credited toward; a tech that already had some
-  `TechPoints` banked against it from an earlier stint as the active project resumes from that
-  banked amount when re-selected, rather than restarting from zero. This makes switching a free
-  tactical choice (e.g. rush a cheaper tech first, come back to the expensive one later) instead of
-  a punishing one.
+- Research is **priority-ranked and parallel, not single-threaded** (revised twice now — this
+  supersedes the single-active-project model originally written here; see §2a below for the full
+  mechanism). The player's only ongoing input is a rank order over the 5 shared branches
+  (Propulsion/Tactical/Ordnance/Science/Intelligence); the game keeps making forward progress on all
+  of them every turn, in the background, without further clicks, until the player deliberately
+  re-ranks. Research Centers/Universities still matter exactly as in Phase I — they're what
+  `TechManager.CountActiveResearchCenters` feeds into the per-turn `TechPoints` income calc — that
+  income is now what gets split across branches by §2a's weights, so more Research Centers still
+  means faster progress everywhere at once, just split rather than funneled into one project.
+- The player is never left with nothing progressing: every shared branch always has a target (its
+  own lowest not-yet-researched tech, whether or not that tech's tier threshold has been reached
+  yet — see §2a's pre-banking rule), and Branch F always has its fixed trickle (§2a) — so there is
+  no "default project" fallback to define the way the old single-threaded model needed one.
+- **Switching priorities never destroys progress.** Progress is tracked *per tech*, not per rank
+  slot — `BankedTechPointsByTechId` keeps every branch's (and Branch F's) progress independently, so
+  re-ranking which branch is 1st vs. 5th just changes how fast each one accrues from that point on,
+  never resets anything. `StartResearch(civ, techId)` is retained for the (rare, manual) case of a
+  player wanting to pin a specific tech ahead of its branch's natural pick-order.
 - Each project's total cost is a fixed per-tier `TechPoints` amount (the `TimeLine` column, §3.3,
-  converted from turns at one dedicated Research Center's baseline rate); every `TechPoints` a civ
-  earns in a turn now goes entirely to its one active project (no more splitting across concurrent
-  projects, since there's only ever one) — more Research Centers still means faster completion of
-  whichever project is currently queued, just never more than one in flight.
+  converted from turns at one dedicated Research Center's baseline rate, now interpreted as the cost
+  *at that branch's full un-split share* — a branch running at a smaller weighted share than 100%
+  takes proportionally longer, by construction, not by a separate penalty).
 - Completing a tech applies **its own specific effect**, civ-wide, immediately — not a blanket
-  level-up. A civ that rushes the Propulsion branch and neglects Tactical ends up faster but
-  squishier than a rival at the same `TechPoints` total who chose the opposite — a real tradeoff.
+  level-up. A civ that ranks Propulsion 1st and Tactical last ends up faster but squishier than a
+  rival at the same `TechPoints` total who ranked the opposite — a real tradeoff, now expressed as a
+  ranking rather than an all-or-nothing choice.
 - `TechLevel`/`OnTechAdvanced` keep firing exactly as today (legacy hooks — build speed, minor-race
   trickle scaling) so nothing existing breaks; the tree is additive. The one exception is fog sight
   range — see the Branch D note below, its automatic growth is superseded by an actual research
   choice.
+
+### 2a. Research allocation: branch priorities (weighted parallel, not single-threaded)
+
+Decided in response to the concern that a strict "one active tech at a time" queue is either tedious
+(constant manual re-picking every time a branch runs dry) or wasteful (whichever branch isn't
+currently active earns nothing). The replacement:
+
+- **The player ranks all 5 shared branches**, 1st through 5th — never just 3 of the 5, so there's
+  always a fully-defined order with no undefined branches to fall back to. Re-ranking is the only
+  input the tech tree ever needs from the player between individual tech choices (and manually
+  pinning a specific tech via `StartResearch` remains available for a player who wants to override
+  their branch's natural next pick).
+- **Each turn's `TechPoints` income splits by rank**, using a fixed curve — placeholder weights
+  (tunable in the same §8 II.5 balance pass as `EffectMagnitude`, not fixed by this doc):
+  Branch F 15% (see below) · Rank 1 34% · Rank 2 21% · Rank 3 13% · Rank 4 10% · Rank 5 7% (sums to
+  100%). This is what actually answers "can 2nd/3rd priority progress at a slower pace" — yes, every
+  turn, automatically, just smaller shares.
+- **A branch's target is always its own lowest not-yet-`ResearchedTechIds` tech**, full stop —
+  whether or not that tech's `TechPointsThreshold` has been reached yet by the civ's total
+  `TechPoints`. A branch that's caught up to the current tier band keeps banking its rank's share
+  against its *next* (still tier-locked) tech instead of sitting idle — `BankedTechPointsByTechId`
+  accepts points against a tech before its threshold clears, it just can't move to
+  `ResearchedTechIds`/fire `ApplyTechEffect` until the threshold also clears. This is what resolves
+  the original worry directly: a civ that ranks Propulsion 1st and rushes through Tier 1 doesn't
+  stall waiting for Tier 2's 100-point gate — it's already been banking Tier 2's `Warp Field
+  Optimization` in the background the whole time, so Tier 2 often completes the instant the
+  threshold clears rather than starting from zero.
+- **Redistribution only triggers on a true terminal state** — a branch with *every* one of its 7
+  techs already in `ResearchedTechIds` (nothing left to pre-bank against, ever). Only then does its
+  rank's share get redistributed proportionally across the remaining branches that still have a
+  target. This is deliberately rare; the pre-banking rule above means a branch essentially always has
+  somewhere to put its share long before this comes up.
+- **Branch F (Faction-Unique) sits outside the 5-branch ranking entirely**, with its own fixed 15%
+  share unconditionally, every turn, for every civ — it's each civ's separately-balanced narrative
+  power curve (§3.4) and was never meant to compete with the 5 shared branches for the player's
+  attention; a player who ranks Sensors last should still see their civ's own signature techs (T5
+  Battle Cloak, Transwarp Hub Network, etc.) arrive on a predictable cadence regardless. Once a civ's
+  Branch F is fully researched (all 6 + the free Tier-0 innate), its 15% redistributes to the 5
+  ranked branches the same as any other terminal branch above.
+- `CivData` needs one more field for this beyond §6's list: an ordered `List<TechFieldEnum>
+  SharedBranchPriority` (length 5, the 5 shared `TechFieldEnum` values only — `FactionUnique` is
+  never in it, since it's the always-on trickle above). Everything else (per-tech banked progress,
+  researched set) is unchanged from §6.
 
 ## 3. Balance framework (the actual ask)
 
@@ -222,19 +262,30 @@ reveal is the visible cost of that choice, not a background number nobody intera
 
 | Tier | Tech | Effect hook |
 |---|---|---|
-| 1 | Long-Range Sensors | `SightRangeStage` 1 + reveals system facility caps on scan |
-| 2 | Stellar Cartography | `SightRangeStage` 2 + reveals hidden system resources |
-| 3 | Anomaly Detection | `SightRangeStage` 3 + anomalies seen on galaxy map |
-| 4 | High-Density Energy Storage | `SightRangeStage` 4 + facility power buffer |
-| 5 | Structural Integrity Fields | `SightRangeStage` 5 + station HP/`FacilityCapBonus` |
-| 6 | Xenobiological Engineering | `SightRangeStage` 6 + pre-req flavor step toward terraforming |
-| 7 | Terraforming Technology | `SightRangeStage` 7 (capstone) + `FacilityCapBonus` on low-tier worlds |
+| 1 | Long-Range Sensors | `SightRangeStage_1` — reveals system facility caps on scan |
+| 2 | Stellar Cartography | `SightRangeStage_2` — reveals hidden galaxy hazards |
+| 3 | Anomaly Detection | `SightRangeStage_3` — anomalies seen on galaxy map |
+| 4 | Terraforming Technology | `SightRangeStage_4` — unlocks terraforming an uninhabited system |
+| 5 | Structural Integrity Fields | `SightRangeStage_5` — station HP |
+| 6 | Xenobiological Engineering | `SightRangeStage_6_FacilityCap` — increases facility capacity |
+| 7 | High-Density Energy Storage | `SightRangeStage_7_Capstone` — capstone, facility power buffer |
 
 **Tier-3 change (design-only, blocked on anomalies shipping):** anomalies as a galaxy-map object
 class don't exist yet (same gap as wormholes, §4 Branch A Tier 4 note — `GameEnums.cs` only reserves
 the idea). `Anomaly Detection` (`SightRangeStage_3`) is meant to make anomalies — wormholes included —
 visible on a civ's galaxy-map view once researched; before that, an unresearched civ's map simply
 doesn't render them at all, they're not just hidden-but-detectable. No implementation to point at yet.
+
+**Tier-4 change (implemented):** `StarSysController.TerraformSystem()` claims an uninhabited,
+terraformable system for the transporting civ once a Transport ship is spent on it (see the method's
+own doc-comment for the full Claim/Terraform/Colonize split). `Terraforming Technology`
+(`SightRangeStage_4`) is what's meant to gate that ability. Phase II's per-tech tracking doesn't exist
+yet (§7's `TechDefSO`/`UnlockMode` isn't built), so `TerraformSystem` currently gates on the civ's flat
+`CivData.TechPoints >= 300` — the Tier-4 threshold from the existing ladder — as a stand-in for "has
+researched Terraforming Technology," the same pattern as Branch A Tier 3's `WarpSpeedAverage` gate
+above. This should be swapped for a real per-tech researched check once Phase II's tracking ships;
+until then every Tier-4 tech across every branch (not just this one) would read as unlocked by the
+same threshold, the same known gap flagged for Branch A Tier 3.
 
 **Branch E — Intelligence & Espionage** (detection/decoys/counter-intel only — **no true cloak**;
 cloaking is reserved for the Klingon/Romulan unique branch per the design brief)
@@ -387,22 +438,28 @@ New types (Core-layer-safe: pure data, no app-namespace imports in anything unde
   list) rather than adding parallel systems.
 - `TechFlavorSO` (one per civ) — override table of `{TechId → DisplayName, Description, Icon}` for
   the 35 *shared* techs only; unique techs already carry their own name on the `TechDefSO`.
-- `CivData` additions (revised — single-project model, not a list): `HashSet<string>
-  ResearchedTechIds`, `Dictionary<string, int> BankedTechPointsByTechId` (every tech's progress,
-  including ones not currently active — this is what makes switching lossless, §2), `string
-  ActiveTechId` (the one tech currently receiving that turn's income; null only ever transiently,
-  since a default always gets queued the instant it would otherwise go empty).
-- `TechManager` additions: `StartResearch(civ, techId)` — always succeeds and simply reassigns
-  `ActiveTechId`, no concurrency check against `CountActiveResearchCenters` anymore (Research
-  Centers no longer gate *how many* projects run, only the income that fuels the one that is); a
-  per-turn progress tick alongside `ProcessResearchForAllCivs` that credits that turn's entire
-  `TechPoints` income to `BankedTechPointsByTechId[civ.ActiveTechId]`; `CompleteResearch` →
-  `ApplyTechEffect` + new `OnTechResearched` event (additive to the existing `OnTechAdvanced` level
-  event, which keeps firing unchanged for legacy hooks), then immediately calls `StartResearch` again
-  with the default pick (Branch A Tier 1, §2) if the player hasn't already queued something else for
-  after this one. `GetDefaultTechId(civ)` — the Branch A Tier 1 tech, flavor-resolved per civ — is
-  what both civ init and post-completion auto-start call into, so the "always something queued" rule
-  has one implementation, not two.
+- `CivData` additions (revised — weighted-parallel model, §2a, not a single active project):
+  `HashSet<string> ResearchedTechIds`, `Dictionary<string, int> BankedTechPointsByTechId` (every
+  tech's progress, including every branch's simultaneously — this is what makes re-ranking lossless,
+  §2/§2a), `List<TechFieldEnum> SharedBranchPriority` (the player's 1st-5th rank over the 5 shared
+  branches; `FactionUnique` is never in this list, §2a). `ActiveTechId` from the original
+  single-project draft is dropped — there's no longer one "active" tech, every branch's current
+  target banks simultaneously every turn.
+- `TechManager` additions: `GetBranchTarget(civ, field)` — a pure function returning a branch's
+  current pick (its own lowest `TechDefSO` not yet in `ResearchedTechIds`, regardless of whether that
+  tech's `TechPointsThreshold` is currently met, §2a's pre-banking rule; null only once every tech in
+  that branch/Branch-F is researched). `StartResearch(civ, techId)` is retained for a manual pin
+  (overrides a branch's natural `GetBranchTarget` pick until that tech completes) rather than being
+  the primary control surface. A per-turn progress tick alongside `ProcessResearchForAllCivs` that:
+  computes each of the 5 shared branches' + Branch F's current weighted share (§2a's curve,
+  redistributing a terminal branch's share across the remaining live targets), credits that share of
+  the turn's `TechPoints` income to `BankedTechPointsByTechId[targetId]` for each; then for every
+  target whose banked total now covers its `ResearchCost`-equivalent *and* whose
+  `TechPointsThreshold` is met, calls `CompleteResearch` → `ApplyTechEffect` + `OnTechResearched`
+  (additive to the existing `OnTechAdvanced` level event, which keeps firing unchanged for legacy
+  hooks) — banked-but-still-threshold-locked techs simply keep accruing untouched until they clear
+  the gate. `SetBranchPriority(civ, orderedFields)` sets/reorders `SharedBranchPriority`; always
+  succeeds, never resets any banked progress.
 
 New UI: `TechTreeMenuUI` (tabs per branch, node list per tier, lock/available/in-progress/completed
 states) follows the same construction pattern as the Diplomacy/Intelligence menus. Extend
@@ -427,16 +484,54 @@ slots). An editor validator (`TechBalanceValidator`, same convention as the exis
 
 ## 8. Suggested phasing
 
-1. **II.1 Data model** — enums, `TechDefSO`/`TechFlavorSO`, `CivData` fields (single `ActiveTechId` +
-   `BankedTechPointsByTechId`, §6, revised), author all 84 `TechDefSO`s with placeholder numbers from
-   §4/§5.
-2. **II.2 Research flow** — `StartResearch`/progress tick/`CompleteResearch`/default-pick auto-start
-   in `TechManager` (§2, §6, revised for the single-active-project model), reusing existing
-   `TechPoints` income unchanged.
+1. **II.1 Data model (implemented):** `TechFieldEnum`/`TechUnlockMode` (`GameEnums.cs`) and
+   `TechEffectHook` (`TechEffectHook.cs`, one member per distinct backend mechanism a shared or
+   unique tech can dispatch to) are in `_Core/Utilities/`. `TechDefSO`/`TechFlavorSO` (`Assets/Script/
+   Core/`) hold the shape from §6 - `TechFlavorSO`'s per-civ override table exists but no civ has any
+   entries authored yet (no source data for it, see the class's own doc-comment). `CivData` has
+   `ResearchedTechIds`/`BankedTechPointsByTechId`, unused until II.2 writes to them; the
+   weighted-parallel model (§2a) additionally needs a `SharedBranchPriority` field on `CivData` — not
+   yet added, since §2a was decided after this data-model pass shipped (see §6's note).
+   All 84 `TechDefSO` assets (35 shared + 49 unique) are authored by `TechDefSOImporter`
+   (`Tools > Import TechDefSO CSVs`), which reads `TechTree_CommonBranches.csv`/
+   `TechTree_FactionUnique.csv` directly and is safe to re-run whenever either CSV changes - it
+   updates existing assets in place by `Id` rather than duplicating them. `EffectMagnitude` on every
+   asset is still the placeholder default (`1f`) - the real per-tech curve (§4's suggested
+   1.00→1.65 progression) is an §8 II.5 balance-pass task, not part of II.1.
+2. **II.2 Research flow (implemented):** `CivData.SharedBranchPriority`/`ManualTechPinByField` added
+   (`ActiveTechId` from the earlier single-project draft removed - superseded). `TechManager` gained
+   `GetBranchTarget`, `StartResearch` (manual pin), `SetBranchPriority`, and a weighted-split progress
+   tick (`ApplyBranchPriorityIncome`) wired into the existing `ProcessResearchForAllCivs` right after
+   the unchanged Phase I `CivData.TechPoints` credit — additive, majors only, per §2/§2a. Needs
+   `TechManager.allTechDefs` populated once via `BOTF > Fix > Populate TechDefSO List in
+   PersistentScene` (mirrors `StarSysSOListPopulator`) after II.1's importer has run; the tick
+   no-ops with a warning if that list is empty. `CompleteResearch` calls `ApplyTechEffect`, which is
+   still a logging-only stub — real effect wiring is II.3, not part of this step. No UI yet
+   (`SetBranchPriority`/`StartResearch` have no caller) - that's II.4.
 3. **II.3 Effect wiring** — hook `ApplyTechEffect` into `ShipStatCalculator`, `ShipMovementController`,
    `CombatOrderHelper`, `ResearchCenterData`, `StarSysData`; new `CloakingController` for
    Klingon/Romulan, new `TranswarpHubController` for Borg.
-4. **II.4 UI** — `TechTreeMenuUI`, notification/HUD updates.
+4. **II.4 UI (partial):** `TechTreeMenuUIController` (`Assets/Script/UI/Panels/`) implements just the
+   priority-ranking control (§2a) - 5 rows (one per shared branch) with Up/Down buttons that swap
+   adjacent rows and call `TechManager.SetBranchPriority` live, plus a static Faction-Unique label.
+   `GalaxyMenuUIController.OpenMenu`'s `Menu.TechTree` case calls `TechTreeMenuUIController.Instance
+   ?.Refresh()` so the panel reloads `CivData.SharedBranchPriority` every time it opens. The actual
+   panel hierarchy (5 row GameObjects + labels/buttons, the Faction-Unique label) still needs
+   building **in the Unity Editor** and wiring into both this script's serialized `rows`/
+   `factionUniqueLabel` fields and `GalaxyMenuUIController`'s `techTreeMenuView` slot (§8's existing
+   note on that slot still applies). The full node-list tech browser (tabs per branch, rows per
+   tier, lock/available/in-progress/completed states, §9) was open as of the previous paragraph, but
+   a first version now exists: `FullTechTreeUIController` (`Assets/Script/UI/Panels/`), opened by a
+   `ButtonTechTree` child of `TechTreePanel`. Fixed 6-column x 7-row grid (5 shared branches +
+   Faction-Unique, pre-placed `TMP_Text` cells wired in the Editor, not instantiated - the count
+   never changes for a given civ, so a prefab+scroll pattern buys nothing here), color-coded
+   completed/researching/not-yet-reached via `TechManager.GetBranchTechs`/`GetBranchTarget`/
+   `ResearchedTechIds`. Lives as a child of `TechTreePanel` (not a new top-level `Menu` entry) so it
+   closes automatically with the rest of the Tech Tree menu. Still open: tier lock/unlock isn't
+   visually distinguished from "future" (both currently render the same grey - a civ that hasn't hit
+   a tier's `TechPointsThreshold` yet looks identical to one that has but hasn't gotten to it), and
+   there's no interaction (can't click a row to `StartResearch`-pin it) - both are candidates for a
+   later pass, not required by the original ask.
 5. **II.5 Balance pass** — `TechBalanceValidator` tool + playtesting tuning of the 49 unique techs.
 
 **UI stub already landed ahead of schedule:** `Menu.TechTree` (`GameEnums.cs`), the ribbon
@@ -458,12 +553,14 @@ button, and handler don't need to change again.
 - **UI**: node list (tabs per branch, rows per tier, lock/available/in-progress/completed states),
   not a visual node-graph — matches the existing Diplomacy/Intelligence menu conventions and is far
   cheaper to build.
-- **Concurrency (revised):** only **one** research project active at a time, civ-wide, regardless of
-  Research Center/University count (§2, §6). Building more centers still raises per-turn `TechPoints`
-  income, which speeds up whichever single project is queued — it no longer unlocks a second
-  concurrent project. A default project (Branch A Tier 1) auto-starts whenever the queue would
-  otherwise be empty, and switching to a different tech never loses progress — each tech banks its
-  own `TechPoints` independently and resumes where it left off when re-selected (§2).
+- **Concurrency (revised again):** all 5 shared branches + Branch F progress **simultaneously every
+  turn**, civ-wide, split by the player's 1-5 branch rank order via a fixed weight curve (§2a) —
+  not the single-active-project model originally written here. Building more Research Centers/
+  Universities still raises per-turn `TechPoints` income exactly as in Phase I; that larger total is
+  what gets split, so it speeds up progress on every branch at once rather than just one queued
+  project. There is no "default project" fallback to define, since every branch always has a target
+  (§2a's pre-banking rule) until it's fully researched. Re-ranking never loses progress — each
+  branch's target tech banks its own `TechPoints` independently regardless of rank changes (§2a).
 - **Fog-of-war sight range**: driven by the highest Branch-D tier actually *researched*, not by raw
   banked `TechPoints` (§4, Branch D) — an active, delayable player choice instead of an automatic
   background stat.
