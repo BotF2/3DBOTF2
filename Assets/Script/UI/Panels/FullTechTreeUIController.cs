@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using BOTF3D.Core;
 using BOTF3D.Civilization;
 
@@ -14,12 +15,15 @@ namespace BOTF3D.UI
     ///
     /// Fixed 6-column x 7-row grid (5 shared branches + Faction-Unique, 7 techs each - Branch F's
     /// free Tier-0 innate plus its 6 researched entries) built once in the Editor, not instantiated
-    /// at runtime - the count never changes for a given civ, so there's nothing a prefab+scroll
-    /// pattern would buy here (see DiplomacyMenuUIController's own pre-placed-array convention for
-    /// the same reasoning applied to a different fixed-size panel).
+    /// at runtime - the row *count* never changes for a given civ, so there's nothing a
+    /// prefab+instantiate pattern would buy here (see DiplomacyMenuUIController's own pre-placed-array
+    /// convention for the same reasoning applied to a different fixed-size panel). Row *height* does
+    /// vary now that each row carries a description, which is why the 6 columns sit inside a single
+    /// vertical ScrollRect below the (non-scrolling) header row - see ResizeContentToTallestColumn.
     ///
-    /// Lives as a child of TechTreePanel (opened by ButtonTechTree there) so it closes automatically
-    /// whenever the Tech Tree menu itself closes, rather than needing its own top-level Menu entry.
+    /// Lives as a child of TechTreePanel (opened/closed by ButtonTechTree there via Toggle) so it
+    /// closes automatically whenever the Tech Tree menu itself closes, rather than needing its own
+    /// top-level Menu entry.
     /// </summary>
     public class FullTechTreeUIController : MonoBehaviour
     {
@@ -35,6 +39,11 @@ namespace BOTF3D.UI
 
         [Header("Civ-specific header - text is replaced with the local civ's short name on Refresh")]
         [SerializeField] private TMP_Text civSpecificHeader;
+
+        [Header("Scroll area - the ScrollRect's Content, resized after each Refresh to fit the " +
+                "tallest column now that rows carry each tech's description and wrap to different " +
+                "heights (set up by Assets/Editor/TechTreeScrollRectSetup.cs)")]
+        [SerializeField] private RectTransform contentRect;
 
         [System.Serializable]
         private class Column
@@ -64,7 +73,7 @@ namespace BOTF3D.UI
         }
 
         /// <summary>Shows the panel and redraws every column from the local player's current
-        /// research state. Wire ButtonTechTree's OnClick directly to this in the Inspector.</summary>
+        /// research state.</summary>
         public void Open()
         {
             gameObject.SetActive(true);
@@ -74,6 +83,16 @@ namespace BOTF3D.UI
         public void Close()
         {
             gameObject.SetActive(false);
+        }
+
+        /// <summary>Wire ButtonTechTree's OnClick directly to this in the Inspector - a second
+        /// click closes the panel again instead of just re-opening (and re-refreshing) it.</summary>
+        public void Toggle()
+        {
+            if (gameObject.activeSelf)
+                Close();
+            else
+                Open();
         }
 
         /// <summary>Redraws every cell - safe to call anytime the panel is open (e.g. after a turn
@@ -110,7 +129,13 @@ namespace BOTF3D.UI
                     }
 
                     TechDefSO def = defs[r];
-                    rowText.text = def.Tier == 0 ? $"Innate — {def.DisplayName}" : $"T{def.Tier} — {def.DisplayName}";
+                    string label = def.Tier == 0 ? $"Innate — {def.DisplayName}" : $"T{def.Tier} — {def.DisplayName}";
+                    // Explanation line - smaller and dimmer so the tier/name stays the visual anchor
+                    // of each row; rows wrap to different heights now, which is why Content below
+                    // gets resized per-column after this loop instead of using a fixed height.
+                    rowText.text = string.IsNullOrEmpty(def.Description)
+                        ? label
+                        : $"{label}\n<size=65%><color=#B0B0B0>{def.Description}</color></size>";
 
                     if (civ.CivData.ResearchedTechIds.Contains(def.Id))
                         rowText.color = CompletedColor;
@@ -122,6 +147,31 @@ namespace BOTF3D.UI
                         rowText.color = LockedColor; // tier not reached yet
                 }
             }
+
+            ResizeContentToTallestColumn();
+        }
+
+        /// <summary>Row heights now vary with each tech's description, so the Content the ScrollRect
+        /// scrolls can't use a fixed design-time height - grow it to whichever column's "Rows"
+        /// container (VerticalLayoutGroup + ContentSizeFitter) ended up tallest after this refresh.</summary>
+        private void ResizeContentToTallestColumn()
+        {
+            if (contentRect == null) return;
+
+            Canvas.ForceUpdateCanvases();
+            float maxHeight = 0f;
+            foreach (Column col in columns)
+            {
+                if (col?.Rows == null || col.Rows.Length == 0 || col.Rows[0] == null) continue;
+
+                RectTransform rowsContainer = col.Rows[0].transform.parent as RectTransform;
+                if (rowsContainer == null) continue;
+
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rowsContainer);
+                maxHeight = Mathf.Max(maxHeight, rowsContainer.rect.height);
+            }
+
+            contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, maxHeight);
         }
     }
 }
