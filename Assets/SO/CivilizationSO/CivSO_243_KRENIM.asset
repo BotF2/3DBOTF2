@@ -21,8 +21,8 @@ MonoBehaviour:
   XenophbiaEnum: -2
   RuthlessEnum: -2
   GreedyEnum: 1
-  CivImage: {fileID: 21300000, guid: 26512e3d43dea46439df485f0a1598a5, type: 3}
-  Insignia: {fileID: 0}
+  CivImage: {fileID: 21300000, guid: 50ec87370c0922a4099944d027062256, type: 3}
+  Insignia: {fileID: 21300000, guid: 85e0837b62e75aa4fae6c71b91249640, type: 3}
   GlowColor: {r: 1, g: 1, b: 1, a: 1}
   Population: 0
   MinHomePopulation: 10

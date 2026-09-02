@@ -22,7 +22,7 @@ MonoBehaviour:
   RuthlessEnum: 1
   GreedyEnum: 0
   CivImage: {fileID: 21300000, guid: 4aa4f8dc2f25263409d862a4fae4d5f8, type: 3}
-  Insignia: {fileID: 0}
+  Insignia: {fileID: 21300000, guid: 12bbed21760ec6c4299ba3bf1e3e9eb8, type: 3}
   Population: 0
   MinHomePopulation: 10
   MaxHomePopulation: 24
