@@ -91,6 +91,13 @@ namespace BOTF3D.Civilization
         // makes re-ranking SharedBranchPriority lossless (§2a): a branch's target resumes from here
         // rather than 0 when its rank (or the player's priority order) changes. Keyed by TechDefSO.Id.
         public Dictionary<string, int> BankedTechPointsByTechId = new();
+        // Sub-1-point remainder from ApplyBranchPriorityIncome's per-turn weighted split, carried to
+        // next turn instead of being discarded. Needed because a branch's turn-by-turn share is
+        // usually well under 1 whole TechPoint at typical early-game income (e.g. 1st-priority
+        // Propulsion at 34% of a 1-2 TechPoints/turn total is 0.34-0.68/turn) - rounding that down to
+        // 0 every turn (the pre-fix behavior) meant a branch could sit at a nonzero % share forever
+        // and still never bank a single point. Keyed by TechDefSO.Id, same as BankedTechPointsByTechId.
+        public Dictionary<string, float> FractionalBankedProgressByTechId = new();
         // The player's 1st-5th rank over the 5 *shared* branches (Propulsion/Tactical/Ordnance/
         // Science/Intelligence) - FactionUnique is never in this list, it gets its own always-on
         // fixed share regardless of ranking (§2a). TechManager seeds this with a default order the
@@ -100,6 +107,10 @@ namespace BOTF3D.Civilization
         // a branch instead of that branch's natural lowest-not-yet-researched pick (§2a/§6). Absent
         // key = use the natural pick. Cleared automatically the moment the pinned tech completes.
         public Dictionary<TechFieldEnum, string> ManualTechPinByField = new();
+        // Accumulated gameplay effects from every completed tech (§8 II.3 - TechManager.
+        // ApplyTechEffect writes to this; every consuming system reads it instead of re-deriving
+        // "has this civ researched X" from ResearchedTechIds itself). See TechEffects' own doc-comment.
+        public TechEffects Effects = new();
 
         /// <summary>
         /// Get power efficiency multiplier based on tech level
@@ -107,19 +118,25 @@ namespace BOTF3D.Civilization
         /// </summary>
         public float GetPowerTechMultiplier()
         {
+            // Science Tier 7 High-Density Energy Storage capstone (TechEffectHook.
+            // SightRangeStage_7_Capstone, §8 II.3) - additive facility-power buffer stacked on top
+            // of the flat TechLevel curve below, same shape as GetFactorySpeedMultiplier's
+            // Terran-only Agonizer Discipline Regimen bonus.
+            float buffer = Effects.FacilityPowerBuffer;
+
             if (TechManager.Instance != null)
             {
-                return TechManager.Instance.GetPowerEfficiencyMultiplier(CurrentTechLevel);
+                return TechManager.Instance.GetPowerEfficiencyMultiplier(CurrentTechLevel) + buffer;
             }
 
             // Fallback if TechManager not available
             switch (CurrentTechLevel)
             {
-                case TechLevel.EARLY: return 1.0f;
-                case TechLevel.DEVELOPED: return 1.2f;
-                case TechLevel.ADVANCED: return 1.5f;
-                case TechLevel.SUPREME: return 2f;
-                default: return 1.0f;
+                case TechLevel.EARLY: return 1.0f + buffer;
+                case TechLevel.DEVELOPED: return 1.2f + buffer;
+                case TechLevel.ADVANCED: return 1.5f + buffer;
+                case TechLevel.SUPREME: return 2f + buffer;
+                default: return 1.0f + buffer;
             }
         }
         /// <summary>

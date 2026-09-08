@@ -785,6 +785,13 @@ namespace BOTF3D.Combat
                 CleanupShips(CombatData.SideTwoShipCons);
             }
 
+            // Transport cargo consequences (Troops dropped into a fought-over system, a Terraform
+            // designation lost to combat disruption - see ApplyTransportCargoConsequences's own
+            // doc comment). Runs independently of CleanupShips above: that method's "survived"
+            // branch keys off CurrentFleetController != null, which a garrisoned Transport
+            // (never merged into a fleet) never has even when it isn't destroyed.
+            ApplyTransportCargoConsequences();
+
             // Use pre-captured fleet refs (collected at combat start, before any ship deaths)
             GameLogger.Log(GameLogger.LogCategory.Combat, $"  Processing {_involvedFleets.Count} fleets for end-of-combat cleanup", this);
 
@@ -921,6 +928,54 @@ namespace BOTF3D.Combat
 
                     GameLogger.Log(GameLogger.LogCategory.Combat, $"    ✅ Ship cleaned and returned to fleet", this);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Applies combat's effect on a surviving Transport's loaded Troops - see
+        /// StarSysMenuUIController's Load dropdown for how those get loaded in the first place.
+        /// A destroyed Transport needs no separate handling: its cargo is simply lost with the
+        /// ship, so ShipData.Distroyed gates it out of the loop below. (A Terraform designation is
+        /// NOT touched by combat - it's only ever cleared by StarSysController.TerraformSystem,
+        /// when the transport actually completes a Terraform mission.)
+        /// Loaded Troops are only ever dropped in a fleet-vs-system fight, delivered onto the
+        /// system being fought over (CombatData.StarSysCon) - the transport itself survives.
+        /// </summary>
+        private void ApplyTransportCargoConsequences()
+        {
+            ApplyTransportCargoConsequences(CombatData.SideOneShipCons);
+            ApplyTransportCargoConsequences(CombatData.SideTwoShipCons);
+        }
+
+        private void ApplyTransportCargoConsequences(List<ShipController> ships)
+        {
+            if (ships == null) return;
+
+            bool isSystemFight = CombatData.CombatType == CombatType.FleetVsSystem
+                                  || CombatData.CombatType == CombatType.SystemVsFleet;
+            if (!isSystemFight) return;
+
+            foreach (var ship in ships)
+            {
+                var sd = ship?.ShipData;
+                if (sd == null || sd.Distroyed || sd.ShipType != ShipType.Transport) continue;
+                if (sd.LoadedGroundForces <= 0 || CombatData.StarSysCon == null) continue;
+
+                int droppedCount = sd.LoadedGroundForces;
+                var sysData = CombatData.StarSysCon.StarSysData;
+                for (int i = 0; i < droppedCount; i++)
+                    StarSysManager.Instance?.AddGroundForceUnit(CombatData.StarSysCon);
+                sd.LoadedGroundForces = 0;
+
+                GameLogger.Log(GameLogger.LogCategory.Combat,
+                    $"[Cargo] '{sd.ShipName}' dropped {droppedCount} troop unit(s) onto '{sysData.SysName}'.", this);
+                int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+                GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(sysData.GetPosition());
+                ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Logistics, stardate,
+                    $"{sd.ShipName} dropped {droppedCount} troop unit(s) at {sysData.SysName}", "",
+                    sysData.SysName, quadrant, ReportSeverity.Info));
+
+                ship.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(sd);
             }
         }
 

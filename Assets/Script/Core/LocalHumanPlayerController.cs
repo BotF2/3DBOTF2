@@ -194,6 +194,29 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             CmdColonizeSystem(fleetCon.netIdentity, starSysInt, transportShipID);
     }
 
+    /// <summary>
+    /// Borg Transwarp Hub Network (§8 II.3, TranswarpHubController) - same relay pattern as
+    /// SubmitTerraformSystem above, but FleetController already has its own NetworkIdentity (unlike
+    /// StarSysController), so the Rpc below carries that identity straight through instead of
+    /// reconstructing a fleet reference from starSysInt/civEnum on the far side.
+    /// </summary>
+    public void SubmitTranswarpHome(FleetController fleetCon)
+    {
+        if (isOwned && fleetCon != null)
+            CmdTranswarpHome(fleetCon.netIdentity);
+    }
+
+    /// <summary>
+    /// Romulan/Klingon cloak arc (§8 II.3, CloakingController) - same relay shape as
+    /// SubmitTranswarpHome, but carries the new on/off state through rather than always meaning
+    /// "the one thing this action does."
+    /// </summary>
+    public void SubmitToggleCloak(FleetController fleetCon, bool active)
+    {
+        if (isOwned && fleetCon != null)
+            CmdToggleCloak(fleetCon.netIdentity, active);
+    }
+
     public void SubmitCombatOrder(CombatOrders order, CivEnum actingCiv, CivEnum opposingCiv)
     {
         if (isOwned)
@@ -411,6 +434,30 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             return;
         }
         TimeManager.Instance.ServerTerraformSystem(starSysInt, transportShipID);
+    }
+
+    [Command]
+    void CmdTranswarpHome(NetworkIdentity fleetIdentity)
+    {
+        FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+        if (fleetCon == null || fleetCon.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTranswarpHome: player {netId.GetHashCode()} (civ={playerCiv}) not authorized to transwarp via fleet '{fleetCon?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerTranswarpHome(fleetIdentity);
+    }
+
+    [Command]
+    void CmdToggleCloak(NetworkIdentity fleetIdentity, bool active)
+    {
+        FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+        if (fleetCon == null || fleetCon.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdToggleCloak: player {netId.GetHashCode()} (civ={playerCiv}) not authorized to toggle cloak via fleet '{fleetCon?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerToggleCloak(fleetIdentity, active);
     }
 
     [Command]

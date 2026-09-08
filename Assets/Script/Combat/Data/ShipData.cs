@@ -37,6 +37,14 @@ namespace BOTF3D.Combat
         public int LoadedPopulation; // Population units currently loaded into this transport's cargo hold
         public int LoadedGroundForces; // Ground force units currently loaded into this transport's cargo hold; shares CargoCapacity with LoadedPopulation
         public int LoadedDilithium;   // Dilithium units loaded into this transport's cargo hold; shares CargoCapacity with LoadedGroundForces
+        // Set by StarSysMenuUIController's Load dropdown "Terraform" option. StarSysController.
+        // TerraformSystem needs no cargo at all (only CivData.Effects.TerraformingTech and a live
+        // Transport), so this doesn't gate whether terraforming can happen - it exists purely so
+        // TransportCargoIndicator can show a Terraform icon on the ship. Cleared only by
+        // TerraformSystem itself once the transport actually completes a Terraform mission (the
+        // ship survives that, unlike ColonizeWithTransport, so there's a live ship left to clear
+        // it on) - NOT by combat, which leaves this flag alone.
+        public bool DesignatedForTerraform;
         public string BaseShipName; // ShipName before any cargo-based rename (Colonyship/Dropship); restored once cargo is fully unloaded
         public string ShipDescription;
         public ShipController TargetThisShipController;

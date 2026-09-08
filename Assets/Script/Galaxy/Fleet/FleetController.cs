@@ -633,11 +633,22 @@ namespace BOTF3D.Galaxy
             DropLine.SetUpLine(new Vector3[] { transform.position, galaxyPlanePoint });
         }
 
+        // Propulsion Tier 1 "Warp Core Stabilization" (TechEffectHook.PersistentWarpSpeed, §4 Branch A
+        // Tier-1 downside): the turn number this fleet started its CURRENT unbroken transit, or -1
+        // while not actively moving. Reset to -1 below whenever CurrentWarpFactor/Destination says
+        // this fleet isn't in transit, so a fresh destination naturally restarts the one-turn grace
+        // period; carries over across a mid-flight re-route without stopping (an accepted simplification
+        // - MoveToDesitinationGO's own comment has the full mechanic).
+        private int warpDecayTransitStartTurn = -1;
+
         private void FixedUpdate()
         {
             if (FleetData == null) return;
             if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase == TurnPhase.InterTurn) return;
             if (IsAwaitingEncounterResolution) return;
+
+            if (FleetData.CurrentWarpFactor <= 0f || FleetData.Destination == null)
+                warpDecayTransitStartTurn = -1;
 
             // ── Intercept mode ────────────────────────────────────────────────
             // Checked via IsPursuingIntercept rather than "InterceptTarget != null": a destroyed
@@ -1434,6 +1445,28 @@ namespace BOTF3D.Galaxy
                 if (howFast > this.FleetData.MaxWarpFactor)
                     this.FleetData.CurrentWarpFactor = this.FleetData.MaxWarpFactor;
 
+                // Phase II tech tree (§8 II.3): Propulsion Tier 1/2/7 all act on this fleet's
+                // effective galaxy-map speed, not its warp-slider value, so they stack on every move
+                // without touching MaxWarpFactor/UpdateMaxWarp above.
+                CivData moverCivData = CivManager.Instance?.GetCivDataByCivEnum(FleetData.CivEnum);
+                TechEffects moverFx = moverCivData?.Effects;
+                if (moverFx != null)
+                {
+                    // T2 Warp Field Optimization / T7 Deep Space Rangefinding capstone.
+                    howFast *= moverFx.WarpSpeedMultiplier;
+
+                    // T1 Warp Core Stabilization downside: first the grace-turn tracker below has to
+                    // notice this fleet is (still) moving before the decay itself can ever apply.
+                    if (warpDecayTransitStartTurn < 0 && TimeManager.Instance != null)
+                        warpDecayTransitStartTurn = TimeManager.Instance.CurrentTurn;
+                    else if (warpDecayTransitStartTurn >= 0 && TimeManager.Instance != null
+                        && TimeManager.Instance.CurrentTurn > warpDecayTransitStartTurn
+                        && !moverFx.PersistentWarpSpeed)
+                    {
+                        howFast *= 0.75f; // WarpDecayPenalty - stays reduced for the rest of this move
+                    }
+                }
+
                 Vector3 nextPosition = Vector3.MoveTowards(rb.position, FleetData.Destination.transform.position,
                     howFast * warpFudgeFactor * GalaxySizeSpeedScale * Time.fixedDeltaTime);
                 rb.MovePosition(nextPosition);
@@ -1745,12 +1778,10 @@ namespace BOTF3D.Galaxy
             // Warp Field Overlap (TechTree_CommonBranches.csv, Propulsion Tier 3, EffectHook
             // WarpSpeedAverage) shares warp fields between ships in a fleet once researched, so a
             // mixed fleet's speed is the average of its ships' maxWarpFactor rather than being capped
-            // to its slowest hull. Phase II's per-tech research tracking doesn't exist yet (see
-            // TechTree_Phase2_Design.md), so this is gated on the civ having reached the Tier 3
-            // TechPoints threshold (200) from the existing flat CivData.TechPoints ladder as a stand-in
-            // - replace with a real "has researched WarpSpeedAverage" check once Phase II ships.
+            // to its slowest hull. TechManager.ApplyTechEffect sets CivData.Effects.WarpFieldOverlap
+            // the moment that tech completes (§8 II.3 - this used to be a flat TechPoints>=200 stand-in).
             CivData civData = CivManager.Instance != null ? CivManager.Instance.GetCivDataByCivEnum(fleetData.CivEnum) : null;
-            bool hasWarpFieldOverlap = civData != null && civData.TechPoints >= 200;
+            bool hasWarpFieldOverlap = civData != null && civData.Effects.WarpFieldOverlap;
 
             float maxWarp;
             if (hasWarpFieldOverlap)
@@ -1791,6 +1822,62 @@ namespace BOTF3D.Galaxy
             if (GalaxyUI != null)
                 FleetUI.UpdateFleetMaxWarpUI(this, maxWarp);
         }
+
+        // Cached the first time this fleet ever cloaks, so UpdateCloakVisual can restore the
+        // insignia's ORIGINAL material (whatever it actually was, atlas-packed or not) rather than
+        // assuming a specific default - see FleetChildFields.InsigniaGO's own SpriteRenderer.
+        private Material defaultInsigniaMaterial;
+
+        /// <summary>
+        /// Romulan/Klingon cloak arc (§8 II.3, CloakingController) - single entry point for toggling
+        /// this fleet's cloak: sets FleetData.IsCloakActive and immediately updates the visual, so
+        /// every caller (FleetMenuUIController.ClickCloakToggleButton's local call, TimeManager.
+        /// RpcToggleCloak's cross-peer echo) stays in sync without duplicating the visual-update logic.
+        /// </summary>
+        public void SetCloakActive(bool active)
+        {
+            if (FleetData == null) return;
+            FleetData.IsCloakActive = active;
+            UpdateCloakVisual();
+        }
+
+        /// <summary>
+        /// Swaps the insignia sprite onto the shared grayscale material while cloaked, restoring its
+        /// original material once decloaked - a visual designation so the OWNER can tell which of
+        /// their own fleets are currently cloaked without opening the Fleet menu (an enemy fleet
+        /// rendered visible via Tachyon Detection Grid shows the same grayscale cue, since it reads
+        /// straight off FleetData.IsCloakActive regardless of viewer). Only touches InsigniaGO, not
+        /// the "unknown civ" fallback sprite or ship sprites - matches what was actually asked for.
+        /// Orthogonal to csFogVisibilityAgent's enabled/disabled toggling (a different property on
+        /// the same SpriteRenderer), so the two never fight each other.
+        /// </summary>
+        private void UpdateCloakVisual()
+        {
+            FleetChildFields childFields = GetComponent<FleetChildFields>();
+
+            // "CLOAKED" background/label - same IsCloakActive flag as the grayscale swap below, no
+            // separate viewer check needed: if a viewer can't see through the cloak at all, this
+            // fleet's whole GameObject is already suppressed upstream by csFogVisibilityAgent.
+            childFields?.CloakBackground?.SetActive(FleetData.IsCloakActive);
+
+            SpriteRenderer insigniaRenderer = childFields?.InsigniaGO?.GetComponent<SpriteRenderer>();
+            if (insigniaRenderer == null) return;
+
+            if (FleetData.IsCloakActive)
+            {
+                if (defaultInsigniaMaterial == null)
+                    defaultInsigniaMaterial = insigniaRenderer.material;
+
+                Material grayscale = CloakingController.GetGrayscaleSpriteMaterial();
+                if (grayscale != null)
+                    insigniaRenderer.material = grayscale;
+            }
+            else if (defaultInsigniaMaterial != null)
+            {
+                insigniaRenderer.material = defaultInsigniaMaterial;
+            }
+        }
+
         public void DestroyFleet(FleetData fleetData, GameObject fleetGO)
         {
             FleetManager.Instance.RemoveFleetNumInUse(fleetData.CivEnum, fleetData.FleetInt);

@@ -692,6 +692,36 @@ namespace BOTF3D.UI
             uiFields.ClaimSystemButton.onClick.RemoveAllListeners();
             uiFields.ClaimSystemButton.onClick.AddListener(() => ClickClaimSystemButton(fleetCon));
 
+            // Transwarp Home: Borg Transwarp Hub Network (§8 II.3) - only shown once this fleet is
+            // actually eligible (docked at a Borg system, civ has researched the tech, has a separate
+            // home system to jump to). See TranswarpHubController.CanTranswarpHome for the full gate.
+            if (uiFields.TranswarpButton != null)
+            {
+                bool canTranswarp = BOTF3D.Galaxy.TranswarpHubController.CanTranswarpHome(fleetCon, out _);
+                uiFields.TranswarpButton.gameObject.SetActive(canTranswarp);
+                uiFields.TranswarpButton.interactable = canTranswarp;
+                uiFields.TranswarpButton.onClick.RemoveAllListeners();
+                uiFields.TranswarpButton.onClick.AddListener(() => ClickTranswarpButton(fleetCon));
+            }
+
+            // Cloak toggle: Romulan/Klingon cloak arc (§8 II.3) - shown once this civ has completed
+            // Basic Cloaking Field/Battle Cloak at all (CloakingController.CanToggleCloak), always
+            // interactable once shown (unlike Transwarp there's no situational eligibility beyond
+            // having the tech - it's a pure on/off choice). Label reflects the fleet's current
+            // FleetData.IsCloakActive state if the button has a child text component.
+            if (uiFields.CloakToggleButton != null)
+            {
+                bool canCloak = BOTF3D.Galaxy.CloakingController.CanToggleCloak(fleetCon);
+                uiFields.CloakToggleButton.gameObject.SetActive(canCloak);
+                uiFields.CloakToggleButton.interactable = canCloak;
+                uiFields.CloakToggleButton.onClick.RemoveAllListeners();
+                uiFields.CloakToggleButton.onClick.AddListener(() => ClickCloakToggleButton(fleetCon));
+
+                var cloakLabel = uiFields.CloakToggleButton.GetComponentInChildren<TMPro.TMP_Text>();
+                if (cloakLabel != null)
+                    cloakLabel.text = fleetCon.FleetData.IsCloakActive ? "Decloak" : "Cloak";
+            }
+
             // ✅ TEXT BINDINGS: Always update
             uiFields.FleetNameText.text = fleetCon.FleetData.FleetName;
             uiFields.DestinationName.gameObject.SetActive(true);
@@ -770,7 +800,10 @@ namespace BOTF3D.UI
                 && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed);
             if (transport == null) return;
 
-            // Captured before TerraformSystem consumes/destroys the transport below.
+            // Captured before calling TerraformSystem below, for the SubmitTerraformSystem relay -
+            // the transport survives terraforming (StarSysController.TerraformSystem clears its
+            // Terraform designation/cargo rather than destroying it), but ShipID is captured here
+            // regardless since sysCon/starSysInt need it before the call either way.
             int starSysInt = sysCon.StarSysData.GetStarSysInt();
             int transportShipID = transport.ShipData.ShipID;
 
@@ -784,6 +817,38 @@ namespace BOTF3D.UI
                 TerraformableSysUIController.Instance?.CloseUnLoadTerraformableSysUI();
                 SetupFleetUIData(); // refresh so the Terraform/Claim buttons reflect the new state
             }
+        }
+        /// <summary>
+        /// Borg Transwarp Hub Network (§8 II.3) - same local-call-then-relay pattern as
+        /// ClickTerraformButton/ClickClaimSystemButton above (see TimeManager.ServerTerraformSystem's
+        /// comment for why the relay lives on that persistent-scene NetworkBehaviour). Unlike those,
+        /// the destination isn't picked by the player - TranswarpHubController.TryTranswarpHome always
+        /// jumps to the civ's own home system (see that class's own scope note on why).
+        /// </summary>
+        private void ClickTranswarpButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData == null) return;
+
+            if (BOTF3D.Galaxy.TranswarpHubController.TryTranswarpHome(fleetCon))
+            {
+                PlayerManager.Instance?.LocalPlayerController?.SubmitTranswarpHome(fleetCon);
+                SetupFleetUIData(); // refresh so the Transwarp button reflects the new state
+            }
+        }
+        /// <summary>
+        /// Romulan/Klingon cloak arc (§8 II.3, §5b) - same local-call-then-relay pattern as
+        /// ClickTranswarpButton above, but a pure toggle rather than a one-shot action: flips
+        /// FleetData.IsCloakActive locally for instant feedback, then relays the same flip to every
+        /// other peer (see TimeManager.ServerToggleCloak's comment).
+        /// </summary>
+        private void ClickCloakToggleButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData == null) return;
+
+            bool newState = !fleetCon.FleetData.IsCloakActive;
+            fleetCon.SetCloakActive(newState);
+            PlayerManager.Instance?.LocalPlayerController?.SubmitToggleCloak(fleetCon, newState);
+            SetupFleetUIData(); // refresh so the button label reflects the new state
         }
         private void ClickClaimSystemButton(FleetController fleetCon)
         {

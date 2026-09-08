@@ -625,9 +625,15 @@ namespace BOTF3D.Civilization
         {
             float majorFactor = 1f + majorCiv.DiplomaticAptitude * 0.25f;               // ~0.5x-1.5x
             float minorReceptivity = ((int)minorCiv.Xenophobia + minorCiv.DiplomaticAptitude) / 2f; // -2..+2
+            // Federation Minor-Civ Alliance Discount (TechEffectHook.MinorCivAllianceDiscount, §5a) -
+            // additive to receptivity, representing Federation's historical growth-by-invitation pattern.
+            minorReceptivity += majorCiv.Effects.MinorCivAllianceDiscount;
             float minorFactor = 1f + minorReceptivity * 0.35f;                          // ~0.3x-1.7x
 
-            int drift = Mathf.Max(1, Mathf.RoundToInt(CooperationBaseDrift * majorFactor * minorFactor));
+            // Federation Diplomatic Outreach Doctrine / Charter Mastery (§5a's concrete landing spot -
+            // "the tech adds a further flat multiplier ... a direct, measurable increase in how fast/
+            // likely a minor civ agrees to join").
+            int drift = Mathf.Max(1, Mathf.RoundToInt(CooperationBaseDrift * majorFactor * minorFactor * majorCiv.Effects.DiplomaticOutreachMultiplier));
             AddDiplomaticPoints(drift);
         }
 
@@ -648,7 +654,8 @@ namespace BOTF3D.Civilization
             CivController proposer = CivManager.Instance.GetCivControllerByCivEnum(DiplomacyData.CivEnumSideOne);
             if (proposer?.CivData == null) return;
 
-            float multiplier = 1f + proposer.CivData.DiplomaticAptitude * 0.2f; // ~0.6x-1.4x
+            float multiplier = (1f + proposer.CivData.DiplomaticAptitude * 0.2f) // ~0.6x-1.4x
+                * proposer.CivData.Effects.DiplomaticOutreachMultiplier; // §5a - Federation-only, 1x for every other civ
             int gain = Mathf.Max(1, Mathf.RoundToInt(basePoints * multiplier));
             AddDiplomaticPoints(gain);
             DiplomacyManager.Instance?.ApplyDiplomaticRipple(DiplomacyData.CivEnumSideOne, DiplomacyData.CivEnumSideTwo, gain, eventType);

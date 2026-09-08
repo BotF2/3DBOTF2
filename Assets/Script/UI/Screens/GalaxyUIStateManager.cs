@@ -169,6 +169,18 @@ namespace BOTF3D.UI
             if (intelBackground != null) intelBackground.SetActive(false);
             if (encyclopediaBackground != null) encyclopediaBackground.SetActive(false);
             if (techTreeBackground != null) techTreeBackground.SetActive(false);
+
+            // Uninhabited/terraformable-system popups (HabitableSysUIController/
+            // TerraformableSysUIController) are self-managed singletons, not tracked via the
+            // habitableSysMenu field's SetActive(false) the way every other menu view is - that
+            // field is only ever cleared by InitializeMenuStates/CloseAllMenus (the Home System
+            // button), never by a ribbon tab switch, so the popup (and its sibling "Panel Manage
+            // StarSys" background, which nothing else ever deactivates) was left on screen when a
+            // player clicked Systems/Fleet/etc. while it was open. Route through each controller's
+            // own CloseVisual() here instead, since that's the one place that correctly closes both
+            // the popup content AND its whole parent Canvas together.
+            HabitableSysUIController.Instance?.CloseVisual();
+            TerraformableSysUIController.Instance?.CloseVisual();
         }
 
         /// <summary>

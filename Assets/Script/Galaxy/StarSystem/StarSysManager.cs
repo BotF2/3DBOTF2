@@ -32,6 +32,12 @@ namespace BOTF3D.Galaxy
         private List<StarSysSO> starSysSOList; // get StarSysSO for civ by int
         [SerializeField]
         private GameObject sysBuildUIListPrefab;
+        [Tooltip("ManageShipsUI_Prefab - the ship/fleet/cargo management overlay (ManageShipsUIFields). Mirrors sysBuildUIListPrefab's role for the Build queue overlay.")]
+        [SerializeField]
+        private GameObject manageShipsUIPrefab;
+        [Tooltip("Canvas the Manage Ships overlay is parented under when opened. Mirrors canvasBuildList - can point at the same canvas if there's no reason to keep them separate.")]
+        [SerializeField]
+        private GameObject canvasManageShips;
         [SerializeField]
         private List<PowerPlantSO> powerPlantSOList; // get PowerPlantSO for civ by int
         [SerializeField]
@@ -105,6 +111,8 @@ namespace BOTF3D.Galaxy
         private GameObject canvasBuildList;
         private StarSysController currentBuildUISysCon;
         public StarSysController CurrentBuildUISysCon => currentBuildUISysCon;
+        private StarSysController currentManageShipsUISysCon;
+        public StarSysController CurrentManageShipsUISysCon => currentManageShipsUISysCon;
         [SerializeField]
         private Sprite unknowSystem;
         [SerializeField]
@@ -607,11 +615,6 @@ namespace BOTF3D.Galaxy
 
             sysData.MaxPowerPlants = DetermineMaxPowerPlants(civSO, starSysSO);
             sysData.DilithiumMiningRate = DetermineDilithiumMiningRate(civSO, starSysSO, sysData.MaxPowerPlants);
-            // civSO here is always the system's FIRST owner - InstantiateSystem only ever runs once,
-            // at galaxy generation, before any conquest can have happened. Facility caps are fixed
-            // from that first owner forever (see InitializeFacilityCaps), so this is the only call
-            // site that will ever exist for it.
-            InitializeFacilityCaps(starSysCon, starSysSO, civSO);
             // StarSysData.IsHabitable/IsTerraformable were never being copied from the SO - every
             // system defaulted to IsHabitable=false at runtime regardless of its SO asset, so
             // FleetController.OnTriggerEnter's uninhabited-habitable branch (colonization popup)
@@ -645,7 +648,7 @@ namespace BOTF3D.Galaxy
                 {
                     CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(sysData.CurrentOwnerCivEnum);
                     int fogSightRange = TechManager.Instance != null
-                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData)
                         : (int)FleetManager.LocalPlayerFogSightRange;
 
                     fogOfWar.AddFogRevealer(
@@ -743,13 +746,19 @@ namespace BOTF3D.Galaxy
 
                 int startingPowerPlants = DetermineStartingPowerPlants(civSO, starSysSO, sysData.MaxPowerPlants);
 
+                // Starting on/off state (Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §5):
+                // Factory/Shipyard/ResearchCenter start powered ON (the productive backbone);
+                // ShieldGenerator/OrbitalBattery start powered OFF (deferred defense, player/AI
+                // switches them on once the power budget allows) - this is what keeps every major
+                // home system's starting power balance non-negative (see that doc's §5 table)
+                // without needing to shrink any starting facility count.
                 sysData.PowerPlants = AddSystemFacilities(startingPowerPlants, PowerPlantPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
-                sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+                sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
                 int startingOrbitalBatteries = DetermineStartingOrbitalBatteries(civSO, startingTechLevel, starSysSO.OrbitalBatteries);
-                sysData.OrbitalBatteries = AddSystemFacilities(startingOrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
+                sysData.OrbitalBatteries = AddSystemFacilities(startingOrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
 
                 sysData.MaxPopulation = DetermineMaxPopulation(civSO, starSysSO);
@@ -864,9 +873,12 @@ namespace BOTF3D.Galaxy
             {
                 // Minor civ stockpile: enough to represent pre-existing infrastructure.
                 // HasWarp minors get a small reserve; pre-warp get nothing beyond what their
-                // single power plant holds (no stockpile — they can't build ships).
+                // single power plant holds (no stockpile — they can't build ships). The *20
+                // multiplier matches the new EARLY-tier Power Plant cost baseline majors use
+                // (CivBalanceCalculator's POWER_PER_PLANT_FALLBACK=20 x TierRatio[EARLY]=1.0 - see
+                // Docs/Design/DilithiumEconomy_Phase3_Rebaseline.md §5), not the old flat 10.
                 bool hasWarp = sysData.CurrentCivController?.CivData?.HasWarp == true;
-                sysData.DilithiumStockpile = hasWarp ? sysData.MaxPowerPlants * 10 : 0;
+                sysData.DilithiumStockpile = hasWarp ? sysData.MaxPowerPlants * 20 : 0;
                 return;
             }
 
@@ -875,7 +887,8 @@ namespace BOTF3D.Galaxy
             int quality = sysData.CurrentCivController.CivData.QualityScore;
 
             // Dilithium locked into the starting power plants
-            int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(civ) * sysData.CurrentPowerPlantCount;
+            int ppOutput = sysData.PowerPlantData?.BasePowerOutput ?? 20;
+            int ppLi2 = ShipStatCalculator.GetPowerPlantDilithiumCost(tech, ppOutput) * sysData.CurrentPowerPlantCount;
 
             // Dilithium locked into the starting Destroyer
             int shipLi2 = ShipStatCalculator.Calculate(ShipType.Destroyer, tech, civ, quality).DilithiumCost;
@@ -954,7 +967,7 @@ namespace BOTF3D.Galaxy
                     continue;
 
                 float factoryTechMultiplier = sysData.CurrentCivController != null && TechManager.Instance != null
-                    ? TechManager.Instance.GetFactorySpeedMultiplier(sysData.CurrentCivController.CivData.CurrentTechLevel)
+                    ? TechManager.Instance.GetFactorySpeedMultiplier(sysData.CurrentCivController.CivData.CurrentTechLevel, sysData.CurrentCivController.CivData)
                     : 1f;
 
                 sysData.AntimatterProductionRate = Mathf.RoundToInt(activeFactories * BaseAntimatterPerFactory * factoryTechMultiplier);
@@ -992,9 +1005,16 @@ namespace BOTF3D.Galaxy
         }
 
         // ── Facility build ceilings ──────────────────────────────────────────────────
-        // See StarSysData's "Facility build ceilings" header for the invariant this whole
-        // section exists to guarantee: a system can never end up over its cap, including across
-        // conquest. Docs/Design/Economy_Phase1_FuelLoop_FacilityCaps.md §2 is the full spec.
+        // See Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §2. The build ceiling for these
+        // five types is no longer a per-type authored number (flat for Major homeworlds,
+        // QualityScore-lerped/rolled otherwise, plus a TechPoints bonus table) - it's a single
+        // shared Power budget: how much this system's Power Plants could ever produce at
+        // MaxPowerPlants, minus what every other cap-gated facility (built or queued, active or
+        // not) already commits. Building more of one type lowers every other type's headroom on
+        // the next call - a real trade-off within one resource, not five independent slot counts.
+        // Computed live, nothing cached - there's no "fixed forever at creation" base to keep in
+        // sync across conquest anymore, since it's just a function of MaxPowerPlants (Dilithium-
+        // driven, see DetermineMaxPowerPlants) and whatever's currently built/queued.
 
         // Types that actually go through a build queue and get capped this way. PowerPlanet has
         // its own dedicated MaxPowerPlants/DetermineMaxPowerPlants mechanism already (kept
@@ -1008,146 +1028,75 @@ namespace BOTF3D.Galaxy
             StarSysFacilityType.OrbitalBattery,
         };
 
-        private static readonly Dictionary<StarSysFacilityType, int> MajorHomeworldFacilityCap = new()
+        /// <summary>
+        /// Per-instance power load for one facility of this type - civ-invariant for every type
+        /// except OrbitalBattery (see OrbitalBatterySO.PowerLoad's per-civ variance). Reads the
+        /// same XxxData objects StarSysAIManager.LoadFor already reads, so there's one source of
+        /// truth for "how much does one of these draw."
+        /// </summary>
+        private static int PowerLoadFor(StarSysData data, StarSysFacilityType type) => type switch
         {
-            { StarSysFacilityType.Factory,        6 },
-            { StarSysFacilityType.Shipyard,        4 },
-            { StarSysFacilityType.ResearchCenter,  4 },
-            { StarSysFacilityType.ShieldGenerator, 3 },
-            // Raised from 4 to 6 - a playable civ's own homeworld is its best-defended system by
-            // design, and 4 put it barely above a minor homeworld's old top end (3).
-            { StarSysFacilityType.OrbitalBattery,  6 },
+            StarSysFacilityType.Factory => data.FactoryData?.PowerLoad ?? 0,
+            StarSysFacilityType.Shipyard => data.ShipyardData?.PowerLoad ?? 0,
+            StarSysFacilityType.ResearchCenter => data.ResearchCenterData?.PowerLoad ?? 0,
+            StarSysFacilityType.ShieldGenerator => data.ShieldGeneratorData?.PowerLoad ?? 0,
+            StarSysFacilityType.OrbitalBattery => data.OrbitalBatteryData?.PowerLoad ?? 0,
+            _ => 0,
         };
-
-        private static readonly Dictionary<StarSysFacilityType, (int Min, int Max)> MinorHomeworldFacilityCapRange = new()
-        {
-            { StarSysFacilityType.Factory,        (2, 4) },
-            { StarSysFacilityType.Shipyard,        (1, 3) },
-            { StarSysFacilityType.ResearchCenter,  (1, 3) },
-            { StarSysFacilityType.ShieldGenerator, (1, 2) },
-            // Raised from (1, 3) to (3, 5) - still always below MajorHomeworldFacilityCap's 6 (see
-            // InitializeFacilityCaps' non-Major branch), but a canonically strong minor homeworld
-            // should out-defend a weak one by more than "1 vs 3" allowed.
-            { StarSysFacilityType.OrbitalBattery,  (3, 5) },
-        };
-
-        // Systems that are nobody's homeworld — i.e. everything that starts the game
-        // uninhabited/pre-warp and only ever becomes a Factory/Shipyard/etc. site once someone
-        // colonizes or conquers it. Unlike MajorHomeworldFacilityCap/MinorHomeworldFacilityCapRange,
-        // this is NOT lerped by the placeholder "first owner" CivSO's QualityScore — every
-        // ZZUNINHABITEDx placeholder shares the same default QualityScore (5), so a quality lerp
-        // here would hand every uninhabited system in the galaxy the exact same cap. Instead each
-        // system rolls independently within this range (see InitializeFacilityCaps) so uninhabited
-        // systems come out genuinely varied — some worth fighting over, some not — rather than all
-        // being interchangeable. Still fixed forever at that roll, same as every other role: whoever
-        // ends up owning the system after colonization/conquest inherits whatever it rolled.
-        private static readonly Dictionary<StarSysFacilityType, (int Min, int Max)> UninhabitedFacilityCapRange = new()
-        {
-            { StarSysFacilityType.Factory,        (2, 4) },
-            { StarSysFacilityType.Shipyard,        (1, 3) },
-            { StarSysFacilityType.ResearchCenter,  (1, 3) },
-            { StarSysFacilityType.ShieldGenerator, (1, 2) },
-            // Raised from (1, 3) to (3, 5) - same "other star systems" range as
-            // MinorHomeworldFacilityCapRange's OrbitalBattery, rolled independently per system.
-            { StarSysFacilityType.OrbitalBattery,  (3, 5) },
-        };
-
-        // Facility-cap tech bonus: more numerous, more closely-spaced stages as TechPoints grows
-        // - same "stepped breakthroughs" shape as TechManager.fogSightRangeStages, but its own
-        // independent set of trigger points. Deliberately NOT aligned with CivData.TechThresholds
-        // (0/100/300/600, i.e. where TechLevel itself advances) - those are already the "big
-        // moment" jumps for research/factory/power multipliers, and stacking a facility-cap bump
-        // on the exact same stardate would just double up that one moment instead of reading as
-        // its own separate progression. Runs up to the ~1000-point effective cap
-        // CivData.TechRating clamps to, so late-game engineering gains keep feeling earned
-        // instead of flatlining the moment SUPREME is reached. Applies the same +1 to every
-        // facility type at once, added on top of the system's permanently-fixed base (below) -
-        // and since TechPoints never decreases for a civ, and this stage lookup is applied as a
-        // ratchet (see GetFacilityCap), the bonus can never cause a system to go over its own cap.
-        private static readonly (int TechPointsRequired, int Bonus)[] facilityCapTechStages =
-        {
-            (0,    0),
-            (150,  1),
-            (350,  2),
-            (550,  3),
-            (700,  4),
-            (800,  5),
-            (870,  6),
-            (920,  7),
-            (955,  8),
-            (980,  9),
-            (1000, 10),
-        };
-
-        private static int GetFacilityCapTechBonus(int techPoints)
-        {
-            int bonus = facilityCapTechStages[0].Bonus;
-            foreach (var stage in facilityCapTechStages)
-                if (techPoints >= stage.TechPointsRequired)
-                    bonus = stage.Bonus;
-            return bonus;
-        }
 
         /// <summary>
-        /// Fixes this system's per-facility-type build ceiling forever, from its role. Major
-        /// homeworld gets a flat number per type; minor homeworld gets a range lerped by its
-        /// civ's QualityScore (so a canonically stronger minor power lands nearer the top of its
-        /// range, a weaker one nearer the bottom — see CivSO.QualityScore); every uninhabited/
-        /// colonizable system instead rolls independently within UninhabitedFacilityCapRange (see
-        /// that dict's comment for why quality-lerping doesn't work for this role). Only ever
-        /// called once, from InstantiateSystem at galaxy generation - civSO there is always the
-        /// first owner, since no conquest can have happened yet. Never recomputed afterward,
-        /// including on later ownership changes - see StarSysData's "Facility build ceilings"
-        /// header for why.
+        /// Sum of built-or-queued load across every cap-gated type except <paramref name="excluding"/>
+        /// - the power already spoken for that a candidate build of the excluded type has to fit
+        /// around. <paramref name="loadMultiplier"/> is the current TechLevel's efficiency scalar
+        /// (see GetFacilityCap) applied uniformly to every type's load.
         /// </summary>
-        private void InitializeFacilityCaps(StarSysController sysCon, StarSysSO starSysSO, CivSO firstOwnerCivSO)
+        private int TotalReservedLoad(StarSysController sysCon, StarSysFacilityType excluding, float loadMultiplier)
         {
-            var sysData = sysCon.StarSysData;
-            bool isMajorHomeworld = firstOwnerCivSO.Playable && starSysSO.IsHomeworld;
-            bool isMinorHomeworld = !firstOwnerCivSO.Playable && starSysSO.IsHomeworld;
-            float qualityFraction = Mathf.Clamp01(firstOwnerCivSO.QualityScore / 10f);
-
+            var data = sysCon.StarSysData;
+            int total = 0;
             foreach (var type in FacilityCapTypes)
             {
-                int cap;
-                if (isMajorHomeworld)
-                {
-                    cap = MajorHomeworldFacilityCap[type];
-                }
-                else if (isMinorHomeworld)
-                {
-                    var range = MinorHomeworldFacilityCapRange[type];
-                    cap = Mathf.RoundToInt(Mathf.Lerp(range.Min, range.Max, qualityFraction));
-                }
-                else
-                {
-                    var range = UninhabitedFacilityCapRange[type];
-                    cap = UnityEngine.Random.Range(range.Min, range.Max + 1); // Range's int overload is max-exclusive
-                }
-                sysData.FacilityCapBase[type] = cap;
+                if (type == excluding) continue;
+                total += Mathf.RoundToInt(GetBuiltAndQueuedFacilityCount(sysCon, type) * PowerLoadFor(data, type) * loadMultiplier);
             }
-            sysData.FacilityCapTechBonus = 0;
+            return total;
         }
 
         /// <summary>
-        /// The effective build ceiling for one facility type in this system right now: the
-        /// system's permanently-fixed base (§ InitializeFacilityCaps) plus a tech bonus ratcheted
-        /// off the best TechPoints total any owner of this system has ever had. The ratchet is
-        /// the piece that makes conquest safe - a system captured by a lower-tech civ keeps
-        /// whatever bonus its previous owner had already earned rather than losing it, so the
-        /// total can only ever hold steady or grow, never shrink below what's already built.
+        /// The effective build ceiling for one facility type in this system right now: how many
+        /// could exist (built + queued) before the system's Power Plants, maxed out to
+        /// MaxPowerPlants, could no longer power everything else already committed plus one more
+        /// of this type. A shared budget, not five independent slot counts - queuing more of one
+        /// type lowers every other type's ceiling on the next call.
         /// </summary>
         public int GetFacilityCap(StarSysController sysCon, StarSysFacilityType type)
         {
             var sysData = sysCon.StarSysData;
-            int currentTechPoints = sysData.CurrentCivController?.CivData?.TechPoints ?? 0;
-            int candidateBonus = GetFacilityCapTechBonus(currentTechPoints);
-            if (candidateBonus > sysData.FacilityCapTechBonus)
-                sysData.FacilityCapTechBonus = candidateBonus;
+            int rawPowerLoad = PowerLoadFor(sysData, type);
+            if (rawPowerLoad <= 0) return int.MaxValue; // unrecognized/free type - not gated here
 
-            return sysData.FacilityCapBase.TryGetValue(type, out int baseCap)
-                ? baseCap + sysData.FacilityCapTechBonus
-                : int.MaxValue; // unrecognized type (e.g. PowerPlanet/GroundForce) - not gated here
+            // Facility headroom grows with TechLevel via TechManager.GetPowerEfficiencyMultiplier -
+            // every facility genuinely draws less power as a civ's tech improves (1.00/0.90/0.80/
+            // 0.70 per that function's own doc comment), so more of them fit in the same Power
+            // Plant budget over time - this is what replaces the old facilityCapTechStages bonus
+            // table (Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §4), with no separate curve
+            // to author and no MaxPowerPlants change needed.
+            TechLevel tech = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            float loadMultiplier = TechManager.Instance != null ? TechManager.Instance.GetPowerEfficiencyMultiplier(tech) : 1f;
+            float powerLoad = Mathf.Max(0.01f, rawPowerLoad * loadMultiplier);
+
+            int powerOutputPerPlant = sysData.PowerPlantData?.BasePowerOutput ?? 20;
+            float maxOutput = sysData.MaxPowerPlants * powerOutputPerPlant;
+
+            // Science Tier 6 Xenobiological Engineering (TechEffectHook.SightRangeStage_6_FacilityCap,
+            // §8 II.3) used to add flat bonus slots under the old per-type cap table - re-targeted
+            // at bonus power instead ("worth that many extra Power Plants' output") so the tech
+            // still matters, expressed in the new currency. ResearchedTechIds never clears, so
+            // this can only ever grow.
+            float xenoBonusOutput = (sysData.CurrentCivController?.CivData?.Effects?.FacilityCapBonus ?? 0f) * powerOutputPerPlant;
+
+            float headroom = Mathf.Max(0f, maxOutput + xenoBonusOutput - TotalReservedLoad(sysCon, type, loadMultiplier));
+            return GetBuiltAndQueuedFacilityCount(sysCon, type) + Mathf.FloorToInt(headroom / powerLoad);
         }
 
         /// <summary>
@@ -1279,8 +1228,25 @@ namespace BOTF3D.Galaxy
             {
                 var sysData = sysCon?.StarSysData;
                 if (sysData == null || sysData.DilithiumMiningRate <= 0) continue;
-                sysData.DilithiumStockpile += sysData.DilithiumMiningRate;
+                sysData.DilithiumStockpile += GetEffectiveDilithiumMiningRate(sysData);
             }
+        }
+
+        /// <summary>
+        /// DilithiumMiningRate scaled by TechLevel via the same TierRatio Power Plant costs use
+        /// (ShipStatCalculator.TierRatio) - deliberately reused rather than a third curve. Power
+        /// Plants are the single biggest Dilithium expense (Docs/Design/
+        /// DilithiumEconomy_Phase3_Rebaseline.md §2) and climb up to 3.2x by SUPREME, so income has
+        /// to climb at the same rate or Dilithium gets punishingly scarce late-game even though it
+        /// stayed reasonable at EARLY. Keeps "how many turns of income does one new Power Plant
+        /// cost" constant across the whole game, rather than getting easier or harder with tech.
+        /// DilithiumMiningRate itself is left as the authored base rate - only the applied/
+        /// displayed amount is scaled - so any UI showing "Dilithium/turn" should call this too.
+        /// </summary>
+        public static int GetEffectiveDilithiumMiningRate(StarSysData sysData)
+        {
+            TechLevel tech = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            return Mathf.RoundToInt(sysData.DilithiumMiningRate * ShipStatCalculator.TierRatio[(int)tech]);
         }
 
         /// <summary>
@@ -1307,6 +1273,41 @@ namespace BOTF3D.Galaxy
             if (sysCon != null) sysCon.RemoveFromShipList(shipCon);
             GameEvents.ShipDestroyed(shipCon.ShipData.ShipID);
             ShipManager.Instance?.RemoveShipControllerFromList(shipCon);
+        }
+
+        /// <summary>
+        /// Player-ordered Power Plant decommission - the equivalent of ScrapShip for the one
+        /// facility type that actually holds Dilithium (Docs/Design/FacilityCaps_Phase2_
+        /// ResourceDriven.md §1: the other five facility types hold none, so none of them get an
+        /// equivalent). Removes one built plant and returns what it would cost to build a
+        /// replacement right now (current TechLevel, current PowerOutputPerPlant) - not
+        /// necessarily what was originally paid, since a plain facility GameObject has no
+        /// per-instance purchase-history field the way ShipData.DilithiumCost gives ships (see
+        /// Docs/Design/DilithiumEconomy_Phase3_Rebaseline.md §6). Every plant of a civ's is
+        /// otherwise identical, so which specific instance is removed doesn't matter.
+        /// </summary>
+        public void ScrapPowerPlant(StarSysController sysCon)
+        {
+            var data = sysCon?.StarSysData;
+            if (data == null || data.PowerPlants == null || data.PowerPlants.Count == 0) return;
+
+            int lastIndex = data.PowerPlants.Count - 1;
+            GameObject plantGO = data.PowerPlants[lastIndex];
+            data.PowerPlants.RemoveAt(lastIndex);
+            data.CurrentPowerPlantCount = data.PowerPlants.Count;
+            if (plantGO != null) Destroy(plantGO);
+
+            TechLevel tech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int powerOutput = data.PowerPlantData?.BasePowerOutput ?? 20;
+            int refund = ShipStatCalculator.GetPowerPlantDilithiumCost(tech, powerOutput);
+            data.DilithiumStockpile += refund;
+
+            Debug.Log($"[Dilithium] Decommissioned a Power Plant at {data.SysName} — {refund} Li2 returned. " +
+                      $"Plants remaining: {data.CurrentPowerPlantCount}/{data.MaxPowerPlants}.");
+
+            StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(sysCon);
+            if (sysCon.StarSysUIGameObject != null)
+                sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()?.compactHeader?.RefreshDilithium();
         }
 
         // ── Ship Repair ───────────────────────────────────────────────────────────
@@ -1352,6 +1353,13 @@ namespace BOTF3D.Galaxy
 
         private void RepairShipsInList(List<ShipController> ships, CivEnum owner, StarSysData sysData)
         {
+            // Borg Nanite Regeneration Matrix I/II (TechEffectHook.NaniteRegenerationMatrixI/II, §5a's
+            // concrete landing spot - "taps the existing per-turn hull-repair path ships already have
+            // between engagements"). Read once per owner rather than per ship since every ship in this
+            // list shares the same owner civ.
+            float naniteBonus = CivManager.Instance?.GetCivDataByCivEnum(owner)?.Effects?.NaniteRegenBonus ?? 0f;
+            int repairPerTurn = Mathf.RoundToInt(RepairHullPerTurn * (1f + naniteBonus));
+
             foreach (var ship in ships)
             {
                 if (ship?.ShipData == null || ship.ShipData.Distroyed) continue;
@@ -1359,7 +1367,7 @@ namespace BOTF3D.Galaxy
                 if (ship.ShipData.HullHealth >= ship.ShipData.HullMaxHealth) continue;
 
                 int missing   = ship.ShipData.HullMaxHealth - ship.ShipData.HullHealth;
-                int toRepair  = Mathf.Min(RepairHullPerTurn, missing);
+                int toRepair  = Mathf.Min(repairPerTurn, missing);
                 int cost      = toRepair * Li2PerRepairPoint;
 
                 // Scale down repair if stockpile is insufficient
@@ -1523,6 +1531,15 @@ namespace BOTF3D.Galaxy
         {
             if (starSysCon == null || starSysCon.StarSysData == null) return;
 
+            // NOTE: still counts every BUILT battery, not just powered-on ones. ReallocatePowerForCombat
+            // (Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §7) computes and displays the correct
+            // on/off split for a besieged system's power bookkeeping, but wiring actual combat
+            // participation to that on/off state - so an unpowered battery doesn't fight - would mean
+            // this method sometimes needs to REMOVE existing ShipControllers when the "on" count drops
+            // between combats, which breaks the monotonic "only ever adds, ShipController.DestroyShip
+            // is the only thing that removes" invariant this function and its combat-loss bookkeeping
+            // both rely on. Left as a deliberate follow-up rather than risking that invariant here -
+            // see the doc's implementation notes.
             int builtCount = starSysCon.StarSysData.OrbitalBatteries?.Count ?? 0;
             int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
                 s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.OrbitalBattery);
@@ -1531,6 +1548,90 @@ namespace BOTF3D.Galaxy
             {
                 ShipManager.Instance.CreateOrbitalBatteryForSystem(starSysCon);
             }
+        }
+
+        private static List<GameObject> FacilityListFor(StarSysData data, StarSysFacilityType type) => type switch
+        {
+            StarSysFacilityType.Factory => data.Factories,
+            StarSysFacilityType.Shipyard => data.Shipyards,
+            StarSysFacilityType.ShieldGenerator => data.ShieldGenerators,
+            StarSysFacilityType.OrbitalBattery => data.OrbitalBatteries,
+            StarSysFacilityType.ResearchCenter => data.ResearchCenters,
+            _ => null,
+        };
+
+        /// <summary>
+        /// Instantly reconfigures a system's facility power for incoming combat - distinct from
+        /// StarSysAIManager's DefencePowerPriority (a gradual, one-facility-per-turn AI economy
+        /// setting that ramps across several turns; this needs the final state immediately).
+        /// Everything else is forced off first, then Shield/OrbitalBattery fill against the
+        /// system's MAX theoretical output (MaxPowerPlants, not just currently-built plants) so a
+        /// system that hasn't finished building out its Power Plants still gets full defensive
+        /// credit for what it COULD produce; any leftover spills into Shipyard, then Factory, then
+        /// Research. If the budget falls short even with everything else off, some Shields/OB
+        /// simply don't power on - the intended "shortfall means partial defense" outcome.
+        /// Call before EnsureOrbitalBatteryShipsForCombat so its on/off reads are current.
+        /// See Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §7.
+        /// </summary>
+        public void ReallocatePowerForCombat(StarSysController sysCon)
+        {
+            var data = sysCon?.StarSysData;
+            if (data == null) return;
+
+            TechLevel tech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            float loadMultiplier = TechManager.Instance != null ? TechManager.Instance.GetPowerEfficiencyMultiplier(tech) : 1f;
+            float budget = data.MaxPowerPlants * (data.PowerPlantData?.BasePowerOutput ?? 20);
+
+            SetAllFacilitiesOff(data, StarSysFacilityType.Shipyard);
+            SetAllFacilitiesOff(data, StarSysFacilityType.Factory);
+            SetAllFacilitiesOff(data, StarSysFacilityType.ResearchCenter);
+            SetAllFacilitiesOff(data, StarSysFacilityType.ShieldGenerator);
+            SetAllFacilitiesOff(data, StarSysFacilityType.OrbitalBattery);
+
+            budget -= PowerOnUpTo(data, StarSysFacilityType.ShieldGenerator, budget, loadMultiplier);
+            budget -= PowerOnUpTo(data, StarSysFacilityType.OrbitalBattery, budget, loadMultiplier);
+
+            budget -= PowerOnUpTo(data, StarSysFacilityType.Shipyard, budget, loadMultiplier);
+            budget -= PowerOnUpTo(data, StarSysFacilityType.Factory, budget, loadMultiplier);
+            PowerOnUpTo(data, StarSysFacilityType.ResearchCenter, budget, loadMultiplier);
+
+            StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(sysCon);
+        }
+
+        private static void SetAllFacilitiesOff(StarSysData data, StarSysFacilityType type)
+        {
+            var list = FacilityListFor(data, type);
+            if (list == null) return;
+            foreach (var go in list)
+            {
+                var tmp = go?.GetComponent<TMPro.TextMeshProUGUI>();
+                if (tmp != null) tmp.text = "0";
+            }
+        }
+
+        /// <summary>
+        /// Powers on as many currently-off instances of this type as fit within budget, at
+        /// loadMultiplier-adjusted per-unit cost. Returns the effective (post-multiplier) load
+        /// actually turned on, so callers can debit it straight from their running budget.
+        /// </summary>
+        private static float PowerOnUpTo(StarSysData data, StarSysFacilityType type, float budget, float loadMultiplier)
+        {
+            var list = FacilityListFor(data, type);
+            int rawLoad = PowerLoadFor(data, type);
+            if (list == null || rawLoad <= 0) return 0f;
+            float effectiveLoad = rawLoad * loadMultiplier;
+            if (effectiveLoad <= 0f) return 0f;
+
+            float spent = 0f;
+            foreach (var go in list)
+            {
+                var tmp = go?.GetComponent<TMPro.TextMeshProUGUI>();
+                if (tmp == null || tmp.text != "0") continue;
+                if (spent + effectiveLoad > budget) break; // every instance of this type costs the same - none of the rest fit either
+                tmp.text = "1";
+                spent += effectiveLoad;
+            }
+            return spent;
         }
 
         /// <summary>
@@ -2142,7 +2243,7 @@ namespace BOTF3D.Galaxy
 
             CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(sysCon.StarSysData.CurrentOwnerCivEnum);
             int fogSightRange = TechManager.Instance != null
-                ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData)
                 : (int)FleetManager.LocalPlayerFogSightRange;
 
             fogOfWar.AddFogRevealer(new csFogWar.FogRevealer(sysCon.transform, fogSightRange, true));
@@ -2270,6 +2371,91 @@ namespace BOTF3D.Galaxy
                 buildUIFields.gameObject.SetActive(false);
             // Do NOT deactivate canvasBuildList — ASystemMenuView may be a child of it,
             // and SetActive(false) on a parent hides children even after SetActive(true) on the child.
+        }
+
+        /// <summary>
+        /// Opens the shared Manage Ships overlay (ManageShipsUI_Prefab / ManageShipsUIFields) for
+        /// one system - the ship-list/fleet-buttons/action-dropdowns cluster that used to crowd
+        /// SystemUI_Prefab/ExpandedContent. Mirrors InstantiateSysBuildUI's exact pattern below:
+        /// one shared instance, reused (re-populated) if the same system reopens it, destroyed and
+        /// recreated if a different system does.
+        /// </summary>
+        public void InstantiateManageShipsUI(StarSysController sysCon)
+        {
+            if (manageShipsUIPrefab == null)
+            {
+                Debug.LogWarning("InstantiateManageShipsUI: manageShipsUIPrefab not assigned in Inspector.");
+                return;
+            }
+
+            var existingFields = Object.FindFirstObjectByType<ManageShipsUIFields>(FindObjectsInactive.Include);
+            if (existingFields != null)
+            {
+                if (currentManageShipsUISysCon == sysCon)
+                {
+                    // Same system reopened - just show it and refresh, same as InstantiateSysBuildUI's
+                    // "reuse for same system" branch.
+                    existingFields.gameObject.SetActive(true);
+                    if (canvasManageShips != null) canvasManageShips.SetActive(true);
+                    StarSysMenuUIController.Instance?.PopulateManageShipsUI(sysCon, existingFields);
+                    return;
+                }
+
+                // Different system - hand its ships back to its own compact list before tearing
+                // down this instance, same reasoning as HideManageShipsUI below.
+                if (currentManageShipsUISysCon != null)
+                    StarSysMenuUIController.Instance?.ReturnShipsFromManageShipsUI(currentManageShipsUISysCon);
+                Destroy(existingFields.gameObject);
+                currentManageShipsUISysCon = null;
+            }
+            currentManageShipsUISysCon = sysCon;
+
+            GameObject instance = Instantiate(manageShipsUIPrefab, new Vector3(0, -70, 0), Quaternion.identity);
+            instance.layer = 5;
+
+            var fields = instance.GetComponent<ManageShipsUIFields>();
+            if (fields == null)
+            {
+                Debug.LogError("InstantiateManageShipsUI: manageShipsUIPrefab has no ManageShipsUIFields component.");
+                Destroy(instance);
+                currentManageShipsUISysCon = null;
+                return;
+            }
+
+            if (canvasManageShips != null)
+            {
+                canvasManageShips.SetActive(true);
+                instance.transform.SetParent(canvasManageShips.transform, false);
+            }
+
+            if (fields.closeButtons != null)
+            {
+                foreach (var closeButton in fields.closeButtons)
+                {
+                    if (closeButton == null) continue;
+                    closeButton.onClick.RemoveAllListeners();
+                    closeButton.onClick.AddListener(HideManageShipsUI);
+                }
+            }
+
+            StarSysMenuUIController.Instance?.PopulateManageShipsUI(sysCon, fields);
+        }
+
+        /// <summary>
+        /// Closes the Manage Ships overlay and hands the system's ships back to its own compact
+        /// ship list (StarSysUI_Fields.shipContent) - see StarSysMenuUIController.
+        /// ReturnShipsFromManageShipsUI. Mirrors HideBuildUI: deactivates rather than destroys, so
+        /// reopening the same system is cheap.
+        /// </summary>
+        public void HideManageShipsUI()
+        {
+            var existingFields = Object.FindFirstObjectByType<ManageShipsUIFields>(FindObjectsInactive.Exclude);
+            if (existingFields != null)
+                existingFields.gameObject.SetActive(false);
+
+            if (currentManageShipsUISysCon != null)
+                StarSysMenuUIController.Instance?.ReturnShipsFromManageShipsUI(currentManageShipsUISysCon);
+            currentManageShipsUISysCon = null;
         }
 
         public void InstantiateSysBuildUI(StarSysController sysCon) // open the build queue UI
@@ -3077,7 +3263,7 @@ namespace BOTF3D.Galaxy
             // ── Facilities ────────────────────────────────────────────────────────────
             SetCostText(tmps, "F_PowerTurns", "F_PowerLi_2",
                 GetFacilityTurns(sysCon, StarSysFacilityType.PowerPlanet),
-                ShipStatCalculator.GetPowerPlantDilithiumCost(civ));
+                ShipStatCalculator.GetPowerPlantDilithiumCost(tech, sysCon.StarSysData.PowerPlantData?.BasePowerOutput ?? 20));
 
             SetCostText(tmps, "F_FactoryTurns", "F_FactoryLi_2",
                 GetFacilityTurns(sysCon, StarSysFacilityType.Factory),
@@ -3177,7 +3363,7 @@ namespace BOTF3D.Galaxy
             {
                 int cost = drag.FacilityType switch
                 {
-                    StarSysFacilityType.PowerPlanet => ShipStatCalculator.GetPowerPlantDilithiumCost(civ),
+                    StarSysFacilityType.PowerPlanet => ShipStatCalculator.GetPowerPlantDilithiumCost(tech, sysCon.StarSysData.PowerPlantData?.BasePowerOutput ?? 20),
                     StarSysFacilityType.Factory => GetFactorySObyCivInt((int)civ)?.DilithiumCost ?? 0,
                     StarSysFacilityType.Shipyard => GetShipyardSObyCivInt((int)civ)?.DilithiumCost ?? 0,
                     StarSysFacilityType.ShieldGenerator => GetShieldGeneratorSObyCivInt((int)civ)?.DilithiumCost ?? 0,

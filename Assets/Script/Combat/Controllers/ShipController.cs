@@ -1,3 +1,4 @@
+using BOTF3D.Civilization;
 using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
@@ -411,7 +412,12 @@ namespace BOTF3D.Combat
             }
         }
 
-        public void TakeDamage(int weaponDamageInt)
+        /// <summary>
+        /// bypassShields (Phase II tech tree, §8 II.3 - CombatOrderHelper.ApplyAttackerTechBonuses /
+        /// Torpedo.cs's Transphasic unlock) forces this hit straight to Hull regardless of current
+        /// ShieldHealth - Klingon Subsystem Cripple and Transphasic-class torpedoes both use it.
+        /// </summary>
+        public void TakeDamage(int weaponDamageInt, bool bypassShields = false)
         {
             if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured) return;
 
@@ -441,7 +447,7 @@ namespace BOTF3D.Combat
                 weaponDamageInt = Mathf.RoundToInt(weaponDamageInt * overlapMultiplier);
             }
 
-            if (ShipData.ShieldHealth > 0)
+            if (!bypassShields && ShipData.ShieldHealth > 0)
             {
                 // Shields were up for this hit - flash the visible shell (VFX/ShipShieldEffect.cs).
                 ShipShieldEffect.GetOrCreate(this)?.Flash();
@@ -470,9 +476,22 @@ namespace BOTF3D.Combat
                     bool isSideOne = ccc.CombatData.SideOneShipCons.Contains(this);
                     CombatOrders myOrder = isSideOne ? ccc.CombatData.SideOneOrder : ccc.CombatData.SideTwoOrder;
                     CombatOrders enemyOrder = isSideOne ? ccc.CombatData.SideTwoOrder : ccc.CombatData.SideOneOrder;
+                    CivEnum killerCivEnum = isSideOne ? ccc.CombatData.CivEnumSideTwo : ccc.CombatData.CivEnumSideOne;
 
                     bool vulnerableToCapture = myOrder == CombatOrders.Retreat || myOrder == CombatOrders.Scuttle;
                     if (enemyOrder == CombatOrders.Capture && vulnerableToCapture)
+                    {
+                        CaptureShip(announceToNetwork: true);
+                        return;
+                    }
+
+                    // Borg Assimilation Protocols (TechEffectHook.AssimilationProtocols, §5a) - a flat
+                    // per-kill chance to still route this hull through the same shipyard/tech
+                    // capture-reward path (TurnBasedCombatResolver.ApplyCaptureRewards) even without a
+                    // deliberate Capture order or Retreat/Scuttle vulnerability - "converts a
+                    // destroyed-or-disabled enemy hull ... into a Borg asset instead" of a plain kill.
+                    float assimilationChance = CivManager.Instance?.GetCivDataByCivEnum(killerCivEnum)?.Effects?.AssimilationChance ?? 0f;
+                    if (assimilationChance > 0f && UnityEngine.Random.value < assimilationChance)
                     {
                         CaptureShip(announceToNetwork: true);
                         return;

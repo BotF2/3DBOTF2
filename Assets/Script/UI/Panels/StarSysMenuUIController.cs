@@ -264,58 +264,8 @@ namespace BOTF3D.UI
                 {
                     sysCon.StarSysData.ShipListUIParent = sysUIFieldElement.shipContent.gameObject;
 
-                    // Grid: 136×50 cells, 2 columns
-                    var grid = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.GridLayoutGroup>()
-                               ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.GridLayoutGroup>();
-                    grid.cellSize = new Vector2(136, 50);
-                    grid.spacing = new Vector2(4, 4);
-                    grid.padding = new RectOffset(5, 0, 0, 0);
-                    grid.startAxis = UnityEngine.UI.GridLayoutGroup.Axis.Horizontal;
-                    grid.constraint = UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount;
-                    grid.constraintCount = 2;
-
-                    var fitter = sysUIFieldElement.shipContent.GetComponent<UnityEngine.UI.ContentSizeFitter>()
-                                 ?? sysUIFieldElement.shipContent.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
-                    fitter.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
-                    fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
-
-                    // Anchor content to top-left so GridLayoutGroup places items downward
-                    var contentRect = sysUIFieldElement.shipContent;
-                    contentRect.anchorMin = new Vector2(0f, 1f);
-                    contentRect.anchorMax = new Vector2(1f, 1f);
-                    contentRect.pivot = new Vector2(0f, 1f);
-                    contentRect.anchoredPosition = Vector2.zero;
-                    contentRect.sizeDelta = Vector2.zero;
-
-                    // Fix Viewport to fill ShipScrollView
-                    if (sysUIFieldElement.ShipScrollView != null)
-                    {
-                        var svRect = sysUIFieldElement.ShipScrollView.GetComponent<RectTransform>();
-                        if (svRect != null)
-                            svRect.sizeDelta = new Vector2(sysUIFieldElement.CollapsedShipScrollViewWidth, svRect.sizeDelta.y);
-
-                        var viewport = sysUIFieldElement.ShipScrollView.transform.Find("Viewport");
-                        if (viewport != null)
-                        {
-                            var vpRect = viewport.GetComponent<RectTransform>();
-                            if (vpRect != null)
-                            {
-                                vpRect.anchorMin = Vector2.zero;
-                                vpRect.anchorMax = Vector2.one;
-                                vpRect.sizeDelta = Vector2.zero;
-                                vpRect.anchoredPosition = Vector2.zero;
-                            }
-                        }
-
-                        var sr = sysUIFieldElement.ShipScrollView.GetComponent<UnityEngine.UI.ScrollRect>();
-                        if (sr != null)
-                        {
-                            sr.enabled = true;
-                            // Prevent scroll events from propagating to the FactoryScrollViewQueue
-                            if (sysUIFieldElement.ShipScrollView.GetComponent<ScrollRectIsolator>() == null)
-                                sysUIFieldElement.ShipScrollView.AddComponent<ScrollRectIsolator>();
-                        }
-                    }
+                    SetupShipGrid(sysUIFieldElement.shipContent, sysUIFieldElement.ShipScrollView,
+                        sysUIFieldElement.CollapsedShipScrollViewWidth);
 
                     // Expand button: show whenever ships are present
                     int shipCount = sysCon.StarSysData?.ShipsList?.Count ?? 0;
@@ -334,32 +284,11 @@ namespace BOTF3D.UI
                         }
                     }
 
-                    // ✅ SYNC SHIPS (Always run to ensure UIs are present and correctly parented)
-                    if (sysCon.StarSysData.ShipsList != null)
-                    {
-                        foreach (var shipCon in sysCon.StarSysData.ShipsList)
-                        {
-                            if (shipCon == null) continue;
-
-                            // Create missing UI
-                            if (shipCon.ShipListUIGameObject == null)
-                            {
-                                ShipManager.Instance?.InstantiateShipListUIGameObject(shipCon, sysCon.gameObject);
-                                Debug.Log($"  Created missing ship UI for '{shipCon.ShipData?.ShipName}' in system '{sysCon.name}'");
-                            }
-
-                            // Ensure correct parent
-                            if (shipCon.ShipListUIGameObject != null &&
-                                shipCon.ShipListUIGameObject.transform.parent != sysUIFieldElement.shipContent)
-                            {
-                                shipCon.ShipListUIGameObject.transform.SetParent(sysUIFieldElement.shipContent, false);
-                                shipCon.ShipListUIGameObject.SetActive(true);
-                                Debug.Log($"  Re-parented ship UI '{shipCon.ShipData?.ShipName}' to StarSys shipContent");
-                            }
-                        }
-                        // Rescue any queued items
-                        ShipManager.Instance?.ProcessPendingShipUIs();
-                    }
+                    // Skip while the Manage Ships overlay currently holds this system's ships -
+                    // otherwise this would yank them back out of the open overlay on every pass
+                    // (a ship's list UI is one live GameObject, only ever parented in one place).
+                    if (StarSysManager.Instance?.CurrentManageShipsUISysCon != sysCon)
+                        SyncShipsIntoContent(sysCon, sysUIFieldElement.shipContent);
                 }
 
                 // ✅ FIRST TIME ONLY: Wire buttons and set original parent
@@ -407,6 +336,12 @@ namespace BOTF3D.UI
                 }
 
                 RefreshQueueDisplays(sysCon, sysUIFieldElement);
+
+                // Recomputed every pass (unlike RefreshCargoButtons, which only runs at first wiring
+                // and after its own clicks) so plant-count/dilithium/population/tech changes from any
+                // source keep these in sync without requiring an action here first.
+                RefreshScrapOnePowerUnitButton(sysCon);
+                RefreshActionDropdowns(sysCon);
 
                 setupCount++;
             } // ✅ MOVED: End of foreach loop is HERE
@@ -463,6 +398,13 @@ namespace BOTF3D.UI
                 fields.unloadCargoButton.onClick.AddListener(() => ClickUnloadCargoButton(sysCon));
             }
 
+            // RefreshCargoButtons' own doc-comment says "call ... when the system UI opens" but
+            // nothing actually did - the three cargo buttons above only got their onClick wired
+            // here, never their initial SetActive state, so they sat in whatever active/inactive
+            // state the prefab happened to be authored with instead of reflecting this system's
+            // actual docked-transport/stockpile state until after the first load/unload click.
+            RefreshCargoButtons(sysCon);
+
             if (fields.scrapButton != null)
             {
                 fields.scrapButton.onClick.RemoveAllListeners();
@@ -470,6 +412,26 @@ namespace BOTF3D.UI
                 // Only visible when the system has a shipyard
                 bool hasShipyard = sysCon.StarSysData.Shipyards != null && sysCon.StarSysData.Shipyards.Count > 0;
                 fields.scrapButton.gameObject.SetActive(hasShipyard);
+            }
+
+            if (fields.scrapPowerPlantButton != null)
+            {
+                fields.scrapPowerPlantButton.onClick.RemoveAllListeners();
+                fields.scrapPowerPlantButton.onClick.AddListener(() => ClickScrapPowerPlantButton(sysCon));
+                // No selection panel needed - every plant of a civ's is identical, so there's
+                // nothing to choose between (unlike ships, which vary by BuiltAtTechLevel/damage).
+                // Only visible/clickable when there's actually one to decommission.
+                bool hasPowerPlant = sysCon.StarSysData.CurrentPowerPlantCount > 0;
+                fields.scrapPowerPlantButton.gameObject.SetActive(hasPowerPlant);
+            }
+
+            if (fields.scrapOnePowerUnitButton != null)
+            {
+                fields.scrapOnePowerUnitButton.onClick.RemoveAllListeners();
+                fields.scrapOnePowerUnitButton.onClick.AddListener(() => ClickScrapOnePowerUnitButton(sysCon));
+                // Visibility is recomputed every SetupSystemUIData pass (RefreshScrapOnePowerUnitButton),
+                // not just here, so it stays current if the plant count changes some other way.
+                RefreshScrapOnePowerUnitButton(sysCon);
             }
 
             if (fields.newFleetButton != null)
@@ -482,6 +444,12 @@ namespace BOTF3D.UI
             {
                 fields.mergeFleetButton.onClick.RemoveAllListeners();
                 fields.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysCon));
+            }
+
+            if (fields.manageShipsButton != null)
+            {
+                fields.manageShipsButton.onClick.RemoveAllListeners();
+                fields.manageShipsButton.onClick.AddListener(() => StarSysManager.Instance?.InstantiateManageShipsUI(sysCon));
             }
 
             // Wire facility On/Off buttons
@@ -886,6 +854,18 @@ namespace BOTF3D.UI
             return numOn;
         }
 
+        /// <summary>
+        /// TechManager.GetPowerEfficiencyMultiplier(1.00/0.90/0.80/0.70 by TechLevel) applied as a
+        /// load reducer - every facility genuinely draws less power as a civ's tech improves. See
+        /// Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §4.
+        /// </summary>
+        private static float GetPowerLoadMultiplier(StarSysController sysCon)
+        {
+            if (TechManager.Instance == null) return 1f;
+            TechLevel tech = sysCon.StarSysData?.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            return TechManager.Instance.GetPowerEfficiencyMultiplier(tech);
+        }
+
         public void UpdateSystemPowerBalance(StarSysController sysCon)
         {
             if (sysCon == null) return;
@@ -919,7 +899,10 @@ namespace BOTF3D.UI
                     if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
                         load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
-                sysCon.StarSysData.TotalSysPowerLoad = load;
+                // Every facility genuinely draws less power as a civ's tech improves (Docs/Design/
+                // FacilityCaps_Phase2_ResourceDriven.md §4) - applied to the summed raw load here,
+                // not to output, per TechManager.GetPowerEfficiencyMultiplier's own doc comment.
+                sysCon.StarSysData.TotalSysPowerLoad = Mathf.RoundToInt(load * GetPowerLoadMultiplier(sysCon));
                 sysCon.StarSysData.TotalSysPowerOutput = output;
                 return; // ✅ Exit - no UI to update
             }
@@ -949,6 +932,7 @@ namespace BOTF3D.UI
                 if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
                     loadUI += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
+            loadUI = Mathf.RoundToInt(loadUI * GetPowerLoadMultiplier(sysCon));
             sysCon.StarSysData.TotalSysPowerLoad = loadUI;
             sysCon.StarSysData.TotalSysPowerOutput = outputUI;
 
@@ -1350,6 +1334,462 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
+        /// Decommissions one Power Plant, returning its Dilithium value at the current TechLevel
+        /// to this system's stockpile. No confirmation panel - every plant of a civ's is
+        /// identical, so unlike ScrapShip there's nothing to pick between (see
+        /// StarSysManager.ScrapPowerPlant for the refund math).
+        /// </summary>
+        private void ClickScrapPowerPlantButton(StarSysController sysCon)
+        {
+            // StarSysManager.ScrapPowerPlant already refreshes the power balance display and the
+            // compact header's Dilithium counter; re-hide the button here if the count hit zero.
+            StarSysManager.Instance?.ScrapPowerPlant(sysCon);
+            if (sysCon?.StarSysUIGameObject != null)
+            {
+                var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+                if (fields?.scrapPowerPlantButton != null)
+                    fields.scrapPowerPlantButton.gameObject.SetActive(sysCon.StarSysData.CurrentPowerPlantCount > 0);
+            }
+        }
+
+        /// <summary>
+        /// ExpandedContent/HeaderPowerUnitText/ButtonScrapOne. Same underlying decommission as
+        /// ClickScrapPowerPlantButton (StarSysManager.ScrapPowerPlant - refunds the plant's current
+        /// Dilithium value), but gated at >1 rather than >0 so a system is never left with zero
+        /// Power Plants through this button.
+        /// </summary>
+        private void ClickScrapOnePowerUnitButton(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysData == null || sysCon.StarSysData.CurrentPowerPlantCount <= 1) return;
+            StarSysManager.Instance?.ScrapPowerPlant(sysCon);
+            RefreshScrapOnePowerUnitButton(sysCon);
+        }
+
+        private void RefreshScrapOnePowerUnitButton(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysUIGameObject == null) return;
+            var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields?.scrapOnePowerUnitButton == null) return;
+            fields.scrapOnePowerUnitButton.gameObject.SetActive(sysCon.StarSysData.CurrentPowerPlantCount > 1);
+        }
+
+        // ── Inline action dropdowns (Scrap Ships / Load / Unload) ──────────────────
+        //
+        // Each dropdown's option 0 is a fixed label ("Scrap Ships"/"Load"/"Unload") that is never
+        // itself an action - real entries start at index 1. That way every real pick differs from
+        // the post-action reset value (always 0), so onValueChanged reliably fires even when the
+        // player picks what is physically the same top list entry twice in a row (Unity's Dropdown
+        // does not fire when the newly clicked index equals the already-selected one).
+
+        /// <summary>
+        /// Rebuilds all three dropdowns for one system, on both the compact per-row
+        /// StarSysUI_Fields (if present) and the Manage Ships overlay (if currently open for this
+        /// system) - a system can have either, both, or (mid-prefab-rework) neither wired up, so
+        /// each Refresh*Dropdown call below no-ops harmlessly on a null dropdown. Called every
+        /// SetupSystemUIData pass (so eligibility - ship list, Dilithium/population/tech state -
+        /// never goes stale) and again after any action taken through one of them.
+        /// </summary>
+        public void RefreshActionDropdowns(StarSysController sysCon)
+        {
+            if (sysCon == null) return;
+
+            var fields = sysCon.StarSysUIGameObject != null
+                ? sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()
+                : null;
+            if (fields != null)
+            {
+                RefreshScrapShipsDropdown(sysCon, fields.scrapShipsDropdown);
+                RefreshLoadDropdown(sysCon, fields.loadDropdown);
+                RefreshUnloadDropdown(sysCon, fields.unloadDropdown);
+            }
+
+            if (StarSysManager.Instance != null && StarSysManager.Instance.CurrentManageShipsUISysCon == sysCon)
+            {
+                var manageFields = UnityEngine.Object.FindFirstObjectByType<ManageShipsUIFields>(FindObjectsInactive.Include);
+                if (manageFields != null)
+                {
+                    RefreshScrapShipsDropdown(sysCon, manageFields.scrapShipsDropdown);
+                    RefreshLoadDropdown(sysCon, manageFields.loadDropdown);
+                    RefreshUnloadDropdown(sysCon, manageFields.unloadDropdown);
+                }
+            }
+        }
+
+        private void RefreshScrapShipsDropdown(StarSysController sysCon, TMP_Dropdown dd)
+        {
+            if (dd == null) return;
+
+            var ships = GetScrappableShipsOldestFirst(sysCon);
+            dd.gameObject.SetActive(ships.Count > 0);
+            dd.onValueChanged.RemoveAllListeners();
+            if (ships.Count == 0) return;
+
+            var labels = new List<string> { "Scrap Ships" };
+            foreach (var ship in ships)
+                labels.Add($"{ship.ShipData.ShipName} (T{(int)ship.ShipData.BuiltAtTechLevel})");
+
+            dd.ClearOptions();
+            dd.AddOptions(labels);
+            dd.SetValueWithoutNotify(0);
+            dd.RefreshShownValue();
+
+            dd.onValueChanged.AddListener(index =>
+            {
+                if (index <= 0 || index > ships.Count) return;
+                var ship = ships[index - 1];
+                if (ship?.ShipData != null && !ship.ShipData.Distroyed)
+                {
+                    StarSysManager.Instance?.ScrapShip(ship, sysCon);
+                    sysCon.StarSysUIGameObject?.GetComponent<StarSysUI_Fields>()?.compactHeader?.RefreshDilithium();
+                }
+                RefreshActionDropdowns(sysCon);
+            });
+        }
+
+        /// <summary>
+        /// Ships eligible to scrap at this system (garrison + any docked fleet owned by the
+        /// system's owner), sorted oldest TechLevel first. Same eligibility as
+        /// ScrapPanelUIController.GatherScrappableShips, duplicated here since this dropdown is a
+        /// separate, lighter-weight entry point that doesn't open that modal panel.
+        /// </summary>
+        private List<ShipController> GetScrappableShipsOldestFirst(StarSysController sysCon)
+        {
+            var result = new List<ShipController>();
+            CivEnum owner = sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            bool IsEligible(ShipController s) =>
+                s != null && s.ShipData != null && !s.ShipData.Distroyed
+                && s.ShipData.CivEnum == owner && s.ShipData.ShipType != ShipType.OrbitalBattery;
+
+            if (sysCon.StarSysData.ShipsList != null)
+                foreach (var ship in sysCon.StarSysData.ShipsList)
+                    if (IsEligible(ship)) result.Add(ship);
+
+            if (FleetManager.Instance != null)
+                foreach (var fleet in FleetManager.Instance.FleetControllerList)
+                {
+                    if (fleet?.FleetData == null || fleet.FleetData.DockedStarSys != sysCon
+                        || fleet.FleetData.CivEnum != owner) continue;
+                    foreach (var ship in fleet.FleetData.ShipsList)
+                        if (IsEligible(ship)) result.Add(ship);
+                }
+
+            result.Sort((a, b) => ((int)a.ShipData.BuiltAtTechLevel).CompareTo((int)b.ShipData.BuiltAtTechLevel));
+            return result;
+        }
+
+        /// <summary>
+        /// Colony/Troops/Terraform are always listed - never hidden - so the player can always see
+        /// why an option isn't ready right now; StatusSuffix appends the blocking reason in
+        /// parentheses when EvaluateXxxLoad reports one. Only the whole dropdown hides, when no
+        /// local transport is even docked here to load anything onto.
+        /// </summary>
+        private void RefreshLoadDropdown(StarSysController sysCon, TMP_Dropdown dd)
+        {
+            if (dd == null) return;
+
+            bool anyTransportDocked = GetLocalPlayerTransportsAtSystem(sysCon).Count > 0;
+            dd.gameObject.SetActive(anyTransportDocked);
+            dd.onValueChanged.RemoveAllListeners();
+            if (!anyTransportDocked) return;
+
+            // Colony: the Dilithium a new Power Plant would cost at this civ's current TechLevel,
+            // plus one population unit - same refund formula ScrapPowerPlant uses, run in reverse.
+            var data = sysCon.StarSysData;
+            TechLevel tech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int colonyDilithiumCost = ShipStatCalculator.GetPowerPlantDilithiumCost(tech, data.PowerPlantData?.BasePowerOutput ?? 20);
+
+            var colonyEval    = EvaluateColonyLoad(sysCon, colonyDilithiumCost);
+            var troopEval     = EvaluateTroopLoad(sysCon);
+            var terraformEval = EvaluateTerraformLoad(sysCon);
+
+            var labels = new List<string>
+            {
+                "Load",
+                "Colony"    + StatusSuffix(colonyEval.ok, colonyEval.reason),
+                "Troops"    + StatusSuffix(troopEval.ok, troopEval.reason),
+                "Terraform" + StatusSuffix(terraformEval.ok, terraformEval.reason),
+            };
+
+            dd.ClearOptions();
+            dd.AddOptions(labels);
+            dd.SetValueWithoutNotify(0);
+            dd.RefreshShownValue();
+
+            dd.onValueChanged.AddListener(index =>
+            {
+                // Re-evaluate at click time rather than reusing the eval captured above - state
+                // (stockpile, docked ships) may have moved on since this refresh.
+                switch (index)
+                {
+                    case 1: TryLoadColonyKit(sysCon, colonyDilithiumCost); break;
+                    case 2: TryLoadTroopUnit(sysCon); break;
+                    case 3: TryDesignateTerraform(sysCon); break;
+                }
+                RefreshActionDropdowns(sysCon);
+            });
+        }
+
+        private static string StatusSuffix(bool ok, string reason) => ok ? string.Empty : $" ({reason})";
+
+        /// <summary>Checks whether a Colony Kit can be loaded right now, and onto which transport - shared by
+        /// RefreshLoadDropdown (for the status suffix) and TryLoadColonyKit (for the actual load).</summary>
+        private (bool ok, string reason, ShipController transport) EvaluateColonyLoad(StarSysController sysCon, int dilithiumCost)
+        {
+            var data = sysCon.StarSysData;
+            var transport = FindLoadableTransport(sysCon, requireEmpty: true);
+            if (transport == null)
+                return (false, "no empty transport docked", null);
+            if (data.Population < 1)
+                return (false, "no population available", transport);
+            if (data.DilithiumStockpile < dilithiumCost)
+                return (false, $"need {dilithiumCost - data.DilithiumStockpile} more Li2", transport);
+            // Deliberately no CargoCapacity check against dilithiumCost: CargoCapacity (2-6, see
+            // TransportCargoByTier) is a headcount of discrete population/ground-force UNITS, not a
+            // measure of raw Dilithium quantity - at SUPREME tier alone dilithiumCost already runs
+            // well past 6 for any civ (TierRatio tops out at 3.2x a plant's power output), so
+            // checking it here made "Colony" permanently unavailable at high tech regardless of
+            // stockpile. Every transport can always carry a full Colony Kit's Dilithium; the only
+            // real capacity constraint is the population half, already covered by requireEmpty above
+            // (mirrors CargoDeployMenuUIController.TryLoadPopulationOnto, which never checks
+            // LoadedDilithium against room either).
+            return (true, null, transport);
+        }
+
+        /// <summary>Checks whether a troop unit can be loaded right now, and onto which transport. Unlike
+        /// Colony, a transport doesn't need to be empty - only free of population (mutually exclusive
+        /// with a Colony Kit per CargoDeployMenuUIController) and under its own CargoCapacity, so
+        /// repeated Troops picks can keep topping up the same ship.</summary>
+        private (bool ok, string reason, ShipController transport) EvaluateTroopLoad(StarSysController sysCon)
+        {
+            var data = sysCon.StarSysData;
+            if ((data.GroundForces?.Count ?? 0) <= 0)
+                return (false, "no troops available in this system", null);
+
+            foreach (var ship in GetLocalPlayerTransportsAtSystem(sysCon))
+            {
+                var sd = ship.ShipData;
+                if (sd.LoadedPopulation > 0) continue;
+                int room = sd.CargoCapacity - sd.LoadedDilithium - sd.LoadedGroundForces;
+                if (room > 0) return (true, null, ship);
+            }
+            return (false, "no transport with cargo room docked", null);
+        }
+
+        /// <summary>Checks whether a transport can be readied for Terraform duty - gated only on the civ's
+        /// TerraformingTech flag (StarSysController.TerraformSystem needs no cargo at all).</summary>
+        private (bool ok, string reason, ShipController transport) EvaluateTerraformLoad(StarSysController sysCon)
+        {
+            bool hasTech = sysCon.StarSysData.CurrentCivController?.CivData?.Effects.TerraformingTech ?? false;
+            if (!hasTech)
+                return (false, "Terraforming Technology not researched", null);
+            var transport = FindFirstLocalTransport(sysCon);
+            if (transport == null)
+                return (false, "no transport docked", null);
+            return (true, null, transport);
+        }
+
+        /// <summary>
+        /// Loads a Colony Kit (Dilithium for one Power Plant + one population unit) onto an empty
+        /// docked transport. The population half is moved through CargoDeployMenuUIController - the
+        /// canonical mover for population/ground-force cargo (enforces the one-cargo-type-at-a-time
+        /// rule and renames the ship "Colonyship") - since that logic isn't duplicated here. That
+        /// controller reads its own CurrentStarSys field rather than taking one as a parameter, so
+        /// it's pointed at this system first. Every outcome - success or blocked - is pushed to the
+        /// Report panel (PushLogisticsReport) so the player has a durable record of why.
+        /// </summary>
+        private void TryLoadColonyKit(StarSysController sysCon, int dilithiumCost)
+        {
+            var sysName = sysCon.StarSysData.SysName;
+            var (ok, reason, transport) = EvaluateColonyLoad(sysCon, dilithiumCost);
+            if (!ok)
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Colony Kit at {sysName}: {reason}.", "", ReportSeverity.Warning);
+                return;
+            }
+
+            var cargoCon = CargoDeployMenuUIController.Instance;
+            if (cargoCon == null)
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Colony Kit at {sysName}: cargo system unavailable.", "", ReportSeverity.Warning);
+                return;
+            }
+            cargoCon.CurrentStarSys = sysCon;
+            if (!cargoCon.TryLoadPopulationOnto(transport, 1)) // don't spend Dilithium if the population half failed
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Colony Kit at {sysName}: no cargo room for population.", "", ReportSeverity.Warning);
+                return;
+            }
+
+            transport.ShipData.LoadedDilithium += dilithiumCost;
+            sysCon.StarSysData.DilithiumStockpile -= dilithiumCost;
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(transport.ShipData);
+
+            int used = transport.ShipData.LoadedDilithium + transport.ShipData.LoadedGroundForces + transport.ShipData.LoadedPopulation;
+            PushLogisticsReport(sysCon,
+                $"Colony Kit loaded onto {transport.ShipData.ShipName} at {sysName}",
+                $"{dilithiumCost} Li2 + 1 population loaded. Cargo capacity now {used}/{transport.ShipData.CargoCapacity}. " +
+                $"Dilithium stockpile remaining: {sysCon.StarSysData.DilithiumStockpile}.",
+                ReportSeverity.Info);
+        }
+
+        /// <summary>
+        /// Loads one Ground Force unit through CargoDeployMenuUIController (renames the ship
+        /// "Dropship" and destroys the vacated unit's GameObject - see that class's
+        /// TryLoadGroundForceOnto), the same mover TryLoadColonyKit uses for its population half.
+        /// </summary>
+        private void TryLoadTroopUnit(StarSysController sysCon)
+        {
+            var sysName = sysCon.StarSysData.SysName;
+            var (ok, reason, transport) = EvaluateTroopLoad(sysCon);
+            if (!ok)
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Troops at {sysName}: {reason}.", "", ReportSeverity.Warning);
+                return;
+            }
+
+            var cargoCon = CargoDeployMenuUIController.Instance;
+            if (cargoCon == null)
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Troops at {sysName}: cargo system unavailable.", "", ReportSeverity.Warning);
+                return;
+            }
+            cargoCon.CurrentStarSys = sysCon;
+            if (!cargoCon.TryLoadGroundForceOnto(transport, 1))
+            {
+                PushLogisticsReport(sysCon, $"Cannot load Troops at {sysName}: no cargo room.", "", ReportSeverity.Warning);
+                return;
+            }
+
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(transport.ShipData);
+            int used = transport.ShipData.LoadedDilithium + transport.ShipData.LoadedGroundForces + transport.ShipData.LoadedPopulation;
+            PushLogisticsReport(sysCon,
+                $"1 troop unit loaded onto {transport.ShipData.ShipName} at {sysName}",
+                $"Cargo capacity now {used}/{transport.ShipData.CargoCapacity}.",
+                ReportSeverity.Info);
+        }
+
+        /// <summary>
+        /// Terraforming needs no cargo (StarSysController.TerraformSystem only checks the civ's
+        /// TerraformingTech flag and that a Transport is present) - this just flags the ship so
+        /// TransportCargoIndicator can show its Terraform icon; nothing is deducted from the system.
+        /// </summary>
+        private void TryDesignateTerraform(StarSysController sysCon)
+        {
+            var sysName = sysCon.StarSysData.SysName;
+            var (ok, reason, transport) = EvaluateTerraformLoad(sysCon);
+            if (!ok)
+            {
+                PushLogisticsReport(sysCon, $"Cannot ready a Terraform mission at {sysName}: {reason}.", "", ReportSeverity.Warning);
+                return;
+            }
+
+            transport.ShipData.DesignatedForTerraform = true;
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(transport.ShipData);
+            PushLogisticsReport(sysCon,
+                $"{transport.ShipData.ShipName} readied for a Terraform mission from {sysName}",
+                "No cargo required - send it to an uninhabited, terraformable system.",
+                ReportSeverity.Info);
+        }
+
+        private void RefreshUnloadDropdown(StarSysController sysCon, TMP_Dropdown dd)
+        {
+            if (dd == null) return;
+
+            var carriers = new List<ShipController>();
+            foreach (var ship in GetLocalPlayerTransportsAtSystem(sysCon))
+                if (ship.ShipData.LoadedDilithium > 0 || ship.ShipData.LoadedPopulation > 0 || ship.ShipData.LoadedGroundForces > 0)
+                    carriers.Add(ship);
+
+            dd.gameObject.SetActive(carriers.Count > 0);
+            dd.onValueChanged.RemoveAllListeners();
+            if (carriers.Count == 0) return;
+
+            var labels = new List<string> { "Unload" };
+            foreach (var ship in carriers)
+                labels.Add($"{ship.ShipData.ShipName} — {DescribeLoadedCargo(ship.ShipData)}");
+
+            dd.ClearOptions();
+            dd.AddOptions(labels);
+            dd.SetValueWithoutNotify(0);
+            dd.RefreshShownValue();
+
+            dd.onValueChanged.AddListener(index =>
+            {
+                if (index <= 0 || index > carriers.Count) return;
+                UnloadTransportCargo(sysCon, carriers[index - 1]);
+                RefreshActionDropdowns(sysCon);
+            });
+        }
+
+        private static string DescribeLoadedCargo(ShipData data)
+        {
+            if (data.LoadedDilithium > 0 && data.LoadedPopulation > 0)
+                return $"Colony Kit ({data.LoadedDilithium} Li2 + 1 Pop)";
+            if (data.LoadedDilithium > 0)
+                return $"{data.LoadedDilithium} Li2";
+            if (data.LoadedPopulation > 0)
+                return "1 Pop";
+            return data.LoadedGroundForces == 1 ? "1 Troop" : $"{data.LoadedGroundForces} Troops";
+        }
+
+        /// <summary>
+        /// Returns everything a transport is carrying to this system: Dilithium straight back to
+        /// the stockpile here, population/ground forces through CargoDeployMenuUIController (the
+        /// canonical mover - see TryLoadColonyKit/TryLoadTroopUnit). Pushes one Report entry
+        /// summarizing what came back.
+        /// </summary>
+        private void UnloadTransportCargo(StarSysController sysCon, ShipController transport)
+        {
+            if (transport?.ShipData == null || sysCon?.StarSysData == null) return;
+            var shipData = transport.ShipData;
+            string cargoDescription = DescribeLoadedCargo(shipData); // captured before any of it is cleared below
+
+            if (shipData.LoadedDilithium > 0)
+            {
+                sysCon.StarSysData.DilithiumStockpile += shipData.LoadedDilithium;
+                shipData.LoadedDilithium = 0;
+            }
+
+            var cargoCon = CargoDeployMenuUIController.Instance;
+            if (cargoCon != null)
+                cargoCon.CurrentStarSys = sysCon;
+
+            if (shipData.LoadedPopulation > 0)
+            {
+                if (cargoCon == null || !cargoCon.TryUnloadPopulationFrom(transport, shipData.LoadedPopulation))
+                {
+                    sysCon.StarSysData.Population += shipData.LoadedPopulation;
+                    shipData.LoadedPopulation = 0;
+                }
+            }
+            else if (shipData.LoadedGroundForces > 0)
+            {
+                if (cargoCon == null || !cargoCon.TryUnloadGroundForceFrom(transport, shipData.LoadedGroundForces))
+                    shipData.LoadedGroundForces = 0;
+            }
+
+            transport.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(shipData);
+            PushLogisticsReport(sysCon,
+                $"{cargoDescription} unloaded from {shipData.ShipName} at {sysCon.StarSysData.SysName}",
+                "", ReportSeverity.Info);
+        }
+
+        /// <summary>
+        /// Pushes a Logistics-category entry to the Report panel (top ribbon Report button) for a
+        /// transport cargo action at this system - success or blocked alike, so the player has a
+        /// durable record of what happened and why without needing dedicated tooltip/status UI.
+        /// </summary>
+        private void PushLogisticsReport(StarSysController sysCon, string summary, string detail, ReportSeverity severity)
+        {
+            if (sysCon?.StarSysData == null) return;
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition());
+            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Logistics, stardate, summary, detail,
+                sysCon.StarSysData.SysName, quadrant, severity));
+        }
+
+        /// <summary>
         /// Shows/hides the three cargo buttons based on what docked transports can do at this system.
         /// Call after any load/unload operation and when the system UI opens.
         /// </summary>
@@ -1359,12 +1799,18 @@ namespace BOTF3D.UI
             var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
             if (fields == null) return;
 
-            var dockedFleet = GetDockedLocalPlayerFleet(sysCon);
-            bool hasFreeTransport = dockedFleet != null && dockedFleet.FleetData.FreeTransportCapacity > 0;
-            bool hasTroopFreeTransport = hasFreeTransport && dockedFleet.FleetData.TotalLoadedDilithium == 0;
-            bool hasDilithiumFreeTransport = hasFreeTransport && dockedFleet.FleetData.TotalLoadedGroundForces == 0;
-            bool hasLoadedCargo = dockedFleet != null
-                && (dockedFleet.FleetData.TotalLoadedDilithium > 0 || dockedFleet.FleetData.TotalLoadedGroundForces > 0);
+            var transports = GetLocalPlayerTransportsAtSystem(sysCon);
+            int totalCapacity = 0, totalDilithium = 0, totalGroundForces = 0;
+            foreach (var ship in transports)
+            {
+                totalCapacity += ship.ShipData.CargoCapacity;
+                totalDilithium += ship.ShipData.LoadedDilithium;
+                totalGroundForces += ship.ShipData.LoadedGroundForces;
+            }
+            bool hasFreeTransport = (totalCapacity - totalDilithium - totalGroundForces) > 0;
+            bool hasTroopFreeTransport = hasFreeTransport && totalDilithium == 0;
+            bool hasDilithiumFreeTransport = hasFreeTransport && totalGroundForces == 0;
+            bool hasLoadedCargo = totalDilithium > 0 || totalGroundForces > 0;
 
             if (fields.loadDilithiumButton != null)
                 fields.loadDilithiumButton.gameObject.SetActive(
@@ -1378,45 +1824,74 @@ namespace BOTF3D.UI
                 fields.unloadCargoButton.gameObject.SetActive(hasLoadedCargo);
         }
 
-        private FleetController GetDockedLocalPlayerFleet(StarSysController sysCon)
+        /// <summary>
+        /// All local-player Transport ships currently present at this system for cargo purposes -
+        /// both a docked FleetController's ships (the old sole source here, but FleetDockSlots -
+        /// see StarSysData.ClaimFleetDockSlot - is only ever populated for a fleet freshly built/
+        /// split AT this exact system, never one that simply flew in and stopped) and ships
+        /// garrisoned directly in the system's own ShipsList after a Ship Deploy
+        /// (ShipData.CurrentFleetController == null - the common case for a freshly-built
+        /// transport). Load/Unload need to see both, or the far more common garrisoned transport
+        /// never qualifies at all - see FleetMenuUIController's Colonize/Terraform button gating
+        /// bug report this was written to fix.
+        /// </summary>
+        private List<ShipController> GetLocalPlayerTransportsAtSystem(StarSysController sysCon)
         {
+            var transports = new List<ShipController>();
+
+            bool IsUsableTransport(ShipController s) =>
+                s?.ShipData != null && s.ShipData.ShipType == ShipType.Transport && !s.ShipData.Distroyed;
+
             foreach (var fleet in sysCon.StarSysData.FleetDockSlots)
             {
-                if (fleet == null) continue;
-                if (GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
-                    return fleet;
+                if (fleet?.FleetData == null || !GameController.Instance.AreWeLocalPlayer(fleet.FleetData.CivEnum))
+                    continue;
+                foreach (var ship in fleet.FleetData.ShipsList)
+                    if (IsUsableTransport(ship))
+                        transports.Add(ship);
             }
-            return null;
+
+            if (sysCon.StarSysData.ShipsList != null)
+            {
+                foreach (var ship in sysCon.StarSysData.ShipsList)
+                    if (IsUsableTransport(ship) && GameController.Instance.AreWeLocalPlayer(ship.ShipData.CivEnum))
+                        transports.Add(ship);
+            }
+
+            return transports;
         }
 
         private ShipController FindLoadableTransport(StarSysController sysCon,
             bool requireEmpty = false, bool excludeTroops = false, bool excludeDilithium = false)
         {
-            var fleet = GetDockedLocalPlayerFleet(sysCon);
-            if (fleet == null) return null;
-            foreach (var ship in fleet.FleetData.ShipsList)
+            foreach (var ship in GetLocalPlayerTransportsAtSystem(sysCon))
             {
-                if (ship?.ShipData == null || ship.ShipData.ShipType != ShipType.Transport) continue;
-                if (ship.ShipData.Distroyed) continue;
-                int free = ship.ShipData.CargoCapacity - ship.ShipData.LoadedDilithium - ship.ShipData.LoadedGroundForces;
+                // LoadedPopulation shares CargoCapacity with the other two cargo kinds (see the
+                // header comment block on ShipData's Loaded* fields) - included here now that the
+                // Load dropdown's Colony option actually uses it (previously only LoadedDilithium/
+                // LoadedGroundForces existed as consumers, so it was never counted).
+                int free = ship.ShipData.CargoCapacity - ship.ShipData.LoadedDilithium
+                           - ship.ShipData.LoadedGroundForces - ship.ShipData.LoadedPopulation;
                 if (free <= 0) continue;
                 if (excludeTroops && ship.ShipData.LoadedGroundForces > 0) continue;
                 if (excludeDilithium && ship.ShipData.LoadedDilithium > 0) continue;
-                if (requireEmpty && ship.ShipData.LoadedDilithium == 0 && ship.ShipData.LoadedGroundForces == 0) return ship;
+                if (requireEmpty && ship.ShipData.LoadedDilithium == 0 && ship.ShipData.LoadedGroundForces == 0
+                    && ship.ShipData.LoadedPopulation == 0) return ship;
                 if (!requireEmpty) return ship;
             }
             return null;
         }
 
+        private ShipController FindFirstLocalTransport(StarSysController sysCon)
+        {
+            var transports = GetLocalPlayerTransportsAtSystem(sysCon);
+            return transports.Count > 0 ? transports[0] : null;
+        }
+
         private ShipController FindDockedTransportWithCargo(StarSysController sysCon)
         {
-            var fleet = GetDockedLocalPlayerFleet(sysCon);
-            if (fleet == null) return null;
-            foreach (var ship in fleet.FleetData.ShipsList)
-            {
-                if (ship?.ShipData == null || ship.ShipData.ShipType != ShipType.Transport) continue;
+            foreach (var ship in GetLocalPlayerTransportsAtSystem(sysCon))
                 if (ship.ShipData.LoadedDilithium > 0 || ship.ShipData.LoadedGroundForces > 0) return ship;
-            }
             return null;
         }
         private void StarSysClickMergeShipsButton(StarSysController starSysController)
@@ -1766,6 +2241,12 @@ namespace BOTF3D.UI
                 // Render on top of other system UI elements; button must come after scroll view
                 fields.ShipScrollView.transform.SetAsLastSibling();
                 fields.transform.SetAsLastSibling();
+                // Cargo/scrap buttons already overlap the scroll view's footprint by design - keep
+                // them above it, or the now-frontmost ShipScrollView hides and click-blocks them.
+                fields.loadDilithiumButton?.transform.SetAsLastSibling();
+                fields.loadTroopsButton?.transform.SetAsLastSibling();
+                fields.unloadCargoButton?.transform.SetAsLastSibling();
+                fields.scrapButton?.transform.SetAsLastSibling();
                 // Move button last so it renders on top of the expanded ShipScrollView
                 if (fields.ExpandShipsButton != null)
                     fields.ExpandShipsButton.transform.SetAsLastSibling();
@@ -1787,6 +2268,157 @@ namespace BOTF3D.UI
             if (fields.ExpandShipsButton == null) return;
             var tmp = fields.ExpandShipsButton.GetComponentInChildren<TMPro.TMP_Text>();
             if (tmp != null) tmp.text = expanded ? "◄" : "►";
+        }
+
+        // ── Ship list grid (shared by the compact per-row list and the Manage Ships overlay) ──
+
+        /// <summary>
+        /// Configures a ship-list content transform's GridLayoutGroup/ContentSizeFitter/anchoring
+        /// and its enclosing ScrollView's Viewport/ScrollRect. Identical setup for
+        /// StarSysUI_Fields.shipContent (the compact per-row list) and
+        /// ManageShipsUIFields.shipContent (the full overlay) - extracted here so both call the
+        /// same code instead of drifting apart.
+        /// </summary>
+        private void SetupShipGrid(RectTransform shipContent, GameObject shipScrollView, float collapsedWidth)
+        {
+            if (shipContent == null) return;
+
+            // Grid: 136×50 cells, 2 columns
+            var grid = shipContent.GetComponent<GridLayoutGroup>()
+                       ?? shipContent.gameObject.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(136, 50);
+            grid.spacing = new Vector2(4, 4);
+            grid.padding = new RectOffset(5, 0, 0, 0);
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 2;
+
+            var fitter = shipContent.GetComponent<ContentSizeFitter>()
+                         ?? shipContent.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Anchor content to top-left so GridLayoutGroup places items downward
+            shipContent.anchorMin = new Vector2(0f, 1f);
+            shipContent.anchorMax = new Vector2(1f, 1f);
+            shipContent.pivot = new Vector2(0f, 1f);
+            shipContent.anchoredPosition = Vector2.zero;
+            shipContent.sizeDelta = Vector2.zero;
+
+            // Fix Viewport to fill the ScrollView
+            if (shipScrollView != null)
+            {
+                var svRect = shipScrollView.GetComponent<RectTransform>();
+                if (svRect != null)
+                    svRect.sizeDelta = new Vector2(collapsedWidth, svRect.sizeDelta.y);
+
+                var viewport = shipScrollView.transform.Find("Viewport");
+                if (viewport != null)
+                {
+                    var vpRect = viewport.GetComponent<RectTransform>();
+                    if (vpRect != null)
+                    {
+                        vpRect.anchorMin = Vector2.zero;
+                        vpRect.anchorMax = Vector2.one;
+                        vpRect.sizeDelta = Vector2.zero;
+                        vpRect.anchoredPosition = Vector2.zero;
+                    }
+                }
+
+                var sr = shipScrollView.GetComponent<ScrollRect>();
+                if (sr != null)
+                {
+                    sr.enabled = true;
+                    // Prevent scroll events from propagating to a parent scroll view (e.g. the
+                    // Factory build queue) that happens to sit behind this one.
+                    if (shipScrollView.GetComponent<ScrollRectIsolator>() == null)
+                        shipScrollView.AddComponent<ScrollRectIsolator>();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ensures every ship in sysCon's ShipsList has a ShipListUIGameObject, and reparents each
+        /// one under targetContent (creating any missing UI first). Used both to populate the
+        /// compact per-row list and to move ships into/out of the Manage Ships overlay - a ship's
+        /// list UI is one live GameObject that only ever lives in one place at a time.
+        /// </summary>
+        private void SyncShipsIntoContent(StarSysController sysCon, Transform targetContent)
+        {
+            if (sysCon?.StarSysData?.ShipsList == null || targetContent == null) return;
+
+            foreach (var shipCon in sysCon.StarSysData.ShipsList)
+            {
+                if (shipCon == null) continue;
+
+                if (shipCon.ShipListUIGameObject == null)
+                {
+                    ShipManager.Instance?.InstantiateShipListUIGameObject(shipCon, sysCon.gameObject);
+                    Debug.Log($"  Created missing ship UI for '{shipCon.ShipData?.ShipName}' in system '{sysCon.name}'");
+                }
+
+                if (shipCon.ShipListUIGameObject != null &&
+                    shipCon.ShipListUIGameObject.transform.parent != targetContent)
+                {
+                    shipCon.ShipListUIGameObject.transform.SetParent(targetContent, false);
+                    shipCon.ShipListUIGameObject.SetActive(true);
+                }
+            }
+
+            // Rescue any queued items
+            ShipManager.Instance?.ProcessPendingShipUIs();
+        }
+
+        // ── Manage Ships overlay (ManageShipsUI_Prefab / ManageShipsUIFields) ───────────────
+
+        /// <summary>
+        /// Populates the Manage Ships overlay for one system: header, ship grid (pulled in from
+        /// wherever the ships currently live - see SyncShipsIntoContent), fleet buttons, and the
+        /// three action dropdowns. Called by StarSysManager.InstantiateManageShipsUI both on first
+        /// open and on every reopen for the same system.
+        /// </summary>
+        public void PopulateManageShipsUI(StarSysController sysCon, ManageShipsUIFields fields)
+        {
+            if (sysCon?.StarSysData == null || fields == null) return;
+
+            if (fields.systemNameText != null)
+                fields.systemNameText.text = sysCon.StarSysData.SysName;
+
+            SetupShipGrid(fields.shipContent, fields.shipScrollView, fields.shipContent != null ? fields.shipContent.rect.width : 0f);
+            SyncShipsIntoContent(sysCon, fields.shipContent);
+
+            if (fields.newFleetButton != null)
+            {
+                fields.newFleetButton.onClick.RemoveAllListeners();
+                fields.newFleetButton.onClick.AddListener(() => ClickNewFleetButton(sysCon));
+            }
+            if (fields.mergeFleetButton != null)
+            {
+                fields.mergeFleetButton.onClick.RemoveAllListeners();
+                fields.mergeFleetButton.onClick.AddListener(() => StarSysClickMergeShipsButton(sysCon));
+            }
+            if (fields.shipDeployButton != null)
+            {
+                fields.shipDeployButton.onClick.RemoveAllListeners();
+                fields.shipDeployButton.onClick.AddListener(() => StarSysClickShipDeployButton(sysCon));
+            }
+
+            RefreshScrapShipsDropdown(sysCon, fields.scrapShipsDropdown);
+            RefreshLoadDropdown(sysCon, fields.loadDropdown);
+            RefreshUnloadDropdown(sysCon, fields.unloadDropdown);
+        }
+
+        /// <summary>
+        /// Hands a system's ships back to its own compact list (StarSysUI_Fields.shipContent) when
+        /// the Manage Ships overlay closes or switches to a different system. Called by
+        /// StarSysManager.HideManageShipsUI/InstantiateManageShipsUI.
+        /// </summary>
+        public void ReturnShipsFromManageShipsUI(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysUIGameObject == null) return;
+            var fields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+            if (fields?.shipContent == null) return;
+            SyncShipsIntoContent(sysCon, fields.shipContent);
         }
 
         public void RefreshQueueForSystem(StarSysController sysCon)

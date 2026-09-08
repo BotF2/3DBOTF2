@@ -333,6 +333,12 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
             // AnimateShipPositioning() below (see CombatShotLog, BeamWeapon.Fire, Torpedo.OnReachedTarget).
             CombatShotLog.BeginTurn();
 
+            // Phase II tech tree (§8 II.3, §4 Tactical Tier 4/5 correction - both are automatic, no
+            // player order): Regenerative Shield Matrices ticks a small shield heal every turn;
+            // Quantum Capacitors rolls a per-ship chance at a temporary shield burst this turn.
+            ApplyPerTurnTechEffects(combatData.SideOneShipCons, combatData.CivEnumSideOne);
+            ApplyPerTurnTechEffects(combatData.SideTwoShipCons, combatData.CivEnumSideTwo);
+
             // Animate ships moving, fighting - THIS IS THE VISUAL COMBAT!
             // Ships will move based on orders, fire weapons, deal damage
             yield return StartCoroutine(AnimateShipPositioning());
@@ -386,6 +392,36 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
 
             // Start next turn
             BeginOrderSelection();
+        }
+
+        /// <summary>
+        /// Tactical Tier 5 Regenerative Shield Matrices (ShieldRegenMidCombat) and Tier 4 Quantum
+        /// Capacitors (CombatBurst) - see the call site's own comment. Ships already destroyed or
+        /// captured this combat are skipped.
+        /// </summary>
+        private void ApplyPerTurnTechEffects(List<ShipController> ships, CivEnum sideCiv)
+        {
+            TechEffects fx = CivManager.Instance?.GetCivDataByCivEnum(sideCiv)?.Effects;
+            if (fx == null || ships == null) return;
+
+            foreach (var ship in ships)
+            {
+                if (ship?.ShipData == null || ship.ShipData.Distroyed || ship.ShipData.IsCaptured) continue;
+
+                if (fx.ShieldRegenMidCombat && ship.ShipData.ShieldHealth < ship.ShipData.ShieldMaxHealth)
+                {
+                    int regen = Mathf.Max(1, Mathf.RoundToInt(ship.ShipData.ShieldMaxHealth * 0.1f));
+                    ship.ShipData.ShieldHealth = Mathf.Min(ship.ShipData.ShieldMaxHealth, ship.ShipData.ShieldHealth + regen);
+                }
+
+                if (fx.CombatBurst && UnityEngine.Random.value < 0.25f)
+                {
+                    // Deliberately allowed to push ShieldHealth above ShieldMaxHealth for the
+                    // remainder of this turn - a temporary burst, not a new baseline.
+                    int burst = Mathf.Max(1, Mathf.RoundToInt(ship.ShipData.ShieldMaxHealth * 0.2f));
+                    ship.ShipData.ShieldHealth += burst;
+                }
+            }
         }
 
         /// <summary>

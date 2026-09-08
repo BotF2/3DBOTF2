@@ -78,6 +78,21 @@ namespace FischlWorks_FogWar
 
             visibility = fogWar.CheckVisibility(transform.position, additionalRadius);
 
+            // Phase II tech tree (TechTree_Phase2_Design.md §5b, §8 II.3): this agent only ever runs
+            // on non-local-player fleets (FleetManager.InitializeFleetFogAgents skips the local
+            // player's own), so "is the local player the viewer" is always the right question here -
+            // a cloaked enemy fleet stays hidden even inside otherwise-revealed fog, unless the local
+            // player has researched Tachyon Detection Grid against that grade of cloak.
+            if (visibility && BOTF3D.Core.GameController.Instance != null)
+            {
+                var fleetCon = GetComponent<BOTF3D.Galaxy.FleetController>();
+                if (fleetCon != null && BOTF3D.Galaxy.CloakingController.IsFleetCloakedFromViewer(
+                        fleetCon, BOTF3D.Core.GameController.Instance.GameData.LocalPlayerCivEnum))
+                {
+                    visibility = false;
+                }
+            }
+
             foreach (SpriteRenderer renderer in spriteRenderers)
             {
                 renderer.enabled = visibility;

@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: BOTF3D::BOTF3D.Core.TechDefSO
   Id: KLING_T5_BattleCloak
   DisplayName: Battle Cloak
-  Description: Fleets become invisible on the galaxy map
+  Description: Fire-while-cloaked capability - indigenous refinement of the Acquired
+    Cloaking Device
   Field: 5
   Tier: 5
   TechPointsThreshold: 450

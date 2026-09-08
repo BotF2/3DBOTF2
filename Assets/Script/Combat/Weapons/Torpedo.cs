@@ -1,4 +1,5 @@
 using BOTF3D.Audio;
+using BOTF3D.Civilization;
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections;
@@ -171,11 +172,49 @@ namespace BOTF3D.Combat
 
         private static void ApplyDamageAndLog(ShipController owner, ShipController target, int damage, float distance)
         {
+            // Phase II tech tree (§8 II.3) - Ordnance-class unlocks. No separate torpedo-class
+            // projectile system exists (single TorpedoDamage stat only - see TechEffects' own
+            // comment), so Quantum-class adds flat bonus damage on this hit, Transphasic-class adds a
+            // chance to bypass shields entirely, and Plasma-class schedules a damage-over-time tick
+            // after impact (PlasmaBurnTicks below). Photon-class (the Tier-2 baseline unlock) carries
+            // no extra mechanic beyond the shared WeaponDamageMultiplier curve.
+            TechEffects fx = owner?.ShipData != null
+                ? CivManager.Instance?.GetCivDataByCivEnum(owner.ShipData.CivEnum)?.Effects
+                : null;
+
+            if (fx != null && fx.QuantumTorpedoes)
+                damage = Mathf.RoundToInt(damage * 1.25f);
+
+            bool bypassShields = fx != null && fx.TransphasicTorpedoes && UnityEngine.Random.value < 0.35f;
+
+            // Klingon/Terran/Dominion/Romulan attacker-side bonuses - same shared step BeamWeapon uses.
+            damage = CombatOrderHelper.ApplyAttackerTechBonuses(owner, damage, out bool crippled);
+            bypassShields |= crippled;
+
             bool wasAliveBeforeHit = !target.ShipData.Distroyed;
-            target.TakeDamage(damage);
+            target.TakeDamage(damage, bypassShields);
             bool destroyedByThisHit = wasAliveBeforeHit && target.ShipData.Distroyed;
 
             BOTF3D.Combat.Testing.CombatShotLog.LogShot(owner, target, "Torpedo", damage, distance, destroyedByThisHit);
+
+            if (fx != null && fx.PlasmaTorpedoes && !destroyedByThisHit)
+            {
+                var cc = CombatUIManager.Instance?.CurrentCombatController;
+                if (cc != null)
+                    cc.StartCoroutine(PlasmaBurnTicks(target, Mathf.Max(1, Mathf.RoundToInt(damage * 0.15f))));
+            }
+        }
+
+        /// <summary>Plasma-class torpedo damage-over-time: 3 ticks, 1 real second apart, stopping
+        /// early if the target dies or combat ends around it.</summary>
+        private static IEnumerator PlasmaBurnTicks(ShipController target, int tickDamage)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                yield return new WaitForSecondsRealtime(1f);
+                if (target == null || target.ShipData == null || target.ShipData.Distroyed) yield break;
+                target.TakeDamage(tickDamage);
+            }
         }
     }
 }

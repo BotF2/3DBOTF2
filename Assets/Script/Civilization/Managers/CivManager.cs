@@ -448,6 +448,10 @@ namespace BOTF3D.Civilization
             civController.Init(this);
             civController.CivData = civData;
             civController.CivShortName = civData.CivShortName;
+            // Backfill research for non-Early starts (e.g. Advanced-start Romulans already having
+            // Basic Cloaking Field) - see TechManager.GrantStartingTechs for why this can't just be
+            // left to the normal per-turn research tick.
+            TechManager.Instance?.GrantStartingTechs(civController);
             CivControllersInGame.Add(civController);
             civController.transform.SetParent(civFolder.transform, true);
             civController.name = civData.CivShortName.ToString();

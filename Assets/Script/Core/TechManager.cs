@@ -204,6 +204,53 @@ namespace BOTF3D.Core
             return civ.CivData.SharedBranchPriority;
         }
 
+        /// <summary>
+        /// Backfills completed research for civs that don't start at TechLevel.EARLY (§8 II.5 gap):
+        /// CivManager.CivDataFromSO pre-loads CivData.TechPoints to the chosen level's threshold so
+        /// higher tiers are gate-unlocked from turn one, but GetBranchTarget always targets a
+        /// branch's lowest still-unresearched tier regardless of that pool - without this, an
+        /// Advanced-start Romulan would still have to bank and complete Tier 1/3 Branch F techs
+        /// turn-by-turn before Tier 4 (Basic Cloaking Field) even starts progressing, leaving cloak
+        /// (and every other above-Early tech) unavailable for many turns despite the chosen start
+        /// level. Marks every non-innate tech at or below the starting level's TechPointsThreshold
+        /// as researched, per branch, in tier order, applying its effect via the same
+        /// CompleteResearch used by normal turn-by-turn completion. Called once per civ right after
+        /// CivData is assigned (CivManager.InstantiateCivilizations), before the first research tick.
+        /// </summary>
+        public void GrantStartingTechs(CivController civ)
+        {
+            if (civ?.CivData == null) return;
+            EnsureLookupsBuilt();
+            if (techDefsById.Count == 0) return; // TechDefSO list not populated yet in this scene
+
+            EnsureInnateTechApplied(civ);
+
+            TechLevel startLevel = GameController.Instance.GameData.StartingTechLevel;
+            if (startLevel == TechLevel.EARLY) return; // nothing above Tier-0 innate to backfill
+
+            int cutoff = CivData.TechThresholds[startLevel];
+
+            foreach (var list in sharedDefsByField.Values)
+                GrantBranchUpToThreshold(civ, list, cutoff);
+
+            if (uniqueDefsByCiv.TryGetValue(civ.CivData.CivEnum, out var uniqueList))
+                GrantBranchUpToThreshold(civ, uniqueList, cutoff);
+        }
+
+        /// <summary>Helper for GrantStartingTechs - branchTechsByTier must already be sorted by Tier
+        /// ascending (true of every list in sharedDefsByField/uniqueDefsByCiv, per
+        /// EnsureLookupsBuilt), so breaking at the first tech above cutoff is safe.</summary>
+        private void GrantBranchUpToThreshold(CivController civ, List<TechDefSO> branchTechsByTier, int cutoff)
+        {
+            foreach (var def in branchTechsByTier)
+            {
+                if (def.UnlockMode == TechUnlockMode.InnateFromStart) continue; // already handled, never queued
+                if (def.TechPointsThreshold > cutoff) break;
+                if (civ.CivData.ResearchedTechIds.Contains(def.Id)) continue;
+                CompleteResearch(civ, def);
+            }
+        }
+
         /// <summary>Applies a civ's free Tier-0 Branch F ability once, the first time this civ is
         /// ever processed (§5) - InnateFromStart techs never enter the research queue at all.</summary>
         private void EnsureInnateTechApplied(CivController civ)
@@ -253,11 +300,23 @@ namespace BOTF3D.Core
 
             foreach (var (target, weight) in weighted)
             {
-                int share = Mathf.RoundToInt(techPointsGained * (weight / totalWeight));
-                if (share <= 0) continue;
+                float exactShare = techPointsGained * (weight / totalWeight);
+                if (exactShare <= 0f) continue;
+
+                // Accumulate as a float first so a sub-1-point-per-turn share (the common case - see
+                // FractionalBankedProgressByTechId's own comment) isn't discarded by rounding every
+                // single turn. Only the whole-number part that's actually accrued moves into
+                // BankedTechPointsByTechId; the remainder carries forward.
+                float carry = civ.CivData.FractionalBankedProgressByTechId.TryGetValue(target.Id, out float existingCarry)
+                    ? existingCarry : 0f;
+                carry += exactShare;
+
+                int wholePoints = Mathf.FloorToInt(carry);
+                civ.CivData.FractionalBankedProgressByTechId[target.Id] = carry - wholePoints;
+                if (wholePoints <= 0) continue;
 
                 int banked = civ.CivData.BankedTechPointsByTechId.TryGetValue(target.Id, out int existing) ? existing : 0;
-                banked += share;
+                banked += wholePoints;
                 civ.CivData.BankedTechPointsByTechId[target.Id] = banked;
 
                 if (banked >= target.ResearchCost && civ.CivData.TechPoints >= target.TechPointsThreshold)
@@ -266,20 +325,301 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Phase II effect wiring (§6, §8 II.3) is not implemented yet - every TechEffectHook this
-        /// dispatches to is still a logging no-op. Hooking each into ShipStatCalculator/
-        /// CombatOrderHelper/ResearchCenterData/etc. per §5a's mapping is future work; this stub
-        /// exists so CompleteResearch has a single call site to wire up later, per §6.
+        /// Phase II effect wiring (§6, §8 II.3). Mutates civ.CivData.Effects (TechEffects) rather than
+        /// touching ShipStatCalculator/CombatOrderHelper/etc. directly - every consuming system reads
+        /// that shared, persistent state instead. Two conventions, both documented on TechEffects itself:
+        ///   • "+stat%" multiplier fields (Hull/Shield/WeaponDamage/WarpSpeed/Station HP/Diplomatic
+        ///     Outreach/FacilityOutput) use Max(current, EffectMagnitude) - §4's curve is cumulative per
+        ///     tier, not a per-tech increment.
+        ///   • additive bonus/chance fields (accuracy, facility cap/power, sabotage resist, subsystem
+        ///     cripple, nanite regen, etc.) accumulate a placeholder-scaled fraction of EffectMagnitude
+        ///     (e.g. mag * 0.05f) so today's uniform 1f placeholder (§8 II.1/II.5 - real per-tech curve
+        ///     not authored yet) doesn't produce absurd day-one bonuses; the scale factor is a stand-in,
+        ///     not a balance decision, and goes away once II.5 assigns real EffectMagnitude values.
+        /// Hooks with no backend system to plug into yet (wormholes/anomalies/Transwarp Hub travel
+        /// beyond the basic controller below, Decoy/MaskMovement fake-signature detection, Environmental
+        /// Resist) still flip their TechEffects flag - so a civ's completion state is always correct and
+        /// a future pass just needs to make something read the flag - but nothing consumes it today. See
+        /// each case's own comment and TechEffects' field comments for the exact status.
         /// </summary>
         private void ApplyTechEffect(CivController civ, TechDefSO def)
         {
-            Debug.Log($"ApplyTechEffect (stub - §8 II.3 not implemented): {civ.CivData.CivShortName} → {def.EffectHook}");
+            if (civ?.CivData?.Effects == null || def == null) return;
+            TechEffects fx = civ.CivData.Effects;
+
+            // Defensive idempotency guard - CompleteResearch already guards via ResearchedTechIds.Add
+            // before calling here, but flags/bonuses below have no natural idempotency of their own
+            // the way a HashSet.Add does, so a stray double-call (e.g. a future save/load re-apply
+            // pass) can't double-stack a bonus.
+            if (!fx.AppliedTechIds.Add(def.Id))
+            {
+                Debug.LogWarning($"ApplyTechEffect: '{def.Id}' already applied to {civ.CivData.CivShortName} - skipped duplicate.");
+                return;
+            }
+
+            float mag = def.EffectMagnitude;
+
+            switch (def.EffectHook)
+            {
+                // ── Propulsion (Branch A) ───────────────────────────────────────────────────────
+                case TechEffectHook.PersistentWarpSpeed:
+                    fx.PersistentWarpSpeed = true; // FleetController.MoveToDesitinationGO reads this
+                    break;
+                case TechEffectHook.WarpSpeedMultiplier:
+                case TechEffectHook.WarpSpeedMultiplier_Capstone:
+                    fx.WarpSpeedMultiplier = Mathf.Max(fx.WarpSpeedMultiplier, mag); // FleetController.MoveToDesitinationGO
+                    break;
+                case TechEffectHook.WarpSpeedAverage:
+                    fx.WarpFieldOverlap = true; // FleetController.UpdateMaxWarp
+                    break;
+                case TechEffectHook.WormholeStabilizer:
+                    fx.WormholeStabilizer = true; // no wormhole galaxy-map object yet - flag only
+                    break;
+                case TechEffectHook.AccessTranswarpHub:
+                    fx.AccessTranswarpHub = true; // TranswarpHubController
+                    break;
+                case TechEffectHook.WarpLane:
+                    fx.WarpLaneNetwork = true; // no lane-pathing system yet - flag only
+                    break;
+
+                // ── Tactical (Branch B) ─────────────────────────────────────────────────────────
+                case TechEffectHook.HullMultiplier:
+                    fx.HullMultiplier = Mathf.Max(fx.HullMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.ShieldMultiplier:
+                case TechEffectHook.ShieldMultiplier_Capstone:
+                    fx.ShieldMultiplier = Mathf.Max(fx.ShieldMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.CombatBurst:
+                    fx.CombatBurst = true; // TurnBasedCombatResolver auto-triggers, no player order
+                    break;
+                case TechEffectHook.ShieldRegenMidCombat:
+                    fx.ShieldRegenMidCombat = true; // TurnBasedCombatResolver
+                    break;
+                case TechEffectHook.EnvironmentalResist:
+                    fx.EnvironmentalResist = true; // no environmental/exotic damage source exists yet
+                    break;
+
+                // ── Ordnance (Branch C) ─────────────────────────────────────────────────────────
+                case TechEffectHook.WeaponDamageMultiplier:
+                case TechEffectHook.WeaponDamageMultiplier_Capstone:
+                    fx.WeaponDamageMultiplier = Mathf.Max(fx.WeaponDamageMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.AccuracyBonus:
+                    fx.AccuracyBonus += mag * 0.05f; // CombatDamageRandomizer / hit-chance step
+                    break;
+                case TechEffectHook.OrdnanceUnlock:
+                    ApplyOrdnanceUnlock(def, fx); // Torpedo.cs reads Plasma/Quantum/Transphasic flags
+                    break;
+
+                // ── Science (Branch D) ──────────────────────────────────────────────────────────
+                case TechEffectHook.SightRangeStage_1:
+                case TechEffectHook.SightRangeStage_2:
+                case TechEffectHook.SightRangeStage_3:
+                case TechEffectHook.SightRangeStage_4:
+                case TechEffectHook.SightRangeStage_5:
+                case TechEffectHook.SightRangeStage_6_FacilityCap:
+                case TechEffectHook.SightRangeStage_7_Capstone:
+                    // Every Branch D tech advances fog sight range one stage (§4's throughline),
+                    // regardless of which of the per-tier bonuses below it also carries.
+                    fx.BranchDHighestTierResearched = Mathf.Max(fx.BranchDHighestTierResearched, def.Tier);
+                    if (def.EffectHook == TechEffectHook.SightRangeStage_3) fx.AnomalyDetection = true;
+                    if (def.EffectHook == TechEffectHook.SightRangeStage_4) fx.TerraformingTech = true;
+                    if (def.EffectHook == TechEffectHook.SightRangeStage_5) fx.StationHPMultiplier = Mathf.Max(fx.StationHPMultiplier, mag);
+                    if (def.EffectHook == TechEffectHook.SightRangeStage_6_FacilityCap) fx.FacilityCapBonus += mag * 0.1f;
+                    if (def.EffectHook == TechEffectHook.SightRangeStage_7_Capstone) fx.FacilityPowerBuffer += mag * 0.1f;
+                    break;
+
+                // ── Intelligence (Branch E) ─────────────────────────────────────────────────────
+                case TechEffectHook.Decoy:
+                    fx.Decoy = true; // no fake-signature system yet - flag only
+                    break;
+                case TechEffectHook.MaskMovement:
+                    fx.MaskMovement = true; // no sub-light-movement-detection system yet - flag only
+                    break;
+                case TechEffectHook.IntelPanelReveal_Partial:
+                    fx.IntelPanelPartial = true; // IntelligenceManager per-turn auto-refresh
+                    break;
+                case TechEffectHook.IntelPanelReveal_Full:
+                    fx.IntelPanelFull = true; // IntelligenceManager per-turn auto-refresh
+                    break;
+                case TechEffectHook.SabotageResist:
+                    fx.SabotageResist += mag * 0.05f; // IntelligenceManager.CalculateDiscoveryChance
+                    break;
+                case TechEffectHook.CloakDetection:
+                    fx.CloakDetection = true; // CloakingController / csFogVisibilityAgent
+                    break;
+                case TechEffectHook.IntelDashboard_Capstone:
+                    fx.IntelDashboardBonus += mag * 0.05f;
+                    fx.IntelSuccessBonus += mag * 0.05f; // IntelligenceManager.GetCivSuccessModifier
+                    break;
+
+                // ── Federation ───────────────────────────────────────────────────────────────────
+                case TechEffectHook.FederationCharter:
+                case TechEffectHook.FirstContactProtocols:
+                    break; // surfaced via CivData.DiplomaticAptitude already (§5) - no separate numeric target
+                case TechEffectHook.DiplomaticOutreachDoctrine:
+                case TechEffectHook.FederationCharterMastery:
+                    fx.DiplomaticOutreachMultiplier = Mathf.Max(fx.DiplomaticOutreachMultiplier, mag); // DiplomacyController
+                    break;
+                case TechEffectHook.MinorCivAllianceDiscount:
+                    fx.MinorCivAllianceDiscount += mag * 0.1f; // DiplomacyController drift formula
+                    break;
+                case TechEffectHook.FederationScienceExchange:
+                    fx.FederationScienceBonus += mag; // ProcessResearchForAllCivs TechPoints/turn bonus
+                    break;
+                case TechEffectHook.PositronicNeuralNetwork:
+                    fx.PositronicNeuralNetwork = true; // no specific numeric target identified (§5a)
+                    break;
+
+                // ── Klingon ──────────────────────────────────────────────────────────────────────
+                case TechEffectHook.WarriorsCreed:
+                    break; // innate combat-morale flavor only, no separate numeric target
+                case TechEffectHook.IonizedHullPlating:
+                    fx.HullMultiplier = Mathf.Max(fx.HullMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.DisruptorOverloadArrays:
+                case TechEffectHook.DisruptorSubsystemCripple:
+                    fx.SubsystemCrippleChance += mag * 0.05f; // CombatOrderHelper order-damage step
+                    break;
+                case TechEffectHook.GreatHousesFleetCoordination:
+                    fx.GreatHousesFleetCoordination = true; // no specific numeric target identified (§5a)
+                    break;
+                case TechEffectHook.AcquiredCloakingDevice:
+                    // Klingon T3 (threshold 200, Developed-level) - the Romulan tech-exchange cloak,
+                    // same GalaxyMapCloak flag as BattleCloak below. Battle Cloak (T5) is the later,
+                    // indigenous fire-while-cloaked refinement - either tech independently makes the
+                    // fleet cloak-capable, so both setting the same flag is intentional, not a bug.
+                    fx.GalaxyMapCloak = true;
+                    break;
+                case TechEffectHook.BattleCloak:
+                    fx.GalaxyMapCloak = true; // §5b beat 2 - CloakingController / csFogVisibilityAgent
+                    break;
+                case TechEffectHook.AdaptiveBattleCloakRefinement:
+                    fx.CloakDefeatsDetection = true; // §5b beat 4 - "unseen again"
+                    break;
+
+                // ── Romulan ──────────────────────────────────────────────────────────────────────
+                case TechEffectHook.CultureOfSecrecy:
+                    break; // innate detection-resistance flavor only, no separate numeric target
+                case TechEffectHook.CloakFieldTheory:
+                    break; // theoretical groundwork only - no invisibility yet (§5)
+                case TechEffectHook.TalShiarIntelligenceMatrix:
+                    fx.IntelSuccessBonus += mag * 0.05f; // IntelligenceManager.GetCivSuccessModifier (§5a)
+                    break;
+                case TechEffectHook.AdaptiveCloakHarmonics:
+                    fx.AdaptiveCloakHarmonics = true; // precursor tuning, no invisibility yet (§5)
+                    break;
+                case TechEffectHook.BasicCloakingField:
+                    fx.GalaxyMapCloak = true; // §5b beat 1 - CloakingController / csFogVisibilityAgent
+                    break;
+                case TechEffectHook.WarbirdAmbushDoctrine:
+                    fx.WarbirdAmbushBonus += mag * 0.2f; // TurnBasedCombatResolver decloak-to-attack volley
+                    break;
+                case TechEffectHook.NearPerfectCloak:
+                    fx.CloakDefeatsDetection = true; // §5b beat 4 - "unseen again"
+                    break;
+
+                // ── Borg ─────────────────────────────────────────────────────────────────────────
+                case TechEffectHook.TheCollective:
+                    break; // innate fleet-coordination/repair flavor only, no separate numeric target
+                case TechEffectHook.NaniteRegenerationMatrixI:
+                case TechEffectHook.NaniteRegenerationMatrixII:
+                    fx.NaniteRegenBonus += mag * 0.25f; // StarSysManager.ProcessRepairs
+                    break;
+                case TechEffectHook.AdaptiveShieldModulationI:
+                case TechEffectHook.AdaptiveShieldModulationII:
+                    fx.ShieldMultiplier = Mathf.Max(fx.ShieldMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.TranswarpHubNetwork:
+                    fx.TranswarpHubNetwork = true; // TranswarpHubController
+                    break;
+                case TechEffectHook.AssimilationProtocols:
+                    fx.AssimilationChance += mag * 0.1f; // post-combat resolution conversion chance
+                    break;
+
+                // ── Cardassian ───────────────────────────────────────────────────────────────────
+                case TechEffectHook.ObedientSociety:
+                    break; // innate unrest-reduction flavor only, no separate numeric target
+                case TechEffectHook.ReinforcedDuraniumHulls:
+                    fx.HullMultiplier = Mathf.Max(fx.HullMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.CardassianLogisticsOptimization:
+                case TechEffectHook.OccupationEfficiencyDoctrine:
+                case TechEffectHook.CentralAuthorityInfrastructure:
+                    fx.FacilityOutputMultiplier = Mathf.Max(fx.FacilityOutputMultiplier, mag); // StarSysBuildManager
+                    break;
+                case TechEffectHook.InterrogationAlgorithmSuites:
+                case TechEffectHook.ObsidianOrderSurveillanceNet:
+                    fx.IntelSuccessBonus += mag * 0.05f; // IntelligenceManager.GetCivSuccessModifier (§5a)
+                    break;
+
+                // ── Terran Empire (Mirror) ──────────────────────────────────────────────────────
+                case TechEffectHook.ImperialAmbition:
+                    break; // innate aggression/expansion flavor only, no separate numeric target
+                case TechEffectHook.AgonizerDisciplineRegimen:
+                    fx.FactorySpeedBonus += mag * 0.1f; // GetFactorySpeedMultiplier Terran-only stack (§5a)
+                    break;
+                case TechEffectHook.FearDrivenCommandProtocolsI:
+                case TechEffectHook.FearDrivenCommandProtocolsII:
+                case TechEffectHook.TerranEliteStrikeTeams:
+                case TechEffectHook.FlagshipDominationSystems:
+                    fx.CombatMoraleBonus += mag * 0.05f; // CombatOrderHelper order-damage step
+                    break;
+                case TechEffectHook.ImperialPhaserOvercharge:
+                    fx.WeaponDamageMultiplier = Mathf.Max(fx.WeaponDamageMultiplier, mag); // ShipDataInitializer
+                    break;
+
+                // ── Dominion ─────────────────────────────────────────────────────────────────────
+                case TechEffectHook.FoundersDesign:
+                    break; // innate obedience/discipline flavor only, no separate numeric target
+                case TechEffectHook.KetracelWhiteOptimization:
+                    fx.CombatMoraleBonus += mag * 0.05f; // CombatOrderHelper order-damage step
+                    break;
+                case TechEffectHook.VortaCommandAlgorithms:
+                case TechEffectHook.GammaQuadrantSupplyLattice:
+                    fx.FacilityOutputMultiplier = Mathf.Max(fx.FacilityOutputMultiplier, mag); // StarSysBuildManager
+                    break;
+                case TechEffectHook.PolaronBeamEnhancement:
+                    fx.WeaponDamageMultiplier = Mathf.Max(fx.WeaponDamageMultiplier, mag); // ShipDataInitializer
+                    break;
+                case TechEffectHook.ChangelingInfiltrationUnits:
+                    fx.ChangelingInfiltration = true; // unlocks SecretActionsEnum.Infiltration (§5a)
+                    break;
+                case TechEffectHook.CloningAccelerationChambers:
+                    fx.FactorySpeedBonus += mag * 0.1f; // GetShipyardSpeedMultiplier-adjacent mass-reinforcement bonus
+                    break;
+
+                default:
+                    Debug.LogWarning($"ApplyTechEffect: no case for {def.EffectHook} (tech '{def.Id}') - no effect applied.");
+                    break;
+            }
+
+            Debug.Log($"ApplyTechEffect: {civ.CivData.CivShortName} → {def.EffectHook} (tech '{def.Id}', magnitude {mag}).");
+        }
+
+        /// <summary>
+        /// Ordnance branch reuses the single OrdnanceUnlock hook across Tier 2/4/5/6 (Photon/Plasma/
+        /// Quantum/Transphasic torpedoes) - no separate torpedo-class projectile system exists, so each
+        /// unlock is modeled as a flag Torpedo.cs reads directly rather than a new ordnance-class object
+        /// (TechTree_Phase2_Design.md §4 Branch C). Tier 2 Photon-class is the baseline unlock covered
+        /// by the shared WeaponDamageMultiplier curve alone - no extra flag needed.
+        /// </summary>
+        private void ApplyOrdnanceUnlock(TechDefSO def, TechEffects fx)
+        {
+            switch (def.Tier)
+            {
+                case 4: fx.PlasmaTorpedoes = true; break;
+                case 5: fx.QuantumTorpedoes = true; break;
+                case 6: fx.TransphasicTorpedoes = true; break;
+            }
         }
 
         private void CompleteResearch(CivController civ, TechDefSO def)
         {
             civ.CivData.ResearchedTechIds.Add(def.Id);
             civ.CivData.BankedTechPointsByTechId.Remove(def.Id);
+            civ.CivData.FractionalBankedProgressByTechId.Remove(def.Id);
 
             if (civ.CivData.ManualTechPinByField != null &&
                 civ.CivData.ManualTechPinByField.TryGetValue(def.Field, out string pinnedId) && pinnedId == def.Id)
@@ -323,6 +663,10 @@ namespace BOTF3D.Core
         /// <summary>
         /// Returns the fog-of-war sight range multiplier for the given TechPoints total,
         /// stepping up at each of the 7 stages defined in fogSightRangeStages.
+        /// Legacy Phase I path - kept for any caller still passing a raw TechPoints total (e.g. a
+        /// minor race, which never gets a CivData.Effects.BranchDHighestTierResearched value since
+        /// Phase II's tree only applies to majors, §1). Majors go through
+        /// GetFogSightRangeMultiplierByBranchDTier below instead (§4 Branch D's throughline).
         /// </summary>
         public float GetFogSightRangeMultiplier(int techPoints)
         {
@@ -338,12 +682,31 @@ namespace BOTF3D.Core
         }
 
         /// <summary>
-        /// Returns the actual fog-of-war sight range (world units) for the given TechPoints
-        /// total, scaling FleetManager.LocalPlayerFogSightRange by the current stage multiplier.
+        /// Phase II version of the same 7-stage curve (§4 Branch D's throughline): driven by the
+        /// highest Branch D tech tier this civ has actually researched, not raw banked TechPoints - a
+        /// civ that rushes Tactical/Ordnance instead stays at whatever stage it last researched even
+        /// once its TechPoints total has long since crossed later tiers. Tier 0 (no Branch D tech
+        /// researched at all) reads the same floor as TechPoints=0 did under the legacy curve.
         /// </summary>
-        public int GetFogSightRange(int techPoints)
+        public float GetFogSightRangeMultiplierByBranchDTier(int highestTierResearched)
         {
-            return Mathf.RoundToInt(FleetManager.LocalPlayerFogSightRange * GetFogSightRangeMultiplier(techPoints));
+            if (highestTierResearched <= 0) return fogSightRangeStages[0].Multiplier;
+            int index = Mathf.Clamp(highestTierResearched - 1, 0, fogSightRangeStages.Length - 1);
+            return fogSightRangeStages[index].Multiplier;
+        }
+
+        /// <summary>
+        /// Returns the actual fog-of-war sight range (world units) for a civ, scaling
+        /// FleetManager.LocalPlayerFogSightRange by its current Branch D stage multiplier. Falls back
+        /// to the legacy TechPoints curve for a civ with no Effects (defensive only - every CivData
+        /// has one by default) so a null civData never crashes fog setup.
+        /// </summary>
+        public int GetFogSightRange(CivData civData)
+        {
+            float multiplier = civData?.Effects != null
+                ? GetFogSightRangeMultiplierByBranchDTier(civData.Effects.BranchDHighestTierResearched)
+                : GetFogSightRangeMultiplier(civData?.TechPoints ?? 0);
+            return Mathf.RoundToInt(FleetManager.LocalPlayerFogSightRange * multiplier);
         }
 
         // Cached so RefreshLocalPlayerFogSightRangeIfChanged only touches csFogWar (and forces
@@ -363,7 +726,7 @@ namespace BOTF3D.Core
             CivController localCiv = CivManager.Instance?.LocalPlayerCivController;
             if (localCiv?.CivData == null) return;
 
-            int desiredSightRange = GetFogSightRange(localCiv.CivData.TechPoints);
+            int desiredSightRange = GetFogSightRange(localCiv.CivData);
             if (desiredSightRange == lastAppliedLocalFogSightRange) return;
 
             csFogWar fogWar = csFogWar.Instance;
@@ -508,6 +871,22 @@ namespace BOTF3D.Core
                 default:
                     return 1.0f;
             }
+        }
+
+        /// <summary>
+        /// Same curve as <see cref="GetFactorySpeedMultiplier(TechLevel)"/>, plus Terran Empire's
+        /// Agonizer Discipline Regimen/Cloning Acceleration Chambers (TechEffectHook.
+        /// AgonizerDisciplineRegimen/CloningAccelerationChambers, §5a) stacked additively, and
+        /// Cardassian/Dominion's shared FacilityOutputMultiplier (Logistics Optimization/Occupation
+        /// Efficiency Doctrine/Central Authority Infrastructure, Vorta Command Algorithms/Gamma
+        /// Quadrant Supply Lattice) stacked multiplicatively on top of that - each is 1x/0f for
+        /// every civ that hasn't researched the relevant Branch F tech.
+        /// </summary>
+        public float GetFactorySpeedMultiplier(TechLevel techLevel, CivData civData)
+        {
+            float bonus = civData?.Effects?.FactorySpeedBonus ?? 0f;
+            float outputMult = civData?.Effects?.FacilityOutputMultiplier ?? 1f;
+            return (GetFactorySpeedMultiplier(techLevel) + bonus) * outputMult;
         }
 
         /// <summary>
@@ -710,6 +1089,9 @@ namespace BOTF3D.Core
                 TechLevel levelBefore    = civ.CivData.CurrentTechLevel;
                 float researchMultiplier = GetResearchOutputMultiplier(levelBefore);
                 int techPointsGained     = Mathf.RoundToInt(activeResearchCenters * techPointsPerResearchCenterPerTurn * researchMultiplier);
+                // Federation Science Exchange (TechEffectHook.FederationScienceExchange, §5a) - flat
+                // additive TechPoints/turn bonus on top of the Research Center income above.
+                techPointsGained += Mathf.RoundToInt(civ.CivData.Effects.FederationScienceBonus);
 
                 civ.CivData.TechPoints += techPointsGained;
                 Debug.Log($"{civ.CivData.CivShortName}: +{techPointsGained} tech points " +

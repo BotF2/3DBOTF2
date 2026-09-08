@@ -718,7 +718,7 @@ namespace BOTF3D.Galaxy
                     // TechManager.RefreshLocalPlayerFogSightRangeIfChanged as tech advances.
                     CivController ownerCiv = CivManager.Instance.GetCivControllerByCivEnum(fleetData.CivEnum);
                     int fogSightRange = TechManager.Instance != null
-                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData?.TechPoints ?? 0)
+                        ? TechManager.Instance.GetFogSightRange(ownerCiv?.CivData)
                         : (int)LocalPlayerFogSightRange;
 
                     // CRITICAL: updateOnlyOnMove = FALSE so fog updates continuously as fleet moves

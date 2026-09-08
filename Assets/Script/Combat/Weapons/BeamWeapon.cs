@@ -181,13 +181,15 @@ namespace BOTF3D.Combat
             // ✅ Calculate final damage (int) after applying falloff, then a small symmetric random
             // roll (see CombatDamageRandomizer) so evenly matched fights aren't fully deterministic.
             int actualDamage = CombatDamageRandomizer.ApplyVariance(Mathf.RoundToInt(beamDamage * damageFalloff));
+            // Phase II tech tree (§8 II.3) - Klingon/Terran/Dominion/Romulan attacker-side bonuses.
+            actualDamage = BOTF3D.Combat.CombatOrderHelper.ApplyAttackerTechBonuses(ownerShip, actualDamage, out bool bypassShields);
 
             GameLogger.Log(GameLogger.LogCategory.Combat, $"🔫 {ownerShip?.ShipData?.CivEnum} {ownerShip?.ShipData?.ShipName} beam → {targetShip.ShipData.ShipName}: " +
                       $"distance={distance:F0}u, baseDamage={beamDamage}, falloff={damageFalloff:F2}, actualDamage={actualDamage}", this);
 
             // ✅ Apply damage to target
             bool wasAliveBeforeHit = !targetShip.ShipData.Distroyed;
-            targetShip.TakeDamage(actualDamage);
+            targetShip.TakeDamage(actualDamage, bypassShields);
             bool destroyedByThisHit = wasAliveBeforeHit && targetShip.ShipData.Distroyed;
 
             BOTF3D.Combat.Testing.CombatShotLog.LogShot(ownerShip, targetShip, "Beam", actualDamage, distance, destroyedByThisHit);

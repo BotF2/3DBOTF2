@@ -83,11 +83,35 @@ public class StarSysUI_Fields : MonoBehaviour
     public Button newFleetButton;
     public Button mergeFleetButton;
     public Button shipDeployButton;
+    // Opens the standalone Manage Ships overlay (ManageShipsUI_Prefab / ManageShipsUIFields -
+    // see StarSysManager.InstantiateManageShipsUI). Intended to replace newFleetButton/
+    // mergeFleetButton/shipDeployButton/ExpandShipsButton/the three action dropdowns above once
+    // SystemUI_Prefab's ExpandedContent is reworked down to just a compact "Ships in the System"
+    // list plus this one button - those fields stay in place, still functional, until that rework
+    // lands, so nothing already wired breaks in the meantime.
+    public Button manageShipsButton;
     public Button cancelShipManagerButton;
     public Button loadDilithiumButton;
     public Button loadTroopsButton;
     public Button unloadCargoButton;
     public Button scrapButton;
+    // Power Plant decommission (Docs/Design/DilithiumEconomy_Phase3_Rebaseline.md §6) - manual
+    // Editor step: add a Button under the Power Plant row in SystemUI_Prefab and assign it here,
+    // same as scrapButton above. Wired in StarSysMenuUIController next to scrapButton's wiring.
+    public Button scrapPowerPlantButton;
+    // ExpandedContent/HeaderPowerUnitText/ButtonScrapOne - decommissions one Power Plant, same
+    // refund math as scrapPowerPlantButton, but only ever shown while more than one plant remains
+    // (guards the system's last plant from ever being scrapped). See
+    // StarSysMenuUIController.ClickScrapOnePowerUnitButton.
+    public Button scrapOnePowerUnitButton;
+
+    [Header("Action Dropdowns (ExpandedContent, populated at runtime)")]
+    [Tooltip("Option 0 is the fixed \"Scrap Ships\" label (never itself an action); options 1+ are eligible ships, oldest TechLevel first. See StarSysMenuUIController.RefreshActionDropdowns.")]
+    public TMP_Dropdown scrapShipsDropdown;
+    [Tooltip("Option 0 is the fixed \"Load\" label; options 1+ are Colony/Troops/Terraform, each shown only when eligible. See StarSysMenuUIController.RefreshActionDropdowns.")]
+    public TMP_Dropdown loadDropdown;
+    [Tooltip("Option 0 is the fixed \"Unload\" label; options 1+ are docked transports currently carrying cargo. See StarSysMenuUIController.RefreshActionDropdowns.")]
+    public TMP_Dropdown unloadDropdown;
 
     [Header("Text")]
     public TextMeshProUGUI headerPowerUnitText;

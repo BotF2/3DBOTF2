@@ -66,8 +66,10 @@ namespace BOTF3D.Galaxy
             // Deduct dilithium stockpile when a power plant build starts
             if (buildDrag.FacilityType == StarSysFacilityType.PowerPlanet)
             {
+                TechLevel buildTech = controller.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+                int powerOutput = controller.StarSysData.PowerPlantData?.BasePowerOutput ?? 20;
                 controller.StarSysData.DeductDilithium(
-                    ShipStatCalculator.GetPowerPlantDilithiumCost(controller.StarSysData.CurrentOwnerCivEnum));
+                    ShipStatCalculator.GetPowerPlantDilithiumCost(buildTech, powerOutput));
                 RefreshCompactHeaderDilithium();
             }
 
@@ -514,7 +516,8 @@ namespace BOTF3D.Galaxy
         public int GetBuildTimeDuration(StarSysFacilityType starSysFacilities)
         {
             int timeDuration = 1;
-            TechLevel ourTechLevel = controller.StarSysData.CurrentCivController.CivData.CurrentTechLevel;
+            CivData ourCivData = controller.StarSysData.CurrentCivController.CivData;
+            TechLevel ourTechLevel = ourCivData.CurrentTechLevel;
 
             // ✅ Get base build time
             switch (starSysFacilities)
@@ -550,14 +553,14 @@ namespace BOTF3D.Galaxy
                 switch (starSysFacilities)
                 {
                     case StarSysFacilityType.Factory:
-                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel);
+                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel, ourCivData);
                         break;
                     case StarSysFacilityType.Shipyard:
                         speedMultiplier = TechManager.Instance.GetShipyardSpeedMultiplier(ourTechLevel);
                         break;
                     default:
                         // Other facilities use factory speed bonus
-                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel);
+                        speedMultiplier = TechManager.Instance.GetFactorySpeedMultiplier(ourTechLevel, ourCivData);
                         break;
                 }
 

@@ -272,6 +272,16 @@ namespace BOTF3D.Civilization
                 return false;
             }
 
+            // Dominion Changeling Infiltration Units (TechEffectHook.ChangelingInfiltrationUnits, §5a)
+            // - the only civ that can ever queue this action, and only once it's researched.
+            if (actionType == SecretActionsEnum.Infiltration && !initiator.CivData.Effects.ChangelingInfiltration)
+            {
+                failReason = "no infiltration units available";
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"IntelProject: {initiatorCiv} cannot queue Infiltration — Changeling Infiltration Units not researched.");
+                return false;
+            }
+
             float cost = CalculateIntelCost(actionType, techGap);
 
             if (initiator.CivData.IntelPoints < cost)
@@ -286,7 +296,7 @@ namespace BOTF3D.Civilization
 
             int   turns    = TurnsForAction(actionType);
             float success  = Mathf.Clamp01(CalculateSuccessChance(actionType, techGap) + GetCivSuccessModifier(initiatorCiv));
-            float discover = CalculateDiscoveryChance(actionType, techGap);
+            float discover = CalculateDiscoveryChance(actionType, techGap, initiatorCiv);
 
             var project = new IntelProject(actionType, initiatorCiv, targetCiv, turns, success, discover);
             intelCon.IntelligenceData.ActiveProjects.Add(project);
@@ -320,6 +330,46 @@ namespace BOTF3D.Civilization
                     }
                 }
             }
+
+            AutoRefreshIntelPanels();
+        }
+
+        /// <summary>
+        /// Deep Cover Networks / Full Surveillance Net (Branch E Tier 3/4, TechEffectHook.
+        /// IntelPanelReveal_Partial/_Full, §8 II.3): once researched, a civ's "last seen" record on a
+        /// contact auto-refreshes every turn instead of only updating on a live encounter or a
+        /// successful SystemRecon op. Full reveal refreshes every turn; Partial refreshes every other
+        /// turn (a coarser, cheaper version of the same behavior). The intel panel meant to actually
+        /// display this is still a stub (see InstantiateIntelligenceUIGameObject's own comment) - this
+        /// is the real backend behavior, ready for that UI once it exists.
+        /// </summary>
+        private void AutoRefreshIntelPanels()
+        {
+            int turn = TimeManager.Instance?.CurrentTurn ?? 0;
+
+            foreach (var intelCon in IntelligenceControllerList)
+            {
+                var data = intelCon?.IntelligenceData;
+                if (data == null || data.CivSideOne == CivEnum.None || data.CivSideTwo == CivEnum.None) continue;
+
+                TryAutoRefresh(data, data.CivSideOne, data.CivSideTwo, turn);
+                TryAutoRefresh(data, data.CivSideTwo, data.CivSideOne, turn);
+            }
+        }
+
+        private void TryAutoRefresh(IntelligenceData data, CivEnum watcherEnum, CivEnum watchedEnum, int turn)
+        {
+            TechEffects watcherFx = CivManager.Instance?.GetCivDataByCivEnum(watcherEnum)?.Effects;
+            if (watcherFx == null) return;
+
+            bool refreshThisTurn = watcherFx.IntelPanelFull || (watcherFx.IntelPanelPartial && turn % 2 == 0);
+            if (!refreshThisTurn) return;
+
+            CivController watched = CivManager.Instance.GetCivControllerByCivEnum(watchedEnum);
+            StarSysController homeSysCon = watched?.CivData?.StarSysWeOwn?
+                .Find(s => s != null && s.StarSysData.SysName == watched.CivData.CivHomeSystemName);
+            if (homeSysCon != null)
+                data.LastSeenStarSysController = homeSysCon;
         }
 
         // ─── Resolution ──────────────────────────────────────────────────────
@@ -350,7 +400,31 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.SystemRecon:
                     ResolveSystemRecon(project, initiator, target, succeeded, discovered);
                     break;
+                case SecretActionsEnum.Infiltration:
+                    ResolveInfiltration(project, initiator, target, succeeded, discovered);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Dominion Changeling Infiltration Units (§5a): a Founder replaces a member of the target's
+        /// command structure, quietly draining both of the target's covert-op resources at once - a
+        /// stronger, dual-resource version of Sabotage, representing sustained infiltration rather
+        /// than a single strike. Same discovery-penalty path as every other covert action.
+        /// </summary>
+        private void ResolveInfiltration(IntelProject project, CivController initiator, CivController target,
+            bool succeeded, bool discovered)
+        {
+            if (succeeded)
+            {
+                target.CivData.IntelPoints = Mathf.Max(0f, target.CivData.IntelPoints - 15f);
+                target.CivData.TechPoints = Mathf.Max(0, target.CivData.TechPoints - 5);
+                GameLogger.Log(GameLogger.LogCategory.Diplomacy,
+                    $"Infiltration succeeded against {project.TargetCiv} | -15 IntelPoints, -5 TechPoints");
+            }
+            else if (discovered)
+                ApplyDiscoveryPenalty(project, DiplomaticEventEnum.DiscoveredSabotage);
+            OnProjectResolved?.Invoke(project.ActionType, project.InitiatorCiv, project.TargetCiv, succeeded, discovered, 0);
         }
 
         private void ResolveIntellectualTheft(IntelProject project, CivController initiator, CivController target,
@@ -485,7 +559,7 @@ namespace BOTF3D.Civilization
             int levelGap = Mathf.Abs((int)target.CivData.CurrentTechLevel - (int)initiator.CivData.CurrentTechLevel);
             possible        = levelGap < 3;
             successChance   = possible ? Mathf.Clamp01(CalculateSuccessChance(SecretActionsEnum.IntellectualTheft, levelGap) + GetCivSuccessModifier(initiator.CivData.CivEnum)) : 0f;
-            discoveryChance = possible ? CalculateDiscoveryChance(SecretActionsEnum.IntellectualTheft, levelGap) : 0f;
+            discoveryChance = possible ? CalculateDiscoveryChance(SecretActionsEnum.IntellectualTheft, levelGap, initiator.CivData.CivEnum) : 0f;
             float rewardGap = (target.CivData.TechRating - initiator.CivData.TechRating) / 2.5f;
             potentialGain   = possible ? Mathf.Max(10, Mathf.RoundToInt(20f * (1f + rewardGap))) : 0;
         }
@@ -499,6 +573,7 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.Disinformation:     return 2;
                 case SecretActionsEnum.Sabotage:           return 2;
                 case SecretActionsEnum.IntellectualTheft:  return 3;
+                case SecretActionsEnum.Infiltration:       return 4; // Changeling replacement takes time to place
                 default:                                   return 1;
             }
         }
@@ -512,6 +587,7 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.Disinformation:     return 10f;
                 case SecretActionsEnum.Sabotage:           return 15f;
                 case SecretActionsEnum.IntellectualTheft:  return 10f * (1f + techGap);
+                case SecretActionsEnum.Infiltration:       return 20f;
                 default:                                   return 5f;
             }
         }
@@ -525,6 +601,7 @@ namespace BOTF3D.Civilization
                 case SecretActionsEnum.Disinformation:     return 0.60f;
                 case SecretActionsEnum.Sabotage:           return 0.50f;
                 case SecretActionsEnum.IntellectualTheft:  return 0.5f / (1f + techGap * 0.5f);
+                case SecretActionsEnum.Infiltration:       return 0.55f;
                 default:                                   return 0.5f;
             }
         }
@@ -533,25 +610,41 @@ namespace BOTF3D.Civilization
         /// Ruthless/secretive, xenophobic civs (Romulan, Cardassian, Dominion) run stronger covert
         /// operations than open, trusting ones (Federation). Klingons favour direct combat over
         /// subterfuge and land negative too. Divisor of 30 keeps the range near the old hand-tuned ±0.10.
+        /// Phase II (§8 II.3, §5a): Romulan Tal Shiar Intelligence Matrix / Cardassian Obsidian Order
+        /// Surveillance Net / the shared Strategic Intelligence Mastery capstone all add a flat bonus
+        /// on top of this trait-driven value via CivData.Effects.IntelSuccessBonus - the concrete
+        /// landing spot §5a calls out ("the same Research Centers that fund the tech tree are what
+        /// make the Tal Shiar/Obsidian Order actually better at their job").
         /// </summary>
         private static float GetCivSuccessModifier(CivEnum civ)
         {
             CivData civData = CivManager.Instance?.GetCivDataByCivEnum(civ);
             if (civData == null) return 0f;
-            return -((int)civData.Ruthless + (int)civData.Xenophobia) / 30f;
+            return -((int)civData.Ruthless + (int)civData.Xenophobia) / 30f + civData.Effects.IntelSuccessBonus;
         }
 
-        private static float CalculateDiscoveryChance(SecretActionsEnum action, float techGap)
+        /// <summary>
+        /// initiatorCiv is optional so existing non-civ-aware call sites still compile; pass it
+        /// wherever the initiator is known so Counter-Espionage Doctrine (TechEffectHook.
+        /// SabotageResist, §4 Branch E Tier 5) can trim the odds of that civ's own ops being caught
+        /// ("trims CalculateDiscoveryChance" per TechTree_Phase2_Design.md §6).
+        /// </summary>
+        private static float CalculateDiscoveryChance(SecretActionsEnum action, float techGap, CivEnum initiatorCiv = CivEnum.None)
         {
+            float baseChance;
             switch (action)
             {
-                case SecretActionsEnum.GatherIntelligence: return 0.10f;
-                case SecretActionsEnum.SystemRecon:        return 0.10f;
-                case SecretActionsEnum.Disinformation:     return 0.20f;
-                case SecretActionsEnum.Sabotage:           return 0.35f;
-                case SecretActionsEnum.IntellectualTheft:  return 0.30f + techGap * 0.10f;
-                default:                                   return 0.20f;
+                case SecretActionsEnum.GatherIntelligence: baseChance = 0.10f; break;
+                case SecretActionsEnum.SystemRecon:        baseChance = 0.10f; break;
+                case SecretActionsEnum.Disinformation:     baseChance = 0.20f; break;
+                case SecretActionsEnum.Sabotage:           baseChance = 0.35f; break;
+                case SecretActionsEnum.IntellectualTheft:  baseChance = 0.30f + techGap * 0.10f; break;
+                case SecretActionsEnum.Infiltration:       baseChance = 0.30f; break; // Changeling - well-disguised but still a live infiltration
+                default:                                   baseChance = 0.20f; break;
             }
+
+            float resist = CivManager.Instance?.GetCivDataByCivEnum(initiatorCiv)?.Effects?.SabotageResist ?? 0f;
+            return Mathf.Clamp01(baseChance - resist);
         }
 
         private void OnDestroy()

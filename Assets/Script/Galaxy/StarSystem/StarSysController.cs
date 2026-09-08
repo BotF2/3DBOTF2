@@ -742,14 +742,12 @@ namespace BOTF3D.Galaxy
 
             // Terraforming Technology (TechTree_CommonBranches.csv, Sensors & Science Tier 4,
             // EffectHook SightRangeStage_4) is what unlocks terraforming an uninhabited system.
-            // Phase II's per-tech research tracking doesn't exist yet (see TechTree_Phase2_Design.md),
-            // so this is gated on the civ having reached the Tier 4 TechPoints threshold (300) from
-            // the existing flat CivData.TechPoints ladder as a stand-in - same pattern as
-            // FleetController.UpdateMaxWarp's WarpSpeedAverage gate - replace with a real
-            // "has researched Terraforming Technology" check once Phase II ships.
-            if (terraformingCiv.CivData.TechPoints < 300)
+            // TechManager.ApplyTechEffect sets CivData.Effects.TerraformingTech the moment that tech
+            // completes (§8 II.3 - this used to be a flat CivData.TechPoints >= 300 stand-in, the
+            // same pattern FleetController.UpdateMaxWarp's WarpSpeedAverage gate had).
+            if (!terraformingCiv.CivData.Effects.TerraformingTech)
             {
-                Debug.LogWarning($"TerraformSystem: '{name}' - refusing terraform claim by {terraformingCiv.CivData.CivEnum}, Terraforming Technology (300 TechPoints) not yet researched (has {terraformingCiv.CivData.TechPoints}).");
+                Debug.LogWarning($"TerraformSystem: '{name}' - refusing terraform claim by {terraformingCiv.CivData.CivEnum}, Terraforming Technology not yet researched.");
                 return false;
             }
 
@@ -762,14 +760,15 @@ namespace BOTF3D.Galaxy
 
             PlantInsignia(terraformingCiv);
 
-            // Consume the transport instantly - its personnel begin terraforming immediately.
-            if (fleetCon != null)
-                fleetCon.RemoveShipFromFleet(transportShip);
-            var occupiedSysCon = transportShip.ShipData.CurrentStarSysController;
-            if (occupiedSysCon != null)
-                occupiedSysCon.RemoveFromShipList(transportShip);
-            GameEvents.ShipDestroyed(transportShip.ShipData.ShipID);
-            ShipManager.Instance.RemoveShipControllerFromList(transportShip);
+            // Unlike ColonizeWithTransport, the transport itself is NOT consumed - its terraforming
+            // equipment/personnel disembark instantly, but the ship survives as a plain, unloaded
+            // transport (Terraform designation and any other cargo cleared) and stays exactly where
+            // it is - still in its fleet/system, free to be sent on another mission right away.
+            transportShip.ShipData.DesignatedForTerraform = false;
+            transportShip.ShipData.LoadedDilithium = 0;
+            transportShip.ShipData.LoadedGroundForces = 0;
+            transportShip.ShipData.LoadedPopulation = 0;
+            transportShip.ShipListUIGameObject?.GetComponentInChildren<TransportCargoIndicator>()?.Refresh(transportShip.ShipData);
             // Deliberately NOT nulling fleetCon.FleetData.TerraformableSystem here (unlike the
             // equivalent line in ColonizeWithTransport) - this reference needs to survive so that
             // once IsHabitable flips true (TerraformTimerCoroutine below), FleetMenuUIController can

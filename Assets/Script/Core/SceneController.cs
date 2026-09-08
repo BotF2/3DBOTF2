@@ -134,6 +134,7 @@ namespace BOTF3D.Core
             CombatType combatType = CombatType.None;
             if (playerFleet == null)
             {
+                StarSysManager.Instance.ReallocatePowerForCombat(starSysCon);
                 StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
                 shipControllers1 = starSysCon.StarSysData.ShipsList;
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
@@ -149,6 +150,7 @@ namespace BOTF3D.Core
             }
             else if (enemyFleet == null)
             {
+                StarSysManager.Instance.ReallocatePowerForCombat(starSysCon);
                 StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
                 shipControllers1 = playerFleet.FleetData.ShipsList;
                 shipControllers2 = starSysCon.StarSysData.ShipsList;

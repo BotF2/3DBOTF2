@@ -118,5 +118,12 @@ namespace BOTF3D.Core
         GammaQuadrantSupplyLattice,
         ChangelingInfiltrationUnits,
         CloningAccelerationChambers,
+
+        // Klingon T3 "Acquired Cloaking Device" (added after initial authoring) - appended here
+        // rather than sorted up next to the other Klingon members above: every TechDefSO asset
+        // serializes EffectHook as this enum's raw int ordinal (no explicit values assigned), so
+        // inserting a new member anywhere but the end would silently renumber - and break - every
+        // faction's assets from that point on. Always append new hooks here, never insert mid-list.
+        AcquiredCloakingDevice,
     }
 }

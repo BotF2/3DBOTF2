@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b9111bf39e6c4949a89b8e85f6cdb78, type: 3}
-  m_Name: KLING_T3_GreatHousesFleetCoordination
+  m_Name: KLING_T4_GreatHousesFleetCoordination
   m_EditorClassIdentifier: BOTF3D::BOTF3D.Core.TechDefSO
-  Id: KLING_T3_GreatHousesFleetCoordination
+  Id: KLING_T4_GreatHousesFleetCoordination
   DisplayName: Great Houses Fleet Coordination
   Description: Fleet-wide morale buff
   Field: 5
-  Tier: 3
-  TechPointsThreshold: 200
-  ResearchCost: 5
+  Tier: 4
+  TechPointsThreshold: 300
+  ResearchCost: 6
   UnlockMode: 0
   IsShared: 0
   RestrictedToCiv: 2

@@ -113,5 +113,49 @@ public static bool HasTransports(CombatData combatData, int side)
                     return "No order set.";
             }
         }
+
+        /// <summary>
+        /// Phase II tech tree (§8 II.3, §5a): rolls/applies every attacker-side TechEffects bonus
+        /// that modifies a single shot's damage. Called from BeamWeapon.Fire/Torpedo.OnReachedTarget
+        /// right before ShipController.TakeDamage - the order-based damage-modifier step CLAUDE.md's
+        /// combat overview refers to (previously only Rush/Flanking positioning, no tech input).
+        /// Returns the possibly-increased damage; bypassShields is true if this hit should ignore the
+        /// target's current shield value entirely (Klingon Subsystem Cripple / Ordnance Transphasic -
+        /// see Torpedo.cs for the latter, applied separately since it's ordnance-class-specific).
+        /// </summary>
+        public static int ApplyAttackerTechBonuses(ShipController owner, int damage, out bool bypassShields)
+        {
+            bypassShields = false;
+            TechEffects fx = owner?.ShipData != null
+                ? CivManager.Instance?.GetCivDataByCivEnum(owner.ShipData.CivEnum)?.Effects
+                : null;
+            if (fx == null) return damage;
+
+            // Ordnance Tier 3 Fire Control Solutions - accuracy/crit: AccuracyBonus doubles as this
+            // shot's crit chance, since this combat model has no separate to-hit roll to buff.
+            if (fx.AccuracyBonus > 0f && UnityEngine.Random.value < fx.AccuracyBonus)
+                damage = Mathf.RoundToInt(damage * 1.5f);
+
+            // Terran Fear-Driven Command Protocols I/II / Elite Strike Teams / Flagship Domination,
+            // Dominion Ketracel-White Optimization - flat combat-morale damage bonus.
+            if (fx.CombatMoraleBonus > 0f)
+                damage = Mathf.RoundToInt(damage * (1f + fx.CombatMoraleBonus));
+
+            // Klingon Disruptor Overload Arrays / Subsystem Cripple - chance to land a crippling hit
+            // that bypasses shields entirely. No distinct per-subsystem model exists in this combat
+            // system (only aggregate Shield/Hull), so "crippled" is modeled as a direct-to-hull hit
+            // rather than disabling a named subsystem.
+            if (fx.SubsystemCrippleChance > 0f && UnityEngine.Random.value < fx.SubsystemCrippleChance)
+                bypassShields = true;
+
+            // Romulan Warbird Ambush Doctrine - first-strike bonus when decloaking to attack.
+            // Simplified: this combat model has no per-turn "just decloaked" flag, so the bonus
+            // applies on every shot a currently-cloaked Romulan fleet lands rather than only its
+            // opening one - still a real, tunable combat edge for the civ that researched it.
+            if (fx.WarbirdAmbushBonus > 0f && fx.GalaxyMapCloak)
+                damage = Mathf.RoundToInt(damage * (1f + fx.WarbirdAmbushBonus));
+
+            return damage;
+        }
     }
 }

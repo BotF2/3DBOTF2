@@ -31,6 +31,7 @@ namespace BOTF3D.UI
         [SerializeField] private TextMeshProUGUI volumeValueText;
         [SerializeField] private Button pauseButton;
         [SerializeField] private TextMeshProUGUI stardateText; // Displays current stardate
+        [SerializeField] private TextMeshProUGUI turnText; // Displays current turn number (TimeManager.CurrentTurn)
         [SerializeField] private Button advanceTurnButton;
         [SerializeField] private Button forceAdvanceTurnButton; // testing escape hatch for all clients, see TimeManager.RequestForceAdvanceTurn
 
@@ -163,11 +164,14 @@ namespace BOTF3D.UI
             TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
             TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
             TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
+            TimeManager.Instance.OnTurnNumberChanged -= UpdateTurnNumberDisplay;
+            TimeManager.Instance.OnTurnNumberChanged += UpdateTurnNumberDisplay;
             TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
             TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
             UpdateButtonState();
             UpdateForceAdvanceButtonVisibility();
             OnTurnPhaseChanged(TimeManager.Instance.TurnPhase);
+            UpdateTurnNumberDisplay(); // seed it now - OnTurnNumberChanged only fires on the NEXT change
         }
 
         public void OnPauseButtonClicked()
@@ -543,6 +547,14 @@ namespace BOTF3D.UI
                 Debug.Log($"GameControlOverlay: StardateText set to {showGameplayControls}");
             }
 
+            // Control turn text visibility (show when GalaxyScene loaded)
+            if (turnText != null)
+            {
+                turnText.gameObject.SetActive(showGameplayControls);
+                if (showGameplayControls)
+                    UpdateTurnNumberDisplay(); // catch up immediately rather than waiting for the next OnTurnNumberChanged
+            }
+
             // Turn phase label — hidden until GalaxyScene is active
             if (turnPhaseText != null)
                 turnPhaseText.gameObject.SetActive(showGameplayControls);
@@ -623,6 +635,24 @@ namespace BOTF3D.UI
                 stardateText.text = $"{cachedStardateLabel}: --";
         }
 
+        /// <summary>
+        /// Update turn-number text display from TimeManager.CurrentTurn. Event-driven (via
+        /// TimeManager.OnTurnNumberChanged, TimeManager.CurrentTurn's SyncVar hook) rather than
+        /// polled every frame like UpdateStardateDisplay - the turn number changes far less often
+        /// than the stardate, and the SyncVar hook already fires on every peer (host and remote
+        /// clients alike), unlike OnTurnAdvanced which only runs inside the server-only
+        /// TimeProgression coroutine. Bare number only - the "Turn:" label is its own separate
+        /// text field in the scene, not part of this component.
+        /// </summary>
+        private void UpdateTurnNumberDisplay()
+        {
+            if (turnText == null) return;
+
+            turnText.text = TimeManager.Instance != null
+                ? TimeManager.Instance.CurrentTurn.ToString()
+                : "--";
+        }
+
         private void OnEnable()
         {
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
@@ -631,6 +661,7 @@ namespace BOTF3D.UI
             {
                 TimeManager.Instance.OnTurnPhaseChanged += OnTurnPhaseChanged;
                 TimeManager.Instance.OnStardateChanged += UpdateTurnProgress;
+                TimeManager.Instance.OnTurnNumberChanged += UpdateTurnNumberDisplay;
                 TimeManager.Instance.ReadyCivs.Callback += OnReadyCivsChanged;
             }
         }
@@ -643,6 +674,7 @@ namespace BOTF3D.UI
             {
                 TimeManager.Instance.OnTurnPhaseChanged -= OnTurnPhaseChanged;
                 TimeManager.Instance.OnStardateChanged -= UpdateTurnProgress;
+                TimeManager.Instance.OnTurnNumberChanged -= UpdateTurnNumberDisplay;
                 TimeManager.Instance.ReadyCivs.Callback -= OnReadyCivsChanged;
             }
         }

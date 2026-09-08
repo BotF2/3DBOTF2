@@ -162,34 +162,33 @@ namespace BOTF3D.Combat
             { CivEnum.TERRAN, new CivFlavor(0.95f, 0.95f, 1.12f, 1.12f, 1.03f) },
         };
 
-        // ── Dilithium locked into each power plant reactor by civilisation ──────────
-        // Each plant holds this much dilithium permanently in its reactor crystal matrix.
-        // Reactor size reflects the civ's power doctrine, not raw strength:
-        //   FED:    balanced medium reactors — baseline 25
-        //   ROM:    compact, efficient singularity-adjacent design — 22
-        //   KLING:  brute-force plasma reactors, higher draw — 28
-        //   CARD:   cheap low-output plants compensated by quantity — 15
-        //   DOM:    polaron systems are energy-hungry, large reactors — 38
-        //   BORG:   each node powers a vast complex, maximum capacity — 55
-        //   TERRAN: mirrors Federation baseline — 25
-        //   Minors: small single-reactor installation — 8
-        private static readonly Dictionary<CivEnum, int> PowerPlantLi2Cost = new Dictionary<CivEnum, int>
-        {
-            { CivEnum.FED,    25 },
-            { CivEnum.ROM,    22 },
-            { CivEnum.KLING,  28 },
-            { CivEnum.CARD,   15 },
-            { CivEnum.DOM,    38 },
-            { CivEnum.BORG,   55 },
-            { CivEnum.TERRAN, 25 },
-        };
+        // ── Dilithium locked into each power plant reactor ──────────────────────────
+        // See Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §3. A reactor's Dilithium cost is
+        // no longer a hand-authored per-civ number - it's derived from the same "10x the best
+        // warship's Dilithium cost at this TechLevel" anchor as ships, expressed as a flat
+        // Li2-per-power-point rate (so every civ pays the same rate; only how much a plant
+        // *produces* - PowerPlantData.BasePowerOutput, already per-civ - changes the total cost).
+        // This deliberately does NOT anchor to QualBuild (ship-cost quality scaling): that would
+        // make high-QualityScore civs' reactors more Li2-efficient per watt than low-QualityScore
+        // civs', which is a side effect of reusing a curve built for a different purpose, not an
+        // intentional design choice - see the doc for the full reasoning.
+        //   TierRatio[tier] = 10 * <anchor ship's base Dilithium> * TierBuild[tier] / 20
+        //   (20 = the FED/ROM/KLING/TERRAN baseline PowerOutput the ratio is expressed against)
+        //   EARLY (Destroyer, base 2):      10*2*1.00/20 = 1.0
+        //   DEVELOPED (Cruiser, base 3):    10*3*1.20/20 = 1.8
+        //   ADVANCED (Cruiser, base 3):     10*3*1.40/20 = 2.1
+        //   SUPREME (Heavy Cruiser, base 4): 10*4*1.60/20 = 3.2
+        public static readonly float[] TierRatio = { 1.0f, 1.8f, 2.1f, 3.2f };
 
         /// <summary>
-        /// Returns the dilithium locked into one power plant reactor for the given civilisation.
-        /// Falls back to 8 for minor races.
+        /// Returns the dilithium locked into one power plant reactor at the given TechLevel, for a
+        /// civ whose plants each produce <paramref name="powerOutputPerPlant"/> power (read from
+        /// that civ's PowerPlantData.BasePowerOutput/PowerPlantSO.PowerOutput by the caller - this
+        /// stays a pure function of tier + output rather than holding its own per-civ table, so
+        /// there's nothing here that can drift out of sync with the actual PowerPlantSO data).
         /// </summary>
-        public static int GetPowerPlantDilithiumCost(CivEnum civ) =>
-            PowerPlantLi2Cost.TryGetValue(civ, out int cost) ? cost : 8;
+        public static int GetPowerPlantDilithiumCost(TechLevel tier, int powerOutputPerPlant) =>
+            Mathf.RoundToInt(powerOutputPerPlant * TierRatio[(int)tier]);
 
         /// <summary>
         /// Public entry point onto the same QualityScore -> multiplier curve (0.70 at score 0, 1.00

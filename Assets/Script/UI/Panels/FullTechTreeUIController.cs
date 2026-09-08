@@ -72,6 +72,34 @@ namespace BOTF3D.UI
             Instance = this;
         }
 
+        /// <summary>
+        /// Live-updates the grid whenever a tech completes while this panel is open, instead of only
+        /// ever redrawing on the next manual Open()/Refresh() - a player who left the panel open
+        /// (or force-completed techs for testing) sees the row flip to CompletedColor (green)
+        /// immediately. Open()/Close() SetActive the whole GameObject, so OnEnable/OnDisable already
+        /// fire exactly when the panel opens/closes - no need for a separate "is this panel open"
+        /// guard on top.
+        /// </summary>
+        private void OnEnable()
+        {
+            if (TechManager.Instance != null)
+                TechManager.Instance.OnTechResearched += OnTechResearched;
+        }
+
+        private void OnDisable()
+        {
+            if (TechManager.Instance != null)
+                TechManager.Instance.OnTechResearched -= OnTechResearched;
+        }
+
+        private void OnTechResearched(CivController civ, TechDefSO def)
+        {
+            // Only the local player's own completions are shown on this civ-specific panel - a
+            // rival civ (or an AI major) completing a tech elsewhere shouldn't redraw it.
+            if (GameController.Instance == null || !GameController.Instance.AreWeLocalPlayer(civ.CivData.CivEnum)) return;
+            Refresh();
+        }
+
         /// <summary>Shows the panel and redraws every column from the local player's current
         /// research state.</summary>
         public void Open()

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BOTF3D.Core
 {
-    public enum ReportCategory { Combat, Diplomacy, Intel }
+    public enum ReportCategory { Combat, Diplomacy, Intel, Logistics }
 
     public enum ReportSeverity { Info, Warning, Critical }
 

@@ -594,7 +594,13 @@ namespace BOTF3D.Core
         Disinformation,
         IntellectualTheft,
         SystemRecon, // refresh LastSeenStarSysController for a target's system without a live encounter
-        Combat
+        Combat,
+        // Dominion Changeling Infiltration Units (TechEffectHook.ChangelingInfiltrationUnits,
+        // TechTree_Phase2_Design.md §5a) - the one Branch F tech across all 7 civs that adds a new
+        // verb to an existing enum instead of a new number to an existing formula. Gated in
+        // IntelligenceManager.CreateIntelProject on CivData.Effects.ChangelingInfiltration; every
+        // other civ can never queue this action.
+        Infiltration
     }
     public enum AIBuildMode
     {

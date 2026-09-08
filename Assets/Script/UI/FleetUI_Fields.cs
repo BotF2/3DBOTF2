@@ -44,6 +44,17 @@ public class FleetUI_Fields : MonoBehaviour
     public Button ColonizeButton; // active when fleet contains a Transport and is in contact with an uninhabited, habitable system
     public Button ClaimSystemButton; // active whenever fleet is in contact with an uninhabited, habitable or terraformable system - no Transport required
     public Button TerraformButton; // active when fleet contains a Transport and is in contact with an uninhabited, terraformable (not yet habitable) system
+    // Borg Transwarp Hub Network (TranswarpHubController.CanTranswarpHome, §8 II.3) - active when
+    // this fleet is docked at a Borg-owned system with a separate Borg home system to jump to.
+    // Assign a Button GameObject to this slot in the Editor (same pattern as ClaimSystemButton/
+    // TerraformButton above) before it appears in-game - see FleetMenuUIController.ClickTranswarpButton.
+    public Button TranswarpButton;
+    // Romulan/Klingon cloak arc (CloakingController.CanToggleCloak, §8 II.3) - shown once this
+    // fleet's civ has completed Basic Cloaking Field/Battle Cloak, regardless of tier (every other
+    // civ never sees this button at all). A player-toggled on/off, not an automatic always-on state -
+    // see FleetMenuUIController.ClickCloakToggleButton and FleetData.IsCloakActive's own comment.
+    // Same Editor-wiring pattern as TranswarpButton above.
+    public Button CloakToggleButton;
 
     [Header("Sliders")]
     public Slider WarpSlider;

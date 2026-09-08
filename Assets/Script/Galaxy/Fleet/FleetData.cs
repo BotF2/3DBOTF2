@@ -44,6 +44,16 @@ namespace BOTF3D.Galaxy
         // "never had a target" from "target was just destroyed".
         public bool IsPursuingIntercept;
 
+        // Romulan/Klingon cloak arc (§5b, TechEffectHook.BattleCloak/BasicCloakingField, §8 II.3) -
+        // player-toggled per fleet via FleetUI_Fields.CloakToggleButton, not an automatic always-on
+        // state the moment the tech completes (a tactical on/off choice, matching how the design doc
+        // treats decloaking as a deliberate combat beat, §5a Warbird Ambush Doctrine). Only actually
+        // hides this fleet from another civ's fog-of-war visibility if that civ's CivData.Effects.
+        // GalaxyMapCloak is also true - see CloakingController.IsFleetCloakedFromViewer, the only
+        // reader of this field. Not itself gated here; toggling it on a civ that hasn't researched the
+        // tech is simply a no-op everywhere it's read.
+        public bool IsCloakActive;
+
         // Star system this fleet currently occupies a dock slot at (see FleetDockLayout /
         // StarSysData.ClaimFleetDockSlot), null once the fleet has moved away. Set by
         // FleetManager.InstantiateFleet when the fleet is created at a system; released by

@@ -15,11 +15,15 @@ using BOTF3D.Core;
 /// </summary>
 public static class CivBalanceCalculator
 {
-    // Power load per facility type — uniform across all civs
-    const int FACTORY_POWER  = 4;
-    const int SHIPYARD_POWER = 4;
-    const int RESEARCH_POWER = 1;
-    const int SHIELD_POWER   = 2;
+    // Power load per facility type — uniform across all civs. Must match the real runtime
+    // PowerLoad on FactorySO/ShipyardSO/ResearchCenterSO/ShieldGeneratorSO (confirmed identical
+    // across all 7 CivInt variants of each) - these were previously exactly half those values
+    // (4/4/1/2), which sized every homeworld's PowerStations against half its actual demand. See
+    // Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §5.
+    const int FACTORY_POWER  = 8;
+    const int SHIPYARD_POWER = 8;
+    const int RESEARCH_POWER = 2;
+    const int SHIELD_POWER   = 4;
     const int MIN_POWER_PLANTS = 1;
 
     // Fallbacks used only when a civ's PowerPlantSO / OrbitalBatterySO is missing.
@@ -81,6 +85,16 @@ public static class CivBalanceCalculator
                          + lay.sg * SHIELD_POWER
                          + lay.ob * orbitalLoad;
                 int pp = Mathf.Max(MIN_POWER_PLANTS, Mathf.CeilToInt(load / (float)powerPerPlant));
+
+                // Cardassia decided floor: 5 Power Plants exactly closes its starting on/off power
+                // gap (Factory/Shipyard/Research alone, with Shield/OB starting off - see §5) at
+                // Cardassia's low per-plant output. Explicit floor rather than trusting the general
+                // formula to reproduce it, so a future re-run of this tool doesn't silently undo
+                // the decision if the Layout/load constants above are tuned again. See
+                // Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §5 and
+                // Docs/Design/DilithiumEconomy_Phase3_Rebaseline.md §4.
+                if (civ.CivEnum == BOTF3D.Core.CivEnum.CARD)
+                    pp = Mathf.Max(pp, 5);
 
                 home.Factories        = lay.f;
                 home.Shipyards        = lay.sy;

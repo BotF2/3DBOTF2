@@ -55,15 +55,31 @@ namespace BOTF3D.Combat
                 data.ShipSprite = shipSO.shipSprite;
 
             // Calculate combat stats from type, tier, civ doctrine, and flavor
-            int quality = CivManager.Instance?.GetCivDataByCivEnum(effectiveCiv)?.QualityScore ?? 5;
+            CivData effectiveCivData = CivManager.Instance?.GetCivDataByCivEnum(effectiveCiv);
+            int quality = effectiveCivData?.QualityScore ?? 5;
             ShipStats stats = ShipStatCalculator.Calculate(shipSO.ShipType, shipSO.TechLevel, effectiveCiv, quality);
 
-            data.ShieldMaxHealth  = stats.ShieldMaxHealth;
-            data.HullMaxHealth    = stats.HullMaxHealth;
-            data.ShieldHealth     = stats.ShieldMaxHealth;
-            data.HullHealth       = stats.HullMaxHealth;
-            data.BeamDamage       = stats.BeamDamage;
-            data.TorpedoDamage    = stats.TorpedoDamage;
+            // Phase II tech tree (TechTree_Phase2_Design.md §8 II.3): Tactical/Ordnance "+stat%"
+            // techs and their civ-specific Branch F equivalents (Ionized/Reinforced Duranium Hulls,
+            // Imperial Phaser Overcharge, Polaron Beam Enhancement, etc.) all accumulate into
+            // CivData.Effects rather than touching ShipStatCalculator itself - applied here, the one
+            // place every ship's stats actually get set, so every spawner/rebuild path picks them up
+            // automatically. Structural Integrity Fields (StationHPMultiplier) additionally stacks
+            // onto HullMultiplier for OrbitalBattery hulls only - it's the one ShipType that never
+            // warps in or moves (CLAUDE.md), so "station HP" unambiguously means this ShipType.
+            TechEffects fx = effectiveCivData?.Effects;
+            float hullMult   = fx != null ? fx.HullMultiplier : 1f;
+            float shieldMult = fx != null ? fx.ShieldMultiplier : 1f;
+            float weaponMult = fx != null ? fx.WeaponDamageMultiplier : 1f;
+            if (fx != null && shipSO.ShipType == ShipType.OrbitalBattery)
+                hullMult *= fx.StationHPMultiplier;
+
+            data.ShieldMaxHealth  = Mathf.Max(1, Mathf.RoundToInt(stats.ShieldMaxHealth * shieldMult));
+            data.HullMaxHealth    = Mathf.Max(1, Mathf.RoundToInt(stats.HullMaxHealth   * hullMult));
+            data.ShieldHealth     = data.ShieldMaxHealth;
+            data.HullHealth       = data.HullMaxHealth;
+            data.BeamDamage       = stats.BeamDamage    == 0 ? 0 : Mathf.Max(1, Mathf.RoundToInt(stats.BeamDamage    * weaponMult));
+            data.TorpedoDamage    = stats.TorpedoDamage == 0 ? 0 : Mathf.Max(1, Mathf.RoundToInt(stats.TorpedoDamage * weaponMult));
             data.maxWarpFactor    = stats.MaxWarpFactor;
             data.currentWarpFactor = 0f;
             data.BuildDuration    = stats.BuildDuration;
@@ -149,6 +165,7 @@ namespace BOTF3D.Combat
             destination.BuildDuration = source.BuildDuration;
             destination.CargoCapacity = source.CargoCapacity;
             destination.LoadedPopulation = source.LoadedPopulation;
+            destination.DesignatedForTerraform = source.DesignatedForTerraform;
             destination.ShipDescription = source.ShipDescription;
 
             Debug.Log($"ShipDataInitializer: Copied data from '{source.ShipName}'");

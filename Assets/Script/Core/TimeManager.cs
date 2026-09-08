@@ -27,6 +27,11 @@ namespace BOTF3D.Core
         public event Action OnStardateChanged; //StardateUIController subscribes the UpdateDateText() function
         public event Action<CivEnum, TechLevel, TechLevel> OnTechLevelAdvanced;
         public event Action OnTurnAdvanced; // fires every StarDatesPerTurn stardates — strategic resolution tick
+        // Fires on EVERY peer (unlike OnTurnAdvanced, which only ever runs inside the server-only
+        // TimeProgression coroutine) via syncedCurrentTurn's SyncVar hook below - the client-safe
+        // event for anything that just needs to display the current turn number (e.g.
+        // GameControlOverlay's TurnText), same shape as OnStardateChanged/OnStardateSynced.
+        public event Action OnTurnNumberChanged;
         public event Action<TurnPhase> OnTurnPhaseChanged; // UI can subscribe to update Advance Turn button
 
         // These three were plain auto-properties before turn-phase networking. TimeManager used to
@@ -362,6 +367,7 @@ namespace BOTF3D.Core
 
         private void OnCurrentTurnSynced(int oldTurn, int newTurn)
         {
+            OnTurnNumberChanged?.Invoke();
         }
 
         private System.Collections.IEnumerator TimeProgression()
@@ -679,6 +685,58 @@ namespace BOTF3D.Core
                 return;
             }
             sysCon.TerraformSystem(transportShip);
+        }
+
+        /// <summary>
+        /// Borg Transwarp Hub Network (§8 II.3, TranswarpHubController) - unlike Claim/Terraform/
+        /// Colonize above, FleetController already carries its own NetworkIdentity, so this Rpc
+        /// passes that straight through rather than reconstructing a fleet reference from a
+        /// starSysInt/civEnum pair on each peer.
+        /// </summary>
+        [Server]
+        public void ServerTranswarpHome(NetworkIdentity fleetIdentity)
+        {
+            RpcTranswarpHome(fleetIdentity);
+        }
+
+        [ClientRpc]
+        private void RpcTranswarpHome(NetworkIdentity fleetIdentity)
+        {
+            FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+            if (fleetCon == null)
+            {
+                Debug.LogWarning("RpcTranswarpHome: fleetIdentity resolved to no local FleetController - transwarp dropped on this peer.");
+                return;
+            }
+            // TryTranswarpHome no-ops harmlessly (returns false) on the initiating peer's own echo,
+            // since its local FleetData already reflects the jump from ClickTranswarpButton's direct
+            // call - same idempotency shape as RpcClaimSystem/RpcTerraformSystem above.
+            BOTF3D.Galaxy.TranswarpHubController.TryTranswarpHome(fleetCon);
+        }
+
+        /// <summary>
+        /// Romulan/Klingon cloak arc (§8 II.3, CloakingController) - same NetworkIdentity-carrying
+        /// shape as ServerTranswarpHome above, but sets a persistent toggle state rather than
+        /// performing a one-shot action.
+        /// </summary>
+        [Server]
+        public void ServerToggleCloak(NetworkIdentity fleetIdentity, bool active)
+        {
+            RpcToggleCloak(fleetIdentity, active);
+        }
+
+        [ClientRpc]
+        private void RpcToggleCloak(NetworkIdentity fleetIdentity, bool active)
+        {
+            FleetController fleetCon = fleetIdentity != null ? fleetIdentity.GetComponent<FleetController>() : null;
+            if (fleetCon?.FleetData == null)
+            {
+                Debug.LogWarning("RpcToggleCloak: fleetIdentity resolved to no local FleetController - toggle dropped on this peer.");
+                return;
+            }
+            // Harmlessly re-applies the same value (and re-derives the same visual) on the
+            // initiating peer's own echo - SetCloakActive is idempotent to call twice in a row.
+            fleetCon.SetCloakActive(active);
         }
 
         [Server]

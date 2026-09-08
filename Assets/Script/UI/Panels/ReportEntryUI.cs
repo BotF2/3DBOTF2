@@ -10,7 +10,8 @@ namespace BOTF3D.UI
 {
     /// <summary>
     /// Attach to the Report View root GameObject.
-    /// Pools up to 10 report rows (newest first) sourced from Combat, Diplomacy, and Intel events.
+    /// Pools up to 10 report rows (newest first) sourced from Combat, Diplomacy, Intel, and
+    /// Logistics (transport cargo - see StarSysMenuUIController.PushLogisticsReport) events.
     ///
     /// Inspector wiring:
     ///   content         → ReportView/Viewport/Content  (Transform)
@@ -365,6 +366,7 @@ namespace BOTF3D.UI
                 case ReportCategory.Combat:    return BOTF3D.Core.Loc.Get("Report.Combat",    "COMBAT");
                 case ReportCategory.Diplomacy: return BOTF3D.Core.Loc.Get("Report.Diplomacy", "DIPL");
                 case ReportCategory.Intel:     return BOTF3D.Core.Loc.Get("Report.Intel",     "INTEL");
+                case ReportCategory.Logistics: return BOTF3D.Core.Loc.Get("Report.Logistics", "CARGO");
                 default:                       return "—";
             }
         }

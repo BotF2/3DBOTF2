@@ -25,7 +25,7 @@ MonoBehaviour:
   ResearchCenters: 3
   Shipyards: 1
   ShieldGenerators: 3
-  OrbitalBatteries: 6
+  OrbitalBatteries: 12
   Description: Description
   powerPlantSprite: {fileID: 21300000, guid: debd3118c20cd4543acef1038acddaf9, type: 3}
   factorySprite: {fileID: 21300000, guid: 536253e5b4a42c04d90b743b3d2fda2d, type: 3}

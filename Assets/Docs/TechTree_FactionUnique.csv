@@ -9,8 +9,9 @@ Federation,T7,900,14,Researched,Federation Charter Mastery (capstone),Doubles pr
 Klingon,Innate,0,0,InnateFromStart,Warrior's Creed,Small innate combat-morale bonus,CombatMoraleFlag,"Klingon warrior culture is inherent, not researched"
 Klingon,T1,0,3,Researched,Ionized Hull Plating,"+Ramming damage, -self-collision damage",RammingBonus,Baseline Bird-of-Prey shipbuilding doctrine
 Klingon,T2,100,4,Researched,Disruptor Overload Arrays,"+Weapon burst damage, chance to cripple a subsystem",CombatOrderHelper damage-modifier step,Disruptors are baseline Klingon armament since TOS
-Klingon,T3,200,5,Researched,Great Houses Fleet Coordination,Fleet-wide morale buff,MoraleBuff,House politics organizing fleets (TNG era)
-Klingon,T5,450,8,Researched,Battle Cloak,Fleets become invisible on the galaxy map,GalaxyMapCloak,"Acquired from the Romulans (2268 tech exchange), indigenous by the Bird-of-Prey era - unlocks later than Romulan's own cloak by design"
+Klingon,T3,200,5,Researched,Acquired Cloaking Device,Fleets become invisible on the galaxy map,GalaxyMapCloak,"Acquired from the Romulans (2268 tech exchange, 'The Enterprise Incident') - a basic, decloak-to-fire device, available within the Developed tech level per canon"
+Klingon,T4,300,6,Researched,Great Houses Fleet Coordination,Fleet-wide morale buff,MoraleBuff,House politics organizing fleets (TNG era)
+Klingon,T5,450,8,Researched,Battle Cloak,Fire-while-cloaked capability - indigenous refinement of the Acquired Cloaking Device,GalaxyMapCloak (upgrade),"Bird-of-Prey-era indigenous cloak refinement - unlocks later than the Acquired Cloaking Device and Romulan's own cloak by design"
 Klingon,T6,600,10,Researched,Disruptor Subsystem Cripple,"Mature targeting systems, higher cripple chance",CombatOrderHelper damage-modifier step,Weapon doctrine maturing
 Klingon,T7,900,14,Researched,Adaptive Battle Cloak Refinement (capstone),Defeats the shared Tachyon Detection Grid - unseen again,GalaxyMapCloak (upgrade),Answers the shared detection counter-tech; the 'unseen again' beat of the cloak arc
 Romulan,Innate,0,0,InnateFromStart,Culture of Secrecy,Small innate detection-resistance trait,XenophobiaTraitFlag,Isolationist Romulan culture since the Sundering
