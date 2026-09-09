@@ -581,7 +581,17 @@ namespace BOTF3D.Galaxy
             DestinationLine = this.GetComponentInChildren<MapLineMovable>();
             DestinationLine.GetLineRenderer();
             DestinationLine.transform.SetParent(transform, false);
-            if (FleetData != null && FleetData.Destination != null)
+            // ✅ FIX: condition was inverted (`!= null`), so this only ever overwrote an ALREADY-SET
+            // real destination back to GalaxyCenter (the "parked/no destination" sentinel - see
+            // FixedUpdate's `!= GalaxyCenter` checks), and left a genuinely-unset (null) Destination
+            // alone. That's backwards: this block exists to default a fresh fleet's null Destination
+            // to GalaxyCenter, not to clobber a real one. Start() only runs once per component
+            // instance, so in the ordinary case this never fired late enough to be observed - but a
+            // client-side "fresh reconstruction" resync (see OnCivEnumChanged/OnDestroy's comments on
+            // the documented Mirror duplicate-object bug) constructs a brand-new FleetController for
+            // an already-traveling fleet, and the old condition silently reset its real destination
+            // back to GalaxyCenter, canceling the order.
+            if (FleetData != null && FleetData.Destination == null)
             {
                 FleetData.Destination = FleetManager.Instance.GalaxyCenter;
             }
@@ -1073,7 +1083,13 @@ namespace BOTF3D.Galaxy
                         else
                         {
                             Debug.Log($"Fleet arrived at our own system '{sysCon.StarSysData.SysName}'");
-                            if (FleetData.IsConvoy && FleetData.ConvoyMergeSystem == sysCon)
+                            // Not gated on FleetData.IsConvoy: this also fires for a "real" fleet sent
+                            // via HandleMergeSelection/RequestConvoyMergeToSystem to travel to and
+                            // merge fully into a star system - IsConvoy is reserved for temporary
+                            // carrier fleets spawned by CreateConvoyFleet (see
+                            // OnADestinationThatIsOurOtherFleet's identical reasoning for the
+                            // fleet-target case).
+                            if (FleetData.ConvoyMergeSystem == sysCon)
                                 DepositConvoyAt(sysCon);
                         }
                     }
@@ -1227,6 +1243,17 @@ namespace BOTF3D.Galaxy
             }
             else if (starSysLooking != null) // We have a star system looking for ship deploy
             {
+                // The Manage Ships overlay (opened via its own Deploy button - StarSysMenuUIController.
+                // StarSysClickShipDeployButton) sits on top of everything and holds this system's
+                // ships in its own shipContent while open. Close it BEFORE SetUpTopShipLists below -
+                // that call moves each ship straight from wherever it currently lives into TopSlot,
+                // and HideManageShipsUI's own cleanup (ReturnShipsFromManageShipsUI ->
+                // SyncShipsIntoContent) unconditionally reparents every ship in this system back into
+                // the compact list's shipContent. Calling it AFTER SetUpTopShipLists yanked ships
+                // straight back out of TopSlot the instant they were placed there, leaving the
+                // drag-and-drop view empty.
+                StarSysManager.Instance?.HideManageShipsUI();
+
                 var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
                 aSysView.SetActive(true);
 
@@ -1275,15 +1302,38 @@ namespace BOTF3D.Galaxy
             var fleetLooking = galaxyUI.FleetLookingForShipMerge;
             var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
 
-            var shipDeployUI = ShipDeployMenuUIController.Instance;
+            // ✅ Merge always takes every ship at the source into the target - there is no ship
+            // picking, so (unlike Deploy) this method never opens ShipDeployMenuUIController's
+            // drag-and-drop panel; every branch below dispatches straight to an instant transfer
+            // or a convoy launch and returns.
 
             if (fleetLooking != null && fleetLooking != this) // Fleet-to-Fleet merge
             {
-                // Rather than opening the manual ship-deploy panel, send the entire source fleet to
-                // physically travel to the target fleet and auto-merge into it on arrival. Reuses the
-                // same arrival logic as a temporary convoy (see OnADestinationThatIsOurOtherFleet /
-                // MergeConvoyInto) — the source fleet is consumed (destroyed) once its ships are
-                // transferred into the target.
+                // ✅ FIX: If the two fleets are already within merge range (same system, sitting
+                // next to each other), merge instantly instead of forcing a physical intercept
+                // chase — matches the instant-vs-convoy split every other merge/deploy path already
+                // makes via FleetManager.ConvoyDistanceThreshold (see
+                // ShipDeployMenuUIController.TryRouteBottomSlotThroughConvoy). Sending an
+                // already-adjacent fleet on an intercept pursuit is needless indirection and
+                // depends on a fresh OnTriggerEnter firing for an arrival that, in this case, has
+                // effectively already happened.
+                float mergeDist = Vector3.Distance(fleetLooking.transform.position, clickedFleetCon.transform.position);
+                if (mergeDist <= FleetManager.ConvoyDistanceThreshold)
+                {
+                    Debug.Log($"🚚 HandleShipMergeSelection: '{fleetLooking.name}' is {mergeDist:F1} units from '{clickedFleetCon.name}' (within {FleetManager.ConvoyDistanceThreshold}) — merging instantly");
+                    fleetLooking.RequestInstantMergeInto(clickedFleetCon);
+
+                    galaxyUI.ClickCancelShipDeployButton(); // clears merge-selection state and click mode
+                    galaxyUI.CloseMenu(Menu.AFleetMenu);
+                    galaxyUI.CloseMenu(Menu.FleetMenu);
+                    MousePointerChanger.Instance.ResetCursor();
+                    return;
+                }
+
+                // Otherwise, send the entire source fleet to physically travel to the target fleet
+                // and auto-merge into it on arrival. Reuses the same arrival logic as a temporary
+                // convoy (see OnADestinationThatIsOurOtherFleet / MergeConvoyInto) — the source
+                // fleet is consumed (destroyed) once its ships are transferred into the target.
                 fleetLooking.FleetData.ConvoyMergeTarget = clickedFleetCon;
                 fleetLooking.SetInterceptTarget(clickedFleetCon);
 
@@ -1315,59 +1365,30 @@ namespace BOTF3D.Galaxy
             }
             else if (starSysLooking != null) // System-to-Fleet merge
             {
-                var aFleetView = FleetMenuUIController.Instance.AFleetMenuView.gameObject;
-                aFleetView.gameObject.SetActive(true);
-
-                // ✅ Add VerticalLayoutGroup if not present
-                var layoutGroup = aFleetView.GetComponent<VerticalLayoutGroup>();
-                if (layoutGroup == null)
+                // ✅ Merge always takes every ship at the source - there's no partial-selection UI
+                // for it (unlike Deploy) - so skip the drag-and-drop panel entirely and dispatch
+                // straight to an instant transfer or a convoy launch, same instant-vs-convoy split
+                // as the Fleet-to-Fleet branch above.
+                float mergeDist = Vector3.Distance(starSysLooking.transform.position, clickedFleetCon.transform.position);
+                if (mergeDist <= FleetManager.ConvoyDistanceThreshold)
                 {
-                    layoutGroup = aFleetView.AddComponent<VerticalLayoutGroup>();
-                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
-                    layoutGroup.spacing = 20f;
-                    layoutGroup.childForceExpandHeight = false;
-                    layoutGroup.childForceExpandWidth = false;
-                    layoutGroup.childControlHeight = false;
-                    layoutGroup.childControlWidth = false;
+                    Debug.Log($"🚚 HandleShipMergeSelection: system '{starSysLooking.StarSysData.SysName}' is {mergeDist:F1} units from '{clickedFleetCon.name}' (within {FleetManager.ConvoyDistanceThreshold}) — merging instantly");
+                    FleetManager.Instance.PerformInstantSystemToFleetMerge(starSysLooking, clickedFleetCon);
+                }
+                else
+                {
+                    Debug.Log($"🚚 HandleShipMergeSelection: system '{starSysLooking.StarSysData.SysName}' launching a convoy to merge into '{clickedFleetCon.name}'");
+                    FleetManager.Instance.LaunchConvoyMergeSystemToFleet(starSysLooking, clickedFleetCon);
                 }
 
-                // Parent system UI to container (TOP position)
-                if (starSysLooking.StarSysUIGameObject != null)
-                {
-                    starSysLooking.StarSysUIGameObject.transform.SetParent(aFleetView.transform, false);
-                    starSysLooking.StarSysUIGameObject.transform.SetAsLastSibling();
-                    starSysLooking.StarSysUIGameObject.SetActive(true);
-                    Debug.Log($"✅ System UI parented to AFleetMenuView (top)");
-
-                    // Update system facility UI
-                    var starSysUI = StarSysMenuUIController.Instance;
-                    if (starSysUI != null)
-                    {
-                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
-                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
-                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
-                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
-                        starSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
-                    }
-                }
-
-                // Parent fleet UI to container (BOTTOM position)
-                clickedFleetCon.FleetUIGameObject.transform.SetParent(aFleetView.transform, false);
-                clickedFleetCon.FleetUIGameObject.transform.SetAsLastSibling();
-                clickedFleetCon.FleetUIGameObject.SetActive(true);
-                Debug.Log($"✅ Fleet UI parented to AFleetMenuView (bottom)");
-
-                var combinedShipsList = new System.Collections.Generic.List<ShipController>();
-                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
-                combinedShipsList.AddRange(clickedFleetCon.FleetData.ShipsList);
-
-                Debug.Log($"Merge System-to-Fleet: {starSysLooking.StarSysData.ShipsList.Count} + {clickedFleetCon.FleetData.ShipsList.Count} = {combinedShipsList.Count} ships");
-
-                shipDeployUI.SetUpTopShipLists(new System.Collections.Generic.List<ShipController>());
-                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, clickedFleetCon, null, starSysLooking, null);
+                galaxyUI.ClickCancelShipDeployButton();
+                galaxyUI.CloseMenu(Menu.AFleetMenu);
+                galaxyUI.CloseMenu(Menu.FleetMenu);
+                galaxyUI.CloseMenu(Menu.ASystemMenu);
+                galaxyUI.CloseMenu(Menu.SystemsMenu);
+                MousePointerChanger.Instance.ResetCursor();
+                return;
             }
-
-            shipDeployUI.ShowShipDeployMenuView();
         }
         private Vector3 GetMouseWorldPosition()
         {
@@ -1576,6 +1597,41 @@ namespace BOTF3D.Galaxy
             FleetManager.Instance.DestroyFleetController(this);
         }
 
+        /// <summary>Public entry point for an instant (already-in-range) Fleet-to-Fleet merge, called
+        /// from HandleShipMergeSelection instead of routing through the travel-and-arrive convoy path.
+        /// Same non-host relay pattern as SetInterceptTarget: MergeConvoyInto mutates FleetData and
+        /// destroys this fleet, so on a non-host client (whose local FleetController isn't the
+        /// server-authoritative instance) calling it directly would only mutate a disconnected local
+        /// copy - relay to the server via CmdMergeInto instead.</summary>
+        public void RequestInstantMergeInto(FleetController targetFleet)
+        {
+            if (targetFleet == null) return;
+
+            if (isServer)
+            {
+                MergeConvoyInto(targetFleet);
+                return;
+            }
+
+            NetworkIdentity targetIdentity = targetFleet.GetComponent<NetworkIdentity>();
+            if (targetIdentity != null)
+                CmdMergeInto(targetIdentity);
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdMergeInto(NetworkIdentity targetIdentity, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdMergeInto: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            FleetController targetFleetCon = targetIdentity != null ? targetIdentity.GetComponent<FleetController>() : null;
+            if (targetFleetCon == null) return;
+            Debug.Log($"CmdMergeInto: connection {sender?.connectionId} authorized, merging fleet '{name}' into '{targetFleetCon.name}'.");
+            MergeConvoyInto(targetFleetCon);
+        }
+
         /// <summary>Transfers this convoy's ships into the star system it was sent to deposit at, then
         /// removes the now-empty convoy. Called from OnTriggerEnter's "arrived at our own system" branch
         /// when this fleet is a convoy that has arrived at its ConvoyMergeSystem.</summary>
@@ -1585,7 +1641,11 @@ namespace BOTF3D.Galaxy
 
             // Same idempotency guard as MergeConvoyInto — clear the merge target immediately so a
             // duplicate OnTriggerEnter for the same arrival is skipped instead of double-depositing.
-            FleetData.ConvoyMergeTarget = null;
+            // ✅ FIX: this cleared ConvoyMergeTarget, not ConvoyMergeSystem (the field this method
+            // and its OnTriggerEnter caller actually key off), so the guard never armed - a
+            // duplicate arrival trigger could double-deposit before FleetManager.DestroyFleetController
+            // took effect.
+            FleetData.ConvoyMergeSystem = null;
 
             var ships = new List<ShipController>(FleetData.ShipsList);
             foreach (var ship in ships)
@@ -1609,7 +1669,86 @@ namespace BOTF3D.Galaxy
                 FleetData.RemoveFromShipList(ship);
             }
 
+            // Defensive resync (see StarSysController.RequestSyncShipRoster's own comment) - this
+            // method mutates targetSystem.StarSysData.ShipsList directly, which doesn't replicate by
+            // itself.
+            targetSystem.RequestSyncShipRoster();
+
             FleetManager.Instance.DestroyFleetController(this);
+        }
+
+        /// <summary>Public entry point for an instant (already-in-range) Fleet-to-System merge -
+        /// the star-system counterpart of RequestInstantMergeInto(FleetController). Star systems
+        /// aren't Mirror NetworkIdentities (see CmdSetDestinationToStarSystem's comment), so the
+        /// non-host relay looks the target up by name server-side instead of by NetworkIdentity.</summary>
+        public void RequestInstantMergeInto(StarSysController targetSystem)
+        {
+            if (targetSystem == null) return;
+
+            if (isServer)
+            {
+                DepositConvoyAt(targetSystem);
+                return;
+            }
+
+            CmdMergeIntoSystem(targetSystem.StarSysData.GetSysName());
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdMergeIntoSystem(string starSysName, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdMergeIntoSystem: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            StarSysController targetSys = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (targetSys == null)
+            {
+                Debug.LogWarning($"CmdMergeIntoSystem: no star system named '{starSysName}' found server-side (possible galaxy-generation divergence between client and server).");
+                return;
+            }
+            Debug.Log($"CmdMergeIntoSystem: connection {sender?.connectionId} authorized, merging fleet '{name}' into system '{starSysName}'.");
+            DepositConvoyAt(targetSys);
+        }
+
+        /// <summary>Sends this fleet itself (as a self-carrying "convoy", same trick
+        /// RequestInstantMergeInto's Fleet-to-Fleet sibling uses) to travel to and merge fully into
+        /// a star system that's out of instant-merge range. The Fleet-to-System counterpart of
+        /// setting ConvoyMergeTarget + SetInterceptTarget for a Fleet-to-Fleet merge.</summary>
+        public void RequestConvoyMergeToSystem(StarSysController targetSystem)
+        {
+            if (targetSystem == null) return;
+
+            FleetData.ConvoyMergeSystem = targetSystem;
+            FleetData.Destination = targetSystem.gameObject;
+            FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor;
+
+            // Same non-host relay reasoning as SetInterceptTarget/SetAsDestinationInUI - this only
+            // mutated a disconnected local FleetData copy unless relayed to the server-authoritative
+            // instance.
+            if (!isServer)
+                CmdSetConvoyMergeSystemDestination(targetSystem.StarSysData.GetSysName());
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdSetConvoyMergeSystemDestination(string starSysName, NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdSetConvoyMergeSystemDestination: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            StarSysController targetSys = StarSysManager.Instance.GetStarSysControllerByName(starSysName);
+            if (targetSys == null)
+            {
+                Debug.LogWarning($"CmdSetConvoyMergeSystemDestination: no star system named '{starSysName}' found server-side.");
+                return;
+            }
+            Debug.Log($"CmdSetConvoyMergeSystemDestination: connection {sender?.connectionId} authorized, sending fleet '{name}' to merge into system '{starSysName}'.");
+            FleetData.ConvoyMergeSystem = targetSys;
+            FleetData.Destination = targetSys.gameObject;
+            FleetData.CurrentWarpFactor = FleetData.MaxWarpFactor;
         }
 
         /// <summary>Called when this convoy's pursuit target is destroyed mid-transit (see

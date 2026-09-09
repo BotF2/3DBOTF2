@@ -1013,108 +1013,54 @@ namespace BOTF3D.Galaxy
 
             var fleetLooking = galaxyUI.FleetLookingForShipMerge;
             var starSysLooking = galaxyUI.StarSystLookingForShipMerge;
-            var shipDeployUI = ShipDeployMenuUIController.Instance;
+
+            // ✅ Merge always takes every ship at the source into the target - there is no ship
+            // picking, so (unlike Deploy) this method never opens ShipDeployMenuUIController's
+            // drag-and-drop panel; both branches below dispatch straight to an instant transfer or
+            // a convoy launch and return.
 
             if (fleetLooking != null) // Fleet-to-System merge
             {
-                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-                aSysView.gameObject.SetActive(true);
-
-                // ✅ Add VerticalLayoutGroup if not present
-                var layoutGroup = aSysView.GetComponent<VerticalLayoutGroup>();
-                if (layoutGroup == null)
+                float mergeDist = Vector3.Distance(fleetLooking.transform.position, clickedSystemCon.transform.position);
+                if (mergeDist <= FleetManager.ConvoyDistanceThreshold)
                 {
-                    layoutGroup = aSysView.AddComponent<VerticalLayoutGroup>();
-                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
-                    layoutGroup.spacing = 20f; // Space between fleet and system UI
-                    layoutGroup.childForceExpandHeight = false;
-                    layoutGroup.childForceExpandWidth = false;
-                    layoutGroup.childControlHeight = false;
-                    layoutGroup.childControlWidth = false;
+                    Debug.Log($"🚚 HandleMergeSelection: '{fleetLooking.name}' is {mergeDist:F1} units from system '{clickedSystemCon.StarSysData.SysName}' (within {FleetManager.ConvoyDistanceThreshold}) — merging instantly");
+                    fleetLooking.RequestInstantMergeInto(clickedSystemCon);
+                }
+                else
+                {
+                    Debug.Log($"🚚 HandleMergeSelection: '{fleetLooking.name}' set to travel to and auto-merge into system '{clickedSystemCon.StarSysData.SysName}'");
+                    fleetLooking.RequestConvoyMergeToSystem(clickedSystemCon);
                 }
 
-                // Parent fleet UI to container (TOP position)
-                if (fleetLooking.FleetUIGameObject != null)
-                {
-                    fleetLooking.FleetUIGameObject.transform.SetParent(aSysView.transform, false);
-                    fleetLooking.FleetUIGameObject.transform.SetAsFirstSibling();
-                    fleetLooking.FleetUIGameObject.SetActive(true);
-                    Debug.Log($"✅ Fleet UI parented to ASystemMenuView (top)");
-                }
-
-                // Parent system UI to container (BOTTOM position)
-                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
-                clickedSystemCon.StarSysUIGameObject.SetActive(true);
-                Debug.Log($"✅ System UI parented to ASystemMenuView (bottom)");
-
-                // Update facility UI
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
-
-                // Create combined ship list
-                var combinedShipsList = new List<BOTF3D.Combat.ShipController>();
-                combinedShipsList.AddRange(fleetLooking.FleetData.ShipsList);
-                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
-
-                Debug.Log($"Merge Fleet-to-System: {fleetLooking.FleetData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
-
-                shipDeployUI.SetUpTopShipLists(new List<BOTF3D.Combat.ShipController>());
-                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, fleetLooking, null, clickedSystemCon);
+                galaxyUI.ClickCancelShipDeployButton();
+                galaxyUI.CloseMenu(Menu.AFleetMenu);
+                galaxyUI.CloseMenu(Menu.FleetMenu);
+                galaxyUI.CloseMenu(Menu.ASystemMenu);
+                MousePointerChanger.Instance.ResetCursor();
+                return;
             }
             else if (starSysLooking != null && starSysLooking != this)
             {
-                // System-to-System merge - same approach
-                var aSysView = StarSysMenuUIController.Instance.ASystemMenuView.gameObject;
-                aSysView.gameObject.SetActive(true);
-
-                var layoutGroup = aSysView.GetComponent<VerticalLayoutGroup>();
-                if (layoutGroup == null)
+                // System-to-System merge
+                float mergeDist = Vector3.Distance(starSysLooking.transform.position, clickedSystemCon.transform.position);
+                if (mergeDist <= FleetManager.ConvoyDistanceThreshold)
                 {
-                    layoutGroup = aSysView.AddComponent<VerticalLayoutGroup>();
-                    layoutGroup.childAlignment = TextAnchor.UpperLeft;
-                    layoutGroup.spacing = 20f;
-                    layoutGroup.childForceExpandHeight = false;
-                    layoutGroup.childForceExpandWidth = false;
+                    Debug.Log($"🚚 HandleMergeSelection: system '{starSysLooking.StarSysData.SysName}' is {mergeDist:F1} units from '{clickedSystemCon.StarSysData.SysName}' (within {FleetManager.ConvoyDistanceThreshold}) — merging instantly");
+                    FleetManager.Instance.PerformInstantSystemToSystemMerge(starSysLooking, clickedSystemCon);
+                }
+                else
+                {
+                    Debug.Log($"🚚 HandleMergeSelection: system '{starSysLooking.StarSysData.SysName}' launching a convoy to merge into '{clickedSystemCon.StarSysData.SysName}'");
+                    FleetManager.Instance.LaunchConvoyMergeSystemToSystem(starSysLooking, clickedSystemCon);
                 }
 
-                // Source system at TOP
-                starSysLooking.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                starSysLooking.StarSysUIGameObject.transform.SetAsFirstSibling();
-                starSysLooking.StarSysUIGameObject.SetActive(true);
-
-                // Target system at BOTTOM
-                clickedSystemCon.StarSysUIGameObject.transform.SetParent(aSysView.transform, false);
-                clickedSystemCon.StarSysUIGameObject.transform.SetAsLastSibling();
-                clickedSystemCon.StarSysUIGameObject.SetActive(true);
-
-                // Update both
-                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Factory);
-                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.Shipyard);
-                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ShieldGenerator);
-                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.OrbitalBattery);
-                StarSysUI.UpdateFacilityUI(starSysLooking, 0, StarSysFacilityType.ResearchCenter);
-
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Factory);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.Shipyard);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ShieldGenerator);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.OrbitalBattery);
-                StarSysUI.UpdateFacilityUI(this, 0, StarSysFacilityType.ResearchCenter);
-
-                var combinedShipsList = new List<BOTF3D.Combat.ShipController>();
-                combinedShipsList.AddRange(starSysLooking.StarSysData.ShipsList);
-                combinedShipsList.AddRange(clickedSystemCon.StarSysData.ShipsList);
-
-                Debug.Log($"Merge System-to-System: {starSysLooking.StarSysData.ShipsList.Count} + {clickedSystemCon.StarSysData.ShipsList.Count} = {combinedShipsList.Count} ships");
-
-                shipDeployUI.SetUpTopShipLists(new List<BOTF3D.Combat.ShipController>());
-                shipDeployUI.SetUpBottomShipListsForMerge(combinedShipsList, null, null, starSysLooking, clickedSystemCon);
+                galaxyUI.ClickCancelShipDeployButton();
+                galaxyUI.CloseMenu(Menu.ASystemMenu);
+                galaxyUI.CloseMenu(Menu.SystemsMenu);
+                MousePointerChanger.Instance.ResetCursor();
+                return;
             }
-
-            shipDeployUI.ShowShipDeployMenuView();
         }
         private void HandleShipDeploySelection(StarSysController clickedSystemCon)
         {

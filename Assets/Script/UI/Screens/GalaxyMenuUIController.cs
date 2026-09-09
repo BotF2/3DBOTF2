@@ -741,6 +741,11 @@ namespace BOTF3D.UI
             // Close the build queue panel if it is open
             StarSysManager.Instance?.HideBuildUI();
 
+            // Close the manage ships panel if it is open - e.g. clicking a different fleet or
+            // system on the galaxy map while it's still showing the previous system's ships
+            // (OpenMenu calls CloseCurrentMenu before opening whatever was just clicked).
+            StarSysManager.Instance?.HideManageShipsUI();
+
             // Close the cargo deploy panel if it is open
             CargoDeployMenuUIController.Instance?.CloseCargoMenu();
 
@@ -988,8 +993,9 @@ namespace BOTF3D.UI
 
             HideShipDeployMenu();
 
-            // Close the build queue and cargo deploy panels if open
+            // Close the build queue, manage ships, and cargo deploy panels if open
             StarSysManager.Instance?.HideBuildUI();
+            StarSysManager.Instance?.HideManageShipsUI();
             CargoDeployMenuUIController.Instance?.CloseCargoMenu();
         }
 

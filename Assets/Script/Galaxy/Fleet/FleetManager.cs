@@ -1185,6 +1185,153 @@ namespace BOTF3D.Galaxy
             return InstantiateFleet(sourceFleet, sourceSystem, fleetData, position, true);
         }
 
+        // ---------------------------------------------------------------------------------------
+        // Merge-button helpers. Unlike Deploy, Merge always sends every ship at the source to the
+        // target - there's no ship-picking UI - so StarSysController.HandleMergeSelection and
+        // FleetController.HandleShipMergeSelection dispatch straight here instead of opening
+        // ShipDeployMenuUIController's drag-and-drop panel. A fleet source travels itself (see
+        // FleetController.RequestInstantMergeInto/RequestConvoyMergeToSystem/SetInterceptTarget) -
+        // these four cover the combinations where the source is a star system, which can't move
+        // itself, plus the two purely-system combinations. Same instant-vs-convoy split as
+        // ShipDeployMenuUIController.TryRouteBottomSlotThroughConvoy, gated on ConvoyDistanceThreshold.
+        // ---------------------------------------------------------------------------------------
+
+        /// <summary>Instant (already-in-range) System-to-System merge: moves every ship out of
+        /// sourceSystem into targetSystem. Neither side is a NetworkBehaviour (see
+        /// StarSysController.RequestSyncShipRoster's comment), so - like
+        /// ShipDeployMenuUIController.CommitMergeAndClose's System-to-System branch - this mutates
+        /// both StarSysData.ShipsList directly via the controllers' own AddToShipList/
+        /// RemoveFromShipList, then relies on RequestSyncShipRoster to broadcast the result.</summary>
+        public void PerformInstantSystemToSystemMerge(StarSysController sourceSystem, StarSysController targetSystem)
+        {
+            if (sourceSystem == null || targetSystem == null || sourceSystem == targetSystem) return;
+
+            var ships = new List<ShipController>(sourceSystem.StarSysData.ShipsList.Distinct());
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                targetSystem.AddToShipList(ship);
+                ship.ShipData.CurrentStarSysController = targetSystem;
+                ship.ShipData.CurrentFleetController = null;
+                sourceSystem.RemoveFromShipList(ship);
+            }
+
+            sourceSystem.RequestSyncShipRoster();
+            targetSystem.RequestSyncShipRoster();
+        }
+
+        /// <summary>Instant (already-in-range) System-to-Fleet merge: moves every ship out of
+        /// sourceSystem into targetFleet. The fleet side already replicates via
+        /// FleetController.RequestSyncShipRoster; the system side needs the same defensive resync
+        /// as PerformInstantSystemToSystemMerge.</summary>
+        public void PerformInstantSystemToFleetMerge(StarSysController sourceSystem, FleetController targetFleet)
+        {
+            if (sourceSystem == null || targetFleet == null) return;
+
+            var ships = new List<ShipController>(sourceSystem.StarSysData.ShipsList.Distinct());
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                targetFleet.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = targetFleet;
+                ship.ShipData.CurrentStarSysController = null;
+                sourceSystem.RemoveFromShipList(ship);
+            }
+
+            sourceSystem.RequestSyncShipRoster();
+            targetFleet.RequestSyncShipRoster();
+        }
+
+        /// <summary>Merge-button counterpart of TryRouteBottomSlotThroughConvoy for a
+        /// System-to-System merge that's out of instant range: spawns a temporary convoy fleet at
+        /// sourceSystem, loads every one of its ships aboard, and sends it off to deposit them at
+        /// targetSystem on arrival (FleetController.DepositConvoyAt, via the IsConvoy-tagged
+        /// arrival check in OnTriggerEnter). Shares CreateConvoyFleet/InstantiateFleet's existing
+        /// non-host-client limitation (see InstantiateFleet's own comment) - same as every other
+        /// UI-driven convoy spawn in this project; returns null without side effects if that
+        /// happens.</summary>
+        public FleetController LaunchConvoyMergeSystemToSystem(StarSysController sourceSystem, StarSysController targetSystem)
+        {
+            if (sourceSystem == null || targetSystem == null || sourceSystem == targetSystem) return null;
+
+            FleetController convoy = CreateConvoyFleet(null, sourceSystem, sourceSystem.StarSysData.CurrentOwnerCivEnum);
+            if (convoy == null)
+            {
+                Debug.LogWarning($"LaunchConvoyMergeSystemToSystem: CreateConvoyFleet failed for source '{sourceSystem.name}' (non-host client?) — merge not performed.");
+                return null;
+            }
+
+            var ships = new List<ShipController>(sourceSystem.StarSysData.ShipsList.Distinct());
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                convoy.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = convoy;
+                ship.ShipData.CurrentStarSysController = null;
+                sourceSystem.RemoveFromShipList(ship);
+            }
+
+            convoy.FleetData.ConvoyMergeSystem = targetSystem;
+            convoy.FleetData.Destination = targetSystem.gameObject;
+            convoy.FleetData.CurrentWarpFactor = convoy.FleetData.MaxWarpFactor;
+            SetConvoyDestinationUI(convoy, targetSystem.StarSysData.SysName);
+
+            sourceSystem.RequestSyncShipRoster();
+            return convoy;
+        }
+
+        /// <summary>Merge-button counterpart for a System-to-Fleet merge that's out of instant
+        /// range: spawns a convoy at sourceSystem, loads every ship aboard, and sends it to
+        /// intercept-pursue targetFleet, merging into it on arrival (FleetController.MergeConvoyInto).
+        /// Same CreateConvoyFleet non-host-client limitation as LaunchConvoyMergeSystemToSystem.</summary>
+        public FleetController LaunchConvoyMergeSystemToFleet(StarSysController sourceSystem, FleetController targetFleet)
+        {
+            if (sourceSystem == null || targetFleet == null) return null;
+
+            FleetController convoy = CreateConvoyFleet(null, sourceSystem, sourceSystem.StarSysData.CurrentOwnerCivEnum);
+            if (convoy == null)
+            {
+                Debug.LogWarning($"LaunchConvoyMergeSystemToFleet: CreateConvoyFleet failed for source '{sourceSystem.name}' (non-host client?) — merge not performed.");
+                return null;
+            }
+
+            var ships = new List<ShipController>(sourceSystem.StarSysData.ShipsList.Distinct());
+            foreach (var ship in ships)
+            {
+                if (ship == null) continue;
+                convoy.AddToShipList(ship);
+                ship.ShipData.CurrentFleetController = convoy;
+                ship.ShipData.CurrentStarSysController = null;
+                sourceSystem.RemoveFromShipList(ship);
+            }
+
+            convoy.FleetData.ConvoyMergeTarget = targetFleet;
+            convoy.SetInterceptTarget(targetFleet); // sets CurrentWarpFactor = MaxWarpFactor
+            SetConvoyDestinationUI(convoy, targetFleet.FleetData.FleetName);
+
+            sourceSystem.RequestSyncShipRoster();
+            return convoy;
+        }
+
+        /// <summary>Shared by the two LaunchConvoyMergeSystemToX methods above: shows the convoy's
+        /// destination name and Cancel Destination button, same UI fields
+        /// ShipDeployMenuUIController.SendConvoyOnItsWay and FleetController.HandleShipMergeSelection's
+        /// Fleet-to-Fleet branch already set for every other convoy/travel-merge.</summary>
+        private void SetConvoyDestinationUI(FleetController convoy, string destinationName)
+        {
+            var fields = convoy.FleetUIGameObject != null ? convoy.FleetUIGameObject.GetComponent<FleetUI_Fields>() : null;
+            if (fields == null) return;
+
+            if (fields.DestinationDragTarget != null)
+                fields.DestinationDragTarget.gameObject.SetActive(false);
+            if (fields.CancelDestination != null)
+                fields.CancelDestination.gameObject.SetActive(true);
+            if (fields.DestinationName != null)
+                fields.DestinationName.text = destinationName;
+            if (fields.DestinationCoordinates != null)
+                fields.DestinationCoordinates.text = "";
+        }
+
         // Server-side counterpart of FleetMenuUIController.ClickNewFleetButton(FleetController) - splits
         // an empty new fleet off of sourceFleet at its current position, for the player to drag ships
         // into via the ship-deploy UI. Called via LocalHumanPlayerController.CmdCreateSplitFleet so this

@@ -163,6 +163,14 @@ namespace BOTF3D.UI
                 MousePointerChanger.Instance.ResetCursor();
             }
 
+            // The Manage Ships overlay (opened via its own New Fleet button - StarSysMenuUIController.
+            // ClickNewFleetButton) sits on top of everything and holds this system's ships in its own
+            // shipContent while open. Close it BEFORE SetUpTopShipLists below - same reasoning as
+            // FleetController.HandleShipDeploySelection's starSysLooking branch: HideManageShipsUI's
+            // cleanup unconditionally reparents every ship in this system back into the compact list,
+            // so calling it after ships are placed in TopSlot would yank them straight back out.
+            StarSysManager.Instance?.HideManageShipsUI();
+
             // Set up the deployment context
             StarSystLookingForShipDeploy = system;
             FleetSelectedForShipDeploy = newFleet;
@@ -177,9 +185,6 @@ namespace BOTF3D.UI
             {
                 // Activate the controller
                 ShipDeployUI.gameObject.SetActive(true);
-
-                // Show the view
-                ShipDeployUI.ShowShipDeployMenuView();
 
                 // Set up top slot with system's ships
                 ShipDeployUI.SetUpTopShipLists(
@@ -216,6 +221,16 @@ namespace BOTF3D.UI
                     newFleet.FleetUIGameObject.transform.SetAsLastSibling();
                     newFleet.FleetUIGameObject.SetActive(true);
                 }
+
+                // ✅ FIX: show/bring the deploy panel to front LAST, only after sysMenuView above
+                // has already been (re)activated - matches FleetController.HandleShipDeploySelection's
+                // starSysLooking branch, which already calls ShowShipDeployMenuView() at the very end
+                // for this exact reason. Calling it earlier (as this used to) meant its own
+                // SetAsLastSibling() ran before sysMenuView was reactivated, so sysMenuView could
+                // still end up rendering on top of the deploy panel instead of losing to it - the
+                // "new fleet view opened below the star system menu, ships floating loose over it"
+                // symptom this fixes.
+                ShipDeployUI.ShowShipDeployMenuView();
             }
             else
             {
@@ -306,9 +321,6 @@ namespace BOTF3D.UI
                 // Activate the controller
                 ShipDeployUI.gameObject.SetActive(true);
 
-                // Show the view
-                ShipDeployUI.ShowShipDeployMenuView();
-
                 // Set up top slot with original fleet's ships
                 ShipDeployUI.SetUpTopShipLists(
                     originalFleet.FleetData.ShipsList.Cast<BOTF3D.Combat.ShipController>().ToList()
@@ -343,6 +355,10 @@ namespace BOTF3D.UI
                         newFleet.FleetUIGameObject.SetActive(true);
                     }
                 }
+
+                // ✅ FIX: show/bring the deploy panel to front LAST - same reasoning as
+                // ShowShipDeployForSystemNewFleet's identical fix above.
+                ShipDeployUI.ShowShipDeployMenuView();
             }
             else
             {

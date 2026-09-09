@@ -1072,6 +1072,16 @@ namespace BOTF3D.UI
             }
 
             HideA_FleetMenuView();
+
+            // ✅ FIX: A Fleet-to-System merge/deploy parents the shared ship-deploy UI into
+            // StarSysMenuUIController.ASystemMenuView, not AFleetMenuView (see
+            // StarSysController.HandleMergeSelection's fleetLooking branch and
+            // HandleShipDeploySelection's fleet-to-system branch) - but this cleanup routine is
+            // reached whenever the FLEET side was "looking", regardless of which view actually
+            // got activated. Hiding AFleetMenuView alone left ASystemMenuView stuck open in that
+            // case, blocking subsequent menus. Also hiding it here is a no-op when it was never
+            // shown, so this is safe for the ordinary Fleet-to-Fleet case too.
+            StarSysMenuUIController.Instance?.HideA_SystemMenuView();
         }
         public void UpdateFleetWarpUI(FleetController fleetCon, float theirWarp)
         {

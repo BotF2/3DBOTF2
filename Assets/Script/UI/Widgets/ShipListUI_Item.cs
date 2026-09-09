@@ -58,6 +58,29 @@ namespace BOTF3D.UI
             Debug.Log($"ShipListUI_Item Awake: {name}, parent={transform.parent?.name}");
         }
 
+        /// <summary>Forces this item back to its "not currently being dragged" visual/input state -
+        /// alpha=1, blocksRaycasts=true (raycasts pass THROUGH while blocksRaycasts is false, which
+        /// OnBeginDrag sets specifically so the drag can detect drop targets underneath it). Call this
+        /// whenever a SetUpTopShipLists/SetUpBottomShipLists call (re)adopts an EXISTING
+        /// ShipListUIGameObject into a slot - unlike a freshly-instantiated item (which starts with
+        /// blocksRaycasts already true), a REUSED item from a previous deploy session could have been
+        /// left with blocksRaycasts=false if that earlier drag never reached OnEndDrag (e.g. the panel
+        /// was closed/reopened, or focus was lost mid-drag on a Multiplayer Play Mode clone window).
+        /// A raycast that can't land on this item at all never reaches OnBeginDrag either, so from the
+        /// player's perspective the ship simply stops responding to drag input on the very next open -
+        /// this is the fix for exactly that "ships used to drag, now don't even start dragging" symptom.</summary>
+        public void ResetDragVisualState()
+        {
+            if (canvasGroup == null)
+                canvasGroup = GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = 1f;
+                canvasGroup.blocksRaycasts = true;
+            }
+            wasDragged = false;
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             Debug.Log($"OnBeginDrag PRE-CAPTURE: {name}, current parent={transform.parent?.name}, IntendedSlotParent={IntendedSlotParent?.name}");

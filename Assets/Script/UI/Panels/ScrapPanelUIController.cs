@@ -152,8 +152,16 @@ namespace BOTF3D.UI
                 foreach (var fleet in FleetManager.Instance.FleetControllerList)
                 {
                     if (fleet == null || fleet.FleetData == null) continue;
-                    if (fleet.FleetData.DockedStarSys != sysCon) continue;
                     if (fleet.FleetData.CivEnum != owner) continue;
+                    // Deliberately NOT gated on DockedStarSys - that field is bookkeeping, set once
+                    // when the fleet is positioned/created (FleetManager.InstantiateFleet) purely to
+                    // lay out dock slots, and never updated when a fleet travels to and arrives at a
+                    // DIFFERENT system later. Using it here excluded every fleet that had genuinely
+                    // traveled in via normal movement. Physical presence - the fleet's own trigger
+                    // collider (SphereCollider, FleetPrefab) actually overlapping this system's
+                    // (SysPrefab) - is both necessary and sufficient; it's the same contact test
+                    // FleetController.OnTriggerEnter uses to detect fleet/system encounters.
+                    if (!FleetPhysicallyAtSystem(fleet, sysCon)) continue;
                     foreach (var ship in fleet.FleetData.ShipsList)
                     {
                         if (IsEligible(ship, owner)) result.Add(ship);
@@ -162,6 +170,14 @@ namespace BOTF3D.UI
             }
 
             return result;
+        }
+
+        private static bool FleetPhysicallyAtSystem(FleetController fleet, StarSysController sysCon)
+        {
+            var fleetCollider = fleet.GetComponent<Collider>();
+            var sysCollider = sysCon.GetComponent<Collider>();
+            if (fleetCollider == null || sysCollider == null) return false;
+            return fleetCollider.bounds.Intersects(sysCollider.bounds);
         }
 
         private bool IsEligible(ShipController ship, CivEnum owner) =>

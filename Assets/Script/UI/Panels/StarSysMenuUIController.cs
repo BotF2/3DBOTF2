@@ -49,6 +49,10 @@ namespace BOTF3D.UI
         // Tracks which system currently has its ExpandedContent visible in the list
         private StarSysController _currentExpandedSysCon;
 
+        // ManageShipsUI_Prefab/Ship Scroll View: how far the Viewport's top edge sits below the
+        // scroll view's top, to clear the overlay's header. See SetupShipGrid's viewportTopInset.
+        private const float ManageShipsViewportTopInset = 35f;
+
         private void Awake()
         {
             // ✅ Simple scene-based singleton - no DontDestroyOnLoad!
@@ -319,6 +323,7 @@ namespace BOTF3D.UI
                 UpdateSystemPowerBalance(sysCon);
 
                 // ✅ EVERY TIME: Update facility data
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlanet);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
@@ -975,6 +980,10 @@ namespace BOTF3D.UI
             // Re-evaluate all facility ON button visibility now that TotalSysPowerLoad/Output
             // are up to date. This handles the case where turning off facility type B frees
             // power headroom that should re-enable the ON button for facility type A.
+            // PowerPlanet is included here too (not just an ON/OFF-button facility) so
+            // ScrapPowerPlant's plant-count label and total output refresh immediately instead of
+            // only on the next full SetupSystemUIData pass (e.g. reopening the system panel).
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlanet);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
@@ -1415,6 +1424,89 @@ namespace BOTF3D.UI
             }
         }
 
+        /// <summary>
+        /// Populates dd with realLabels and wires onSelectRealIndex (called with a 0-based index into
+        /// realLabels) so that picking the same real choice twice in a row always fires again.
+        /// When dd.placeholder is assigned (currently only ManageShipsUI_Prefab's three dropdowns -
+        /// see their Placeholder GameObjects), the fixed caption is TMP_Dropdown's own placeholder
+        /// text and is never added as an option, so it can never appear as a selectable row in the
+        /// expanded list; selection resets to TMP_Dropdown's built-in value=-1 "nothing selected"
+        /// state (valid only because a placeholder Graphic is wired - TMP_Dropdown clamps to 0
+        /// without one). Falls back to the old scheme - caption baked in as options[0], reset to
+        /// SetValueWithoutNotify(0) - for dropdowns with no placeholder wired (the compact per-row
+        /// list's StarSysUI_Fields dropdowns), so that behavior is unchanged there.
+        /// </summary>
+        private void SetupActionDropdown(TMP_Dropdown dd, string caption, List<string> realLabels, Action<int> onSelectRealIndex)
+        {
+            bool hasPlaceholder = dd.placeholder != null;
+
+            var labels = new List<string>();
+            if (!hasPlaceholder) labels.Add(caption);
+            labels.AddRange(realLabels);
+
+            dd.ClearOptions();
+            dd.AddOptions(labels);
+            dd.SetValueWithoutNotify(hasPlaceholder ? -1 : 0);
+            dd.RefreshShownValue();
+            ResizeItemRowForWrappedText(dd, labels);
+
+            dd.onValueChanged.AddListener(index =>
+            {
+                int realIndex = hasPlaceholder ? index : index - 1;
+                if (realIndex < 0 || realIndex >= realLabels.Count) return;
+                onSelectRealIndex(realIndex);
+            });
+        }
+
+        private const float MinItemRowHeight = 20f;
+
+        /// <summary>
+        /// TMP_Dropdown.Show() sizes every row in the expanded list to one fixed height - the Item
+        /// template's own RectTransform.sizeDelta.y, read once and applied uniformly - with no idea
+        /// whether a given option's text needs more than one line to fit that width. A long status
+        /// reason (e.g. Terraform's blocking reason, or a cargo description) can then wrap to 2+
+        /// lines and render past the bottom of its row, clipped by the popup's own Viewport mask.
+        /// Rather than guess a fixed row height that depends on this font asset's exact line-height
+        /// metrics, measure the tallest wrapped label and resize the Item template to fit it before
+        /// the dropdown can be shown.
+        /// Uses TMP's own GetPreferredValues as the primary measurement, but takes the larger of that
+        /// and a plain character-count estimate: itemText's template Item Label has never actually
+        /// been rendered at the point this runs (it lives inside the permanently-inactive Template),
+        /// and GetPreferredValues can under-report on a TMP_Text that's never generated a mesh - the
+        /// estimate is a floor against that, not a replacement for it.
+        /// </summary>
+        private static void ResizeItemRowForWrappedText(TMP_Dropdown dd, List<string> labels)
+        {
+            var itemText = dd.itemText;
+            if (itemText == null || labels.Count == 0) return;
+
+            RectTransform itemLabelRect = itemText.rectTransform;
+            RectTransform itemRowRect = itemLabelRect.parent as RectTransform;
+            if (itemRowRect == null) return;
+
+            float labelWidth = itemLabelRect.rect.width;
+            if (labelWidth <= 0f) return; // not laid out yet - keep whatever height is currently authored
+
+            float insetY = itemRowRect.rect.height - itemLabelRect.rect.height; // Item height - Label height
+            float fontSize = itemText.fontSize > 0 ? itemText.fontSize : 14f;
+            float approxCharsPerLine = Mathf.Max(1f, labelWidth / (fontSize * 0.55f));
+
+            float tallestLabel = 0f;
+            foreach (var label in labels)
+            {
+                float measured = itemText.GetPreferredValues(label, labelWidth, 0f).y;
+                int estimatedLines = Mathf.Max(1, Mathf.CeilToInt(label.Length / approxCharsPerLine));
+                float estimated = estimatedLines * fontSize * 1.4f;
+                float labelHeight = Mathf.Max(measured, estimated);
+                if (labelHeight > tallestLabel) tallestLabel = labelHeight;
+            }
+
+            // +4 safety margin on top of the inset - errs toward a little extra row padding rather
+            // than risking the same clipping this exists to prevent.
+            float newRowHeight = Mathf.Max(MinItemRowHeight, tallestLabel + insetY + 4f);
+            itemRowRect.sizeDelta = new Vector2(itemRowRect.sizeDelta.x, newRowHeight);
+        }
+
         private void RefreshScrapShipsDropdown(StarSysController sysCon, TMP_Dropdown dd)
         {
             if (dd == null) return;
@@ -1424,19 +1516,15 @@ namespace BOTF3D.UI
             dd.onValueChanged.RemoveAllListeners();
             if (ships.Count == 0) return;
 
-            var labels = new List<string> { "Scrap Ships" };
+            // No "(T#)" tech-level suffix - ShipName already ends in the era designation
+            // (_I early, _II developed, ...), so appending one here just duplicated it.
+            var labels = new List<string>();
             foreach (var ship in ships)
-                labels.Add($"{ship.ShipData.ShipName} (T{(int)ship.ShipData.BuiltAtTechLevel})");
+                labels.Add(ship.ShipData.ShipName);
 
-            dd.ClearOptions();
-            dd.AddOptions(labels);
-            dd.SetValueWithoutNotify(0);
-            dd.RefreshShownValue();
-
-            dd.onValueChanged.AddListener(index =>
+            SetupActionDropdown(dd, "Scrap Ships", labels, realIndex =>
             {
-                if (index <= 0 || index > ships.Count) return;
-                var ship = ships[index - 1];
+                var ship = ships[realIndex];
                 if (ship?.ShipData != null && !ship.ShipData.Distroyed)
                 {
                     StarSysManager.Instance?.ScrapShip(ship, sysCon);
@@ -1468,14 +1556,30 @@ namespace BOTF3D.UI
             if (FleetManager.Instance != null)
                 foreach (var fleet in FleetManager.Instance.FleetControllerList)
                 {
-                    if (fleet?.FleetData == null || fleet.FleetData.DockedStarSys != sysCon
-                        || fleet.FleetData.CivEnum != owner) continue;
+                    if (fleet?.FleetData == null || fleet.FleetData.CivEnum != owner) continue;
+                    // Deliberately NOT gated on DockedStarSys - that field is bookkeeping, set once
+                    // when the fleet is positioned/created (FleetManager.InstantiateFleet) purely to
+                    // lay out dock slots, and never updated when a fleet travels to and arrives at a
+                    // DIFFERENT system later. Using it here excluded every fleet that had genuinely
+                    // traveled in via normal movement. Physical presence - the fleet's own trigger
+                    // collider (SphereCollider, FleetPrefab) actually overlapping this system's
+                    // (SysPrefab) - is both necessary and sufficient; it's the same contact test
+                    // FleetController.OnTriggerEnter uses to detect fleet/system encounters.
+                    if (!FleetPhysicallyAtSystem(fleet, sysCon)) continue;
                     foreach (var ship in fleet.FleetData.ShipsList)
                         if (IsEligible(ship)) result.Add(ship);
                 }
 
             result.Sort((a, b) => ((int)a.ShipData.BuiltAtTechLevel).CompareTo((int)b.ShipData.BuiltAtTechLevel));
             return result;
+        }
+
+        private static bool FleetPhysicallyAtSystem(FleetController fleet, StarSysController sysCon)
+        {
+            var fleetCollider = fleet.GetComponent<Collider>();
+            var sysCollider = sysCon.GetComponent<Collider>();
+            if (fleetCollider == null || sysCollider == null) return false;
+            return fleetCollider.bounds.Intersects(sysCollider.bounds);
         }
 
         /// <summary>
@@ -1505,26 +1609,20 @@ namespace BOTF3D.UI
 
             var labels = new List<string>
             {
-                "Load",
                 "Colony"    + StatusSuffix(colonyEval.ok, colonyEval.reason),
                 "Troops"    + StatusSuffix(troopEval.ok, troopEval.reason),
                 "Terraform" + StatusSuffix(terraformEval.ok, terraformEval.reason),
             };
 
-            dd.ClearOptions();
-            dd.AddOptions(labels);
-            dd.SetValueWithoutNotify(0);
-            dd.RefreshShownValue();
-
-            dd.onValueChanged.AddListener(index =>
+            SetupActionDropdown(dd, "Load", labels, realIndex =>
             {
                 // Re-evaluate at click time rather than reusing the eval captured above - state
                 // (stockpile, docked ships) may have moved on since this refresh.
-                switch (index)
+                switch (realIndex)
                 {
-                    case 1: TryLoadColonyKit(sysCon, colonyDilithiumCost); break;
-                    case 2: TryLoadTroopUnit(sysCon); break;
-                    case 3: TryDesignateTerraform(sysCon); break;
+                    case 0: TryLoadColonyKit(sysCon, colonyDilithiumCost); break;
+                    case 1: TryLoadTroopUnit(sysCon); break;
+                    case 2: TryDesignateTerraform(sysCon); break;
                 }
                 RefreshActionDropdowns(sysCon);
             });
@@ -1705,19 +1803,13 @@ namespace BOTF3D.UI
             dd.onValueChanged.RemoveAllListeners();
             if (carriers.Count == 0) return;
 
-            var labels = new List<string> { "Unload" };
+            var labels = new List<string>();
             foreach (var ship in carriers)
                 labels.Add($"{ship.ShipData.ShipName} — {DescribeLoadedCargo(ship.ShipData)}");
 
-            dd.ClearOptions();
-            dd.AddOptions(labels);
-            dd.SetValueWithoutNotify(0);
-            dd.RefreshShownValue();
-
-            dd.onValueChanged.AddListener(index =>
+            SetupActionDropdown(dd, "Unload", labels, realIndex =>
             {
-                if (index <= 0 || index > carriers.Count) return;
-                UnloadTransportCargo(sysCon, carriers[index - 1]);
+                UnloadTransportCargo(sysCon, carriers[realIndex]);
                 RefreshActionDropdowns(sysCon);
             });
         }
@@ -2038,6 +2130,15 @@ namespace BOTF3D.UI
             }
 
             HideA_SystemMenuView();
+
+            // ✅ FIX: A System-to-Fleet merge parents the shared ship-deploy UI into
+            // FleetMenuUIController.AFleetMenuView, not ASystemMenuView (see
+            // FleetController.HandleShipMergeSelection's starSysLooking branch) - but this
+            // cleanup routine is reached whenever the SYSTEM side was "looking", regardless of
+            // which view actually got activated. Hiding ASystemMenuView alone left AFleetMenuView
+            // stuck open in that case, blocking subsequent menus. Also hiding it here is a no-op
+            // when it was never shown, so this is safe for the ordinary System-to-System case too.
+            FleetMenuUIController.Instance?.HideA_FleetMenuView();
         }
 
         /// <summary>
@@ -2279,19 +2380,30 @@ namespace BOTF3D.UI
         /// ManageShipsUIFields.shipContent (the full overlay) - extracted here so both call the
         /// same code instead of drifting apart.
         /// </summary>
-        private void SetupShipGrid(RectTransform shipContent, GameObject shipScrollView, float collapsedWidth)
+        /// <param name="viewportTopInset">
+        /// Distance, in units, the Viewport's top edge sits below its parent's top edge.
+        /// 0 for the compact per-row list (flush to top); the Manage Ships overlay passes
+        /// ManageShipsViewportTopInset to leave room for its header.
+        /// </param>
+        /// <param name="gridConstraint">
+        /// FixedColumnCount(2) for the compact per-row list (narrow, always 2 wide); the Manage
+        /// Ships overlay passes Flexible so column count adapts to the overlay's wider content area.
+        /// </param>
+        private void SetupShipGrid(RectTransform shipContent, GameObject shipScrollView, float collapsedWidth, float viewportTopInset = 0f,
+            GridLayoutGroup.Constraint gridConstraint = GridLayoutGroup.Constraint.FixedColumnCount)
         {
             if (shipContent == null) return;
 
-            // Grid: 136×50 cells, 2 columns
+            // Grid: 136×50 cells, 2 columns (FixedColumnCount) or as many as fit (Flexible)
             var grid = shipContent.GetComponent<GridLayoutGroup>()
                        ?? shipContent.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(136, 50);
             grid.spacing = new Vector2(4, 4);
             grid.padding = new RectOffset(5, 0, 0, 0);
             grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 2;
+            grid.constraint = gridConstraint;
+            if (gridConstraint == GridLayoutGroup.Constraint.FixedColumnCount)
+                grid.constraintCount = 2;
 
             var fitter = shipContent.GetComponent<ContentSizeFitter>()
                          ?? shipContent.gameObject.AddComponent<ContentSizeFitter>();
@@ -2320,8 +2432,11 @@ namespace BOTF3D.UI
                     {
                         vpRect.anchorMin = Vector2.zero;
                         vpRect.anchorMax = Vector2.one;
-                        vpRect.sizeDelta = Vector2.zero;
-                        vpRect.anchoredPosition = Vector2.zero;
+                        // Stretched on both axes: offsetMin/offsetMax (not sizeDelta/anchoredPosition
+                        // directly) are what express "inset from an edge" for a stretched rect -
+                        // offsetMax.y is negative-going-inward from the top edge.
+                        vpRect.offsetMin = Vector2.zero;
+                        vpRect.offsetMax = new Vector2(0f, -viewportTopInset);
                     }
                 }
 
@@ -2384,7 +2499,8 @@ namespace BOTF3D.UI
             if (fields.systemNameText != null)
                 fields.systemNameText.text = sysCon.StarSysData.SysName;
 
-            SetupShipGrid(fields.shipContent, fields.shipScrollView, fields.shipContent != null ? fields.shipContent.rect.width : 0f);
+            SetupShipGrid(fields.shipContent, fields.shipScrollView, fields.shipContent != null ? fields.shipContent.rect.width : 0f,
+                ManageShipsViewportTopInset, GridLayoutGroup.Constraint.Flexible);
             SyncShipsIntoContent(sysCon, fields.shipContent);
 
             if (fields.newFleetButton != null)

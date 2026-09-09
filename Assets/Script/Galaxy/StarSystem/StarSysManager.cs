@@ -2449,9 +2449,22 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public void HideManageShipsUI()
         {
-            var existingFields = Object.FindFirstObjectByType<ManageShipsUIFields>(FindObjectsInactive.Exclude);
-            if (existingFields != null)
-                existingFields.gameObject.SetActive(false);
+            // ✅ FIX: was FindFirstObjectByType, which only ever deactivates ONE active instance even
+            // if more than one exists. InstantiateManageShipsUI's "different system" branch destroys
+            // the previous instance before creating a new one, but Destroy() doesn't take effect until
+            // end-of-frame - if HideManageShipsUI/InstantiateManageShipsUI both run in the same frame
+            // (or a stale instance otherwise survives, e.g. from the kind of client-side duplicate-
+            // object resync documented elsewhere in this project), a leftover active instance keeps its
+            // GraphicRaycaster live over wherever it was on-screen, silently eating clicks for anything
+            // underneath even after the "current" instance is correctly hidden - this is very likely
+            // what caused "buttons under where Manage Ships was open stop responding" after opening the
+            // New Fleet deploy panel from inside it.
+            var existingFieldsAll = Object.FindObjectsByType<ManageShipsUIFields>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var fields in existingFieldsAll)
+            {
+                if (fields != null)
+                    fields.gameObject.SetActive(false);
+            }
 
             if (currentManageShipsUISysCon != null)
                 StarSysMenuUIController.Instance?.ReturnShipsFromManageShipsUI(currentManageShipsUISysCon);

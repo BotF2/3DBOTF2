@@ -195,7 +195,10 @@ public FleetController BottomFleet;
                     GameObject ownerParent = shipUIItem?.CurrentFleet?.FleetData?.ShipListUIParent
                         ?? shipUIItem?.CurrentStarSyst?.StarSysData?.ShipListUIParent;
                     if (ownerParent != null)
+                    {
                         child.SetParent(ownerParent.transform, false);
+                        child.gameObject.SetActive(true);
+                    }
                 }
             }
 
@@ -239,6 +242,10 @@ public FleetController BottomFleet;
                                     shipUIItem.IntendedSlotParent = BottomSlot.transform; // ? NEW
                                     shipUIItem.CurrentFleet = chosenFleet;
                                     shipUIItem.CurrentStarSyst = null;
+                                    // ✅ FIX: a reused ShipListUIGameObject (already existed from a prior
+                                    // deploy session) could still have blocksRaycasts=false left over from
+                                    // an interrupted drag - see ShipListUI_Item.ResetDragVisualState's comment.
+                                    shipUIItem.ResetDragVisualState();
                                 }
                             }
                             //else
@@ -296,6 +303,9 @@ public FleetController BottomFleet;
                             shipUIItem.IntendedSlotParent = BottomSlot.transform;
                             shipUIItem.CurrentStarSyst = ownerSys;
                             shipUIItem.CurrentFleet = null;
+                            // ✅ FIX: same reused-item reasoning as SetUpBottomShipLists(FleetController,...)
+                            // above - see ShipListUI_Item.ResetDragVisualState's comment.
+                            shipUIItem.ResetDragVisualState();
                         }
                     }
                 }
@@ -386,6 +396,11 @@ public FleetController BottomFleet;
                         shipUIItem.CurrentFleet = ownerFleet;
                         shipUIItem.CurrentStarSyst = ownerSys;
                         shipUIItem.IntendedSlotParent = TopSlot.transform; // ? NEW: Store intended slot
+                        // ✅ FIX: a reused ShipListUIGameObject (already existed from a prior deploy
+                        // session on this system/fleet) could still have blocksRaycasts=false left over
+                        // from an interrupted drag, which silently blocks OnBeginDrag from ever firing
+                        // again on it - see ShipListUI_Item.ResetDragVisualState's comment.
+                        shipUIItem.ResetDragVisualState();
                         Debug.Log($"SetUpTopShipLists(List): Set owner for {ship.ShipData?.ShipName} to {ownerFleet?.name ?? ownerSys?.name ?? "NULL"}");
                     }
                 }
@@ -707,6 +722,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentStarSyst = topStarSyst;
                 shipListUI_Item.CurrentFleet = null;
                 shipUIGOTop.transform.SetParent(topStarSyst.StarSysData.ShipListUIParent.transform, false);
+                shipUIGOTop.SetActive(true);
                 for (int j = 0; j < topShipControllerList.Count; j++)
                 {
                     if (topShipControllerList[j] == shipListUI_Item.ShipController)
@@ -731,6 +747,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentStarSyst = bottomStarSyst;
                 shipListUI_Item.CurrentFleet = null;
                 shipUIGOBottom.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
+                shipUIGOBottom.SetActive(true);
                 for (int j = 0; j < bottomShipControllerList.Count; j++)
                 {
                     if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
@@ -758,6 +775,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentStarSyst = topStarSyst;
                 shipListUI_Item.CurrentFleet = null;
                 shipUIGOTop.transform.SetParent(topStarSyst.StarSysData.ShipListUIParent.transform, false);
+                shipUIGOTop.SetActive(true);
                 for (int j = 0; j < topShipControllerList.Count; j++)
                 {
                     if (topShipControllerList[j] == shipListUI_Item.ShipController)
@@ -782,6 +800,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentFleet = bottomFleet;
                 shipListUI_Item.CurrentStarSyst = null;
                 shipUIGOBottom.transform.SetParent(bottomFleet.FleetData.ShipListUIParent.transform, false);
+                shipUIGOBottom.SetActive(true);
                 // Trust the UI slot's ship reference directly rather than requiring it to already be a
                 // member of bottomFleet's list — this target may be a brand-new, empty convoy fleet that
                 // has never owned any of these ships yet.
@@ -809,6 +828,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentFleet = topFleet;
                 shipListUI_Item.CurrentStarSyst = null;
                 shipUIGOTop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+                shipUIGOTop.SetActive(true);
                 for (int j = 0; j < topShipControllerList.Count; j++)
                 {
                     if (topShipControllerList[j] == shipListUI_Item.ShipController)
@@ -833,6 +853,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentStarSyst = bottomStarSyst;
                 shipListUI_Item.CurrentFleet = null;
                 shipUIGOBottom.transform.SetParent(bottomStarSyst.StarSysData.ShipListUIParent.transform, false);
+                shipUIGOBottom.SetActive(true);
                 for (int j = 0; j < bottomShipControllerList.Count; j++)
                 {
                     if (bottomShipControllerList[j] == shipListUI_Item.ShipController)
@@ -860,6 +881,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentFleet = topFleet;
                 shipListUI_Item.CurrentStarSyst = null;
                 shipUIGOtop.transform.SetParent(topFleet.FleetData.ShipListUIParent.transform, false);
+                shipUIGOtop.SetActive(true);
                 for (int j = 0; j < topShipControllerList.Count; j++)
                 {
                     if (topShipControllerList[j] == shipListUI_Item.ShipController)
@@ -884,6 +906,7 @@ public FleetController BottomFleet;
                 shipListUI_Item.CurrentFleet = bottomFleet;
                 shipListUI_Item.CurrentStarSyst = null;
                 shipUIGOBottom.transform.SetParent(bottomFleet.FleetData.ShipListUIParent.transform, false);
+                shipUIGOBottom.SetActive(true);
                 // Trust the UI slot's ship reference directly rather than requiring it to already be a
                 // member of bottomFleet's list — this target may be a brand-new, empty convoy fleet that
                 // has never owned any of these ships yet.
@@ -916,6 +939,7 @@ public FleetController BottomFleet;
                     if (orig.ShipListUIGameObject != null && ownerUIParent != null)
                     {
                         orig.ShipListUIGameObject.transform.SetParent(ownerUIParent, false);
+                        orig.ShipListUIGameObject.SetActive(true);
                     }
                     //Debug.Log($"ReconcileMissingShips: restored missing ship '{orig.name}' to owner UI parent.");
                 }
@@ -1235,8 +1259,14 @@ public FleetController BottomFleet;
             }
             else if (convoyMergeTargetSystem != null)
             {
-                convoyFleet.FleetData.Destination = convoyMergeTargetSystem.gameObject;
-                convoyFleet.FleetData.CurrentWarpFactor = convoyFleet.FleetData.MaxWarpFactor;
+                // ✅ FIX: was mutating FleetData.Destination/CurrentWarpFactor directly, which (like
+                // every other direct FleetData write - see SetAsDestinationInUI/SliderOnValueChange's
+                // comments) only ever touches this client's own local copy. On a non-host client the
+                // convoy's real, server-authoritative FleetData never learned its destination, so it
+                // sat at Destination=null/CurrentWarpFactor=0 forever and never actually traveled -
+                // exactly what RequestConvoyMergeToSystem (the Fleet-to-Fleet sibling's equivalent,
+                // already relay-safe) exists to fix. Route through it instead of duplicating its logic.
+                convoyFleet.RequestConvoyMergeToSystem(convoyMergeTargetSystem);
                 destinationName = convoyMergeTargetSystem.StarSysData.SysName;
             }
             else
