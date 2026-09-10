@@ -90,6 +90,13 @@ public FleetController BottomFleet;
             // Bring panel to front
             transform.SetAsLastSibling();
 
+            // ✅ The deploy panel is no longer full-screen (see the 150-unit slot / 40-unit gap
+            // layout), so whatever fleet/system detail view launched it would otherwise still be
+            // visible peeking out underneath. Hide both - only one is ever actually open, and
+            // hiding an already-hidden view is a no-op - so the galaxy map shows through instead.
+            FleetMenuUIController.Instance?.HideA_FleetMenuView();
+            StarSysMenuUIController.Instance?.HideA_SystemMenuView();
+
             // ✅ Fallback: Try to find the button if it's not assigned
             if (saveCloseButton == null)
             {
