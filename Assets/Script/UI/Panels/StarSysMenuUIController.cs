@@ -323,7 +323,7 @@ namespace BOTF3D.UI
                 UpdateSystemPowerBalance(sysCon);
 
                 // ✅ EVERY TIME: Update facility data
-                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlanet);
+                UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlant);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
                 UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
@@ -762,7 +762,7 @@ namespace BOTF3D.UI
 
             switch (facilityType)
             {
-                case StarSysFacilityType.PowerPlanet:
+                case StarSysFacilityType.PowerPlant:
                     var techMulitplyer = sysController.StarSysData.CurrentCivController.CivData.GetPowerTechMultiplier();
                     newPowerOutput = sysController.StarSysData.CalculateTotalPower(techMulitplyer);
                     facilities = sysController.StarSysData.PowerPlants;
@@ -1003,10 +1003,10 @@ namespace BOTF3D.UI
             // Re-evaluate all facility ON button visibility now that TotalSysPowerLoad/Output
             // are up to date. This handles the case where turning off facility type B frees
             // power headroom that should re-enable the ON button for facility type A.
-            // PowerPlanet is included here too (not just an ON/OFF-button facility) so
+            // PowerPlant is included here too (not just an ON/OFF-button facility) so
             // ScrapPowerPlant's plant-count label and total output refresh immediately instead of
             // only on the next full SetupSystemUIData pass (e.g. reopening the system panel).
-            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlanet);
+            UpdateFacilityUI(sysCon, 0, StarSysFacilityType.PowerPlant);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Factory);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.Shipyard);
             UpdateFacilityUI(sysCon, 0, StarSysFacilityType.ShieldGenerator);
@@ -1052,7 +1052,7 @@ namespace BOTF3D.UI
                         newFacilityLoad = starSysData.ResearchCenterData?.PowerLoad ?? 0;
                         facilities = starSysData.ResearchCenters;
                         break;
-                    case StarSysFacilityType.PowerPlanet:
+                    case StarSysFacilityType.PowerPlant:
                         newFacilityLoad = starSysData.PowerPlantData?.BasePowerOutput ?? 0;
                         facilities = starSysData.PowerPlants;
                         break;
@@ -1073,7 +1073,7 @@ namespace BOTF3D.UI
                         case StarSysFacilityType.ShieldGenerator: starSysData.ShieldGenerators = facilities; break;
                         case StarSysFacilityType.OrbitalBattery: starSysData.OrbitalBatteries = facilities; break;
                         case StarSysFacilityType.ResearchCenter: starSysData.ResearchCenters = facilities; break;
-                        case StarSysFacilityType.PowerPlanet: starSysData.PowerPlants = facilities; break;
+                        case StarSysFacilityType.PowerPlant: starSysData.PowerPlants = facilities; break;
                     }
                 }
 
@@ -1127,7 +1127,7 @@ namespace BOTF3D.UI
                                 if (facUI.icon != null) facUI.icon.sprite = starSysData.ResearchCenterData?.ResearchCenterSprite;
                                 if (facUI.nameText != null) facUI.nameText.text = starSysData.ResearchCenterData?.Name ?? string.Empty;
                                 break;
-                            case StarSysFacilityType.PowerPlanet:
+                            case StarSysFacilityType.PowerPlant:
                                 if (facUI.icon != null) facUI.icon.sprite = starSysData.PowerPlantData?.PowerPlantSprite;
                                 if (facUI.nameText != null) facUI.nameText.text = starSysData.PowerPlantData?.Name ?? string.Empty;
                                 break;

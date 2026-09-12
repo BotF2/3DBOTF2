@@ -188,6 +188,11 @@ namespace BOTF3D.Galaxy
         public float PhaseBTroopHP;           // aggregate troop HP; units removed as this depletes
         public float PhaseBTroopMaxHP;        // total at Phase B start, for a % readout
         public bool  PhaseBShieldsDown;       // true once all SGs are destroyed or ShieldHP hits 0
+        // Attacker's transported troops once landed (TargetTroops only — Total Destruction uses no transports).
+        // Powered by the besieging fleet's surviving combat ships; fully powered as long as any are alive.
+        public float PhaseBAttackerTroopHP;
+        public float PhaseBAttackerTroopMaxHP;
+        public bool  PhaseBTroopsLanded;      // true once transports have deployed their troops
 
         public int TotalSysPowerOutput = 0;
         public int TotalSysPowerLoad = 0;

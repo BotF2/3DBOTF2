@@ -276,7 +276,7 @@ public class StarSysUI_Fields : MonoBehaviour
 
             switch (f.type)
             {
-                case StarSysFacilityType.PowerPlanet:
+                case StarSysFacilityType.PowerPlant:
                     {
                         var pd = data.PowerPlantData;
                         if (f.icon != null) f.icon.sprite = pd?.PowerPlantSprite;

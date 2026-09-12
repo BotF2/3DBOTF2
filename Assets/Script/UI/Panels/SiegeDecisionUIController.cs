@@ -150,7 +150,10 @@ namespace BOTF3D.UI
         {
             if (currentSys == null || currentFleet == null) { ClosePanel(); return; }
 
-            StarSysManager.Instance?.ResolveTotalDestruction(currentSys, currentFleet);
+            // Shields must be bombarded down before Total Destruction resolves — InitializePhaseB
+            // starts the shield attrition; ResolveTotalDestruction fires automatically once they fall.
+            currentSys.StarSysData.AssaultMode = AssaultMode.TotalDestruction;
+            StarSysManager.Instance?.InitializePhaseB(currentSys, currentFleet);
             ClosePanel();
         }
     }

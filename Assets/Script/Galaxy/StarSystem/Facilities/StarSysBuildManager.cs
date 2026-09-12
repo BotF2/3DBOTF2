@@ -64,7 +64,7 @@ namespace BOTF3D.Galaxy
             if (buildTime <= 0) buildTime = 1;
 
             // Deduct dilithium stockpile when a power plant build starts
-            if (buildDrag.FacilityType == StarSysFacilityType.PowerPlanet)
+            if (buildDrag.FacilityType == StarSysFacilityType.PowerPlant)
             {
                 TechLevel buildTech = controller.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
                 int powerOutput = controller.StarSysData.PowerPlantData?.BasePowerOutput ?? 20;
@@ -159,7 +159,7 @@ namespace BOTF3D.Galaxy
 
             switch (buildDrag.FacilityType)
             {
-                case StarSysFacilityType.PowerPlanet:
+                case StarSysFacilityType.PowerPlant:
                     newFacilityGO = StarSysManager.Instance.AddSystemFacilities(1, StarSysManager.Instance.PowerPlantPrefab, civInt, 0, controller)[0];
                     controller.StarSysData.PowerPlants = controller.StarSysData.PowerPlants ?? new System.Collections.Generic.List<GameObject>();
                     // ❌ REMOVED: controller.StarSysData.PowerPlants.Add(newFacilityGO); // Let AddSysFacility handle this
@@ -253,7 +253,7 @@ namespace BOTF3D.Galaxy
 
             switch (facilityType)
             {
-                case StarSysFacilityType.PowerPlanet:
+                case StarSysFacilityType.PowerPlant:
                     if (sysData.DilithiumMiningRate < colonyRate + 1)
                     {
                         sysData.DilithiumMiningRate = Mathf.Min(sysData.DilithiumMiningRate + 1, colonyRate + 1);
@@ -522,7 +522,7 @@ namespace BOTF3D.Galaxy
             // ✅ Get base build time
             switch (starSysFacilities)
             {
-                case StarSysFacilityType.PowerPlanet:
+                case StarSysFacilityType.PowerPlant:
                     timeDuration = controller.StarSysData.PowerPlantData.BuildDuration;
                     break;
                 case StarSysFacilityType.Factory:

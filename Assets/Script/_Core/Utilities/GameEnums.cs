@@ -489,7 +489,7 @@ namespace BOTF3D.Core
     }
     public enum StarSysFacilityType
     {
-        PowerPlanet,
+        PowerPlant,
         Factory,
         Shipyard,
         ShieldGenerator,

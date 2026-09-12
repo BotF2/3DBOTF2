@@ -49,7 +49,7 @@ namespace BOTF3D.UI
             switch (eventData.pointerDrag.name)
             {
                 case "ItemPowerPlant":
-                    theDragedScript.FacilityType = StarSysFacilityType.PowerPlanet;
+                    theDragedScript.FacilityType = StarSysFacilityType.PowerPlant;
                     break;
                 case "ItemFactory":
                     theDragedScript.FacilityType = StarSysFacilityType.Factory;

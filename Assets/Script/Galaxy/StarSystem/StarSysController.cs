@@ -1718,7 +1718,7 @@ namespace BOTF3D.Galaxy
 
             if (StarSysUI != null)
             {
-                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.PowerPlanet);
+                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.PowerPlant);
                 StarSysUI.UpdateSystemPowerBalance(this);
             }
         }

@@ -165,7 +165,7 @@ namespace BOTF3D.Galaxy
                 if (data.CanBuildPowerPlant() &&
                     data.TotalSysPowerOutput - data.TotalSysPowerLoad < data.BasePowerPerPlant)
                 {
-                    sysCon.StarSysBuildManager.QueueFacilityBuild(StarSysFacilityType.PowerPlanet);
+                    sysCon.StarSysBuildManager.QueueFacilityBuild(StarSysFacilityType.PowerPlant);
                 }
                 else if ((data.Shipyards?.Count ?? 0) < StarSysManager.Instance.GetFacilityCap(sysCon, StarSysFacilityType.Shipyard))
                 {
@@ -511,7 +511,7 @@ namespace BOTF3D.Galaxy
             var data = sysCon.StarSysData;
             if (data.CanBuildPowerPlant() &&
                 data.TotalSysPowerOutput - data.TotalSysPowerLoad < data.BasePowerPerPlant)
-                return StarSysFacilityType.PowerPlanet;
+                return StarSysFacilityType.PowerPlant;
 
             var candidates = new (StarSysFacilityType type, int count)[]
             {
@@ -647,7 +647,7 @@ namespace BOTF3D.Galaxy
             var data = sysCon.StarSysData;
             if (data.CanBuildPowerPlant() &&
                 data.TotalSysPowerOutput - data.TotalSysPowerLoad < data.BasePowerPerPlant)
-                return StarSysFacilityType.PowerPlanet;
+                return StarSysFacilityType.PowerPlant;
 
             int factoryCount = data.Factories?.Count ?? 0;
             int shipyardCount = data.Shipyards?.Count ?? 0;
@@ -681,7 +681,7 @@ namespace BOTF3D.Galaxy
 
         // Every facility type the power grid can turn on/off - used to force a full blackout
         // when StarSysManager.ProcessAntimatterFuelLoop's destruction trigger fires (all Power
-        // Plants gone, or all Factories gone with the reserve exhausted). PowerPlanet isn't
+        // Plants gone, or all Factories gone with the reserve exhausted). PowerPlant isn't
         // included - it's what's failing, not a consumer to shut off.
         private static readonly StarSysFacilityType[] AllPowerableFacilityTypes =
         {

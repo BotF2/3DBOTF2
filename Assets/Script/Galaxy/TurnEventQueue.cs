@@ -115,6 +115,10 @@ namespace BOTF3D.Galaxy
             {
                 var data = sysCon != null ? sysCon.StarSysData : null;
                 if (data == null || !data.DefensesCleared || data.BesiegingFleet == null) continue;
+                // Only queue the decision panel for systems still awaiting a Phase B choice.
+                // Active Phase B assaults (TargetTroops/TotalDestruction) tick automatically via
+                // StarSysManager.ProcessPhaseBAtritionForAllSystems — no per-turn re-queue needed.
+                if (data.AssaultMode != AssaultMode.None) continue;
                 if (GameController.Instance == null || !GameController.Instance.AreWeLocalPlayer(data.BesiegingCivEnum)) continue;
 
                 StarSysController capturedSys = sysCon;
