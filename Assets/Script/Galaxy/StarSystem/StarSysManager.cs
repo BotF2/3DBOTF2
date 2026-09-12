@@ -1849,32 +1849,31 @@ namespace BOTF3D.Galaxy
             }
             float fleetAttack = livingCombat.Sum(s => s.ShipData.BeamDamage + s.ShipData.TorpedoDamage);
 
-            // ── Defending troops counter-fire at the attacking fleet (always, both phases) ──
-            int defTroopCount = data.GroundForces.Count;
-            if (defTroopCount > 0)
-            {
-                bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
-                float troopAttack = defTroopCount * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
-                float perShip = troopAttack / livingCombat.Count;
-                foreach (var ship in livingCombat)
-                    ApplyDamageToShip(ship.ShipData, perShip);
-
-                bool fleetWiped = fleet.FleetData.ShipsList
-                    .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
-                if (fleetWiped)
-                {
-                    EndSiege(sysCon);
-                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
-                        $"Assault repelled: {data.SysName}",
-                        $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
-                        data.SysName, quadrant, ReportSeverity.Warning));
-                    return;
-                }
-            }
-
             // ── Shield bombardment phase ────────────────────────────────────
             if (!data.PhaseBShieldsDown)
             {
+                // Defending troops fire at the fleet during the shield phase.
+                int defTroopCountShield = data.GroundForces.Count;
+                if (defTroopCountShield > 0)
+                {
+                    bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
+                    float troopAttack = defTroopCountShield * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
+                    float perShip = troopAttack / livingCombat.Count;
+                    foreach (var ship in livingCombat)
+                        ApplyDamageToShip(ship.ShipData, perShip);
+                    bool fleetWiped = fleet.FleetData.ShipsList
+                        .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
+                    if (fleetWiped)
+                    {
+                        EndSiege(sysCon);
+                        ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                            $"Assault repelled: {data.SysName}",
+                            $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
+                            data.SysName, quadrant, ReportSeverity.Warning));
+                        return;
+                    }
+                }
+
                 float sgContrib = ComputeSGContribution(defCiv, defTech, defQuality);
                 data.PhaseBShieldHP -= fleetAttack;
 
@@ -1914,7 +1913,7 @@ namespace BOTF3D.Galaxy
                         data.SysName, quadrant, ReportSeverity.Info));
                 }
                 return; // ground phase resolves next tick
-            }
+            } // end shield phase
 
             // ── Ground phase ────────────────────────────────────────────────
             if (mode == AssaultMode.TotalDestruction)
@@ -1958,6 +1957,50 @@ namespace BOTF3D.Galaxy
                 }
             }
 
+            // Defending troops prioritize landed attacker troops — killing them saves system ownership.
+            int defTroopCountGround = data.GroundForces.Count;
+            if (defTroopCountGround > 0)
+            {
+                bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
+                float defTroopAttack = defTroopCountGround * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
+
+                if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
+                {
+                    // Primary target: attacker's landed troops
+                    data.PhaseBAttackerTroopHP = Mathf.Max(0f, data.PhaseBAttackerTroopHP - defTroopAttack);
+
+                    if (data.PhaseBAttackerTroopHP <= 0)
+                    {
+                        data.PhaseBAttackerTroopHP = 0;
+                        ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                            $"Attacker troops eliminated: {data.SysName}",
+                            $"{defCiv} defenders on {data.SysName} eliminated all landed {atkCiv} troops. " +
+                            $"Ownership of {data.SysName} is saved — the system cannot be claimed without troops on the ground.",
+                            data.SysName, quadrant, ReportSeverity.Critical));
+                        // Fleet can still bombard but ownership will never transfer — no return here,
+                        // let ongoing report fire and the siege continue until player withdraws.
+                    }
+                }
+                else
+                {
+                    // No landed attacker troops to target — fire at the fleet instead.
+                    float perShip = defTroopAttack / livingCombat.Count;
+                    foreach (var ship in livingCombat)
+                        ApplyDamageToShip(ship.ShipData, perShip);
+                    bool fleetWiped = fleet.FleetData.ShipsList
+                        .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
+                    if (fleetWiped)
+                    {
+                        EndSiege(sysCon);
+                        ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                            $"Assault repelled: {data.SysName}",
+                            $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
+                            data.SysName, quadrant, ReportSeverity.Warning));
+                        return;
+                    }
+                }
+            }
+
             // Fleet fires at defending troops (not power plants)
             data.PhaseBTroopHP = Mathf.Max(0f, data.PhaseBTroopHP - fleetAttack);
 
@@ -1981,10 +2024,10 @@ namespace BOTF3D.Galaxy
                 data.GroundForces.RemoveAt(last);
             }
 
-            // Victory: all defenders eliminated AND troops have landed
+            // Victory: all defenders eliminated AND troops landed AND attacker troops still alive.
             if (data.GroundForces.Count == 0)
             {
-                if (data.PhaseBTroopsLanded)
+                if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
                 {
                     CivManager.Instance?.AssimilateSystem(sysCon, atkCiv);
                     EndSiege(sysCon);
@@ -1992,6 +2035,14 @@ namespace BOTF3D.Galaxy
                         $"System captured: {data.SysName}",
                         $"{atkCiv} forces eliminated all defenders on {data.SysName}. System is now under {atkCiv} control.",
                         data.SysName, quadrant, ReportSeverity.Critical));
+                }
+                else if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP <= 0)
+                {
+                    // Attacker troops were wiped out before defenders fell; both sides eliminated
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Mutual elimination: {data.SysName}",
+                        $"All ground forces on {data.SysName} destroyed. {atkCiv} cannot claim the system — no surviving troops. Break off siege to withdraw.",
+                        data.SysName, quadrant, ReportSeverity.Warning));
                 }
                 else
                 {
@@ -2006,9 +2057,15 @@ namespace BOTF3D.Galaxy
 
             // Ongoing report
             float troopPct = data.PhaseBTroopMaxHP > 0 ? data.PhaseBTroopHP / data.PhaseBTroopMaxHP * 100f : 0f;
-            string atkDetail = data.PhaseBTroopsLanded
-                ? $" {Mathf.CeilToInt(data.PhaseBAttackerTroopHP / Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality)))} landed unit{(Mathf.CeilToInt(data.PhaseBAttackerTroopHP / Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality))) != 1 ? "s" : "")} engaging."
-                : " No troops landed yet — no transports with troops in fleet.";
+            float hpPerAtkTroopReport = Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality));
+            int atkTroopCountReport = Mathf.CeilToInt(data.PhaseBAttackerTroopHP / hpPerAtkTroopReport);
+            string atkDetail;
+            if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
+                atkDetail = $" {atkTroopCountReport} landed {atkCiv} unit{(atkTroopCountReport != 1 ? "s" : "")} engaging.";
+            else if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP <= 0)
+                atkDetail = $" Landed {atkCiv} troops eliminated — ownership cannot be claimed.";
+            else
+                atkDetail = " No troops landed — no transports with troops in fleet.";
             ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
                 $"Ground assault: {data.SysName}",
                 $"{atkCiv} assault on {data.SysName} — defenders at {troopPct:F0}% " +

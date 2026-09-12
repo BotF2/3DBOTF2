@@ -41642,7 +41642,7 @@ GameObject:
   - component: {fileID: 1905662845}
   - component: {fileID: 1905662844}
   m_Layer: 5
-  m_Name: ShipDeployPanel
+  m_Name: PanelSystemAssault
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
