@@ -14,6 +14,18 @@ public class GroundForceData
     // two stay in lockstep: every this-many population units supports one fielded ground force unit.
     public const int PopulationPerUnit = 8;
 
+    // Power upkeep (System Invasion Phase 1 follow-up, 2026-09): unlike other facility types,
+    // ground forces have no per-civ SO to author these from, so the two rates live here as flat
+    // constants - first-pass numbers pending the phase 2.5 balance pass (Docs/Design/
+    // SystemInvasion_Phase1_Design.md). PeacetimePowerLoadPerUnit is always drawn just for having
+    // troops on the roster (StarSysMenuUIController.UpdateSystemPowerBalance); the higher
+    // CombatPowerLoadPerUnit applies once OnCombatFooting is true, switched on by
+    // StarSysManager.ReallocatePowerForCombat at Phase A entry and back off by
+    // CombatController.EndCombat.
+    public const int PeacetimePowerLoadPerUnit = 1;
+    public const int CombatPowerLoadPerUnit = 4;
+    public bool OnCombatFooting;
+
     public CivEnum CivEnum;
     public TechLevel TechLevel;
     public StarSysFacilityType FacilitiesEnumType;
@@ -30,4 +42,8 @@ public class GroundForceData
         this.v = v;
         this.Name = v;
     }
+
+    /// <summary>Total power load for troopCount fielded units at the current footing (peacetime or combat).</summary>
+    public int CurrentPowerLoad(int troopCount) =>
+        troopCount * (OnCombatFooting ? CombatPowerLoadPerUnit : PeacetimePowerLoadPerUnit);
 }

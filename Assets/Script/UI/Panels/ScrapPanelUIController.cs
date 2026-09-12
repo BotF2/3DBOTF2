@@ -184,7 +184,9 @@ namespace BOTF3D.UI
             ship != null && ship.ShipData != null
             && !ship.ShipData.Distroyed
             && ship.ShipData.CivEnum == owner
-            && ship.ShipData.ShipType != ShipType.OrbitalBattery; // batteries are facility-linked, not scrappable
+            && ship.ShipData.ShipType != ShipType.OrbitalBattery // batteries are facility-linked, not scrappable
+            && ship.ShipData.ShipType != ShipType.PlanetaryShield // same for planetary shields (System Invasion Phase 1)
+            && ship.ShipData.ShipType != ShipType.Shipyard; // same for the Shipyard combat unit (System Invasion Phase 1, 2026-09-11 revision)
 
         private void OnRowSelected(ScrapShipRowUI row)
         {

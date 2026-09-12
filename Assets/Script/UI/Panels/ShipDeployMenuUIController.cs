@@ -23,6 +23,16 @@ namespace BOTF3D.UI
         public GameObject ShipDeployPanel;
         public GameObject TopSlot;
         public GameObject BottomSlot;
+        // Header labels above each slot, showing whichever fleet/star system currently owns that
+        // slot's ships. Before this, the panel had only a single static "New Fleet" placeholder text
+        // baked into the prefab with nothing in code ever updating it - it showed "New Fleet" even
+        // when deploying into an already-existing fleet, and the star system's name (only otherwise
+        // visible on the background system menu, which ShowShipDeployMenuView hides while this panel
+        // is open) had nowhere to appear at all. Null-checked at every use site (same
+        // Editor-wiring-optional pattern as FleetUI_Fields.TranswarpButton) so this is safe to ship
+        // ahead of the Inspector wiring - see RefreshSlotLabels.
+        public TMPro.TextMeshProUGUI TopSlotLabel;
+        public TMPro.TextMeshProUGUI BottomSlotLabel;
         public Button saveCloseButton;
         public FleetController TopFleet;
 public FleetController BottomFleet;
@@ -122,7 +132,34 @@ public FleetController BottomFleet;
             {
                 Debug.LogWarning("  ⚠️ Save/Close button not found or assigned! User won't be able to close Ship Deploy UI.");
             }
+            RefreshSlotLabels();
+
             Debug.Log($"ShowShipDeployMenuView: opened. TopSlot children={TopSlot?.transform.childCount ?? 0}, BottomSlot children={BottomSlot?.transform.childCount ?? 0}");
+        }
+
+        /// <summary>
+        /// Updates TopSlotLabel/BottomSlotLabel from whichever fleet/star system currently owns each
+        /// slot (TopFleet/TopStarSyst/BottomFleet/BottomStarSyst - kept current by every SetUpTop/
+        /// BottomShipLists* method below, each of which also calls this so the label never lags
+        /// behind whatever those methods just changed). A slot showing a real fleet displays
+        /// FleetData.FleetName (already a meaningful, always-set name by the time a fleet reaches this
+        /// panel - see SendConvoyOnItsWay's own use of it); a slot showing a star system displays
+        /// StarSysData.SysName; "New Fleet" only survives as the literal fallback for the one case
+        /// neither is set yet (a still-being-created fleet slipping through before its FleetData is
+        /// ready), matching the prefab's old placeholder text so nothing looks worse than before in
+        /// that edge case.
+        /// </summary>
+        private void RefreshSlotLabels()
+        {
+            if (TopSlotLabel != null)
+                TopSlotLabel.text = TopFleet != null ? TopFleet.FleetData?.FleetName
+                    : TopStarSyst != null ? TopStarSyst.StarSysData?.SysName
+                    : "New Fleet";
+
+            if (BottomSlotLabel != null)
+                BottomSlotLabel.text = BottomFleet != null ? BottomFleet.FleetData?.FleetName
+                    : BottomStarSyst != null ? BottomStarSyst.StarSysData?.SysName
+                    : "New Fleet";
         }
         /// <summary>
         /// Called when Save + Close button is clicked
@@ -265,6 +302,7 @@ public FleetController BottomFleet;
             }
             BottomFleet = chosenFleet;
             BottomStarSyst = null;
+            RefreshSlotLabels();
         }
 
         internal void SetUpBottomShipLists(StarSysController StarSysLooking, bool deployNotMerge)
@@ -320,6 +358,7 @@ public FleetController BottomFleet;
 
             BottomStarSyst = StarSysLooking;
             BottomFleet = null;
+            RefreshSlotLabels();
         }
 
         public void SetUpTopShipLists(List<BOTF3D.Combat.ShipController> shipList)
@@ -416,6 +455,7 @@ public FleetController BottomFleet;
             // Also set TopFleet/TopStarSyst so ReparentUIToOwners knows the context
             TopFleet = ownerFleet;
             TopStarSyst = ownerSys;
+            RefreshSlotLabels();
 
             // Final verification log
             // Debug.Log($"SetUpTopShipLists(List): TopFleet={(TopFleet?.name ?? "NULL")}, TopFleet.ShipListUIParent={(TopFleet?.FleetData?.ShipListUIParent != null ? "SET" : "NULL")}, TopStarSyst={(TopStarSyst?.name ?? "NULL")}");
@@ -676,6 +716,7 @@ public FleetController BottomFleet;
             TopStarSyst = sourceSystem;
 
             Debug.Log($"Merge context: TopFleet={sourceFleet?.name}, TopSystem={sourceSystem?.name}, BottomFleet={targetFleet?.name}, BottomSystem={targetSystem?.name}");
+            RefreshSlotLabels();
         }
 
         public GameObject[] GetTopSlotShipListUIGOs()

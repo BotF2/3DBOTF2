@@ -59,6 +59,8 @@ namespace BOTF3D.UI
                 Debug.LogWarning("ReportEntryUI: duplicate detected — overwriting Instance.");
             Instance = this;
 
+            EnsureContentLayout();
+
             // Subscribe here, not in OnEnable, so reports are captured even while the
             // panel is hidden (SetActive false disables OnEnable but not Awake subscribers).
             // Note: GameEvents.OnCombatEnded is intentionally NOT subscribed here. Combat reports
@@ -226,6 +228,39 @@ namespace BOTF3D.UI
 
         // ── Panel refresh ─────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Defensive self-healing for the "report rows render stacked/overlapping, even a single
+        /// row shows garbled overlaid text" bug: if `content` has no VerticalLayoutGroup (or it's
+        /// been removed/misconfigured on the prefab/scene object), every pooled row's RectTransform
+        /// sits at whatever position Instantiate happened to leave it - typically all at the same
+        /// spot - instead of stacking vertically, so their TextMeshProUGUI text visually overlays.
+        /// Adds sane defaults only when missing (never touches an already-authored
+        /// VerticalLayoutGroup's settings), so this is a no-op once the Inspector wiring is correct.
+        /// </summary>
+        private void EnsureContentLayout()
+        {
+            if (content == null) return;
+
+            var layoutGroup = content.GetComponent<VerticalLayoutGroup>();
+            if (layoutGroup == null)
+            {
+                layoutGroup = content.gameObject.AddComponent<VerticalLayoutGroup>();
+                layoutGroup.childControlWidth = true;
+                layoutGroup.childControlHeight = true;
+                layoutGroup.childForceExpandWidth = true;
+                layoutGroup.childForceExpandHeight = false;
+                layoutGroup.spacing = 4f;
+                Debug.LogWarning("ReportEntryUI: 'content' had no VerticalLayoutGroup — added one with default settings. Rows were almost certainly rendering stacked on top of each other before this (garbled/overlapping text even with only one entry).");
+            }
+
+            var sizeFitter = content.GetComponent<ContentSizeFitter>();
+            if (sizeFitter == null)
+            {
+                sizeFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+                sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            }
+        }
+
         public void RefreshPanel()
         {
             if (content == null)
@@ -251,6 +286,7 @@ namespace BOTF3D.UI
 
                 for (int i = 1; i < _rows.Count; i++)
                     _rows[i].root.SetActive(false);
+                ForceLayoutRebuild();
                 return;
             }
 
@@ -262,6 +298,22 @@ namespace BOTF3D.UI
 
             for (int i = _reports.Count; i < _rows.Count; i++)
                 _rows[i].root.SetActive(false);
+
+            ForceLayoutRebuild();
+        }
+
+        /// <summary>
+        /// Changing a TextMeshProUGUI's .text (PopulateRow) or a row's active state doesn't always
+        /// get picked up by Unity's own deferred layout pass in time for the very next visible
+        /// frame, especially when RefreshPanel runs from code outside the normal UI event flow (a
+        /// PushReport call from deep in game logic, not a click). Forcing an immediate rebuild here
+        /// is cheap (at most MaxReports=10 rows) and removes any timing window for stale/overlapping
+        /// positions to be visible even for one frame.
+        /// </summary>
+        private void ForceLayoutRebuild()
+        {
+            if (content is RectTransform contentRect)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
         }
 
         [ContextMenu("Test: Push Sample Reports")]

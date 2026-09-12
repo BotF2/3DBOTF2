@@ -591,12 +591,26 @@ namespace BOTF3D.UI
                 && fleetCon.FleetData.Destination != FleetManager.Instance?.GalaxyCenter;
             bool showCancel = hasActiveDestination || fleetCon.FleetData?.InterceptTarget != null;
 
+            // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §4). isBesieging
+            // additionally gates Transwarp/Cloak further down (they share BreakOffSiegeButton's
+            // screen slot in the prefab, so only one of the three should ever be visible at once).
+            // isFrozen is the broader "this fleet cannot move right now" state - also true while
+            // awaiting a Diplomacy Fight/Withdraw decision (FleetController.
+            // IsAwaitingEncounterResolution) - used to gray out (not hide) the destination-picking
+            // buttons below, since offering them when a click would just silently do nothing (see
+            // FleetController.FixedUpdate's own movement gate) is worse than disabling them with the
+            // reason visible.
+            bool isBesieging = fleetCon.IsBesiegingSystem;
+            bool isFrozen = isBesieging || fleetCon.IsAwaitingEncounterResolution;
+
             uiFields.DestinationDragTarget.gameObject.SetActive(!hasActiveDestination);
+            uiFields.DestinationDragTarget.interactable = !isFrozen;
             uiFields.DestinationDragTarget.onClick.RemoveAllListeners();
             uiFields.DestinationDragTarget.onClick.AddListener(() => fleetCon.GetPlayerDefinedTargetDestination(fleetCon));
             dragDestinationTargetButtonGO = uiFields.DestinationDragTarget.gameObject;
 
             uiFields.SelectDestination.gameObject.SetActive(true);
+            uiFields.SelectDestination.interactable = !isFrozen;
             uiFields.SelectDestination.onClick.RemoveAllListeners();
             uiFields.SelectDestination.onClick.AddListener(() => SelectedDestinationCursor(fleetCon));
             selectDestinationCursorButtonGO = uiFields.SelectDestination.gameObject;
@@ -692,12 +706,16 @@ namespace BOTF3D.UI
             uiFields.ClaimSystemButton.onClick.RemoveAllListeners();
             uiFields.ClaimSystemButton.onClick.AddListener(() => ClickClaimSystemButton(fleetCon));
 
+            // isBesieging/isFrozen computed above (destination-button gating) - reused below for
+            // Transwarp/Cloak/Break Off Siege.
+
             // Transwarp Home: Borg Transwarp Hub Network (§8 II.3) - only shown once this fleet is
             // actually eligible (docked at a Borg system, civ has researched the tech, has a separate
             // home system to jump to). See TranswarpHubController.CanTranswarpHome for the full gate.
+            // Hidden during a siege - see isBesieging comment above.
             if (uiFields.TranswarpButton != null)
             {
-                bool canTranswarp = BOTF3D.Galaxy.TranswarpHubController.CanTranswarpHome(fleetCon, out _);
+                bool canTranswarp = !isBesieging && BOTF3D.Galaxy.TranswarpHubController.CanTranswarpHome(fleetCon, out _);
                 uiFields.TranswarpButton.gameObject.SetActive(canTranswarp);
                 uiFields.TranswarpButton.interactable = canTranswarp;
                 uiFields.TranswarpButton.onClick.RemoveAllListeners();
@@ -708,10 +726,11 @@ namespace BOTF3D.UI
             // Basic Cloaking Field/Battle Cloak at all (CloakingController.CanToggleCloak), always
             // interactable once shown (unlike Transwarp there's no situational eligibility beyond
             // having the tech - it's a pure on/off choice). Label reflects the fleet's current
-            // FleetData.IsCloakActive state if the button has a child text component.
+            // FleetData.IsCloakActive state if the button has a child text component. Hidden during
+            // a siege - see isBesieging comment above.
             if (uiFields.CloakToggleButton != null)
             {
-                bool canCloak = BOTF3D.Galaxy.CloakingController.CanToggleCloak(fleetCon);
+                bool canCloak = !isBesieging && BOTF3D.Galaxy.CloakingController.CanToggleCloak(fleetCon);
                 uiFields.CloakToggleButton.gameObject.SetActive(canCloak);
                 uiFields.CloakToggleButton.interactable = canCloak;
                 uiFields.CloakToggleButton.onClick.RemoveAllListeners();
@@ -720,6 +739,22 @@ namespace BOTF3D.UI
                 var cloakLabel = uiFields.CloakToggleButton.GetComponentInChildren<TMPro.TMP_Text>();
                 if (cloakLabel != null)
                     cloakLabel.text = fleetCon.FleetData.IsCloakActive ? "Decloak" : "Cloak";
+            }
+
+            // Break Off Siege: shown only while this fleet is actively besieging a system. Before
+            // this, a siege had no player-facing escape at all: the fleet just silently failed to
+            // move on Advance Turn with nothing in the Fleet UI explaining why (reported directly
+            // against Invasion.2).
+            if (uiFields.BreakOffSiegeButton != null)
+            {
+                uiFields.BreakOffSiegeButton.gameObject.SetActive(isBesieging);
+                uiFields.BreakOffSiegeButton.interactable = isBesieging;
+                uiFields.BreakOffSiegeButton.onClick.RemoveAllListeners();
+                uiFields.BreakOffSiegeButton.onClick.AddListener(() => ClickBreakOffSiegeButton(fleetCon));
+
+                var breakOffLabel = uiFields.BreakOffSiegeButton.GetComponentInChildren<TMPro.TMP_Text>();
+                if (breakOffLabel != null && isBesieging)
+                    breakOffLabel.text = $"Break Off Siege ({fleetCon.FleetData.BesiegedSystem?.StarSysData?.SysName})";
             }
 
             // ✅ TEXT BINDINGS: Always update
@@ -849,6 +884,20 @@ namespace BOTF3D.UI
             fleetCon.SetCloakActive(newState);
             PlayerManager.Instance?.LocalPlayerController?.SubmitToggleCloak(fleetCon, newState);
             SetupFleetUIData(); // refresh so the button label reflects the new state
+        }
+        /// <summary>
+        /// System Invasion Phase 1 siege (Docs/Design/SystemInvasion_Phase1_Design.md §4) - relays
+        /// through FleetController.RequestBreakOffSiege, which handles the isServer/Cmd-relay split
+        /// itself (same pattern as RequestStartCombat). No local optimistic update needed here the
+        /// way ClickCloakToggleButton does one - IsBesiegingSystem is a SyncVar, so it (and this
+        /// button's visibility) updates automatically once the server processes the request; refresh
+        /// afterward just picks that up on the next SetupFleetUIData pass.
+        /// </summary>
+        private void ClickBreakOffSiegeButton(FleetController fleetCon)
+        {
+            if (fleetCon == null) return;
+            fleetCon.RequestBreakOffSiege();
+            SetupFleetUIData();
         }
         private void ClickClaimSystemButton(FleetController fleetCon)
         {

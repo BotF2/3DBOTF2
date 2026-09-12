@@ -582,6 +582,7 @@ namespace BOTF3D.UI
                 {
                     fields.compactHeader?.Populate(sysCon);
                     fields.WireAIModeToggles(sysCon);
+                    fields.WireTroopButtons(sysCon);
 
                     // All entries load collapsed with their Expand button visible.
                     fields.expandedContent?.SetActive(false);
@@ -904,6 +905,14 @@ namespace BOTF3D.UI
                     if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
                         load += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
+                // Ground Forces (System Invasion Phase 1 follow-up): always-on peacetime draw just
+                // for having troops on the roster, bumped to CombatPowerLoadPerUnit while
+                // GroundForceData.OnCombatFooting (set by ReallocatePowerForCombat at Phase A entry,
+                // cleared by CombatController.EndCombat). No on/off toggle - unlike every other
+                // facility here, this one has no per-unit TextMeshProUGUI to check.
+                if (sysCon.StarSysData.GroundForceData != null)
+                    load += sysCon.StarSysData.GroundForceData.CurrentPowerLoad(sysCon.StarSysData.GroundForces.Count);
+
                 // Every facility genuinely draws less power as a civ's tech improves (Docs/Design/
                 // FacilityCaps_Phase2_ResourceDriven.md §4) - applied to the summed raw load here,
                 // not to output, per TechManager.GetPowerEfficiencyMultiplier's own doc comment.
@@ -937,12 +946,26 @@ namespace BOTF3D.UI
                 if (sysCon.StarSysData.ResearchCenters[i].GetComponent<TextMeshProUGUI>().text == "1")
                     loadUI += sysCon.StarSysData.ResearchCenterData.PowerLoad;
 
+            // Ground Forces - see the matching comment in the no-UI branch above.
+            int groundForceLoad = 0;
+            if (sysCon.StarSysData.GroundForceData != null)
+            {
+                groundForceLoad = sysCon.StarSysData.GroundForceData.CurrentPowerLoad(sysCon.StarSysData.GroundForces.Count);
+                loadUI += groundForceLoad;
+            }
+
             loadUI = Mathf.RoundToInt(loadUI * GetPowerLoadMultiplier(sysCon));
             sysCon.StarSysData.TotalSysPowerLoad = loadUI;
             sysCon.StarSysData.TotalSysPowerOutput = outputUI;
 
-            // ✅ Update PowerOverload UI state and ONLY flash when overloaded
             var uiFields = sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
+
+            // Ground Force power load readout (System Invasion Phase 1 follow-up) - raw per-turn
+            // load, same "no tech multiplier applied" convention as factoryLoad/yardLoad/etc. above.
+            if (uiFields?.groundForceLoadText != null)
+                uiFields.groundForceLoadText.text = groundForceLoad.ToString();
+
+            // ✅ Update PowerOverload UI state and ONLY flash when overloaded
             if (uiFields != null && uiFields.PowerOverload != null)
             {
                 if (PowerOverloadImage != null)
@@ -1547,7 +1570,9 @@ namespace BOTF3D.UI
 
             bool IsEligible(ShipController s) =>
                 s != null && s.ShipData != null && !s.ShipData.Distroyed
-                && s.ShipData.CivEnum == owner && s.ShipData.ShipType != ShipType.OrbitalBattery;
+                && s.ShipData.CivEnum == owner && s.ShipData.ShipType != ShipType.OrbitalBattery
+                && s.ShipData.ShipType != ShipType.PlanetaryShield // facility-linked, not player-manageable (System Invasion Phase 1)
+                && s.ShipData.ShipType != ShipType.Shipyard; // same for the Shipyard combat unit (System Invasion Phase 1, 2026-09-11 revision)
 
             if (sysCon.StarSysData.ShipsList != null)
                 foreach (var ship in sysCon.StarSysData.ShipsList)
@@ -2707,6 +2732,7 @@ namespace BOTF3D.UI
                 fields.compactHeader?.RefreshDilithium();
                 fields.compactHeader?.RefreshAntimatter();
                 fields.WireAIModeToggles(sysCon);
+                fields.WireTroopButtons(sysCon);
             }
 
             _currentExpandedSysCon = sysCon;

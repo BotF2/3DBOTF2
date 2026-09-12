@@ -83,6 +83,7 @@ namespace BOTF3D.UI
                 case ShipType.LtCruiser:      return "Lt Cruiser";
                 case ShipType.HvyCruiser:     return "Hvy Cruiser";
                 case ShipType.OrbitalBattery: return "Orbital Bat.";
+                case ShipType.PlanetaryShield: return "Planetary Shield";
                 default:                      return shipType.ToString();
             }
         }

@@ -192,8 +192,13 @@ namespace BOTF3D.Combat
 
         public IEnumerator ShipFireLoop(float initialDelay)
         {
-            // ✅ Transports don't fire weapons
-            if (ShipData != null && ShipData.ShipType == ShipType.Transport)
+            // Transports don't fire weapons. Neither does Shipyard (System Invasion Phase 1,
+            // Docs/Design/SystemInvasion_Phase1_Design.md §3.1) - it's a station, not a warship
+            // (BeamDamage=Torp=0 in ShipStatCalculator, and CombatTargetingSystem never assigns it a
+            // target either), belt-and-suspenders here like Transport above. PlanetaryShield kept for
+            // the same reason even though it's no longer spawned as a combat unit in Phase A.
+            if (ShipData != null && (ShipData.ShipType == ShipType.Transport || ShipData.ShipType == ShipType.PlanetaryShield
+                                      || ShipData.ShipType == ShipType.Shipyard))
             {
                 yield break;
             }
@@ -548,6 +553,10 @@ namespace BOTF3D.Combat
                 ShipData.CurrentStarSysController.RemoveFromShipList(this);
                 if (ShipData.ShipType == ShipType.OrbitalBattery)
                     ShipData.CurrentStarSysController.RemoveOrbitalBatteryFacility();
+                else if (ShipData.ShipType == ShipType.PlanetaryShield)
+                    ShipData.CurrentStarSysController.RemoveShieldGeneratorFacility();
+                else if (ShipData.ShipType == ShipType.Shipyard)
+                    ShipData.CurrentStarSysController.RemoveShipyardFacility();
             }
             if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
             if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);
@@ -669,6 +678,10 @@ namespace BOTF3D.Combat
                 ShipData.CurrentStarSysController.RemoveFromShipList(this);
                 if (ShipData.ShipType == ShipType.OrbitalBattery)
                     ShipData.CurrentStarSysController.RemoveOrbitalBatteryFacility();
+                else if (ShipData.ShipType == ShipType.PlanetaryShield)
+                    ShipData.CurrentStarSysController.RemoveShieldGeneratorFacility();
+                else if (ShipData.ShipType == ShipType.Shipyard)
+                    ShipData.CurrentStarSysController.RemoveShipyardFacility();
             }
             if (CombatManager.Instance != null) CombatManager.Instance.RemoveThisShipController(this);
             if (ShipCombatCameraController.Instance != null) ShipCombatCameraController.Instance.OnShipDestroyed(this);

@@ -279,6 +279,17 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
         /// </summary>
         private CombatOrders PickAIOrder(int side)
         {
+            // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.3,
+            // 2026-09-11 revision): a star system's own defending ships default to Formation - the
+            // wall the system's Orbital Batteries/Shipyard rely on for line-of-sight protection -
+            // rather than a random AI pick. Which side is the system depends on which of
+            // FleetVsSystem/SystemVsFleet this combat is (see SceneController.LoadCombatScene's
+            // shipControllers1/2 assignment for the convention this mirrors).
+            bool sideIsSystem = (combatData.CombatType == CombatType.SystemVsFleet && side == 1)
+                || (combatData.CombatType == CombatType.FleetVsSystem && side == 2);
+            if (sideIsSystem)
+                return CombatOrders.Formation;
+
             var availableOrders = new List<CombatOrders>
             {
                 CombatOrders.Engage,
@@ -565,6 +576,26 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 if (winningCivEnum == CivEnum.BORG && combatData.StarSysCon != null)
                 {
                     CivManager.Instance.AssimilateSystem(combatData.StarSysCon, CivEnum.BORG);
+                }
+                // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§4):
+                // every other civ starts a siege instead of assimilating outright. winningCivEnum !=
+                // the system's pre-combat owner is exactly "the attacking fleet cleared this system's
+                // own combat-capable forces (regular ships + OB + Shield)" - CurrentOwnerCivEnum
+                // hasn't changed yet (no conquest path exists before Invasion.4), so it still reads as
+                // the defender here. The attacker's FleetController is found via the winning side's
+                // own ship list - system-owned ships never carry CurrentFleetController, so this
+                // resolves to the one attacking fleet regardless of which CombatType side it was on.
+                else if (combatData.StarSysCon != null && winningCivEnum != combatData.StarSysCon.StarSysData.CurrentOwnerCivEnum)
+                {
+                    var winningShips = winningCivEnum == combatData.CivEnumSideOne ? combatData.SideOneShipCons : combatData.SideTwoShipCons;
+                    FleetController attackerFleet = winningShips?
+                        .FirstOrDefault(s => s?.ShipData?.CurrentFleetController != null)?
+                        .ShipData.CurrentFleetController;
+
+                    if (attackerFleet != null)
+                        StarSysManager.Instance?.StartSiege(combatData.StarSysCon, attackerFleet);
+                    else
+                        Debug.LogWarning($"[Siege] '{combatData.StarSysCon.StarSysData.SysName}' defenses cleared by {winningCivEnum} but no attacking FleetController found among winning ships - siege not started.");
                 }
             }
 

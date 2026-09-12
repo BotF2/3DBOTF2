@@ -134,6 +134,8 @@ public class StarSysUI_Fields : MonoBehaviour
     public TextMeshProUGUI groundForceName;
     public TextMeshProUGUI numGroundForce;
     public TextMeshProUGUI populationText;
+    [Tooltip("LoadText (TMP) under the Ground Force section - numeric power load the fielded troops currently draw (peacetime or, once GroundForceData.OnCombatFooting, combat rate). See GroundForceData.CurrentPowerLoad.")]
+    public TextMeshProUGUI groundForceLoadText;
 
     [Header("Images")]
     public Image powerUnitImage;
@@ -416,10 +418,12 @@ public class StarSysUI_Fields : MonoBehaviour
             }
         }
 
-        // Ground forces have no power/on-off entry in the facilities list above (no power load,
-        // no on/off buttons), so they're synced directly here instead. GroundForceData still has no
-        // CSV/SO importer for a designer-authored name/sprite, so those stay blank/prefab-authored
-        // until that pipeline exists — only the count/grid and population are live.
+        // Ground forces have no per-unit on/off entry in the facilities list above - their power
+        // load is a single always-on line item (GroundForceData.CurrentPowerLoad, set in
+        // RefreshGroundForceDisplay below), not a per-GameObject toggle like every other facility
+        // here. GroundForceData still has no CSV/SO importer for a designer-authored name/sprite, so
+        // those stay blank/prefab-authored until that pipeline exists — only the count/grid,
+        // population, and power load are live.
         var gfd = data.GroundForceData;
         var groundForces = data.GroundForces;
         int totalGroundForces = groundForces?.Count ?? 0;
@@ -433,8 +437,7 @@ public class StarSysUI_Fields : MonoBehaviour
         // data.Population already excludes GroundForces under the carve-out model in
         // StarSysManager/PopulationManager (ground forces are drawn out of, not added on top of, the
         // population pool), so it doesn't need GroundForces subtracted again here.
-        if (populationText != null) populationText.text = data.Population.ToString();
-        SyncGroundForceGrid(groundForces);
+        RefreshGroundForceDisplay(data);
 
         // show/hide power overload indicator
         if (PowerOverload != null)
@@ -511,24 +514,43 @@ public class StarSysUI_Fields : MonoBehaviour
     }
 
     /// <summary>
-    /// Keeps one GroundForceElement icon per ground force unit in groundForceContent, in sync with
-    /// data.GroundForces, up to groundForceGridLimit. Ground forces have no power load and no on/off
-    /// state, so every icon shown is simply active — there is no gray-out step like orbital batteries.
-    /// Called from InitializeFromStarSysData.
+    /// Keeps one GroundForceElement icon per ground force unit - both fielded (data.GroundForces,
+    /// full color) and pending training (data.TrainingGroundForces, desaturated via
+    /// GroundForceIconUI.SetTraining until StarSysManager.ProcessGroundForceTrainingForAllCivs
+    /// completes them at the next Advance Turn) - in groundForceContent. Capped at
+    /// groundForceGridLimit - 1, not groundForceGridLimit, so there's always at least one empty grid
+    /// slot visible as a "there's still room" cue; anything beyond that simply isn't shown (out of
+    /// view, not blocked - same overflow philosophy as the OB grid). Called from
+    /// InitializeFromStarSysData.
     /// </summary>
-    public void SyncGroundForceGrid(List<GameObject> groundForces)
+    public void SyncGroundForceGrid(StarSysData data)
     {
-        if (groundForceContent == null || groundForceIconPrefab == null || groundForces == null)
+        if (groundForceContent == null || groundForceIconPrefab == null || data?.GroundForces == null)
             return;
 
         var existingIcons = groundForceContent.GetComponentsInChildren<GroundForceIconUI>(true);
         var usedIcons = new HashSet<GroundForceIconUI>();
+        int displayLimit = Mathf.Max(0, groundForceGridLimit - 1);
 
-        int shown = 0;
-        foreach (var facilityGO in groundForces)
+        int shown = SyncGroundForceIcons(data.GroundForces, false, existingIcons, usedIcons, displayLimit, 0);
+        if (data.TrainingGroundForces != null)
+            SyncGroundForceIcons(data.TrainingGroundForces, true, existingIcons, usedIcons, displayLimit, shown);
+
+        // Hide any leftover icons beyond the display limit or for units no longer in either list
+        foreach (var existing in existingIcons)
+        {
+            if (!usedIcons.Contains(existing))
+                existing.gameObject.SetActive(false);
+        }
+    }
+
+    private int SyncGroundForceIcons(List<GameObject> units, bool isTraining, GroundForceIconUI[] existingIcons,
+        HashSet<GroundForceIconUI> usedIcons, int displayLimit, int shown)
+    {
+        foreach (var facilityGO in units)
         {
             if (facilityGO == null) continue;
-            if (shown >= groundForceGridLimit) break;
+            if (shown >= displayLimit) break;
 
             GroundForceIconUI iconUI = null;
             foreach (var existing in existingIcons)
@@ -553,15 +575,65 @@ public class StarSysUI_Fields : MonoBehaviour
             }
 
             iconUI.gameObject.SetActive(true);
+            iconUI.SetTraining(isTraining);
             usedIcons.Add(iconUI);
             shown++;
         }
+        return shown;
+    }
 
-        // Hide any leftover icons beyond the grid limit or for units no longer in the list
-        foreach (var existing in existingIcons)
+    [Header("Troop Training")]
+    [Tooltip("Trains one new ground force unit from civilian Population - see StarSysManager.TrainGroundForceUnit.")]
+    public Button troopButtonAdd;
+    [Tooltip("Cancels the most recently queued in-training unit - see StarSysManager.CancelGroundForceTraining.")]
+    public Button troopButtonSubtract;
+
+    /// <summary>
+    /// Wires TroopButtonAdd/TroopButtonSubtract to StarSysManager's training methods, refreshing
+    /// just the population text + ground force grid afterward. Mirrors WireAIModeToggles' pattern -
+    /// called from the same system-UI setup sites, RemoveAllListeners first so repeated calls (the
+    /// panel can be (re)populated more than once) don't stack duplicate handlers.
+    /// </summary>
+    public void WireTroopButtons(StarSysController sysCon)
+    {
+        if (sysCon == null) return;
+
+        if (troopButtonAdd != null)
         {
-            if (!usedIcons.Contains(existing))
-                existing.gameObject.SetActive(false);
+            troopButtonAdd.onClick.RemoveAllListeners();
+            troopButtonAdd.onClick.AddListener(() =>
+            {
+                if (StarSysManager.Instance != null && StarSysManager.Instance.TrainGroundForceUnit(sysCon))
+                    RefreshGroundForceDisplay(sysCon.StarSysData);
+            });
+        }
+
+        if (troopButtonSubtract != null)
+        {
+            troopButtonSubtract.onClick.RemoveAllListeners();
+            troopButtonSubtract.onClick.AddListener(() =>
+            {
+                if (StarSysManager.Instance != null && StarSysManager.Instance.CancelGroundForceTraining(sysCon))
+                    RefreshGroundForceDisplay(sysCon.StarSysData);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the population text, ground force grid, and power-load readout - the things
+    /// TroopButtonAdd/Subtract touch (training/disbanding changes both Population and how many
+    /// troops the power-load readout counts) - without re-running the full InitializeFromStarSysData
+    /// pass. Also called from InitializeFromStarSysData itself for the same reason.
+    /// </summary>
+    private void RefreshGroundForceDisplay(StarSysData data)
+    {
+        if (populationText != null) populationText.text = data.Population.ToString();
+        SyncGroundForceGrid(data);
+
+        if (groundForceLoadText != null)
+        {
+            int load = data.GroundForceData?.CurrentPowerLoad(data.GroundForces.Count) ?? 0;
+            groundForceLoadText.text = load.ToString();
         }
     }
 

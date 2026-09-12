@@ -395,7 +395,20 @@ namespace BOTF3D.Core
         LtCruiser,
         HvyCruiser,
         Transport,
-        OrbitalBattery
+        OrbitalBattery,
+        // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md, 2026-09-11 revision):
+        // no longer a Phase A (space combat) participant - planetary shields protect the ground-side
+        // facilities (Power Plant/Factory/Research Center/themselves/Population/Ground Forces) and
+        // are only relevant to Phase B's Assault System resolution. Kept as an enum value since
+        // Phase B's abstract-attrition representation may still repurpose it (§9 of the doc) - not
+        // currently spawned as a combat ShipController anywhere.
+        PlanetaryShield,
+        // System Invasion Phase 1 §3.1: one unit per built Shipyard facility, mirrors OrbitalBattery's
+        // "stationary system-defense platform" model (never warps in or moves - Warp=0 row in
+        // ShipStatCalculator). Hull only, no Shield stat - a station, not a warship, that relies
+        // entirely on the Orbital Battery wall in front of it for protection (CombatTargetingSystem's
+        // Shipyard-behind-OB-wall screen). Unarmed, same as PlanetaryShield was.
+        Shipyard
     }
 
     public enum GalaxyObjectType

@@ -143,6 +143,13 @@ namespace BOTF3D.Galaxy
         public List<GameObject> OrbitalBatteries;
         public List<GameObject> GroundForces = new List<GameObject>();
 
+        // Player-trained troops (TroopButtonAdd on the System UI) that haven't completed their
+        // basic training yet - shown desaturated (GroundForceIconUI.SetTraining) and NOT counted
+        // as real GroundForces until StarSysManager.ProcessGroundForceTrainingForAllCivs moves them
+        // over at the next Advance Turn. See StarSysManager.TrainGroundForceUnit/
+        // CancelGroundForceTraining.
+        public List<GameObject> TrainingGroundForces = new List<GameObject>();
+
         // ── Facility build ceilings ──────────────────────────────────────────────────
         // How many of each facility type this system can ever have BUILT (active or not) is no
         // longer tracked as per-system state here - StarSysManager.GetFacilityCap computes it live
@@ -156,6 +163,18 @@ namespace BOTF3D.Galaxy
         public GameObject buildSlotItemImage;
         public List<GameObject> buildQueueImageList;
         public int BasePowerPerPlant = 20; // two power plants for major home systems so 40 total
+
+        // ── Siege state (System Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §4) ──
+        // Set once Phase A space combat ends with this system's own combat-capable forces (regular
+        // ships + OrbitalBattery + PlanetaryShield) all destroyed and the attacking fleet still alive
+        // (TurnBasedCombatResolver.ShowVictoryScreen). Cleared by StarSysManager.EndSiege once the
+        // siege resolves or the besieging fleet is gone. Host-authoritative plain state, same as
+        // CurrentOwnerCivEnum and every other StarSysData field - not yet independently networked to
+        // non-host clients (see FleetController.IsBesiegingSystem's own note for the matching gap on
+        // the fleet side).
+        public FleetController BesiegingFleet;
+        public CivEnum BesiegingCivEnum;
+        public bool DefensesCleared;
 
         public int TotalSysPowerOutput = 0;
         public int TotalSysPowerLoad = 0;

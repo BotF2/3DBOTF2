@@ -513,6 +513,36 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
+        /// Adds a ship the system's Shipyard just completed mid-combat into this ongoing Phase A
+        /// fight (System Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §3 follow-up,
+        /// 2026-09-11) - called by ShipManager.BuildShipInSystem when it detects an active combat at
+        /// the system a ship just finished building at. Positions it near a living Shipyard on the
+        /// given side (falling back to the normal combat-line spawn if none is found - shouldn't
+        /// happen, since Phase A already requires the Shipyard alive for combat to still be running),
+        /// registers it in that side's CombatData.SideXShipCons so the very next
+        /// AssignTargetsToAllShips/StartAllShipWeaponFire pass picks it up like any other ship, and
+        /// sets it to Engage (see ShipSetupManager.SetupReinforcementShip for why).
+        /// </summary>
+        public void AddReinforcementShip(ShipController ship, int side)
+        {
+            if (ship == null || ship.ShipData == null) return;
+
+            List<ShipController> sideShips = side == 1 ? CombatData.SideOneShipCons : CombatData.SideTwoShipCons;
+
+            ShipController shipyard = sideShips.FirstOrDefault(s =>
+                s != null && s.ShipData != null && !s.ShipData.Distroyed && s.ShipData.ShipType == ShipType.Shipyard);
+            Vector3 nearPosition = shipyard != null
+                ? shipyard.transform.position
+                : new Vector3(WarpAnimationController.GetWarpEndX(side, false), 0f, 0f);
+
+            shipSetupManager.SetupReinforcementShip(ship, side, nearPosition);
+            sideShips.Add(ship);
+
+            GameLogger.Log(GameLogger.LogCategory.Combat,
+                $"[Shipyard] '{ship.ShipData.ShipName}' launched into ongoing combat at '{CombatData.StarSysCon?.StarSysData?.SysName}'.", this);
+        }
+
+        /// <summary>
         /// Proxy coroutine for ship firing
         /// </summary>
         private IEnumerator ShipFireLoopProxy(ShipController ship, float initialDelay)
@@ -791,6 +821,15 @@ namespace BOTF3D.Combat
             // branch keys off CurrentFleetController != null, which a garrisoned Transport
             // (never merged into a fleet) never has even when it isn't destroyed.
             ApplyTransportCargoConsequences();
+
+            // Ground Forces power upkeep (System Invasion Phase 1 follow-up, 2026-09): troops go
+            // back to peacetime draw now that Phase A combat is over - the combat-footing bump
+            // itself came from StarSysManager.ReallocatePowerForCombat at combat entry.
+            if (CombatData.StarSysCon?.StarSysData?.GroundForceData != null)
+            {
+                CombatData.StarSysCon.StarSysData.GroundForceData.OnCombatFooting = false;
+                StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(CombatData.StarSysCon);
+            }
 
             // Use pre-captured fleet refs (collected at combat start, before any ship deaths)
             GameLogger.Log(GameLogger.LogCategory.Combat, $"  Processing {_involvedFleets.Count} fleets for end-of-combat cleanup", this);

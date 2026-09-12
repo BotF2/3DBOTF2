@@ -55,6 +55,13 @@ public class FleetUI_Fields : MonoBehaviour
     // see FleetMenuUIController.ClickCloakToggleButton and FleetData.IsCloakActive's own comment.
     // Same Editor-wiring pattern as TranswarpButton above.
     public Button CloakToggleButton;
+    // System Invasion Phase 1 siege (Docs/Design/SystemInvasion_Phase1_Design.md §4) - shown only
+    // while this fleet is actively besieging a system (FleetController.IsBesiegingSystem), letting
+    // the player voluntarily give up the siege and free the fleet to move again instead of it being
+    // possible only once Invasion.3/4's real Bombard/Invade panel ships. See
+    // FleetMenuUIController.ClickBreakOffSiegeButton. Same Editor-wiring pattern as TranswarpButton
+    // above - assign a Button GameObject to this slot before it appears in-game.
+    public Button BreakOffSiegeButton;
 
     [Header("Sliders")]
     public Slider WarpSlider;

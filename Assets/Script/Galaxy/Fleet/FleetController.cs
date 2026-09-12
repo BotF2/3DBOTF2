@@ -104,6 +104,78 @@ namespace BOTF3D.Galaxy
             DiplomacyManager.Instance?.ServerImplicitlyWithdrawFleetFromPendingEncounters(this);
         }
 
+        // Siege freeze (System Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §4) -
+        // deliberately a SEPARATE SyncVar/gate from syncedPendingEncounterCount above rather than
+        // reusing it, even though the doc originally suggested reuse. Reason: CombatController.
+        // EndCombat()'s finally block unconditionally calls ServerDecrementPendingEncounters() on
+        // every fleet involved in the combat that just ended - the mechanism that correctly releases
+        // a fleet that was frozen awaiting a Diplomacy Fight/Withdraw decision before combat started.
+        // A siege starts inside that same EndCombat() call (TurnBasedCombatResolver.ShowVictoryScreen
+        // runs first and calls StarSysManager.StartSiege before EndCombat's finally block runs), so an
+        // increment added there would just get silently cancelled by that same-call decrement -
+        // fine by coincidence when a prior encounter is also pending (two increments, one decrement,
+        // net still frozen), but wrong and fragile the moment combat starts through any path that
+        // didn't pre-increment the counter (no guaranteed invariant to lean on). A dedicated flag
+        // uncouples this from the encounter/diplomacy lifecycle entirely.
+        [SyncVar]
+        private bool syncedIsBesiegingSystem = false;
+        public bool IsBesiegingSystem => syncedIsBesiegingSystem;
+
+        [Server]
+        public void ServerSetBesiegingSystem(bool value)
+        {
+            syncedIsBesiegingSystem = value;
+            Debug.Log($"[Siege] {name}: IsBesiegingSystem -> {value}");
+        }
+
+        // Client-safe entry point for the Fleet UI's Break Off Siege button (FleetMenuUIController) -
+        // same isServer/Cmd-relay split as RequestStartCombat/RequestSetEncounterResponse above, since
+        // a non-host client mutating FleetData/StarSysData directly would only ever affect that one
+        // client's local copy (see the standing project note on FleetData mutations needing an
+        // explicit relay). Voluntarily gives up the siege instead of waiting for Invasion.3/4's real
+        // Bombard/Invade resolution to end it - System Invasion Phase 1, Docs/Design/
+        // SystemInvasion_Phase1_Design.md §9 (an explicit choice was left open there rather than an
+        // automatic implicit-withdraw like the Diplomacy encounter case, since giving up a siege feels
+        // like it should be deliberate).
+        public void RequestBreakOffSiege()
+        {
+            if (isServer)
+            {
+                ServerBreakOffSiege();
+                return;
+            }
+            CmdBreakOffSiege();
+        }
+
+        [Command(requiresAuthority = false)]
+        private void CmdBreakOffSiege(NetworkConnectionToClient sender = null)
+        {
+            if (!IsSenderAuthorizedForThisFleet(sender))
+            {
+                Debug.LogWarning($"CmdBreakOffSiege: connection {sender?.connectionId} is not authorized to command fleet '{name}'.");
+                return;
+            }
+            ServerBreakOffSiege();
+        }
+
+        [Server]
+        private void ServerBreakOffSiege()
+        {
+            if (!IsBesiegingSystem) return;
+            StarSysController sysCon = FleetData?.BesiegedSystem;
+            if (sysCon == null)
+            {
+                // Shouldn't happen (StartSiege/EndSiege keep IsBesiegingSystem and
+                // FleetData.BesiegedSystem in lockstep) - self-heal rather than leave the fleet
+                // permanently frozen with nothing to point EndSiege at.
+                Debug.LogWarning($"ServerBreakOffSiege: '{name}' is marked IsBesiegingSystem but FleetData.BesiegedSystem is null - clearing the freeze directly.");
+                ServerSetBesiegingSystem(false);
+                return;
+            }
+            StarSysManager.Instance?.EndSiege(sysCon);
+            Debug.Log($"[Siege] '{name}' broke off the siege of '{sysCon.StarSysData?.SysName}'.");
+        }
+
         // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the
         // initial spawn sync. Keeps a non-host client's already-built FleetData/slider in sync with
         // fleet composition changes it has no other way of detecting.
@@ -656,6 +728,7 @@ namespace BOTF3D.Galaxy
             if (FleetData == null) return;
             if (TimeManager.Instance == null || TimeManager.Instance.TurnPhase == TurnPhase.InterTurn) return;
             if (IsAwaitingEncounterResolution) return;
+            if (IsBesiegingSystem) return; // System Invasion Phase 1 - frozen at the besieged system until the siege resolves
 
             if (FleetData.CurrentWarpFactor <= 0f || FleetData.Destination == null)
                 warpDecayTransitStartTurn = -1;
@@ -961,33 +1034,50 @@ namespace BOTF3D.Galaxy
 
                     if (isEnemyFleet)
                     {
-                        // Enemy contact always stops this fleet and queues a diplomacy encounter.
-                        // The previous gate (isOurDestination||contactIsIntercept) silently dropped
-                        // first contact whenever neither fleet had the other as an explicit destination
-                        // (e.g. paths crossing, or a fleet approaching a system that an enemy fleet
-                        // was already orbiting). EnqueueFleetVsFleet deduplicates pairs, so Unity
-                        // raising OnTriggerEnter on both colliders for the same overlap is safe.
-                        ClickCancelDestinationButton();
+                        // ✅ FIX (requested 2026-09, to be re-evaluated with more playtesting):
+                        // relations better than Hostile (DiplomacyStatusEnum > 20) pass through
+                        // without stopping either fleet or opening a Diplomacy encounter - only
+                        // Hostile/ColdWar/War-level contacts do. Without this, a fleet cruising past
+                        // a friendly/neutral civ's fleet on the way to a different destination got
+                        // yanked to a dead stop and its destination/warp canceled every single time,
+                        // forcing the player to re-set both by hand just to continue an already-issued
+                        // order. No diploCon (civs that have never established a relation record)
+                        // falls back to the old stop-and-open-diplomacy behavior.
+                        DiplomacyController relationDiploCon = DiplomacyManager.Instance?.ReturnADiplomacyController(FleetData.CivEnum, hitFleetCon.FleetData.CivEnum);
+                        bool relationAllowsPassThrough = relationDiploCon != null
+                            && relationDiploCon.DiplomacyData.DiplomacyStatusEnumOfCivs > DiplomacyStatusEnum.Hostile;
 
-                        // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
-                        // is only ever processed on the server, and DiplomacyManager is a plain,
-                        // unnetworked per-client singleton - resolving this locally on whichever
-                        // client's physics happened to fire this trigger would only ever open the
-                        // Diplomacy UI on that one machine. Always queue rather than resolving
-                        // inline here: GalaxyEncounterQueue.ProcessPendingForThisTick (run once per
-                        // physics step, after every fleet's own FixedUpdate) groups everything that
-                        // arrived in the same tick before resolving any of it, so two fleets that
-                        // converge on each other simultaneously are drawn into the same decision
-                        // instead of whichever collider fired first getting an initiative advantage.
-                        if (isServer)
+                        if (!relationAllowsPassThrough)
                         {
-                            hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
-                            OnADestinationThatIsOtherCivFleet(hitFleetCon);
-                            GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
-                        }
+                            // Enemy contact stops this fleet and queues a diplomacy encounter. The
+                            // previous gate (isOurDestination||contactIsIntercept) silently dropped
+                            // first contact whenever neither fleet had the other as an explicit
+                            // destination (e.g. paths crossing, or a fleet approaching a system that
+                            // an enemy fleet was already orbiting). EnqueueFleetVsFleet deduplicates
+                            // pairs, so Unity raising OnTriggerEnter on both colliders for the same
+                            // overlap is safe.
+                            ClickCancelDestinationButton();
 
-                        if (hitFleetCon.FleetData.Destination == this.gameObject)
-                            CloseUnLoadFleetUI(this);
+                            // Encounter resolution must be server-authoritative: GalaxyEncounterQueue
+                            // is only ever processed on the server, and DiplomacyManager is a plain,
+                            // unnetworked per-client singleton - resolving this locally on whichever
+                            // client's physics happened to fire this trigger would only ever open the
+                            // Diplomacy UI on that one machine. Always queue rather than resolving
+                            // inline here: GalaxyEncounterQueue.ProcessPendingForThisTick (run once per
+                            // physics step, after every fleet's own FixedUpdate) groups everything that
+                            // arrived in the same tick before resolving any of it, so two fleets that
+                            // converge on each other simultaneously are drawn into the same decision
+                            // instead of whichever collider fired first getting an initiative advantage.
+                            if (isServer)
+                            {
+                                hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
+                                OnADestinationThatIsOtherCivFleet(hitFleetCon);
+                                GalaxyEncounterQueue.Instance?.EnqueueFleetVsFleet(this, hitFleetCon);
+                            }
+
+                            if (hitFleetCon.FleetData.Destination == this.gameObject)
+                                CloseUnLoadFleetUI(this);
+                        }
                     }
                     else if (isOurDestination || contactIsIntercept) // friendly fleet at our destination
                     {
@@ -1380,6 +1470,13 @@ namespace BOTF3D.Galaxy
                     Debug.Log($"🚚 HandleShipMergeSelection: system '{starSysLooking.StarSysData.SysName}' launching a convoy to merge into '{clickedFleetCon.name}'");
                     FleetManager.Instance.LaunchConvoyMergeSystemToFleet(starSysLooking, clickedFleetCon);
                 }
+
+                // ✅ FIX: System-to-Fleet merge is launched from the Manage Ships overlay (opened via
+                // StarSysMenuUIController.StarSysClickMergeShipsButton), which sits on top of
+                // everything else and isn't tracked by galaxyUI's Menu enum - so CloseMenu(ASystemMenu)
+                // below never touches it. Without this, the ships moved as expected but the overlay
+                // itself was left stuck open with no underlying system UI visible behind it.
+                StarSysManager.Instance?.HideManageShipsUI();
 
                 galaxyUI.ClickCancelShipDeployButton();
                 galaxyUI.CloseMenu(Menu.AFleetMenu);

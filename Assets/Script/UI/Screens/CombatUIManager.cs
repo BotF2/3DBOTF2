@@ -52,6 +52,12 @@ namespace BOTF3D.UI
         private TextMeshProUGUI sideOneTechLevel, sideTwoTechLevel;
         private TextMeshProUGUI s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1Total;
         private TextMeshProUGUI s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total;
+        // Facility combatants (System Invasion Phase 1 follow-up) - Orbital Batteries and Shipyards
+        // fight alongside ships in a system-defense combat (see CombatTargetingSystem/
+        // ShipSetupManager) but previously had no line item of their own on the pre-combat menu,
+        // so a system with e.g. an OB and a Shipyard silently vanished into the ship-type Total.
+        private TextMeshProUGUI s1OrbitalBatteries, s1Shipyards;
+        private TextMeshProUGUI s2OrbitalBatteries, s2Shipyards;
 
         // ✅ Combat state
         private float remainingTime = 15f; // Order selection time
@@ -612,6 +618,8 @@ namespace BOTF3D.UI
                 s1HvyCruisers = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumHVYCruisers");
                 s1Transports = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumTransports");
                 s1Total = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumTotal");
+                s1OrbitalBatteries = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumOrbitalBattery");
+                s1Shipyards = FindComponentByName<TextMeshProUGUI>(sideOnePanel, "SideOneNumShipyard");
                 Debug.Log("  ✅ Side One Civ UI found");
             }
 
@@ -629,6 +637,8 @@ namespace BOTF3D.UI
                 s2HvyCruisers = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumHVYCruisers");
                 s2Transports = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumTransports");
                 s2Total = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumTotal");
+                s2OrbitalBatteries = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumOrbitalBattery");
+                s2Shipyards = FindComponentByName<TextMeshProUGUI>(sideTwoPanel, "SideTwoNumShipyard");
                 Debug.Log("  ✅ Side Two Civ UI found");
             }
         }
@@ -649,12 +659,12 @@ namespace BOTF3D.UI
             // Update Side One Data
             if (sideOneCivName != null) sideOneCivName.text = data.sideOneCiv?.CivShortName ?? data.CivEnumSideOne.ToString();
             if (sideOneTechLevel != null) sideOneTechLevel.text = GetTechLevelRoman(data.sideOneCiv?.CivData?.CurrentTechLevel ?? TechLevel.EARLY);
-            UpdateShipCounts(data.SideOneShipCons, s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1Total);
+            UpdateShipCounts(data.SideOneShipCons, s1Scouts, s1Destroyers, s1Cruisers, s1LtCruisers, s1HvyCruisers, s1Transports, s1OrbitalBatteries, s1Shipyards, s1Total);
 
             // Update Side Two Data
             if (sideTwoCivName != null) sideTwoCivName.text = data.sideTwoCiv?.CivShortName ?? data.CivEnumSideTwo.ToString();
             if (sideTwoTechLevel != null) sideTwoTechLevel.text = GetTechLevelRoman(data.sideTwoCiv?.CivData?.CurrentTechLevel ?? TechLevel.EARLY);
-            UpdateShipCounts(data.SideTwoShipCons, s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2Total);
+            UpdateShipCounts(data.SideTwoShipCons, s2Scouts, s2Destroyers, s2Cruisers, s2LtCruisers, s2HvyCruisers, s2Transports, s2OrbitalBatteries, s2Shipyards, s2Total);
 
             Debug.Log("📊 Combat Menu data updated");
         }
@@ -671,7 +681,7 @@ namespace BOTF3D.UI
             }
         }
 
-        private void UpdateShipCounts(List<ShipController> ships, TextMeshProUGUI scouts, TextMeshProUGUI destroyers, TextMeshProUGUI cruisers, TextMeshProUGUI ltCruisers, TextMeshProUGUI hvyCruisers, TextMeshProUGUI transports, TextMeshProUGUI total)
+        private void UpdateShipCounts(List<ShipController> ships, TextMeshProUGUI scouts, TextMeshProUGUI destroyers, TextMeshProUGUI cruisers, TextMeshProUGUI ltCruisers, TextMeshProUGUI hvyCruisers, TextMeshProUGUI transports, TextMeshProUGUI orbitalBatteries, TextMeshProUGUI shipyards, TextMeshProUGUI total)
         {
             if (ships == null) return;
 
@@ -684,6 +694,10 @@ namespace BOTF3D.UI
             int nLtCruisers = activeShips.Count(s => s.ShipData.ShipType == ShipType.LtCruiser);
             int nHvyCruisers = activeShips.Count(s => s.ShipData.ShipType == ShipType.HvyCruiser);
             int nTransports = activeShips.Count(s => s.ShipData.ShipType == ShipType.Transport);
+            // System-defense facility combatants (see ShipSetupManager.SetupOrbitalBatteryWall/
+            // SetupShipyards) - previously only counted into `total` with no line item of their own.
+            int nOrbitalBatteries = activeShips.Count(s => s.ShipData.ShipType == ShipType.OrbitalBattery);
+            int nShipyards = activeShips.Count(s => s.ShipData.ShipType == ShipType.Shipyard);
 
             if (scouts != null) scouts.text = nScouts.ToString();
             if (destroyers != null) destroyers.text = nDestroyers.ToString();
@@ -691,6 +705,8 @@ namespace BOTF3D.UI
             if (ltCruisers != null) ltCruisers.text = nLtCruisers.ToString();
             if (hvyCruisers != null) hvyCruisers.text = nHvyCruisers.ToString();
             if (transports != null) transports.text = nTransports.ToString();
+            if (orbitalBatteries != null) orbitalBatteries.text = nOrbitalBatteries.ToString();
+            if (shipyards != null) shipyards.text = nShipyards.ToString();
             if (total != null) total.text = activeShips.Count.ToString();
         }
 
@@ -1273,6 +1289,7 @@ namespace BOTF3D.UI
             sideTwoTechLevel = null;
             s1Scouts = s1Destroyers = s1Cruisers = s1LtCruisers = s1HvyCruisers = s1Transports = s1Total = null;
             s2Scouts = s2Destroyers = s2Cruisers = s2LtCruisers = s2HvyCruisers = s2Transports = s2Total = null;
+            s1OrbitalBatteries = s1Shipyards = s2OrbitalBatteries = s2Shipyards = null;
 
             waitingForOpponentText = null;
             enterCombatButton = null;

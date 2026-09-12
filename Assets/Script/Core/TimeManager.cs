@@ -468,6 +468,7 @@ namespace BOTF3D.Core
             StarSysManager.Instance?.ProcessAntimatterFuelLoop();
             StarSysManager.Instance?.ProcessRepairs();
             PopulationManager.Instance?.ProcessPopulationGrowthForAllCivs();
+            StarSysManager.Instance?.ProcessGroundForceTrainingForAllCivs();
 
             // Elimination (lost every system and fleet) and victory (a playable civ owns a third
             // of the galaxy's systems) are both turn-boundary checks, run last so they see this

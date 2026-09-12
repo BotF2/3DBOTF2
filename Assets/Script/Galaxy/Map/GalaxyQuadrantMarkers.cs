@@ -68,10 +68,10 @@ namespace BOTF3D.Galaxy
                 CreateLabel(parent, name, "XEdge", new Vector3(xEdge * 0.5f, labelHeight, zEdge));
             }
 
-            CreatePost(parent, new Vector3(0f, 0f, GalaxyPositionBounds.ZMin)); // Alpha | Beta
-            CreatePost(parent, new Vector3(GalaxyPositionBounds.XMax, 0f, 0f)); // Beta | Delta
-            CreatePost(parent, new Vector3(0f, 0f, GalaxyPositionBounds.ZMax)); // Delta | Gamma
-            CreatePost(parent, new Vector3(GalaxyPositionBounds.XMin, 0f, 0f)); // Gamma | Alpha
+            CreatePost(parent, new Vector3(0f, -5f, GalaxyPositionBounds.ZMin)); // Alpha | Beta
+            CreatePost(parent, new Vector3(GalaxyPositionBounds.XMax, -5f, 0f)); // Beta | Delta
+            CreatePost(parent, new Vector3(0f, -5f, GalaxyPositionBounds.ZMax)); // Delta | Gamma
+            CreatePost(parent, new Vector3(GalaxyPositionBounds.XMin, -5f, 0f)); // Gamma | Alpha
         }
 
         private void CreateLabel(Transform parent, string quadrantName, string edgeSuffix, Vector3 localPosition)

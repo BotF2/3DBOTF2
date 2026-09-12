@@ -1054,28 +1054,56 @@ namespace BOTF3D.Galaxy
                     FleetChildFields fleetChildFields = fleetController.GetComponent<FleetChildFields>();
                     if (fleetChildFields != null)
                     {
+                        var fogAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
+
                         // Reveal actual insignia
+                        SpriteRenderer srInsignia = null;
                         if (fleetChildFields.InsigniaGO != null)
                         {
                             fleetChildFields.InsigniaGO.SetActive(true);
-                            var sr = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
-                            if (sr != null) sr.enabled = true;
+                            srInsignia = fleetChildFields.InsigniaGO.GetComponent<SpriteRenderer>();
                         }
 
                         // Hide unknown insignia
+                        SpriteRenderer srInsigniaUnknown = null;
                         if (fleetChildFields.InsigniaUnknownGO != null)
                         {
+                            srInsigniaUnknown = fleetChildFields.InsigniaUnknownGO.GetComponent<SpriteRenderer>();
                             fleetChildFields.InsigniaUnknownGO.SetActive(false);
+                        }
+
+                        // ✅ FIX: hand the real insignia sprite over to the fog agent's per-frame
+                        // toggle (swapped in for the now-irrelevant "unknown" sprite) instead of
+                        // force-enabling it once here and leaving it untouched forever after. The
+                        // comment this replaced claimed the sprite "correctly re-hides via the agent's
+                        // per-frame toggle", but that's only true for a fleet whose contact already
+                        // existed at RegisterFleetControllerAndSetupVisuals time (which does wire
+                        // srInsignia into the agent's spriteRenderers list) - contact granted mid-game,
+                        // through this method, never added it, so a fleet met once stayed visible on
+                        // the galaxy map forever afterward, even far outside fog-revealed range (only
+                        // its DropLine, still genuinely fog-gated via the agent's auto-collected
+                        // LineRenderer list, correctly disappeared).
+                        if (fogAgent != null)
+                        {
+                            if (srInsigniaUnknown != null)
+                                fogAgent.spriteRenderers.Remove(srInsigniaUnknown);
+                            if (srInsignia != null && !fogAgent.spriteRenderers.Contains(srInsignia))
+                                fogAgent.spriteRenderers.Add(srInsignia);
+                            if (srInsignia != null)
+                                srInsignia.enabled = fogAgent.Visibility;
+                        }
+                        else if (srInsignia != null)
+                        {
+                            // No fog agent (e.g. fog system unavailable) - fall back to old behavior.
+                            srInsignia.enabled = true;
                         }
 
                         // Reveal fleet name - gate it through the fog visibility agent (same as
                         // RegisterFleetControllerAndSetupVisuals) rather than SetActive(true)'ing it
                         // permanently, otherwise contact made mid-game leaks the name/position of
-                        // this fleet through fog-of-war forever, unlike its sprite which correctly
-                        // re-hides via the agent's per-frame toggle.
+                        // this fleet through fog-of-war forever.
                         if (fleetChildFields.FleetNameGO != null)
                         {
-                            var fogAgent = fleetController.gameObject.GetComponent<csFogVisibilityAgent>();
                             if (fogAgent != null)
                             {
                                 if (!fogAgent.gatedGameObjects.Contains(fleetChildFields.FleetNameGO))

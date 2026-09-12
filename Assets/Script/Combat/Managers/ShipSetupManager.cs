@@ -111,7 +111,20 @@ namespace BOTF3D.Combat
                 .Where(s => s != null && s.ShipData != null && s.ShipData.CurrentStarSysController != null)
                 .ToList();
 
-            Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports, {systemShips.Count} system-owned (stationary)");
+            // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.2,
+            // 2026-09-11 revision): Orbital Batteries form a wall between the enemy and the
+            // Shipyard, not just another entry in the shared system-ships spiral. Split out so each
+            // gets its own dedicated layout below - see SetupOrbitalBatteryWall/SetupShipyards.
+            List<ShipController> orbitalBatteryShips = systemShips
+                .Where(s => s.ShipData.ShipType == ShipType.OrbitalBattery).ToList();
+            List<ShipController> shipyardShips = systemShips
+                .Where(s => s.ShipData.ShipType == ShipType.Shipyard).ToList();
+            List<ShipController> otherSystemShips = systemShips
+                .Where(s => s.ShipData.ShipType != ShipType.OrbitalBattery && s.ShipData.ShipType != ShipType.Shipyard)
+                .ToList();
+
+            Debug.Log($"  Side {side}: {combatShips.Count} combat, {transportShips.Count} transports, " +
+                      $"{otherSystemShips.Count} other system-owned, {orbitalBatteryShips.Count} OB (wall), {shipyardShips.Count} Shipyard");
 
             // Generate spiral positions and zero-center them so the formation
             // centroid is always at (0,0) regardless of ship count.
@@ -128,7 +141,7 @@ namespace BOTF3D.Combat
             // Offset system-ship spiral further out again so it doesn't overlap combat ships or transports
             int systemSpiralOffset = transportSpiralOffset + Mathf.CeilToInt(Mathf.Sqrt(transportShips.Count)) + 1;
             List<Vector2Int> systemSpiralPositions = CenterSpiralPositions(
-                formationManager.GenerateSpiralPositions(systemShips.Count + systemSpiralOffset)
+                formationManager.GenerateSpiralPositions(otherSystemShips.Count + systemSpiralOffset)
                     .Skip(systemSpiralOffset)
                     .ToList());
 
@@ -144,15 +157,82 @@ namespace BOTF3D.Combat
                 SetupSingleShip(transportShips[i], side, true, transportSpiralPositions[i]);
             }
 
-            // Setup system-owned ships (stationed combat ships, orbital batteries, future
-            // shields) — already in the system, spawn directly at the combat line with no
-            // warp-in animation
-            for (int i = 0; i < systemShips.Count; i++)
+            // Setup other system-owned ships (stationed combat ships, etc.) — already in the
+            // system, spawn directly at the combat line with no warp-in animation
+            for (int i = 0; i < otherSystemShips.Count; i++)
             {
-                SetupSingleShipNoWarp(systemShips[i], side, systemSpiralPositions[i]);
+                SetupSingleShipNoWarp(otherSystemShips[i], side, systemSpiralPositions[i]);
             }
 
-            Debug.Log($"Side {side}: Setup {combatShips.Count} combat ships + {transportShips.Count} transports + {systemShips.Count} system-owned (stationary)");
+            // Orbital Batteries: a wall at the combat line (closest to the enemy of anything
+            // defending this system - Warp=0 so this spawn position is also its permanent combat
+            // position, it never physically moves into Formation like a mobile ship would).
+            SetupOrbitalBatteryWall(orbitalBatteryShips, side);
+
+            // Shipyard: behind the OB wall (further from the enemy along X, same Y/Z depth as the
+            // system's own transport line) - the asset the wall exists to protect. Also Warp=0, so
+            // this spawn position is likewise permanent.
+            SetupShipyards(shipyardShips, side);
+
+            Debug.Log($"Side {side}: Setup {combatShips.Count} combat ships + {transportShips.Count} transports + " +
+                      $"{otherSystemShips.Count} other system-owned + {orbitalBatteryShips.Count} OB + {shipyardShips.Count} Shipyard");
+        }
+
+        /// <summary>
+        /// Raw (uncentered) 5-wide row-major grid slots for `count` items - col wraps every 5, row
+        /// increments after each full row. Always fills from (0,0) outward, so on its own a partial
+        /// row/grid (e.g. a lone Shipyard, or an Orbital Battery wall thinned by combat losses) sits
+        /// pinned to the top-left corner rather than centered - callers should run the result through
+        /// CenterSpiralPositions (same helper the combat-ship spiral formation already uses) before
+        /// use, the way SetupOrbitalBatteryWall/SetupShipyards below do.
+        /// </summary>
+        private static List<Vector2Int> GenerateWallPositions(int count)
+        {
+            var positions = new List<Vector2Int>(count);
+            for (int i = 0; i < count; i++)
+                positions.Add(new Vector2Int(i % 5, i / 5));
+            return positions;
+        }
+
+        /// <summary>
+        /// Arranges Orbital Batteries into an evenly-spaced line (wall) at the system's normal
+        /// combat-line X, centered on (0,0) the same way the combat-ship spiral formation is (see
+        /// CenterSpiralPositions) rather than hard-coded to a "col-2, row-2" offset that only lands
+        /// on true center when the count exactly fills a 5-wide row - any other count (a wall
+        /// thinned by combat losses, in particular) used to sit skewed toward one corner instead of
+        /// facing the enemy's formation dead-on. System Invasion Phase 1, Docs/Design/
+        /// SystemInvasion_Phase1_Design.md §3.2, 2026-09-11 revision.
+        /// </summary>
+        private void SetupOrbitalBatteryWall(List<ShipController> orbitalBatteries, int side)
+        {
+            List<Vector2Int> wallSlots = CenterSpiralPositions(GenerateWallPositions(orbitalBatteries.Count));
+            for (int i = 0; i < orbitalBatteries.Count; i++)
+            {
+                SetupSingleShipNoWarp(orbitalBatteries[i], side, wallSlots[i]);
+            }
+        }
+
+        /// <summary>
+        /// Places the Shipyard behind the Orbital Battery wall - same centered wall-grid shape as
+        /// SetupOrbitalBatteryWall (see that method's comment - a lone Shipyard, the common case,
+        /// used to always land pinned to the grid's corner instead of centered), offset further from
+        /// the enemy along X (xOverride) so OB actually stands between the enemy and the Shipyard
+        /// rather than sharing its X. System Invasion Phase 1, Docs/Design/
+        /// SystemInvasion_Phase1_Design.md §3.1/§3.2, 2026-09-11 revision.
+        /// </summary>
+        private void SetupShipyards(List<ShipController> shipyards, int side)
+        {
+            float sideSign = side == 1 ? -1f : 1f;
+            // Pulled back from the OB wall's combat-line X (±200) toward the transport line
+            // (±400) but not all the way there - stays well inside BeamWeapon's full/near-full
+            // damage band (100-400) so it's still a meaningful combat target, just behind the wall.
+            float shipyardX = sideSign * 300f;
+
+            List<Vector2Int> wallSlots = CenterSpiralPositions(GenerateWallPositions(shipyards.Count));
+            for (int i = 0; i < shipyards.Count; i++)
+            {
+                SetupSingleShipNoWarp(shipyards[i], side, wallSlots[i], shipyardX);
+            }
         }
 
         /// <summary>
@@ -213,12 +293,15 @@ namespace BOTF3D.Combat
         /// so a ship without WarpData is automatically left out of the warp coroutine and simply
         /// sits there, already "arrived", for the rest of setup.
         /// </summary>
-        private void SetupSingleShipNoWarp(ShipController ship, int side, Vector2Int spiralPos)
+        private void SetupSingleShipNoWarp(ShipController ship, int side, Vector2Int spiralPos, float? xOverride = null)
         {
             // System ships hold the same combat-line X as regular combat ships (±200) — well
             // inside both TorpedoMaxRange (350) and BeamWeapon's full/near-full damage band
             // (100-400) of where the fight actually happens, unlike the transport line further back.
-            float endX = WarpAnimationController.GetWarpEndX(side, false);
+            // xOverride lets a caller place a stationary system unit further back along this same
+            // line (e.g. SetupShipyards, behind the Orbital Battery wall - System Invasion Phase 1,
+            // Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§3.2).
+            float endX = xOverride ?? WarpAnimationController.GetWarpEndX(side, false);
             Vector3 position = new Vector3(endX, spiralPos.y * SPACING, spiralPos.x * SPACING);
 
             ship.transform.SetParent(null, true);
@@ -226,7 +309,11 @@ namespace BOTF3D.Combat
 
             ship.transform.position = position;
             SetShipRotation(ship, side);
-            ship.transform.localScale = Vector3.one;
+            // Orbital Battery reuses a small placeholder-scaled FBX - doubled here (root transform,
+            // not the model prefab itself) so it reads as a distinct, substantial platform in the
+            // wall rather than blending in at 1x scale. Every other system-owned type (Shipyard,
+            // regular defending ships) stays at its authored 1x.
+            ship.transform.localScale = ship.ShipData.ShipType == ShipType.OrbitalBattery ? Vector3.one * 2f : Vector3.one;
             ship.name = ship.ShipData.ShipName;
             ship.gameObject.SetActive(true);
 
@@ -246,6 +333,60 @@ namespace BOTF3D.Combat
             SetupShipWeapons(ship, side);
 
             Debug.Log($"  ✅ Setup system-owned ship {ship.ShipData.ShipName} in CombatScene at {position} (no warp-in)");
+        }
+
+        /// <summary>
+        /// Injects a ship the system's Shipyard just completed while Phase A combat is already
+        /// underway into the ongoing fight - launched from near the Shipyard rather than warping
+        /// in from outside (it isn't arriving from elsewhere, it's leaving a facility already in
+        /// the scene). Unlike SetupSingleShipNoWarp's system-owned ships (OB/Shipyard, which never
+        /// move - CombatOrderStateMachine.isSystemOwned gates on ShipData.CurrentStarSysController
+        /// != null), this ship has CurrentStarSysController cleared first so it's treated as a
+        /// normal mobile combatant instead of a stationary defense. System Invasion Phase 1,
+        /// Docs/Design/SystemInvasion_Phase1_Design.md §3 follow-up (2026-09-11) - see
+        /// CombatController.AddReinforcementShip for the caller.
+        /// </summary>
+        public void SetupReinforcementShip(ShipController ship, int side, Vector3 nearPosition)
+        {
+            // Detach from the system's docked-ship bookkeeping so CombatOrderStateMachine treats
+            // this as a mobile combatant, not a stationary system defense.
+            ship.ShipData.CurrentStarSysController = null;
+
+            ship.transform.SetParent(null, true);
+            MoveShipToCombatScene(ship);
+
+            // Small random jitter so multiple reinforcements launched close together don't spawn
+            // stacked exactly on top of each other or the Shipyard.
+            Vector3 jitter = new Vector3(0f, Random.Range(-SPACING, SPACING), Random.Range(-SPACING, SPACING));
+            ship.transform.position = nearPosition + jitter;
+            SetShipRotation(ship, side);
+            ship.transform.localScale = Vector3.one;
+            ship.name = ship.ShipData.ShipName;
+            ship.gameObject.SetActive(true);
+
+            GameObject shipModel = InstantiateShipModel(ship);
+            AddShipCollider(ship, shipModel);
+
+            CombatOrderStateMachine stateMachine = ship.GetComponent<CombatOrderStateMachine>();
+            if (stateMachine == null)
+                stateMachine = ship.gameObject.AddComponent<CombatOrderStateMachine>();
+            stateMachine.Side = side;
+            stateMachine.ShipController = ship;
+
+            // Move toward the enemy and fire as targets are located, per the design request -
+            // Engage is the order that does exactly this (ExecuteEngage's approach-and-fire
+            // behavior), rather than inheriting the defending side's current collective order
+            // (often Formation by default - see TurnBasedCombatResolver.PickAIOrder). This only
+            // guarantees its FIRST turn joining the fight - CombatController.SetShipOrders
+            // overwrites every ship's .Order (this one included) to the side's chosen order on
+            // the very next full order-resolution turn, same as it already does for everyone else.
+            ship.Order = CombatOrders.Engage;
+            stateMachine.CurrentOrder = CombatOrders.Engage;
+
+            // No WarpData component — this ship never warps in, it launches already in-scene.
+            SetupShipWeapons(ship, side);
+
+            Debug.Log($"  🆕 Reinforcement '{ship.ShipData.ShipName}' launched from Shipyard into combat at {ship.transform.position}, ordered to Engage");
         }
 
         /// <summary>

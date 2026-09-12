@@ -75,6 +75,13 @@ namespace BOTF3D.Galaxy
         // StarSysController.TerraformSystem for what clicking it does.
         public StarSysController TerraformableSystem;
 
+        // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §4) - the system this
+        // fleet is currently besieging, or null. Bidirectional with StarSysData.BesiegingFleet - both
+        // set together by StarSysManager.StartSiege, both cleared together by StarSysManager.EndSiege.
+        // Read by FleetMenuUIController to show the Break Off Siege button and by
+        // FleetController.RequestBreakOffSiege to find which siege to end.
+        public StarSysController BesiegedSystem;
+
         // Aggregate cargo state across all undestroyed transports in this fleet.
         public int TotalTransportCargoCapacity =>
             ShipsList.Where(s => s?.ShipData?.ShipType == ShipType.Transport && s.ShipData.Distroyed == false)

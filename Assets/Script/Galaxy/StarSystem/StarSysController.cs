@@ -1660,6 +1660,70 @@ namespace BOTF3D.Galaxy
             }
         }
 
+        /// <summary>
+        /// Shield Generator counterpart to RemoveOrbitalBatteryFacility above - called when a
+        /// ShipType.PlanetaryShield combat unit is destroyed (System Invasion Phase 1,
+        /// Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§6). Identical pattern: removes the
+        /// most-recently-built generator's facility marker, debits its power load if it was on, and
+        /// refreshes the facility/power UI.
+        /// </summary>
+        internal void RemoveShieldGeneratorFacility()
+        {
+            var generators = StarSysData?.ShieldGenerators;
+            if (generators == null || generators.Count == 0) return;
+
+            int lastIndex = generators.Count - 1;
+            GameObject facilityGO = generators[lastIndex];
+            generators.RemoveAt(lastIndex);
+
+            if (facilityGO != null)
+            {
+                var text = facilityGO.GetComponent<TextMeshProUGUI>();
+                if (text != null && text.text == "1")
+                    StarSysData.TotalSysPowerLoad -= StarSysData.ShieldGeneratorData.PowerLoad;
+
+                Destroy(facilityGO);
+            }
+
+            if (StarSysUI != null)
+            {
+                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.ShieldGenerator);
+                StarSysUI.UpdateSystemPowerBalance(this);
+            }
+        }
+
+        /// <summary>
+        /// Shipyard counterpart to RemoveOrbitalBatteryFacility/RemoveShieldGeneratorFacility above -
+        /// called when a ShipType.Shipyard combat unit is destroyed in Phase A (System Invasion
+        /// Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§7). Identical pattern: removes
+        /// the most-recently-built shipyard's facility marker, debits its power load if it was on,
+        /// and refreshes the facility/power UI.
+        /// </summary>
+        internal void RemoveShipyardFacility()
+        {
+            var shipyards = StarSysData?.Shipyards;
+            if (shipyards == null || shipyards.Count == 0) return;
+
+            int lastIndex = shipyards.Count - 1;
+            GameObject facilityGO = shipyards[lastIndex];
+            shipyards.RemoveAt(lastIndex);
+
+            if (facilityGO != null)
+            {
+                var text = facilityGO.GetComponent<TextMeshProUGUI>();
+                if (text != null && text.text == "1")
+                    StarSysData.TotalSysPowerLoad -= StarSysData.ShipyardData.PowerLoad;
+
+                Destroy(facilityGO);
+            }
+
+            if (StarSysUI != null)
+            {
+                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.Shipyard);
+                StarSysUI.UpdateSystemPowerBalance(this);
+            }
+        }
+
         public void AddToShipList(ShipController shipController)
         {
             if (shipController == null) return;

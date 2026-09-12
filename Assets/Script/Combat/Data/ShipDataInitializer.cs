@@ -59,19 +59,37 @@ namespace BOTF3D.Combat
             int quality = effectiveCivData?.QualityScore ?? 5;
             ShipStats stats = ShipStatCalculator.Calculate(shipSO.ShipType, shipSO.TechLevel, effectiveCiv, quality);
 
+            // Shipyard's Hull isn't hand-authored in ShipStatCalculator's own BaseStats row (System
+            // Invasion Phase 1 follow-up, 2026-09) - it tracks a Destroyer of the SAME civ at their
+            // CURRENT TechLevel, not shipSO.TechLevel (which stays at whatever tier this specific SO
+            // was authored at - only EARLY exists per civ so far). A flat per-SO field couldn't do
+            // this: TechLevel changes over the course of a game, so "current" has to be read live
+            // from effectiveCivData, the same way every other tech-driven multiplier here already is.
+            // Keeps the Shipyard relevant as a civ advances without needing a full EARLY-SUPREME
+            // ladder of Shipyard SOs authored up front - same discipline as this doc's "derive from
+            // existing tables, don't hand-author a parallel one" rule (§6).
+            if (shipSO.ShipType == ShipType.Shipyard)
+            {
+                TechLevel currentTech = effectiveCivData?.CurrentTechLevel ?? shipSO.TechLevel;
+                stats.HullMaxHealth = ShipStatCalculator.Calculate(ShipType.Destroyer, currentTech, effectiveCiv, quality).HullMaxHealth;
+            }
+
             // Phase II tech tree (TechTree_Phase2_Design.md §8 II.3): Tactical/Ordnance "+stat%"
             // techs and their civ-specific Branch F equivalents (Ionized/Reinforced Duranium Hulls,
             // Imperial Phaser Overcharge, Polaron Beam Enhancement, etc.) all accumulate into
             // CivData.Effects rather than touching ShipStatCalculator itself - applied here, the one
             // place every ship's stats actually get set, so every spawner/rebuild path picks them up
             // automatically. Structural Integrity Fields (StationHPMultiplier) additionally stacks
-            // onto HullMultiplier for OrbitalBattery hulls only - it's the one ShipType that never
-            // warps in or moves (CLAUDE.md), so "station HP" unambiguously means this ShipType.
+            // onto HullMultiplier for stationary defense platforms - originally OrbitalBattery only
+            // (the one ShipType that never warps in or moves, per CLAUDE.md); PlanetaryShield (System
+            // Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §3.1) is the second one,
+            // same "never moves" reasoning.
             TechEffects fx = effectiveCivData?.Effects;
             float hullMult   = fx != null ? fx.HullMultiplier : 1f;
             float shieldMult = fx != null ? fx.ShieldMultiplier : 1f;
             float weaponMult = fx != null ? fx.WeaponDamageMultiplier : 1f;
-            if (fx != null && shipSO.ShipType == ShipType.OrbitalBattery)
+            if (fx != null && (shipSO.ShipType == ShipType.OrbitalBattery || shipSO.ShipType == ShipType.PlanetaryShield
+                                || shipSO.ShipType == ShipType.Shipyard))
                 hullMult *= fx.StationHPMultiplier;
 
             data.ShieldMaxHealth  = Mathf.Max(1, Mathf.RoundToInt(stats.ShieldMaxHealth * shieldMult));

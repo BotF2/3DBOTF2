@@ -136,7 +136,13 @@ namespace BOTF3D.Core
             {
                 StarSysManager.Instance.ReallocatePowerForCombat(starSysCon);
                 StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
-                shipControllers1 = starSysCon.StarSysData.ShipsList;
+                StarSysManager.Instance.EnsureShipyardShipsForCombat(starSysCon);
+                // Filtered copy, not the live StarSysData.ShipsList reference - caps OB participation
+                // to what power actually supports this combat without ever removing anything from the
+                // system's persistent roster (System Invasion Phase 1, Docs/Design/
+                // SystemInvasion_Phase1_Design.md §3, 2026-09-11 revision). See
+                // GetCombatShipsForSystem's own comment.
+                shipControllers1 = StarSysManager.Instance.GetCombatShipsForSystem(starSysCon);
                 shipControllers2 = enemyFleet.FleetData.ShipsList;
                 combatType = CombatType.SystemVsFleet;
                 Debug.Log($"  Player fleet null and '{starSysCon.name}' in combat with {enemyFleet.name}");
@@ -152,8 +158,11 @@ namespace BOTF3D.Core
             {
                 StarSysManager.Instance.ReallocatePowerForCombat(starSysCon);
                 StarSysManager.Instance.EnsureOrbitalBatteryShipsForCombat(starSysCon);
+                StarSysManager.Instance.EnsureShipyardShipsForCombat(starSysCon);
                 shipControllers1 = playerFleet.FleetData.ShipsList;
-                shipControllers2 = starSysCon.StarSysData.ShipsList;
+                // See the SystemVsFleet branch above - filtered copy, caps OB participation to what
+                // power actually supports.
+                shipControllers2 = StarSysManager.Instance.GetCombatShipsForSystem(starSysCon);
                 combatType = CombatType.FleetVsSystem;
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }

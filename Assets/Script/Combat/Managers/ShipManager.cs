@@ -59,6 +59,10 @@ public GameObject[] beamWeaponPrefabs;
         [Tooltip("Civ-agnostic ShipSO used for every system's orbital-battery combat units — see ShipManager.CreateOrbitalBatteryForSystem")]
         [SerializeField] public ShipSO OrbitalBatteryShipSO;
 
+        [Header("Planetary Shield")]
+        [Tooltip("Civ-agnostic ShipSO used for every system's planetary-shield combat units (one per built Shield Generator) — see ShipManager.CreateShieldUnitForSystem. Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§6.")]
+        [SerializeField] public ShipSO ShieldGeneratorShipSO;
+
         // Specialized managers (handle all ship operations)
         private ShipRegistry shipRegistry;
         private ShipFactory shipFactory;
@@ -387,6 +391,101 @@ public GameObject[] beamWeaponPrefabs;
             return shipCon;
         }
 
+        /// <summary>
+        /// Materializes one planetary-shield combat unit for a star system's defense - identical
+        /// pattern to CreateOrbitalBatteryForSystem above (System Invasion Phase 1,
+        /// Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§6): fixed system defense, not a
+        /// deployable ship (no ShipUICreator.InstantiateShipListUI, so it can't show up in
+        /// ShipDeployMenuUIController's list), but still goes through ShipFactory.LinkShipToParent so
+        /// it's added to StarSysData.ShipsList and gets a system-scoped ShipID like any other
+        /// system-owned ship. See StarSysManager.EnsureShieldUnitsForCombat for the caller that keeps
+        /// these in sync with built Shield Generator count (one unit per generator).
+        /// </summary>
+        public ShipController CreateShieldUnitForSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || ShieldGeneratorShipSO == null)
+            {
+                Debug.LogError("ShipManager: CreateShieldUnitForSystem — sysCon or ShieldGeneratorShipSO is null!");
+                return null;
+            }
+
+            ShipController shipCon = shipFactory.CreateGalaxyShip(ShieldGeneratorShipSO, Vector3.zero, sysCon.gameObject);
+            if (shipCon == null) return null;
+
+            shipCon.Init(this);
+            shipDataInitializer.InitializeShipData(shipCon, ShieldGeneratorShipSO, sysCon.StarSysData.CurrentOwnerCivEnum);
+
+            var targetGO = shipFactory.CreateTargetForShip(shipCon);
+            shipCon.ShipData.TargetOnThisShip = targetGO;
+
+            shipCon.Order = CombatOrders.None;
+            shipCon.gameObject.layer = 9;
+
+            ShipControllerList.Add(shipCon);
+            shipFactory.LinkShipToParent(shipCon, sysCon.gameObject);
+            shipRegistry.RegisterGalaxyShip(shipCon);
+
+            Debug.Log($"  Created planetary shield '{shipCon.ShipData.ShipName}' for system '{sysCon.name}' (civ={shipCon.ShipData.CivEnum})");
+            return shipCon;
+        }
+
+        /// <summary>
+        /// Materializes one Shipyard combat unit for a star system's defense (System Invasion Phase 1,
+        /// Docs/Design/SystemInvasion_Phase1_Design.md §3.1, 2026-09-11 revision). Unlike
+        /// CreateOrbitalBatteryForSystem/CreateShieldUnitForSystem above (one shared, civ-agnostic
+        /// placeholder SO for every civ), the Shipyard is resolved per civ + current TechLevel via
+        /// shipSOProvider.GetShipSOAtBestTechLevel - the same lookup BuildShipInSystem already uses
+        /// for real player-built ships - so each playable civ's own authored Shipyard model/stats at
+        /// their current era get used (e.g. TERRAN_SHIPYARD_I, matching every other ship SO's naming
+        /// convention). Minor civs don't get their own per-race Shipyard authored - GetShipSOListByCiv's
+        /// minor branch requires an exact CivEnum tag match, so a minor civ falls back to
+        /// ShipSOProvider.GetAnyMinorShipSOAtBestTechLevel, which ignores CivEnum and just takes
+        /// whichever shared minor Shipyard template exists (e.g. ACAMARIAN_SHIPYARD_I) - one shared
+        /// look for every minor race's Shipyard, same civOverride below still stamps the correct
+        /// owning civ onto the spawned unit regardless of which template supplied the model/stats.
+        /// Still a fixed system defense, not a deployable ship (no
+        /// ShipUICreator.InstantiateShipListUI), but goes through ShipFactory.LinkShipToParent so it's
+        /// added to StarSysData.ShipsList and gets a system-scoped ShipID like any other system-owned
+        /// ship. See StarSysManager.EnsureShipyardShipsForCombat for the caller that keeps these in
+        /// sync with built Shipyard count.
+        /// </summary>
+        public ShipController CreateShipyardUnitForSystem(StarSysController sysCon)
+        {
+            if (sysCon == null || sysCon.StarSysData == null) return null;
+
+            CivEnum civEnum = sysCon.StarSysData.CurrentOwnerCivEnum;
+            TechLevel civTechLevel = sysCon.StarSysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            ShipSO shipyardSO = shipSOProvider.GetShipSOAtBestTechLevel(ShipType.Shipyard, civTechLevel, civEnum);
+
+            if (shipyardSO == null)
+                shipyardSO = shipSOProvider.GetAnyMinorShipSOAtBestTechLevel(ShipType.Shipyard, civTechLevel);
+
+            if (shipyardSO == null)
+            {
+                Debug.LogError($"ShipManager: CreateShipyardUnitForSystem — no Shipyard ShipSO authored for {civEnum} at {civTechLevel} (and no shared minor-race fallback either)!");
+                return null;
+            }
+
+            ShipController shipCon = shipFactory.CreateGalaxyShip(shipyardSO, Vector3.zero, sysCon.gameObject);
+            if (shipCon == null) return null;
+
+            shipCon.Init(this);
+            shipDataInitializer.InitializeShipData(shipCon, shipyardSO, civEnum);
+
+            var targetGO = shipFactory.CreateTargetForShip(shipCon);
+            shipCon.ShipData.TargetOnThisShip = targetGO;
+
+            shipCon.Order = CombatOrders.None;
+            shipCon.gameObject.layer = 9;
+
+            ShipControllerList.Add(shipCon);
+            shipFactory.LinkShipToParent(shipCon, sysCon.gameObject);
+            shipRegistry.RegisterGalaxyShip(shipCon);
+
+            Debug.Log($"  Created shipyard '{shipCon.ShipData.ShipName}' for system '{sysCon.name}' (civ={shipCon.ShipData.CivEnum})");
+            return shipCon;
+        }
+
         #endregion
 
         #region Ship Building Operations
@@ -426,6 +525,20 @@ public GameObject[] beamWeaponPrefabs;
 
                     Debug.Log($"  ✅ Ship '{shipCon.ShipData.ShipName}' added to system '{systemCon.name}'");
                     Debug.Log($"       System now has {systemCon.StarSysData.ShipsList.Count} ships");
+
+                    // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3
+                    // follow-up, 2026-09-11): if this system's Shipyard completes a ship while
+                    // Phase A combat is already underway at this exact system, launch it straight
+                    // into the fight near the Shipyard instead of leaving it sitting idle in the
+                    // docked roster until the next combat. Checked against CombatData.StarSysCon,
+                    // not just civ, so this can't misfire onto some other combat the civ happens to
+                    // be fighting elsewhere at the same time.
+                    var activeCombat = CombatManager.Instance?.GetActiveCombatControllerForCiv(civEnum);
+                    if (activeCombat != null && activeCombat.CombatData?.StarSysCon == systemCon)
+                    {
+                        int side = activeCombat.CombatData.CivEnumSideOne == civEnum ? 1 : 2;
+                        activeCombat.AddReinforcementShip(shipCon, side);
+                    }
                 }
             }
         }

@@ -820,6 +820,23 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                     bool atPeace = ourDiplomacyController != null &&
                         ourDiplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
 
+                    // ✅ FIX: same re-arm as FeetToSysNotSameCivNotFirstEncounter's identical fix -
+                    // GalaxyEncounterQueue already incremented both fleets' pending-encounter counters
+                    // once for THIS convergence before this method runs, but this DiplomacyController
+                    // is reused indefinitely per civ pair and its Response/EncounterResolved fields
+                    // were left however the PREVIOUS encounter resolved them. Below Neutral, without
+                    // resetting here, an already-resolved leftover state made
+                    // ServerImplicitlyWithdrawFleet's "if (EncounterResolved) return" guard silently
+                    // drop the implicit withdraw both fleets get when either player sets a new
+                    // destination - leaving this arrival's increment with nothing to ever decrement
+                    // it and both fleets frozen forever.
+                    if (!atPeace && ourDiplomacyController != null)
+                    {
+                        ourDiplomacyController.DiplomacyData.ResponseSideOne = DiplomacyData.EncounterResponse.Undecided;
+                        ourDiplomacyController.DiplomacyData.ResponseSideTwo = DiplomacyData.EncounterResponse.Undecided;
+                        ourDiplomacyController.DiplomacyData.EncounterResolved = false;
+                    }
+
                     DiplomacyManager.Instance.CheckForAIDiplomacy(sideOneFleetCon, sideTwoFleetCon);
                     UpdateDiplomacyEncoutnerType(sideOneFleetCon, sideTwoFleetCon);
                     OpenDiplomacyUI(civSideOne, civSideTwo, otherFleet.FleetData.ShipsList, sideOneFleetCon, sideTwoFleetCon, null);
@@ -995,6 +1012,33 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             if (diplomacyController != null)
             {
                 bool atPeace = diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
+
+                // ✅ FIX: re-arm the reused DiplomacyController as a genuinely pending decision
+                // before anything below can look at it, same as DeclareWar's "re-arm" reset.
+                // GalaxyEncounterQueue.ProcessPendingForThisTick already called
+                // fleetA.ServerIncrementPendingEncounters() once for THIS arrival before this method
+                // ever runs - so don't call it again here, only reset the response state that gates
+                // whether that one increment can ever be matched by a decrement. Without this, a
+                // Hostile-or-worse (not-at-peace) repeat encounter left ResponseSideOne/Two and
+                // EncounterResolved exactly as the PREVIOUS encounter with this civ left them (this
+                // DiplomacyController/DiplomacyData is reused indefinitely per civ pair, never
+                // recreated after first contact). If that previous encounter had already resolved
+                // (EncounterResolved == true, the common case), ServerImplicitlyWithdrawFleet's own
+                // guard ("if (EncounterResolved) return") silently dropped every future implicit
+                // withdraw for this pair - including the one FleetController.
+                // ServerImplicitlyWithdrawFromPendingEncounters fires when the player sets a brand
+                // new destination - leaving this fleet's just-incremented pending-encounter counter
+                // with nothing left to ever decrement it. Reported as: fleet reaches an already-known,
+                // not-at-peace system, player never opens the Diplomacy panel, sets a new destination
+                // + warp, turn processes, fleet never moves (IsAwaitingEncounterResolution stuck true
+                // forever). Skip the reset at peace - atPeace releases the fleet unconditionally
+                // below regardless of leftover state, so re-arming there would be pure overhead.
+                if (!atPeace)
+                {
+                    diplomacyController.DiplomacyData.ResponseSideOne = DiplomacyData.EncounterResponse.Undecided;
+                    diplomacyController.DiplomacyData.ResponseSideTwo = DiplomacyData.EncounterResponse.Undecided;
+                    diplomacyController.DiplomacyData.EncounterResolved = false;
+                }
 
                 CheckForAIDiplomacy(fleetA, sysCon);
                 diplomacyController.DiplomacyData.EncounterType = EncounterType.Diplomacy;

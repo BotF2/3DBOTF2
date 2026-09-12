@@ -79,6 +79,26 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
+        /// Shared fallback for facility-linked ship types where authoring a distinct model per
+        /// minor race isn't worth it - currently just Shipyard (System Invasion Phase 1 follow-up):
+        /// one shared template (e.g. ACAMARIAN_SHIPYARD_I) stands in for every minor civ's Shipyard,
+        /// unlike GetShipSOListByCiv's minor branch above, which requires an exact CivEnum tag match
+        /// (right for a genuine per-race ship roster, wrong for a single shared facility look).
+        /// Ignores CivEnum entirely - just the best tech-level match of this ShipType anywhere in
+        /// minorShipSOList. Caller (ShipManager.CreateShipyardUnitForSystem) tries the exact-match
+        /// path first and only falls back here if that comes up empty.
+        /// </summary>
+        public ShipSO GetAnyMinorShipSOAtBestTechLevel(ShipType shipType, TechLevel maxTechLevel)
+        {
+            if (minorShipSOList == null || minorShipSOList.Count == 0) return null;
+
+            return minorShipSOList
+                .Where(s => s != null && s.ShipType == shipType && s.TechLevel <= maxTechLevel)
+                .OrderByDescending(s => s.TechLevel)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
         /// Get a specific ship SO by type and tech level
         /// </summary>
         public ShipSO GetShipSO(ShipType shipType, TechLevel techLevel, CivEnum civEnum)

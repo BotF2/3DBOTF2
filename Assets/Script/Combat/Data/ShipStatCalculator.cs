@@ -32,10 +32,40 @@ namespace BOTF3D.Combat
             { ShipType.HvyCruiser,new BaseStats(76, 42, 40, 32, 3.5f, 18, 4) },
             { ShipType.Transport, new BaseStats(12, 30,  0,  0, 3.5f,  6, 4) },
             // Stationary system-defense platform: never warps in or moves (see ShipMovementController /
-            // CombatOrderStateMachine OrbitalBattery guards), so it trades mobility for raw durability
-            // and hitting power vs. a mobile hull of comparable tier — tankier than HvyCruiser, hits
-            // roughly as hard, Warp=0 (unused; movement is skipped entirely for this ShipType).
-            { ShipType.OrbitalBattery, new BaseStats(95, 90, 38, 26, 0f, 15, 5) },
+            // CombatOrderStateMachine OrbitalBattery guards), so it trades mobility for durability and
+            // hitting power vs. a mobile hull of comparable tier - roughly Cruiser-tier offense, still
+            // tougher than a Cruiser (though no longer above HvyCruiser), Warp=0 (unused; movement is
+            // skipped entirely for this ShipType).
+            //
+            // Trimmed from the original (95, 90, 38, 26) - Vulcan playtest (System Invasion Phase 1
+            // follow-up, 2026-09-11): the original numbers, at ~HvyCruiser offense and above-HvyCruiser
+            // durability, were designed and tuned as a single unit, but a system fields several OB at
+            // once (the StarSysSO-authored count, e.g. Vulcan's 5) - five of them each hitting
+            // Heavy-Cruiser-hard and surviving longer than one made the wall as a whole wildly
+            // stronger than intended once OB started actually reaching its full authored count in
+            // combat (see StarSysManager's HasWarp-gated starting count, same follow-up). This trim is
+            // per-unit only; if the wall is still too strong with the new count/gating in place, cut
+            // the authored per-system count instead of trimming these again.
+            { ShipType.OrbitalBattery, new BaseStats(70, 50, 26, 18, 0f, 15, 5) },
+            // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.1): unarmed
+            // defensive screen for a system's Orbital Batteries - Beam/Torp=0 deliberately (it never
+            // attacks, only absorbs; CombatTargetingSystem is what makes it screen OB, not offense).
+            // High Shield pool since that's its entire purpose, modest Hull for the emitter structure
+            // itself once the shield layer is down, Warp=0 (stationary, same as OrbitalBattery).
+            // First-pass numbers - balance per §7's discipline (derive from CivFlavor, don't hand-tune
+            // per civ) once playtested.
+            { ShipType.PlanetaryShield, new BaseStats(140, 40, 0, 0, 0f, 12, 4) },
+            // System Invasion Phase 1, 2026-09-11 revision (§3.1): the Shipyard becomes a Phase A
+            // combat unit - a station, not a warship. No Shield stat at all (relies entirely on the
+            // Orbital Battery wall in front of it, not its own shield layer), unarmed (Beam/Torp=0,
+            // same reasoning as PlanetaryShield above - it never attacks), Warp=0 (stationary), no
+            // Dilithium cost (never queued through the normal ship-build economy - one spawns
+            // automatically per built Shipyard facility, whose own cost/power is ShipyardSO's job,
+            // not this row's). The Hull column below is a placeholder only, never actually read -
+            // ShipDataInitializer.InitializeShipData overrides it with a Destroyer of the same
+            // civ/TechLevel's Hull instead (2026-09 follow-up), so it scales with the civ's current
+            // tech automatically rather than needing its own hand-tuned number here.
+            { ShipType.Shipyard, new BaseStats(0, 130, 0, 0, 0f, 0, 0) },
         };
 
         // ── Tech-tier multipliers (derived from actual FED Scout_I–IV data) ──

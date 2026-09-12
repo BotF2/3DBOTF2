@@ -756,8 +756,15 @@ namespace BOTF3D.Galaxy
                 sysData.CurrentPowerPlantCount = sysData.PowerPlants.Count;
                 sysData.Factories = AddSystemFacilities(starSysSO.Factories, FactoryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
                 sysData.Shipyards = AddSystemFacilities(starSysSO.Shipyards, ShipyardPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
-                sysData.ShieldGenerators = AddSystemFacilities(starSysSO.ShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
-                int startingOrbitalBatteries = DetermineStartingOrbitalBatteries(civSO, startingTechLevel, starSysSO.OrbitalBatteries);
+                // Neither Shield Generators nor Orbital Batteries use the tech/temperament fraction
+                // any more (see git history for DetermineStartingShieldGenerators/
+                // DetermineStartingOrbitalBatteries) - per explicit design call, both are now a hard
+                // HasWarp gate: a warp-capable civ gets the SO's full authored count, a pre-warp civ
+                // gets none. A pre-warp civ has no orbital infrastructure to speak of; a warp-capable
+                // one (major or minor) is credited for the SO's full authored defense.
+                int startingShieldGenerators = civSO.HasWarp ? starSysSO.ShieldGenerators : 0;
+                sysData.ShieldGenerators = AddSystemFacilities(startingShieldGenerators, ShieldGeneratorPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
+                int startingOrbitalBatteries = civSO.HasWarp ? starSysSO.OrbitalBatteries : 0;
                 sysData.OrbitalBatteries = AddSystemFacilities(startingOrbitalBatteries, OrbitalBatteryPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 0, starSysCon);
                 sysData.ResearchCenters = AddSystemFacilities(starSysSO.ResearchCenters, ResearchCenterPrefab, (int)starSysCon.StarSysData.CurrentOwnerCivEnum, 1, starSysCon);
 
@@ -1096,7 +1103,36 @@ namespace BOTF3D.Galaxy
             float xenoBonusOutput = (sysData.CurrentCivController?.CivData?.Effects?.FacilityCapBonus ?? 0f) * powerOutputPerPlant;
 
             float headroom = Mathf.Max(0f, maxOutput + xenoBonusOutput - TotalReservedLoad(sysCon, type, loadMultiplier));
-            return GetBuiltAndQueuedFacilityCount(sysCon, type) + Mathf.FloorToInt(headroom / powerLoad);
+            int powerBasedCap = GetBuiltAndQueuedFacilityCount(sysCon, type) + Mathf.FloorToInt(headroom / powerLoad);
+
+            // Shipyard additionally has a hard TechLevel/homeworld/minor ceiling on top of the
+            // shared power budget (System Invasion Phase 1 follow-up, 2026-09) - not a Dilithium
+            // cost like a buildable ship, just "how much orbital infrastructure can this system
+            // coordinate" independent of whether it could technically afford the power. Whichever
+            // of the two caps is more restrictive wins.
+            if (type == StarSysFacilityType.Shipyard)
+                return Mathf.Min(powerBasedCap, DetermineMaxShipyards(sysData));
+
+            return powerBasedCap;
+        }
+
+        // Shipyard hard cap by TechLevel (index = EARLY/DEVELOPED/ADVANCED/SUPREME) - homeworlds get
+        // one more slot than a non-homeworld system that joined the same civ at every tier; a minor
+        // race system never gets more than one regardless of tech. First-pass numbers pending the
+        // phase 2.5 balance pass (Docs/Design/SystemInvasion_Phase1_Design.md) - not power/Dilithium
+        // driven since there's no currency cost to a Shipyard combat unit, just an infrastructure
+        // ceiling layered on top of GetFacilityCap's existing power-budget cap above.
+        private static readonly int[] HomeworldShipyardCapByTier = { 2, 3, 4, 4 };
+        private static readonly int[] ColonyShipyardCapByTier = { 1, 2, 3, 3 };
+
+        private int DetermineMaxShipyards(StarSysData sysData)
+        {
+            bool playable = sysData.CurrentCivController?.CivData?.Playable ?? false;
+            if (!playable) return 1; // minor race systems only ever get one, at any tech level
+
+            TechLevel tech = sysData.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int tier = Mathf.Clamp((int)tech, 0, HomeworldShipyardCapByTier.Length - 1);
+            return sysData.IsHomeworld ? HomeworldShipyardCapByTier[tier] : ColonyShipyardCapByTier[tier];
         }
 
         /// <summary>
@@ -1475,51 +1511,6 @@ namespace BOTF3D.Galaxy
         }
 
         /// <summary>
-        /// Number of orbital batteries a system starts with, scaled down from the designer-authored
-        /// starSysSO.OrbitalBatteries count by TechLevel so a fresh EARLY-era game doesn't spawn every
-        /// system already fully defended - the rest can be built up over time via StarSysBuildManager.
-        /// Majors use the same fixed 25/50/75/100% curve as starting population. Minors use the same
-        /// randomized per-tier range, then shift up or down per point of WarLikeEnum/XenophobiaEnum:
-        /// warlike and xenophobic civs field more batteries at any given tech tier, peaceful/open ones
-        /// field fewer.
-        /// </summary>
-        private int DetermineStartingOrbitalBatteries(CivSO civSO, TechLevel techLevel, int authoredCount)
-        {
-            if (authoredCount <= 0) return 0;
-
-            float fraction;
-            if (civSO.Playable)
-            {
-                switch (techLevel)
-                {
-                    case TechLevel.EARLY: fraction = 0.25f; break;
-                    case TechLevel.DEVELOPED: fraction = 0.50f; break;
-                    case TechLevel.ADVANCED: fraction = 0.75f; break;
-                    default: fraction = 1.0f; break; // SUPREME
-                }
-            }
-            else
-            {
-                switch (techLevel)
-                {
-                    case TechLevel.EARLY: fraction = UnityEngine.Random.Range(0.10f, 0.30f); break;
-                    case TechLevel.DEVELOPED: fraction = UnityEngine.Random.Range(0.30f, 0.55f); break;
-                    case TechLevel.ADVANCED: fraction = UnityEngine.Random.Range(0.55f, 0.80f); break;
-                    default: fraction = UnityEngine.Random.Range(0.80f, 1.0f); break; // SUPREME
-                }
-
-                // WarLikeEnum/XenophobiaEnum run -2 (Warlike/Xenophobia) to +2 (Pacifist/Compassion), so
-                // negating and summing gives a -4..4 "defensiveness" score. Each point shifts the
-                // fraction by 10% - a Warlike+Xenophobia minor fields noticeably more batteries than an
-                // equivalent-tech Pacifist+Compassion one.
-                int defensiveness = -(int)civSO.WarLikeEnum - (int)civSO.XenophbiaEnum;
-                fraction = Mathf.Clamp01(fraction + defensiveness * 0.10f);
-            }
-
-            return Mathf.Clamp(Mathf.RoundToInt(authoredCount * fraction), 0, authoredCount);
-        }
-
-        /// <summary>
         /// Ensures this system has exactly as many OrbitalBattery combat units in its ShipsList as it
         /// has built orbital-battery facilities (StarSysData.OrbitalBatteries — the facility/UI icon
         /// list). Batteries are otherwise never spawned as ShipControllers, so this lazily creates any
@@ -1550,6 +1541,178 @@ namespace BOTF3D.Galaxy
             }
         }
 
+        /// <summary>
+        /// Shield Generator counterpart to EnsureOrbitalBatteryShipsForCombat above - identical
+        /// pattern, one ShipType.PlanetaryShield combat unit per built Shield Generator. **Currently
+        /// unused** (System Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md, 2026-09-11
+        /// revision, §9's rollback list) - Planetary Shields no longer participate in Phase A space
+        /// combat at all, so this is no longer called from SceneController.LoadCombatScene. Left in
+        /// place since Phase B's (not yet built) abstract Shield-attrition resolution may still want
+        /// this method, a repurposed version of it, or may retire it entirely once that design settles.
+        /// </summary>
+        public void EnsureShieldUnitsForCombat(StarSysController starSysCon)
+        {
+            if (starSysCon == null || starSysCon.StarSysData == null) return;
+
+            int builtCount = starSysCon.StarSysData.ShieldGenerators?.Count ?? 0;
+            int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
+                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.PlanetaryShield);
+
+            for (int i = existingCount; i < builtCount; i++)
+            {
+                ShipManager.Instance.CreateShieldUnitForSystem(starSysCon);
+            }
+        }
+
+        /// <summary>
+        /// Shipyard counterpart to EnsureOrbitalBatteryShipsForCombat above - identical pattern, one
+        /// ShipType.Shipyard combat unit per built Shipyard facility (System Invasion Phase 1,
+        /// Docs/Design/SystemInvasion_Phase1_Design.md §3.1, 2026-09-11 revision). Same
+        /// "still counts every BUILT shipyard, not just powered-on ones" caveat and same monotonic
+        /// only-ever-adds invariant as the OB version. Unlike OB/Shield's single shared placeholder
+        /// SO, the Shipyard unit is resolved per civ + current TechLevel via ShipManager.
+        /// CreateShipyardUnitForSystem (mirrors BuildShipInSystem's ShipSOProvider lookup) so each
+        /// playable civ's own authored Shipyard model/stats at their current era get used.
+        /// </summary>
+        public void EnsureShipyardShipsForCombat(StarSysController starSysCon)
+        {
+            if (starSysCon == null || starSysCon.StarSysData == null) return;
+
+            int builtCount = starSysCon.StarSysData.Shipyards?.Count ?? 0;
+            int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
+                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.Shipyard);
+
+            for (int i = existingCount; i < builtCount; i++)
+            {
+                ShipManager.Instance.CreateShipyardUnitForSystem(starSysCon);
+            }
+        }
+
+        // ── Siege state machine (System Invasion Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §4) ──
+
+        /// <summary>
+        /// Every system currently under siege - small dedicated registry rather than scanning every
+        /// StarSysController in the galaxy each turn. TurnEventQueue reads this once per InterTurn to
+        /// re-queue that turn's siege decision event(s); StartSiege/EndSiege below are the only
+        /// writers.
+        /// </summary>
+        public readonly List<StarSysController> SystemsUnderSiege = new List<StarSysController>();
+
+        /// <summary>
+        /// Begins a siege: this system's own combat-capable forces are gone and besiegingFleet is
+        /// the attacker that just cleared them (called from TurnBasedCombatResolver.ShowVictoryScreen,
+        /// server-only). No-ops if this exact fleet is already besieging this system. Freezes the
+        /// fleet via FleetController.ServerSetBesiegingSystem (see that method's own comment for why
+        /// this is a dedicated gate, not a reuse of the pending-encounter one).
+        /// </summary>
+        public void StartSiege(StarSysController sysCon, FleetController besiegingFleet)
+        {
+            if (sysCon?.StarSysData == null || besiegingFleet?.FleetData == null) return;
+            var data = sysCon.StarSysData;
+            if (data.DefensesCleared && data.BesiegingFleet == besiegingFleet) return;
+
+            data.BesiegingFleet = besiegingFleet;
+            data.BesiegingCivEnum = besiegingFleet.FleetData.CivEnum;
+            data.DefensesCleared = true;
+            besiegingFleet.FleetData.BesiegedSystem = sysCon;
+            besiegingFleet.ServerSetBesiegingSystem(true);
+
+            if (!SystemsUnderSiege.Contains(sysCon))
+                SystemsUnderSiege.Add(sysCon);
+
+            Debug.Log($"[Siege] '{data.SysName}' is now under siege by {data.BesiegingCivEnum}'s fleet '{besiegingFleet.name}'.");
+        }
+
+        /// <summary>
+        /// Ends a siege, however it resolved (fleet withdrew/destroyed, or - once Invasion.3/4 exist -
+        /// Total Destruction/System Invasion). Releases the besieging fleet's freeze if it's still
+        /// alive (a destroyed FleetController compares equal to null via Unity's overridden ==, so
+        /// the null-conditional below correctly skips a fleet that died mid-siege instead of throwing).
+        /// </summary>
+        public void EndSiege(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysData == null) return;
+            var data = sysCon.StarSysData;
+
+            if (data.BesiegingFleet != null)
+            {
+                data.BesiegingFleet.ServerSetBesiegingSystem(false);
+                if (data.BesiegingFleet.FleetData != null && data.BesiegingFleet.FleetData.BesiegedSystem == sysCon)
+                    data.BesiegingFleet.FleetData.BesiegedSystem = null;
+            }
+            data.BesiegingFleet = null;
+            data.DefensesCleared = false;
+
+            SystemsUnderSiege.Remove(sysCon);
+        }
+
+        /// <summary>
+        /// Closes the participation gap EnsureOrbitalBatteryShipsForCombat deliberately leaves open
+        /// (see that method's comment): this system's full ShipsList always contains one combat
+        /// ShipController per BUILT OB, regardless of power state, because removing one between
+        /// combats risks the monotonic "only ever adds" invariant elsewhere. Rather than remove
+        /// anything, this returns a fresh, filtered COPY for one combat's roster - every
+        /// non-OB/non-Shield ship unconditionally (Shipyard included - it's the physical asset Phase A
+        /// is fought over, not a discretionary defense toggle, so it's never power-gated out of the
+        /// fight), plus only as many OB units as ReallocatePowerForCombat's on/off split actually
+        /// powered on this time. The un-selected excess OB ShipControllers are simply left out of THIS
+        /// fight - still present, untouched, in StarSysData.ShipsList for the next combat, whenever
+        /// power/build state next changes. Call after ReallocatePowerForCombat (so the on/off split is
+        /// current) and after EnsureOrbitalBatteryShipsForCombat/EnsureShipyardShipsForCombat (so
+        /// there are enough ShipControllers to select from - always true, since built count is always
+        /// &gt;= powered-on count). Docs/Design/SystemInvasion_Phase1_Design.md §3, 2026-09-11 revision.
+        /// </summary>
+        public List<ShipController> GetCombatShipsForSystem(StarSysController starSysCon)
+        {
+            var data = starSysCon?.StarSysData;
+            if (data?.ShipsList == null) return new List<ShipController>();
+
+            int obSlots = NumFacilitiesPoweredOn(data, StarSysFacilityType.OrbitalBattery);
+
+            var result = new List<ShipController>();
+            foreach (var s in data.ShipsList)
+            {
+                if (s == null || s.ShipData == null) continue;
+
+                if (s.ShipData.ShipType == ShipType.OrbitalBattery)
+                {
+                    if (obSlots <= 0) continue;
+                    obSlots--;
+                }
+                else if (s.ShipData.ShipType == ShipType.PlanetaryShield)
+                {
+                    // Planetary Shields no longer participate in Phase A space combat (System
+                    // Invasion Phase 1, 2026-09-11 revision) - they protect ground-side facilities
+                    // in Phase B instead. Excluded here in case a stray one exists from before this
+                    // change (EnsureShieldUnitsForCombat is no longer called on Phase A entry).
+                    continue;
+                }
+
+                result.Add(s);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Counts how many of this facility type are currently marked powered-on (the same "1"/"0"
+        /// TextMeshProUGUI convention SetAllFacilitiesOff/PowerOnUpTo write and
+        /// StarSysMenuUIController's own NumFacilitiesTurnedOn reads for the UI ratio display -
+        /// duplicated here rather than shared since that one is a private UI-layer method).
+        /// </summary>
+        private static int NumFacilitiesPoweredOn(StarSysData data, StarSysFacilityType type)
+        {
+            var list = FacilityListFor(data, type);
+            if (list == null) return 0;
+
+            int numOn = 0;
+            foreach (var go in list)
+            {
+                var tmp = go?.GetComponent<TMPro.TextMeshProUGUI>();
+                if (tmp != null && tmp.text == "1") numOn++;
+            }
+            return numOn;
+        }
+
         private static List<GameObject> FacilityListFor(StarSysData data, StarSysFacilityType type) => type switch
         {
             StarSysFacilityType.Factory => data.Factories,
@@ -1561,17 +1724,30 @@ namespace BOTF3D.Galaxy
         };
 
         /// <summary>
-        /// Instantly reconfigures a system's facility power for incoming combat - distinct from
-        /// StarSysAIManager's DefencePowerPriority (a gradual, one-facility-per-turn AI economy
-        /// setting that ramps across several turns; this needs the final state immediately).
-        /// Everything else is forced off first, then Shield/OrbitalBattery fill against the
-        /// system's MAX theoretical output (MaxPowerPlants, not just currently-built plants) so a
-        /// system that hasn't finished building out its Power Plants still gets full defensive
-        /// credit for what it COULD produce; any leftover spills into Shipyard, then Factory, then
-        /// Research. If the budget falls short even with everything else off, some Shields/OB
-        /// simply don't power on - the intended "shortfall means partial defense" outcome.
-        /// Call before EnsureOrbitalBatteryShipsForCombat so its on/off reads are current.
-        /// See Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §7.
+        /// Instantly reconfigures a system's facility power for incoming Phase A (space combat) -
+        /// distinct from StarSysAIManager's DefencePowerPriority (a gradual, one-facility-per-turn AI
+        /// economy setting that ramps across several turns; this needs the final state immediately).
+        /// Everything else is forced off first, then Orbital Battery fills against the system's MAX
+        /// theoretical output (MaxPowerPlants, not just currently-built plants) so a system that
+        /// hasn't finished building out its Power Plants still gets full defensive credit for what it
+        /// COULD produce; any leftover cascades to Shipyard, then Factory, then Research. If the
+        /// budget falls short even with everything else off, some OB simply doesn't power on - the
+        /// intended "shortfall means partial defense" outcome. Shield Generator is deliberately left
+        /// out of this cascade entirely (System Invasion Phase 1, Docs/Design/
+        /// SystemInvasion_Phase1_Design.md §3.4, 2026-09-11 revision) - it isn't a Phase A combat
+        /// participant at all, so it never competes for this budget; forcing it off here just frees
+        /// its power for OB/Shipyard/Factory/Research during the fight. Phase B's own (not yet built)
+        /// power reallocation is expected to re-prioritize Shield Generator first once that exists.
+        /// Call before EnsureOrbitalBatteryShipsForCombat/EnsureShipyardShipsForCombat so their on/off
+        /// reads are current. See Docs/Design/FacilityCaps_Phase2_ResourceDriven.md §7.
+        ///
+        /// Ground Forces (System Invasion Phase 1 follow-up, 2026-09) aren't a per-unit on/off
+        /// facility like the others - their peacetime power draw is always-on overhead, deducted off
+        /// the top before anything else in this cascade even runs, then a combat-footing upgrade
+        /// (GroundForceData.OnCombatFooting, the higher CombatPowerLoadPerUnit rate) is attempted
+        /// right after Orbital Battery - troops go on high alert the moment invasion begins, second
+        /// priority behind what's actually shooting. If the upgrade doesn't fit the remaining budget,
+        /// troops simply stay at peacetime draw rather than losing power entirely.
         /// </summary>
         public void ReallocatePowerForCombat(StarSysController sysCon)
         {
@@ -1588,8 +1764,10 @@ namespace BOTF3D.Galaxy
             SetAllFacilitiesOff(data, StarSysFacilityType.ShieldGenerator);
             SetAllFacilitiesOff(data, StarSysFacilityType.OrbitalBattery);
 
-            budget -= PowerOnUpTo(data, StarSysFacilityType.ShieldGenerator, budget, loadMultiplier);
+            budget -= DeductGroundForcePeacetimeLoad(data, loadMultiplier);
+
             budget -= PowerOnUpTo(data, StarSysFacilityType.OrbitalBattery, budget, loadMultiplier);
+            budget -= TryUpgradeGroundForcesToCombatFooting(data, budget, loadMultiplier);
 
             budget -= PowerOnUpTo(data, StarSysFacilityType.Shipyard, budget, loadMultiplier);
             budget -= PowerOnUpTo(data, StarSysFacilityType.Factory, budget, loadMultiplier);
@@ -1632,6 +1810,42 @@ namespace BOTF3D.Galaxy
                 spent += effectiveLoad;
             }
             return spent;
+        }
+
+        /// <summary>
+        /// Ground Forces' always-on peacetime power draw (System Invasion Phase 1 follow-up) -
+        /// unlike every other type in this cascade, there's no per-unit on/off toggle to check, it's
+        /// simply troopCount * PeacetimePowerLoadPerUnit, deducted unconditionally. Also resets
+        /// OnCombatFooting to false first - TryUpgradeGroundForcesToCombatFooting below re-enables it
+        /// if the budget allows, so a system that can no longer afford the upgrade correctly drops
+        /// back to peacetime rather than staying stuck on the higher rate from a previous combat.
+        /// </summary>
+        private static float DeductGroundForcePeacetimeLoad(StarSysData data, float loadMultiplier)
+        {
+            if (data.GroundForceData == null || data.GroundForces.Count == 0) return 0f;
+
+            data.GroundForceData.OnCombatFooting = false;
+            return data.GroundForces.Count * GroundForceData.PeacetimePowerLoadPerUnit * loadMultiplier;
+        }
+
+        /// <summary>
+        /// Attempts to bump Ground Forces from peacetime to full combat power (GroundForceData.
+        /// OnCombatFooting) - only the DELTA between the two rates needs to fit the remaining budget,
+        /// since the peacetime portion is already paid for by DeductGroundForcePeacetimeLoad above.
+        /// All-or-nothing across every fielded troop, not a partial per-unit toggle - there's no
+        /// individual on/off state to partially enable.
+        /// </summary>
+        private static float TryUpgradeGroundForcesToCombatFooting(StarSysData data, float budget, float loadMultiplier)
+        {
+            if (data.GroundForceData == null || data.GroundForces.Count == 0) return 0f;
+
+            float upgradeCost = data.GroundForces.Count
+                * (GroundForceData.CombatPowerLoadPerUnit - GroundForceData.PeacetimePowerLoadPerUnit)
+                * loadMultiplier;
+            if (upgradeCost <= 0f || upgradeCost > budget) return 0f;
+
+            data.GroundForceData.OnCombatFooting = true;
+            return upgradeCost;
         }
 
         /// <summary>
@@ -1717,6 +1931,18 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public GameObject AddGroundForceUnit(StarSysController sysController)
         {
+            var newFacilityGO = CreateGroundForceUnitGO(sysController);
+            sysController.StarSysData.GroundForces.Add(newFacilityGO);
+            return newFacilityGO;
+        }
+
+        /// <summary>
+        /// Placeholder-GameObject creation shared by AddGroundForceUnit (real, immediately-counted
+        /// unit) and TrainGroundForceUnit (in-training unit, added to TrainingGroundForces instead -
+        /// see that method). Lazily creates GroundForceData the first time either path runs.
+        /// </summary>
+        private GameObject CreateGroundForceUnitGO(StarSysController sysController)
+        {
             var sysData = sysController.StarSysData;
 
             if (sysData.GroundForceData == null)
@@ -1732,8 +1958,87 @@ namespace BOTF3D.Galaxy
             newFacilityGO.layer = 5;
             newFacilityGO.transform.SetParent(sysController.transform, false);
             newFacilityGO.SetActive(false);
-            sysData.GroundForces.Add(newFacilityGO);
             return newFacilityGO;
+        }
+
+        /// <summary>
+        /// Player-ordered troop training (TroopButtonAdd on the System UI): trains one new ground
+        /// force unit from the system's civilian Population, costing GroundForceData.PopulationPerUnit
+        /// population immediately. Held in StarSysData.TrainingGroundForces (not GroundForces, and NOT
+        /// counted as a real troop) until ProcessGroundForceTrainingForAllCivs moves it over at the
+        /// next Advance Turn - shown desaturated in the meantime via GroundForceIconUI.SetTraining
+        /// (StarSysUI_Fields.SyncGroundForceGrid). Gated on the real MaxGroundForceUnits cap (fielded +
+        /// in-training combined) so training never outpaces what the system could ever field - the
+        /// separate "keep one grid slot open" display cap is purely a UI concern, handled in
+        /// SyncGroundForceGrid, not here.
+        /// </summary>
+        public bool TrainGroundForceUnit(StarSysController sysCon)
+        {
+            var data = sysCon?.StarSysData;
+            if (data == null) return false;
+
+            int totalFielded = data.GroundForces.Count + data.TrainingGroundForces.Count;
+            if (totalFielded >= data.MaxGroundForceUnits) return false;
+            if (data.Population < GroundForceData.PopulationPerUnit) return false;
+
+            data.Population -= GroundForceData.PopulationPerUnit;
+            data.TrainingGroundForces.Add(CreateGroundForceUnitGO(sysCon));
+            return true;
+        }
+
+        /// <summary>
+        /// Player-ordered TroopButtonSubtract: cancels the most recently queued in-training unit if
+        /// one exists (full population refund, nothing else affected), otherwise disbands the most
+        /// recently fielded real GroundForces unit back into the civilian population. No-ops (returns
+        /// false) if there's nothing to remove either way.
+        ///
+        /// Note on disbanding a real unit: PopulationManager.GrowSystem re-converts Population into
+        /// GroundForces up to MaxGroundForceUnits every turn, so a disbanded unit can get automatically
+        /// re-fielded on the very next Advance Turn if the system's population still supports the same
+        /// target count - disbanding isn't a permanent reduction unless population itself drops (e.g.
+        /// combat losses, MaxPopulation falling) below the threshold that was supporting it.
+        /// </summary>
+        public bool CancelGroundForceTraining(StarSysController sysCon)
+        {
+            var data = sysCon?.StarSysData;
+            if (data == null) return false;
+
+            List<GameObject> source = data.TrainingGroundForces.Count > 0 ? data.TrainingGroundForces : data.GroundForces;
+            if (source.Count == 0) return false;
+
+            int lastIndex = source.Count - 1;
+            var unitGO = source[lastIndex];
+            source.RemoveAt(lastIndex);
+            if (unitGO != null) Destroy(unitGO);
+
+            data.Population += GroundForceData.PopulationPerUnit;
+            return true;
+        }
+
+        /// <summary>
+        /// Completes every system's pending troop training at the turn boundary - called from
+        /// TimeManager.ProcessTurnEvents right alongside PopulationManager.
+        /// ProcessPopulationGrowthForAllCivs (same "explicitly called once per turn" shape, not
+        /// self-subscribed to a different clock). A training unit simply moves from
+        /// TrainingGroundForces into GroundForces - same GameObject, no recreation - so it reads as an
+        /// ordinary fielded troop (full color, counted everywhere GroundForces.Count is) from this
+        /// point on.
+        /// </summary>
+        public void ProcessGroundForceTrainingForAllCivs()
+        {
+            foreach (var civ in CivManager.Instance.CivControllersInGame)
+            {
+                if (civ?.CivData?.StarSysWeOwn == null) continue;
+
+                foreach (var sysCon in civ.CivData.StarSysWeOwn)
+                {
+                    var data = sysCon?.StarSysData;
+                    if (data == null || data.TrainingGroundForces.Count == 0) continue;
+
+                    data.GroundForces.AddRange(data.TrainingGroundForces);
+                    data.TrainingGroundForces.Clear();
+                }
+            }
         }
         public List<GameObject> AddSystemFacilities(int numOf, GameObject prefab, int civInt, int onOff, StarSysController sysController)
         {

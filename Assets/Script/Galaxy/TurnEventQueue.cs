@@ -12,7 +12,11 @@ namespace BOTF3D.Galaxy
         UninhabitedHabitable,
         UninhabitedTerraformable,
         UninhabitedNonHabitable,
-        DiplomacyEncounter
+        DiplomacyEncounter,
+        // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §4) - unlike every
+        // type above (one-shot, fires once per contact), a live siege re-enqueues its own
+        // SiegeDecision event every InterTurn until it resolves - see EnqueueActiveSiegeEvents.
+        SiegeDecision
     }
 
     public struct TurnEvent
@@ -20,7 +24,7 @@ namespace BOTF3D.Galaxy
         public TurnEventType Type;
         public FleetController Fleet;
         public StarSysController System;
-        public System.Action ShowAction; // non-null for DiplomacyEncounter
+        public System.Action ShowAction; // non-null for DiplomacyEncounter and SiegeDecision
     }
 
     /// <summary>
@@ -85,7 +89,68 @@ namespace BOTF3D.Galaxy
         private void OnTurnPhaseChanged(TurnPhase phase)
         {
             if (phase == TurnPhase.InterTurn)
+            {
+                EnqueueActiveSiegeEvents();
                 StartDraining();
+            }
+        }
+
+        /// <summary>
+        /// Re-queues a SiegeDecision event for every system under siege that the local player is the
+        /// besieger of - same local-player gating convention every other Enqueue call site already
+        /// uses (see FleetController.OnTriggerEnter's weAreLocalPlayer checks), applied here instead
+        /// of inside StarSysManager since SystemsUnderSiege has no notion of "local player" itself.
+        /// Called every InterTurn, before StartDraining, so this turn's siege events are included in
+        /// the same drain pass as any other contact/encounter event queued this turn. Docs/Design/
+        /// SystemInvasion_Phase1_Design.md §4.
+        /// </summary>
+        private void EnqueueActiveSiegeEvents()
+        {
+            if (StarSysManager.Instance == null) return;
+
+            // Snapshot copy: nothing today mutates SystemsUnderSiege while this loop runs, but a
+            // future EndSiege call from inside ShowSiegeDecisionStub (once Invasion.3/4 wires real
+            // resolution here) would otherwise mutate the list mid-iteration.
+            foreach (var sysCon in new List<StarSysController>(StarSysManager.Instance.SystemsUnderSiege))
+            {
+                var data = sysCon != null ? sysCon.StarSysData : null;
+                if (data == null || !data.DefensesCleared || data.BesiegingFleet == null) continue;
+                if (GameController.Instance == null || !GameController.Instance.AreWeLocalPlayer(data.BesiegingCivEnum)) continue;
+
+                StarSysController capturedSys = sysCon;
+                FleetController capturedFleet = data.BesiegingFleet;
+                Enqueue(new TurnEvent
+                {
+                    Type = TurnEventType.SiegeDecision,
+                    Fleet = capturedFleet,
+                    System = capturedSys,
+                    ShowAction = () => ShowSiegeDecisionStub(capturedSys, capturedFleet)
+                });
+            }
+        }
+
+        /// <summary>
+        /// Invasion.2 stub for what Invasion.3 will replace with a real Bombard/Invade panel
+        /// (SiegeDecisionUIController - Docs/Design/SystemInvasion_Phase1_Design.md §4/§8). This
+        /// proves the turn-gating mechanism itself (siege persists across turns, the besieging fleet
+        /// stays frozen via FleetController.IsBesiegingSystem, this re-fires every InterTurn) without
+        /// building throwaway UI ahead of the real one - logs + a Report entry, then immediately
+        /// unblocks Advance Turn since there's no real decision to present yet.
+        /// </summary>
+        private void ShowSiegeDecisionStub(StarSysController sysCon, FleetController besiegingFleet)
+        {
+            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.SysName : "unknown system";
+            Debug.Log($"[Siege] '{sysName}' remains under siege by '{(besiegingFleet != null ? besiegingFleet.name : "unknown fleet")}' - Bombard/Invade UI not yet built (Invasion.3/4).");
+
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            GalaxyQuadrant quadrant = sysCon != null && sysCon.StarSysData != null
+                ? ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition())
+                : GalaxyQuadrant.Alpha;
+            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                $"{sysName} remains under siege - awaiting Bombardment/Invasion decision", "Use the Fleet UI's Break Off Siege button to withdraw, or continue on to the next turn.",
+                sysName, quadrant, ReportSeverity.Info));
+
+            NotifyDismissed();
         }
 
         private void StartDraining()
@@ -137,6 +202,17 @@ namespace BOTF3D.Galaxy
                         && (int)evt.System.StarSysData.CurrentOwnerCivEnum >= firstUninhabited;
                 case TurnEventType.DiplomacyEncounter:
                     return evt.ShowAction != null;
+                case TurnEventType.SiegeDecision:
+                    // Self-healing: a siege can end between being queued (start of this InterTurn)
+                    // and being drained (fleet destroyed by something else this same turn, or - once
+                    // Invasion.3/4 exist - resolved by another means). EndSiege here both cleans up
+                    // StarSysManager.SystemsUnderSiege and releases the fleet's freeze if it's still
+                    // alive, so a stale event never leaves either dangling.
+                    bool stillUnderSiege = evt.Fleet != null && evt.System != null && evt.System.StarSysData != null
+                        && evt.System.StarSysData.DefensesCleared && evt.System.StarSysData.BesiegingFleet == evt.Fleet;
+                    if (!stillUnderSiege)
+                        StarSysManager.Instance?.EndSiege(evt.System);
+                    return stillUnderSiege;
                 default:
                     return false;
             }
@@ -156,6 +232,7 @@ namespace BOTF3D.Galaxy
                     GalaxyMenuUIController.Instance.OpenMenu(Menu.AFleetMenu, evt.Fleet.gameObject);
                     break;
                 case TurnEventType.DiplomacyEncounter:
+                case TurnEventType.SiegeDecision:
                     evt.ShowAction?.Invoke();
                     break;
             }

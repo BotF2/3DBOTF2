@@ -25,6 +25,26 @@ namespace BOTF3D.Combat
         }
 
         /// <summary>
+        /// System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.2, 2026-09-11
+        /// revision): Orbital Batteries form a wall in front of the Shipyard, and the attacker has no
+        /// line of fire on the Shipyard while any OB still stands in it - implemented as a targeting
+        /// screen (cheap "any OB alive" proxy, not real geometric line-of-sight - see the doc's own
+        /// note on this being the deliberately simpler starting implementation). While any
+        /// ShipType.OrbitalBattery unit in this candidate list is still alive, ShipType.Shipyard units
+        /// in the same list are not valid attack targets - callers must clear every OB unit first
+        /// before the Shipyard can be targeted at all. A system's own regular defending ships are
+        /// unaffected; OB screens the Shipyard specifically, not the whole defending side. Replaces
+        /// the old ScreenOrbitalBatteriesBehindShields rule (Planetary Shields no longer participate
+        /// in Phase A space combat at all - they protect the ground-side facilities in Phase B).
+        /// </summary>
+        private static IEnumerable<ShipController> ScreenShipyardBehindOrbitalBatteries(IEnumerable<ShipController> candidates)
+        {
+            var list = candidates as IList<ShipController> ?? candidates.ToList();
+            bool obAlive = list.Any(t => t.ShipData.ShipType == ShipType.OrbitalBattery);
+            return obAlive ? list.Where(t => t.ShipData.ShipType != ShipType.Shipyard) : list;
+        }
+
+        /// <summary>
         /// Assign each ship a target on the opposing side.
         /// Called once after warp-in completes, before weapon fire starts.
         /// </summary>
@@ -39,15 +59,18 @@ namespace BOTF3D.Combat
                 .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy)
                 .ToList();
 
+            // Shipyard is unarmed (System Invasion Phase 1) - excluded the same way Transport
+            // already is, so it never gets assigned a target/enters the weapon-fire loop.
             List<ShipController> side1Attackers = combatData.SideOneShipCons
-                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport
+                            && s.ShipData.ShipType != ShipType.Shipyard)
                 .ToList();
 
             if (side1Attackers.Count > 0 && side2Alive.Count > 0)
             {
                 bool canTargetTransports = (combatData.SideOneOrder == CombatOrders.AttackTransports);
-                List<ShipController> s1ValidTargets = side2Alive
-                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport)
+                List<ShipController> s1ValidTargets = ScreenShipyardBehindOrbitalBatteries(side2Alive
+                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport))
                     .ToList();
 
                 if (s1ValidTargets.Count > 0)
@@ -98,14 +121,15 @@ namespace BOTF3D.Combat
                 .ToList();
 
             List<ShipController> side2Attackers = combatData.SideTwoShipCons
-                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport
+                            && s.ShipData.ShipType != ShipType.Shipyard)
                 .ToList();
 
             if (side2Attackers.Count > 0 && side1Alive.Count > 0)
             {
                 bool canTargetTransports = (combatData.SideTwoOrder == CombatOrders.AttackTransports);
-                List<ShipController> s2ValidTargets = side1Alive
-                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport)
+                List<ShipController> s2ValidTargets = ScreenShipyardBehindOrbitalBatteries(side1Alive
+                    .Where(t => canTargetTransports || t.ShipData.ShipType != ShipType.Transport))
                     .ToList();
 
                 if (s2ValidTargets.Count > 0)
@@ -167,9 +191,9 @@ namespace BOTF3D.Combat
             List<ShipController> myShips = isSideOne ? combatData.SideOneShipCons : combatData.SideTwoShipCons;
             bool canTargetTransports = (myOrder == CombatOrders.AttackTransports);
 
-            var validEnemies = enemies
+            var validEnemies = ScreenShipyardBehindOrbitalBatteries(enemies
                 .Where(s => s != null && !s.ShipData.Distroyed && s.gameObject.activeInHierarchy &&
-                            (canTargetTransports || s.ShipData.ShipType != ShipType.Transport))
+                            (canTargetTransports || s.ShipData.ShipType != ShipType.Transport)))
                 .ToList();
 
             // Formation focus fire: redirect every ally to the lowest-HP enemy so the

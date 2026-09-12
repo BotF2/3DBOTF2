@@ -1643,6 +1643,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5f8bceaffd7a29847bf32ac57768a7dc, type: 2}
   - {fileID: 11400000, guid: 169a8dcdaa945ca499e643803222119a, type: 2}
   - {fileID: 11400000, guid: 3bc8b62fab6fa2341bf0a203848e236c, type: 2}
+  - {fileID: 11400000, guid: 98b9b06e7ec804048a2739572d9a1376, type: 2}
   RomShipSOList:
   - {fileID: 11400000, guid: fce94c906a2c1714581c0affa5edabbc, type: 2}
   - {fileID: 11400000, guid: ff3d4a6fbe816cc4797d1d20ecea12c3, type: 2}
@@ -1660,6 +1661,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f24287466518ce04bbf4d76f0398f2a8, type: 2}
   - {fileID: 11400000, guid: d700924d8eff43c4a8e4c5cef32231de, type: 2}
   - {fileID: 11400000, guid: 7cb15bf9e57eeec4fadc4b560226f720, type: 2}
+  - {fileID: 11400000, guid: 618f8420b6cb7084295f8acbdb65e4fc, type: 2}
   KlingShipSOList:
   - {fileID: 11400000, guid: a0f7f315dd8c0a94da41533b481c8f5f, type: 2}
   - {fileID: 11400000, guid: 4b3c39d9104e8b84282f7c52268d27f6, type: 2}
@@ -1694,6 +1696,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c59cf3efbf7da2e45875de405058dbe1, type: 2}
   - {fileID: 11400000, guid: c3b78bf916344cc41bf8a49f5e9867df, type: 2}
   - {fileID: 11400000, guid: 20ec678f6a8c4854797fcb2bf65bb10e, type: 2}
+  - {fileID: 11400000, guid: 953b534fa0b326c439ef63f93370a429, type: 2}
   DomShipSOList:
   - {fileID: 11400000, guid: db08ac49ce02249449d062833ace044b, type: 2}
   - {fileID: 11400000, guid: 67fefbe1d5646fe4e941521d7252c41a, type: 2}
@@ -1711,6 +1714,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d627b68136dc25041a1e0e5ac8d6f6dd, type: 2}
   - {fileID: 11400000, guid: f83a67e9432493e45b991010b8ee0647, type: 2}
   - {fileID: 11400000, guid: 8934e17460cc3cc43b62801e8ba9ee5e, type: 2}
+  - {fileID: 11400000, guid: 24f4c4c82c3f58448ad7f51af1632ae5, type: 2}
   BorgShipSOList:
   - {fileID: 11400000, guid: cfff9939eb6f4534081acef098c54949, type: 2}
   - {fileID: 11400000, guid: 8a73541b518199f4f88877cc35d972f1, type: 2}
@@ -1728,6 +1732,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 32d26e8876b594b4da7a4797019aff49, type: 2}
   - {fileID: 11400000, guid: 568785f5ea4fadf44991a9279e94808e, type: 2}
   - {fileID: 11400000, guid: 08ed5e2fe48e5a848a4b89f63ac55bfe, type: 2}
+  - {fileID: 11400000, guid: 000e91a757d7c3042bc60ce211aee1ad, type: 2}
   TerranShipSOList:
   - {fileID: 11400000, guid: f1954b8564425bd49bc65e5910e83065, type: 2}
   - {fileID: 11400000, guid: 750b5be1567b2684ca51a6e172bb2047, type: 2}
@@ -1745,6 +1750,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 81fb621730ce39d47aae7d22298b352f, type: 2}
   - {fileID: 11400000, guid: 9032df79621f6b742aa45adbbb331a45, type: 2}
   - {fileID: 11400000, guid: 6e53643c7bcbaf04287647c2072bbd26, type: 2}
+  - {fileID: 11400000, guid: 242e337cebaa577468eab9c68374ed19, type: 2}
   MinorShipSOList:
   - {fileID: 11400000, guid: ced583a479444394fa2fc59a1f4b1863, type: 2}
   - {fileID: 11400000, guid: d1d3c8ce54ef66349a52ae2d6d059746, type: 2}
@@ -2048,8 +2054,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c9f2450e7c0e415428ff3d346ccf0b77, type: 2}
   - {fileID: 11400000, guid: 012b2d089cf552240a7ae8fb63ffda93, type: 2}
   - {fileID: 11400000, guid: 03791de61ebaaeb48be26ad950b7cccb, type: 2}
+  - {fileID: 11400000, guid: 52319011f5a29e94da406af3fff53202, type: 2}
   Test: {fileID: 11400000, guid: 0bfc7e72b8d914144913e6971f716440, type: 2}
   OrbitalBatteryShipSO: {fileID: 11400000, guid: 2f8d65fb84234c34b85ad1fd5e67f099, type: 2}
+  ShieldGeneratorShipSO: {fileID: 11400000, guid: f447124ace91fdc4e8847b894bb8090f, type: 2}
   ShipControllerList: []
 --- !u!4 &465746041
 Transform:
