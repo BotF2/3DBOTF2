@@ -41,6 +41,14 @@ namespace BOTF3D.UI
         [SerializeField] private TMP_Text sysNameLabel;
         [SerializeField] private TMP_Text ownerLabel;
 
+        [Header("Live stats — updated every Phase B tick via RefreshStats()")]
+        [SerializeField] private TMP_Text shieldText;         // ShieldText
+        [SerializeField] private TMP_Text sysTroopsText;      // SysTroopsText
+        [SerializeField] private TMP_Text transportTroopsText; // TransportTroopsText
+        [SerializeField] private TMP_Text landedTroopText;    // LandedTroopText
+        // PowerOutputText intentionally not wired yet — leave the field here for future use.
+        [SerializeField] private TMP_Text powerOutputText;
+
         [Header("Buttons")]
         [SerializeField] private Button withdrawButton;
         [SerializeField] private Button targetTroopsButton;
@@ -106,7 +114,59 @@ namespace BOTF3D.UI
                     lbl.text = hasLoadedTroops ? "Assault — Target Troops" : "Assault — Target Troops\n(no troops loaded)";
             }
 
+            // Populate the live-stat labels before opening so the first frame shows real numbers.
+            PopulateStats(data, fleet);
             PanelRoot.SetActive(true);
+        }
+
+        /// <summary>
+        /// Called by StarSysManager after each Phase B attrition tick so the panel reflects the
+        /// current combat state while AssaultMode is still None (entry gate) or TargetTroops.
+        /// Safe to call when the panel is closed — no-ops silently.
+        /// </summary>
+        public void RefreshStats(StarSysController sysCon, FleetController fleet)
+        {
+            if (PanelRoot == null || !PanelRoot.activeSelf) return;
+            PopulateStats(sysCon?.StarSysData, fleet);
+        }
+
+        private void PopulateStats(StarSysData data, FleetController fleet)
+        {
+            if (data == null) return;
+
+            // Shield HP — shown as current / max (or "Down" once cleared)
+            if (shieldText != null)
+            {
+                if (data.PhaseBShieldsDown)
+                    shieldText.text = "Shields: Down";
+                else if (data.PhaseBShieldMaxHP > 0)
+                    shieldText.text = $"Shields: {data.PhaseBShieldHP:F0} / {data.PhaseBShieldMaxHP:F0}";
+                else
+                    shieldText.text = $"Shields: {data.ShieldGenerators?.Count ?? 0} generator(s)";
+            }
+
+            // Defending troop count
+            if (sysTroopsText != null)
+                sysTroopsText.text = $"Def. Troops: {data.GroundForces?.Count ?? 0}";
+
+            // Troops currently loaded across all transports
+            if (transportTroopsText != null)
+            {
+                int loaded = 0;
+                if (fleet?.FleetData?.ShipsList != null)
+                    foreach (var s in fleet.FleetData.ShipsList)
+                        if (s != null && s.ShipData != null) loaded += s.ShipData.LoadedGroundForces;
+                transportTroopsText.text = $"Transport Troops: {loaded}";
+            }
+
+            // Landed attacker troops (only meaningful once Phase B ground phase starts)
+            if (landedTroopText != null)
+            {
+                if (data.PhaseBTroopsLanded)
+                    landedTroopText.text = $"Landed Troops: {data.PhaseBAttackerTroopHP:F0} HP";
+                else
+                    landedTroopText.text = "Landed Troops: —";
+            }
         }
 
         private void ClosePanel()

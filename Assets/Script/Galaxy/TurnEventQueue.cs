@@ -16,7 +16,9 @@ namespace BOTF3D.Galaxy
         // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §4) - unlike every
         // type above (one-shot, fires once per contact), a live siege re-enqueues its own
         // SiegeDecision event every InterTurn until it resolves - see EnqueueActiveSiegeEvents.
-        SiegeDecision
+        SiegeDecision,
+        // Shown to the human player who OWNS the system under siege — informational status panel.
+        SiegeDefenseNotify
     }
 
     public struct TurnEvent
@@ -115,21 +117,38 @@ namespace BOTF3D.Galaxy
             {
                 var data = sysCon != null ? sysCon.StarSysData : null;
                 if (data == null || !data.DefensesCleared || data.BesiegingFleet == null) continue;
-                // Only queue the decision panel for systems still awaiting a Phase B choice.
-                // Active Phase B assaults (TargetTroops/TotalDestruction) tick automatically via
-                // StarSysManager.ProcessPhaseBAtritionForAllSystems — no per-turn re-queue needed.
-                if (data.AssaultMode != AssaultMode.None) continue;
-                if (GameController.Instance == null || !GameController.Instance.AreWeLocalPlayer(data.BesiegingCivEnum)) continue;
 
-                StarSysController capturedSys = sysCon;
-                FleetController capturedFleet = data.BesiegingFleet;
-                Enqueue(new TurnEvent
+                bool weAreAttacker = GameController.Instance != null
+                    && GameController.Instance.AreWeLocalPlayer(data.BesiegingCivEnum);
+                bool weAreDefender = GameController.Instance != null
+                    && GameController.Instance.AreWeLocalPlayer(data.CurrentOwnerCivEnum);
+
+                // Attacker: decision panel when no Phase B mode chosen yet.
+                // Active Phase B assaults tick automatically via ProcessPhaseBAtritionForAllSystems.
+                if (weAreAttacker && data.AssaultMode == AssaultMode.None)
                 {
-                    Type = TurnEventType.SiegeDecision,
-                    Fleet = capturedFleet,
-                    System = capturedSys,
-                    ShowAction = () => ShowSiegeDecision(capturedSys, capturedFleet)
-                });
+                    StarSysController capturedSys = sysCon;
+                    FleetController capturedFleet = data.BesiegingFleet;
+                    Enqueue(new TurnEvent
+                    {
+                        Type = TurnEventType.SiegeDecision,
+                        Fleet = capturedFleet,
+                        System = capturedSys,
+                        ShowAction = () => ShowSiegeDecision(capturedSys, capturedFleet)
+                    });
+                }
+
+                // Defender: informational status panel every InterTurn while siege is active.
+                if (weAreDefender)
+                {
+                    StarSysController capturedSys = sysCon;
+                    Enqueue(new TurnEvent
+                    {
+                        Type = TurnEventType.SiegeDefenseNotify,
+                        System = capturedSys,
+                        ShowAction = () => ShowSiegeDefense(capturedSys)
+                    });
+                }
             }
         }
 
@@ -173,6 +192,31 @@ namespace BOTF3D.Galaxy
                     $"{sysCon.StarSysData.BesiegingCivEnum} assault on {sysName} continues " +
                     $"(Target Troops — Phase B attrition not yet implemented).",
                     sysName, quadrant, ReportSeverity.Info));
+                NotifyDismissed();
+            }
+        }
+
+        private void ShowSiegeDefense(StarSysController sysCon)
+        {
+            if (sysCon?.StarSysData == null) { NotifyDismissed(); return; }
+            if (BOTF3D.UI.SiegeDefenseUIController.Instance != null)
+            {
+                BOTF3D.UI.SiegeDefenseUIController.Instance.OpenPanel(sysCon);
+                // NotifyDismissed is called by SiegeDefenseUIController.ClosePanel (dismiss button).
+            }
+            else
+            {
+                // Fallback: push a report so the player still sees the state.
+                string sysName = sysCon.StarSysData.SysName;
+                int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+                GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition());
+                int troops = sysCon.StarSysData.GroundForces?.Count ?? 0;
+                string shieldInfo = sysCon.StarSysData.PhaseBShieldsDown ? "shields down"
+                    : $"shields at {sysCon.StarSysData.PhaseBShieldHP:F0} HP";
+                ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                    $"Under assault: {sysName}",
+                    $"{sysCon.StarSysData.BesiegingCivEnum} forces attacking {sysName} — {shieldInfo}, {troops} defending troop{(troops != 1 ? "s" : "")}.",
+                    sysName, quadrant, ReportSeverity.Warning));
                 NotifyDismissed();
             }
         }
@@ -237,6 +281,9 @@ namespace BOTF3D.Galaxy
                     if (!stillUnderSiege)
                         StarSysManager.Instance?.EndSiege(evt.System);
                     return stillUnderSiege;
+                case TurnEventType.SiegeDefenseNotify:
+                    return evt.System != null && evt.System.StarSysData != null
+                        && evt.System.StarSysData.DefensesCleared;
                 default:
                     return false;
             }
@@ -257,6 +304,7 @@ namespace BOTF3D.Galaxy
                     break;
                 case TurnEventType.DiplomacyEncounter:
                 case TurnEventType.SiegeDecision:
+                case TurnEventType.SiegeDefenseNotify:
                     evt.ShowAction?.Invoke();
                     break;
             }

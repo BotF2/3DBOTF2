@@ -1818,6 +1818,9 @@ namespace BOTF3D.Galaxy
                 var fleet = sysCon.StarSysData.BesiegingFleet;
                 if (fleet == null) continue;
                 ResolvePhaseBAtritionTick(sysCon, fleet);
+                // Keep both side panels live with post-tick numbers (no-ops if panels are closed).
+                BOTF3D.UI.SiegeDecisionUIController.Instance?.RefreshStats(sysCon, fleet);
+                BOTF3D.UI.SiegeDefenseUIController.Instance?.RefreshStats(sysCon);
             }
         }
 

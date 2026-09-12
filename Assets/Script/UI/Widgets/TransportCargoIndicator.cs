@@ -29,8 +29,16 @@ namespace BOTF3D.UI
         [SerializeField] private Sprite colonySprite;
         [SerializeField] private Sprite terraformSprite;
 
+        private ShipData _shipData;
+
+        private void OnEnable()
+        {
+            if (_shipData != null) Refresh(_shipData);
+        }
+
         public void Refresh(ShipData shipData)
         {
+            _shipData = shipData;
             if (shipData == null || shipData.ShipType != ShipType.Transport)
             {
                 gameObject.SetActive(false);
