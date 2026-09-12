@@ -837,13 +837,13 @@ namespace FischlWorks_FogWar
             if (additionalRadius == 0)
             {
                 // CheckWorldGridRange in the caller validates against levelData.levelDimensionX/Y,
-                // which can be out of step with shadowcaster.fogField's actual size (separately
-                // built once in Shadowcaster.Initialize) - so re-checking against levelData here
-                // wouldn't catch that case. Instead, guard the fogField lookup itself: FogField's
-                // indexer already logs+returns null on an out-of-range column instead of throwing,
-                // so just null-check the column before indexing into it a second time.
-                Shadowcaster.LevelColumn column = shadowcaster.fogField[levelCoordinates.x];
+                // which can be out of step with shadowcaster.fogField's actual size (built once in
+                // Shadowcaster.Initialize). Guard directly against fogField.ColumnCount so the
+                // indexer's LogErrorFormat path is never reached.
+                if (levelCoordinates.x < 0 || levelCoordinates.x >= shadowcaster.fogField.ColumnCount)
+                    return false;
 
+                Shadowcaster.LevelColumn column = shadowcaster.fogField[levelCoordinates.x];
                 return column != null &&
                     column[levelCoordinates.y] == Shadowcaster.LevelColumn.ETileVisibility.Revealed;
             }

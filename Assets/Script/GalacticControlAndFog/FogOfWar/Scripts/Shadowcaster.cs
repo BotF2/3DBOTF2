@@ -112,6 +112,8 @@ namespace FischlWorks_FogWar
                 }
             }
 
+            public int ColumnCount => levelRow.Count;
+
             private List<LevelColumn> levelRow = new List<LevelColumn>();
 
             // To be initialized with the dependant initialization function call
