@@ -157,8 +157,8 @@ namespace BOTF3D.Combat
             CombatOrders myOrder    = isSideOne ? combatController.CombatData.SideOneOrder : combatController.CombatData.SideTwoOrder;
             CombatOrders enemyOrder = isSideOne ? combatController.CombatData.SideTwoOrder : combatController.CombatData.SideOneOrder;
 
-            var validEnemies = enemies
-                .Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport)
+            var validEnemies = CombatTargetingSystem.ScreenShipyardBehindOrbitalBatteries(enemies
+                .Where(s => s != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured && s.gameObject.activeInHierarchy && s.ShipData.ShipType != ShipType.Transport))
                 .ToList();
 
             // Formation focus fire: FOCUS_FIRE_RATIO of ships converge on the lowest-HP enemy;

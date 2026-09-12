@@ -37,7 +37,7 @@ namespace BOTF3D.Combat
         /// the old ScreenOrbitalBatteriesBehindShields rule (Planetary Shields no longer participate
         /// in Phase A space combat at all - they protect the ground-side facilities in Phase B).
         /// </summary>
-        private static IEnumerable<ShipController> ScreenShipyardBehindOrbitalBatteries(IEnumerable<ShipController> candidates)
+        internal static IEnumerable<ShipController> ScreenShipyardBehindOrbitalBatteries(IEnumerable<ShipController> candidates)
         {
             var list = candidates as IList<ShipController> ?? candidates.ToList();
             bool obAlive = list.Any(t => t.ShipData.ShipType == ShipType.OrbitalBattery);
