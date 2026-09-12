@@ -133,7 +133,7 @@ namespace BOTF3D.UI
 
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
             var data = currentSys.StarSysData;
-            BOTF3D.Galaxy.GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
             ReportEntryUI.PushReport(new ReportEntry(
                 ReportCategory.Combat, stardate,
                 $"Assault underway: {data.SysName}",
