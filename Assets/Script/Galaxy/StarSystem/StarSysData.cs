@@ -178,6 +178,17 @@ namespace BOTF3D.Galaxy
         // Phase B choice made at the §4.1 entry gate. None until the player answers the panel.
         public AssaultMode AssaultMode;
 
+        // Phase B abstract attrition pools (System Invasion Phase 1, §4.2).
+        // Initialized by StarSysManager.InitializePhaseB when TargetTroops is chosen; cleared by EndSiege.
+        public float PhaseBShieldHP;          // current collective shield pool; 0 = shields down
+        public float PhaseBShieldMaxHP;       // total at Phase B start, for a % readout
+        public float PhaseBCollateralAccum;   // fractional collateral toward the next SG kill
+        public float PhaseBPowerPlantHP;      // aggregate power-plant HP once fleet targets ground
+        public float PhaseBPowerPlantMaxHP;   // total at Phase B start, for a % readout
+        public float PhaseBTroopHP;           // aggregate troop HP; units removed as this depletes
+        public float PhaseBTroopMaxHP;        // total at Phase B start, for a % readout
+        public bool  PhaseBShieldsDown;       // true once all SGs are destroyed or ShieldHP hits 0
+
         public int TotalSysPowerOutput = 0;
         public int TotalSysPowerLoad = 0;
         public PowerPlantData PowerPlantData;

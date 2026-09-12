@@ -46,4 +46,22 @@ public class GroundForceData
     /// <summary>Total power load for troopCount fielded units at the current footing (peacetime or combat).</summary>
     public int CurrentPowerLoad(int troopCount) =>
         troopCount * (OnCombatFooting ? CombatPowerLoadPerUnit : PeacetimePowerLoadPerUnit);
+
+    // Phase B abstract attrition stats — derived from HvyCruiser so they scale with civ tech and
+    // quality automatically, matching "comparable to the best combat ship" without a new SO asset.
+    // The 0.25 maintenance fraction matches the 1:4 power-load ratio already in this class.
+    private const float MaintenanceFraction = 0.25f;
+
+    public static float GetUnitAttackPower(CivEnum civ, TechLevel tech, int qualityScore, bool onCombatFooting)
+    {
+        var s = ShipStatCalculator.Calculate(ShipType.HvyCruiser, tech, civ, qualityScore);
+        float full = s.BeamDamage + s.TorpedoDamage;
+        return onCombatFooting ? full : full * MaintenanceFraction;
+    }
+
+    public static float GetUnitMaxHP(CivEnum civ, TechLevel tech, int qualityScore)
+    {
+        var s = ShipStatCalculator.Calculate(ShipType.HvyCruiser, tech, civ, qualityScore);
+        return s.ShieldMaxHealth + s.HullMaxHealth;
+    }
 }

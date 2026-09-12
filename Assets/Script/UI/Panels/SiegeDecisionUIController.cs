@@ -130,6 +130,7 @@ namespace BOTF3D.UI
             if (currentSys?.StarSysData == null) { ClosePanel(); return; }
 
             currentSys.StarSysData.AssaultMode = AssaultMode.TargetTroops;
+            StarSysManager.Instance?.InitializePhaseB(currentSys, currentFleet);
 
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
             var data = currentSys.StarSysData;

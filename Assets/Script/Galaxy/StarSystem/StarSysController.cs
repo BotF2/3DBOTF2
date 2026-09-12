@@ -1693,6 +1693,37 @@ namespace BOTF3D.Galaxy
         }
 
         /// <summary>
+        /// Phase B counterpart — removes one Power Plant facility marker destroyed by abstract fleet
+        /// bombardment (System Invasion Phase 1, §4.2). Power Plants are output sources, not loads, so
+        /// this debits TotalSysPowerOutput and CurrentPowerPlantCount rather than TotalSysPowerLoad.
+        /// </summary>
+        internal void RemovePowerPlantFacility()
+        {
+            var plants = StarSysData?.PowerPlants;
+            if (plants == null || plants.Count == 0) return;
+
+            int lastIndex = plants.Count - 1;
+            GameObject facilityGO = plants[lastIndex];
+            plants.RemoveAt(lastIndex);
+
+            if (StarSysData != null)
+            {
+                int outputPerPlant = StarSysData.PowerPlantData?.BasePowerOutput ?? 20;
+                StarSysData.TotalSysPowerOutput = Mathf.Max(0, StarSysData.TotalSysPowerOutput - outputPerPlant);
+                StarSysData.CurrentPowerPlantCount = Mathf.Max(0, StarSysData.CurrentPowerPlantCount - 1);
+            }
+
+            if (facilityGO != null)
+                Destroy(facilityGO);
+
+            if (StarSysUI != null)
+            {
+                StarSysUI.UpdateFacilityUI(this, -1, StarSysFacilityType.PowerPlanet);
+                StarSysUI.UpdateSystemPowerBalance(this);
+            }
+        }
+
+        /// <summary>
         /// Shipyard counterpart to RemoveOrbitalBatteryFacility/RemoveShieldGeneratorFacility above -
         /// called when a ShipType.Shipyard combat unit is destroyed in Phase A (System Invasion
         /// Phase 1, Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§7). Identical pattern: removes

@@ -1643,6 +1643,14 @@ namespace BOTF3D.Galaxy
             data.BesiegingFleet = null;
             data.DefensesCleared = false;
             data.AssaultMode = AssaultMode.None;
+            data.PhaseBShieldHP = 0f;
+            data.PhaseBShieldMaxHP = 0f;
+            data.PhaseBCollateralAccum = 0f;
+            data.PhaseBPowerPlantHP = 0f;
+            data.PhaseBPowerPlantMaxHP = 0f;
+            data.PhaseBTroopHP = 0f;
+            data.PhaseBTroopMaxHP = 0f;
+            data.PhaseBShieldsDown = false;
 
             SystemsUnderSiege.Remove(sysCon);
         }
@@ -1709,6 +1717,255 @@ namespace BOTF3D.Galaxy
             foreach (var go in list)
                 if (go != null) UnityEngine.Object.Destroy(go);
             list.Clear();
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Phase B — Abstract attrition (System Invasion Phase 1, §4.2)
+        // Fleet fires on shields first; troops counter-fire at attacking ships
+        // throughout. Once shields fall, fleet splits fire between power plants
+        // and ground troops. All resolved in the Galaxy scene per InterTurn
+        // (no CombatScene, no fleet freeze). Called from TimeManager.ProcessTurnEvents.
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Power-priority reorder for Phase B entry: Shield Generator first (OBs and Shipyard are
+        /// gone by construction — Phase A ends only when both are destroyed). Called by InitializePhaseB
+        /// before computing the shield HP pool so the powered-on count reflects this new order.
+        /// </summary>
+        public void ReallocatePowerForPhaseB(StarSysController sysCon)
+        {
+            var data = sysCon?.StarSysData;
+            if (data == null) return;
+
+            TechLevel tech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            float loadMultiplier = TechManager.Instance != null ? TechManager.Instance.GetPowerEfficiencyMultiplier(tech) : 1f;
+            float budget = data.MaxPowerPlants * (data.PowerPlantData?.BasePowerOutput ?? 20);
+
+            SetAllFacilitiesOff(data, StarSysFacilityType.ShieldGenerator);
+            SetAllFacilitiesOff(data, StarSysFacilityType.Factory);
+            SetAllFacilitiesOff(data, StarSysFacilityType.ResearchCenter);
+
+            budget -= DeductGroundForcePeacetimeLoad(data, loadMultiplier);
+            budget -= PowerOnUpTo(data, StarSysFacilityType.ShieldGenerator, budget, loadMultiplier);
+            budget -= TryUpgradeGroundForcesToCombatFooting(data, budget, loadMultiplier);
+            budget -= PowerOnUpTo(data, StarSysFacilityType.Factory, budget, loadMultiplier);
+            PowerOnUpTo(data, StarSysFacilityType.ResearchCenter, budget, loadMultiplier);
+
+            StarSysMenuUIController.Instance?.UpdateSystemPowerBalance(sysCon);
+        }
+
+        /// <summary>
+        /// Called by SiegeDecisionUIController when the player picks Target Troops at the §4.1 gate.
+        /// Computes and stores the initial Phase B HP pools that ResolvePhaseBAtritionTick drains
+        /// each InterTurn until one side is destroyed.
+        /// </summary>
+        public void InitializePhaseB(StarSysController sysCon, FleetController fleet)
+        {
+            if (sysCon?.StarSysData == null || fleet == null) return;
+            var data = sysCon.StarSysData;
+
+            ReallocatePowerForPhaseB(sysCon);
+
+            CivEnum defCiv = data.CurrentOwnerCivEnum;
+            TechLevel defTech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int defQuality = data.CurrentCivController?.CivData?.QualityScore ?? 5;
+
+            int poweredOnSGs = NumFacilitiesPoweredOn(data, StarSysFacilityType.ShieldGenerator);
+            float sgContrib = ComputeSGContribution(defCiv, defTech, defQuality);
+            data.PhaseBShieldHP = data.PhaseBShieldMaxHP = poweredOnSGs * sgContrib;
+            data.PhaseBCollateralAccum = 0f;
+            data.PhaseBShieldsDown = false;
+
+            float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality);
+            data.PhaseBTroopHP = data.PhaseBTroopMaxHP = data.GroundForces.Count * hpPerTroop;
+
+            float hpPerPP = ComputePowerPlantHP(defCiv, defTech, defQuality);
+            int ppCount = data.PowerPlants?.Count ?? 0;
+            data.PhaseBPowerPlantHP = data.PhaseBPowerPlantMaxHP = ppCount * hpPerPP;
+
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
+            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                $"Assault begins: {data.SysName}",
+                $"{data.BesiegingCivEnum} fleet opens bombardment of {data.SysName}. " +
+                $"Planetary shields at full strength ({poweredOnSGs} generator{(poweredOnSGs != 1 ? "s" : "")} online). " +
+                $"{data.GroundForces.Count} ground unit{(data.GroundForces.Count != 1 ? "s" : "")} defending — returning fire.",
+                data.SysName, quadrant, ReportSeverity.Warning));
+
+            Debug.Log($"[PhaseB] '{data.SysName}': initialized — Shield {data.PhaseBShieldHP} HP, " +
+                      $"{data.GroundForces.Count} troops ({data.PhaseBTroopHP} HP), {ppCount} power plants ({data.PhaseBPowerPlantHP} HP).");
+        }
+
+        /// <summary>
+        /// Called each InterTurn from TimeManager.ProcessTurnEvents. Advances Phase B attrition for
+        /// every system where the player chose Target Troops at the §4.1 gate.
+        /// </summary>
+        public void ProcessPhaseBAtritionForAllSystems()
+        {
+            if (SystemsUnderSiege == null || SystemsUnderSiege.Count == 0) return;
+            foreach (var sysCon in new List<StarSysController>(SystemsUnderSiege))
+            {
+                if (sysCon?.StarSysData?.AssaultMode != AssaultMode.TargetTroops) continue;
+                var fleet = sysCon.StarSysData.BesiegingFleet;
+                if (fleet == null) continue;
+                ResolvePhaseBAtritionTick(sysCon, fleet);
+            }
+        }
+
+        private void ResolvePhaseBAtritionTick(StarSysController sysCon, FleetController fleet)
+        {
+            var data = sysCon.StarSysData;
+            CivEnum defCiv = data.CurrentOwnerCivEnum;
+            CivEnum atkCiv = data.BesiegingCivEnum;
+            TechLevel defTech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
+            int defQuality = data.CurrentCivController?.CivData?.QualityScore ?? 5;
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
+
+            // ── Fleet attack power ──────────────────────────────────────────
+            var livingCombat = fleet.FleetData?.ShipsList?
+                .Where(s => s != null && !s.ShipData.Distroyed && s.ShipData.ShipType != ShipType.Transport)
+                .ToList();
+            if (livingCombat == null || livingCombat.Count == 0)
+            {
+                EndSiege(sysCon);
+                ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                    $"Assault repelled: {data.SysName}",
+                    $"The {atkCiv} attacking fleet was destroyed. {data.SysName} remains under {defCiv} control.",
+                    data.SysName, quadrant, ReportSeverity.Warning));
+                return;
+            }
+            float fleetAttack = livingCombat.Sum(s => s.ShipData.BeamDamage + s.ShipData.TorpedoDamage);
+
+            // ── Ground troop counter-fire against attacking fleet ───────────
+            int troopCount = data.GroundForces.Count;
+            if (troopCount > 0)
+            {
+                bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
+                float troopAttack = troopCount * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
+                float perShip = troopAttack / livingCombat.Count;
+                foreach (var ship in livingCombat)
+                    ApplyDamageToShip(ship.ShipData, perShip);
+
+                bool fleetWiped = fleet.FleetData.ShipsList
+                    .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
+                if (fleetWiped)
+                {
+                    EndSiege(sysCon);
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Assault repelled: {data.SysName}",
+                        $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
+                        data.SysName, quadrant, ReportSeverity.Warning));
+                    return;
+                }
+            }
+
+            // ── Fleet fires ─────────────────────────────────────────────────
+            if (!data.PhaseBShieldsDown)
+            {
+                float sgContrib = ComputeSGContribution(defCiv, defTech, defQuality);
+                data.PhaseBShieldHP -= fleetAttack;
+
+                if (data.PhaseBShieldHP <= sgContrib && (data.ShieldGenerators?.Count ?? 0) > 0)
+                {
+                    data.PhaseBCollateralAccum += fleetAttack * 0.25f;
+                    while (data.PhaseBCollateralAccum >= sgContrib && (data.ShieldGenerators?.Count ?? 0) > 0)
+                    {
+                        data.PhaseBCollateralAccum -= sgContrib;
+                        sysCon.RemoveShieldGeneratorFacility();
+                    }
+                }
+
+                bool shieldsDown = data.PhaseBShieldHP <= 0 || (data.ShieldGenerators?.Count ?? 0) == 0;
+                if (shieldsDown)
+                {
+                    data.PhaseBShieldHP = 0;
+                    data.PhaseBShieldsDown = true;
+                    while ((data.ShieldGenerators?.Count ?? 0) > 0)
+                        sysCon.RemoveShieldGeneratorFacility();
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Shields down: {data.SysName}",
+                        $"{atkCiv} bombardment collapsed {data.SysName}'s planetary shields. Fleet now targeting ground facilities and troops.",
+                        data.SysName, quadrant, ReportSeverity.Critical));
+                }
+                else
+                {
+                    int sgCount = data.ShieldGenerators?.Count ?? 0;
+                    float pct = data.PhaseBShieldMaxHP > 0 ? data.PhaseBShieldHP / data.PhaseBShieldMaxHP * 100f : 0f;
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Bombardment: {data.SysName}",
+                        $"{atkCiv} fleet pounding {data.SysName} shields — {pct:F0}% remaining " +
+                        $"({sgCount} generator{(sgCount != 1 ? "s" : "")} active). Ground troops returning fire.",
+                        data.SysName, quadrant, ReportSeverity.Info));
+                }
+            }
+            else
+            {
+                float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality);
+                float hpPerPP = ComputePowerPlantHP(defCiv, defTech, defQuality);
+                float half = fleetAttack * 0.5f;
+
+                // Power plants take half the fire
+                if ((data.PowerPlants?.Count ?? 0) > 0)
+                {
+                    data.PhaseBPowerPlantHP = Mathf.Max(0f, data.PhaseBPowerPlantHP - half);
+                    int ppExpected = data.PhaseBPowerPlantHP > 0 ? Mathf.CeilToInt(data.PhaseBPowerPlantHP / hpPerPP) : 0;
+                    int ppToRemove = (data.PowerPlants.Count) - ppExpected;
+                    for (int i = 0; i < ppToRemove; i++)
+                        sysCon.RemovePowerPlantFacility();
+                }
+
+                // Troops take the other half
+                data.PhaseBTroopHP = Mathf.Max(0f, data.PhaseBTroopHP - half);
+                int troopsExpected = data.PhaseBTroopHP > 0 ? Mathf.CeilToInt(data.PhaseBTroopHP / hpPerTroop) : 0;
+                int troopsToRemove = data.GroundForces.Count - troopsExpected;
+                for (int i = 0; i < troopsToRemove; i++)
+                {
+                    if (data.GroundForces.Count == 0) break;
+                    int last = data.GroundForces.Count - 1;
+                    if (data.GroundForces[last] != null) UnityEngine.Object.Destroy(data.GroundForces[last]);
+                    data.GroundForces.RemoveAt(last);
+                }
+
+                if (data.GroundForces.Count == 0)
+                {
+                    CivManager.Instance?.AssimilateSystem(sysCon, atkCiv);
+                    EndSiege(sysCon);
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"System captured: {data.SysName}",
+                        $"{atkCiv} forces eliminated all defenders on {data.SysName}. System is now under {atkCiv} control.",
+                        data.SysName, quadrant, ReportSeverity.Critical));
+                    return;
+                }
+
+                float troopPct = data.PhaseBTroopMaxHP > 0 ? data.PhaseBTroopHP / data.PhaseBTroopMaxHP * 100f : 0f;
+                ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                    $"Ground assault: {data.SysName}",
+                    $"{atkCiv} fleet targeting ground forces on {data.SysName} — defenders at {troopPct:F0}% " +
+                    $"({data.GroundForces.Count} unit{(data.GroundForces.Count != 1 ? "s" : "")} remaining). Ground troops returning fire.",
+                    data.SysName, quadrant, ReportSeverity.Warning));
+            }
+        }
+
+        private static float ComputeSGContribution(CivEnum civ, TechLevel tech, int quality) =>
+            ShipStatCalculator.Calculate(ShipType.PlanetaryShield, tech, civ, quality).ShieldMaxHealth;
+
+        private static float ComputePowerPlantHP(CivEnum civ, TechLevel tech, int quality) =>
+            ShipStatCalculator.Calculate(ShipType.PlanetaryShield, tech, civ, quality).HullMaxHealth;
+
+        private static void ApplyDamageToShip(ShipData ship, float damage)
+        {
+            int dmg = Mathf.RoundToInt(damage);
+            if (dmg <= 0) return;
+            int shieldAbsorb = Mathf.Min(ship.ShieldHealth, dmg);
+            ship.ShieldHealth -= shieldAbsorb;
+            int remainder = dmg - shieldAbsorb;
+            if (remainder > 0)
+            {
+                ship.HullHealth = Mathf.Max(0, ship.HullHealth - remainder);
+                if (ship.HullHealth <= 0)
+                    ship.Distroyed = true;
+            }
         }
 
         /// <summary>
