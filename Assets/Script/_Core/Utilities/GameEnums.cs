@@ -505,6 +505,14 @@ namespace BOTF3D.Core
         SystemVsFleet,
         StarSystemInvasion
     }
+    // Phase B assault sub-choice (System Invasion Phase 1, §4.1). None = defenses cleared but the
+    // Phase B entry gate has not yet been presented/answered this siege.
+    public enum AssaultMode
+    {
+        None,
+        TargetTroops,
+        TotalDestruction
+    }
     public enum TurnPhase
     {
         InterTurn,           // Clock paused — player gives orders, reviews build queues

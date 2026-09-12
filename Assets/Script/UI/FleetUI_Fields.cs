@@ -62,6 +62,11 @@ public class FleetUI_Fields : MonoBehaviour
     // FleetMenuUIController.ClickBreakOffSiegeButton. Same Editor-wiring pattern as TranswarpButton
     // above - assign a Button GameObject to this slot before it appears in-game.
     public Button BreakOffSiegeButton;
+    // System Invasion Phase 1 §4.1 entry gate - shown while besieging AND no assault mode has been
+    // chosen yet. Opens SiegeDecisionUIController's panel (Withdraw / Target Troops / Total
+    // Destruction). Hidden once the player picks Target Troops (assault is underway) or after Total
+    // Destruction resolves (siege ends). Same Editor-wiring pattern as BreakOffSiegeButton above.
+    public Button SystemAssaultButton;
 
     [Header("Sliders")]
     public Slider WarpSlider;

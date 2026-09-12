@@ -124,33 +124,53 @@ namespace BOTF3D.Galaxy
                     Type = TurnEventType.SiegeDecision,
                     Fleet = capturedFleet,
                     System = capturedSys,
-                    ShowAction = () => ShowSiegeDecisionStub(capturedSys, capturedFleet)
+                    ShowAction = () => ShowSiegeDecision(capturedSys, capturedFleet)
                 });
             }
         }
 
         /// <summary>
-        /// Invasion.2 stub for what Invasion.3 will replace with a real Bombard/Invade panel
-        /// (SiegeDecisionUIController - Docs/Design/SystemInvasion_Phase1_Design.md §4/§8). This
-        /// proves the turn-gating mechanism itself (siege persists across turns, the besieging fleet
-        /// stays frozen via FleetController.IsBesiegingSystem, this re-fires every InterTurn) without
-        /// building throwaway UI ahead of the real one - logs + a Report entry, then immediately
-        /// unblocks Advance Turn since there's no real decision to present yet.
+        /// System Invasion Phase 1 §4.1 gate — shows the real SiegeDecisionUIController panel if
+        /// no Phase B mode has been chosen yet; reports "assault in progress" and auto-dismisses if
+        /// the player already committed to Target Troops this turn (Total Destruction ends the siege
+        /// immediately so it never reaches this path again). Replaces ShowSiegeDecisionStub from
+        /// Invasion.2. Docs/Design/SystemInvasion_Phase1_Design.md §4/§8.
         /// </summary>
-        private void ShowSiegeDecisionStub(StarSysController sysCon, FleetController besiegingFleet)
+        private void ShowSiegeDecision(StarSysController sysCon, FleetController besiegingFleet)
         {
-            string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.SysName : "unknown system";
-            Debug.Log($"[Siege] '{sysName}' remains under siege by '{(besiegingFleet != null ? besiegingFleet.name : "unknown fleet")}' - Bombard/Invade UI not yet built (Invasion.3/4).");
-
+            if (sysCon?.StarSysData == null) { NotifyDismissed(); return; }
+            string sysName = sysCon.StarSysData.SysName;
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
-            GalaxyQuadrant quadrant = sysCon != null && sysCon.StarSysData != null
-                ? ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition())
-                : GalaxyQuadrant.Alpha;
-            ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
-                $"{sysName} remains under siege - awaiting Bombardment/Invasion decision", "Use the Fleet UI's Break Off Siege button to withdraw, or continue on to the next turn.",
-                sysName, quadrant, ReportSeverity.Info));
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(sysCon.StarSysData.GetPosition());
 
-            NotifyDismissed();
+            if (sysCon.StarSysData.AssaultMode == AssaultMode.None)
+            {
+                // No decision yet — open the panel and let it call NotifyDismissed when closed.
+                if (BOTF3D.UI.SiegeDecisionUIController.Instance != null)
+                {
+                    BOTF3D.UI.SiegeDecisionUIController.Instance.OpenPanel(sysCon, besiegingFleet);
+                    // NotifyDismissed is called by SiegeDecisionUIController.ClosePanel().
+                }
+                else
+                {
+                    Debug.LogWarning($"[Siege] SiegeDecisionUIController not found — add it to PersistentScene.");
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"{sysName} awaiting assault decision",
+                        "Assign a SiegeDecisionUIController to PersistentScene to enable the Assault System panel.",
+                        sysName, quadrant, ReportSeverity.Warning));
+                    NotifyDismissed();
+                }
+            }
+            else
+            {
+                // Target Troops: assault already underway — report progress stub and unblock turn.
+                ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                    $"Assault in progress: {sysName}",
+                    $"{sysCon.StarSysData.BesiegingCivEnum} assault on {sysName} continues " +
+                    $"(Target Troops — Phase B attrition not yet implemented).",
+                    sysName, quadrant, ReportSeverity.Info));
+                NotifyDismissed();
+            }
         }
 
         private void StartDraining()

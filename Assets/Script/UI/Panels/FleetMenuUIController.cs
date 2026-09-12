@@ -757,6 +757,27 @@ namespace BOTF3D.UI
                     breakOffLabel.text = $"Break Off Siege ({fleetCon.FleetData.BesiegedSystem?.StarSysData?.SysName})";
             }
 
+            // System Assault: only visible while besieging AND Phase B mode hasn't been chosen yet
+            // (AssaultMode.None). Once the player picks Target Troops the assault is underway and
+            // this button is no longer needed; Total Destruction resolves immediately and ends the
+            // siege so isBesieging goes false anyway.
+            if (uiFields.SystemAssaultButton != null)
+            {
+                var besiegedSys = fleetCon.FleetData?.BesiegedSystem;
+                bool noModeChosen = besiegedSys == null
+                    || besiegedSys.StarSysData?.AssaultMode == AssaultMode.None;
+                bool showAssault = isBesieging && noModeChosen;
+
+                uiFields.SystemAssaultButton.gameObject.SetActive(showAssault);
+                uiFields.SystemAssaultButton.interactable = showAssault;
+                uiFields.SystemAssaultButton.onClick.RemoveAllListeners();
+                uiFields.SystemAssaultButton.onClick.AddListener(() => ClickSystemAssaultButton(fleetCon));
+
+                var assaultLabel = uiFields.SystemAssaultButton.GetComponentInChildren<TMPro.TMP_Text>();
+                if (assaultLabel != null && showAssault)
+                    assaultLabel.text = $"Assault System ({besiegedSys?.StarSysData?.SysName})";
+            }
+
             // ✅ TEXT BINDINGS: Always update
             uiFields.FleetNameText.text = fleetCon.FleetData.FleetName;
             uiFields.DestinationName.gameObject.SetActive(true);
@@ -898,6 +919,12 @@ namespace BOTF3D.UI
             if (fleetCon == null) return;
             fleetCon.RequestBreakOffSiege();
             SetupFleetUIData();
+        }
+
+        private void ClickSystemAssaultButton(FleetController fleetCon)
+        {
+            if (fleetCon == null || fleetCon.FleetData?.BesiegedSystem == null) return;
+            SiegeDecisionUIController.Instance?.OpenPanel(fleetCon.FleetData.BesiegedSystem, fleetCon);
         }
         private void ClickClaimSystemButton(FleetController fleetCon)
         {

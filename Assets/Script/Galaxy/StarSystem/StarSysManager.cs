@@ -1642,8 +1642,73 @@ namespace BOTF3D.Galaxy
             }
             data.BesiegingFleet = null;
             data.DefensesCleared = false;
+            data.AssaultMode = AssaultMode.None;
 
             SystemsUnderSiege.Remove(sysCon);
+        }
+
+        /// <summary>
+        /// Phase B Total Destruction resolution (System Invasion Phase 1, Docs/Design/
+        /// SystemInvasion_Phase1_Design.md §4.2). Destroys every facility, zeroes population and
+        /// ground forces, then claims the system for the attacker - all in a single call, so the
+        /// system is immediately usable by the winner without waiting for a second resolution pass.
+        /// Called from SiegeDecisionUIController.OnTotalDestruction.
+        /// </summary>
+        public void ResolveTotalDestruction(StarSysController sysCon, FleetController attackerFleet)
+        {
+            if (sysCon?.StarSysData == null || attackerFleet?.FleetData == null) return;
+            var data = sysCon.StarSysData;
+            CivEnum attackerCivEnum = attackerFleet.FleetData.CivEnum;
+
+            // Destroy all facilities. OrbitalBattery/Shipyard/ShieldGenerator have dedicated remove
+            // methods that also handle power accounting and per-facility UI updates; PowerPlants,
+            // Factories, and ResearchCenters are cleared directly (their UI is rebuilt when the
+            // system changes owner below).
+            while (data.OrbitalBatteries != null && data.OrbitalBatteries.Count > 0)
+                sysCon.RemoveOrbitalBatteryFacility();
+            while (data.Shipyards != null && data.Shipyards.Count > 0)
+                sysCon.RemoveShipyardFacility();
+            while (data.ShieldGenerators != null && data.ShieldGenerators.Count > 0)
+                sysCon.RemoveShieldGeneratorFacility();
+
+            DestroyAndClear(data.PowerPlants);
+            data.CurrentPowerPlantCount = 0;
+            DestroyAndClear(data.Factories);
+            DestroyAndClear(data.ResearchCenters);
+
+            // Zero population and ground forces.
+            DestroyAndClear(data.GroundForces);
+            DestroyAndClear(data.TrainingGroundForces);
+            data.Population = 0;
+            data.PopulationGrowthAccumulator = 0f;
+            data.TotalSysPowerOutput = 0;
+            data.TotalSysPowerLoad = 0;
+
+            // Transfer ownership to the attacker via AssimilateSystem, which handles StarSysWeOwn
+            // bookkeeping and fires SystemOwnershipChanged - same path the Borg use post-combat.
+            CivManager.Instance?.AssimilateSystem(sysCon, attackerCivEnum);
+
+            // End siege now that the system is claimed (EndSiege clears BesiegingFleet/DefensesCleared
+            // and unfreezes the fleet so it can move again).
+            EndSiege(sysCon);
+
+            int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
+            GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
+            ReportEntryUI.PushReport(new ReportEntry(
+                ReportCategory.Combat, stardate,
+                $"Total Destruction: {data.SysName}",
+                $"{attackerCivEnum} destroyed all facilities on {data.SysName} and claimed the system.",
+                data.SysName, quadrant, ReportSeverity.Critical));
+
+            Debug.Log($"[Siege] Total Destruction: '{data.SysName}' cleared and claimed by {attackerCivEnum}.");
+        }
+
+        private static void DestroyAndClear(System.Collections.Generic.List<GameObject> list)
+        {
+            if (list == null) return;
+            foreach (var go in list)
+                if (go != null) UnityEngine.Object.Destroy(go);
+            list.Clear();
         }
 
         /// <summary>

@@ -175,6 +175,8 @@ namespace BOTF3D.Galaxy
         public FleetController BesiegingFleet;
         public CivEnum BesiegingCivEnum;
         public bool DefensesCleared;
+        // Phase B choice made at the §4.1 entry gate. None until the player answers the panel.
+        public AssaultMode AssaultMode;
 
         public int TotalSysPowerOutput = 0;
         public int TotalSysPowerLoad = 0;
