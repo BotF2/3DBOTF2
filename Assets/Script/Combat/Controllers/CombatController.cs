@@ -1010,9 +1010,13 @@ namespace BOTF3D.Combat
         {
             if (ships == null) return;
 
+            // System fights: attacker troops must stay loaded so the player can choose Phase B
+            // (Assault System). InitializePhaseB → ResolveTargetTroopsPhase handles the landing.
+            // Zeroing LoadedGroundForces here (before Assault System is even clicked) empties the
+            // transports prematurely. Skip entirely for system fights.
             bool isSystemFight = CombatData.CombatType == CombatType.FleetVsSystem
                                   || CombatData.CombatType == CombatType.SystemVsFleet;
-            if (!isSystemFight) return;
+            if (isSystemFight) return;
 
             foreach (var ship in ships)
             {

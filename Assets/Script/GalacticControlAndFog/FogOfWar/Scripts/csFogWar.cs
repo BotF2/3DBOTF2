@@ -507,6 +507,7 @@ namespace FischlWorks_FogWar
         // a moving/always-update revealer to happen to trigger one via Update().
         public void ForceUpdateFog()
         {
+            if (levelMidPoint == null) return;
             UpdateFogField();
 
             Graphics.CopyTexture(fogPlaneTextureLerpTarget, fogPlaneTextureLerpBuffer);

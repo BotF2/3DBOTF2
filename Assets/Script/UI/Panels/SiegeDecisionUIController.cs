@@ -111,7 +111,7 @@ namespace BOTF3D.UI
                 targetTroopsButton.interactable = true;
                 var lbl = targetTroopsButton.GetComponentInChildren<TMP_Text>();
                 if (lbl != null)
-                    lbl.text = hasLoadedTroops ? "Assault — Target Troops" : "Assault — Target Troops\n(no troops loaded)";
+                    lbl.text = hasLoadedTroops ? "Target Troops" : "Target Troops\n(no troops loaded)";
             }
 
             // Populate the live-stat labels before opening so the first frame shows real numbers.

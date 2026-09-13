@@ -17373,7 +17373,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BOTF3D::BOTF3D.UI.SysCompactHeader
   sysNameTMP: {fileID: 3493138512311525547}
   dilithiumTMP: {fileID: 4592887991661600112}
-  antimatterTMP: {fileID: 0}
+  antimatterTMP: {fileID: 2893014165406388895}
   expandButton: {fileID: 7140356799796277065}
 --- !u!1 &8835606076426382831
 GameObject:

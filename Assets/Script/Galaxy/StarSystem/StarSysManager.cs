@@ -791,6 +791,19 @@ namespace BOTF3D.Galaxy
                         AddGroundForceUnit(starSysCon);
                 }
 
+                // Warp-capable minor civs always start with at least 2 ground troops.
+                // Small populations make the 10% calculation above round to zero, leaving
+                // them undefended. Ground troops are not yet authored in star system SOs
+                // (unlike ShieldGenerators / OrbitalBatteries); this flat floor covers all
+                // warp-capable non-playable systems until that pipeline exists.
+                bool isPlayableCiv = sysData.CurrentCivController?.CivData?.Playable == true;
+                if (!isPlayableCiv && civSO.HasWarp && sysData.GroundForces.Count < 2)
+                {
+                    int toAdd = 2 - sysData.GroundForces.Count;
+                    for (int i = 0; i < toAdd; i++)
+                        AddGroundForceUnit(starSysCon);
+                }
+
                 SetParentForFacilities(starSysCon.gameObject, sysData);
 
                 if (StarSysMenuUIController.Instance != null)

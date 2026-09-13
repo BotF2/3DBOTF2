@@ -511,8 +511,7 @@ namespace BOTF3D.Galaxy
             sysShipBuildQueueList.RemoveAll(t => t == null || t.parent != ShipListGridLayoutGroup.transform);
 
             sysShipBuildQueueList = sysShipBuildQueueList
-                .OrderByDescending(t => t.localPosition.y)
-                .ThenBy(t => t.localPosition.x)
+                .OrderBy(t => t.GetSiblingIndex())
                 .ToList();
 
             if (!StarSysBuildManager.IsBuildingShip && sysShipBuildQueueList.Count > 0 &&
