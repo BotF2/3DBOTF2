@@ -60,6 +60,15 @@ namespace BOTF3D.Combat
         [Range(0.05f, 2f)]
         public float FovTransitionTime = 0.5f;
 
+        [Header("Warp-In Chase Camera")]
+        [Tooltip("Distance the camera sits behind the local player's ship landing zone during warp-in.")]
+        [Range(50f, 500f)]
+        public float WarpChaseBackOffset = 150f;
+
+        [Tooltip("Seconds to blend from the warp-in chase view to the normal combat view.")]
+        [Range(0.5f, 5f)]
+        public float WarpChaseFadeTime = 2f;
+
         [Header("Movement")]
         [Tooltip("Smooth zoom-in time (seconds). Zoom-out is always instant to keep ships in frame.")]
         [Range(0.05f, 2f)]
@@ -98,9 +107,22 @@ namespace BOTF3D.Combat
         private float _rotationDirectionTimer = 4f;
         private Vector3 _cameraOffset;
 
+        // Chase camera state
+        private int _localPlayerSide;           // 1 or 2
+        private bool _chaseTransitioning;
+        private float _chaseFadeElapsed;
+        private Vector3 _chaseFadeStartPos;
+        private Quaternion _chaseFadeStartRot;
+
         // ── Public API ──────────────────────────────────────────────────────────
         public Vector3 CameraOffSet { get => _cameraOffset; set => _cameraOffset = value; }
         public void SetTargets(GameObject[] targets) => _targets = targets;
+
+        public void SetLocalPlayerSide(int side)
+        {
+            _localPlayerSide = side;
+            ApplyChaseCameraPosition();
+        }
 
         public void SetWarpingIn(bool isWarping)
         {
@@ -109,6 +131,15 @@ namespace BOTF3D.Combat
             {
                 _orbitRotation = Quaternion.identity;
                 _snapNextFrame = true;
+                _chaseTransitioning = false;
+            }
+            else
+            {
+                // Warp-in ended — begin immediate blend to normal combat view.
+                _chaseTransitioning = true;
+                _chaseFadeElapsed = 0f;
+                _chaseFadeStartPos = _shipCamera != null ? _shipCamera.transform.position : transform.position;
+                _chaseFadeStartRot = _shipCamera != null ? _shipCamera.transform.rotation : transform.rotation;
             }
         }
 
@@ -163,7 +194,7 @@ namespace BOTF3D.Combat
             }
 
             // Pre-position camera centred on the combat area so ships are framed during warp-in.
-            // Ships stop at ±200 (combat) / ±400 (transports) on the X-axis; centroid is the origin.
+            // Ships stop at ±200 (combat) / ±300 (transports/Shipyards) on the X-axis; centroid is the origin.
             _currentFov = WarpFieldOfView;
             if (_shipCamera != null)
                 _shipCamera.fieldOfView = WarpFieldOfView;
@@ -171,8 +202,8 @@ namespace BOTF3D.Combat
             Vector3 combatCentre = Vector3.zero;
             Vector3 startDir = PitchYawToDir(Pitch, Yaw);
             float halfFovRad = WarpFieldOfView * 0.5f * Mathf.Deg2Rad;
-            // Fit ships out to ±400 (transport positions) with a 10% margin
-            float startDist = Mathf.Max(MinimumCameraDistance, 400f / Mathf.Tan(halfFovRad) * 1.1f);
+            // Fit ships out to ±300 (transport/Shipyard positions) with a 10% margin
+            float startDist = Mathf.Max(MinimumCameraDistance, 300f / Mathf.Tan(halfFovRad) * 1.1f);
             Vector3 startPos = combatCentre + startDir * startDist;
 
             transform.position = startPos;
@@ -224,6 +255,41 @@ namespace BOTF3D.Combat
             {
                 float ca = 1f - Mathf.Exp(-Time.unscaledDeltaTime / CentroidSmoothTime);
                 _smoothedCentroid = Vector3.Lerp(_smoothedCentroid, centroid, ca);
+            }
+
+            // ── Warp-in chase fade ─────────────────────────────────────────────
+            if (_chaseTransitioning)
+            {
+                _chaseFadeElapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(_chaseFadeElapsed / WarpChaseFadeTime);
+                float smoothT = t * t * (3f - 2f * t); // smoothstep
+
+                bool hasTransportsChase = System.Array.Exists(_targets,
+                    tgt => tgt != null && tgt.TryGetComponent<ShipController>(out var sc)
+                                       && sc.ShipData?.ShipType == ShipType.Transport);
+                float pullbackChase = hasTransportsChase ? ZoomPullbackWithTransports : ZoomPullbackCombatOnly;
+                float reqDistChase = ComputeRequiredDistance(_smoothedCentroid) * Mathf.Max(pullbackChase, 1f);
+                reqDistChase = Mathf.Max(reqDistChase, MinimumCameraDistance);
+                Vector3 normalPos = _smoothedCentroid + _cameraDir * reqDistChase;
+
+                _shipCamera.transform.position = Vector3.Lerp(_chaseFadeStartPos, normalPos, smoothT);
+
+                Vector3 toLookNormal = (_smoothedCentroid - normalPos).normalized;
+                if (toLookNormal != Vector3.zero)
+                {
+                    Quaternion normalRot = Quaternion.LookRotation(toLookNormal, Vector3.up);
+                    _shipCamera.transform.rotation = Quaternion.Slerp(_chaseFadeStartRot, normalRot, smoothT);
+                }
+
+                transform.position = _shipCamera.transform.position;
+                _cameraOffset = _shipCamera.transform.position - _smoothedCentroid;
+
+                if (t >= 1f)
+                {
+                    _chaseTransitioning = false;
+                    _autoRotationTimer = 0f; // auto-rotate begins immediately
+                }
+                return;
             }
 
             if (Input.GetKey("space"))
@@ -304,6 +370,38 @@ namespace BOTF3D.Combat
             transform.position = _shipCamera.transform.position;
 
             _cameraOffset = _shipCamera.transform.position - _smoothedCentroid;
+        }
+
+        // ── Chase camera setup ─────────────────────────────────────────────────
+        // Positions the camera behind the local player's ship landing zone, looking
+        // along the X axis toward the enemy so ships warp in from behind/below and
+        // stop in front with the enemy visible in the distance.
+        private void ApplyChaseCameraPosition()
+        {
+            if (_shipCamera == null) return;
+
+            float landingX = _localPlayerSide == 1
+                ? WarpAnimationController.SIDE1_COMBAT_END_X
+                : WarpAnimationController.SIDE2_COMBAT_END_X;
+
+            // Points from landing zone toward warp start (away from combat centre).
+            float sideSign = _localPlayerSide == 1 ? -1f : 1f;
+            float pitchRad = Pitch * Mathf.Deg2Rad;
+
+            // Camera sits WarpChaseBackOffset units behind the landing zone, elevated
+            // by the same pitch angle used during normal combat so the look-down feel
+            // is consistent. At this position ships start behind the camera (at their
+            // warp-start X) and land in front of it.
+            float camX = landingX + sideSign * WarpChaseBackOffset;
+            float camY = WarpChaseBackOffset * Mathf.Tan(pitchRad);
+            Vector3 chasePos = new Vector3(camX, camY, 0f);
+
+            // Look along X toward the enemy side, angled down by Pitch.
+            Vector3 lookDir = new Vector3(-sideSign * Mathf.Cos(pitchRad), -Mathf.Sin(pitchRad), 0f).normalized;
+
+            _shipCamera.transform.position = chasePos;
+            _shipCamera.transform.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
+            transform.position = chasePos;
         }
 
         // ── Framing math ───────────────────────────────────────────────────────

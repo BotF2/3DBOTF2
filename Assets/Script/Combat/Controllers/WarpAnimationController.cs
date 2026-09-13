@@ -25,11 +25,11 @@ namespace BOTF3D.Combat
         public const float SIDE1_COMBAT_START_X = -3000f;
         public const float SIDE1_COMBAT_END_X = -200f;   // combat ships 400 units apart
         public const float SIDE1_TRANSPORT_START_X = -3200f;
-        public const float SIDE1_TRANSPORT_END_X = -400f; // transports 200 units behind combat wall
+        public const float SIDE1_TRANSPORT_END_X = -300f; // transports same depth as Shipyards
         public const float SIDE2_COMBAT_START_X = 3000f;
         public const float SIDE2_COMBAT_END_X = 200f;    // combat ships 400 units apart
         public const float SIDE2_TRANSPORT_START_X = 3200f;
-        public const float SIDE2_TRANSPORT_END_X = 400f;  // transports 200 units behind combat wall
+        public const float SIDE2_TRANSPORT_END_X = 300f;  // transports same depth as Shipyards
         private const float WARP_DURATION = 2.5f;
         private const float CONTRACTION_DURATION = 0.4f;
 

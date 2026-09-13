@@ -239,6 +239,14 @@ namespace BOTF3D.Combat
 
             BuildShipIDLookup();
 
+            // Tell the camera which side is the local player so it can position the
+            // warp-in chase view correctly (ships warp in from behind/below the camera).
+            if (ShipCombatCameraController.Instance != null && GameController.Instance != null)
+            {
+                int localSide = GameController.Instance.AreWeLocalPlayer(CombatData.CivEnumSideOne) ? 1 : 2;
+                ShipCombatCameraController.Instance.SetLocalPlayerSide(localSide);
+            }
+
             // Initialize the resolver now (not after warp-in) so networked turn-1 order
             // submission - which happens from the pre-warp combat menu, before StartWarpInAnimation
             // ever runs - has combatController/combatData available. See TurnBasedCombatResolver.

@@ -96,10 +96,19 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
 
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
-            // Enforce max 5 queued items (count only actual cloned ShipBuildDrag children)
+            // Count only pending-queue items. The item at index 0 while IsBuildingShip is the
+            // ship currently under construction and must not consume a queue slot in the limit
+            // check — otherwise the 5th visible slot is permanently blocked whenever a build
+            // is in progress.
+            bool shipBeingBuilt = StarSysController.StarSysBuildManager?.IsBuildingShip ?? false;
+            Transform buildingItem = (shipBeingBuilt && StarSysController.sysShipBuildQueueList.Count > 0)
+                ? StarSysController.sysShipBuildQueueList[0] : null;
             int queued = 0;
             foreach (var t in StarSysController.sysShipBuildQueueList)
-                if (t != null && t.GetComponent<ShipBuildDrag>() != null) queued++;
+            {
+                if (t == null || t == buildingItem) continue;
+                if (t.GetComponent<ShipBuildDrag>() != null) queued++;
+            }
             if (queued >= 5)
             {
                 Debug.Log("ShipBuildDrag: queue full (max 5)");
