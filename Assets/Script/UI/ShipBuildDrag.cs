@@ -96,22 +96,12 @@ public class ShipBuildDrag : MonoBehaviour, IBeginDragHandler, IEndDragHandler, 
 
         if (eventData.pointerEnter != null && eventData.pointerEnter.CompareTag("ShipBuildSlot"))
         {
-            // Count only pending-queue items. The item at index 0 while IsBuildingShip is the
-            // ship currently under construction and must not consume a queue slot in the limit
-            // check — otherwise the 5th visible slot is permanently blocked whenever a build
-            // is in progress.
-            bool shipBeingBuilt = StarSysController.StarSysBuildManager?.IsBuildingShip ?? false;
-            Transform buildingItem = (shipBeingBuilt && StarSysController.sysShipBuildQueueList.Count > 0)
-                ? StarSysController.sysShipBuildQueueList[0] : null;
-            int queued = 0;
-            foreach (var t in StarSysController.sysShipBuildQueueList)
+            // Allow 1 actively-building ship + 5 queued = 6 total entries in sysShipBuildQueueList.
+            // The building item stays in the list (at index 0) until its coroutine finishes, so
+            // counting the list directly is safe and avoids the fragile sort-dependent exclusion.
+            if (StarSysController.sysShipBuildQueueList.Count >= 6)
             {
-                if (t == null || t == buildingItem) continue;
-                if (t.GetComponent<ShipBuildDrag>() != null) queued++;
-            }
-            if (queued >= 5)
-            {
-                Debug.Log("ShipBuildDrag: queue full (max 5)");
+                Debug.Log("ShipBuildDrag: queue full (max 5 queued)");
                 transform.SetParent(originalParent);
                 rectTransform.anchoredPosition = Vector2.zero;
                 return;

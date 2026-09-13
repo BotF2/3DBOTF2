@@ -495,7 +495,7 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public bool QueueShipBuild(ShipType type)
         {
-            if (controller.sysShipBuildQueueList.Count >= 5) return false;
+            if (controller.sysShipBuildQueueList.Count >= 6) return false;
 
             var go   = new GameObject($"AIBuild_{type}");
             // See QueueFacilityBuild for why this is needed — avoids the marker object landing in
