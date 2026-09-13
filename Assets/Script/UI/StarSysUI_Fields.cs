@@ -671,8 +671,9 @@ public class StarSysUI_Fields : MonoBehaviour
     /// troops the power-load readout counts) - without re-running the full InitializeFromStarSysData
     /// pass. Also called from InitializeFromStarSysData itself for the same reason.
     /// </summary>
-    private void RefreshGroundForceDisplay(StarSysData data)
+    public void RefreshGroundForceDisplay(StarSysData data)
     {
+        if (numGroundForce != null) numGroundForce.text = (data.GroundForces?.Count ?? 0).ToString();
         if (populationText != null) populationText.text = data.Population.ToString();
         SyncGroundForceGrid(data);
 

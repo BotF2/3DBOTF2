@@ -2488,6 +2488,11 @@ namespace BOTF3D.Galaxy
 
                     data.GroundForces.AddRange(data.TrainingGroundForces);
                     data.TrainingGroundForces.Clear();
+
+                    // Flip training (gray) icons to trained (white) for any open system panel.
+                    if (sysCon.StarSysUIGameObject != null)
+                        sysCon.StarSysUIGameObject.GetComponent<StarSysUI_Fields>()
+                            ?.RefreshGroundForceDisplay(data);
                 }
             }
         }

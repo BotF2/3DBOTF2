@@ -12,7 +12,7 @@ public class GroundForceData
 {
     // Shared by StarSysManager (cap sizing) and PopulationManager (per-turn conversion) so the
     // two stay in lockstep: every this-many population units supports one fielded ground force unit.
-    public const int PopulationPerUnit = 8;
+    public const int PopulationPerUnit = 2;
 
     // Power upkeep (System Invasion Phase 1 follow-up, 2026-09): unlike other facility types,
     // ground forces have no per-civ SO to author these from, so the two rates live here as flat
