@@ -4,6 +4,7 @@ using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using BOTF3D.UI;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -588,6 +589,8 @@ public class StarSysUI_Fields : MonoBehaviour
     [Tooltip("Cancels the most recently queued in-training unit - see StarSysManager.CancelGroundForceTraining.")]
     public Button troopButtonSubtract;
 
+    private Coroutine _troopFeedbackRoutine;
+
     /// <summary>
     /// Wires TroopButtonAdd/TroopButtonSubtract to StarSysManager's training methods, refreshing
     /// just the population text + ground force grid afterward. Mirrors WireAIModeToggles' pattern -
@@ -598,13 +601,34 @@ public class StarSysUI_Fields : MonoBehaviour
     {
         if (sysCon == null) return;
 
+        Debug.Log($"[TroopBtn] WireTroopButtons called for '{sysCon.name}'. troopButtonAdd={(troopButtonAdd != null ? "SET" : "NULL")}, troopButtonSubtract={(troopButtonSubtract != null ? "SET" : "NULL")}");
+
         if (troopButtonAdd != null)
         {
             troopButtonAdd.onClick.RemoveAllListeners();
             troopButtonAdd.onClick.AddListener(() =>
             {
-                if (StarSysManager.Instance != null && StarSysManager.Instance.TrainGroundForceUnit(sysCon))
+                if (StarSysManager.Instance == null)
+                {
+                    Debug.LogWarning("[TroopBtn] StarSysManager.Instance is null — button has no effect.");
+                    return;
+                }
+                if (StarSysManager.Instance.TrainGroundForceUnit(sysCon))
+                {
                     RefreshGroundForceDisplay(sysCon.StarSysData);
+                }
+                else
+                {
+                    var data = sysCon?.StarSysData;
+                    if (data != null)
+                    {
+                        int totalFielded = data.GroundForces.Count + data.TrainingGroundForces.Count;
+                        bool atCap = totalFielded >= data.MaxGroundForceUnits;
+                        string msg = atCap ? "At max troops" : "Need population";
+                        Debug.Log($"[TroopBtn] Blocked — {msg}. fielded={totalFielded}, max={data.MaxGroundForceUnits}, pop={data.Population}");
+                        ShowTroopFeedback(msg, data);
+                    }
+                }
             });
         }
 
@@ -617,6 +641,28 @@ public class StarSysUI_Fields : MonoBehaviour
                     RefreshGroundForceDisplay(sysCon.StarSysData);
             });
         }
+    }
+
+    private void ShowTroopFeedback(string message, StarSysData data)
+    {
+        if (numGroundForce == null)
+        {
+            Debug.LogWarning("[TroopBtn] numGroundForce is not wired — feedback text cannot display. Check Inspector on StarSysUI_Fields.");
+            return;
+        }
+        if (_troopFeedbackRoutine != null) StopCoroutine(_troopFeedbackRoutine);
+        _troopFeedbackRoutine = StartCoroutine(FlashTroopFeedback(message, data));
+    }
+
+    private IEnumerator FlashTroopFeedback(string message, StarSysData data)
+    {
+        Color originalColor = numGroundForce.color;
+        numGroundForce.text = message;
+        numGroundForce.color = Color.red;
+        yield return new WaitForSeconds(2f);
+        numGroundForce.text = (data.GroundForces?.Count ?? 0).ToString();
+        numGroundForce.color = originalColor;
+        _troopFeedbackRoutine = null;
     }
 
     /// <summary>

@@ -116,6 +116,11 @@ namespace BOTF3D.UI
 
             // Populate the live-stat labels before opening so the first frame shows real numbers.
             PopulateStats(data, fleet);
+
+            // Ensure the panel renders on top of galaxy and fleet UI canvases (which use sortingOrder 0).
+            var canvas = PanelRoot.GetComponentInParent<Canvas>(true);
+            if (canvas != null) canvas.sortingOrder = 100;
+
             PanelRoot.SetActive(true);
         }
 

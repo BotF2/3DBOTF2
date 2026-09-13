@@ -109,6 +109,8 @@ namespace BOTF3D.Combat
 
         // Chase camera state
         private int _localPlayerSide;           // 1 or 2
+        private float _chaseZCentroid;          // Z centroid of local player's ships at warp-in
+        private bool _frameTransports;          // include transports in FOV framing (true only when AttackTransports is active)
         private bool _chaseTransitioning;
         private float _chaseFadeElapsed;
         private Vector3 _chaseFadeStartPos;
@@ -118,11 +120,16 @@ namespace BOTF3D.Combat
         public Vector3 CameraOffSet { get => _cameraOffset; set => _cameraOffset = value; }
         public void SetTargets(GameObject[] targets) => _targets = targets;
 
-        public void SetLocalPlayerSide(int side)
+        public void SetLocalPlayerSide(int side, float zCentroid = 0f)
         {
             _localPlayerSide = side;
+            _chaseZCentroid = zCentroid;
             ApplyChaseCameraPosition();
         }
+
+        // Called by CombatController.SetShipOrders whenever either side's order changes.
+        // Enables transport framing only when at least one side chose AttackTransports.
+        public void SetFrameTransports(bool frame) => _frameTransports = frame;
 
         public void SetWarpingIn(bool isWarping)
         {
@@ -264,11 +271,12 @@ namespace BOTF3D.Combat
                 float t = Mathf.Clamp01(_chaseFadeElapsed / WarpChaseFadeTime);
                 float smoothT = t * t * (3f - 2f * t); // smoothstep
 
-                bool hasTransportsChase = System.Array.Exists(_targets,
-                    tgt => tgt != null && tgt.TryGetComponent<ShipController>(out var sc)
-                                       && sc.ShipData?.ShipType == ShipType.Transport);
-                float pullbackChase = hasTransportsChase ? ZoomPullbackWithTransports : ZoomPullbackCombatOnly;
-                float reqDistChase = ComputeRequiredDistance(_smoothedCentroid) * Mathf.Max(pullbackChase, 1f);
+                var chaseFramingTargets = _frameTransports
+                    ? _targets
+                    : System.Array.FindAll(_targets, tgt => !IsTransport(tgt));
+                float pullbackChase = (_frameTransports && chaseFramingTargets.Length < _targets.Length)
+                    ? ZoomPullbackWithTransports : ZoomPullbackCombatOnly;
+                float reqDistChase = ComputeRequiredDistance(_smoothedCentroid, chaseFramingTargets) * Mathf.Max(pullbackChase, 1f);
                 reqDistChase = Mathf.Max(reqDistChase, MinimumCameraDistance);
                 Vector3 normalPos = _smoothedCentroid + _cameraDir * reqDistChase;
 
@@ -332,11 +340,14 @@ namespace BOTF3D.Combat
             }
 
             // ── Framing ────────────────────────────────────────────────────────
-            bool hasTransports = System.Array.Exists(_targets,
-                t => t != null && t.TryGetComponent<ShipController>(out var sc)
-                               && sc.ShipData?.ShipType == ShipType.Transport);
+            // Exclude transports from FOV framing unless Attack Transports is the active order,
+            // so they don't force the camera to zoom out during normal combat.
+            var framingTargets = _frameTransports
+                ? _targets
+                : System.Array.FindAll(_targets, t => !IsTransport(t));
+            bool hasTransports = _frameTransports && framingTargets.Length < _targets.Length;
             float pullback = hasTransports ? ZoomPullbackWithTransports : ZoomPullbackCombatOnly;
-            float requiredDist = ComputeRequiredDistance(_smoothedCentroid) * Mathf.Max(pullback, 1f);
+            float requiredDist = ComputeRequiredDistance(_smoothedCentroid, framingTargets) * Mathf.Max(pullback, 1f);
             // Never let the camera get closer than MinimumCameraDistance regardless of how
             // few ships remain or how close together they are.
             requiredDist = Mathf.Max(requiredDist, MinimumCameraDistance);
@@ -394,7 +405,7 @@ namespace BOTF3D.Combat
             // warp-start X) and land in front of it.
             float camX = landingX + sideSign * WarpChaseBackOffset;
             float camY = WarpChaseBackOffset * Mathf.Tan(pitchRad);
-            Vector3 chasePos = new Vector3(camX, camY, 0f);
+            Vector3 chasePos = new Vector3(camX, camY, _chaseZCentroid);
 
             // Look along X toward the enemy side, angled down by Pitch.
             Vector3 lookDir = new Vector3(-sideSign * Mathf.Cos(pitchRad), -Mathf.Sin(pitchRad), 0f).normalized;
@@ -405,7 +416,7 @@ namespace BOTF3D.Combat
         }
 
         // ── Framing math ───────────────────────────────────────────────────────
-        private float ComputeRequiredDistance(Vector3 centroid)
+        private float ComputeRequiredDistance(Vector3 centroid, GameObject[] targets)
         {
             Vector3 forward = -_cameraDir;
             Vector3 right = Vector3.Cross(forward, Vector3.up).normalized;
@@ -415,7 +426,7 @@ namespace BOTF3D.Combat
             float halfHorizFov = Mathf.Atan(Mathf.Tan(halfVertFov) * _shipCamera.aspect);
 
             float maxD = 0f;
-            foreach (var t in _targets)
+            foreach (var t in targets)
             {
                 if (t == null) continue;
 
@@ -429,6 +440,13 @@ namespace BOTF3D.Combat
                 maxD = Mathf.Max(maxD, dH, dV);
             }
             return Mathf.Max(maxD, 50f);
+        }
+
+        private static bool IsTransport(GameObject go)
+        {
+            return go != null
+                && go.TryGetComponent<ShipController>(out var sc)
+                && sc.ShipData?.ShipType == ShipType.Transport;
         }
 
         // ── Ship destroyed ─────────────────────────────────────────────────────

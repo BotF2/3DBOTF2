@@ -520,6 +520,12 @@ namespace FischlWorks_FogWar
 
         private void UpdateFog()
         {
+            // levelMidPoint is wired to GalaxyCenter (a scene object) but csFogWar is
+            // DontDestroyOnLoad. If the scene unloads (combat, menu, second-game reload),
+            // levelMidPoint becomes a destroyed Unity object before SetLevelMidPoint re-points
+            // it at the new scene's GalaxyCenter. Skip the update rather than crash.
+            if (levelMidPoint == null) return;
+
             if (fogRevealers == null || fogRevealers.Count == 0)
             {
                 FlushFogForZeroRevealersIfNeeded();

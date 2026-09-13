@@ -241,10 +241,16 @@ namespace BOTF3D.Combat
 
             // Tell the camera which side is the local player so it can position the
             // warp-in chase view correctly (ships warp in from behind/below the camera).
+            // Z centroid of local ships is passed so the camera centres on the formation
+            // depth rather than snapping to Z=0 when ships are spread along the Z axis.
             if (ShipCombatCameraController.Instance != null && GameController.Instance != null)
             {
                 int localSide = GameController.Instance.AreWeLocalPlayer(CombatData.CivEnumSideOne) ? 1 : 2;
-                ShipCombatCameraController.Instance.SetLocalPlayerSide(localSide);
+                var localShips = localSide == 1 ? CombatData.SideOneShipCons : CombatData.SideTwoShipCons;
+                float zSum = 0f; int zCount = 0;
+                foreach (var s in localShips) { if (s != null) { zSum += s.transform.position.z; zCount++; } }
+                float zCentroid = zCount > 0 ? zSum / zCount : 0f;
+                ShipCombatCameraController.Instance.SetLocalPlayerSide(localSide, zCentroid);
             }
 
             // Initialize the resolver now (not after warp-in) so networked turn-1 order
@@ -607,6 +613,12 @@ namespace BOTF3D.Combat
                     }
                 }
             }
+
+            // Keep the camera informed: transports enter the FOV framing only when at least one
+            // side has chosen Attack Transports, otherwise the camera stays tight on combat ships.
+            bool attackTransportsActive = CombatData.SideOneOrder == CombatOrders.AttackTransports
+                                       || CombatData.SideTwoOrder == CombatOrders.AttackTransports;
+            ShipCombatCameraController.Instance?.SetFrameTransports(attackTransportsActive);
 
             if (CombatData.SideOneOrder != CombatOrders.None && CombatData.SideTwoOrder != CombatOrders.None)
             {

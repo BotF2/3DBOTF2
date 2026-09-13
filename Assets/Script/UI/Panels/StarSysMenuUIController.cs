@@ -498,6 +498,10 @@ namespace BOTF3D.UI
             {
                 PowerOverloadImage = fields.PowerOverload;
             }
+
+            // Wire troop training buttons — must run here (not just in PopulateSystemsList /
+            // expand handler) so they work regardless of which UI path opens the system panel.
+            fields.WireTroopButtons(sysCon);
         }
 
         /// <summary>
