@@ -536,9 +536,10 @@ namespace BOTF3D.Civilization
             InstantiateDiplomacyUIGameObject(ctrl);
             GalaxyMenuUIController.Instance.HideNoContactUI();
             GalaxyMenuUIController.Instance.OpenMenu(Menu.ADiplomacyMenu, ctrl.gameObject);
-            // First-contact and repeat-encounter notifications open in compact-strip mode only;
-            // the player can expand via the ExpandButton if they want the full panel.
-            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ctrl.DiplomacyUIGameObject, ctrl.gameObject, ships, expandedOnOpen: false);
+            // Open fully expanded on first contact so the player immediately sees the full
+            // diplomacy panel; repeat encounters open compact (player expands via ExpandButton).
+            bool openExpanded = ctrl.DiplomacyData.firstContact;
+            DiplomacyMenuUIController.Instance.SetUpDiplomacyUIElements(ctrl.DiplomacyUIGameObject, ctrl.gameObject, ships, expandedOnOpen: openExpanded);
         }
 
         private void InstantiateDiplomacyUIGameObject(DiplomacyController diplomacyCon)
