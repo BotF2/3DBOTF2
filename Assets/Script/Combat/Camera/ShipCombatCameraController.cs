@@ -55,6 +55,11 @@ namespace BOTF3D.Combat
         [Range(60f, 120f)]
         public float WarpFieldOfView = 95f;
 
+        [Header("FOV Transition")]
+        [Tooltip("Time in seconds to smoothly transition from WarpFieldOfView to CombatFieldOfView when warp-in ends.")]
+        [Range(0.05f, 2f)]
+        public float FovTransitionTime = 0.5f;
+
         [Header("Movement")]
         [Tooltip("Smooth zoom-in time (seconds). Zoom-out is always instant to keep ships in frame.")]
         [Range(0.05f, 2f)]
@@ -75,6 +80,7 @@ namespace BOTF3D.Combat
         private GameObject[] _targets = new GameObject[0];
         private bool _warpingIn;
         public bool WarpingInOver;
+        private float _currentFov;
 
         // Accumulated orbit rotation applied on top of the base Pitch/Yaw direction.
         // Reset to identity when warping in; Inspector Pitch/Yaw is re-read every frame.
@@ -158,6 +164,7 @@ namespace BOTF3D.Combat
 
             // Pre-position camera centred on the combat area so ships are framed during warp-in.
             // Ships stop at ±200 (combat) / ±400 (transports) on the X-axis; centroid is the origin.
+            _currentFov = WarpFieldOfView;
             if (_shipCamera != null)
                 _shipCamera.fieldOfView = WarpFieldOfView;
 
@@ -184,7 +191,8 @@ namespace BOTF3D.Combat
 
             if (_warpingIn)
             {
-                _shipCamera.fieldOfView = WarpFieldOfView;
+                _currentFov = WarpFieldOfView;
+                _shipCamera.fieldOfView = _currentFov;
                 return;
             }
 
@@ -193,7 +201,11 @@ namespace BOTF3D.Combat
             _targets = _targets.Where(t => t != null).ToArray();
             if (_targets.Length == 0) return;
 
-            _shipCamera.fieldOfView = CombatFieldOfView;
+            float fovAlpha = FovTransitionTime > 0f
+                ? 1f - Mathf.Exp(-Time.unscaledDeltaTime / FovTransitionTime)
+                : 1f;
+            _currentFov = Mathf.Lerp(_currentFov, CombatFieldOfView, fovAlpha);
+            _shipCamera.fieldOfView = _currentFov;
 
             // Recompute base direction from Inspector values every frame so Pitch/Yaw
             // changes take effect immediately without restarting Play Mode.
