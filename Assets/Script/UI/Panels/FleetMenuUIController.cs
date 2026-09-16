@@ -757,25 +757,28 @@ namespace BOTF3D.UI
                     breakOffLabel.text = $"Break Off Siege ({fleetCon.FleetData.BesiegedSystem?.StarSysData?.SysName})";
             }
 
-            // System Assault: only visible while besieging AND Phase B mode hasn't been chosen yet
-            // (AssaultMode.None). Once the player picks Target Troops the assault is underway and
-            // this button is no longer needed; Total Destruction resolves immediately and ends the
-            // siege so isBesieging goes false anyway.
+            // System Assault: visible for the whole siege, not just the initial decision. Before a
+            // mode is chosen it opens the §4.1 decision gate ("Assault System"); once Target Troops/
+            // Target Power/Total Destruction is underway it reopens the same panel as a live progress
+            // view ("View Assault") with the decision buttons hidden (SiegeDecisionUIController.
+            // OpenPanel decides that gating). Total Destruction still ends the siege the tick it
+            // resolves, so isBesieging goes false and this button disappears then regardless.
             if (uiFields.SystemAssaultButton != null)
             {
                 var besiegedSys = fleetCon.FleetData?.BesiegedSystem;
-                bool noModeChosen = besiegedSys == null
-                    || besiegedSys.StarSysData?.AssaultMode == AssaultMode.None;
-                bool showAssault = isBesieging && noModeChosen;
+                bool modeChosen = besiegedSys != null
+                    && besiegedSys.StarSysData?.AssaultMode != AssaultMode.None;
 
-                uiFields.SystemAssaultButton.gameObject.SetActive(showAssault);
-                uiFields.SystemAssaultButton.interactable = showAssault;
+                uiFields.SystemAssaultButton.gameObject.SetActive(isBesieging);
+                uiFields.SystemAssaultButton.interactable = isBesieging;
                 uiFields.SystemAssaultButton.onClick.RemoveAllListeners();
                 uiFields.SystemAssaultButton.onClick.AddListener(() => ClickSystemAssaultButton(fleetCon));
 
                 var assaultLabel = uiFields.SystemAssaultButton.GetComponentInChildren<TMPro.TMP_Text>();
-                if (assaultLabel != null && showAssault)
-                    assaultLabel.text = $"Assault System ({besiegedSys?.StarSysData?.SysName})";
+                if (assaultLabel != null && isBesieging)
+                    assaultLabel.text = modeChosen
+                        ? $"View Assault ({besiegedSys?.StarSysData?.SysName})"
+                        : $"Assault System ({besiegedSys?.StarSysData?.SysName})";
             }
 
             // ✅ TEXT BINDINGS: Always update

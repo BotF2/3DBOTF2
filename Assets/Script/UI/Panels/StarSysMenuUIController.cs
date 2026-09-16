@@ -747,6 +747,12 @@ namespace BOTF3D.UI
         {
             if (!GameController.Instance.AreWeLocalPlayer(sysController.StarSysData.CurrentOwnerCivEnum)) return;
 
+            if (sysController.StarSysUIGameObject == null)
+            {
+                Debug.LogError($"UpdateFacilityUI: StarSysUIGameObject is null for system '{sysController.name}'!");
+                return;
+            }
+
             sysController.StarSysUIGameObject.SetActive(true);
             var fields = sysController.StarSysUIGameObject.GetComponent<StarSysUI_Fields>();
 

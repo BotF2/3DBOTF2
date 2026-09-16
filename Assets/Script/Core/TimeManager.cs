@@ -469,7 +469,9 @@ namespace BOTF3D.Core
             StarSysManager.Instance?.ProcessRepairs();
             PopulationManager.Instance?.ProcessPopulationGrowthForAllCivs();
             StarSysManager.Instance?.ProcessGroundForceTrainingForAllCivs();
-            StarSysManager.Instance?.ProcessPhaseBAtritionForAllSystems();
+            // Phase B assault resolution no longer ticks per InterTurn (2026-09-14 revision) — once
+            // an order is chosen it resolves via StarSysManager.BeginPhaseBRealtimeResolution's
+            // bounded real-time coroutine instead, gated on IsResolvingPhaseB rather than turns.
 
             // Elimination (lost every system and fleet) and victory (a playable civ owns a third
             // of the galaxy's systems) are both turn-boundary checks, run last so they see this
@@ -687,6 +689,77 @@ namespace BOTF3D.Core
                 return;
             }
             sysCon.TerraformSystem(transportShip);
+        }
+
+        /// <summary>
+        /// System Invasion Phase 1 §4.1 assault-mode decision (Target Troops/Target Power/Total
+        /// Destruction) - same relay shape as Claim/Terraform/Colonize above (StarSysController has
+        /// no NetworkIdentity, so this persistent-scene NetworkBehaviour is the relay channel). The
+        /// besieging fleet already has its own NetworkIdentity, so it's carried straight through the
+        /// same way ServerTranswarpHome below does. Called directly, client-locally, by the acting
+        /// player's own UI first (SiegeDecisionUIController.OnTargetTroops/OnTargetPower/
+        /// OnTotalDestruction) for instant feedback; this Rpc is what makes that same mutation land
+        /// on every OTHER peer too.
+        /// </summary>
+        [Server]
+        public void ServerAssaultDecision(int starSysInt, NetworkIdentity besiegingFleetIdentity, AssaultMode mode)
+        {
+            RpcAssaultDecision(starSysInt, besiegingFleetIdentity, mode);
+        }
+
+        [ClientRpc]
+        private void RpcAssaultDecision(int starSysInt, NetworkIdentity besiegingFleetIdentity, AssaultMode mode)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcAssaultDecision: no local StarSysController found for starSysInt={starSysInt} - decision dropped on this peer.");
+                return;
+            }
+            if (sysCon.StarSysData.AssaultMode == mode)
+                return; // already applied locally on the initiating peer - see RpcClaimSystem's comment above
+
+            FleetController besiegingFleet = besiegingFleetIdentity != null ? besiegingFleetIdentity.GetComponent<FleetController>() : null;
+            if (besiegingFleet == null)
+            {
+                Debug.LogWarning($"RpcAssaultDecision: besiegingFleetIdentity resolved to no local FleetController on this peer (starSysInt={starSysInt}) - decision dropped.");
+                return;
+            }
+
+            sysCon.StarSysData.AssaultMode = mode;
+            StarSysManager.Instance?.InitializePhaseB(sysCon, besiegingFleet);
+            StarSysManager.Instance?.BeginPhaseBRealtimeResolution(sysCon, besiegingFleet);
+        }
+
+        /// <summary>
+        /// System Invasion Phase 1 §4.2 Total Destruction conquest - relays the ownership change
+        /// StarSysManager.ResolveTotalDestruction makes via CivManager.AssimilateSystem. Same relay
+        /// shape as ServerClaimSystem above; unlike Claim/Terraform/Colonize this fires automatically
+        /// mid-coroutine (PhaseBRealtimeResolutionCoroutine) rather than from a direct UI click, but
+        /// the relay itself is identical - applied client-locally first for instant feedback, this Rpc
+        /// is what makes that same ownership change land on every OTHER peer too. Facility/population
+        /// destruction isn't relayed here - every peer's own coroutine already applies it identically
+        /// from the same relayed AssaultMode decision (ServerAssaultDecision above).
+        /// </summary>
+        [Server]
+        public void ServerTotalDestructionResolved(int starSysInt, CivEnum attackerCivEnum)
+        {
+            RpcTotalDestructionResolved(starSysInt, attackerCivEnum);
+        }
+
+        [ClientRpc]
+        private void RpcTotalDestructionResolved(int starSysInt, CivEnum attackerCivEnum)
+        {
+            StarSysController sysCon = StarSysManager.Instance?.GetStarSysControllerByInt(starSysInt);
+            if (sysCon == null)
+            {
+                Debug.LogWarning($"RpcTotalDestructionResolved: no local StarSysController found for starSysInt={starSysInt} - conquest dropped on this peer.");
+                return;
+            }
+            if (sysCon.StarSysData.CurrentOwnerCivEnum == attackerCivEnum)
+                return; // already applied locally on the initiating peer - see RpcClaimSystem's comment above
+
+            CivManager.Instance?.AssimilateSystem(sysCon, attackerCivEnum);
         }
 
         /// <summary>

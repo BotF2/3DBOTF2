@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BOTF3D.Core;
 using UnityEngine;
 using BOTF3D.Combat;
@@ -52,16 +53,47 @@ public class GroundForceData
     // The 0.25 maintenance fraction matches the 1:4 power-load ratio already in this class.
     private const float MaintenanceFraction = 0.25f;
 
-    public static float GetUnitAttackPower(CivEnum civ, TechLevel tech, int qualityScore, bool onCombatFooting)
+    // Ground-force-specific per-civ power tier (2026-09-16 balance pass, Vulcan-too-strong
+    // playtest feedback) - deliberately separate from ShipStatCalculator's CivFlavor table, which
+    // encodes ship-combat *archetype* (tanky vs. burst vs. hit-and-run, calibrated to near-parity
+    // for the FED/ROM/KLING/TERRAN band) rather than the flat strength ladder ground troops need.
+    // Applied as a single scalar to both attack and HP together so a civ's ground troops are
+    // proportionally harder-hitting AND tougher, never one without the other.
+    //   FED/ROM/TERRAN: 1.00 baseline.
+    //   KLING:          slightly above baseline (weapon + hull together).
+    //   BORG/DOM:       a bit further above KLING - same relative ordering as their ship power tier.
+    //   CARD:           slightly below baseline.
+    //   Minors not listed here fall through to WarpMinorGroundFlavor/PreWarpMinorGroundFlavor below,
+    //   selected by the civ's current CivData.HasWarp (passed in by the caller, since it can change
+    //   mid-game as a minor researches warp) - warp-capable minors are cut hard (0.25x) so a small
+    //   early-game fleet can conquer a system like Vulcan without an extreme force; pre-warp minors
+    //   are only mildly reduced (0.75x) since they have no fleet of their own to fall back on.
+    private static readonly Dictionary<CivEnum, float> GroundFlavor = new Dictionary<CivEnum, float>
+    {
+        { CivEnum.FED,    1.00f },
+        { CivEnum.ROM,    1.00f },
+        { CivEnum.TERRAN, 1.00f },
+        { CivEnum.KLING,  1.05f },
+        { CivEnum.CARD,   0.95f },
+        { CivEnum.DOM,    1.10f },
+        { CivEnum.BORG,   1.15f },
+    };
+    private const float WarpMinorGroundFlavor = 0.25f;
+    private const float PreWarpMinorGroundFlavor = 0.75f;
+
+    private static float GetGroundFlavor(CivEnum civ, bool hasWarp) =>
+        GroundFlavor.TryGetValue(civ, out var f) ? f : (hasWarp ? WarpMinorGroundFlavor : PreWarpMinorGroundFlavor);
+
+    public static float GetUnitAttackPower(CivEnum civ, TechLevel tech, int qualityScore, bool onCombatFooting, bool hasWarp)
     {
         var s = ShipStatCalculator.Calculate(ShipType.HvyCruiser, tech, civ, qualityScore);
-        float full = s.BeamDamage + s.TorpedoDamage;
+        float full = (s.BeamDamage + s.TorpedoDamage) * GetGroundFlavor(civ, hasWarp);
         return onCombatFooting ? full : full * MaintenanceFraction;
     }
 
-    public static float GetUnitMaxHP(CivEnum civ, TechLevel tech, int qualityScore)
+    public static float GetUnitMaxHP(CivEnum civ, TechLevel tech, int qualityScore, bool hasWarp)
     {
         var s = ShipStatCalculator.Calculate(ShipType.HvyCruiser, tech, civ, qualityScore);
-        return s.ShieldMaxHealth + s.HullMaxHealth;
+        return (s.ShieldMaxHealth + s.HullMaxHealth) * GetGroundFlavor(civ, hasWarp);
     }
 }

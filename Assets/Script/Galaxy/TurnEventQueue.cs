@@ -123,8 +123,10 @@ namespace BOTF3D.Galaxy
                 bool weAreDefender = GameController.Instance != null
                     && GameController.Instance.AreWeLocalPlayer(data.CurrentOwnerCivEnum);
 
-                // Attacker: decision panel when no Phase B mode chosen yet.
-                // Active Phase B assaults tick automatically via ProcessPhaseBAtritionForAllSystems.
+                // Attacker: decision panel when no Phase B mode chosen yet. Once a mode is chosen,
+                // Phase B resolves via a bounded real-time coroutine (StarSysManager.
+                // BeginPhaseBRealtimeResolution) instead of a per-InterTurn re-queue, so there's
+                // nothing left to re-enqueue here for an already-chosen mode.
                 if (weAreAttacker && data.AssaultMode == AssaultMode.None)
                 {
                     StarSysController capturedSys = sysCon;
@@ -186,11 +188,13 @@ namespace BOTF3D.Galaxy
             }
             else
             {
-                // Target Troops: assault already underway — report progress stub and unblock turn.
+                // Shouldn't normally be reached: a chosen mode now resolves within a bounded
+                // real-time window (BeginPhaseBRealtimeResolution), well before the next InterTurn
+                // re-queue, so SystemsUnderSiege has usually already dropped this system by the
+                // time this fires. Kept as a defensive fallback.
                 ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
                     $"Assault in progress: {sysName}",
-                    $"{sysCon.StarSysData.BesiegingCivEnum} assault on {sysName} continues " +
-                    $"(Target Troops — Phase B attrition not yet implemented).",
+                    $"{sysCon.StarSysData.BesiegingCivEnum} assault on {sysName} is still resolving.",
                     sysName, quadrant, ReportSeverity.Info));
                 NotifyDismissed();
             }

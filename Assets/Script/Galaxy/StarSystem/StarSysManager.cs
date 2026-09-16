@@ -1611,6 +1611,24 @@ namespace BOTF3D.Galaxy
         /// </summary>
         public readonly List<StarSysController> SystemsUnderSiege = new List<StarSysController>();
 
+        // ── Phase B real-time resolution (2026-09-14 revision — see Docs/Design/
+        // SystemInvasion_Phase1_Design.md §4.2's dated "Settled" note) ──────────────────────────
+        private int _activePhaseBResolutions = 0;
+        /// <summary>
+        /// True while at least one Assault is running its real-time resolution loop
+        /// (BeginPhaseBRealtimeResolution). GameControlOverlay.SetControlsInteractable grays out
+        /// Advance Turn for the duration — the same turn-freeze combat already applies, now
+        /// extended to Phase B since it no longer resolves across "Advance Turn" clicks.
+        /// </summary>
+        public bool IsResolvingPhaseB => _activePhaseBResolutions > 0;
+
+        // First-pass numbers, same balance-pass-later discipline as everything else in this
+        // system (Docs/Design/SystemInvasion_Phase1_Design.md §6). MaxResolutionTicks is an
+        // infinite-loop guard only, not a gameplay timeout — ResolvePhaseBAtritionTick's own
+        // terminal conditions (EndSiege) are what actually end the loop in practice.
+        private const float PhaseBRealtimeTickInterval = 2f;
+        private const int PhaseBMaxResolutionTicks = 500;
+
         /// <summary>
         /// Begins a siege: this system's own combat-capable forces are gone and besiegingFleet is
         /// the attacker that just cleared them (called from TurnBasedCombatResolver.ShowVictoryScreen,
@@ -1656,17 +1674,20 @@ namespace BOTF3D.Galaxy
             data.BesiegingFleet = null;
             data.DefensesCleared = false;
             data.AssaultMode = AssaultMode.None;
-            data.PhaseBShieldHP = 0f;
-            data.PhaseBShieldMaxHP = 0f;
             data.PhaseBCollateralAccum = 0f;
-            data.PhaseBPowerPlantHP = 0f;
-            data.PhaseBPowerPlantMaxHP = 0f;
-            data.PhaseBTroopHP = 0f;
-            data.PhaseBTroopMaxHP = 0f;
+            // Stage-gating flags must reset so a later siege on this same system starts clean —
+            // InitializePhaseB doesn't reset PhaseBPowerPlantsDown/PhaseBTroopsLanded itself (only
+            // PhaseBShieldsDown), so a stale true here would make the next assault skip a sub-stage.
             data.PhaseBShieldsDown = false;
-            data.PhaseBAttackerTroopHP = 0f;
-            data.PhaseBAttackerTroopMaxHP = 0f;
+            data.PhaseBPowerPlantsDown = false;
             data.PhaseBTroopsLanded = false;
+            // Deliberately NOT zeroing the HP pools themselves (PhaseBShieldHP/PowerPlantHP/
+            // InfrastructureHP/TroopHP/AttackerTroopHP and their MaxHP pairs): whatever this siege's
+            // last tick left them at is exactly the progress-sprite terminal state the panels should
+            // keep showing (fully gray on a Total Destruction/capture, partially gray on a repel) —
+            // zeroing Current here used to race PhaseBProgressUI's ratio math back to "normal" the
+            // instant the siege ended. InitializePhaseB recomputes every pool fresh regardless the
+            // next time Phase B starts on this system, so nothing is lost by leaving stale values here.
 
             SystemsUnderSiege.Remove(sysCon);
         }
@@ -1708,9 +1729,29 @@ namespace BOTF3D.Galaxy
             data.TotalSysPowerOutput = 0;
             data.TotalSysPowerLoad = 0;
 
+            // Total Destruction bypasses the gradual power/troop drain entirely (it resolves in one
+            // instant step, not tick-by-tick like Target Power/Target Troops), so PhaseBPowerPlantHP/
+            // PhaseBInfrastructureHP/PhaseBTroopHP would otherwise still read their full InitializePhaseB
+            // values here. Force them to zero (Max left as-is) so the power/infrastructure/troop
+            // progress sprites correctly read as fully destroyed for this system's terminal
+            // RefreshStats call, which still fires this same tick before EndSiege below.
+            data.PhaseBPowerPlantHP = 0f;
+            data.PhaseBInfrastructureHP = 0f;
+            data.PhaseBTroopHP = 0f;
+
             // Transfer ownership to the attacker via AssimilateSystem, which handles StarSysWeOwn
             // bookkeeping and fires SystemOwnershipChanged - same path the Borg use post-combat.
             CivManager.Instance?.AssimilateSystem(sysCon, attackerCivEnum);
+
+            // Relays just the ownership change to every other connected peer - see
+            // TimeManager.ServerTotalDestructionResolved's comment. Facility/population destruction
+            // above isn't relayed: every peer's own PhaseBRealtimeResolutionCoroutine already applies
+            // it identically from the same relayed AssaultMode decision (SubmitAssaultDecision), since
+            // this method itself runs from that same deterministic per-tick loop on every peer. Only
+            // ownership - the one piece other systems (diplomacy, AI targeting, map rendering) can't
+            // tolerate drifting on - gets an explicit relay on top of that.
+            PlayerManager.Instance?.LocalPlayerController?.SubmitTotalDestructionResolved(
+                attackerFleet, data.GetStarSysInt());
 
             // End siege now that the system is claimed (EndSiege clears BesiegingFleet/DefensesCleared
             // and unfreezes the fleet so it can move again).
@@ -1738,9 +1779,12 @@ namespace BOTF3D.Galaxy
         // ══════════════════════════════════════════════════════════════════════
         // Phase B — Abstract attrition (System Invasion Phase 1, §4.2)
         // Fleet fires on shields first; troops counter-fire at attacking ships
-        // throughout. Once shields fall, fleet splits fire between power plants
-        // and ground troops. All resolved in the Galaxy scene per InterTurn
-        // (no CombatScene, no fleet freeze). Called from TimeManager.ProcessTurnEvents.
+        // throughout. Once shields fall: Target Troops/Total Destruction go straight
+        // to ground troops; Target Power fires exclusively on power plants first and
+        // only turns to troops once that pool is destroyed, after which defending
+        // troops fight at reduced strength (GetDefenderFirepowerMultiplier). All
+        // resolved in the Galaxy scene per InterTurn (no CombatScene, no fleet
+        // freeze). Called from TimeManager.ProcessTurnEvents.
         // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>
@@ -1785,19 +1829,28 @@ namespace BOTF3D.Galaxy
             CivEnum defCiv = data.CurrentOwnerCivEnum;
             TechLevel defTech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
             int defQuality = data.CurrentCivController?.CivData?.QualityScore ?? 5;
+            bool defHasWarp = data.CurrentCivController?.CivData?.HasWarp ?? true;
 
             int poweredOnSGs = NumFacilitiesPoweredOn(data, StarSysFacilityType.ShieldGenerator);
             float sgContrib = ComputeSGContribution(defCiv, defTech, defQuality);
             data.PhaseBShieldHP = data.PhaseBShieldMaxHP = poweredOnSGs * sgContrib;
             data.PhaseBCollateralAccum = 0f;
             data.PhaseBShieldsDown = false;
+            data.PhaseBPowerPlantsDown = false;
 
-            float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality);
+            float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality, defHasWarp);
             data.PhaseBTroopHP = data.PhaseBTroopMaxHP = data.GroundForces.Count * hpPerTroop;
 
             float hpPerPP = ComputePowerPlantHP(defCiv, defTech, defQuality);
             int ppCount = data.PowerPlants?.Count ?? 0;
             data.PhaseBPowerPlantHP = data.PhaseBPowerPlantMaxHP = ppCount * hpPerPP;
+
+            // Display-only — see StarSysData.PhaseBInfrastructureHP. Only Total Destruction ever
+            // drains this (instantly, in ResolveTotalDestruction); computed here for every mode so
+            // the sprite always has a real ratio, same as the other pools.
+            float hpPerInfra = ComputeInfrastructureHP(defCiv, defTech, defQuality);
+            int infraCount = (data.Factories?.Count ?? 0) + (data.ResearchCenters?.Count ?? 0);
+            data.PhaseBInfrastructureHP = data.PhaseBInfrastructureMaxHP = infraCount * hpPerInfra;
 
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
             GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
@@ -1817,27 +1870,69 @@ namespace BOTF3D.Galaxy
         }
 
         /// <summary>
-        /// Called each InterTurn from TimeManager.ProcessTurnEvents. Advances Phase B attrition for
-        /// every system where the player chose Target Troops at the §4.1 gate.
+        /// Called by SiegeDecisionUIController once the player picks Target Troops/Target Power/
+        /// Total Destruction at the §4.1 gate. Replaces the old once-per-InterTurn drip
+        /// (ProcessPhaseBAtritionForAllSystems, removed 2026-09-14): runs the existing, unmodified
+        /// ResolvePhaseBAtritionTick repeatedly in real time (Time.unscaledDeltaTime via
+        /// WaitForSecondsRealtime, same convention CLAUDE.md documents for Phase A combat) instead
+        /// of waiting on TimeManager.ProcessTurnEvents, so the assault resolves within a bounded
+        /// stretch of real time rather than however many "Advance Turn" clicks it takes. No-ops if
+        /// sysCon/fleet is invalid; safe to call once per order-button click.
         /// </summary>
-        public void ProcessPhaseBAtritionForAllSystems()
+        public void BeginPhaseBRealtimeResolution(StarSysController sysCon, FleetController fleet)
         {
-            if (SystemsUnderSiege == null || SystemsUnderSiege.Count == 0) return;
-            foreach (var sysCon in new List<StarSysController>(SystemsUnderSiege))
+            if (sysCon?.StarSysData == null || fleet == null) return;
+            StartCoroutine(PhaseBRealtimeResolutionCoroutine(sysCon, fleet));
+        }
+
+        private IEnumerator PhaseBRealtimeResolutionCoroutine(StarSysController sysCon, FleetController fleet)
+        {
+            _activePhaseBResolutions++;
+            // GameControlOverlay only re-checks Advance Turn's interactable state on a TurnPhase
+            // change or a TurnEventQueue drain — neither of which fires here — so nudge it directly
+            // both now and in the finally below, or the button would stay stale until one of those
+            // other triggers happens to fire next.
+            GameControlOverlay.Instance?.RefreshControlsInteractable();
+            var wait = new WaitForSecondsRealtime(PhaseBRealtimeTickInterval);
+            try
             {
-                if (sysCon?.StarSysData == null) continue;
-                var mode = sysCon.StarSysData.AssaultMode;
-                if (mode != AssaultMode.TargetTroops && mode != AssaultMode.TotalDestruction) continue;
-                var fleet = sysCon.StarSysData.BesiegingFleet;
-                if (fleet == null) continue;
-                ResolvePhaseBAtritionTick(sysCon, fleet);
-                // Keep both side panels live with post-tick numbers (no-ops if panels are closed).
-                BOTF3D.UI.SiegeDecisionUIController.Instance?.RefreshStats(sysCon, fleet);
-                BOTF3D.UI.SiegeDefenseUIController.Instance?.RefreshStats(sysCon);
+                for (int tick = 0; tick < PhaseBMaxResolutionTicks; tick++)
+                {
+                    var data = sysCon != null ? sysCon.StarSysData : null;
+                    // Withdrawn, reassigned, or otherwise ended out from under this loop — stop.
+                    if (data == null || data.BesiegingFleet != fleet || data.AssaultMode == AssaultMode.None)
+                        yield break;
+
+                    PhaseBOutcome outcome = ResolvePhaseBAtritionTick(sysCon, fleet);
+                    // Keep both side panels live with post-tick numbers (no-ops if panels are closed).
+                    SiegeDecisionUIController.Instance?.RefreshStats(sysCon, fleet);
+                    SiegeDefenseUIController.Instance?.RefreshStats(sysCon);
+
+                    // Any non-None outcome is terminal - repel/capture (which also call EndSiege
+                    // internally) and the ground-phase stalemates (which deliberately don't, so the
+                    // player must manually withdraw - see ResolvePhaseBAtritionTick's "Break off siege
+                    // to withdraw" report) all stop the loop here rather than re-resolving (and
+                    // re-reporting) every interval until the safety cap.
+                    if (outcome != PhaseBOutcome.None)
+                    {
+                        SiegeDecisionUIController.Instance?.ShowOutcome(sysCon, fleet, outcome);
+                        yield break;
+                    }
+
+                    yield return wait;
+                }
+                Debug.LogWarning($"[PhaseB] '{sysCon?.StarSysData?.SysName}': real-time resolution hit the " +
+                    $"{PhaseBMaxResolutionTicks}-tick safety cap without resolving — check attrition balance.");
+                SiegeDecisionUIController.Instance?.ShowOutcome(sysCon, fleet, PhaseBOutcome.SafetyCapped);
+            }
+            finally
+            {
+                _activePhaseBResolutions--;
+                GameControlOverlay.Instance?.RefreshControlsInteractable();
             }
         }
 
-        private void ResolvePhaseBAtritionTick(StarSysController sysCon, FleetController fleet)
+        private PhaseBOutcome ResolvePhaseBAtritionTick(StarSysController sysCon, FleetController fleet)
         {
             var data = sysCon.StarSysData;
             AssaultMode mode = data.AssaultMode;
@@ -1845,8 +1940,10 @@ namespace BOTF3D.Galaxy
             CivEnum atkCiv = data.BesiegingCivEnum;
             TechLevel defTech = data.CurrentCivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
             int defQuality = data.CurrentCivController?.CivData?.QualityScore ?? 5;
+            bool defHasWarp = data.CurrentCivController?.CivData?.HasWarp ?? true;
             TechLevel atkTech = fleet.FleetData?.CivController?.CivData?.CurrentTechLevel ?? TechLevel.EARLY;
             int atkQuality = fleet.FleetData?.CivController?.CivData?.QualityScore ?? 5;
+            bool atkHasWarp = fleet.FleetData?.CivController?.CivData?.HasWarp ?? true;
             int stardate = TimeManager.Instance != null ? TimeManager.Instance.currentStardate : 0;
             GalaxyQuadrant quadrant = ReportEntry.QuadrantFromPosition(data.GetPosition());
 
@@ -1857,11 +1954,18 @@ namespace BOTF3D.Galaxy
             if (livingCombat == null || livingCombat.Count == 0)
             {
                 EndSiege(sysCon);
+                // Repelled fleets stay exactly where they are otherwise (unlike Withdraw - see
+                // ServerMoveAwayFromSystem's comment) - since this system's own Phase A defenses are
+                // already destroyed, a second assault attempt can only start via a fresh Phase A
+                // encounter, which needs the fleet to actually leave and re-enter the system's
+                // trigger collider. Pushing it back here is what makes "set the system as destination
+                // again" actually queue that fresh encounter instead of silently doing nothing.
+                fleet.ServerMoveAwayFromSystem(sysCon);
                 ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
                     $"Assault repelled: {data.SysName}",
                     $"The {atkCiv} attacking fleet was destroyed. {data.SysName} remains under {defCiv} control.",
                     data.SysName, quadrant, ReportSeverity.Warning));
-                return;
+                return PhaseBOutcome.Repelled;
             }
             float fleetAttack = livingCombat.Sum(s => s.ShipData.BeamDamage + s.ShipData.TorpedoDamage);
 
@@ -1873,20 +1977,22 @@ namespace BOTF3D.Galaxy
                 if (defTroopCountShield > 0)
                 {
                     bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
-                    float troopAttack = defTroopCountShield * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
+                    float troopAttack = defTroopCountShield * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting, defHasWarp);
                     float perShip = troopAttack / livingCombat.Count;
                     foreach (var ship in livingCombat)
-                        ApplyDamageToShip(ship.ShipData, perShip);
+                        ApplyDamageToShip(ship, perShip);
                     bool fleetWiped = fleet.FleetData.ShipsList
                         .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
                     if (fleetWiped)
                     {
                         EndSiege(sysCon);
+                        // See the "no living combat ships" branch above for why this is needed.
+                        fleet.ServerMoveAwayFromSystem(sysCon);
                         ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
                             $"Assault repelled: {data.SysName}",
                             $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
                             data.SysName, quadrant, ReportSeverity.Warning));
-                        return;
+                        return PhaseBOutcome.Repelled;
                     }
                 }
 
@@ -1928,7 +2034,7 @@ namespace BOTF3D.Galaxy
                         $"({sgCount} generator{(sgCount != 1 ? "s" : "")} active). Ground troops returning fire.",
                         data.SysName, quadrant, ReportSeverity.Info));
                 }
-                return; // ground phase resolves next tick
+                return PhaseBOutcome.None; // ground phase resolves next tick
             } // end shield phase
 
             // ── Ground phase ────────────────────────────────────────────────
@@ -1936,11 +2042,76 @@ namespace BOTF3D.Galaxy
             {
                 // Once shields fall, Total Destruction instantly resolves all ground targets.
                 ResolveTotalDestruction(sysCon, fleet);
-                return;
+                return PhaseBOutcome.Captured;
             }
 
-            // ── Target Troops ground phase ──────────────────────────────────
-            float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality);
+            // ── Power-plant bombardment sub-stage (Target Power only) ────────
+            // Fleet fires exclusively on power plants once shields fall; only once that pool is
+            // fully depleted does the fleet turn to troops, per the same shape as the shield phase
+            // above. Defending troops keep counter-firing at the fleet throughout, but at reduced
+            // strength as their own power supply degrades (GetDefenderFirepowerMultiplier).
+            if (mode == AssaultMode.TargetPower && !data.PhaseBPowerPlantsDown)
+            {
+                int defTroopCountPower = data.GroundForces.Count;
+                if (defTroopCountPower > 0)
+                {
+                    bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
+                    float multiplier = GetDefenderFirepowerMultiplier(data);
+                    float troopAttack = defTroopCountPower
+                        * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting, defHasWarp)
+                        * multiplier;
+                    float perShip = troopAttack / livingCombat.Count;
+                    foreach (var ship in livingCombat)
+                        ApplyDamageToShip(ship, perShip);
+                    bool fleetWiped = fleet.FleetData.ShipsList
+                        .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
+                    if (fleetWiped)
+                    {
+                        EndSiege(sysCon);
+                        // See the "no living combat ships" branch above for why this is needed.
+                        fleet.ServerMoveAwayFromSystem(sysCon);
+                        ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                            $"Assault repelled: {data.SysName}",
+                            $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
+                            data.SysName, quadrant, ReportSeverity.Warning));
+                        return PhaseBOutcome.Repelled;
+                    }
+                }
+
+                data.PhaseBPowerPlantHP = Mathf.Max(0f, data.PhaseBPowerPlantHP - fleetAttack);
+
+                float hpPerPP = ComputePowerPlantHP(defCiv, defTech, defQuality);
+                int plantsExpected = data.PhaseBPowerPlantHP > 0 && hpPerPP > 0
+                    ? Mathf.CeilToInt(data.PhaseBPowerPlantHP / hpPerPP) : 0;
+                int plantsToRemove = (data.PowerPlants?.Count ?? 0) - plantsExpected;
+                for (int i = 0; i < plantsToRemove; i++)
+                    sysCon.RemovePowerPlantFacility();
+
+                bool powerDown = data.PhaseBPowerPlantHP <= 0 || (data.PowerPlants?.Count ?? 0) == 0;
+                if (powerDown)
+                {
+                    data.PhaseBPowerPlantHP = 0;
+                    data.PhaseBPowerPlantsDown = true;
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Power grid down: {data.SysName}",
+                        $"{atkCiv} bombardment knocked out {data.SysName}'s power plants. Defending ground forces " +
+                        $"are fighting at reduced strength. Fleet turning to ground troops next.",
+                        data.SysName, quadrant, ReportSeverity.Critical));
+                }
+                else
+                {
+                    float pct = data.PhaseBPowerPlantMaxHP > 0 ? data.PhaseBPowerPlantHP / data.PhaseBPowerPlantMaxHP * 100f : 0f;
+                    ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
+                        $"Bombardment: {data.SysName}",
+                        $"{atkCiv} fleet pounding {data.SysName} power plants — {pct:F0}% remaining. " +
+                        $"Ground troops returning fire at reduced strength.",
+                        data.SysName, quadrant, ReportSeverity.Info));
+                }
+                return PhaseBOutcome.None; // troop phase resolves next tick, once power is down
+            }
+
+            // ── Target Troops ground phase (also reached by Target Power once power is down) ──
+            float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality, defHasWarp);
 
             // Land transport troops once, on the first ground-phase tick
             if (!data.PhaseBTroopsLanded)
@@ -1957,7 +2128,7 @@ namespace BOTF3D.Galaxy
                 }
                 if (landed > 0)
                 {
-                    float hpPerAtkTroop = GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality);
+                    float hpPerAtkTroop = GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality, atkHasWarp);
                     data.PhaseBAttackerTroopHP = data.PhaseBAttackerTroopMaxHP = landed * hpPerAtkTroop;
                     data.PhaseBTroopsLanded = true;
                     ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
@@ -1978,7 +2149,9 @@ namespace BOTF3D.Galaxy
             if (defTroopCountGround > 0)
             {
                 bool onCombatFooting = data.GroundForceData?.OnCombatFooting ?? false;
-                float defTroopAttack = defTroopCountGround * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting);
+                float defTroopAttack = defTroopCountGround
+                    * GroundForceData.GetUnitAttackPower(defCiv, defTech, defQuality, onCombatFooting, defHasWarp)
+                    * GetDefenderFirepowerMultiplier(data);
 
                 if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
                 {
@@ -2002,17 +2175,19 @@ namespace BOTF3D.Galaxy
                     // No landed attacker troops to target — fire at the fleet instead.
                     float perShip = defTroopAttack / livingCombat.Count;
                     foreach (var ship in livingCombat)
-                        ApplyDamageToShip(ship.ShipData, perShip);
+                        ApplyDamageToShip(ship, perShip);
                     bool fleetWiped = fleet.FleetData.ShipsList
                         .All(s => s == null || s.ShipData.Distroyed || s.ShipData.ShipType == ShipType.Transport);
                     if (fleetWiped)
                     {
                         EndSiege(sysCon);
+                        // See the "no living combat ships" branch above for why this is needed.
+                        fleet.ServerMoveAwayFromSystem(sysCon);
                         ReportEntryUI.PushReport(new ReportEntry(ReportCategory.Combat, stardate,
                             $"Assault repelled: {data.SysName}",
                             $"Ground forces of {defCiv} destroyed the {atkCiv} attacking fleet. {data.SysName} holds.",
                             data.SysName, quadrant, ReportSeverity.Warning));
-                        return;
+                        return PhaseBOutcome.Repelled;
                     }
                 }
             }
@@ -2023,9 +2198,9 @@ namespace BOTF3D.Galaxy
             // Attacker's landed troops attack defenders; powered by surviving combat ships (always full power)
             if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
             {
-                float hpPerAtkTroop = GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality);
+                float hpPerAtkTroop = GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality, atkHasWarp);
                 int atkTroopCount = Mathf.Max(1, Mathf.CeilToInt(data.PhaseBAttackerTroopHP / hpPerAtkTroop));
-                float atkTroopAttack = atkTroopCount * GroundForceData.GetUnitAttackPower(atkCiv, atkTech, atkQuality, true);
+                float atkTroopAttack = atkTroopCount * GroundForceData.GetUnitAttackPower(atkCiv, atkTech, atkQuality, true, atkHasWarp);
                 data.PhaseBTroopHP = Mathf.Max(0f, data.PhaseBTroopHP - atkTroopAttack);
             }
 
@@ -2051,6 +2226,7 @@ namespace BOTF3D.Galaxy
                         $"System captured: {data.SysName}",
                         $"{atkCiv} forces eliminated all defenders on {data.SysName}. System is now under {atkCiv} control.",
                         data.SysName, quadrant, ReportSeverity.Critical));
+                    return PhaseBOutcome.Captured;
                 }
                 else if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP <= 0)
                 {
@@ -2059,6 +2235,7 @@ namespace BOTF3D.Galaxy
                         $"Mutual elimination: {data.SysName}",
                         $"All ground forces on {data.SysName} destroyed. {atkCiv} cannot claim the system — no surviving troops. Break off siege to withdraw.",
                         data.SysName, quadrant, ReportSeverity.Warning));
+                    return PhaseBOutcome.MutualElimination;
                 }
                 else
                 {
@@ -2067,13 +2244,13 @@ namespace BOTF3D.Galaxy
                         $"Defenders eliminated: {data.SysName}",
                         $"All {defCiv} ground forces on {data.SysName} destroyed. No {atkCiv} troops available to land — system cannot be claimed. Break off siege to withdraw.",
                         data.SysName, quadrant, ReportSeverity.Warning));
+                    return PhaseBOutcome.DefendersEliminatedNoTroops;
                 }
-                return;
             }
 
             // Ongoing report
             float troopPct = data.PhaseBTroopMaxHP > 0 ? data.PhaseBTroopHP / data.PhaseBTroopMaxHP * 100f : 0f;
-            float hpPerAtkTroopReport = Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality));
+            float hpPerAtkTroopReport = Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality, atkHasWarp));
             int atkTroopCountReport = Mathf.CeilToInt(data.PhaseBAttackerTroopHP / hpPerAtkTroopReport);
             string atkDetail;
             if (data.PhaseBTroopsLanded && data.PhaseBAttackerTroopHP > 0)
@@ -2087,6 +2264,7 @@ namespace BOTF3D.Galaxy
                 $"{atkCiv} assault on {data.SysName} — defenders at {troopPct:F0}% " +
                 $"({data.GroundForces.Count} unit{(data.GroundForces.Count != 1 ? "s" : "")} remaining).{atkDetail}",
                 data.SysName, quadrant, ReportSeverity.Warning));
+            return PhaseBOutcome.None;
         }
 
         private static float ComputeSGContribution(CivEnum civ, TechLevel tech, int quality) =>
@@ -2095,8 +2273,47 @@ namespace BOTF3D.Galaxy
         private static float ComputePowerPlantHP(CivEnum civ, TechLevel tech, int quality) =>
             ShipStatCalculator.Calculate(ShipType.PlanetaryShield, tech, civ, quality).HullMaxHealth;
 
-        private static void ApplyDamageToShip(ShipData ship, float damage)
+        // Display-only placeholder for the combined Factories/Research Centers/Universities/Population
+        // "infrastructure" pool (StarSysData.PhaseBInfrastructureHP) — same placeholder source as
+        // ComputePowerPlantHP, pending §6's balance pass.
+        private static float ComputeInfrastructureHP(CivEnum civ, TechLevel tech, int quality) =>
+            ShipStatCalculator.Calculate(ShipType.PlanetaryShield, tech, civ, quality).HullMaxHealth;
+
+        // First-pass placeholder pending §6's balance pass (SystemInvasion_Phase1_Design.md) — how
+        // weak defending ground troops fight once their power plants are fully destroyed under
+        // Target Power. 30% keeps some resistance rather than a free mop-up once power is down.
+        private const float TargetPowerFirepowerFloor = 0.3f;
+
+        /// <summary>
+        /// Target Power only: scales defending ground-troop attack power down as PhaseBPowerPlantHP
+        /// drains, from 100% at full power to TargetPowerFirepowerFloor once power plants are gone
+        /// (and pinned there for the rest of the assault, since the pool never refills). No-ops
+        /// (returns 1f) for every other AssaultMode.
+        /// </summary>
+        private static float GetDefenderFirepowerMultiplier(StarSysData data)
         {
+            if (data.AssaultMode != AssaultMode.TargetPower) return 1f;
+            if (data.PhaseBPowerPlantMaxHP <= 0) return 1f; // system never had power plants to lose
+            float ratio = Mathf.Clamp01(data.PhaseBPowerPlantHP / data.PhaseBPowerPlantMaxHP);
+            return Mathf.Lerp(TargetPowerFirepowerFloor, 1f, ratio);
+        }
+
+        /// <summary>
+        /// Takes the ShipController (not just its ShipData) so a kill can retire the ship properly -
+        /// Phase B runs in the Galaxy scene with no CombatScene/CombatManager to route through
+        /// ShipController.DestroyShip's combat-specific cleanup, so a HullHealth<=0 here
+        /// instead follows the same sequence StarSysController.ColonizeWithTransport uses to retire a
+        /// consumed transport outside combat: drop it from its fleet's roster, fire GameEvents.
+        /// ShipDestroyed, then ShipManager.RemoveShipControllerFromList to destroy its Fleet-menu list
+        /// item and its own GameObject. Without this, ApplyDamageToShip previously only flipped
+        /// ShipData.Distroyed - correctly excluding the ship from further Phase B targeting/damage,
+        /// but leaving its corpse sitting in FleetData.ShipsList and the Fleet menu forever.
+        /// </summary>
+        private static void ApplyDamageToShip(ShipController shipCon, float damage)
+        {
+            var ship = shipCon?.ShipData;
+            if (ship == null) return;
+
             int dmg = Mathf.RoundToInt(damage);
             if (dmg <= 0) return;
             int shieldAbsorb = Mathf.Min(ship.ShieldHealth, dmg);
@@ -2105,8 +2322,13 @@ namespace BOTF3D.Galaxy
             if (remainder > 0)
             {
                 ship.HullHealth = Mathf.Max(0, ship.HullHealth - remainder);
-                if (ship.HullHealth <= 0)
+                if (ship.HullHealth <= 0 && !ship.Distroyed)
+                {
                     ship.Distroyed = true;
+                    ship.CurrentFleetController?.RemoveShipFromFleet(shipCon);
+                    GameEvents.ShipDestroyed(ship.ShipID);
+                    ShipManager.Instance?.RemoveShipControllerFromList(shipCon);
+                }
             }
         }
 

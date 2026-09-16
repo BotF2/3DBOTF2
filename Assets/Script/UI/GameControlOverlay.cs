@@ -875,6 +875,15 @@ namespace BOTF3D.UI
         }
 
         /// <summary>
+        /// Public re-evaluation hook for state this class doesn't otherwise observe — e.g.
+        /// StarSysManager.IsResolvingPhaseB flipping when a Phase B assault's real-time resolution
+        /// starts/ends, which isn't a TurnPhase change or a TurnEventQueue drain (SetControlsInteractable's
+        /// other two triggers) and would otherwise leave Advance Turn stale until one of those
+        /// happens to fire next.
+        /// </summary>
+        public void RefreshControlsInteractable() => SetControlsInteractable();
+
+        /// <summary>
         /// Refresh interactability of all controls except the pause button.
         /// The advance turn button is enabled only during InterTurn and only when
         /// the player has not explicitly paused. The volume slider is disabled only
@@ -891,7 +900,11 @@ namespace BOTF3D.UI
                 bool wasInteractable = advanceTurnButton.interactable;
                 advanceTurnButton.interactable = !_playerPaused
                     && (TimeManager.Instance?.TurnPhase == TurnPhase.InterTurn)
-                    && (TurnEventQueue.Instance?.IsDrained ?? true);
+                    && (TurnEventQueue.Instance?.IsDrained ?? true)
+                    // Phase B's real-time resolution (System Invasion Phase 1 §4.2) freezes Advance
+                    // Turn for its duration, same as combat already does implicitly by being a
+                    // separate scene — see StarSysManager.IsResolvingPhaseB.
+                    && !(StarSysManager.Instance?.IsResolvingPhaseB ?? false);
                 if (advanceTurnButton.interactable != wasInteractable)
                     Debug.Log($"SetControlsInteractable: advanceTurnButton.interactable {wasInteractable} -> {advanceTurnButton.interactable} (_playerPaused={_playerPaused}, TimeManager.Instance={(TimeManager.Instance != null ? "OK" : "NULL")}, TurnPhase={TimeManager.Instance?.TurnPhase})");
             }

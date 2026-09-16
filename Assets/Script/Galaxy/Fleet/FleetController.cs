@@ -173,7 +173,51 @@ namespace BOTF3D.Galaxy
                 return;
             }
             StarSysManager.Instance?.EndSiege(sysCon);
+            ServerMoveAwayFromSystem(sysCon);
             Debug.Log($"[Siege] '{name}' broke off the siege of '{sysCon.StarSysData?.SysName}'.");
+        }
+
+        // Pushes the fleet directly outward from the system along the line between them, far enough
+        // to clear both SphereColliders (each trigger's effective world radius bakes in the largest
+        // lossyScale axis — see the localScale comment above OnCivEnumChanged, FleetController.cs
+        // ~line 388) plus a margin, so the two don't keep overlapping/re-triggering each other on the
+        // galaxy map. Originally Withdraw-only (a fleet that just captured a system should stay put,
+        // not fly off) - also called on a Repelled Phase B outcome (StarSysManager.
+        // ResolvePhaseBAtritionTick) since a repelled fleet sitting exactly on top of the system never
+        // re-fires the OnTriggerEnter a fresh Phase A encounter needs, permanently blocking any second
+        // assault attempt. [Server]-gated like the rest of this class's authoritative fleet-position
+        // writes - safe to call unconditionally from Phase B's per-peer resolution tick (see EndSiege's
+        // identical ServerSetBesiegingSystem call), since Mirror no-ops it on a non-host client and the
+        // resulting position reaches that client via normal NetworkTransform sync instead.
+        [Server]
+        public void ServerMoveAwayFromSystem(StarSysController sysCon)
+        {
+            if (sysCon == null) return;
+
+            Vector3 sysPos = sysCon.transform.position;
+            Vector3 direction = transform.position - sysPos;
+            if (direction.sqrMagnitude < 0.0001f)
+                direction = Vector3.right; // fleet exactly on top of the system - pick an arbitrary heading
+            direction.Normalize();
+
+            float fleetRadius = 0f;
+            var fleetCollider = GetComponent<SphereCollider>();
+            if (fleetCollider != null)
+                fleetRadius = fleetCollider.radius * transform.lossyScale.x;
+
+            float sysRadius = 0f;
+            var sysCollider = sysCon.GetComponent<SphereCollider>();
+            if (sysCollider != null)
+                sysRadius = sysCollider.radius * sysCon.transform.lossyScale.x;
+
+            const float SeparationMargin = 1.5f; // first-pass number - clear both colliders with room to spare
+            float safeDistance = fleetRadius + sysRadius + SeparationMargin;
+
+            Vector3 newPos = sysPos + direction * safeDistance;
+            if (rb != null)
+                rb.MovePosition(newPos);
+            else
+                transform.position = newPos;
         }
 
         // Fires whenever the server recomputes MaxWarpFactor (ship added/removed/merged) after the

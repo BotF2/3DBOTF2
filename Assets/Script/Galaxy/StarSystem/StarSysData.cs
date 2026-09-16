@@ -185,9 +185,19 @@ namespace BOTF3D.Galaxy
         public float PhaseBCollateralAccum;   // fractional collateral toward the next SG kill
         public float PhaseBPowerPlantHP;      // aggregate power-plant HP once fleet targets ground
         public float PhaseBPowerPlantMaxHP;   // total at Phase B start, for a % readout
+        // Display-only aggregate standing in for Factories/Research Centers/Universities/Population
+        // together (the "infrastructure" progress sprite). Only Total Destruction ever drains this —
+        // Target Troops/Target Power never touch these facilities — and it drains in one instant step
+        // (ResolveTotalDestruction), not gradually; computed for every mode at InitializePhaseB anyway
+        // so the sprite has a real ratio to read regardless of which mode ends up using it.
+        public float PhaseBInfrastructureHP;
+        public float PhaseBInfrastructureMaxHP;
         public float PhaseBTroopHP;           // aggregate troop HP; units removed as this depletes
         public float PhaseBTroopMaxHP;        // total at Phase B start, for a % readout
         public bool  PhaseBShieldsDown;       // true once all SGs are destroyed or ShieldHP hits 0
+        // Target Power only: true once all power plants are destroyed or PowerPlantHP hits 0,
+        // gating the transition from the power-bombardment sub-stage into the troop ground phase.
+        public bool  PhaseBPowerPlantsDown;
         // Attacker's transported troops once landed (TargetTroops only — Total Destruction uses no transports).
         // Powered by the besieging fleet's surviving combat ships; fully powered as long as any are alive.
         public float PhaseBAttackerTroopHP;

@@ -511,7 +511,20 @@ namespace BOTF3D.Core
     {
         None,
         TargetTroops,
+        TargetPower,
         TotalDestruction
+    }
+    // Terminal result of one ResolvePhaseBAtritionTick call (System Invasion Phase 1, §4.2).
+    // None means the tick resolved without ending the siege - SiegeDecisionUIController/
+    // ReportEntryUI only react to a non-None value. See StarSysManager.ResolvePhaseBAtritionTick.
+    public enum PhaseBOutcome
+    {
+        None,
+        Repelled,                    // attacking fleet destroyed - system holds
+        Captured,                    // system changed hands (ground victory or Total Destruction)
+        MutualElimination,           // both sides' ground forces wiped - no capture possible
+        DefendersEliminatedNoTroops, // defenders wiped but no attacker troops ever landed - no capture
+        SafetyCapped                 // hit PhaseBMaxResolutionTicks without resolving
     }
     public enum TurnPhase
     {

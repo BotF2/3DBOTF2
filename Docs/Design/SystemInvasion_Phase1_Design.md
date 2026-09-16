@@ -224,6 +224,25 @@ pool hits zero), what happens next depends on which sub-choice was made at entry
   tradeoff is speed vs. safety, not a free win once the numeric threshold is crossed. Ownership flips
   to the attacking civ once defending `GroundForces` hits zero.
 
+**Revision (2026-09-14) — real-time bounded resolution replaces the per-InterTurn drip.** This
+section's original framing ("no turn freeze... fought... over turns") is superseded: turn
+advancement turned out to be 100% player-button-driven with no real-time auto-advance at all, so an
+Assault could sit "in progress" across an arbitrarily long, unbounded stretch of real time depending
+on how many turns the player took to click Advance Turn again — never converging on anything close
+to Phase A combat's pacing. Settled instead: once an order is chosen at the §4.1 gate, Phase B now
+resolves via a bounded real-time coroutine (`StarSysManager.BeginPhaseBRealtimeResolution`,
+`Time.unscaledDeltaTime` via `WaitForSecondsRealtime`, same convention `CLAUDE.md` documents for
+Phase A combat) that re-runs the existing, unmodified `ResolvePhaseBAtritionTick` on a fixed
+real-time interval until a terminal outcome (repel/capture/mutual elimination) fires — instead of
+once per InterTurn. Advance Turn is grayed out for the duration
+(`StarSysManager.IsResolvingPhaseB`, read by `GameControlOverlay.SetControlsInteractable`), the same
+way combat already freezes it. The existing gray-out progress sprites (`PhaseBProgressUI`) double as
+the "in progress" feedback while this runs — no separate spinner widget was added. §4.1's 20-second
+entry-gate countdown (previously unbuilt despite being settled 2026-09-11) shipped alongside this,
+defaulting to Withdraw on expiry or on an early Close click, and Withdraw now visibly separates the
+besieging fleet from the system on the galaxy map (`FleetController.ServerMoveAwayFromSystem`)
+instead of leaving their colliders overlapping.
+
 ### 4.3 Interruptions — another fleet arrives at a system mid-Assault
 
 Net-new requirement, no prior-draft precedent. Three cases, keyed on the arriving fleet's civ relative
@@ -566,3 +585,136 @@ Settled while authoring the actual per-civ Shipyard `ShipSO` assets:
   toughness rises automatically as the owning civ researches, using the exact same Destroyer-hull
   numbers already balanced elsewhere, with nothing new to hand-author. Same "derive from existing
   tables" discipline as §6.
+
+## 14. Target Power — third §4.1 assault choice, plus panel progress sprites (2026-09-13, shipped code-side)
+
+**New `AssaultMode.TargetPower`**, sitting between Target Troops and Total Destruction in both the enum
+and the SiegeDecisionUIController button row. Reuses the `PhaseBPowerPlantHP`/`PhaseBPowerPlantMaxHP`
+pool that `InitializePhaseB` already computed but no mode previously drained (`ComputePowerPlantHP`
+derives it from `ShipType.PlanetaryShield.HullMaxHealth`, same placeholder source `ComputeSGContribution`
+uses for shields — see §9's still-open PlanetaryShield-repurposing question).
+
+- **Sequencing, settled:** once shields fall, Target Power fires *exclusively* on power plants
+  (`ResolvePhaseBAtritionTick`'s new power sub-stage) — real facilities removed one at a time via the
+  already-existing `StarSysController.RemovePowerPlantFacility()` as the pool depletes, same shape as
+  the shield phase's SG removal. Only once the pool (and the facility list) hits zero
+  (`PhaseBPowerPlantsDown = true`) does the fleet turn to troops, falling into the *same* ground-phase
+  code Target Troops uses (transport landing, troops-vs-troops) — not a separate implementation.
+- **Firepower penalty, settled:** defending ground troops' attack power is scaled by
+  `StarSysManager.GetDefenderFirepowerMultiplier` — `Lerp(TargetPowerFirepowerFloor, 1f, currentPP/maxPP)`,
+  live during the power sub-stage (troops weaken as power drains, not just at the end) and pinned at the
+  floor for the rest of the fight once power hits zero. **Floor = 30%** (`TargetPowerFirepowerFloor`),
+  explicit first-pass placeholder pending §6's balance-pass discipline — deliberately not 0% so a Target
+  Power win still leaves some resistance rather than a free mop-up.
+- Every other mode leaves `PhaseBPowerPlantHP` untouched (never drained), so the multiplier no-ops
+  (`return 1f`) for Target Troops/Total Destruction — matches the panel spec below ("if there is no
+  targeting power plants, [the power sprite] remains normal").
+
+**Panel progress sprites** (`PhaseBProgressUI`, shared by both `SiegeDecisionUIController` — the
+attacker's entry-gate/status panel — and `SiegeDefenseUIController` — the defender's status panel):
+each combat step (shield / power / defending-troop / landed-attacker-troop) gets an `Image` that lerps
+white→gray continuously as that step's `current/max` HP pool drains, plus an owner-insignia `Image` that
+always shows `StarSysData.CurrentCivController.CivData.InsigniaSprite` — swapping to the invader's
+insignia the instant `AssimilateSystem`/`ResolveTotalDestruction` flips `CurrentOwnerCivEnum`, with no
+extra state needed. The power sprite is forced back to normal color outside Target Power rather than
+tracking a pool that's never drained. All Image fields are optional (`PhaseBProgressUI` no-ops on null)
+so this compiles and runs before the step sprites exist — Editor wiring is still needed once art lands.
+
+**Known gap — resolved in §15:** the one-shot-decision-panel gap described in the original version of
+this section (the "Assault System" button hiding for the rest of the siege once a mode was chosen) is
+fixed — see §15.
+
+## 15. Assault-progress viewing, Infrastructure sprite, and the full per-mode step breakdown (2026-09-13)
+
+### 15.1 "Assault System" button stays live for the whole siege
+
+`FleetMenuUIController`'s button now shows for as long as `fleetCon.IsBesiegingSystem` is true, not just
+while `AssaultMode == None`. Label switches from "Assault System (Name)" (no mode chosen — opens the
+§4.1 decision gate) to "View Assault (Name)" (mode already chosen — reopens the same panel as a live
+progress view). `SiegeDecisionUIController.OpenPanel` does the corresponding gating: once
+`AssaultMode != AssaultMode.None`, the three mode-choice buttons (Target Troops/Target Power/Total
+Destruction) are hidden — the choice is locked in for this siege — while Withdraw stays available,
+relabeled "Break Off Siege" to match `FleetMenuUIController`'s dedicated button of the same name (both
+call the same `RequestBreakOffSiege()`). Total Destruction still ends the siege the instant it resolves
+(`ResolveTotalDestruction` → `EndSiege`), so the button disappears again then regardless of this fix.
+
+**"View Assault" is the Fleet UI button, not a panel button — the panel needs its own Close instead.**
+Since `SiegeDecisionUIController`'s panel fully covers the Fleet UI while open (confirmed against your
+description of the flow), the Fleet UI button that reopens it isn't reachable again to close it — the
+only other button left in the reopened (mode-already-chosen) view was Withdraw, which would have forced
+the player to abandon the siege just to stop looking at it. Added a dedicated `closeButton`, shown only
+when `modeChosen`, that calls `ClosePanel()` directly with no side effect on the siege. So: Fleet UI
+button = open only; in-panel Close = dismiss the view; in-panel Withdraw/Break Off Siege = the
+separate, consequential action of actually ending the siege.
+
+**Revision (2026-09-14):** `closeButton` is now shown at the initial §4.1 gate too, alongside the
+new 20s countdown — see §4.2's 2026-09-14 revision note. There, clicking it (before picking a mode)
+implies Withdraw rather than a free no-op dismiss, so the gate still can't be left unanswered
+indefinitely just because the panel is closeable — it's a second path to the same default the
+countdown itself falls back to on expiry.
+
+### 15.2 New Infrastructure sprite (Factories/Research Centers/Universities/Population)
+
+`StarSysData.PhaseBInfrastructureHP`/`MaxHP`, computed at `InitializePhaseB` for every mode the same way
+`PhaseBPowerPlantHP` is (`ComputeInfrastructureHP`, same `ShipType.PlanetaryShield` placeholder source —
+pending §6's balance pass same as everything else). Unlike Power/Troop/Shield, nothing gradually drains
+this pool — no mode does incidental per-tick infrastructure damage — so in practice it only ever moves
+once, instantly, when Total Destruction resolves.
+
+**Revision (2026-09-14):** this single Infrastructure `Image` split into two —
+`facilitiesProgressImage` (Factories/Research Centers) and `populationProgressImage` (Population) —
+on both `SiegeDecisionUIController` and `SiegeDefenseUIController`, both still fed by the same
+`PhaseBInfrastructureHP`/`MaxHP` pool above (no data-model change) so they gray together. Real icon
+art for the two still needs Editor authoring/import — same placeholder-now convention as the
+Shipyard's placeholder FBX (§13).
+
+### 15.3 Full per-mode step breakdown, sprite-by-sprite
+
+All five progress sprites (Shield / Power / Infrastructure / Troop / Landed-Troop) start at normal color
+when the §4.1 panel first opens. What follows depends on the chosen mode:
+
+**Stage 1 — Shield bombardment (identical for every mode).** Fleet fires on `PhaseBShieldHP`; defending
+troops counter-fire at the fleet throughout. Shield sprite grays white→gray as the pool drains. Power,
+Infrastructure, Troop, and Landed-Troop sprites all stay normal — untouched until shields fall
+(`PhaseBShieldsDown = true`).
+
+**Stage 2 — Target Troops.** Fleet fires directly on `PhaseBTroopHP` (Troop sprite grays); Power and
+Infrastructure sprites stay normal for the rest of the assault (never targeted this mode). Once
+transports land (`PhaseBTroopsLanded = true`), the Landed-Troop sprite appears and grays as
+`PhaseBAttackerTroopHP` drains from the troops-vs-troops fight. Ends in capture (`AssimilateSystem`),
+mutual elimination, or the attacking fleet being repelled.
+
+**Stage 2 — Target Power.** Fleet fires exclusively on `PhaseBPowerPlantHP` (Power sprite grays);
+Infrastructure sprite stays normal (never targeted this mode). Troop sprite stays normal during this
+sub-stage too — troops aren't fired on yet — but defenders' own counter-fire against the fleet is
+already scaled down live by `GetDefenderFirepowerMultiplier` as power drains. Once power is fully
+destroyed (`PhaseBPowerPlantsDown = true`, Power sprite fully gray), falls into the *same* Stage 2
+Target Troops behavior above (Troop sprite starts graying, Landed-Troop sprite appears once transports
+land) — except defender firepower is pinned at the 30% floor for the remainder.
+
+**Stage 2 — Total Destruction.** Resolves in one instant step, the tick immediately after shields fall
+(`ResolveTotalDestruction`) — not gradual like the other two modes. Power sprite and Infrastructure
+sprite both snap straight to fully gray (`PhaseBPowerPlantHP`/`PhaseBInfrastructureHP` forced to 0);
+Troop sprite also snaps fully gray (`PhaseBTroopHP` forced to 0 — real `GroundForces`/`Population` are
+wiped for real in the same call). Landed-Troop sprite stays normal/unused for the whole assault — Total
+Destruction has no troops-vs-troops fight; the attacker's transports land afterward into the
+already-claimed, empty system per §4.2, which isn't a combat the sprite needs to represent.
+
+**Owner insignia**, all modes: always shows `StarSysData.CurrentCivController.CivData.InsigniaSprite`,
+so it swaps to the invader automatically the instant `CurrentOwnerCivEnum` flips
+(`AssimilateSystem`/`ResolveTotalDestruction`) — no mode-specific handling needed.
+
+### 15.4 `EndSiege` no longer zeroes the HP pools
+
+Previously `EndSiege` reset every `PhaseBXxxHP`/`MaxHP` pair to 0/0 on *any* siege end (repelled,
+withdrawn, or captured). That raced against the sprites above: `PhaseBProgressUI`'s ratio math treats a
+0/0 pool as "normal" (nothing drained yet), so a panel left open at the moment of capture would flash
+fully-gray for one frame and then immediately flip back to fully-normal once `ResolveTotalDestruction`'s
+trailing `EndSiege` call zeroed `MaxHP` too. Fixed by having `EndSiege` reset only what actually needs a
+clean slate for a *future* siege on this same system — `AssaultMode`, `PhaseBCollateralAccum`, and the
+three stage-gating bools (`PhaseBShieldsDown`/`PhaseBPowerPlantsDown`/`PhaseBTroopsLanded`, since
+`InitializePhaseB` doesn't reset the latter two itself) — and leaving every HP pool at whatever this
+siege's last tick left it: fully drained on a Total Destruction/capture (the sprites correctly stay
+gray), partially drained on a repel (the sprites now show real accumulated damage instead of magically
+resetting to pristine). `InitializePhaseB` unconditionally recomputes every pool fresh the next time
+Phase B starts on this system regardless, so nothing is lost by leaving stale values here between sieges.

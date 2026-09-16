@@ -2,6 +2,7 @@ using BOTF3D.Core;
 using BOTF3D.Galaxy;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace BOTF3D.UI
@@ -18,7 +19,19 @@ namespace BOTF3D.UI
     ///     as SiegeDecisionUIController).
     ///   - Set PanelRoot to the root of the defense-status panel UI (starts inactive).
     ///   - Assign SysNameLabel, AttackerLabel, ShieldText, SysTroopsText, EnemyFleetText,
-    ///     LandedEnemyTroopsText, and DismissButton.
+    ///     LandedEnemyTroopsText, PowerOutputText, CountdownText, and DismissButton.
+    ///   - This panel has no Close button by design — DismissButton is the only way to close it
+    ///     (informational status only, no decision to make here). There is no closeButton field;
+    ///     don't wire a separate "CloseButton" object to anything on this controller.
+    ///   - CountdownText mirrors the attacker's 20s entry-gate timer (SiegeDecisionUIController) for
+    ///     the defender's awareness only — it drives no action here and is a separate client-local
+    ///     timer, not networked/synced with the attacker's own countdown.
+    ///   - PowerOutputText shows the number of power plants still standing (not power output) —
+    ///     ticks down as Target Power/Total Destruction destroy them.
+    ///   - Progress sprites (shield/power/facilities/population/troop/landed-troop/owner-insignia
+    ///     Images) are optional — leave unassigned until the step sprites exist; PhaseBProgressUI
+    ///     no-ops on a null Image. Facilities and Population both track the same
+    ///     PhaseBInfrastructureHP pool and should gray in lockstep.
     /// </summary>
     public class SiegeDefenseUIController : MonoBehaviour
     {
@@ -31,11 +44,34 @@ namespace BOTF3D.UI
         [SerializeField] private TMP_Text sysNameLabel;
         [SerializeField] private TMP_Text attackerLabel;
 
+        [Header("Entry-gate countdown — cosmetic mirror of SiegeDecisionUIController's 20s gate")]
+        // Purely informational for the defender — no action depends on it, hidden once AssaultMode
+        // is chosen or the panel closes. Not networked/synced with the attacker's own timer.
+        [SerializeField] private TMP_Text countdownText;
+        private const float GateTimeoutSeconds = 20f;
+        private float remainingTime;
+        private bool isTimerRunning;
+
         [Header("Live stats")]
         [SerializeField] private TMP_Text shieldText;
         [SerializeField] private TMP_Text sysTroopsText;
         [SerializeField] private TMP_Text enemyFleetText;
         [SerializeField] private TMP_Text landedEnemyTroopsText;
+        // Power plants remaining — plain count, not output; see PopulateStats.
+        [SerializeField] private TMP_Text powerOutputText;
+
+        [Header("Progress sprites — normal color on open, gray toward Depleted as each pool drains")]
+        [SerializeField] private Image shieldProgressImage;
+        [SerializeField] private Image powerProgressImage;
+        // Split 2026-09-14 (mirrors SiegeDecisionUIController) — Factories/Research Centers and
+        // Population each get their own icon, both fed by the same PhaseBInfrastructureHP/MaxHP
+        // pool so they gray together — Total Destruction only.
+        [FormerlySerializedAs("infrastructureProgressImage")]
+        [SerializeField] private Image facilitiesProgressImage;
+        [SerializeField] private Image populationProgressImage;
+        [SerializeField] private Image troopProgressImage;
+        [SerializeField] private Image landedTroopProgressImage;
+        [SerializeField] private Image ownerInsigniaImage;
 
         [Header("Buttons")]
         [SerializeField] private Button dismissButton;
@@ -54,6 +90,21 @@ namespace BOTF3D.UI
                 dismissButton.onClick.AddListener(ClosePanel);
         }
 
+        private void Update()
+        {
+            if (!isTimerRunning) return;
+
+            remainingTime -= Time.unscaledDeltaTime;
+            if (remainingTime > 0f)
+            {
+                if (countdownText != null)
+                    countdownText.text = Mathf.CeilToInt(remainingTime).ToString();
+                return;
+            }
+
+            StopGateTimer();
+        }
+
         /// <summary>
         /// Opens the panel for the given system. Called by TurnEventQueue (SiegeDefenseNotify drain).
         /// TurnEventQueue.NotifyDismissed is called by ClosePanel — do not call it separately.
@@ -68,6 +119,25 @@ namespace BOTF3D.UI
             }
 
             PopulateStats(sysCon);
+
+            // Entry-gate countdown — cosmetic only here (see field comment); runs while the
+            // attacker's own decision is still pending, hidden once a mode is chosen.
+            bool modeChosen = sysCon?.StarSysData != null && sysCon.StarSysData.AssaultMode != AssaultMode.None;
+            if (!modeChosen)
+            {
+                remainingTime = GateTimeoutSeconds;
+                isTimerRunning = true;
+                if (countdownText != null)
+                {
+                    countdownText.gameObject.SetActive(true);
+                    countdownText.text = Mathf.CeilToInt(remainingTime).ToString();
+                }
+            }
+            else
+            {
+                StopGateTimer();
+            }
+
             PanelRoot.SetActive(true);
         }
 
@@ -117,12 +187,63 @@ namespace BOTF3D.UI
                 else
                     landedEnemyTroopsText.text = "Enemy troops landed: none";
             }
+
+            // Power plants remaining — plain count, not output; updates as Target Power/Total
+            // Destruction destroy them (data.PowerPlants shrinks live in StarSysManager).
+            if (powerOutputText != null)
+                powerOutputText.text = $"Power Plants: {data.PowerPlants?.Count ?? 0}";
+
+            UpdateProgressSprites(data);
+        }
+
+        /// <summary>Same grayscale-progress rules as SiegeDecisionUIController.UpdateProgressSprites — see there.</summary>
+        private void UpdateProgressSprites(StarSysData data)
+        {
+            PhaseBProgressUI.SetProgress(shieldProgressImage, data.PhaseBShieldHP, data.PhaseBShieldMaxHP);
+            PhaseBProgressUI.SetProgress(troopProgressImage, data.PhaseBTroopHP, data.PhaseBTroopMaxHP);
+
+            bool powerTargeted = data.AssaultMode == AssaultMode.TargetPower || data.AssaultMode == AssaultMode.TotalDestruction;
+            if (powerTargeted)
+                PhaseBProgressUI.SetProgress(powerProgressImage, data.PhaseBPowerPlantHP, data.PhaseBPowerPlantMaxHP);
+            else
+                PhaseBProgressUI.SetNormal(powerProgressImage);
+
+            if (data.AssaultMode == AssaultMode.TotalDestruction)
+            {
+                PhaseBProgressUI.SetProgress(facilitiesProgressImage, data.PhaseBInfrastructureHP, data.PhaseBInfrastructureMaxHP);
+                PhaseBProgressUI.SetProgress(populationProgressImage, data.PhaseBInfrastructureHP, data.PhaseBInfrastructureMaxHP);
+            }
+            else
+            {
+                PhaseBProgressUI.SetNormal(facilitiesProgressImage);
+                PhaseBProgressUI.SetNormal(populationProgressImage);
+            }
+
+            if (data.PhaseBTroopsLanded)
+                PhaseBProgressUI.SetProgress(landedTroopProgressImage, data.PhaseBAttackerTroopHP, data.PhaseBAttackerTroopMaxHP);
+            else
+                PhaseBProgressUI.SetNormal(landedTroopProgressImage);
+
+            if (ownerInsigniaImage != null)
+            {
+                var sprite = data.CurrentCivController?.CivData?.InsigniaSprite;
+                if (sprite != null) ownerInsigniaImage.sprite = sprite;
+            }
         }
 
         private void ClosePanel()
         {
+            StopGateTimer();
             if (PanelRoot != null) PanelRoot.SetActive(false);
             TurnEventQueue.Instance?.NotifyDismissed();
+        }
+
+        /// <summary>Stops the cosmetic entry-gate countdown — called whenever the panel closes.</summary>
+        private void StopGateTimer()
+        {
+            isTimerRunning = false;
+            if (countdownText != null)
+                countdownText.gameObject.SetActive(false);
         }
     }
 }

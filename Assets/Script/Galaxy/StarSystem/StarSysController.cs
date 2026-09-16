@@ -896,8 +896,17 @@ namespace BOTF3D.Galaxy
             return Mathf.Clamp(Mathf.FloorToInt(100f * elapsed / span), 0, 100);
         }
 
-        private void PlantInsignia(CivController civ)
+        /// <summary>
+        /// Swaps the galaxy-map owner-insignia sprite (StarSysChildFields.OwnerInsigniaGO, at the end
+        /// of the system's drop line) to civ's civilization and shows/hides it depending on whether
+        /// civ is the local player. Public so ownership-transfer paths outside this class (CivManager.
+        /// AssimilateSystem/AnnexMinorCiv) can call it too - UpdateOwner below only touches
+        /// StarSysData.CurrentOwnerCivEnum, not this visual, by design (it has no CivController to
+        /// read the sprite from).
+        /// </summary>
+        public void PlantInsignia(CivController civ)
         {
+            if (civ?.CivData == null) return;
             StarSysChildFields fields = GetComponent<StarSysChildFields>();
             if (fields?.OwnerInsigniaGO == null) return;
             fields.OwnerInsigniaGO.SetActive(true);

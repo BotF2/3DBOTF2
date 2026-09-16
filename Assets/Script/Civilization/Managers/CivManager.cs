@@ -623,6 +623,9 @@ namespace BOTF3D.Civilization
 
                     sysCon.UpdateOwner(majorCivEnum);
                     sysCon.StarSysData.CurrentCivController = majorCiv;
+                    // Same insignia follow-up as AssimilateSystem above - UpdateOwner alone leaves the
+                    // galaxy-map sprite showing the old (now-eliminated) minor's insignia.
+                    sysCon.PlantInsignia(majorCiv);
                     ReflagSystemAssets(sysCon, majorCivEnum);
 
                     if (!majorCiv.CivData.StarSysWeOwn.Contains(sysCon))
@@ -704,6 +707,19 @@ namespace BOTF3D.Civilization
 
             sysCon.UpdateOwner(newOwnerCivEnum);
             sysCon.StarSysData.CurrentCivController = newOwner;
+            // UpdateOwner only touches StarSysData - ClaimSystem/ColonizeWithTransport/TerraformSystem
+            // all follow their own ownership change with this same call to swap the galaxy-map
+            // insignia sprite (StarSysChildFields.OwnerInsigniaGO); this conquest path needs its own
+            // copy since it doesn't route through any of those three.
+            sysCon.PlantInsignia(newOwner);
+
+            // Unlike ClaimSystem/ColonizeWithTransport/TerraformSystem, this conquest path never
+            // went through StarSysController, so it needs its own copy of the same lazy-instantiate
+            // call - otherwise a system assimilated into the local player's civ (Total Destruction,
+            // Borg assimilation combat) never gets a StarSysUIGameObject, and clicking it later
+            // crashes StarSysMenuUIController.UpdateFacilityUI/SetActiveSetParentUIGO.
+            if (GameController.Instance.AreWeLocalPlayer(newOwnerCivEnum) && StarSysManager.Instance != null)
+                StarSysManager.Instance.InstantiateStarSysUI(sysCon);
 
             Debug.Log($"[CivManager] {sysCon.StarSysData.SysName} assimilated by {newOwnerCivEnum} (was {previousOwnerCivEnum}).");
             GameEvents.SystemOwnershipChanged(sysCon.StarSysData.SysName, previousOwnerCivEnum, newOwnerCivEnum);

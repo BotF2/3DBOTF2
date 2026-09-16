@@ -188,6 +188,28 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             CmdTerraformSystem(fleetCon.netIdentity, starSysInt, transportShipID);
     }
 
+    /// <summary>
+    /// System Invasion Phase 1 §4.1 assault-mode decision - same relay shape as SubmitClaimSystem
+    /// above (see TimeManager.ServerAssaultDecision's comment for why the relay lives there).
+    /// </summary>
+    public void SubmitAssaultDecision(FleetController besiegingFleet, int starSysInt, AssaultMode mode)
+    {
+        if (isOwned && besiegingFleet != null)
+            CmdAssaultDecision(besiegingFleet.netIdentity, starSysInt, mode);
+    }
+
+    /// <summary>
+    /// System Invasion Phase 1 §4.2 Total Destruction conquest - relays just the ownership change
+    /// (see TimeManager.ServerTotalDestructionResolved's comment). Facility/population destruction
+    /// isn't relayed here - every peer's own PhaseBRealtimeResolutionCoroutine already applies it
+    /// identically from the same relayed AssaultMode decision (SubmitAssaultDecision above).
+    /// </summary>
+    public void SubmitTotalDestructionResolved(FleetController attackerFleet, int starSysInt)
+    {
+        if (isOwned && attackerFleet != null)
+            CmdTotalDestructionResolved(attackerFleet.netIdentity, starSysInt);
+    }
+
     public void SubmitColonizeSystem(FleetController fleetCon, int starSysInt, int transportShipID)
     {
         if (isOwned && fleetCon != null && transportShipID != 0)
@@ -422,6 +444,30 @@ public class LocalHumanPlayerController : NetworkBehaviour, IPlayerController
             return;
         }
         TimeManager.Instance.ServerClaimSystem(starSysInt, playerCiv);
+    }
+
+    [Command]
+    void CmdAssaultDecision(NetworkIdentity besiegingFleetIdentity, int starSysInt, AssaultMode mode)
+    {
+        FleetController besiegingFleet = besiegingFleetIdentity != null ? besiegingFleetIdentity.GetComponent<FleetController>() : null;
+        if (besiegingFleet == null || besiegingFleet.FleetData.CivEnum != playerCiv || mode == AssaultMode.None)
+        {
+            Debug.LogWarning($"CmdAssaultDecision: player {netId.GetHashCode()} (civ={playerCiv}) not authorized for mode={mode} via fleet '{besiegingFleet?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerAssaultDecision(starSysInt, besiegingFleetIdentity, mode);
+    }
+
+    [Command]
+    void CmdTotalDestructionResolved(NetworkIdentity attackerFleetIdentity, int starSysInt)
+    {
+        FleetController attackerFleet = attackerFleetIdentity != null ? attackerFleetIdentity.GetComponent<FleetController>() : null;
+        if (attackerFleet == null || attackerFleet.FleetData.CivEnum != playerCiv)
+        {
+            Debug.LogWarning($"CmdTotalDestructionResolved: player {netId.GetHashCode()} (civ={playerCiv}) not authorized via fleet '{attackerFleet?.name}'.");
+            return;
+        }
+        TimeManager.Instance.ServerTotalDestructionResolved(starSysInt, playerCiv);
     }
 
     [Command]
