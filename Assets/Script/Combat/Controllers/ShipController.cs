@@ -134,8 +134,9 @@ namespace BOTF3D.Combat
 
         internal void FireWeapons()
         {
-            // ✅ Safety checks: Don't fire if destroyed, captured, no target, or a transport
-            if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured || ShipData.ShipType == ShipType.Transport) return;
+            // ✅ Safety checks: Don't fire if destroyed, captured, unpowered (Orbital Battery only -
+            // see StarSysManager.GetCombatShipsForSystem), no target, or a transport
+            if (ShipData == null || ShipData.Distroyed || ShipData.IsCaptured || ShipData.IsUnpowered || ShipData.ShipType == ShipType.Transport) return;
             if (ShipData.TargetThisShipController == null ||
                 ShipData.TargetThisShipController.ShipData.Distroyed ||
                 !ShipData.TargetThisShipController.gameObject.activeInHierarchy) return;
@@ -198,7 +199,7 @@ namespace BOTF3D.Combat
             // target either), belt-and-suspenders here like Transport above. PlanetaryShield kept for
             // the same reason even though it's no longer spawned as a combat unit in Phase A.
             if (ShipData != null && (ShipData.ShipType == ShipType.Transport || ShipData.ShipType == ShipType.PlanetaryShield
-                                      || ShipData.ShipType == ShipType.Shipyard))
+                                      || ShipData.ShipType == ShipType.Shipyard || ShipData.IsUnpowered))
             {
                 yield break;
             }

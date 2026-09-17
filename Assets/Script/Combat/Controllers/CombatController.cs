@@ -228,6 +228,15 @@ namespace BOTF3D.Combat
 
             GameLogger.Log(GameLogger.LogCategory.Combat, "=== Starting Ship Setup ===", this);
 
+            // [SiegeResumeDiag] temporary - tracing a report of loaded ground-force troops
+            // vanishing from Transports; brackets each combat's start with per-transport cargo.
+            foreach (var s in CombatData.SideOneShipCons)
+                if (s?.ShipData != null && s.ShipData.ShipType == ShipType.Transport)
+                    Debug.Log($"[SiegeResumeDiag] PopulateShipData start: Side1 '{s.ShipData.ShipName}' LoadedGroundForces={s.ShipData.LoadedGroundForces}, CombatType={CombatData.CombatType}");
+            foreach (var s in CombatData.SideTwoShipCons)
+                if (s?.ShipData != null && s.ShipData.ShipType == ShipType.Transport)
+                    Debug.Log($"[SiegeResumeDiag] PopulateShipData start: Side2 '{s.ShipData.ShipName}' LoadedGroundForces={s.ShipData.LoadedGroundForces}, CombatType={CombatData.CombatType}");
+
             // Capture fleet refs before any ship deaths can occur during combat
             CaptureInvolvedFleets();
 
@@ -1002,6 +1011,23 @@ namespace BOTF3D.Combat
         /// </summary>
         private void ApplyTransportCargoConsequences()
         {
+            // [SiegeResumeDiag] temporary - tracing a report of loaded ground-force troops
+            // silently vanishing from Transports somewhere between loading them pre-siege and
+            // the Assault System panel later reading 0. Logs every Transport's cargo right
+            // before the one known automatic clear point (below) runs, tagged with CombatType so
+            // we can see whether isSystemFight is ever unexpectedly false for one of these fights.
+            void LogCargo(string label, List<ShipController> ships)
+            {
+                if (ships == null) return;
+                foreach (var s in ships)
+                {
+                    if (s?.ShipData == null || s.ShipData.ShipType != ShipType.Transport) continue;
+                    Debug.Log($"[SiegeResumeDiag] {label}: '{s.ShipData.ShipName}' LoadedGroundForces={s.ShipData.LoadedGroundForces}, CombatType={CombatData.CombatType}, StarSysCon={(CombatData.StarSysCon != null ? CombatData.StarSysCon.name : "null")}");
+                }
+            }
+            LogCargo("ApplyTransportCargoConsequences/SideOne", CombatData.SideOneShipCons);
+            LogCargo("ApplyTransportCargoConsequences/SideTwo", CombatData.SideTwoShipCons);
+
             ApplyTransportCargoConsequences(CombatData.SideOneShipCons);
             ApplyTransportCargoConsequences(CombatData.SideTwoShipCons);
         }

@@ -91,7 +91,14 @@ namespace BOTF3D.Combat
                     }
 
                     Debug.Log("✅ Combat finished. Processing next in queue...");
-                    yield return new WaitForSeconds(0.5f);
+                    // WaitForSeconds uses scaled time - Time.timeScale is 0 for the whole combat
+                    // sequence (see CLAUDE.md: "Combat uses Time.unscaledDeltaTime throughout - game
+                    // time is paused during combat resolution"), so this never completed once
+                    // timeScale was left at 0 coming out of a fight, permanently stalling this
+                    // coroutine with isProcessingCombat stuck true. Every later RequestCombat call
+                    // (e.g. clicking Combat again in the Diplomacy panel) then just silently
+                    // enqueued and was never processed - no scene transition, no error, nothing.
+                    yield return new WaitForSecondsRealtime(0.5f);
                 }
             }
 

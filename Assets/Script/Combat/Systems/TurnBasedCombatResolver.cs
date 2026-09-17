@@ -575,7 +575,14 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 // Borg have no diplomacy - they assimilate defended/attacked systems by winning combat instead.
                 if (winningCivEnum == CivEnum.BORG && combatData.StarSysCon != null)
                 {
+                    // [SiegeResumeDiag] temporary - confirming whether this legacy instant-assimilate
+                    // branch (predates the System Invasion siege system) actually transfers ownership,
+                    // or silently no-ops (e.g. CivManager.AssimilateSystem's Playable guard), which
+                    // would leave the system's owner unchanged and explain a Borg fleet still getting
+                    // routed into the Diplomacy popup on a later return to the same system.
+                    Debug.Log($"[SiegeResumeDiag] Borg won combat at '{combatData.StarSysCon.StarSysData?.SysName}' - owner before AssimilateSystem: {combatData.StarSysCon.StarSysData?.CurrentOwnerCivEnum}");
                     CivManager.Instance.AssimilateSystem(combatData.StarSysCon, CivEnum.BORG);
+                    Debug.Log($"[SiegeResumeDiag] owner after AssimilateSystem: {combatData.StarSysCon.StarSysData?.CurrentOwnerCivEnum}");
                 }
                 // System Invasion Phase 1 (Docs/Design/SystemInvasion_Phase1_Design.md §3.1/§4):
                 // every other civ starts a siege instead of assimilating outright. winningCivEnum !=
@@ -850,6 +857,24 @@ public float ResultsDisplayDuration = 2f;       // Quick results display
                 // Captured ship is destroyed — remove from its fleet so it never returns to the map
                 if (ship.ShipData.CurrentFleetController != null)
                     ship.ShipData.CurrentFleetController.RemoveShipFromFleet(ship);
+
+                // System-owned defense platforms (OB/Shipyard/PlanetaryShield) never carry a
+                // CurrentFleetController, so the removal above is a no-op for them - mirror
+                // ShipController.DestroyShip's cleanup here too, or a captured facility lingers
+                // forever in StarSysData.ShipsList (Distroyed=false, IsCaptured=true) and reads as
+                // a live defender to DiplomacyManager.FeetToSysNotSameCivNotFirstEncounter's
+                // siege-resume check.
+                if (ship.ShipData.CurrentStarSysController != null)
+                {
+                    ship.ShipData.CurrentStarSysController.RemoveFromShipList(ship);
+                    if (ship.ShipData.ShipType == ShipType.OrbitalBattery)
+                        ship.ShipData.CurrentStarSysController.RemoveOrbitalBatteryFacility();
+                    else if (ship.ShipData.ShipType == ShipType.PlanetaryShield)
+                        ship.ShipData.CurrentStarSysController.RemoveShieldGeneratorFacility();
+                    else if (ship.ShipData.ShipType == ShipType.Shipyard)
+                        ship.ShipData.CurrentStarSysController.RemoveShipyardFacility();
+                }
+
                 if (CombatManager.Instance != null)
                     CombatManager.Instance.RemoveThisShipController(ship);
             }

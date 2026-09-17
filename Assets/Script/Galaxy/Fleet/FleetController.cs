@@ -172,7 +172,20 @@ namespace BOTF3D.Galaxy
                 ServerSetBesiegingSystem(false);
                 return;
             }
-            StarSysManager.Instance?.EndSiege(sysCon);
+            // [SiegeResumeDiag] temporary - tracing a report of loaded ground-force troops
+            // vanishing from Transports somewhere in the siege/break-off/resume cycle.
+            if (FleetData?.ShipsList != null)
+            {
+                foreach (var s in FleetData.ShipsList)
+                {
+                    if (s?.ShipData == null || s.ShipData.ShipType != ShipType.Transport) continue;
+                    Debug.Log($"[SiegeResumeDiag] ServerBreakOffSiege: '{s.ShipData.ShipName}' LoadedGroundForces={s.ShipData.LoadedGroundForces} at moment of withdrawal.");
+                }
+            }
+
+            // Voluntary withdrawal only - the defender's ships/OB are still destroyed, so keep
+            // DefensesCleared true for a resumable siege on return (see EndSiege's param doc).
+            StarSysManager.Instance?.EndSiege(sysCon, keepDefensesClearedForResume: true);
             ServerMoveAwayFromSystem(sysCon);
             Debug.Log($"[Siege] '{name}' broke off the siege of '{sysCon.StarSysData?.SysName}'.");
         }
@@ -1022,6 +1035,12 @@ namespace BOTF3D.Galaxy
         }
         void OnTriggerEnter(Collider collider) // Not using OnCollisionEnter....
         {
+            // [SiegeResumeDiag] temporary - physically re-entering a system's trigger re-queues a
+            // fresh FleetVsSystem encounter (GalaxyEncounterQueue), which re-opens the Diplomacy UI
+            // and re-increments the pending-encounter freeze. Confirms whether combat-scene load is
+            // spuriously toggling colliders/rigidbodies and causing Unity to refire this on a fleet
+            // that never actually left the system's trigger volume.
+            Debug.Log($"[SiegeResumeDiag] OnTriggerEnter on '{name}' hit '{collider.gameObject.name}' at frame {Time.frameCount}, isServer={isServer}");
             if (FleetData != null)
             {
                 bool weAreLocalPlayer = gameController.AreWeLocalPlayer(this.FleetData.CivEnum);
@@ -1112,6 +1131,7 @@ namespace BOTF3D.Galaxy
                             // arrived in the same tick before resolving any of it, so two fleets that
                             // converge on each other simultaneously are drawn into the same decision
                             // instead of whichever collider fired first getting an initiative advantage.
+                            //
                             if (isServer)
                             {
                                 hitFleetCon.FleetData.CurrentWarpFactor = 0f; // stop them too
@@ -1211,7 +1231,24 @@ namespace BOTF3D.Galaxy
                             // Same server-authoritative reasoning as the fleet-vs-fleet branch above -
                             // always queue and let GalaxyEncounterQueue.ProcessPendingForThisTick group
                             // and resolve it, instead of resolving inline here.
-                            if (isServer)
+                            //
+                            // Skip re-queuing while this fleet is already awaiting resolution of an
+                            // encounter: SceneController.LoadCombatSceneAdditive deactivates every
+                            // Galaxy-scene root GameObject for the duration of combat and reactivates
+                            // them afterward (see HideAllFleets/the root-object sweep) - this fleet is
+                            // typically still sitting inside the system's trigger volume the whole
+                            // time (nothing moves it away for a Phase A fight, unlike Break Off Siege/
+                            // Phase B Repel's ServerMoveAwayFromSystem), so each SetActive(false)->
+                            // SetActive(true) cycle makes Unity refire OnTriggerEnter as if the fleet
+                            // had freshly arrived. Without this guard, clicking Combat against a
+                            // system's last defender spawned a second, spurious FleetVsSystem encounter
+                            // the moment the Combat scene loaded/unloaded - reopening the Diplomacy
+                            // panel, re-incrementing the pending-encounter freeze a second time, and
+                            // leaving the Fleet UI destination controls permanently frozen since that
+                            // extra increment was never matched by a decrement (confirmed via
+                            // [SiegeResumeDiag] logging: two OnTriggerEnter hits on the same system a
+                            // few hundred frames apart, immediately after RpcStartCombat).
+                            if (isServer && !IsAwaitingEncounterResolution)
                                 GalaxyEncounterQueue.Instance?.EnqueueFleetVsSystem(this, sysCon);
                         }
                         else
@@ -1350,8 +1387,19 @@ namespace BOTF3D.Galaxy
         private void HandleShipDeploySelection(FleetController clickedFleetCon)
         {
             if (clickedFleetCon != this) { return; }
-            MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;
+
+            // Clicking the very fleet that opened Deploy (FleetClickedShipDeployButton set this
+            // fleet as FleetLookingForShipDeploy) isn't a valid target - there's nothing to deploy a
+            // fleet's ships into itself. Previously this fell through with neither the
+            // fleet-to-fleet nor fleet-to-system branch below matching, yet still unconditionally hit
+            // ShowShipDeployMenuView() at the bottom with a half-set-up panel (top list from the
+            // original Deploy click, no bottom list ever assigned for this click) - reported as
+            // re-selecting the same fleet unexpectedly opening a menu. No-op entirely instead.
+            if (galaxyUI.FleetLookingForShipDeploy == this && galaxyUI.StarSystLookingForShipDeploy == null)
+                return;
+
+            MousePointerChanger.Instance.ResetCursor();
             galaxyUI.WhatFleetIsSelectedForShipDiploy(clickedFleetCon);
             var fleetLooking = galaxyUI.FleetLookingForShipDeploy;
             var starSysLooking = galaxyUI.StarSystLookingForShipDeploy;
@@ -2719,6 +2767,7 @@ namespace BOTF3D.Galaxy
         // client (host or non-host) called it.
         public void RequestStartCombat(FleetController otherFleetCon, StarSysController sysCon)
         {
+            Debug.Log($"[SiegeResumeDiag] RequestStartCombat called on '{name}' - isServer={isServer}, otherFleetCon={(otherFleetCon != null ? otherFleetCon.name : "null")}, sysCon={(sysCon != null ? sysCon.name : "null")}");
             if (isServer)
             {
                 ServerStartCombat(otherFleetCon, sysCon);
@@ -2751,7 +2800,7 @@ namespace BOTF3D.Galaxy
 
             if (!controlsThis && !controlsOther && !controlsSystem)
             {
-                Debug.LogWarning($"CmdRequestStartCombat: connection {sender?.connectionId} (civ {playerCon.PlayerCiv}) is not a combatant in this encounter - request ignored.");
+                Debug.LogWarning($"[SiegeResumeDiag] CmdRequestStartCombat: connection {sender?.connectionId} (civ {playerCon.PlayerCiv}) is not a combatant in this encounter - request ignored.");
                 return;
             }
 
@@ -2761,6 +2810,7 @@ namespace BOTF3D.Galaxy
         [Server]
         private void ServerStartCombat(FleetController otherFleetCon, StarSysController sysCon)
         {
+            Debug.Log($"[SiegeResumeDiag] ServerStartCombat running on '{name}' - otherFleetCon={(otherFleetCon != null ? otherFleetCon.name : "null")}, sysCon={(sysCon != null ? sysCon.name : "null")}, NetworkServer.active={NetworkServer.active}, NetworkClient.active={NetworkClient.active}");
             NetworkIdentity otherIdentity = otherFleetCon != null ? otherFleetCon.GetComponent<NetworkIdentity>() : null;
             string sysName = sysCon != null && sysCon.StarSysData != null ? sysCon.StarSysData.GetSysName() : null;
             RpcStartCombat(otherIdentity, sysName);
@@ -2787,6 +2837,8 @@ namespace BOTF3D.Galaxy
             StarSysController sysCon = !string.IsNullOrEmpty(starSysName) ? StarSysManager.Instance.GetStarSysControllerByName(starSysName) : null;
 
             CivEnum otherCiv = otherFleetCon != null ? otherFleetCon.FleetData.CivEnum : sysCon.StarSysData.CurrentOwnerCivEnum;
+
+            Debug.Log($"[SiegeResumeDiag] RpcStartCombat received on '{name}' - otherCiv={otherCiv}, FleetData.CivEnum={FleetData.CivEnum}, IsLocalPlayerACombatant={IsLocalPlayerACombatant(FleetData.CivEnum, otherCiv)}, sysCon={(sysCon != null ? sysCon.name : "null")}");
 
             // Bystander civs (no ships in this fight) stay on the Galaxy map instead of being
             // dragged into the Combat scene - see CmdRequestStartCombat's combatant check, which

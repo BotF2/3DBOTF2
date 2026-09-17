@@ -53,6 +53,11 @@ namespace BOTF3D.Combat
         public StarSysController CurrentStarSysController;
         public bool Distroyed = false;
         public bool IsCaptured = false; // Set when captured; ship takes no damage, fires no weapons, grants rewards at combat end
+        // Orbital Battery only - stamped fresh by StarSysManager.GetCombatShipsForSystem before each
+        // Phase A fight for whichever built OBs this system's current power budget doesn't cover.
+        // Still a full combat participant/target (can be damaged/destroyed normally) but cannot fire
+        // back - see ShipController.ShipFireLoop/FireWeapons.
+        public bool IsUnpowered = false;
         public bool IsScuttled = false; // Set before SelfDestruct() so the report distinguishes scuttled from combat-destroyed
         public Vector3 Position; // <-- Will we need to save a combat position?
 

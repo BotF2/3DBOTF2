@@ -3,6 +3,7 @@ using BOTF3D.Combat;
 using BOTF3D.UI;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using BOTF3D.Core;
 using BOTF3D.Galaxy;
@@ -930,7 +931,19 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
                         }
                         else
                         { // not first contact
-                            FeetToSysNotSameCivNotFirstEncounter(sideOneFleetCon, otherCivSysCon);
+                            // FeetToSysNotSameCivNotFirstEncounter takes a single fleet and
+                            // recomputes civPartyOne/Two itself from fleetA.FleetData.CivEnum, so it
+                            // always wants the real approaching fleet - never sideOneFleetCon, which
+                            // is fleetConEmpty (FleetData == null, never assigned above) whenever
+                            // reportingPlayerfleet's CivEnum is numerically >= the system owner's
+                            // (see the else branch just above). That produced a NullReferenceException
+                            // on fleetA.FleetData.CivEnum before the siege-resume bypass or
+                            // ServerDecrementPendingEncounters ever ran - fleet left frozen
+                            // (IsAwaitingEncounterResolution stuck true, Fleet UI destination/drag
+                            // unresponsive) with whatever Diplomacy popup was already up never
+                            // resolved. Playing a numerically high CivEnum (e.g. BORG=5) against any
+                            // lower-numbered civ's system hit this on every repeat encounter.
+                            FeetToSysNotSameCivNotFirstEncounter(reportingPlayerfleet, otherCivSysCon);
                             //IntelligenceManager.Instance.UpdateOurIntelController(civSideOne, sideOneFleetCon, civSideTwo, sideTwoFleetCon, otherCivSysCon);
                         }
                     }
@@ -1013,6 +1026,66 @@ public DiplomacyController ReturnADiplomacyController(CivController civPartyOne,
             if (diplomacyController != null)
             {
                 bool atPeace = diplomacyController.DiplomacyData.DiplomacyStatusEnumOfCivs >= DiplomacyStatusEnum.Neutral;
+
+                // A fleet re-approaching a system it already cleared (Phase A win, then a voluntary
+                // Break Off Siege - EndSiege's keepDefensesClearedForResume param) has nothing left
+                // to fight: DiplomacyStatusEnumOfCivs is NOT a reliable signal here (Combat() fires
+                // regardless of relation status, so a Neutral pair can already have fought each
+                // other), so don't gate on atPeace - use DefensesCleared/BesiegingCivEnum instead,
+                // which only this exact civ's earlier StartSiege call could have set. Without this,
+                // re-entering the system's collider fell through to the normal Diplomacy popup, and
+                // clicking Fight there silently no-op'd (DiplomacyController.ValidCombatCheck fails
+                // once every side has zero ships) - the System Assault button never came back because
+                // StartSiege was never called again. Resume the siege directly instead; StartSiege's
+                // own guard makes this safe even if this exact fleet is already besieging it.
+                //
+                // ShipsList.Count alone isn't the right test - it never reaches 0 while a docked
+                // home-system Transport sits there (ShipManager.BuildHomeSystemTransports;
+                // TurnBasedCombatResolver.IsCombatOver already excludes Transports from "alive"
+                // counts, but nothing ever removes a surviving Transport from the list). Only count
+                // combat-capable ships (confirmed via [SiegeResumeDiag] logging: DefensesCleared and
+                // BesiegingCivEnum matched correctly, but ShipsList.Count was 1 - the docked
+                // Transport - so this bypass never fired).
+                // A captured (not destroyed) system-owned facility - e.g. an Orbital Battery/Shipyard
+                // taken via TurnBasedCombatResolver.ApplyCaptureRewards - never carries a
+                // CurrentFleetController, so nothing removed it from StarSysData.ShipsList the way
+                // ShipController.DestroyShip does for an outright kill. Left uncounted here, that
+                // phantom entry (Distroyed=false, IsCaptured=true) permanently reads as a live
+                // defender and blocks the siege-resume bypass below forever, even after the system
+                // has genuinely nothing left to fight.
+                bool hasCombatCapableDefenders = sysCon.StarSysData.ShipsList != null
+                    && sysCon.StarSysData.ShipsList.Any(s => s?.ShipData != null && !s.ShipData.Distroyed
+                        && !s.ShipData.IsCaptured && s.ShipData.ShipType != ShipType.Transport);
+                // [SiegeResumeDiag] temporary - see matching tag in TurnBasedCombatResolver.
+                // ShowVictoryScreen. Confirms why the bypass below does/doesn't fire on this return.
+                Debug.Log($"[SiegeResumeDiag] Re-encounter at '{sysCon.StarSysData.SysName}': owner={sysCon.StarSysData.CurrentOwnerCivEnum}, DefensesCleared={sysCon.StarSysData.DefensesCleared}, BesiegingCivEnum={sysCon.StarSysData.BesiegingCivEnum}, fleetA.CivEnum={fleetA.FleetData?.CivEnum}, hasCombatCapableDefenders={hasCombatCapableDefenders}, atPeace={atPeace}, ResponseSideOne={diplomacyController.DiplomacyData.ResponseSideOne}, ResponseSideTwo={diplomacyController.DiplomacyData.ResponseSideTwo}, EncounterResolved={diplomacyController.DiplomacyData.EncounterResolved}");
+                // [SiegeResumeDiag] temporary - dump every ship still in the list so we can see
+                // exactly which entry (if any) is still reading as a live, non-Transport defender.
+                if (sysCon.StarSysData.ShipsList != null)
+                {
+                    foreach (var s in sysCon.StarSysData.ShipsList)
+                    {
+                        Debug.Log($"[SiegeResumeDiag]   ship='{s?.ShipData?.ShipName}' type={s?.ShipData?.ShipType} distroyed={s?.ShipData?.Distroyed} captured={s?.ShipData?.IsCaptured} activeInHierarchy={(s != null ? s.gameObject.activeInHierarchy : (bool?)null)}");
+                    }
+                }
+                if (sysCon.StarSysData.DefensesCleared
+                    && sysCon.StarSysData.BesiegingCivEnum == fleetA.FleetData.CivEnum
+                    && !hasCombatCapableDefenders)
+                {
+                    StarSysManager.Instance?.StartSiege(sysCon, fleetA);
+                    // Release the pending-encounter freeze (same as the atPeace branch below) - this
+                    // resolves the encounter without a Diplomacy decision, and StartSiege's own
+                    // IsBesiegingSystem freeze is what should hold the fleet in place from here, not
+                    // this one. Left incremented, IsAwaitingEncounterResolution would still block
+                    // movement forever even after a later Break Off Siege ends the resumed siege.
+                    fleetA.ServerDecrementPendingEncounters();
+                    // Same refresh SiegeDecisionUIController's OnWithdraw already relies on to make
+                    // Break Off Siege's button-label swap take effect immediately - without it, the
+                    // Fleet UI panel (if already open) wouldn't show Assault System again until the
+                    // player closed and reopened it.
+                    FleetMenuUIController.Instance?.SetupFleetUIData();
+                    return;
+                }
 
                 // ✅ FIX: re-arm the reused DiplomacyController as a genuinely pending decision
                 // before anything below can look at it, same as DeclareWar's "re-arm" reset.

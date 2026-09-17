@@ -1660,7 +1660,19 @@ namespace BOTF3D.Galaxy
         /// alive (a destroyed FleetController compares equal to null via Unity's overridden ==, so
         /// the null-conditional below correctly skips a fleet that died mid-siege instead of throwing).
         /// </summary>
-        public void EndSiege(StarSysController sysCon)
+        /// <param name="keepDefensesClearedForResume">
+        /// True only for a voluntary Break Off Siege (FleetController.ServerBreakOffSiege): the
+        /// defender's ships/orbital batteries are still physically destroyed, so leave
+        /// DefensesCleared true (BesiegingCivEnum already identifies which civ earned it) instead of
+        /// resetting it, letting DiplomacyManager.FeetToSysNotSameCivNotFirstEncounter resume the
+        /// siege directly the next time this same civ's fleet re-approaches, instead of dead-ending
+        /// in a Diplomacy popup whose Combat button can never find anything left to fight
+        /// (DiplomacyController.ValidCombatCheck). False (the default) for every other ending -
+        /// Repelled/MutualElimination/DefendersEliminatedNoTroops (the attacker is gone, nothing to
+        /// resume) and Captured (ownership changed, so a future siege is against a new owner who may
+        /// rebuild real defenses - a stale true here would wrongly let combat be skipped then).
+        /// </param>
+        public void EndSiege(StarSysController sysCon, bool keepDefensesClearedForResume = false)
         {
             if (sysCon?.StarSysData == null) return;
             var data = sysCon.StarSysData;
@@ -1672,7 +1684,8 @@ namespace BOTF3D.Galaxy
                     data.BesiegingFleet.FleetData.BesiegedSystem = null;
             }
             data.BesiegingFleet = null;
-            data.DefensesCleared = false;
+            if (!keepDefensesClearedForResume)
+                data.DefensesCleared = false;
             data.AssaultMode = AssaultMode.None;
             data.PhaseBCollateralAccum = 0f;
             // Stage-gating flags must reset so a later siege on this same system starts clean —
@@ -2333,45 +2346,58 @@ namespace BOTF3D.Galaxy
         }
 
         /// <summary>
-        /// Closes the participation gap EnsureOrbitalBatteryShipsForCombat deliberately leaves open
-        /// (see that method's comment): this system's full ShipsList always contains one combat
-        /// ShipController per BUILT OB, regardless of power state, because removing one between
-        /// combats risks the monotonic "only ever adds" invariant elsewhere. Rather than remove
-        /// anything, this returns a fresh, filtered COPY for one combat's roster - every
-        /// non-OB/non-Shield ship unconditionally (Shipyard included - it's the physical asset Phase A
-        /// is fought over, not a discretionary defense toggle, so it's never power-gated out of the
-        /// fight), plus only as many OB units as ReallocatePowerForCombat's on/off split actually
-        /// powered on this time. The un-selected excess OB ShipControllers are simply left out of THIS
-        /// fight - still present, untouched, in StarSysData.ShipsList for the next combat, whenever
-        /// power/build state next changes. Call after ReallocatePowerForCombat (so the on/off split is
-        /// current) and after EnsureOrbitalBatteryShipsForCombat/EnsureShipyardShipsForCombat (so
-        /// there are enough ShipControllers to select from - always true, since built count is always
-        /// &gt;= powered-on count). Docs/Design/SystemInvasion_Phase1_Design.md §3, 2026-09-11 revision.
+        /// Returns a fresh, filtered COPY of this system's combat roster for one Phase A fight -
+        /// every non-Shield ship (Shipyard and Orbital Battery both included unconditionally). An
+        /// Orbital Battery is a physical platform sitting in orbit regardless of whether its power
+        /// toggle is on or off - "powered off" only ever meant "not drawing from the system's power
+        /// budget for its own upkeep," not "not there," so it was never a legitimate reason for the
+        /// attacking fleet to be unable to find and destroy it. Previously this capped OB
+        /// participation to ReallocatePowerForCombat's on/off split, which left any OB beyond that
+        /// cap permanently unfightable and unkillable - a fleet could "clear" a system's Phase A
+        /// defenses and win the siege-eligible victory screen while one or more OBs sat completely
+        /// untouched in StarSysData.ShipsList forever after, soft-locking the system's siege-resume
+        /// check (DiplomacyManager.FeetToSysNotSameCivNotFirstEncounter) and the Diplomacy panel's
+        /// Combat button (DiplomacyController.ValidCombatCheck) into never agreeing the defenses were
+        /// actually clear. Docs/Design/SystemInvasion_Phase1_Design.md §3, 2026-09-11 revision.
+        ///
+        /// Power still matters, just not for participation: any OB beyond ReallocatePowerForCombat's
+        /// on/off split is stamped ShipData.IsUnpowered so it enters the fight as a fully valid,
+        /// destructible target but can't fire back (ShipController.ShipFireLoop/FireWeapons check the
+        /// flag) - an unpowered battery is still there to be shot at, it just has nothing driving its
+        /// weapons.
         /// </summary>
         public List<ShipController> GetCombatShipsForSystem(StarSysController starSysCon)
         {
             var data = starSysCon?.StarSysData;
             if (data?.ShipsList == null) return new List<ShipController>();
 
-            int obSlots = NumFacilitiesPoweredOn(data, StarSysFacilityType.OrbitalBattery);
+            int poweredObSlots = NumFacilitiesPoweredOn(data, StarSysFacilityType.OrbitalBattery);
 
             var result = new List<ShipController>();
             foreach (var s in data.ShipsList)
             {
                 if (s == null || s.ShipData == null) continue;
 
-                if (s.ShipData.ShipType == ShipType.OrbitalBattery)
-                {
-                    if (obSlots <= 0) continue;
-                    obSlots--;
-                }
-                else if (s.ShipData.ShipType == ShipType.PlanetaryShield)
+                if (s.ShipData.ShipType == ShipType.PlanetaryShield)
                 {
                     // Planetary Shields no longer participate in Phase A space combat (System
                     // Invasion Phase 1, 2026-09-11 revision) - they protect ground-side facilities
                     // in Phase B instead. Excluded here in case a stray one exists from before this
                     // change (EnsureShieldUnitsForCombat is no longer called on Phase A entry).
                     continue;
+                }
+
+                if (s.ShipData.ShipType == ShipType.OrbitalBattery)
+                {
+                    if (poweredObSlots > 0)
+                    {
+                        poweredObSlots--;
+                        s.ShipData.IsUnpowered = false;
+                    }
+                    else
+                    {
+                        s.ShipData.IsUnpowered = true;
+                    }
                 }
 
                 result.Add(s);

@@ -1073,6 +1073,19 @@ namespace BOTF3D.Galaxy
         private void HandleShipDeploySelection(StarSysController clickedSystemCon)
         {
             if (clickedSystemCon != this) return;
+
+            // Clicking the very system that opened Deploy (StarSysClickShipDeployButton set this
+            // system as StarSystLookingForShipDeploy) isn't a valid target - there's nothing to
+            // deploy a system's ships into itself. Without this, the branch below (fleetLooking ==
+            // null && starSysLooking != null) matched anyway since starSysLooking == this is still
+            // non-null, opening a bogus system-to-system deploy view with the same system parented
+            // as both source and target - reported as re-selecting the same system unexpectedly
+            // opening a menu. No-op entirely instead, matching HandleMergeSelection's existing
+            // starSysLooking != this guard on its own system-to-system branch.
+            if (GalaxyMenuUIController.Instance.FleetLookingForShipDeploy == null
+                && GalaxyMenuUIController.Instance.StarSystLookingForShipDeploy == this)
+                return;
+
             deployNotMerge = true;
             MousePointerChanger.Instance.ResetCursor();
             var galaxyUI = GalaxyMenuUIController.Instance;

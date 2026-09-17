@@ -282,8 +282,19 @@ namespace BOTF3D.Galaxy
                     // alive, so a stale event never leaves either dangling.
                     bool stillUnderSiege = evt.Fleet != null && evt.System != null && evt.System.StarSysData != null
                         && evt.System.StarSysData.DefensesCleared && evt.System.StarSysData.BesiegingFleet == evt.Fleet;
-                    if (!stillUnderSiege)
-                        StarSysManager.Instance?.EndSiege(evt.System);
+                    if (!stillUnderSiege && evt.System?.StarSysData != null)
+                    {
+                        // BesiegingFleet already null means a real EndSiege call (Break Off Siege,
+                        // repel, capture) already ran and already made the correct
+                        // keepDefensesClearedForResume decision for however this actually ended -
+                        // don't re-decide it here (defaulting to false would wrongly wipe a voluntary
+                        // Break Off Siege's resumable DefensesCleared=true). Only a genuinely
+                        // uncleaned siege (fleet destroyed by something else, real EndSiege never
+                        // called) still has BesiegingFleet set, and that case keeps the old
+                        // reset-to-false default - there's no fleet left to ever resume anyway.
+                        bool alreadyHandled = evt.System.StarSysData.BesiegingFleet == null;
+                        StarSysManager.Instance?.EndSiege(evt.System, keepDefensesClearedForResume: alreadyHandled);
+                    }
                     return stillUnderSiege;
                 case TurnEventType.SiegeDefenseNotify:
                     return evt.System != null && evt.System.StarSysData != null

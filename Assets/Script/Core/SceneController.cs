@@ -120,6 +120,20 @@ namespace BOTF3D.Core
         /// </summary>
         public void LoadCombatScene(FleetController playerFleet, FleetController enemyFleet, StarSysController starSysCon)
         {
+            Debug.Log($"[SiegeResumeDiag] === SceneController: LoadCombatScene === playerFleet={(playerFleet != null ? playerFleet.name : "null")}, enemyFleet={(enemyFleet != null ? enemyFleet.name : "null")}, starSysCon={(starSysCon != null ? starSysCon.name : "null")}");
+            try
+            {
+                LoadCombatSceneInner(playerFleet, enemyFleet, starSysCon);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[SiegeResumeDiag] LoadCombatScene threw: {ex}");
+                throw;
+            }
+        }
+
+        private void LoadCombatSceneInner(FleetController playerFleet, FleetController enemyFleet, StarSysController starSysCon)
+        {
             Debug.Log("=== SceneController: LoadCombatScene ===");
 
             // ✅ Hide diplomacy UI before combat (use EXISTING method)
@@ -166,6 +180,7 @@ namespace BOTF3D.Core
                 combatType = CombatType.FleetVsSystem;
                 Debug.Log($"  Enemy fleet null and '{playerFleet.name}' in combat with '{starSysCon.name}' ShipControllers");
             }
+            Debug.Log($"[SiegeResumeDiag] LoadCombatScene: combatType={combatType}, shipControllers1.Count={shipControllers1?.Count}, shipControllers2.Count={shipControllers2?.Count}, gameObject.activeInHierarchy={gameObject.activeInHierarchy}");
             // Start combat scene load coroutine
             StartCoroutine(LoadCombatSceneAdditive(shipControllers1, shipControllers2, combatType, starSysCon));
         }

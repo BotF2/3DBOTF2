@@ -1,6 +1,7 @@
 using BOTF3D.Core;
 using BOTF3D.UI;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using BOTF3D.Combat;
 using BOTF3D.Galaxy;
@@ -669,10 +670,21 @@ namespace BOTF3D.Civilization
         }
         public void Combat(DiplomacyController diplomacyController)
         {
+            // [SiegeResumeDiag] temporary - CombatButton click entry point. If this line never
+            // prints, the click isn't reaching here at all (button inactive/unwired). If it prints
+            // and CombatIntiated is already true, the one-shot latch (meant to be reset by
+            // FleetController.RpcCombatEnded when the PREVIOUS fight against this civ pair ended)
+            // never got cleared, and every later Fight click against this civ pair silently no-ops.
+            Debug.Log($"[SiegeResumeDiag] DiplomacyController.Combat() clicked - CombatIntiated={diplomacyController.DiplomacyData.CombatIntiated}");
             if (diplomacyController.DiplomacyData.CombatIntiated == true) return;
 
             // ToDo: include orbital batteries and shields in combat, see ValidCombatCheck()
-            if (!ValidCombatCheck(diplomacyController.DiplomacyData))
+            bool validCombat = ValidCombatCheck(diplomacyController.DiplomacyData);
+            Debug.Log($"[SiegeResumeDiag] ValidCombatCheck={validCombat} " +
+                $"FleetControllerCivOne={(diplomacyController.DiplomacyData.FleetControllerCivOne != null ? "set" : "null")} " +
+                $"FleetContollerCivTwo={(diplomacyController.DiplomacyData.FleetContollerCivTwo != null ? "set" : "null")} " +
+                $"StarSysController={(diplomacyController.DiplomacyData.StarSysController != null ? diplomacyController.DiplomacyData.StarSysController.StarSysData.SysName : "null")}");
+            if (!validCombat)
             {
                 // Fight was decided (see TryResolveEncounter) but there's nothing to actually
                 // fight - e.g. an AI civ's system with no docked defenders and no separate
@@ -695,7 +707,7 @@ namespace BOTF3D.Civilization
             // ✅ Force close ALL menus to prevent UI conflicts
             GalaxyMenuUIController.Instance.CloseAllMenus();
 
-            Debug.Log($"✅ Diplomacy closed, requesting combat scene...");
+            Debug.Log($"[SiegeResumeDiag] ✅ Diplomacy closed, requesting combat scene...");
 
             // SceneController.LoadCombatScene is not itself networked - it's a purely local scene
             // load. RequestStartCombat must be called on a real, network-spawned FleetController;
@@ -731,18 +743,31 @@ namespace BOTF3D.Civilization
             // be null-checked here too, not just the FleetController reference itself.
             bool sideOneHasShips = diplomacyData.FleetControllerCivOne != null &&
                 diplomacyData.FleetControllerCivOne.FleetData != null &&
-                diplomacyData.FleetControllerCivOne.FleetData.ShipsList.Count > 0;
+                HasCombatCapableShips(diplomacyData.FleetControllerCivOne.FleetData.ShipsList);
             bool sideTwoHasShips = diplomacyData.FleetContollerCivTwo != null &&
                 diplomacyData.FleetContollerCivTwo.FleetData != null &&
-                diplomacyData.FleetContollerCivTwo.FleetData.ShipsList.Count > 0;
+                HasCombatCapableShips(diplomacyData.FleetContollerCivTwo.FleetData.ShipsList);
             bool systemHasShips = diplomacyData.StarSysController != null &&
                 diplomacyData.StarSysController.StarSysData != null &&
-                diplomacyData.StarSysController.StarSysData.ShipsList.Count > 0;
+                HasCombatCapableShips(diplomacyData.StarSysController.StarSysData.ShipsList);
 
             return (sideOneHasShips && sideTwoHasShips) ||
                    (sideOneHasShips && systemHasShips) ||
                    (sideTwoHasShips && systemHasShips);
         }
+
+        // A plain ShipsList.Count > 0 counts docked, non-combatant Transports as "has ships" -
+        // TurnBasedCombatResolver.IsCombatOver already excludes Transports from its "alive" counts
+        // (they never fight), so a system/fleet whose only remaining ship is a Transport has nothing
+        // to actually contest. Without this, a fleet re-approaching a system it already cleared of
+        // real combatants (only a docked home-system Transport left - ShipManager.
+        // BuildHomeSystemTransports) got routed into a real Combat scene against that lone Transport,
+        // which TurnBasedCombatResolver's order-selection has no orders to ever resolve for - the
+        // reported symptom was the whole game hanging (Fleet UI destination controls unresponsive,
+        // Advance Turn doing nothing) rather than a clean "nothing to fight" no-op.
+        private static bool HasCombatCapableShips(List<ShipController> ships) =>
+            ships != null && ships.Any(s => s?.ShipData != null && !s.ShipData.Distroyed && !s.ShipData.IsCaptured
+                && s.ShipData.ShipType != ShipType.Transport);
 
         internal void ResolveFleetToStrangGalacticEncounter(DiplomacyController diplomacyController)
         {
