@@ -33,5 +33,12 @@ namespace BOTF3D.UI
         {
             if (img != null) img.color = Normal;
         }
+
+        /// <summary>Shows or hides the Prohibited overlay child Image for a step. No-op if overlay is null.</summary>
+        public static void SetEliminated(Image overlay, bool eliminated)
+        {
+            if (overlay == null) return;
+            overlay.gameObject.SetActive(eliminated);
+        }
     }
 }

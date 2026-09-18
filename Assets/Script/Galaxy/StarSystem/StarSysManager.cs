@@ -1546,7 +1546,7 @@ namespace BOTF3D.Galaxy
             // see the doc's implementation notes.
             int builtCount = starSysCon.StarSysData.OrbitalBatteries?.Count ?? 0;
             int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
-                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.OrbitalBattery);
+                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.OrbitalBattery && !s.ShipData.Distroyed);
 
             for (int i = existingCount; i < builtCount; i++)
             {
@@ -1593,7 +1593,7 @@ namespace BOTF3D.Galaxy
 
             int builtCount = starSysCon.StarSysData.Shipyards?.Count ?? 0;
             int existingCount = starSysCon.StarSysData.ShipsList.Count(s =>
-                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.Shipyard);
+                s != null && s.ShipData != null && s.ShipData.ShipType == ShipType.Shipyard && !s.ShipData.Distroyed);
 
             for (int i = existingCount; i < builtCount; i++)
             {
@@ -1688,12 +1688,11 @@ namespace BOTF3D.Galaxy
                 data.DefensesCleared = false;
             data.AssaultMode = AssaultMode.None;
             data.PhaseBCollateralAccum = 0f;
-            // Stage-gating flags must reset so a later siege on this same system starts clean —
-            // InitializePhaseB doesn't reset PhaseBPowerPlantsDown/PhaseBTroopsLanded itself (only
-            // PhaseBShieldsDown), so a stale true here would make the next assault skip a sub-stage.
-            data.PhaseBShieldsDown = false;
-            data.PhaseBPowerPlantsDown = false;
-            data.PhaseBTroopsLanded = false;
+            // Display flags (PhaseBShieldsDown/PhaseBPowerPlantsDown/PhaseBTroopsLanded) are NOT
+            // reset here — the coroutine calls RefreshStats/ShowOutcome immediately after EndSiege,
+            // and resetting them here would blank the shield/power overlays on the final panel
+            // snapshot (the exact bug that motivated this comment). InitializePhaseB resets all
+            // three when the next siege on this system begins, which is the correct clean-up point.
             // Deliberately NOT zeroing the HP pools themselves (PhaseBShieldHP/PowerPlantHP/
             // InfrastructureHP/TroopHP/AttackerTroopHP and their MaxHP pairs): whatever this siege's
             // last tick left them at is exactly the progress-sprite terminal state the panels should
@@ -1850,6 +1849,7 @@ namespace BOTF3D.Galaxy
             data.PhaseBCollateralAccum = 0f;
             data.PhaseBShieldsDown = false;
             data.PhaseBPowerPlantsDown = false;
+            data.PhaseBTroopsLanded = false;
 
             float hpPerTroop = GroundForceData.GetUnitMaxHP(defCiv, defTech, defQuality, defHasWarp);
             data.PhaseBTroopHP = data.PhaseBTroopMaxHP = data.GroundForces.Count * hpPerTroop;
@@ -2386,6 +2386,8 @@ namespace BOTF3D.Galaxy
                     // change (EnsureShieldUnitsForCombat is no longer called on Phase A entry).
                     continue;
                 }
+
+                if (s.ShipData.Distroyed) continue;
 
                 if (s.ShipData.ShipType == ShipType.OrbitalBattery)
                 {

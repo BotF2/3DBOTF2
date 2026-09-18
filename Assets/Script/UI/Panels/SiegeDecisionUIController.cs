@@ -102,6 +102,16 @@ namespace BOTF3D.UI
         [SerializeField] private Image troopProgressImage;
         [SerializeField] private Image landedTroopProgressImage;
         [SerializeField] private Image ownerInsigniaImage;
+        private CivEnum _openingOwnerCiv;
+
+        [Header("Prohibited overlays — child Images under each progress icon, activated when that element is eliminated")]
+        [SerializeField] private Image shieldProhibitedOverlay;
+        [SerializeField] private Image powerProhibitedOverlay;
+        [SerializeField] private Image facilitiesProhibitedOverlay;
+        [SerializeField] private Image populationProhibitedOverlay;
+        [SerializeField] private Image troopProhibitedOverlay;
+        [SerializeField] private Image landedTroopProhibitedOverlay;
+        [SerializeField] private Image fleetProhibitedOverlay;
 
         [Header("Buttons")]
         [SerializeField] private Button withdrawButton;
@@ -177,6 +187,10 @@ namespace BOTF3D.UI
             currentFleet = fleet;
 
             var data = sysCon?.StarSysData;
+            _openingOwnerCiv = data != null ? data.CurrentOwnerCivEnum : default;
+            if (ownerInsigniaImage != null)
+                ownerInsigniaImage.rectTransform.sizeDelta = new Vector2(32f, 32f);
+
             if (sysNameLabel != null)
                 sysNameLabel.text = data?.SysName ?? "Unknown System";
             if (ownerLabel != null)
@@ -337,7 +351,7 @@ namespace BOTF3D.UI
 
             // Defending troop count
             if (sysTroopsText != null)
-                sysTroopsText.text = $"Def. Troops: {data.GroundForces?.Count ?? 0}";
+                sysTroopsText.text = $"Defending Troops: {data.GroundForces?.Count ?? 0}";
 
             // Troops currently loaded across all transports
             if (transportTroopsText != null)
@@ -349,13 +363,46 @@ namespace BOTF3D.UI
                 transportTroopsText.text = $"Transport Troops: {loaded}";
             }
 
-            // Landed attacker troops (only meaningful once Phase B ground phase starts)
+            // Landed attacker troops — before landing shows transport ready count (0 if none loaded);
+            // after landing shows unit count + HP (initial → current); 0 once all eliminated.
             if (landedTroopText != null)
             {
                 if (data.PhaseBTroopsLanded)
-                    landedTroopText.text = $"Landed Troops: {data.PhaseBAttackerTroopHP:F0} HP";
+                {
+                    if (data.PhaseBAttackerTroopHP > 0)
+                    {
+                        CivEnum atkCiv = data.BesiegingCivEnum;
+                        TechLevel atkTech = TechLevel.EARLY;
+                        int atkQuality = 5;
+                        bool atkHasWarp = true;
+                        if (fleet != null && fleet.FleetData != null && fleet.FleetData.CivController != null)
+                        {
+                            var civData = fleet.FleetData.CivController.CivData;
+                            if (civData != null)
+                            {
+                                atkTech = civData.CurrentTechLevel;
+                                atkQuality = civData.QualityScore;
+                                atkHasWarp = civData.HasWarp;
+                            }
+                        }
+                        float hpPer = Mathf.Max(1f, GroundForceData.GetUnitMaxHP(atkCiv, atkTech, atkQuality, atkHasWarp));
+                        int curUnits = Mathf.CeilToInt(data.PhaseBAttackerTroopHP / hpPer);
+                        int maxUnits = Mathf.RoundToInt(data.PhaseBAttackerTroopMaxHP / hpPer);
+                        landedTroopText.text = $"Landed Troops: {curUnits}/{maxUnits} units ({data.PhaseBAttackerTroopHP:F0}/{data.PhaseBAttackerTroopMaxHP:F0} HP)";
+                    }
+                    else
+                    {
+                        landedTroopText.text = "Landed Troops: 0";
+                    }
+                }
                 else
-                    landedTroopText.text = "Landed Troops: —";
+                {
+                    int loaded = 0;
+                    if (fleet != null && fleet.FleetData != null && fleet.FleetData.ShipsList != null)
+                        foreach (var s in fleet.FleetData.ShipsList)
+                            if (s != null && s.ShipData != null) loaded += s.ShipData.LoadedGroundForces;
+                    landedTroopText.text = loaded > 0 ? $"Landed Troops: {loaded} ready" : "Landed Troops: 0";
+                }
             }
 
             // Power plants remaining — plain count, not output; updates as Target Power/Total
@@ -392,7 +439,7 @@ namespace BOTF3D.UI
                 foreach (var s in ships)
                     RefreshShipHullBar(s);
 
-            UpdateProgressSprites(data);
+            UpdateProgressSprites(data, fleet);
         }
 
         /// <summary>
@@ -430,38 +477,73 @@ namespace BOTF3D.UI
         /// swaps to the current owner's civ the moment ownership actually flips (CurrentOwnerCivEnum).
         /// See SystemInvasion_Phase1_Design.md §14/§15 for the full per-mode step breakdown.
         /// </summary>
-        private void UpdateProgressSprites(StarSysData data)
+        private void UpdateProgressSprites(StarSysData data, FleetController fleet)
         {
             PhaseBProgressUI.SetProgress(shieldProgressImage, data.PhaseBShieldHP, data.PhaseBShieldMaxHP);
+            PhaseBProgressUI.SetEliminated(shieldProhibitedOverlay, data.PhaseBShieldsDown);
+
             PhaseBProgressUI.SetProgress(troopProgressImage, data.PhaseBTroopHP, data.PhaseBTroopMaxHP);
+            PhaseBProgressUI.SetEliminated(troopProhibitedOverlay, data.PhaseBTroopHP <= 0f && data.PhaseBTroopMaxHP > 0f);
 
             bool powerTargeted = data.AssaultMode == AssaultMode.TargetPower || data.AssaultMode == AssaultMode.TotalDestruction;
             if (powerTargeted)
+            {
                 PhaseBProgressUI.SetProgress(powerProgressImage, data.PhaseBPowerPlantHP, data.PhaseBPowerPlantMaxHP);
+                PhaseBProgressUI.SetEliminated(powerProhibitedOverlay, data.PhaseBPowerPlantHP <= 0f && data.PhaseBPowerPlantMaxHP > 0f);
+            }
             else
+            {
                 PhaseBProgressUI.SetNormal(powerProgressImage);
+                PhaseBProgressUI.SetEliminated(powerProhibitedOverlay, false);
+            }
 
             if (data.AssaultMode == AssaultMode.TotalDestruction)
             {
                 PhaseBProgressUI.SetProgress(facilitiesProgressImage, data.PhaseBInfrastructureHP, data.PhaseBInfrastructureMaxHP);
                 PhaseBProgressUI.SetProgress(populationProgressImage, data.PhaseBInfrastructureHP, data.PhaseBInfrastructureMaxHP);
+                bool infraEliminated = data.PhaseBInfrastructureHP <= 0f && data.PhaseBInfrastructureMaxHP > 0f;
+                PhaseBProgressUI.SetEliminated(facilitiesProhibitedOverlay, infraEliminated);
+                PhaseBProgressUI.SetEliminated(populationProhibitedOverlay, infraEliminated);
             }
             else
             {
                 PhaseBProgressUI.SetNormal(facilitiesProgressImage);
                 PhaseBProgressUI.SetNormal(populationProgressImage);
+                PhaseBProgressUI.SetEliminated(facilitiesProhibitedOverlay, false);
+                PhaseBProgressUI.SetEliminated(populationProhibitedOverlay, false);
             }
 
             if (data.PhaseBTroopsLanded)
+            {
                 PhaseBProgressUI.SetProgress(landedTroopProgressImage, data.PhaseBAttackerTroopHP, data.PhaseBAttackerTroopMaxHP);
+                PhaseBProgressUI.SetEliminated(landedTroopProhibitedOverlay, data.PhaseBAttackerTroopHP <= 0f && data.PhaseBAttackerTroopMaxHP > 0f);
+            }
             else
+            {
                 PhaseBProgressUI.SetNormal(landedTroopProgressImage);
+                PhaseBProgressUI.SetEliminated(landedTroopProhibitedOverlay, false);
+            }
 
             if (ownerInsigniaImage != null)
             {
                 var sprite = data.CurrentCivController?.CivData?.InsigniaSprite;
                 if (sprite != null) ownerInsigniaImage.sprite = sprite;
+                bool ownerChanged = data.CurrentOwnerCivEnum != _openingOwnerCiv;
+                ownerInsigniaImage.rectTransform.sizeDelta = ownerChanged
+                    ? new Vector2(128f, 128f)
+                    : new Vector2(32f, 32f);
             }
+
+            var shipsList = fleet?.FleetData?.ShipsList;
+            bool fleetEliminated = false;
+            if (shipsList != null && shipsList.Count > 0)
+            {
+                int alive = 0;
+                foreach (var s in shipsList)
+                    if (s?.ShipData != null && !s.ShipData.Distroyed) alive++;
+                fleetEliminated = alive == 0;
+            }
+            PhaseBProgressUI.SetEliminated(fleetProhibitedOverlay, fleetEliminated);
         }
 
         /// <summary>Stops the entry-gate countdown — called whenever the panel closes for any reason.</summary>
